@@ -26,6 +26,11 @@ func FuzzFind(f *testing.F) {
 	f.Add("read(", "read", 0)
 	f.Add("read: {}", "read", 0)
 	f.Add(strings.Repeat("{", 64), "read", 0)
+	f.Add("<think>", "read", 0)
+	f.Add("</think>", "read", 0)
+	f.Add("<think><think></think>", "read", 0)
+	f.Add("<think>"+`<tool_call>{"name": "read", "arguments": {}}</tool_call>`+"</think>", "read", 0)
+	f.Add(strings.Repeat("<think>", 64), "read", 0)
 	f.Add(`{"name": "read", "arguments": {"a": "\"}`, "read", 0)
 	f.Add("<tool_call>{\"name\": \"read\"}", strings.Repeat("r", 4096), 0)
 

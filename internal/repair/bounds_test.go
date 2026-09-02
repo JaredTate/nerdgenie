@@ -85,6 +85,24 @@ func TestUnbalancedBracesAreRefusedRatherThanSearchedForever(t *testing.T) {
 	}
 }
 
+func TestThinkingThatIsStillOpenAtTheSearchingCapSwallowsTheTail(t *testing.T) {
+	filler := strings.Repeat("x", repair.MaxSearchedBytes)
+
+	result := repair.Find(contract.Reply{Text: "Before.\n<think>" + filler + "\nstill thinking"}, testSpecs(), 0)
+
+	if result.Text != "Before." {
+		t.Errorf("the answer is %d characters long, want only what was written before the thinking began", len(result.Text))
+	}
+}
+
+func TestThinkingThatClosesInsideTheSearchedTextKeepsTheTail(t *testing.T) {
+	result := repair.Find(contract.Reply{Text: "Before.\n<think>hidden</think>\nAfter."}, testSpecs(), 0)
+
+	if result.Text != "Before.\nAfter." {
+		t.Errorf("the answer is %q, want what was written on either side of the thinking", result.Text)
+	}
+}
+
 func TestAnEmptyReplyProducesNothingAtAll(t *testing.T) {
 	result := repair.Find(contract.Reply{}, testSpecs(), 0)
 

@@ -74,12 +74,13 @@ type Result struct {
 // count and this package only applies the rule that comes with it.
 func Find(reply contract.Reply, specs []contract.ToolSpec, failedParses int) Result {
 	searched, tail := splitAtCap(reply.Text)
-	visible, thinkingRunsOn := withoutThinking(searched)
+	pieces, thinkingRunsOn := withoutThinking(searched)
 	if thinkingRunsOn {
 		// The thinking never ended inside the text that was searched, so the
 		// rest of the reply is thinking too and none of it is the answer.
 		tail = ""
 	}
+	visible := joinSegments(pieces, "")
 	answer := joinSegments([]string{visible}, tail)
 
 	if len(reply.ToolCalls) > 0 {

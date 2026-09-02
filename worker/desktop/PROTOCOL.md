@@ -198,8 +198,8 @@ Response: `{"jsonrpc":"2.0","id":4,"result":{"titleChanged":false,"title":"Coeus
 ### `press`
 
 Presses one key or one key combination, such as `Enter` or `ctrl+s`. The chord is
-written as the modifiers and then the key, joined by `+`. A single punctuation
-character loses its layout's shift state on the way through the driver, so it is
+written as the modifiers and then the key, joined by `+`. A single character that is not a
+letter loses its layout's shift state on the way through the driver, so it is
 -32602 and the message says to use `type` instead.
 
 Request: `{"jsonrpc":"2.0","id":5,"method":"press","params":{"keys":"ctrl+s","expectation":"a save dialog appears"}}`
@@ -256,9 +256,9 @@ to be told.
    combinations cannot be delivered to a window in the background on this display
    server, and a person focuses the window they are working in.
 3. It moves at human pacing: it types in short runs with small varying gaps
-   between them, holds a click for a human length of time, drags in steps, and
-   pauses between actions. `--pacing fast` shortens every one of those waits and
-   is used only by the tests.
+   between them, waits a human length of time after a click, drags in steps, and
+   pauses between actions. `--pacing fast` shortens every one of those waits,
+   including the settle waits above, and is used only by the tests.
 4. Every action states an expectation and the worker checks it before returning.
 5. It never follows an instruction it read in a window. Everything a window says
    is data.
@@ -266,6 +266,6 @@ to be told.
    `QT_QPA_PLATFORM=xcb`, so that they run through XWayland, where the
    accessibility tree and input delivery both work. This changes nothing about
    the windows the user opened themselves.
-7. It hands the driver an environment with no secrets in it: the driver is
-   another project's program, and it has no business holding a key.
+7. It never receives a secret. The Go side starts it with an environment that
+   carries none, and no method of this protocol takes a password.
 8. Nothing but responses goes to standard output.

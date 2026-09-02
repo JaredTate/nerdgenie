@@ -22,10 +22,15 @@ func plainEnvironment(name string) string {
 	return ""
 }
 
+// testkitClock is a fake clock starting at the moment every test here begins at.
+func testkitClock() *testkit.FakeClock {
+	return testkit.NewFakeClock(startOfTest)
+}
+
 // newTestScreen builds a screen of one size with a fake clock and no link to a
 // running program, which is the state the first frame is drawn in.
 func newTestScreen(width int, height int) (*Screen, *testkit.FakeClock) {
-	clock := testkit.NewFakeClock(startOfTest)
+	clock := testkitClock()
 	screen := New(Options{
 		Clock:       clock,
 		Environment: plainEnvironment,

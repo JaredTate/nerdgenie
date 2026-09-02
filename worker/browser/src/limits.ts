@@ -44,8 +44,8 @@ export const MAX_TABS = 50;
 /** The most elements a screenshot numbers with drawn marks. */
 export const MAX_SCREENSHOT_MARKS = 60;
 
-/** The most characters of text read out of a PDF page. */
-export const MAX_PDF_TEXT_CHARS = 4_000;
+/** The largest PDF the worker will save out of a page, in bytes. */
+export const MAX_PDF_BYTES = 64 * 1024 * 1024;
 
 /** The most refs the worker remembers, so that a long session cannot grow without end. */
 export const MAX_REMEMBERED_REFS = 2_000;

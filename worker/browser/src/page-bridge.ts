@@ -23,6 +23,8 @@ export interface FoundElement {
 export interface FrameScan {
   url: string;
   title: string;
+  /** What the document says it is, such as "text/html" or "application/pdf". */
+  contentType: string;
   elements: FoundElement[];
 }
 

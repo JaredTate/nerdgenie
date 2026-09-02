@@ -20,6 +20,7 @@ import {
   REF_NUMBERS_PER_FRAME,
 } from "./limits.js";
 import { scanFrame, type FoundElement } from "./page-bridge.js";
+import { PDF_CONTENT_TYPE, pdfElementName, savePdfShownOnPage } from "./pdf.js";
 import type { Session } from "./session.js";
 import type { Snapshot, SnapshotElement, Wall } from "./types.js";
 import { findWall } from "./walls.js";
@@ -46,6 +47,12 @@ const SCANNED_ROLES: readonly string[] = [...SNAPSHOT_ROLES, "form"];
 /** The most elements the walk looks at on one frame before it stops. */
 const MOST_NODES_WALKED = 20_000;
 
+/**
+ * The ref on the one line a PDF page answers with. It is a label rather than
+ * something to act on: pointing at it answers -32000, which is the truth.
+ */
+const PDF_LABEL_REF = "e0";
+
 /** A page read once: what the model sees, and the wall that stops it if there is one. */
 export interface PageReading {
   snapshot: Snapshot;
@@ -64,12 +71,19 @@ export interface ReadSettings {
 async function scanEveryFrame(
   page: Page,
   log: (line: string) => void,
-): Promise<{ url: string; title: string; found: FoundElement[]; frameUrls: string[] }> {
+): Promise<{
+  url: string;
+  title: string;
+  contentType: string;
+  found: FoundElement[];
+  frameUrls: string[];
+}> {
   const frames: Frame[] = page.frames().slice(0, MAX_FRAMES);
   const found: FoundElement[] = [];
   const frameUrls: string[] = [];
   let url = page.url();
   let title = "";
+  let contentType = "";
   for (const [position, frame] of frames.entries()) {
     try {
       const scan = await scanFrame(frame, {
@@ -81,6 +95,7 @@ async function scanEveryFrame(
       if (position === 0) {
         url = scan.url;
         title = scan.title;
+        contentType = scan.contentType;
       } else {
         frameUrls.push(scan.url);
       }
@@ -94,7 +109,33 @@ async function scanEveryFrame(
       frameUrls.push(frame.url());
     }
   }
-  return { url, title, found, frameUrls };
+  return { url, title, contentType, found, frameUrls };
+}
+
+/**
+ * A page that is a PDF has no elements to point at, so the answer is one line
+ * saying what it is and where the file was put.
+ */
+async function readPdfPage(
+  session: Session,
+  page: Page,
+  url: string,
+  title: string,
+  tabId: string,
+): Promise<PageReading> {
+  const saved = await savePdfShownOnPage(session, page);
+  return {
+    snapshot: {
+      url,
+      title,
+      tabId,
+      elements: [{ ref: PDF_LABEL_REF, role: "article", name: pdfElementName(saved, url) }],
+      belowFold: 0,
+      dialog: null,
+      download: saved,
+    },
+    wall: null,
+  };
 }
 
 /**
@@ -149,7 +190,10 @@ export async function readPage(
     };
   }
 
-  const { url, title, found, frameUrls } = await scanEveryFrame(page, session.log);
+  const { url, title, contentType, found, frameUrls } = await scanEveryFrame(page, session.log);
+  if (contentType === PDF_CONTENT_TYPE) {
+    return readPdfPage(session, page, url, title, tabId);
+  }
   // Remember what every ref was, so that one that goes stale can be looked for
   // again by the role and the name it had.
   for (const element of found) {

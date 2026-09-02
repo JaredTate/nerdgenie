@@ -158,7 +158,7 @@ window.__coeusScan = window.__coeusScan || function (how) {
       shortNumeric: window.__coeusShortNumeric(element)
     });
   });
-  return { url: location.href, title: document.title, elements: found };
+  return { url: location.href, title: document.title, contentType: document.contentType, elements: found };
 };
 `;
 

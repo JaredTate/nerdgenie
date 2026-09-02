@@ -279,3 +279,85 @@ func indexOf(names []string, wanted string) int {
 	}
 	return -1
 }
+
+// scriptWithEveryFinishReason has one step per finish reason the contract
+// names, so that both wire protocols can be asked for all four words.
+func scriptWithEveryFinishReason() testkit.Script {
+	return testkit.Script{
+		Name:          "provider",
+		ContextLength: 200000,
+		Steps: []testkit.Step{
+			{Text: "That is done.", Finish: contract.FinishEnd},
+			{
+				Text:      "Reading the notes.",
+				ToolCalls: []contract.ToolCall{{ID: "call_1", Name: contract.ToolRead, Input: json.RawMessage(`{"path":"a.md"}`)}},
+				Finish:    contract.FinishToolCalls,
+			},
+			{Text: "This reply ran out of room", Finish: contract.FinishLength},
+			{Text: "I will not answer that", Finish: contract.FinishStopped},
+		},
+	}
+}
+
+func TestEveryFinishReasonComesOffTheWireInEachApisOwnWord(t *testing.T) {
+	wanted := []struct {
+		finish    contract.FinishReason
+		anthropic string
+		openAI    string
+	}{
+		{contract.FinishEnd, "end_turn", "stop"},
+		{contract.FinishToolCalls, "tool_use", "tool_calls"},
+		{contract.FinishLength, "max_tokens", "length"},
+		{contract.FinishStopped, "refusal", "content_filter"},
+	}
+
+	anthropic := testkit.NewFakeProviderServer(scriptWithEveryFinishReason())
+	defer anthropic.Close()
+	openAI := testkit.NewFakeProviderServer(scriptWithEveryFinishReason())
+	defer openAI.Close()
+
+	for _, row := range wanted {
+		t.Run(string(row.finish), func(t *testing.T) {
+			_, _, stream := postJSON(t, anthropic.AnthropicAddress(), `{"messages":[]}`)
+			if said := anthropicStopReason(t, stream); said != row.anthropic {
+				t.Errorf("the Messages API said %q for the finish reason %q, want %q", said, row.finish, row.anthropic)
+			}
+
+			_, _, stream = postJSON(t, openAI.OpenAIAddress(), `{"messages":[]}`)
+			if said := openAIFinishReason(t, stream); said != row.openAI {
+				t.Errorf("the Chat Completions API said %q for the finish reason %q, want %q", said, row.finish, row.openAI)
+			}
+		})
+	}
+}
+
+// anthropicStopReason reads the stop reason off the message_delta event.
+func anthropicStopReason(t *testing.T, stream string) string {
+	t.Helper()
+	for _, event := range readAnthropicStream(t, stream) {
+		if event.name != "message_delta" {
+			continue
+		}
+		delta, _ := event.data["delta"].(map[string]any)
+		reason, _ := delta["stop_reason"].(string)
+		return reason
+	}
+	t.Fatalf("the Messages API stream carried no message_delta event:\n%s", stream)
+	return ""
+}
+
+// openAIFinishReason reads the finish reason off the chunk that carries one.
+func openAIFinishReason(t *testing.T, stream string) string {
+	t.Helper()
+	for _, chunk := range readOpenAIChunks(t, stream) {
+		choices, _ := chunk["choices"].([]any)
+		for _, choice := range choices {
+			asObject, _ := choice.(map[string]any)
+			if reason, isText := asObject["finish_reason"].(string); isText && reason != "" {
+				return reason
+			}
+		}
+	}
+	t.Fatalf("the Chat Completions stream carried no finish reason:\n%s", stream)
+	return ""
+}

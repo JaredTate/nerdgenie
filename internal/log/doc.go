@@ -19,8 +19,10 @@
 // sequence number, by a span of sequence numbers, and a replay that hands every
 // event to a function in order. The three that return a list stop at
 // MaxEventsPerRead rows, so no read can pull the whole log into memory by
-// accident, and a caller with more than that to read walks the log with ByRange
-// or streams it with Replay. Every call takes a context and gives up when it is
-// cancelled. The caller supplies the time on each event, because time in Coeus
-// is read from contract.Clock and never from the machine directly.
+// accident. A read that fills that cap hands back the events it read together
+// with an error naming the last of them, so a caller is never quietly given part
+// of an answer; the way to read the rest is ByRange, page by page, or Replay,
+// which streams and has no cap. Every call takes a context and gives up when it
+// is cancelled. The caller supplies the time on each event, because time in
+// Coeus is read from contract.Clock and never from the machine directly.
 package log

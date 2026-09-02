@@ -171,6 +171,7 @@ internal/lint/testdata/identifiername/doc.go
 internal/lint/testdata/packagedoc/bad.go
 internal/log/append.go
 internal/log/append_test.go
+internal/log/cap_test.go
 internal/log/damaged_test.go
 internal/log/doc.go
 internal/log/event.go

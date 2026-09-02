@@ -3,7 +3,9 @@ package testkit_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
@@ -23,6 +25,96 @@ func TestTheFakeSandboxReturnsTheResultScriptedForAPrefix(t *testing.T) {
 	}
 	if len(sandbox.Commands()) != 1 {
 		t.Errorf("the sandbox recorded %d commands, want 1", len(sandbox.Commands()))
+	}
+}
+
+func TestTheLongestScriptedPrefixWinsHoweverTheMapIsOrdered(t *testing.T) {
+	ctx := context.Background()
+
+	// Ten runs, because the old code ranged over a map and the short prefix won
+	// most of the time rather than all of it.
+	for range 10 {
+		sandbox := testkit.NewFakeSandbox()
+		sandbox.Script("git", contract.SandboxResult{StandardOutput: []byte("any git command\n")})
+		sandbox.Script("git status", contract.SandboxResult{StandardOutput: []byte("nothing to commit\n")})
+
+		result, err := sandbox.Run(ctx, contract.SandboxCommand{Program: "git", Arguments: []string{"status"}})
+
+		if err != nil {
+			t.Fatalf("running a scripted command failed: %v", err)
+		}
+		if string(result.StandardOutput) != "nothing to commit\n" {
+			t.Fatalf("the command printed %q, want the longer prefix's result", result.StandardOutput)
+		}
+	}
+}
+
+func TestACommandWhoseTimeIsUpIsReportedAsTimedOut(t *testing.T) {
+	sandbox := testkit.NewFakeSandbox()
+	sandbox.Script("sleep", contract.SandboxResult{})
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	result, err := sandbox.Run(cancelled, contract.SandboxCommand{Program: "sleep", Arguments: []string{"10"}})
+
+	if err == nil {
+		t.Fatal("a command run with a cancelled context was reported as a success, and the sandbox is supposed to give up")
+	}
+	if !result.TimedOut {
+		t.Errorf("the result is %+v, want it marked as timed out", result)
+	}
+
+	result, err = sandbox.Run(context.Background(), contract.SandboxCommand{
+		Program:   "sleep",
+		Arguments: []string{"10"},
+		Timeout:   time.Nanosecond,
+	})
+	if err == nil || !result.TimedOut {
+		t.Errorf("a command whose own timeout had already passed came back as %+v and error %v, want timed out", result, err)
+	}
+}
+
+func TestAWorkingDirectoryOutsideEveryRootIsRefused(t *testing.T) {
+	ctx := context.Background()
+	sandbox := testkit.NewFakeSandbox()
+	sandbox.SetRoots("/home/jared/Code/coeus", "/tmp/work")
+	sandbox.Script("ls", contract.SandboxResult{})
+
+	if _, err := sandbox.Run(ctx, contract.SandboxCommand{
+		Program:          "ls",
+		WorkingDirectory: "/home/jared/Code/coeus/internal",
+	}); err != nil {
+		t.Fatalf("running inside a root failed: %v", err)
+	}
+
+	_, err := sandbox.Run(ctx, contract.SandboxCommand{
+		Program:          "ls",
+		WorkingDirectory: "/home/jared/.coeus",
+	})
+
+	if err == nil {
+		t.Fatal("a command ran outside every root, and the vault and the home folder are always outside the fence")
+	}
+	if !strings.Contains(err.Error(), "/home/jared/.coeus") {
+		t.Errorf("the refusal does not name the folder that was asked for: %v", err)
+	}
+}
+
+func TestASecretInTheEnvironmentIsRefused(t *testing.T) {
+	sandbox := testkit.NewFakeSandbox()
+	sandbox.Script("curl", contract.SandboxResult{})
+
+	_, err := sandbox.Run(context.Background(), contract.SandboxCommand{
+		Program:     "curl",
+		Arguments:   []string{"https://example.test"},
+		Environment: []string{"TOKEN=" + contract.SecretReferencePrefix + "x-account"},
+	})
+
+	if err == nil {
+		t.Fatal("a secret reference went into the sandbox's environment, and nothing secret ever crosses the fence")
+	}
+	if !strings.Contains(err.Error(), "TOKEN") {
+		t.Errorf("the refusal does not name the setting that carried it: %v", err)
 	}
 }
 

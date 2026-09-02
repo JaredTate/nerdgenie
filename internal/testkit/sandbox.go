@@ -14,6 +14,7 @@ import (
 type FakeSandbox struct {
 	guard       sync.Mutex
 	unavailable error
+	roots       []string
 	scripted    map[string]contract.SandboxResult
 	commands    []contract.SandboxCommand
 }
@@ -21,6 +22,16 @@ type FakeSandbox struct {
 // NewFakeSandbox returns a sandbox that is available and has nothing scripted.
 func NewFakeSandbox() *FakeSandbox {
 	return &FakeSandbox{scripted: map[string]contract.SandboxResult{}}
+}
+
+// SetRoots says which folders the sandbox may run in. A command whose working
+// directory is outside every one of them is refused, which is how a test proves
+// that the vault, the browser profile, and the agent's home folder stay outside
+// the fence. With no roots set, any working directory is allowed.
+func (sandbox *FakeSandbox) SetRoots(roots ...string) {
+	sandbox.guard.Lock()
+	defer sandbox.guard.Unlock()
+	sandbox.roots = roots
 }
 
 // SetAvailable makes the sandbox report itself unavailable, the way the real one

@@ -150,3 +150,144 @@ func stateOf(t *testing.T, jobs contract.Job, jobID string) contract.JobState {
 	t.Fatalf("the job %s is not in the listing", jobID)
 	return ""
 }
+
+func TestTheFakeJobStoreHandsOutTheNextDueTaskAndTakesItsReport(t *testing.T) {
+	ctx := context.Background()
+	start := time.Date(2026, 9, 2, 9, 0, 0, 0, time.UTC)
+	clock := testkit.NewFakeClock(start)
+	jobs := testkit.NewFakeJob(clock)
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: "Run the campaign this month.", Why: "keep it in front of people"})
+	if err != nil {
+		t.Fatalf("creating a job failed: %v", err)
+	}
+	firstID, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "post the anniversary tweet"})
+	if err != nil {
+		t.Fatalf("adding the first task failed: %v", err)
+	}
+	secondID, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "post for day two", DueAt: start.Add(24 * time.Hour)})
+	if err != nil {
+		t.Fatalf("adding the second task failed: %v", err)
+	}
+
+	next, due, err := jobs.NextTask(ctx, start)
+	if err != nil || !due {
+		t.Fatalf("the first task should be due at once, got due=%v err=%v", due, err)
+	}
+	if next.JobID != jobID || next.TaskID != firstID || next.Unattended {
+		t.Errorf("the next task is %+v, want the first task of job %s, attended", next, jobID)
+	}
+
+	reportID, err := jobs.FinishTask(ctx, jobID, firstID, "posted, 236 characters, link saved", false)
+	if err != nil {
+		t.Fatalf("finishing the first task failed: %v", err)
+	}
+	if reportID != contract.ReportID(jobID, 1) {
+		t.Errorf("the report id is %q, want %q", reportID, contract.ReportID(jobID, 1))
+	}
+
+	if _, due, err := jobs.NextTask(ctx, start); err != nil || due {
+		t.Errorf("the second task is due tomorrow, but NextTask said due=%v err=%v now", due, err)
+	}
+	next, due, err = jobs.NextTask(ctx, start.Add(25*time.Hour))
+	if err != nil || !due || next.TaskID != secondID {
+		t.Errorf("after a day the second task should be due, got %+v due=%v err=%v", next, due, err)
+	}
+
+	record, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		t.Fatalf("loading the job record failed: %v", err)
+	}
+	if record.Header.Kind != contract.RecordJob || record.Header.TasksDone != 1 || record.Header.TasksTotal != 2 {
+		t.Errorf("the job header is %+v, want a job with 1 of 2 tasks done", record.Header)
+	}
+	if record.Goal.Ask != "Run the campaign this month." {
+		t.Errorf("the job record's ask is %q, want the user's words unchanged", record.Goal.Ask)
+	}
+	if len(record.Work.Tasks) != 2 || !record.Work.Tasks[0].Done || record.Work.Tasks[0].ReportID != reportID {
+		t.Errorf("the task list is %+v, want the first task done with report %s", record.Work.Tasks, reportID)
+	}
+	if len(record.Work.Results) != 1 || record.Work.Results[0].ID != reportID {
+		t.Errorf("the reports are %+v, want one line with id %s", record.Work.Results, reportID)
+	}
+}
+
+func TestTheFakeJobStorePausesAfterThreeFailuresAndSwitchesAScheduledJobOffAfterTen(t *testing.T) {
+	ctx := context.Background()
+	start := time.Date(2026, 9, 2, 9, 0, 0, 0, time.UTC)
+	jobs := testkit.NewFakeJob(testkit.NewFakeClock(start))
+
+	plainID, err := jobs.Create(ctx, contract.NewJob{Ask: "Do a long thing."})
+	if err != nil {
+		t.Fatalf("creating a job failed: %v", err)
+	}
+	for round := 0; round < 3; round++ {
+		taskID, err := jobs.AddTask(ctx, contract.NewTask{JobID: plainID, Text: "a task that fails"})
+		if err != nil {
+			t.Fatalf("adding a task failed: %v", err)
+		}
+		if _, err := jobs.FinishTask(ctx, plainID, taskID, "it failed", true); err != nil {
+			t.Fatalf("finishing a failed task failed: %v", err)
+		}
+	}
+	if state := stateOf(t, jobs, plainID); state != contract.JobPaused {
+		t.Errorf("after three failures in a row the job is %q, want %q", state, contract.JobPaused)
+	}
+
+	scheduledID, err := jobs.Create(ctx, contract.NewJob{
+		Ask:          "Post every day.",
+		Schedule:     &contract.Schedule{Kind: contract.ScheduleEvery, Every: time.Hour},
+		TaskTemplate: "post today's message",
+	})
+	if err != nil {
+		t.Fatalf("creating a scheduled job failed: %v", err)
+	}
+	for round := 0; round < 10; round++ {
+		taskID, err := jobs.AddTask(ctx, contract.NewTask{JobID: scheduledID, Text: "a task that fails"})
+		if err != nil {
+			t.Fatalf("adding a task failed: %v", err)
+		}
+		if _, err := jobs.FinishTask(ctx, scheduledID, taskID, "it failed", true); err != nil {
+			t.Fatalf("finishing a failed task failed: %v", err)
+		}
+	}
+	if state := stateOf(t, jobs, scheduledID); state != contract.JobOff {
+		t.Errorf("after ten failures in a row the scheduled job is %q, want %q", state, contract.JobOff)
+	}
+}
+
+func TestTheFakeJobStoreMakesOneUnattendedTaskPerTickOfASchedule(t *testing.T) {
+	ctx := context.Background()
+	start := time.Date(2026, 9, 2, 9, 0, 0, 0, time.UTC)
+	jobs := testkit.NewFakeJob(testkit.NewFakeClock(start))
+	jobID, err := jobs.Create(ctx, contract.NewJob{
+		Ask:          "Post every hour.",
+		Schedule:     &contract.Schedule{Kind: contract.ScheduleEvery, Every: time.Hour},
+		TaskTemplate: "post this hour's message",
+	})
+	if err != nil {
+		t.Fatalf("creating a scheduled job failed: %v", err)
+	}
+
+	if _, due, err := jobs.NextTask(ctx, start); err != nil || due {
+		t.Fatalf("nothing is due before the first tick, got due=%v err=%v", due, err)
+	}
+	next, due, err := jobs.NextTask(ctx, start.Add(time.Hour))
+	if err != nil || !due {
+		t.Fatalf("the first tick should make a task, got due=%v err=%v", due, err)
+	}
+	if next.JobID != jobID || next.Text != "post this hour's message" || !next.Unattended {
+		t.Errorf("the tick's task is %+v, want the template text, unattended", next)
+	}
+	if _, due, err := jobs.NextTask(ctx, start.Add(time.Hour)); err != nil || due {
+		t.Errorf("the same tick handed out a second task, got due=%v err=%v", due, err)
+	}
+	if _, err := jobs.FinishTask(ctx, jobID, next.TaskID, "posted", false); err != nil {
+		t.Fatalf("finishing the tick's task failed: %v", err)
+	}
+	if _, due, err := jobs.NextTask(ctx, start.Add(2*time.Hour)); err != nil || !due {
+		t.Errorf("the second tick should make a task, got due=%v err=%v", due, err)
+	}
+	if _, err := jobs.Load(ctx, "99"); err == nil {
+		t.Error("loading a job that is not there returned no error, want one naming it")
+	}
+}

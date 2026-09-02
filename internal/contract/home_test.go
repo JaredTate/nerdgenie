@@ -3,6 +3,7 @@ package contract_test
 import (
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -40,6 +41,7 @@ func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {
 		{"the local socket", home.SocketFile(), filepath.Join(root, "run", "coeus.sock")},
 		{"the lock", home.LockFile(), filepath.Join(root, "run", "coeus.lock")},
 		{"the backups folder", home.BackupsFolder(), filepath.Join(root, "backups")},
+		{"the signal folder", home.SignalFolder(), filepath.Join(root, "signal")},
 	}
 	for _, test := range tests {
 		if test.got != test.want {
@@ -60,6 +62,9 @@ func TestHomeFoldersListsEveryFolderThatMustExist(t *testing.T) {
 		if !strings.HasPrefix(folder, root) {
 			t.Errorf("the folder %q is outside the home folder %q", folder, root)
 		}
+	}
+	if !slices.Contains(folders, home.SignalFolder()) {
+		t.Errorf("the signal folder %q is not in the list of folders to create", home.SignalFolder())
 	}
 }
 

@@ -59,6 +59,9 @@ func (memory *Memory) prepareOneFact(ctx context.Context, transaction runner, fa
 		fact.Recorded = memory.clock.Now()
 	}
 	fact.Recorded = fact.Recorded.UTC().Truncate(time.Second)
+	if !writableDate(fact.Recorded) {
+		return storedFact{}, fmt.Errorf("the fact %q is dated %s, and a fact line can only hold a year between one and nine thousand nine hundred and ninety-nine", fact.ID, fact.Recorded)
+	}
 
 	family, err := familyOf(ctx, transaction, fact)
 	if err != nil {

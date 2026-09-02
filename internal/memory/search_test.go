@@ -305,3 +305,30 @@ func TestReadingSomethingThatIsNotThereSaysSo(t *testing.T) {
 		}
 	}
 }
+
+func TestASearchWrittenInTheSearchTablesOwnLanguageIsStillJustWords(t *testing.T) {
+	opened := newMemory(t, shippedCaps)
+	ctx := context.Background()
+	opened.saveWorldFact(t, "the anniversary is on the tenth of January")
+
+	awkward := []string{
+		`"quoted words"`,
+		"anniversary AND NOT January",
+		"NEAR(anniversary January, 2)",
+		"anniv*",
+		"^anniversary",
+		"anniversary OR (January NOT tenth)",
+		"-anniversary",
+		"{anniversary}",
+		"\x00 anniversary",
+		strings.Repeat("anniversary ", 200),
+	}
+	for _, query := range awkward {
+		if _, err := opened.memory.Search(ctx, query, 5); err != nil {
+			t.Errorf("searching for %q failed: %v", query, err)
+		}
+		if _, err := opened.memory.Hint(ctx, query); err != nil {
+			t.Errorf("asking for a hint for %q failed: %v", query, err)
+		}
+	}
+}

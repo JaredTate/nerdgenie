@@ -99,7 +99,7 @@ func factFromFields(inside string) (contract.Fact, bool) {
 		return contract.Fact{}, false
 	}
 	recorded, err := time.Parse(time.RFC3339, fields[0])
-	if err != nil {
+	if err != nil || !writableDate(recorded) {
 		return contract.Fact{}, false
 	}
 	source := strings.TrimSpace(fields[1])
@@ -107,7 +107,7 @@ func factFromFields(inside string) (contract.Fact, bool) {
 		return contract.Fact{}, false
 	}
 	fact := contract.Fact{
-		Source:   source,
+		Source:   withoutSeparators(source),
 		Recorded: recorded.UTC().Truncate(time.Second),
 	}
 	if len(fields) == 3 {
@@ -118,6 +118,15 @@ func factFromFields(inside string) (contract.Fact, bool) {
 		fact.Supersedes = superseded
 	}
 	return fact, true
+}
+
+// writableDate says whether a moment can be written on a fact line and read
+// back. The date form has no room for a year before one or after nine thousand
+// nine hundred and ninety-nine, and a moment outside that range would be
+// written down as something that cannot be read again.
+func writableDate(moment time.Time) bool {
+	year := moment.UTC().Year()
+	return year >= 1 && year <= 9999
 }
 
 // validFactID says whether an id can be written on a fact line and read back:

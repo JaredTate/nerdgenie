@@ -81,12 +81,24 @@ func (screen *Screen) transcriptRows(wanted int) []string {
 	gathered := []string{}
 	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
 		lines := screen.blockLines(screen.blocks[at])
-		if at > 0 {
+		if at > 0 && blankBetween(screen.blocks[at-1].kind, screen.blocks[at].kind) {
 			lines = append([]string{""}, lines...)
 		}
 		gathered = append(lines, gathered...)
 	}
 	return gathered
+}
+
+// blankBetween says whether two blocks want a blank line between them. A
+// person's message and a card each stand alone with air around them; the agent's
+// replies and its tool lines run together, because they are one turn.
+func blankBetween(above blockKind, below blockKind) bool {
+	return !(partOfATurn(above) && partOfATurn(below))
+}
+
+// partOfATurn says whether a block is part of what the agent did in one turn.
+func partOfATurn(kind blockKind) bool {
+	return kind == blockReply || kind == blockTool
 }
 
 // blockLines draws one block as the rows it takes up.

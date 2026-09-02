@@ -3,6 +3,8 @@ package tui
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -44,6 +46,29 @@ type Options struct {
 	// Width and Height are the size to draw the first frame at, before the
 	// terminal has said how big it really is.
 	Width, Height int
+	// Output is where the frame is written, which is the terminal itself.
+	Output io.Writer
+	// Input is where key presses are read from, which is the terminal itself.
+	Input io.Reader
+}
+
+// Run draws the screen on the terminal and does not return until the person
+// quits or the terminal goes away.
+func Run(options Options) error {
+	screen := New(options)
+	defer screen.Close()
+
+	settings := []tea.ProgramOption{tea.WithAltScreen()}
+	if options.Output != nil {
+		settings = append(settings, tea.WithOutput(options.Output))
+	}
+	if options.Input != nil {
+		settings = append(settings, tea.WithInput(options.Input))
+	}
+	if _, err := tea.NewProgram(screen, settings...).Run(); err != nil {
+		return fmt.Errorf("the terminal screen stopped: %w", err)
+	}
+	return nil
 }
 
 // Screen is the terminal screen: one Bubble Tea model holding what is on the

@@ -25,6 +25,12 @@ func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
 	if key.Type == tea.KeyCtrlC {
 		return screen.pressedQuit()
 	}
+	if screen.input.secret {
+		if screen.pressedAtTheMaskedPrompt(key) {
+			return nil
+		}
+		return screen.pressedInTheInputBox(key)
+	}
 	if screen.askingWhyNot {
 		if screen.pressedWhileGivingAReason(key) {
 			return nil

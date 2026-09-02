@@ -77,6 +77,7 @@ type Screen struct {
 	streaming  bool
 
 	input        editor
+	secretID     string
 	secretPrompt string
 	askingWhyNot bool
 	history      []string

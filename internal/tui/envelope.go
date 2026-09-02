@@ -14,6 +14,10 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 	case contract.SocketPreview:
 		screen.showCard(cardFrom(envelope, cardPreview, previewTitle))
 	case contract.SocketAsk:
+		if envelope.Fields[maskedField] == "true" {
+			screen.askForSecret(envelope)
+			return
+		}
 		screen.showCard(cardFrom(envelope, cardQuestion, questionTitle))
 	case contract.SocketHandoff:
 		screen.showCard(cardFrom(envelope, cardHandoff, handoffTitle))

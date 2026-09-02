@@ -84,7 +84,7 @@ async function answer(session: DesktopSession, line: string, note: (line: string
   } catch (failure) {
     const reported = failure instanceof ProtocolError ? failure : unexpected(failure)
     note(`the desktop worker could not do it: ${reported.message}`)
-    return failureResponse(identifier, reported)
+    return failureResponse(identifier ?? reported.requestID, reported)
   }
 }
 

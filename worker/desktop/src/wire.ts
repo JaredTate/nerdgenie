@@ -92,16 +92,26 @@ export function readRequest(line: string): DesktopRequest {
   if (typeof identifier !== "number" && typeof identifier !== "string") {
     throw new ProtocolError(DesktopErrorCode.InvalidRequest, "the request must carry an id to answer")
   }
-  return { id: identifier, method: fields["method"], params: readParams(fields["params"]) }
+  return { id: identifier, method: fields["method"], params: readParams(fields["params"], identifier) }
 }
 
-/** readParams accepts an object or nothing, and refuses everything else. */
-function readParams(params: unknown): Record<string, unknown> {
+/**
+ * readParams accepts an object or nothing, and refuses everything else. A
+ * request whose parameters are the wrong shape is still a request, so the
+ * refusal carries its id and the code that sends the message back to the model
+ * rather than the one that restarts the worker.
+ */
+function readParams(params: unknown, identifier: RequestID): Record<string, unknown> {
   if (params === undefined || params === null) {
     return {}
   }
   if (typeof params !== "object" || Array.isArray(params)) {
-    throw new ProtocolError(DesktopErrorCode.InvalidRequest, "the parameters must be a JSON object")
+    throw new ProtocolError(
+      DesktopErrorCode.BadParameters,
+      "the parameters must be a JSON object, and this request sent something else",
+      undefined,
+      identifier,
+    )
   }
   return params as Record<string, unknown>
 }

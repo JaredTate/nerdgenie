@@ -39,7 +39,6 @@ describe("reading one request", () => {
     ["a request with the wrong protocol version", '{"jsonrpc":"1.0","id":1,"method":"health"}'],
     ["a request with no method", '{"jsonrpc":"2.0","id":1}'],
     ["a request whose method is not a name", '{"jsonrpc":"2.0","id":1,"method":7}'],
-    ["a request whose parameters are a list", '{"jsonrpc":"2.0","id":1,"method":"health","params":[1]}'],
     ["a request with no id at all", '{"jsonrpc":"2.0","method":"health"}'],
   ])("%s is an invalid request", (_name, line) => {
     try {
@@ -48,6 +47,16 @@ describe("reading one request", () => {
     } catch (failure) {
       expect(failure).toBeInstanceOf(ProtocolError)
       expect((failure as ProtocolError).code).toBe(DesktopErrorCode.InvalidRequest)
+    }
+  })
+
+  test("parameters of the wrong shape are a parameter problem, and keep the id to answer", () => {
+    try {
+      readRequest('{"jsonrpc":"2.0","id":1,"method":"health","params":[1]}')
+      throw new Error("the line was accepted and it should not have been")
+    } catch (failure) {
+      expect((failure as ProtocolError).code).toBe(DesktopErrorCode.BadParameters)
+      expect((failure as ProtocolError).requestID).toBe(1)
     }
   })
 

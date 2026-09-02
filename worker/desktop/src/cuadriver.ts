@@ -98,6 +98,7 @@ export class CuaDesktopDriver implements DesktopDriver {
       to_y: to.y,
       steps,
       duration_ms: milliseconds,
+      delivery_mode: "foreground",
     })
   }
 

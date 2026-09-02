@@ -87,7 +87,7 @@ export class DesktopSession {
   private granted: { application: string; target: WindowTarget } | undefined
   private controls: MarkedControl[] = []
   private title = ""
-  private aimed: MarkedControl | undefined
+  private aimedNumber: number | undefined
 
   constructor(
     private readonly driver: DesktopDriver,
@@ -108,7 +108,7 @@ export class DesktopSession {
     this.granted = { application: wanted, target: { pid: window.pid, windowId: window.windowId } }
     this.controls = []
     this.title = ""
-    this.aimed = undefined
+    this.aimedNumber = undefined
     this.note(`the desktop is granted the application ${wanted}, window ${window.windowId}`)
     const diff = await this.act(expectation, undefined, async () => {})
     return { ...diff, application: wanted }
@@ -171,7 +171,7 @@ export class DesktopSession {
     const diff = await this.act(expectation, control, () =>
       this.driver.click(granted.target, control.token, this.pacing.clickHold),
     )
-    this.aimed = control
+    this.aimedNumber = mark
     return diff
   }
 
@@ -184,7 +184,7 @@ export class DesktopSession {
         `the text is ${text.length} characters and at most ${maximumTypedCharacters} may be typed at once, so send it in pieces`,
       )
     }
-    const aimed = mark === undefined ? this.aimed : this.controlNumbered(mark)
+    const aimed = mark === undefined ? this.lastAimed() : this.controlNumbered(mark)
     return this.act(expectation, aimed, async () => {
       const runs = typingRuns(text, this.pacing)
       for (const [index, run] of runs.entries()) {
@@ -200,7 +200,7 @@ export class DesktopSession {
   async press(keys: string, expectation: string): Promise<Diff> {
     const granted = this.requireGranted()
     const chord = parseKeyChord(keys)
-    return this.act(expectation, this.aimed, () => this.driver.press(granted.target, chord))
+    return this.act(expectation, this.lastAimed(), () => this.driver.press(granted.target, chord))
   }
 
   /** drag drags from the middle of one numbered control to the middle of another. */
@@ -316,6 +316,20 @@ export class DesktopSession {
   private remember(reading: Reading): void {
     this.controls = reading.controls
     this.title = reading.title
+  }
+
+  /**
+   * lastAimed is the control the last click landed on, looked up again in the
+   * reading the worker holds now. The driver's handle for a control belongs to
+   * the reading it came from, so a handle kept from an earlier one is refused,
+   * and a control that is no longer on the screen means the typing goes to
+   * whatever holds the keyboard focus instead.
+   */
+  private lastAimed(): MarkedControl | undefined {
+    if (this.aimedNumber === undefined) {
+      return undefined
+    }
+    return this.controls.find((control) => control.mark.number === this.aimedNumber)
   }
 
   /** requireGranted refuses to act when no application has been opened yet. */

@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"filippo.io/age"
 	"github.com/JaredTate/coeus/internal/contract"
@@ -29,7 +30,7 @@ const maxVaultFileBytes = 1 << 20
 // and the redactor built from their values.
 type Vault struct {
 	home     contract.Home
-	clock    contract.Clock
+	now      func() time.Time
 	guard    sync.Mutex
 	identity *age.X25519Identity
 	entries  []Entry
@@ -40,9 +41,14 @@ type Vault struct {
 // Open reads the vault under the home folder, making the key file on first use
 // and refusing a key file anyone else could read. A vault file that is not
 // there yet is an empty vault, written the first time an entry is added.
+//
+// The clock says when a two-factor code runs out. Pass nil for the machine's
+// own clock, which is what every subcommand does; a test passes the clock it
+// controls.
 func Open(home contract.Home, clock contract.Clock) (*Vault, error) {
-	if clock == nil {
-		return nil, errors.New("the vault needs a clock to say when a two-factor code runs out, so pass the one the harness uses")
+	now := time.Now
+	if clock != nil {
+		now = clock.Now
 	}
 	if err := os.MkdirAll(home.Root, contract.HomeFolderMode); err != nil {
 		return nil, fmt.Errorf("the home folder %s could not be made: %w", home.Root, err)
@@ -57,7 +63,7 @@ func Open(home contract.Home, clock contract.Clock) (*Vault, error) {
 		return nil, err
 	}
 
-	opened := &Vault{home: home, clock: clock, identity: identity, entries: entries}
+	opened := &Vault{home: home, now: now, identity: identity, entries: entries}
 	opened.rebuildRedactor()
 	return opened, nil
 }

@@ -32,7 +32,7 @@ func (vault *Vault) Code(name string) (string, int, error) {
 		return "", 0, fmt.Errorf("the entry %q has no two-factor secret, so add one with /vault add %s if the site asks for a code", name, name)
 	}
 
-	now := vault.clock.Now()
+	now := vault.now()
 	code, err := totp.GenerateCodeCustom(entry.TOTPSecret, now, totp.ValidateOpts{
 		Period:    CodeSeconds,
 		Digits:    otp.DigitsSix,

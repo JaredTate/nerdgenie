@@ -35,7 +35,7 @@ func TestDescriptionWordCountCountsWhatTheRegistryWillReject(t *testing.T) {
 		{"   ", 0},
 		{"reads a file", 3},
 		{"  reads   a  file  ", 3},
-		{"reads a file,\na directory listing,\nor a past result", 9},
+		{"reads a file,\na directory listing,\nor a past result", 10},
 	}
 	for _, test := range tests {
 		if got := contract.DescriptionWordCount(test.description); got != test.want {

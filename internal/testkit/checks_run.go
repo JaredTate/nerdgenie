@@ -10,14 +10,32 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
+// noSuchProgram is a program name no machine has, which every sandbox must
+// refuse whether it is a fake with nothing scripted for it or the real fence
+// asking the kernel to run it.
+const noSuchProgram = "no-such-program-is-installed-on-any-machine"
+
 // CheckSandbox asserts what every sandbox promises: when it says it is
-// unavailable, it refuses to run anything.
+// unavailable it refuses to run anything, and when it says it can run it still
+// refuses a program that is not there rather than reporting a success it never
+// had. The second half is what stops a sandbox whose Run is a constant success
+// from passing.
 func CheckSandbox(ctx context.Context, sandbox contract.Sandbox) error {
-	if sandbox.Available() == nil {
+	missing := contract.SandboxCommand{Program: noSuchProgram}
+
+	if sandbox.Available() != nil {
+		if _, err := sandbox.Run(ctx, missing); err == nil {
+			return errors.New("the sandbox says it is unavailable but still ran a command, and an unavailable sandbox must refuse")
+		}
 		return nil
 	}
-	if _, err := sandbox.Run(ctx, contract.SandboxCommand{Program: "true"}); err == nil {
-		return errors.New("the sandbox says it is unavailable but still ran a command, and an unavailable sandbox must refuse")
+
+	result, err := sandbox.Run(ctx, missing)
+	if err == nil && result.ExitCode == 0 {
+		return fmt.Errorf("the sandbox reported %q as a success, and a program that is on no machine cannot have run", noSuchProgram)
+	}
+	if reason := sandbox.Available(); reason != nil {
+		return fmt.Errorf("the sandbox stopped being available after one command it could not run: %w", reason)
 	}
 	return nil
 }

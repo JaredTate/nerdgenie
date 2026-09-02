@@ -136,3 +136,20 @@ func FuzzParseReportID(f *testing.F) {
 		}
 	})
 }
+
+func TestTheLogKeyKeepsATaskAndAJobWithTheSameNumberApart(t *testing.T) {
+	task := contract.RecordLogKey(contract.RecordTask, "17")
+	job := contract.RecordLogKey(contract.RecordJob, "17")
+	if task == job {
+		t.Fatalf("task 17 and job 17 share the log key %q, and their events would mix", task)
+	}
+	if task != "17" {
+		t.Errorf("a task's log key is %q, want its own number", task)
+	}
+	if job != "j17" {
+		t.Errorf("a job's log key is %q, want j17", job)
+	}
+	if _, _, valid := contract.ParseReportID(job); valid {
+		t.Errorf("the job's log key %q reads as a report id, and the two must not collide", job)
+	}
+}

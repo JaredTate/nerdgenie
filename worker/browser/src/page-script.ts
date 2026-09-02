@@ -208,6 +208,10 @@ window.__coeusBoxOf = window.__coeusBoxOf || function (ref) {
  * Watching for changes, which is how the worker knows the page has gone quiet.
  * It installs itself once per document and starts again after every move to a new
  * address, because the new document is a new window.
+ *
+ * Attributes are deliberately not watched. A spinner, a progress bar, and a class
+ * swapped by an animation all change nothing but attributes, over and over, and
+ * none of them means the page is still doing something worth waiting for.
  */
 const WATCH = `
 window.__coeusInstallWatch = window.__coeusInstallWatch || function () {
@@ -220,7 +224,7 @@ window.__coeusInstallWatch = window.__coeusInstallWatch || function () {
   window.__coeusWatching = true;
   window.__coeusLastChange = Date.now();
   new window.MutationObserver(function () { window.__coeusLastChange = Date.now(); })
-    .observe(root, { subtree: true, childList: true, attributes: true, characterData: true });
+    .observe(root, { subtree: true, childList: true, characterData: true });
 };
 window.__coeusQuietFor = window.__coeusQuietFor || function () {
   window.__coeusInstallWatch();

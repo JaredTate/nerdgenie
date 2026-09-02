@@ -15,7 +15,7 @@ export const ERROR_CODES = {
   wrongParameters: -32602,
   /** No such reference on the page, after every way of finding it failed. */
   noSuchReference: -32000,
-  /** The page did not settle before the limit. */
+  /** The page could not be read at all after the settle limit. */
   didNotSettle: -32001,
   /** No browser is open. */
   noBrowserOpen: -32002,
@@ -56,11 +56,15 @@ export function noSuchReference(ref: string, data: Record<string, unknown>): Wor
   );
 }
 
-/** The page did not settle before the limit. */
-export function didNotSettle(limitMs: number): WorkerError {
+/**
+ * The page could not be read at all after the settle limit. A page that merely
+ * keeps changing is read as it stands and reported with `settled: false`; this is
+ * for a page that throws its own document away faster than it can be looked at.
+ */
+export function couldNotBeRead(limitMs: number, why: string): WorkerError {
   return new WorkerError(
     ERROR_CODES.didNotSettle,
-    `The page was still changing after ${limitMs} milliseconds, so the worker could not tell what the action did. Read the page again before acting.`,
+    `The page could not be read at all after ${limitMs} milliseconds: ${why}. Open the page again, or open a different one.`,
   );
 }
 

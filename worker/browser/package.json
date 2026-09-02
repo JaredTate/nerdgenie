@@ -10,8 +10,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && vitest run --coverage"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "npm run build && npm run typecheck && vitest run --coverage"
   },
   "dependencies": {
     "playwright-core": "1.62.1"

@@ -58,6 +58,10 @@ function changeBetween(
   };
 }
 
+/** What a diff says when the page never stopped moving. */
+const NEVER_CAME_TO_REST =
+  "the page kept changing and never came to rest, so this is the page as it stood";
+
 /** Everything the diff builder needs to know about one action. */
 export interface DiffInput {
   /** The snapshot before the action, or null when there was none. */
@@ -70,6 +74,8 @@ export interface DiffInput {
   newTab: string;
   /** The wall the action ran into, or null. */
   wall: Wall | null;
+  /** Whether the page came to rest within the limit. */
+  settled: boolean;
   /**
    * The element the action was aimed at. Left out for an action aimed at no
    * element at all, such as a key press or a scroll.
@@ -91,6 +97,14 @@ export function buildDiff(input: DiffInput): Diff {
           expectationMet: false,
           seen: `the browser hit a ${input.wall.kind} wall: ${input.wall.detail}`,
         };
+  // A page that never came to rest is worth saying out loud whatever the verdict,
+  // because it changes what the answer is worth: it is the page as it stood, not
+  // the page as it ended up.
+  const seen = input.settled
+    ? verdict.seen
+    : verdict.seen === ""
+      ? NEVER_CAME_TO_REST
+      : `${NEVER_CAME_TO_REST}; ${verdict.seen}`;
   return {
     urlChanged: change.urlChanged,
     url: change.url,
@@ -99,8 +113,9 @@ export function buildDiff(input: DiffInput): Diff {
     newTab: change.newTab,
     download: change.download,
     expectationMet: verdict.expectationMet,
-    seen: verdict.seen,
+    seen,
     wall: input.wall,
+    settled: input.settled,
     snapshot: input.after,
   };
 }

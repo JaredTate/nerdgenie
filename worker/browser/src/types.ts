@@ -59,6 +59,12 @@ export interface Snapshot {
   belowFold: number;
   dialog: DialogReport | null;
   download: DownloadReport | null;
+  /**
+   * The wall the page shows, or null. `open` and `read` report a wall here,
+   * because a page can be a login page before any action; an action reports the
+   * wall it ran into on its diff instead.
+   */
+  wall: Wall | null;
 }
 
 /** One of the three things that stop the agent and hand the browser to the user. */
@@ -80,6 +86,11 @@ export interface Diff {
   /** Plain words for what happened instead, filled in only when the expectation was not met. */
   seen: string;
   wall: Wall | null;
+  /**
+   * Whether the page came to rest within the limit. When it did not, the diff is
+   * still the page as it stood, and `seen` says the page kept changing.
+   */
+  settled: boolean;
   snapshot: Snapshot;
 }
 

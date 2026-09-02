@@ -20,10 +20,45 @@ import {
 import { buildDiff } from "./diff.js";
 import { somethingChanged, type AimedAt } from "./expectation.js";
 import { DEFAULT_SCROLL_STEPS } from "./limits.js";
-import { readPage } from "./snapshot.js";
+import { couldNotBeRead, WorkerError } from "./errors.js";
+import { SETTLE_LIMIT_MS } from "./limits.js";
+import { readPage, type PageReading } from "./snapshot.js";
 import { settle } from "./settle.js";
 import type { Session } from "./session.js";
 import type { Diff, Snapshot } from "./types.js";
+
+/** How many times a read is tried again when a move to a new address interrupts it. */
+const READ_ATTEMPTS = 3;
+
+/**
+ * Read the page, and turn a page that cannot be read at all into -32001.
+ *
+ * A read that lands in the middle of a move to a new address fails, because the
+ * document it was reading is gone. That is not a page that cannot be read, only a
+ * page that was busy for a moment, so the read waits for the new document and
+ * tries again, a few times and no more. A page that throws its own document away
+ * faster than it can be looked at runs out of tries and answers -32001.
+ */
+export async function readOrSayItCannotBeRead(
+  session: Session,
+  page: Page,
+  settings: { visibleOnly: boolean; against: Snapshot | null },
+): Promise<PageReading> {
+  let last = "";
+  for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt += 1) {
+    try {
+      return await readPage(session, page, settings);
+    } catch (problem) {
+      if (problem instanceof WorkerError) {
+        throw problem;
+      }
+      last = problem instanceof Error ? problem.message : String(problem);
+      session.log(`reading the page was interrupted, so it was tried again: ${last}`);
+      await page.waitForLoadState("domcontentloaded", { timeout: SETTLE_LIMIT_MS }).catch(() => {});
+    }
+  }
+  throw couldNotBeRead(SETTLE_LIMIT_MS, last);
+}
 
 /** Read the page as it is right now, without measuring anything against it. */
 async function pageAsItIs(session: Session, page: Page): Promise<Snapshot> {
@@ -64,8 +99,11 @@ export async function actAndAssert(
   await actionOrDialog(session, page, async () => {
     aimedAt = await work(page, before);
   });
-  await settle(session, page);
-  const reading = await readPage(session, page, { visibleOnly: false, against: before });
+  const settled = await settle(session, page);
+  const reading = await readOrSayItCannotBeRead(session, page, {
+    visibleOnly: false,
+    against: before,
+  });
   session.rememberSnapshot(reading.snapshot);
   if (reading.wall !== null) {
     session.log(`the action ran into a ${reading.wall.kind} wall: ${reading.wall.detail}.`);
@@ -76,6 +114,7 @@ export async function actAndAssert(
     expectation,
     newTab: session.tabOpenedDuring(),
     wall: reading.wall,
+    settled,
     aimedAt: aimedAt ?? null,
   });
 }

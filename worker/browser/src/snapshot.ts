@@ -133,6 +133,7 @@ async function readPdfPage(
       belowFold: 0,
       dialog: null,
       download: saved,
+      wall: null,
     },
     wall: null,
   };
@@ -185,6 +186,7 @@ export async function readPage(
         belowFold: 0,
         dialog,
         download,
+        wall: null,
       },
       wall: null,
     };
@@ -213,6 +215,7 @@ export async function readPage(
     belowFold: outOfSight,
     dialog: null,
     download,
+    wall: null,
   };
   const wall = findWall({
     title,
@@ -224,5 +227,9 @@ export async function readPage(
     })),
     frames: frameUrls,
   });
+  // The wall rides on the snapshot as well as being handed back on its own, so
+  // that `open` and `read`, whose answer is a snapshot and nothing else, can
+  // report it at all.
+  snapshot.wall = wall;
   return { snapshot, wall };
 }

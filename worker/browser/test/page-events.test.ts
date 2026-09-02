@@ -128,11 +128,13 @@ describe("a link that opens a new tab", () => {
   it("closes a tab and lists what is left", async () => {
     const listed = (await worker.result("tabs", { action: "list" }))["tabs"] as TabReport[];
     const doomed = listed.find((tab) => tab.active !== true);
+    const survivors = listed.filter((tab) => tab.id !== doomed!.id).map((tab) => tab.id);
     const left = (await worker.result("tabs", { action: "close", tabId: doomed!.id }))[
       "tabs"
     ] as TabReport[];
-    expect(left).toHaveLength(1);
-    expect(left.some((tab) => tab.id === doomed!.id)).toBe(false);
+    // Comparing the ids rather than the count says which tab is unexpectedly
+    // there, if this ever fails again.
+    expect(left.map((tab) => tab.id)).toEqual(survivors);
   });
 
   it("says so plainly when asked about a tab that is not there", async () => {

@@ -15,6 +15,7 @@ function snapshot(part: Partial<Snapshot>): Snapshot {
     belowFold: 0,
     dialog: null,
     download: null,
+    wall: null,
     ...part,
   };
 }
@@ -80,6 +81,7 @@ describe("building the diff an action returns", () => {
       expectation: "the home screen",
       newTab: "",
       wall: null,
+      settled: true,
     });
     expect(diff.urlChanged).toBe(true);
     expect(diff.url).toBe("https://example.com/home");
@@ -90,7 +92,7 @@ describe("building the diff an action returns", () => {
     const after = snapshot({
       elements: [element("e1", "button", "Post"), { ...element("e2", "link", "Help"), new: true }],
     });
-    const diff = buildDiff({ before: snapshot({}), after, expectation: "", newTab: "", wall: null });
+    const diff = buildDiff({ before: snapshot({}), after, expectation: "", newTab: "", wall: null, settled: true });
     expect(diff.newElements).toEqual([{ ref: "e2", role: "link", name: "Help", new: true }]);
   });
 
@@ -99,7 +101,7 @@ describe("building the diff an action returns", () => {
       dialog: { kind: "confirm", message: "Are you sure?" },
       download: { filename: "report.pdf", path: "/tmp/report.pdf" },
     });
-    const diff = buildDiff({ before: snapshot({}), after, expectation: "", newTab: "", wall: null });
+    const diff = buildDiff({ before: snapshot({}), after, expectation: "", newTab: "", wall: null, settled: true });
     expect(diff.dialog).toEqual({ kind: "confirm", message: "Are you sure?" });
     expect(diff.download).toEqual({ filename: "report.pdf", path: "/tmp/report.pdf" });
   });
@@ -111,6 +113,7 @@ describe("building the diff an action returns", () => {
       expectation: "",
       newTab: "t2",
       wall: null,
+      settled: true,
     });
     expect(diff.newTab).toBe("t2");
     expect(diff.expectationMet).toBe(true);
@@ -123,6 +126,7 @@ describe("building the diff an action returns", () => {
       expectation: "",
       newTab: "",
       wall: null,
+      settled: true,
     });
     expect(diff.expectationMet).toBe(true);
     expect(diff.seen).toBe("");
@@ -135,6 +139,7 @@ describe("building the diff an action returns", () => {
       expectation: "",
       newTab: "",
       wall: null,
+      settled: true,
     });
     expect(diff.urlChanged).toBe(false);
   });

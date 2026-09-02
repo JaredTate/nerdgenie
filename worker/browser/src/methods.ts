@@ -1,28 +1,24 @@
 /**
  * The eleven methods of PROTOCOL.md, and the one place a request turns into work.
  */
-import { clickMethod, pressMethod, scrollMethod, typeMethod } from "./act-methods.js";
+import {
+  clickMethod,
+  pressMethod,
+  readOrSayItCannotBeRead,
+  scrollMethod,
+  typeMethod,
+} from "./act-methods.js";
 import { actMethod, loginFillMethod, screenshotMethod } from "./batch-methods.js";
-import { readPage } from "./snapshot.js";
 import { settle } from "./settle.js";
 import { tabsMethod } from "./tabs.js";
 import type { Session } from "./session.js";
-import type { Diff, MethodName, Snapshot, Wall, WorkerRequest } from "./types.js";
+import type { Diff, MethodName, WorkerRequest } from "./types.js";
 
 /** What every method is: a session, some parameters, and a result object. */
 type Method = (session: Session, params: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
 /** How long to wait for a move to a new address, which is longer than settling takes. */
 const GO_TO_LIMIT_MS = 30_000;
-
-/**
- * A snapshot as the Go side reads it. The `wall` is not in the protocol's own
- * example for open and read, but the brief says the worker looks for a wall after
- * every open, and a wall nobody is told about would be no use at all.
- */
-function asResult(snapshot: Snapshot, wall: Wall | null): Record<string, unknown> {
-  return { ...snapshot, wall };
-}
 
 /** Go to an address and return the page. */
 const open: Method = async (session, params) => {
@@ -33,31 +29,30 @@ const open: Method = async (session, params) => {
     waitUntil: "domcontentloaded",
     timeout: GO_TO_LIMIT_MS,
   });
-  // A page with a ticker on it never settles, and refusing to open such a page
-  // would rule out a large part of the web. So a settle timeout here is noted and
-  // the page is read anyway. Actions still answer -32001, because there the whole
-  // point is telling the action's effect apart from the page's own churn.
-  await settle(session, page).catch((problem: Error) => {
-    session.log(`the page kept changing after it loaded, so it was read as it stood: ${problem.message}`);
+  await settle(session, page);
+  // A page just arrived at, so nothing on it counts as new. The snapshot carries
+  // the wall, which is how `open` reports that a page is a login page before the
+  // agent has done anything at all.
+  const reading = await readOrSayItCannotBeRead(session, page, {
+    visibleOnly: false,
+    against: null,
   });
-  // A page just arrived at, so nothing on it counts as new.
-  const reading = await readPage(session, page, { visibleOnly: false, against: null });
   session.rememberSnapshot(reading.snapshot);
   if (reading.wall !== null) {
     session.log(`the page is behind a ${reading.wall.kind} wall: ${reading.wall.detail}.`);
   }
-  return asResult(reading.snapshot, reading.wall);
+  return { ...reading.snapshot };
 };
 
 /** Return a fresh snapshot of the page the worker is on. */
 const read: Method = async (session, params) => {
   const page = session.currentPage();
-  const reading = await readPage(session, page, {
+  const reading = await readOrSayItCannotBeRead(session, page, {
     visibleOnly: params["visibleOnly"] === true,
     against: session.previousSnapshot(),
   });
   session.rememberSnapshot(reading.snapshot);
-  return asResult(reading.snapshot, reading.wall);
+  return { ...reading.snapshot };
 };
 
 /** Every diff is an object of its own fields, which is what the result must be. */

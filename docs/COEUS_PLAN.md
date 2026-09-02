@@ -66,6 +66,8 @@ flowchart TD
   Q --> R{"Route"}
   R -->|"command or skill"| X["Run tools"]
   R -->|"task"| O["Orient"]
+  R -->|"job"| J["Break into tasks"]
+  J --> O
   O --> M["Model call"]
   M --> K{"Tool calls?"}
   K -->|"yes"| G["Guard"]
@@ -78,7 +80,7 @@ flowchart TD
   A --> ME["Memory and skills"]
 ```
 
-A message from the user goes into a queue on disk. The queue is a waiting line of messages, saved to the hard drive so that none are lost. The router, which is the part of the harness that sorts messages, looks at each message and decides what it is. It might be a command, meaning one of the commands that start with a slash, such as `/status`, listed in section 12. It might be a trigger for a saved skill, which is a procedure the agent already knows. Or it might be a real task. A command or a skill runs its tools directly, without calling the model. A task goes through the agent loop.
+A message from the user goes into a queue on disk. The queue is a waiting line of messages, saved to the hard drive so that none are lost. The router, which is the part of the harness that sorts messages, looks at each message and decides what it is. It might be a command, meaning one of the commands that start with a slash, such as `/status`, listed in section 12. It might be a trigger for a saved skill, which is a procedure the agent already knows. Or it might be work for the model. A command or a skill runs its tools directly, without calling the model. Work for the model goes through the agent loop as a task. If the model sees that the work cannot be finished in one sitting, it makes a job and breaks the job into tasks, and the loop then runs those tasks one at a time.
 
 First the agent orients, which means it works out where it stands. The harness places the task record in front of the model, and the model states where the work stands and what comes next. Then the harness calls the model with the full working context: the harness rules, the persona, the task record, any pinned evidence, and the recent messages.
 
@@ -86,7 +88,7 @@ The model may reply with a tool call. If it does, the guard checks the request b
 
 The tools run inside the sandbox. Each tool has a time limit and a cap on how much text it may return, and it returns only what changed. The harness writes the results into the task record, and the agent loop goes back to orienting. When the model replies without asking for tools, the turn ends. When the whole task ends, the done-check runs, which confirms that every part of "done" is actually true. Then the after-action review runs. What was learned goes into memory and into skills.
 
-One process owns everything: the queue, the agent loop, the permissions, the task record, the memory, the scheduled jobs, and one database file. The agent works on one task at a time. A new task waits in the queue until the current one finishes, stops, or asks the user a question. The database is SQLite, which keeps everything in one ordinary file on disk. That one process starts two helper programs when it needs them. One is a browser worker, which runs a real Chrome web browser launched with its own user profile, never the user's daily Chrome profile. The other is a desktop worker, which controls the screen, the mouse, and the keyboard. They are separate processes so that a frozen browser can never take the agent down. There are two screens, the terminal and Signal. Neither screen holds any state, and both use the same list of commands.
+One process owns everything: the queue, the agent loop, the permissions, the records, the memory, the jobs, and one database file. The agent works on one task at a time. A new task waits in the queue until the current one finishes, stops, or asks the user a question. The database is SQLite, which keeps everything in one ordinary file on disk. That one process starts two helper programs when it needs them. One is a browser worker, which runs a real Chrome web browser launched with its own user profile, never the user's daily Chrome profile. The other is a desktop worker, which controls the screen, the mouse, and the keyboard. They are separate processes so that a frozen browser can never take the agent down. There are two screens, the terminal and Signal. Neither screen holds any state, and both use the same list of commands.
 
 ### The turn, in ten rules
 
@@ -103,17 +105,18 @@ One process owns everything: the queue, the agent loop, the permissions, the tas
 
 ---
 
-## 4. State: three kinds, one format
+## 4. State: four kinds, one format
 
-### Three kinds of state
+### Four kinds of state
 
 | Kind | What it holds | How often it changes | Where it sits |
 |---|---|---|---|
 | **Persona** | Who the agent is, who the user is, the standing rules, and durable memory | Rarely | At the start of every prompt, where it is cheapest |
 | **Skill** | How to do one kind of thing: the steps, what to expect at each step, the permissions, and the known failures | When a website or a tool changes | Loaded only when the skill is used |
-| **Task** | What is true right now about the thing being worked on | Every turn | In the task record, which is always in context |
+| **Job** | A piece of work too big for one sitting: its goal, its rules, its list of tasks, and the lessons from them | When one of its tasks finishes | A short summary above the task record while one of its tasks runs; the full record when the job is planned |
+| **Task** | One sitting of work: what is true right now about it | Every turn | In the task record, which is always in context |
 
-The three kinds are kept apart because they change at different speeds. The persona almost never changes. A skill changes only when a website or a tool changes. The task changes every turn. A carpenter makes this easy to picture. The persona is who the carpenter is. A skill is a joint the carpenter has learned to cut and can cut again without thinking. The task is the one cabinet sitting on the workbench today. Only the cabinet changes from day to day. Keeping the three kinds apart also saves money. The model provider can reuse the parts of a prompt it has already read, and it charges much less for them. So the more of the prompt that stays the same from call to call, the less each turn costs.
+The four kinds are kept apart because they change at four different speeds. The persona almost never changes. A skill changes only when a website or a tool changes. A job changes when a task finishes, which is hours or days apart. The task changes every turn. A carpenter makes this easy to picture. The persona is who the carpenter is. A skill is a joint the carpenter has learned to cut and can cut again without thinking. A job is the whole kitchen the carpenter was hired to build. The task is the one cabinet on the workbench today. Only the cabinet changes from hour to hour, and the kitchen changes only when a cabinet is finished. Keeping the four kinds apart also saves money. The model provider can reuse the parts of a prompt it has already read, and it charges much less for them. So the more of the prompt that stays the same from call to call, the less each turn costs.
 
 ### The task record
 
@@ -174,6 +177,58 @@ Failures:
 
 **Checkpoints.** A checkpoint is a saved copy of the task record at one moment, like a saved game. Every change to the record saves a numbered checkpoint tied to the log. A task that is waiting on the user resumes from its last checkpoint. In the meantime, nothing is held in any context window. The command `/tasks 17 back 3` reloads an earlier checkpoint and lets the model try a different path. Any failed task can be replayed from a checkpoint as a test after a fix.
 
+### The job record
+
+A task is one sitting of work, and it should take a few minutes. The budget of a hundred rounds and an hour is the hard stop, not the target. When the model sees that an ask cannot be finished in one sitting, or that part of the work has to wait for a date, it makes a job. A job has the same four parts as a task, and the same rules. The differences are that its plan is a list of tasks instead of a list of steps, and its results are the reports of the tasks that have finished. Here is a job record.
+
+```
+# job 4   running   from Signal   3 of 12 tasks done   next: task 31 today at 14:00
+
+## Goal
+Ask: "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end."
+Why: keep the anniversary in front of people all month.
+Done when:
+- [ ] one post is up for every weekday of the month
+- [ ] the blog piece is published
+- [ ] the user has the summary
+
+## Rules
+Corrections:
+- C1 "keep every post to one fact"
+Stop and tell the user if:
+- any account shows a login page or a captcha
+- a post gets more than ten angry replies
+
+## Work
+Situation:
+- 3 of 12 tasks done, none running, next due today at 14:00
+Tasks:
+- [x] t17 post the anniversary tweet -> j4.1
+- [x] t19 draft the blog piece -> j4.2
+- [x] t22 post for day two -> j4.3
+- [ ] t31 post for day three, today at 14:00
+- [ ] t32 post for day four, tomorrow at 14:00
+- [ ] t40 write the summary for the user, after the last post
+Reports (read any of them in full with `read j4.2`):
+- j4.1 posted, 236 characters, link saved
+- j4.2 draft saved to blog/anniversary.md, 900 words
+- j4.3 posted, 198 characters, link saved
+
+## Lessons
+Decisions:
+- D1 Post at 14:00 each day. Reason: the first two posts did best at that hour.
+Failures:
+- F1 The day-one post had three facts. Cause: no rule yet. Now correction C1.
+```
+
+**How the model breaks a job into tasks.** Each task must fit in one sitting and have one clear done line. Tasks are listed in order, and a task can use the reports of the tasks before it, because those reports are in the job record with ids. A task that must wait for a date gets the date. The model can add a task or split one as it learns more, the same way it edits a task's plan, and it never removes a finished one. The last task of a job that reports to the user is the summary.
+
+**How a job runs.** The harness runs one task at a time. When a task finishes, its report, which says what changed, what was checked, and what is left, is written into the job with an id like j4.2, and the same report is sent to the user with the job's progress on it. Then the next task starts, or waits for its date. If a task fails three times in a row, the job pauses and tells the user. When the last task is done, the job's own done list is checked the same way a task's is, its review runs, and the user gets the final report.
+
+**Scheduled jobs.** A job can have a schedule, such as "every weekday at 7 in the morning." A scheduled job creates one task from its template each time the clock says so. That is all a scheduled job is, so there is one idea called a job, and `/cron` simply shows the ones with a schedule. A scheduled job that fails ten times in a row is switched off with a message to the user.
+
+**Who writes what.** The harness writes the header, the progress line, the check marks, and the reports. The model writes the goal, the stop list, the task list, the decisions, and the failures, through the `job` tool. The `job` tool refuses the same things the `task` tool refuses.
+
 ### The done-check and the after-action review
 
 When the model says the task is done, the harness reads the done list. Every line must point at a result or at a reply from the user. A line with nothing behind it sends the model back to work. Where a line names something the harness can check itself, such as a file that should exist or a command that should succeed, the harness checks it. Otherwise the model judges whether the result satisfies the line, and it must say which result. This is what stops the model from declaring victory early.
@@ -192,6 +247,7 @@ The prompt is built in layers. They are ordered from the part that changes least
 |---|---|---|
 | Harness rules and persona | Rarely | A |
 | Tools | When the software is updated | B |
+| The job summary, when the task belongs to a job: the goal, the rules, the task list | When a task finishes | |
 | The record's goal and rules | Rarely during a task | C |
 | The record's work and lessons | Every turn | |
 | Pinned evidence, kept word for word | When something is pinned | |
@@ -210,13 +266,15 @@ The prompt is built in layers. They are ordered from the part that changes least
 
 ## 5. What the model is told
 
-The model works inside a harness. It cannot do its job well unless it understands what the harness does for it and what the harness expects from it. So the first thing in every prompt, before the persona and before the tools, is a short explanation of the harness written for the model. It is the same on every model, and it is under four hundred words. Here it is in full.
+The model works inside a harness. It cannot do its job well unless it understands what the harness does for it and what the harness expects from it. So the first thing in every prompt, before the persona and before the tools, is a short explanation of the harness written for the model. It is the same on every model, and it is under five hundred words. Here it is in full.
 
-> **Where you are.** You are the reasoning engine inside Coeus, an assistant that runs on the user's computer. You do not remember earlier calls. The harness around you does. On every call it gives you, in this order: these rules, your persona, your tools, the record of the current task, any evidence that has been pinned, the most recent messages, and a short memory hint. Everything else that ever happened is stored on disk, and you can fetch any past result by its id.
+> **Where you are.** You are the reasoning engine inside Coeus, an assistant that runs on the user's computer. You do not remember earlier calls. The harness around you does. On every call it gives you, in this order: these rules, your persona, your tools, a summary of the job if the task belongs to one, the record of the current task, any evidence that has been pinned, the most recent messages, and a short memory hint. Everything else that ever happened is stored on disk, and you can fetch any past result by its id.
 >
 > **The task record is the truth.** The record tells you what the user asked, why, what they corrected, what has been decided, what has failed, and where the work stands. Trust the record over your own recollection of the conversation. Your first line on every turn states where the work stands and what you will do next. If what you see does not match the plan, update the plan before you act.
 >
 > **Your part of the record.** Use the `task` tool, in the same reply as your other tool calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. The harness fills in the rest. You cannot change the ask or a correction, and you should not try.
+>
+> **Jobs and tasks.** A task is one sitting of work, a few minutes long. If the ask cannot be finished in one sitting, or part of it must wait for a date, make a job with the `job` tool and break it into tasks that each fit in one sitting, each with one clear done line. The harness runs them one at a time and reports to the user after each one. A skill is a way of doing something that you can use again. A job is one piece of work with a finish line. Your persona is who you are, and it does not change with the work.
 >
 > **When to stop.** Stop when any "stop and tell the user" condition is true, and say which one. Otherwise keep going until every line of "done" is true or the budget runs out. When you say the task is done, every line of "done" must point at the result that proves it. To ask the user something, ask in plain text and end your reply. The harness will resume you when the answer arrives.
 >
@@ -259,7 +317,7 @@ flowchart LR
 
 There are eighteen tools built in, and all of them are shown to every model. In the class column, R means the tool reads, and W means it writes. X means it runs a program, and N means it uses the network. I means it does something that cannot be undone. Every description is plain text under forty words, and it says when not to use the tool.
 
-A few rows use terms that need a word of explanation. A regular expression is a pattern for matching text, such as "any line with a phone number in it." A cron expression is a short code that says when a job should run, such as every weekday at nine in the morning. Sudo is the Linux command that runs something with administrator powers. A job id is a label for a command that is still running. The model can poll the job, which means check on it. It can tail the job, which means watch the output as it comes. Or it can kill the job, which means stop it.
+A few rows use terms that need a word of explanation. A regular expression is a pattern for matching text, such as "any line with a phone number in it." A cron expression is a short code that says when a job should run, such as every weekday at nine in the morning. Sudo is the Linux command that runs something with administrator powers. A process id is a label for a command that is still running. The model can poll the job, which means check on it. It can tail the job, which means watch the output as it comes. Or it can kill the job, which means stop it.
 
 | Tool | What it does | Class |
 |---|---|---|
@@ -267,12 +325,12 @@ A few rows use terms that need a word of explanation. A regular expression is a 
 | `write` | Creates a file or overwrites an existing one | W |
 | `edit` | Replaces one exact span of text in a file | W |
 | `search` | Finds files by name pattern, or finds lines by regular expression | R |
-| `shell` | Runs a command. After ten seconds it returns a job id that can be polled, tailed, or killed. An `escalate` field with a written reason requests sudo | X |
+| `shell` | Runs a command. After ten seconds it returns a process id that can be polled, tailed, or killed. An `escalate` field with a written reason requests sudo | X |
 | `web` | Searches the web, or fetches a public web page as text. Anything that needs a login or a click belongs to the browser tools | N |
 | `memory` | Searches, gets, or saves a memory | R and W |
 | `task` | Updates the plan, adds a fact with its source, records a decision or a failure with its reason, or pins a result | W |
 | `skill` | Views, runs, or saves a skill | R, X, and W |
-| `schedule` | Creates one scheduled job that runs at a time, on an interval, or on a cron expression | I |
+| `job` | Creates a job, with or without a schedule, adds a task to it, or lists its tasks. A schedule is a time, an interval, or a cron expression | I |
 | `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_act` | The web browser tools, described in section 9 | N and X |
 | `browser_login`, `browser_handoff` | The web browser tools that involve credentials or the user, described in section 9 | N and I |
 | `computer` | The desktop tool, described in section 10 | X and I |
@@ -369,7 +427,8 @@ There is one command table, meaning one list of commands that works the same eve
 | `/model` | Shows or sets the model |
 | `/status` | Shows the model, the token cost, the jobs, the pending approvals, and the health |
 | `/stop`, `/pause`, and `/resume` | Stops this turn, or pauses and resumes all scheduled work |
-| `/cron` | Lists every scheduled job with its name, its schedule in plain words such as "every weekday at 7 in the morning," what it does in one line, when it last ran, and when it runs next. `/cron 3` shows one job in full, `/cron run 3` runs it now, and `/cron off 3` disables it |
+| `/jobs` | Lists every job with its name, its progress such as "3 of 12 tasks done," and what it does in one line. `/jobs 4` shows one job in full |
+| `/cron` | Lists the jobs that have a schedule, each with its name, its schedule in plain words such as "every weekday at 7 in the morning," what it does in one line, when it last ran, and when it runs next. `/cron 3` shows one job in full, `/cron run 3` runs it now, and `/cron off 3` disables it |
 | `/approve 3` and `/deny 3` | Answers a preview or a question |
 | `/screen` | Sends a screenshot of the browser or the desktop right now |
 | `/memory`, `/skills`, and `/vault` | Show and manage each. The vault works only in the terminal |

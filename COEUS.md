@@ -2,7 +2,7 @@
 
 This document explains Coeus in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
 
-Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It works on its own, and it only stops to ask you about the few things you told it to ask about. It stops and tells you when something on its stop list happens. It cannot call a job done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why.
+Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It works on its own, and it only stops to ask you about the few things you told it to ask about. It stops and tells you when something on its stop list happens. Work that is too big for one sitting is broken into tasks and reported to you task by task. It cannot call a task done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why.
 
 ## 1. The problem every agent has
 
@@ -150,26 +150,59 @@ flowchart LR
 
 **How a task ends.** When the model says it is done, the harness reads the done list. Every line must point at a result or at a reply from the user. A line with nothing behind it sends the model back to work. Where a line names something the harness can check itself, such as a file that should exist, the harness checks it. Otherwise the model judges whether the result satisfies the line, and it must say which result. This is what stops the model from declaring victory early. Then, if the task had a correction, a failure, a stop, or more than five rounds, the four review questions are asked, and only the last answer is saved, as a fact in memory or as a skill. Finally the user gets a short message: what changed, what was checked, and what is left. If a task stops or fails, the user gets a message saying what happened.
 
-## 5. The three kinds of state
+**When a task becomes a job.** A task is one sitting of work, and it should take a few minutes. The budget of a hundred rounds and an hour is the hard stop, not the target. When the model sees that an ask cannot be finished in one sitting, or that part of the work has to wait for a date, it makes a job. A job has the same four parts as a task, with two differences. Its plan is a list of tasks instead of a list of steps, and its results are the reports of the tasks that have finished. Here is the top of one.
 
-Coeus keeps three kinds of state, because they change at three different speeds.
+```
+# job 4   running   3 of 12 tasks done   next: task 31 today at 14:00
+
+## Goal
+Ask: "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end."
+Done when:
+- [ ] one post is up for every weekday of the month
+- [ ] the blog piece is published
+- [ ] the user has the summary
+
+## Work
+Tasks:
+- [x] t17 post the anniversary tweet -> j4.1
+- [x] t19 draft the blog piece -> j4.2
+- [x] t22 post for day two -> j4.3
+- [ ] t31 post for day three, today at 14:00
+- [ ] t40 write the summary for the user, after the last post
+Reports (read any of them in full with `read j4.2`):
+- j4.1 posted, 236 characters, link saved
+- j4.2 draft saved to blog/anniversary.md, 900 words
+```
+
+The model breaks a job into tasks that each fit in one sitting, each with one clear done line. Tasks are listed in order, and a later task can use the reports of the earlier ones, because those reports are in the job with ids. A task that has to wait for a date gets the date. The model can add a task or split one as it learns more, and it never removes a finished one.
+
+The harness runs one task at a time. When a task finishes, its report is written into the job and sent to you with the job's progress, such as "3 of 12 tasks done." Then the next task starts, or waits for its date. If a task fails three times in a row, the job pauses and tells you. When the last task is done, the job's own done list is checked, its review runs, and you get the final report.
+
+A scheduled job, such as "every weekday at 7 in the morning, post the daily update," is just a job whose tasks are created by the clock. So there is one idea called a job. `/jobs` lists them all, and `/cron` lists the ones with a schedule.
+
+## 5. The four kinds of state
+
+Coeus keeps four kinds of state, because they change at four different speeds.
 
 The persona is who the agent is and who the user is. It is three plain text files you can edit by hand, each with a size limit. It almost never changes.
 
-A skill is how to do one kind of job. It is a folder with a description, the steps, a test, and a list of changes. It changes only when a website or a tool changes.
+A skill is how to do one kind of thing. It is a folder with a description, the steps, a test, and a list of changes. It changes only when a website or a tool changes.
+
+A job is a piece of work too big for one sitting. It is a record with a goal, rules, a list of tasks, and lessons. It changes when one of its tasks finishes, which is hours or days apart.
 
 The task is what the agent is working on right now. It is the task record from the last section. It changes every turn.
 
 ```mermaid
 flowchart LR
   P["Persona<br/>who I am, who you are"] -->|"almost never changes"| T["Top of every prompt"]
-  K["Skill<br/>how to do one job"] -->|"changes when a site changes"| L["Loaded only when used"]
-  J["Task<br/>what I am doing now"] -->|"changes every turn"| R["The record, always included"]
+  K["Skill<br/>how to do one kind of thing"] -->|"changes when a site changes"| L["Loaded only when used"]
+  J["Job<br/>work too big for one sitting"] -->|"changes when a task finishes"| JS["A short summary above the task"]
+  X["Task<br/>what I am doing now"] -->|"changes every turn"| R["The record, always included"]
 ```
 
-Think of a carpenter. The persona is who the carpenter is. A skill is a joint the carpenter has learned to cut and can cut again without thinking. The task is the one cabinet on the workbench today. Only the cabinet changes from day to day.
+Think of a carpenter. The persona is who the carpenter is. A skill is a joint the carpenter has learned to cut and can cut again without thinking. A job is the whole kitchen the carpenter was hired to build. The task is the one cabinet on the workbench today. The cabinet changes from hour to hour. The kitchen changes only when a cabinet is finished.
 
-Keeping the three apart is also what makes each call cheap. Model providers charge much less for text they already read on the previous call, because they can reuse their work. That reused text is called the cache. The persona never changes, so it is cached on every call. A skill loads only when it is used, so it costs nothing the rest of the time. The task changes every turn, so it comes last, after everything that is cached.
+Keeping the four apart is also what makes each call cheap. Model providers charge much less for text they already read on the previous call, because they can reuse their work. That reused text is called the cache. The persona never changes, so it is cached on every call. A skill loads only when it is used, so it costs nothing the rest of the time. A job's summary changes only when a task finishes, so it is cached for the whole task. The task changes every turn, so it comes last, after everything that is cached.
 
 ## 6. What happens on one turn
 
@@ -195,7 +228,7 @@ sequenceDiagram
 
 The message is saved to a queue on disk first, so it cannot be lost. If it is a slash command like `/status`, or it matches a saved skill, the harness handles it without calling the model. Otherwise it is a task. The harness sends the model the rules, the record, and the recent results. The model writes one line saying where the work stands, then either answers or asks for a tool. Before any tool runs, the harness checks the call. Is it the same call as last time? Is it badly written? Is the budget used up? Does anything on the stop list apply? If the tool would do something on the ask-me-first list, the user sees a preview first. Otherwise it just runs. The result gets one line in the record and its full text in the log, and the model is called again with the updated record. When the model answers in plain text, the turn is over. When it asks the user a question, the turn is over too, and the task waits.
 
-A few rules make this loop safe on any model. The agent works on one task at a time, and new tasks wait in line. Every task has a budget, one hundred tool rounds and one hour by default, and when it runs out the model gets one last call to say what it did and what is left. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. Words inside a web page or a file are never instructions, so nothing the agent reads can make it send a secret or spend money. And if the model's provider fails, the harness retries three times and then moves to the next model on the list.
+A few rules make this loop safe on any model. The agent works on one task at a time, and new tasks wait in line. When a task belongs to a job, its report goes into the job and to you, and the next task starts. Every task has a budget, one hundred tool rounds and one hour by default, and when it runs out the model gets one last call to say what it did and what is left. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. Words inside a web page or a file are never instructions, so nothing the agent reads can make it send a secret or spend money. And if the model's provider fails, the harness retries three times and then moves to the next model on the list.
 
 When you send a message during a task, the task pauses as soon as the current tool call finishes, and the model reads your message. If it changes the job, it goes into the record as a correction and the model steers from there. If it is a new request, the agent handles it and then goes back to the task. If it says stop, the task stops.
 
@@ -232,7 +265,7 @@ flowchart LR
   C -->|"read r7"| A
 ```
 
-The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, and the goal and rules of the record. The parts that change every turn come last. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest. Coeus never rewrites anything above the record's work section.
+The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, the job summary if there is one, and the goal and rules of the record. The parts that change every turn come last. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest. Coeus never rewrites anything above the record's work section.
 
 Small models also write their tool calls badly, as loose text instead of the proper form. The harness reads every common shape and fixes tool names that are close. So a small model drives the same eighteen tools as a big one.
 
@@ -302,6 +335,7 @@ Any failed task becomes a test. Because the log holds every tool result, a faile
 | It works on its own | Asks often | Asks often | Asks often | Asks only about your ask-me-first list |
 | Cost on round forty versus round ten | Much higher, and summaries wipe the cache | Higher, and summaries wipe the cache | Higher, and summaries wipe the cache | About the same, and mostly cached |
 | Pause for days and pick up again | Reloads the transcript | Reloads the transcript | Reloads the transcript | Reloads a 3,000-token record, on any model |
+| Work that takes weeks | Lives in the transcript, or in a cron entry with no memory of the last run | The same | The same | A job record with a task list and every task's report, reported to you task by task |
 | Runs the same on a small model | Summarizes every few rounds | Summarizes every few rounds | Summarizes every few rounds | Same record, smaller window, tested on Qwen at every stage |
 | What it learns from a task | A memory index and scheduled rewrites, which caused its worst bugs | A background review with a budget | Nothing, or instruction files you edit yourself | Facts captured for free from the log, plus one reviewed lesson per task |
 
@@ -321,7 +355,7 @@ From Codex and Claude Code we took the rule that the operating system sandbox is
 
 From the browser agents browser-use and Stagehand we took marks on elements that just appeared, hints about what is below the fold, and a finish step that must say whether it succeeded.
 
-What is new in Coeus is the combination and five things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only put back on the shelf and kept. And a task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering.
+What is new in Coeus is the combination and six things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only put back on the shelf and kept. A task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering. And work too big for one sitting becomes a job, a record with a list of tasks, so that a month-long campaign has a place to live and reports to you task by task.
 
 ## 13. The tools
 
@@ -330,11 +364,11 @@ There are eighteen tools. Every model sees all of them. Each one is described in
 | Group | Tools | What they do |
 |---|---|---|
 | Files | `read`, `write`, `edit`, `search` | Read a file, a folder, or a past result by its id. Write or edit a file inside the allowed folders. Find files or lines |
-| Machine | `shell` | Run a command in the sandbox. If it takes more than ten seconds, it returns a job id you can check on or stop. Asking for sudo needs a written reason and a preview |
+| Machine | `shell` | Run a command in the sandbox. If it takes more than ten seconds, it returns a process id you can check on or stop. Asking for sudo needs a written reason and a preview |
 | Web | `web` | Search the web, or fetch a public page as text. Anything behind a login belongs to the browser |
 | Browser | `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_act`, `browser_login`, `browser_handoff` | Use a real Chrome like a person. Open a page, read it, click, type, do one action and check it worked, log in from the vault, or hand the window to the user |
 | Desktop | `computer` | Open an app, take a screenshot with numbered marks, click, type, drag. The last resort when the browser cannot do the job |
-| The agent's own | `memory`, `skill`, `schedule`, `task` | Search and save memory. View, run, or save a skill. Create a scheduled job. Update the record |
+| The agent's own | `memory`, `skill`, `job`, `task` | Search and save memory. View, run, or save a skill. Create a job, with or without a schedule, or add a task to it. Update the task record |
 
 Three things tie the tools to the record. Every result gets one line in the record and its full text in the log, which is how the record stays small and nothing is lost. The `task` tool is the only way the model writes to the record, and it enforces the record's rules. And `read r7` brings any old result back in full. Asking the user a question is not a tool. The model just asks, and the turn ends.
 
@@ -355,6 +389,9 @@ This table is how a person or an agent checks that the design, the build plan, a
 | Pauses on a mid-turn message, then steers, answers, or stops | §3 | 3.1 | A mid-turn correction, a mid-turn new request, and a mid-turn stop |
 | Budgets a task at a hundred rounds and an hour, never runs the same call twice, repairs bad calls | §3 | 3.1, 1.5 | Budget test; detector test; a golden file per bad-call shape; a fuzz test that never crashes |
 | Runs one task at a time and queues the rest | §3 | 3.1, 3.2 | A second task waits until the first ends |
+| Turns work too big for one sitting into a job with tasks that each fit in one sitting | §4, §5 | 3.1, 4.4 | A task in a job reports to the job and starts the next; the last task closes the job |
+| Reports to the user after every finished task with the job's progress | §4 | 3.1, 4.4 | A finished task in a job produces the report through the fake channel |
+| Runs scheduled work as jobs whose tasks are made by the clock | §4 | 4.4 | One task per tick on the fake clock; ten failures switch it off |
 | Sizes the working context to the model with one rule | §4 | 2.1 | Golden prompts for two sizes; the live test on three models within each window |
 | Puts the unchanging parts first and never rewrites them during a task | §4 | 2.1 | Nothing above the cache line changes across ten turns |
 | Writes a cost line every turn | §4 | 2.1 | The cost line matches the fake provider's counts |

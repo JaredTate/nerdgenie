@@ -42,7 +42,7 @@ Nothing irreversible happens without a preview you approve first. Commands run i
 
 - Talk to it in the terminal or on Signal. The same slash commands work in both.
 - `/tasks` shows what it is working on. `/tasks 17 back 3` rewinds a task three checkpoints, like reloading a saved game.
-- `/cron` lists every scheduled job with its schedule in plain words, what it does, when it last ran, and when it runs next.
+- `/jobs` lists every job with its progress. `/cron` lists the ones with a schedule, in plain words, with when each last ran and when it runs next.
 - `/memory` and `/skills` show what it remembers and what it has learned. Your corrections are kept word for word.
 - `/undo` reverts the last turn's file changes. `/status` shows the model, the cost, and the health.
 - `coeus update` installs a new release and rolls back by itself if the new one does not come up.
@@ -59,9 +59,9 @@ Tests are written before the code they prove, at four levels: unit, integration,
 
 | File | What it is |
 |---|---|
-| `COEUS.md` | The plain-words explanation: the problem every agent has, the three things Coeus keeps apart, the task record, the three kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
+| `COEUS.md` | The plain-words explanation: the problem every agent has, the three things Coeus keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
 | `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives |
-| `docs/COEUS_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the three kinds of state and the task record, what the model is told, tools, browser, safety |
+| `docs/COEUS_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
 | `docs/WORK_PLAN.md` | How it gets built: the goal, the rules, the four kinds of tests, the test framework, seven waves of briefs, and where each borrowed design lives in the other code bases |
 | `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |
 | `docs/html/` | The documents as pages with the diagrams drawn |

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("# job 1   running   0 of 0 tasks done   from  \n## Goal\nAsk: \"0\"\n## Rules\n## Work\n## Lessons")

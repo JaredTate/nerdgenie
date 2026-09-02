@@ -169,6 +169,28 @@ func checkTheRuleIsNamed(t *testing.T, name string, rules map[string]error, from
 	}
 }
 
+// TestRefusesAHeaderFieldThatIsOnlySpaces proves a header field padded with
+// spaces is refused. The header separates its fields with three spaces, so a
+// channel name or a next due task that begins or ends with one would lose it on
+// the way back and the record would no longer say what it said. The fuzzing of
+// the parser found this, and the input it found is in testdata beside it.
+func TestRefusesAHeaderFieldThatIsOnlySpaces(t *testing.T) {
+	parts := "\n## Goal\nAsk: \"do the thing\"\n\n## Rules\n\n## Work\n\n## Lessons\n"
+	cost := "this turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n"
+	headers := []string{
+		"# job 1   running   0 of 0 tasks done   from  \n" + parts,
+		"# job 1   running   from     0 of 0 tasks done\n" + parts,
+		"# job 1   running   0 of 0 tasks done   next:  today\n" + parts,
+		"# job 1   running   0 of 0 tasks done   next: today \n" + parts,
+		"# task 1   running   from     budget left: 0 rounds, 0 minutes\n" + cost + parts,
+	}
+	for _, header := range headers {
+		if _, err := Parse([]byte(header)); err == nil {
+			t.Errorf("a header field padded with spaces read back anyway:\n%s", header)
+		}
+	}
+}
+
 // TestSaysWhichLineIsWrong proves a parse error points the reader at the line to
 // fix, because an error message that does not say where wastes the reader's time.
 func TestSaysWhichLineIsWrong(t *testing.T) {

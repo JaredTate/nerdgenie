@@ -4,7 +4,7 @@
 
 A few words in that summary deserve a plain explanation. Open-source means the code is public, and anyone may read it, use it, or change it. Linux is a free operating system that runs most servers and many small home computers. A terminal is the text window where you type commands to a computer. A language model is the program people usually mean when they say "the AI." It reads text and writes text back. An AI agent is a program that uses a language model to get work done for you, such as reading files, using websites, or sending messages.
 
-This document is the design overview for the first version. Nothing is built yet. The next document will be the work plan for building it. This design grew out of a comparison of other agents, which is in `HARNESS_V2.md`. The research behind that comparison is in `docs/research/`.
+This document is the design overview for the first version. It is being built now, wave by wave, from the work plan in `WORK_PLAN.md`, and `PROGRESS.md` says how far the build has got. This design grew out of a comparison of other agents, which is in `HARNESS_V2.md`. The research behind that comparison is in `docs/research/`.
 
 The name comes from Greek mythology. Coeus was the Titan of intelligence.
 

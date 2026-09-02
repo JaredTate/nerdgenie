@@ -144,7 +144,7 @@ func TestTheDoctorReportsAVaultKeyAnyoneCanRead(t *testing.T) {
 }
 
 func TestTheDoctorReportsAConfigurationThatWillNotLoad(t *testing.T) {
-	home := writeConfig(t, "\n[caps]\nroundspertask = 0\n")
+	home := writeConfig(t, "\n[caps]\nrounds_per_task = 0\n")
 
 	finding := findingAbout(t, config.Doctor(context.Background(), home), "config.toml")
 	if finding.Result != config.Trouble {
@@ -290,8 +290,8 @@ func TestTheVerdictIsTheWorstOfTheFindings(t *testing.T) {
 // localAliasAt is a configuration whose one model alias is the local daemon at
 // an address the test chose.
 func localAliasAt(address string) string {
-	return "[[models]]\nname = \"local\"\nprovider = \"openai\"\nbaseaddress = \"" + address +
-		"\"\nmodelname = \"local-coder\"\ncontextlength = 262144\n"
+	return "[[models]]\nname = \"local\"\nprovider = \"openai\"\nbase_address = \"" + address +
+		"\"\nmodel_name = \"local-coder\"\ncontext_length = 262144\n"
 }
 
 // buildFullHome makes a home folder with everything in it: a configuration that

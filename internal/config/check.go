@@ -73,9 +73,9 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 		return checker.complain(where+".provider", fmt.Sprintf(
 			"the provider %q is not one Coeus knows, so use one of %s", alias.Provider, listOfProviderKinds()))
 	case strings.TrimSpace(alias.ModelName) == "":
-		return checker.complain(where+".modelname", "this model alias does not say which model to ask for, so set modelname to the name the server or the program knows it by")
+		return checker.complain(where+".model_name", "this model alias does not say which model to ask for, so set model_name to the name the server or the program knows it by")
 	case alias.ContextLength <= 0:
-		return checker.complain(where+".contextlength", fmt.Sprintf(
+		return checker.complain(where+".context_length", fmt.Sprintf(
 			"the context length is %d, so set it to how many tokens the model can hold, which is the number the working context is sized from", alias.ContextLength))
 	}
 	if err := checker.checkAliasReach(where, alias); err != nil {
@@ -83,7 +83,7 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 	}
 	if alias.KeyReference != "" {
 		if _, isReference := contract.SecretReferenceName(alias.KeyReference); !isReference {
-			return checker.complain(where+".keyreference", fmt.Sprintf(
+			return checker.complain(where+".key_reference", fmt.Sprintf(
 				"the key is %q, and a key is never written here, so put it in the vault and refer to it as %sname",
 				alias.KeyReference, contract.SecretReferencePrefix))
 		}
@@ -96,11 +96,11 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 // needs one of the two vendor programs.
 func (checker settingsChecker) checkAliasReach(where string, alias contract.ModelAlias) error {
 	if alias.Provider == contract.ProviderOpenAI && strings.TrimSpace(alias.BaseAddress) == "" {
-		return checker.complain(where+".baseaddress",
+		return checker.complain(where+".base_address",
 			"an openai alias needs the address of the server that answers it, such as \"http://127.0.0.1:19091/v1\"")
 	}
 	if alias.BaseAddress != "" && !isWebAddress(alias.BaseAddress) {
-		return checker.complain(where+".baseaddress", fmt.Sprintf(
+		return checker.complain(where+".base_address", fmt.Sprintf(
 			"the address %q is not a web address, so write it with a scheme and a host, such as \"http://127.0.0.1:19091/v1\"", alias.BaseAddress))
 	}
 	if alias.Provider == contract.ProviderCommandLine && alias.Program != contract.ClaudeProgram && alias.Program != contract.CodexProgram {
@@ -119,17 +119,17 @@ func (checker settingsChecker) checkDefaultAndFallback() error {
 		named = append(named, alias.Name)
 	}
 	if checker.settings.DefaultModel == "" {
-		return checker.complain("defaultmodel", fmt.Sprintf(
-			"no model is the default, so set defaultmodel to one of %s", strings.Join(quoteEach(named), ", ")))
+		return checker.complain("default_model", fmt.Sprintf(
+			"no model is the default, so set default_model to one of %s", strings.Join(quoteEach(named), ", ")))
 	}
 	if !slices.Contains(named, checker.settings.DefaultModel) {
-		return checker.complain("defaultmodel", fmt.Sprintf(
+		return checker.complain("default_model", fmt.Sprintf(
 			"there is no model alias called %q, so name one of %s or add a [[models]] block for it",
 			checker.settings.DefaultModel, strings.Join(quoteEach(named), ", ")))
 	}
 	for _, fallback := range checker.settings.FallbackChain {
 		if !slices.Contains(named, fallback) {
-			return checker.complain("fallbackchain", fmt.Sprintf(
+			return checker.complain("fallback_chain", fmt.Sprintf(
 				"the fallback chain names %q, and there is no model alias called that, so use one of %s",
 				fallback, strings.Join(quoteEach(named), ", ")))
 		}
@@ -145,14 +145,14 @@ func (checker settingsChecker) checkDefaultAndFallback() error {
 // the shipped default, because the sandbox masks the excluded paths out of it.
 func (checker settingsChecker) checkSandboxRoots() error {
 	if len(checker.settings.SandboxRoots) == 0 {
-		return checker.complain("sandboxroots", "there are no sandbox roots, so a sandboxed command could reach nothing; leave the key out to use the default")
+		return checker.complain("sandbox_roots", "there are no sandbox roots, so a sandboxed command could reach nothing; leave the key out to use the default")
 	}
 	for _, root := range checker.settings.SandboxRoots {
 		if err := contract.CheckSandboxRoot(root, checker.userHome); err != nil {
-			return checker.complain("sandboxroots", err.Error())
+			return checker.complain("sandbox_roots", err.Error())
 		}
 		if clean := filepath.Clean(root); clean != checker.userHome && folderHolds(clean, checker.userHome) {
-			return checker.complain("sandboxroots", fmt.Sprintf(
+			return checker.complain("sandbox_roots", fmt.Sprintf(
 				"the sandbox root %q is above your home directory %q, so a sandboxed command could reach every account on the machine; use your home directory or a folder inside it",
 				root, checker.userHome))
 		}
@@ -170,12 +170,12 @@ func (checker settingsChecker) checkCaps() error {
 		key    string
 		amount int
 	}{
-		{"caps.roundspertask", caps.RoundsPerTask},
-		{"caps.queuedmessages", caps.QueuedMessages},
-		{"caps.tooloutputbytes", caps.ToolOutputBytes},
-		{"caps.identicalcallwindow", caps.IdenticalCallWindow},
-		{"memorycaps.worldfactsbytes", memory.WorldFactsBytes},
-		{"memorycaps.userfactsbytes", memory.UserFactsBytes},
+		{"caps.rounds_per_task", caps.RoundsPerTask},
+		{"caps.queued_messages", caps.QueuedMessages},
+		{"caps.tool_output_bytes", caps.ToolOutputBytes},
+		{"caps.identical_call_window", caps.IdenticalCallWindow},
+		{"memory_caps.world_facts_bytes", memory.WorldFactsBytes},
+		{"memory_caps.user_facts_bytes", memory.UserFactsBytes},
 	} {
 		if limit.amount <= 0 {
 			return checker.complain(limit.key, fmt.Sprintf(
@@ -195,10 +195,10 @@ func (checker settingsChecker) checkLengthsOfTime() error {
 		key    string
 		amount time.Duration
 	}{
-		{"caps.timepertask", caps.TimePerTask},
-		{"caps.timepertool", caps.TimePerTool},
-		{"caps.timeperturn", caps.TimePerTurn},
-		{"handofftimeout", checker.settings.HandoffTimeout},
+		{"caps.time_per_task", caps.TimePerTask},
+		{"caps.time_per_tool", caps.TimePerTool},
+		{"caps.time_per_turn", caps.TimePerTurn},
+		{"handoff_timeout", checker.settings.HandoffTimeout},
 	} {
 		if budget.amount <= 0 {
 			return checker.complain(budget.key, fmt.Sprintf(
@@ -216,7 +216,7 @@ func (checker settingsChecker) checkSignalAccount() error {
 	if account == "" || looksLikeAPhoneNumber(account) {
 		return nil
 	}
-	return checker.complain("signalaccount", fmt.Sprintf(
+	return checker.complain("signal_account", fmt.Sprintf(
 		"the Signal account %q is not a phone number in international form, so write it as a plus, a country code, and the number, such as \"+15125550123\"", account))
 }
 
@@ -225,15 +225,15 @@ func (checker settingsChecker) checkSignalAccount() error {
 // server, are written so that something can be done with them.
 func (checker settingsChecker) checkAddressesAndPaths() error {
 	if backup := checker.settings.BackupPath; !filepath.IsAbs(backup) {
-		return checker.complain("backuppath", fmt.Sprintf(
+		return checker.complain("backup_path", fmt.Sprintf(
 			"the backup path %q is not a full path, so write it starting from the root of the filesystem, or leave the key out to use the backups folder in the home folder", backup))
 	}
 	if profile := checker.settings.BrowserProfilePath; !filepath.IsAbs(profile) {
-		return checker.complain("browserprofilepath", fmt.Sprintf(
+		return checker.complain("browser_profile_path", fmt.Sprintf(
 			"the browser profile %q is not a full path, so write it starting from the root of the filesystem, or leave the key out to use the default profile in the home folder", profile))
 	}
 	if search := checker.settings.SearchServerAddress; search != "" && !isWebAddress(search) {
-		return checker.complain("searchserveraddress", fmt.Sprintf(
+		return checker.complain("search_server_address", fmt.Sprintf(
 			"the search server address %q is not a web address, so write it with a scheme and a host, such as \"https://search.example.com\", or leave the key out to search DuckDuckGo instead", search))
 	}
 	return nil

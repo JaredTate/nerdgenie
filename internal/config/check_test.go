@@ -96,18 +96,18 @@ func TestEveryFieldSetToTheWrongTypeIsRefusedWithItsKeyAndItsLine(t *testing.T) 
 // field a value of a type it cannot hold.
 func fieldsOfTheWrongType() []badField {
 	return []badField{
-		{"the default model as a number", "\ndefaultmodel = 7 " + theMarker + "\n", "default_model"},
-		{"the fallback chain as one string", "\nfallbackchain = \"cloud\" " + theMarker + "\n", "fallback_chain"},
-		{"the Signal account as a number", "\nsignalaccount = 15125550123 " + theMarker + "\n", "signal_account"},
-		{"the browser profile as a list", "\nbrowserprofilepath = [\"a\"] " + theMarker + "\n", "browser_profile_path"},
-		{"the sandbox roots as a number", "\nsandboxroots = 3 " + theMarker + "\n", "sandbox_roots"},
-		{"the backup path as a boolean", "\nbackuppath = true " + theMarker + "\n", "backup_path"},
-		{"the search server as a number", "\nsearchserveraddress = 9 " + theMarker + "\n", "search_server_address"},
-		{"the handoff timeout as nonsense", "\nhandofftimeout = \"ninety\" " + theMarker + "\n", "handoff_timeout"},
-		{"a round count as a word", "\n[caps]\nroundspertask = \"many\" " + theMarker + "\n", "caps.rounds_per_task"},
-		{"a length of time as a list", "\n[caps]\ntimepertask = [1] " + theMarker + "\n", "caps.time_per_task"},
-		{"a memory cap as a boolean", "\n[memory_caps]\nuserfactsbytes = true " + theMarker + "\n", "memory_caps.user_facts_bytes"},
-		{"a context length with a fraction", "\n[[models]]\ncontextlength = 1.5 " + theMarker + "\n", "models.context_length"},
+		{"the default model as a number", "\ndefault_model = 7 " + theMarker + "\n", "default_model"},
+		{"the fallback chain as one string", "\nfallback_chain = \"cloud\" " + theMarker + "\n", "fallback_chain"},
+		{"the Signal account as a number", "\nsignal_account = 15125550123 " + theMarker + "\n", "signal_account"},
+		{"the browser profile as a list", "\nbrowser_profile_path = [\"a\"] " + theMarker + "\n", "browser_profile_path"},
+		{"the sandbox roots as a number", "\nsandbox_roots = 3 " + theMarker + "\n", "sandbox_roots"},
+		{"the backup path as a boolean", "\nbackup_path = true " + theMarker + "\n", "backup_path"},
+		{"the search server as a number", "\nsearch_server_address = 9 " + theMarker + "\n", "search_server_address"},
+		{"the handoff timeout as nonsense", "\nhandoff_timeout = \"ninety\" " + theMarker + "\n", "handoff_timeout"},
+		{"a round count as a word", "\n[caps]\nrounds_per_task = \"many\" " + theMarker + "\n", "caps.rounds_per_task"},
+		{"a length of time as a list", "\n[caps]\ntime_per_task = [1] " + theMarker + "\n", "caps.time_per_task"},
+		{"a memory cap as a boolean", "\n[memory_caps]\nuser_facts_bytes = true " + theMarker + "\n", "memory_caps.user_facts_bytes"},
+		{"a context length with a fraction", "\n[[models]]\ncontext_length = 1.5 " + theMarker + "\n", "models.context_length"},
 	}
 }
 
@@ -121,16 +121,16 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 // leaves the agent no room to work at all.
 func impossibleCaps() []badField {
 	return []badField{
-		{"no rounds in a task", "\n[caps]\nroundspertask = 0 " + theMarker + "\n", "caps.rounds_per_task"},
-		{"no queued messages", "\n[caps]\nqueuedmessages = -1 " + theMarker + "\n", "caps.queued_messages"},
-		{"no room in a tool result", "\n[caps]\ntooloutputbytes = 0 " + theMarker + "\n", "caps.tool_output_bytes"},
-		{"no window for repeated calls", "\n[caps]\nidenticalcallwindow = 0 " + theMarker + "\n", "caps.identical_call_window"},
-		{"no time for a task", "\n[caps]\ntimepertask = \"0s\" " + theMarker + "\n", "caps.time_per_task"},
-		{"time running backwards for a tool", "\n[caps]\ntimepertool = \"-1m\" " + theMarker + "\n", "caps.time_per_tool"},
-		{"no time for a turn", "\n[caps]\ntimeperturn = 0 " + theMarker + "\n", "caps.time_per_turn"},
-		{"no room for world facts", "\n[memory_caps]\nworldfactsbytes = 0 " + theMarker + "\n", "memory_caps.world_facts_bytes"},
-		{"no room for user facts", "\n[memory_caps]\nuserfactsbytes = -8 " + theMarker + "\n", "memory_caps.user_facts_bytes"},
-		{"no time for a handoff", "\nhandofftimeout = \"0s\" " + theMarker + "\n", "handoff_timeout"},
+		{"no rounds in a task", "\n[caps]\nrounds_per_task = 0 " + theMarker + "\n", "caps.rounds_per_task"},
+		{"no queued messages", "\n[caps]\nqueued_messages = -1 " + theMarker + "\n", "caps.queued_messages"},
+		{"no room in a tool result", "\n[caps]\ntool_output_bytes = 0 " + theMarker + "\n", "caps.tool_output_bytes"},
+		{"no window for repeated calls", "\n[caps]\nidentical_call_window = 0 " + theMarker + "\n", "caps.identical_call_window"},
+		{"no time for a task", "\n[caps]\ntime_per_task = \"0s\" " + theMarker + "\n", "caps.time_per_task"},
+		{"time running backwards for a tool", "\n[caps]\ntime_per_tool = \"-1m\" " + theMarker + "\n", "caps.time_per_tool"},
+		{"no time for a turn", "\n[caps]\ntime_per_turn = 0 " + theMarker + "\n", "caps.time_per_turn"},
+		{"no room for world facts", "\n[memory_caps]\nworld_facts_bytes = 0 " + theMarker + "\n", "memory_caps.world_facts_bytes"},
+		{"no room for user facts", "\n[memory_caps]\nuser_facts_bytes = -8 " + theMarker + "\n", "memory_caps.user_facts_bytes"},
+		{"no time for a handoff", "\nhandoff_timeout = \"0s\" " + theMarker + "\n", "handoff_timeout"},
 	}
 }
 
@@ -138,16 +138,16 @@ func impossibleCaps() []badField {
 // the model aliases, each holding a value nothing could be done with.
 func impossibleSettings() []badField {
 	return []badField{
-		{"a default model nobody defined", "\ndefaultmodel = \"nowhere\" " + theMarker + "\n", "default_model"},
-		{"no default model at all", "\ndefaultmodel = \"\" " + theMarker + "\n", "default_model"},
-		{"a fallback nobody defined", "\nfallbackchain = [\"nowhere\"] " + theMarker + "\n", "fallback_chain"},
-		{"a phone number with no country code", "\nsignalaccount = \"5125550123\" " + theMarker + "\n", "signal_account"},
-		{"a phone number with letters in it", "\nsignalaccount = \"+1512555ABCD\" " + theMarker + "\n", "signal_account"},
-		{"a backup path that is not a full path", "\nbackuppath = \"backups\" " + theMarker + "\n", "backup_path"},
-		{"a browser profile that is not a full path", "\nbrowserprofilepath = \"profile\" " + theMarker + "\n", "browser_profile_path"},
-		{"a search server that is not an address", "\nsearchserveraddress = \"not an address\" " + theMarker + "\n", "search_server_address"},
+		{"a default model nobody defined", "\ndefault_model = \"nowhere\" " + theMarker + "\n", "default_model"},
+		{"no default model at all", "\ndefault_model = \"\" " + theMarker + "\n", "default_model"},
+		{"a fallback nobody defined", "\nfallback_chain = [\"nowhere\"] " + theMarker + "\n", "fallback_chain"},
+		{"a phone number with no country code", "\nsignal_account = \"5125550123\" " + theMarker + "\n", "signal_account"},
+		{"a phone number with letters in it", "\nsignal_account = \"+1512555ABCD\" " + theMarker + "\n", "signal_account"},
+		{"a backup path that is not a full path", "\nbackup_path = \"backups\" " + theMarker + "\n", "backup_path"},
+		{"a browser profile that is not a full path", "\nbrowser_profile_path = \"profile\" " + theMarker + "\n", "browser_profile_path"},
+		{"a search server that is not an address", "\nsearch_server_address = \"not an address\" " + theMarker + "\n", "search_server_address"},
 		{"no model aliases at all", "\nmodels = [] " + theMarker + "\n", "models"},
-		{"no sandbox roots at all", "\nsandboxroots = [] " + theMarker + "\n", "sandbox_roots"},
+		{"no sandbox roots at all", "\nsandbox_roots = [] " + theMarker + "\n", "sandbox_roots"},
 	}
 }
 
@@ -187,12 +187,12 @@ func impossibleModelAliases() []badField {
 		},
 		{
 			"a key written out instead of referred to",
-			strings.Replace(oneGoodAlias, `context_length = 262144`, "context_length = 262144\nkeyreference = \"sk-a-real-key\" "+theMarker, 1),
+			strings.Replace(oneGoodAlias, `context_length = 262144`, "context_length = 262144\nkey_reference = \"sk-a-real-key\" "+theMarker, 1),
 			"models.0.key_reference",
 		},
 		{
 			"a cli alias with no program to run",
-			"\ndefaultmodel = \"cloud\"\n\n[[models]] " + theMarker + "\nname = \"cloud\"\nprovider = \"cli\"\nmodelname = \"opus\"\ncontextlength = 200000\n",
+			"\ndefault_model = \"cloud\"\n\n[[models]] " + theMarker + "\nname = \"cloud\"\nprovider = \"cli\"\nmodel_name = \"opus\"\ncontext_length = 200000\n",
 			"models.0.program",
 		},
 	}
@@ -208,8 +208,8 @@ func TestAnUnknownKeyIsRefusedByName(t *testing.T) {
 		{"a key run together instead of written with underscores", "\ndefaultmodel = \"local\" " + theMarker + "\n", "defaultmodel"},
 		{"a cap run together inside its table", "\n[caps]\nroundspertask = 100 " + theMarker + "\n", "caps.roundspertask"},
 		{"an alias field run together", strings.Replace(oneGoodAlias, `model_name = "local-coder"`, "modelname = \"local-coder\" "+theMarker, 1), "models.modelname"},
-		{"a misspelled key", "\ndefault_model = \"local\" " + theMarker + "\n", "default_model"},
-		{"a key inside a table", "\n[caps]\nroundsperhour = 2 " + theMarker + "\n", "caps.rounds_per_hour"},
+		{"a misspelled key", "\ndefualt_model = \"local\" " + theMarker + "\n", "defualt_model"},
+		{"a key inside a table", "\n[caps]\nrounds_per_hour = 2 " + theMarker + "\n", "caps.rounds_per_hour"},
 		{"a key inside a model alias", strings.Replace(oneGoodAlias, `name = "local"`, "name = \"local\"\nendpoint = \"x\" "+theMarker, 1), "models.endpoint"},
 		{"the earliest of several", "\nfirstwrong = 1 " + theMarker + "\nsecondwrong = 2\n", "firstwrong"},
 	}

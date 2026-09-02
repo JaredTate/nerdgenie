@@ -13,8 +13,8 @@ import (
 type keyLine map[string]int
 
 // keyLines reads a configuration file and notes the line every key is written
-// on. Keys inside a table carry the table's name, so a "roundspertask" line
-// under a "[caps]" header is noted as "caps.roundspertask", and the entries of a
+// on. Keys inside a table carry the table's name, so a "rounds_per_task" line
+// under a "[caps]" header is noted as "caps.rounds_per_task", and the entries of a
 // table array are numbered, so the first "[[models]]" block is "models.0" and a
 // key inside it is noted both with the number and without it. This
 // reads the file as lines rather than as TOML, so a key inside a value spread
@@ -78,7 +78,7 @@ func withoutTheNumber(table string) string {
 
 // of returns the line a key is written on, or zero when the file does not say.
 // A key the file never names falls back to the line of the table it would live
-// in, so a missing "contextlength" inside a "[[models]]" block still points at
+// in, so a missing "context_length" inside a "[[models]]" block still points at
 // that block.
 func (lines keyLine) of(key string) int {
 	wanted := strings.ToLower(key)

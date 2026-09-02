@@ -65,7 +65,7 @@ func TestKeyLinesIgnoresLinesThatAreNotKeys(t *testing.T) {
 }
 
 func TestKeyLinesKeepsTheFirstOfARepeatedKey(t *testing.T) {
-	lines := keyLines("default_model = \"a\"\ndefaultmodel = \"b\"\n")
+	lines := keyLines("default_model = \"a\"\ndefault_model = \"b\"\n")
 	if got := lines.of("default_model"); got != 1 {
 		t.Errorf("a key written twice is noted on line %d, want the first one, line 1", got)
 	}

@@ -109,9 +109,13 @@ whose default is a place rather than a value (the browser profile, the backup
 folder, and the sandbox roots), and then checks every field, so a missing file
 and an empty file are both valid configurations. Decoding is strict: a key the
 configuration does not have is refused rather than ignored. The keys are the
-field names of `contract.Config` in lower case, the model aliases are a table
-array of `[[models]]` blocks, and a length of time may be written either as a
-string such as `"30m"` or as a whole number of nanoseconds. Every refusal is a
+`toml` tags on `contract.Config`, which write each field name in lower case with
+underscores between the words, so `DefaultModel` is `default_model` and
+`BaseAddress` is `base_address`; a key run together without the underscores, such
+as `defaultmodel`, is refused as unknown. The model aliases are a table array of
+`[[models]]` blocks, the caps live in `[caps]` and `[memory_caps]`, and a length
+of time may be written either as a string such as `"30m"` or as a whole number of
+nanoseconds. Every refusal is a
 `config.Problem`, which prints as `path:line: key: what to do`; the line comes
 from the TOML library when it reports one and from this package's own scan of
 the file otherwise.

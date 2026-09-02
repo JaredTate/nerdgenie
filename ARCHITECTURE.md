@@ -2,7 +2,7 @@
 
 This document records how the code is put together and what each wave built. It is read by every worker before starting a brief and updated by any worker whose brief changes a package's job, its interface, or its dependencies. The orchestrator adds a wave section at the end of every wave. The design this code implements is `docs/COEUS_PLAN.md`; when the two disagree, the design is the intent and this document is the fact, and the orchestrator reconciles them at the wave gate.
 
-Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. Everything else below describes what will exist once its wave is done, and is marked planned until then.
+Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `internal/sandbox` is built as well, ahead of the rest of wave 2, because it depends on nothing but `contract` and `testkit`. Everything else below describes what will exist once its wave is done, and is marked planned until then.
 
 ## Shape
 
@@ -36,7 +36,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat; the done-check and the after-action review | 3 |
 | `internal/tool` | The tool registry and the built-in tools, one folder each | 2 |
 | `internal/permission` | Decide allow, ask, or deny for a tool call | 2, built |
-| `internal/sandbox` | Run a command inside bwrap and Landlock | 2 |
+| `internal/sandbox` | Run a command inside bwrap and Landlock | 2, built |
 | `internal/channel` | The queue, the event stream, and the local socket | 3 |
 | `internal/command` | The command registry and the core slash commands | 3 |
 | `internal/tui` | The terminal screen | 3 |
@@ -95,6 +95,24 @@ The terminal and any future screen attach to the running program over a Unix soc
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
 `worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and `dialog`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+
+## The sandbox (built, wave 2, brief 2.3)
+
+`internal/sandbox` implements `contract.Sandbox`. It has two halves, and both have to hold for the fence to mean anything.
+
+**Outside.** `New` takes the sandbox roots from the configuration, the user's home directory, the tool output cap, and the program to start inside the fence. `contract.CheckSandboxRoot` refuses a root that is not a full path, or that is, sits inside, or *holds* `~/.coeus`, the vault, the browser profile, or `~/.ssh`; this package calls it and adds the one rule only something about to run a command needs, that the root is a folder that is really there, plus a cap of sixteen roots. The configuration package calls the same check, and this package calls it again, because it is the last thing between a bad root and a command that can read the vault.
+
+`Available` has three things to be sure of, and the third can only be found out by trying: `bwrap` on the PATH, `landlock` in the kernel's list at `/sys/kernel/security/lsm`, and a `bwrap` that is actually allowed to make a user namespace. Ubuntu ships with AppArmor refusing that last one to an unconfined program, so an installed bwrap is not the same as a working one. The probe is one `bwrap --unshare-user --ro-bind / / /bin/true` under a ten-second timeout, asked once per fence and remembered, and when it fails the error names the fix in a sentence: write an AppArmor profile for `/usr/bin/bwrap` that allows `userns`, or set `kernel.apparmor_restrict_unprivileged_userns` to 0. The shell tool of brief 2.5 turns itself off whenever `Available` returns an error.
+
+`Run` builds a `bwrap` command line: new user, process, message-queue, and hostname namespaces, never a new network namespace, `--die-with-parent`, `--new-session`, `--clearenv`, a fresh `/proc`, `/dev`, and `/tmp`, `/usr`, `/bin`, `/lib`, `/lib64`, and `/etc` bound read-only, each root bound read-write at its own path, and the helper program bound read-only so the fence can start it. That last bind is the one deliberate exception to "nothing else is bound": the helper is the coeus binary, which normally lives under `~/.coeus/releases/`, and one read-only file is what it costs to have Landlock applied at all. The environment is `PATH`, `HOME` pointing at a scratch folder inside the first root, `LANG`, `TERM`, whatever the caller passed, and one marker saying the fence started the helper. The command runs in its own process group, its two output streams are capped at the tool output cap with a note saying how much was dropped, and on a timeout the whole group gets `SIGTERM`, then `SIGKILL` two seconds later.
+
+**Inside.** bwrap cannot apply Landlock, so the fence starts `<the coeus binary> sandbox-entry --read <folder> ... --write <folder> ... -- <program> <arguments>`. The helper is `sandbox.Entry`, exported as the subcommand value `sandboxEntrySubcommand` in `cmd/coeus/sandbox_entry.go` for the orchestrator to add to the table in `main.go`. It refuses to run without the fence's marker, locks its operating-system thread, sets the no-new-privileges flag, builds a Landlock ruleset through the three raw system calls (444, 445, and 446 on both `amd64` and `arm64`) with the structures laid out by hand and the rights chosen from the ABI version the kernel reports, installs a seccomp filter written instruction by instruction that answers fifteen system calls no tool needs with "operation not permitted" and refuses an `unshare` that asks for a new user namespace, and becomes the command. Both restrictions survive the change of program. It says nothing at all on its way through, so that a shell result is the command's own output and nothing else; the one line saying how far it got is written only when it could not become the command.
+
+**What the tests prove.** The bwrap command line for a fixture configuration is a golden file, and so is the seccomp filter's byte-for-byte encoding on each architecture. A fuzz test throws any root and any command at the fence and asserts that nothing forbidden is ever bound read-write.
+
+Every integration test runs the real bwrap and the real Landlock, and stops with the reason when the machine will not allow a fence. A command inside one reports itself as process one or two, sees a mapped `uid_map` rather than the machine's own, and finds neither `.ssh` nor `.coeus` in the home directory. A sandboxed read of `~/.ssh` and a sandboxed write to `~/.coeus` both fail; a write inside the root and a network call to a loopback server both work; a command that outruns its timeout is killed along with the grandchild it started; output past the cap is dropped with a note; and a `bwrap` that cannot make a namespace makes `Available` name the AppArmor fix.
+
+The three calls that can never be undone are applied for real on an operating-system thread that is then thrown away, which is what lets a test watch Landlock deny a read outside the roots, watch a write inside one succeed, and watch a denied system call turn from "bad file number" into "operation not permitted", without crippling the rest of the run.
 
 ## Data on disk (built, wave 1)
 

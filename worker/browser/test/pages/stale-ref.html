@@ -7,6 +7,7 @@
   <body>
     <h1>Refs that go stale</h1>
     <button type="button" id="rebuild">Rebuild the target</button>
+    <button type="button" id="change-kind">Change the kind of the target</button>
     <button type="button" id="remove">Remove the target</button>
     <div id="holder">
       <button type="button" class="target">Save the draft</button>
@@ -22,6 +23,15 @@
         var fresh = document.createElement("button");
         fresh.type = "button";
         fresh.className = "target";
+        fresh.textContent = "Save the draft";
+        holder.appendChild(fresh);
+      });
+      // Changing the kind keeps the words a person reads but makes it a link
+      // instead of a button, so only a search by visible text can find it.
+      document.getElementById("change-kind").addEventListener("click", function () {
+        holder.innerHTML = "";
+        var fresh = document.createElement("a");
+        fresh.href = "#saved";
         fresh.textContent = "Save the draft";
         holder.appendChild(fresh);
       });

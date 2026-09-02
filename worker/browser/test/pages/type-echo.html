@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Typing shows up</title>
+  </head>
+  <body>
+    <h1>Typing shows up</h1>
+    <label for="draft">Post text</label>
+    <input id="draft" type="text" />
+    <div id="echo"></div>
+    <script>
+      // Every keystroke throws away the old heading and puts up a new one, so what
+      // was typed turns into an element the snapshot can see.
+      document.getElementById("draft").addEventListener("input", function (event) {
+        var echo = document.getElementById("echo");
+        echo.innerHTML = "";
+        var heading = document.createElement("h2");
+        heading.textContent = event.target.value;
+        echo.appendChild(heading);
+      });
+    </script>
+  </body>
+</html>

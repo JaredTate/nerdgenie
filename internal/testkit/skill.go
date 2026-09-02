@@ -107,13 +107,26 @@ func (skills *FakeSkill) Save(_ context.Context, name string, files map[string][
 	}
 	skills.guard.Lock()
 	defer skills.guard.Unlock()
-	if _, held := skills.entries[name]; !held {
+	held := skills.entries[name]
+	if held == nil {
 		skills.order = append(skills.order, name)
 	}
-	skills.entries[name] = &fakeSkillEntry{
-		summary: contract.SkillSummary{Name: name, Description: firstLineOf(files["SKILL.md"])},
+
+	saved := &fakeSkillEntry{
+		summary: contract.SkillSummary{Name: name, Description: descriptionIn(files["SKILL.md"])},
+		body:    string(files["SKILL.md"]),
 		files:   files,
 	}
+	// Saving over a skill rewrites what the folder holds and nothing else. The
+	// trigger words are what the router matches on, and a save that dropped them
+	// would quietly switch the skill off.
+	if held != nil {
+		saved.triggers = held.triggers
+		if saved.summary.Description == "" {
+			saved.summary.Description = held.summary.Description
+		}
+	}
+	skills.entries[name] = saved
 	return nil
 }
 
@@ -132,9 +145,17 @@ func (skills *FakeSkill) Match(_ context.Context, text string) (contract.SkillMa
 	return contract.SkillMatch{}, nil
 }
 
-// firstLineOf returns the first line of a file, which is where a skill folder
-// keeps its one-line description.
-func firstLineOf(content []byte) string {
-	line, _, _ := strings.Cut(string(content), "\n")
-	return strings.TrimSpace(strings.TrimPrefix(line, "#"))
+// descriptionIn returns the one-line description a skill folder keeps in its
+// SKILL.md: the first line that is neither blank nor a heading. The heading is
+// the skill's own name, and the name is already the folder's, so a description
+// taken from the heading would say nothing at all.
+func descriptionIn(content []byte) string {
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		return trimmed
+	}
+	return ""
 }

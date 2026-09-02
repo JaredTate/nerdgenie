@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -19,11 +20,13 @@ func (keeper *Keeper) SetBudget(ctx context.Context, roundsLeft int, minutesLeft
 	if err := keeper.mustBe(contract.RecordTask, "a budget"); err != nil {
 		return err
 	}
-	if roundsLeft < 0 || minutesLeft < 0 {
-		return fmt.Errorf("the budget left is %d rounds and %d minutes, and neither may be below zero", roundsLeft, minutesLeft)
-	}
-	keeper.record.Header.RoundsLeft, keeper.record.Header.MinutesLeft = roundsLeft, minutesLeft
-	return keeper.save(ctx)
+	return keeper.change(ctx, func(into *contract.Record) error {
+		if roundsLeft < 0 || minutesLeft < 0 {
+			return fmt.Errorf("the budget left is %d rounds and %d minutes, and neither may be below zero", roundsLeft, minutesLeft)
+		}
+		into.Header.RoundsLeft, into.Header.MinutesLeft = roundsLeft, minutesLeft
+		return nil
+	})
 }
 
 // SetCost writes what the last turn cost. The record keeps the three counts to
@@ -33,16 +36,18 @@ func (keeper *Keeper) SetCost(ctx context.Context, cost contract.CostLine) error
 	if err := keeper.mustBe(contract.RecordTask, "a cost line"); err != nil {
 		return err
 	}
-	if cost.InputTokens < 0 || cost.CachedInputTokens < 0 || cost.OutputTokens < 0 {
-		return fmt.Errorf("the turn cost %d tokens in and %d out, and no count of tokens may be below zero",
-			cost.InputTokens, cost.OutputTokens)
-	}
-	keeper.record.Header.Cost = contract.CostLine{
-		InputTokens:       roundToHundred(cost.InputTokens),
-		CachedInputTokens: roundToHundred(cost.CachedInputTokens),
-		OutputTokens:      roundToHundred(cost.OutputTokens),
-	}
-	return keeper.save(ctx)
+	return keeper.change(ctx, func(into *contract.Record) error {
+		if cost.InputTokens < 0 || cost.CachedInputTokens < 0 || cost.OutputTokens < 0 {
+			return fmt.Errorf("the turn cost %d tokens in and %d out, and no count of tokens may be below zero",
+				cost.InputTokens, cost.OutputTokens)
+		}
+		into.Header.Cost = contract.CostLine{
+			InputTokens:       roundToHundred(cost.InputTokens),
+			CachedInputTokens: roundToHundred(cost.CachedInputTokens),
+			OutputTokens:      roundToHundred(cost.OutputTokens),
+		}
+		return nil
+	})
 }
 
 // SetProgress writes how many of a job's tasks are done and which one is due
@@ -51,24 +56,28 @@ func (keeper *Keeper) SetProgress(ctx context.Context, done int, total int, next
 	if err := keeper.mustBe(contract.RecordJob, "a progress line"); err != nil {
 		return err
 	}
-	if done < 0 || total < 0 || done > total {
-		return fmt.Errorf("the progress is %d of %d tasks done, and that is not a count of finished tasks out of the whole", done, total)
-	}
-	keeper.record.Header.TasksDone, keeper.record.Header.TasksTotal = done, total
-	keeper.record.Header.NextDue = nextDue
-	return keeper.save(ctx)
+	return keeper.change(ctx, func(into *contract.Record) error {
+		if done < 0 || total < 0 || done > total {
+			return fmt.Errorf("the progress is %d of %d tasks done, and that is not a count of finished tasks out of the whole", done, total)
+		}
+		into.Header.TasksDone, into.Header.TasksTotal = done, total
+		into.Header.NextDue = nextDue
+		return nil
+	})
 }
 
 // SetSituation writes the few facts the harness can check on its own: the page
 // the browser is on, the files changed, and the last command and how it went.
 func (keeper *Keeper) SetSituation(ctx context.Context, facts []string) error {
-	for _, fact := range facts {
-		if fact == "" {
-			return fmt.Errorf("one of the %d lines of the situation is empty, so write it or leave it out", len(facts))
+	return keeper.change(ctx, func(into *contract.Record) error {
+		for _, fact := range facts {
+			if fact == "" {
+				return fmt.Errorf("one of the %d lines of the situation is empty, so write it or leave it out", len(facts))
+			}
 		}
-	}
-	keeper.record.Work.Situation = keepOrDrop(facts)
-	return keeper.save(ctx)
+		into.Work.Situation = keepOrDrop(slices.Clone(facts))
+		return nil
+	})
 }
 
 // AddCorrection appends something the user said while the work was running, in
@@ -77,9 +86,13 @@ func (keeper *Keeper) AddCorrection(ctx context.Context, said string) (string, e
 	if said == "" {
 		return "", fmt.Errorf("a correction is something the user said, and this one is empty: %w", ErrCorrectionIsFixed)
 	}
-	id := contract.CorrectionID(len(keeper.record.Rules.Corrections) + 1)
-	keeper.record.Rules.Corrections = append(keeper.record.Rules.Corrections, contract.Correction{ID: id, Text: said})
-	if err := keeper.save(ctx); err != nil {
+	id := ""
+	err := keeper.change(ctx, func(into *contract.Record) error {
+		id = contract.CorrectionID(len(into.Rules.Corrections) + 1)
+		into.Rules.Corrections = append(into.Rules.Corrections, contract.Correction{ID: id, Text: said})
+		return nil
+	})
+	if err != nil {
 		return "", err
 	}
 	return id, nil
@@ -114,16 +127,22 @@ func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text st
 	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: line, Text: text}); err != nil {
 		return "", err
 	}
-	keeper.record.Work.Results = append(keeper.record.Work.Results, contract.ResultLine{ID: id, Summary: line})
-	if err := keeper.save(ctx); err != nil {
+	err := keeper.change(ctx, func(into *contract.Record) error {
+		into.Work.Results = append(into.Work.Results, contract.ResultLine{ID: id, Summary: line})
+		return nil
+	})
+	if err != nil {
 		return "", err
 	}
 	return id, nil
 }
 
-// storeResult writes the whole text of one result into the log, before the
+// storeResult writes the whole text of one result into the log before the
 // record's own line is added, so that a crash between the two leaves the text
-// findable rather than lost.
+// findable rather than lost. That is the obligation-first idea from Hermes'
+// delivery ledger at ~/Code/hermes-agent/gateway/delivery_ledger.py, written
+// fresh here. If the checkpoint after it fails, the same label can be written
+// twice, so Read takes the last one written, which is the retry.
 func (keeper *Keeper) storeResult(ctx context.Context, result StoredResult) error {
 	body, err := json.Marshal(result)
 	if err != nil {
@@ -199,6 +218,7 @@ func (keeper *Keeper) Read(ctx context.Context, id string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot read the log of %s %s to find %s: %w", keeper.Kind(), keeper.ID(), id, err)
 	}
+	text, found := "", false
 	for _, event := range events {
 		if event.Kind != contract.EventToolResult {
 			continue
@@ -208,10 +228,13 @@ func (keeper *Keeper) Read(ctx context.Context, id string) (string, error) {
 			continue
 		}
 		if stored.ID == id {
-			return stored.Text, nil
+			text, found = stored.Text, true
 		}
 	}
-	return "", fmt.Errorf("the result %s is not in the log of %s %s: %w", id, keeper.Kind(), keeper.ID(), ErrNoSuchResult)
+	if !found {
+		return "", fmt.Errorf("the result %s is not in the log of %s %s: %w", id, keeper.Kind(), keeper.ID(), ErrNoSuchResult)
+	}
+	return text, nil
 }
 
 // highestResultNumber is the largest label number the results have reached, which

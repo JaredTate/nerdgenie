@@ -102,7 +102,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## Test architecture
 
-Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen through Ollama, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
+Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen 3.8 through the llama-server daemon on the development machine, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
 
 ## Repository map
 

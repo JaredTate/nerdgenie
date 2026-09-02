@@ -27,7 +27,9 @@ Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `doc
 
 ## Where the work happens
 
-All building and testing happen on the Linux development machine, `jared-irene`. This repository lives at `/home/jared/Code/coeus`, and every reference project a brief cites lives beside it: `/home/jared/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`, each already cloned and checked out at the commit listed in `docs/WORK_PLAN.md` wave 0. A path written as `~/Code/x` in any document means `/home/jared/Code/x`. The orchestrator and the workers run there. Nothing is built anywhere else. The sandbox, the service manager, the visible Chrome window, and the local models only exist there.
+All building and testing happen on the Linux development machine, `jared-irene`. This repository lives at `/home/jared/Code/coeus`, and every reference project a brief cites lives beside it: `/home/jared/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`, each already cloned and checked out at the commit listed in `docs/WORK_PLAN.md` wave 0. A path written as `~/Code/x` in any document means `/home/jared/Code/x`. The orchestrator and the workers run there. Nothing is built anywhere else. The sandbox, the service manager, the visible Chrome window, and the local model only exist there.
+
+**The local model is not Ollama.** It is the Qwen 3.8 27B Uncensored GGUF at `~/llm/models/hauhau-Q4_K_P.gguf`, served by the TurboQuant `llama-server` on one graphics card, speaking the OpenAI-compatible API at `http://127.0.0.1:19091/v1` under the model name `local-coder` with a context of 262,144 tokens. Sampling is baked into the daemon; never override its temperature. Start it with `setsid ~/llm/igo.sh Vulkan1 19091 262144 mtp > ~/llm/logs/19091.log 2>&1 < /dev/null &` and trust only `curl -s http://127.0.0.1:19091/health` returning `{"status":"ok"}`. Never run `ollama pull`. Never kill any process by name pattern (`pkill -f`, `killall`, `pgrep -af`): a shell's own command line matches the pattern and dies with it. Kill exact process ids only, and check liveness by port. Port 8090 is reserved, and `digibyte-qt` is never restarted.
 
 ## Commands
 
@@ -35,7 +37,7 @@ All building and testing happen on the Linux development machine, `jared-irene`.
 - `make test` — unit tests, integration tests, the functional suite against the fake model, and a five-second fuzz smoke per target.
 - `make fuzz` — one minute of fuzzing per target. Runs before every wave gate and nightly.
 - `make check` — `go vet`, `staticcheck`, `gofmt`, the style checker, the repo-map drift test, the coverage threshold, and `make test`. CI runs this on every push. A wave does not pass until it is clean.
-- `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen through Ollama, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI. Tagged `live`; development machine only; a missing key is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
+- `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen 3.8 through the llama-server daemon on this machine, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI. Tagged `live`; development machine only; a missing key or a daemon that is down is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
 - `make release` — binaries for `linux/amd64` and `linux/arm64`, the worker bundles, a checksum file, and a manifest, into `dist/`.
 - `make repo-map` — regenerate `REPO_MAP.md`.
 - `make install` — build and install the systemd user unit on this machine.

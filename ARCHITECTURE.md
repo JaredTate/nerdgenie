@@ -4,6 +4,8 @@ This document records how the code is put together and what each wave built. It 
 
 Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `internal/sandbox`, `internal/vault`, and the `coeus askpass` subcommand are built as well, ahead of the rest of wave 2, because each depends on nothing but `contract` and `testkit`. Everything else below describes what will exist once its wave is done, and is marked planned until then.
 
+Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `worker/browser` itself is built too, ahead of its wave, because it depends on nothing but that document. Everything else below describes what will exist once its wave is done, and is marked planned until then.
+
 ## Shape
 
 One Go program owns everything: the message queue, the turn loop, the permission function, the task and job records, the memory, the jobs, and one SQLite database file. It starts two helper programs when it needs them, a browser worker and a desktop worker, both written in TypeScript, both speaking JSON-RPC over standard input and output. Two thin screens, the terminal and Signal, attach to the program over a local socket and own no state.
@@ -51,7 +53,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/update` | Update, rollback, migrations | 6 |
 | `internal/replay` | Re-run any logged task as a test | 6 |
 | `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, 3 onward |
-| `worker/browser` | The TypeScript browser worker | 5 |
+| `worker/browser` | The TypeScript browser worker | 5, built early |
 | `worker/desktop` | The TypeScript desktop worker | 6 |
 
 ## The contracts (built, wave 0)
@@ -108,7 +110,54 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
-`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and `dialog`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `dialog`, and `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+
+## The browser worker (built, ahead of wave 5)
+
+`worker/browser` is a TypeScript program on Node that drives a real Google Chrome
+through `playwright-core` and speaks `worker/browser/PROTOCOL.md` over its
+standard input and output. It was built early because it depends on nothing but
+that document. Run it as
+`node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast]`.
+`--pacing fast` exists only for its own tests; the Go side never passes it.
+
+It launches the Chrome binary with its own profile folder, never the user's daily
+one, on a loopback DevTools port the operating system picks, reads the address
+Chrome prints, and attaches with `connectOverCDP`. Nothing but JSON-RPC responses
+goes to standard output; its logging goes to standard error, one line per event.
+
+Inside, one file has one job. `wire` and `params` turn a line into a request or
+into the exact error the protocol names. `page-script` is the JavaScript that runs
+inside the page, kept as text because it runs in Chrome and not in Node;
+`page-bridge` calls it with a deadline on every call. `snapshot` builds the compact
+tree the model sees, with a ref written onto each element so that a ref names the
+same element for as long as it exists, and carries the wall so that `open` and
+`read` can report a login page before the agent has done anything. `diff` compares
+two snapshots, `expectation` judges the result against what the model said it
+expected, and `walls` reports a login form, a prompt for a second code, or a
+captcha. `refs` finds an element again when its ref has gone stale, by role and
+name and then by visible text. `actions` and `pacing` do the thing at the speed a
+person would. `pdf` saves a PDF page through the browser's own session, because
+Chrome's viewer exposes no text to a program. `redact` takes the vault's secrets
+back out of everything `loginFill` would otherwise hand back. `settle`, `session`,
+`tabs`, `chrome`, `lines`, and `main` hold the waiting, the state, the tabs, the
+browser, the input framing, and the process.
+
+Three rulings shape how it behaves. An expectation is met when a word from it
+turns up in a new element, in the new address, in the new title, in a dialog's
+message, or in the element the action was aimed at; that last place is what lets
+typing meet an expectation at all, since typing changes no element. Settling is
+measured from the action rather than from whatever the page last did on its own,
+changes to attributes alone do not count, and a page that never comes to rest is
+read as it stands and returned with `settled: false`, so a chat or a clock stays
+usable; `-32001` is kept for the page that cannot be read at all. And `dialog` is
+the twelfth method, because Chrome stops a whole tab until a dialog is answered
+and nothing else can free it.
+
+Its dependencies are in `docs/DEPENDENCIES.md`. `npm test` builds and then runs
+unit tests, property tests with `fast-check`, and tests that drive a real Chrome
+against recorded fixture pages served on a loopback port, and fails under seventy
+percent coverage.
 
 ## The sandbox (built, wave 2, brief 2.3)
 

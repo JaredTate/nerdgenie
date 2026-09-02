@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A page that reloads for ever</title>
+  </head>
+  <body>
+    <h1>A page that reloads for ever</h1>
+    <button type="button" id="poke">Poke it</button>
+    <script>
+      // This page throws its own document away again and again, so there is
+      // never a document to read. That is the one case that is still -32001: not
+      // a page that keeps changing, but a page that cannot be read at all.
+      window.addEventListener("load", function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

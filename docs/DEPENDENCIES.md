@@ -37,3 +37,17 @@ in the project, and they carry their own `package.json`. Their pre-approved
 libraries are `playwright-core` for the browser worker, `@trycua/cua-driver` for
 the desktop worker, and `vitest` with `fast-check` for the tests of both. The same
 rule applies: anything else needs the orchestrator's yes and a row here.
+
+### `worker/browser`, built
+
+Pinned to exact versions, with no ranges, so that a build a year from now is the
+build we tested.
+
+| Package | Version | Why |
+|---|---|---|
+| `playwright-core` | 1.62.1 | Drives the real Chrome over the DevTools protocol. `playwright-core` rather than `playwright` because the worker attaches to the Chrome already on the machine and must never download a browser of its own |
+| `typescript` | 7.0.2 | Compiles `src/` to `dist/` under strict settings |
+| `vitest` | 4.1.11 | Runs the tests, including the ones that drive a real Chrome |
+| `fast-check` | 4.9.0 | The property tests: any bytes on standard input, any string as an expectation, any sequence of refs |
+| `@vitest/coverage-v8` | 4.1.11 | Approved by the orchestrator. Vitest cannot measure coverage without a coverage provider, and brief 5.1 requires `npm test` to fail under seventy percent. Test-time only; nothing it does reaches `dist/` |
+| `@types/node` | 24.10.1 | Approved by the orchestrator. TypeScript cannot compile a Node program without Node's type declarations; `process`, `Buffer`, and `setTimeout` have no types otherwise. Types only, erased at build time; nothing it does reaches `dist/` |

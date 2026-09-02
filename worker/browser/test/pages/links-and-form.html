@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Links and a form</title>
+  </head>
+  <body>
+    <h1>Links and a form</h1>
+    <nav>
+      <a href="changes-on-click.html">Changes on click</a>
+      <a href="long.html">A very long page</a>
+    </nav>
+    <form aria-label="Post something">
+      <label for="post-text">Post text</label>
+      <textarea id="post-text" name="post"></textarea>
+      <label for="agree">Agree to the rules</label>
+      <input id="agree" type="checkbox" />
+      <label for="audience">Audience</label>
+      <select id="audience">
+        <option value="everyone">Everyone</option>
+        <option value="friends">Friends</option>
+      </select>
+      <button type="button" id="post-button">Post</button>
+    </form>
+    <ul role="menu">
+      <li role="menuitem" tabindex="0">Save a draft</li>
+    </ul>
+    <article aria-label="A post">
+      <p>Nine years of DigiByte.</p>
+    </article>
+  </body>
+</html>

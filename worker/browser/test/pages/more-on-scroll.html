@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>More on scroll</title>
+    <style>
+      article {
+        display: block;
+        height: 120px;
+        border-bottom: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>More on scroll</h1>
+    <div id="feed"></div>
+    <script>
+      // A feed that puts more posts up when you get near the bottom, which is how
+      // most timelines behave and what the scroll method has to cope with.
+      var feed = document.getElementById("feed");
+      var posted = 0;
+      function addMore(howMany) {
+        for (var index = 0; index < howMany; index += 1) {
+          posted += 1;
+          var post = document.createElement("article");
+          post.setAttribute("aria-label", "Post " + posted);
+          post.textContent = "Post " + posted;
+          feed.appendChild(post);
+        }
+      }
+      addMore(8);
+      window.addEventListener("scroll", function () {
+        var left = document.body.scrollHeight - window.scrollY - window.innerHeight;
+        if (left < 400 && posted < 200) {
+          addMore(8);
+        }
+      });
+    </script>
+  </body>
+</html>

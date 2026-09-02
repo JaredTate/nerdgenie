@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>No change on click</title>
+  </head>
+  <body>
+    <h1>No change on click</h1>
+    <!-- This button counts its clicks where nobody can see them, so the worker
+         must retry once at the button's place on the screen and then report that
+         nothing changed. -->
+    <button type="button" id="quiet">Do nothing</button>
+    <script>
+      window.quietClicks = 0;
+      document.getElementById("quiet").addEventListener("click", function () {
+        window.quietClicks += 1;
+      });
+    </script>
+  </body>
+</html>

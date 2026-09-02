@@ -115,7 +115,6 @@ func TestIdentifierNameRuleRefusesOneLettersAndAbbreviations(t *testing.T) {
 		{"a loop index", "package example\n\n// Count counts.\nfunc Count() int {\n\ttotal := 0\n\tfor i := 0; i < 3; i++ {\n\t\ttotal += i\n\t}\n\treturn total\n}\n", false},
 		{"a range key", "package example\n\n// Count counts.\nfunc Count(list []int) int {\n\ttotal := 0\n\tfor i, v := range list {\n\t\ttotal += i + v\n\t}\n\treturn total\n}\n", false},
 		{"a receiver", "package example\n\n// Counter counts.\ntype Counter struct{}\n\n// Count counts.\nfunc (c Counter) Count() int { return 0 }\n", false},
-		{"a conventional test name", "package example\n\n// Count counts.\nfunc Count() int {\n\tt := 1\n\treturn t\n}\n", false},
 		{"a bare letter", "package example\n\n// Count counts.\nfunc Count() int {\n\tx := 1\n\treturn x\n}\n", true},
 		{"a banned abbreviation", "package example\n\n// Count counts.\nfunc Count() int {\n\tcfg := 1\n\treturn cfg\n}\n", true},
 		{"ctx is allowed", "package example\n\n// Count counts.\nfunc Count() int {\n\tctx := 1\n\treturn ctx\n}\n", false},

@@ -1,9 +1,11 @@
 package lint
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/scanner"
 	"go/token"
 	"io/fs"
 	"os"
@@ -67,14 +69,20 @@ func (violation Violation) String() string {
 	return fmt.Sprintf("%s:%d: %s: %s", violation.Path, violation.Line, violation.Rule, violation.Advice)
 }
 
-// CheckSource checks one Go file and returns every violation in it. Source that
-// will not parse produces nothing, because the compiler already says so far
-// better than this checker could.
+// CheckSource checks one Go file and returns every violation in it. Source the
+// parser cannot read is one violation of its own, naming the file: the compiler
+// will refuse it too, and a checker that said nothing would let a broken file
+// through the gate in silence.
 func CheckSource(path string, source []byte) []Violation {
 	positions := token.NewFileSet()
 	file, err := parser.ParseFile(positions, path, source, parser.ParseComments|parser.SkipObjectResolution)
 	if err != nil {
-		return nil
+		return []Violation{{
+			Path:   path,
+			Line:   parseErrorLine(err),
+			Rule:   RuleParseError,
+			Advice: fmt.Sprintf("fix the syntax the compiler will refuse too: %v", err),
+		}}
 	}
 	inspector := &fileInspector{
 		path:      path,
@@ -91,6 +99,16 @@ func CheckSource(path string, source []byte) []Violation {
 	inspector.checkIdentifierNames()
 	slices.SortStableFunc(inspector.found, func(left, right Violation) int { return left.Line - right.Line })
 	return inspector.found
+}
+
+// parseErrorLine is the line the parser gave up on, or the first line when it
+// did not say.
+func parseErrorLine(err error) int {
+	var found scanner.ErrorList
+	if errors.As(err, &found) && len(found) > 0 {
+		return found[0].Pos.Line
+	}
+	return 1
 }
 
 // CheckPackage checks every Go file in one folder, and adds the one rule that

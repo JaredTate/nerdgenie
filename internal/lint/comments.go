@@ -157,7 +157,11 @@ func (inspector *fileInspector) declarationComments() []documented {
 		case *ast.TypeSpec:
 			found = append(found, documented{typed.Doc, typed.Name.Name})
 		case *ast.Field:
+			// A field carries two comments: the one above it and the one on the end
+			// of its line. Both are read by whoever reads the field, so both are
+			// held to the sentence rule.
 			found = append(found, documented{typed.Doc, firstName(typed.Names)})
+			found = append(found, documented{typed.Comment, firstName(typed.Names)})
 		}
 		return true
 	})

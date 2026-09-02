@@ -105,9 +105,13 @@ func (pairing *Pairing) Offer(sender string) (string, bool, error) {
 	if asked, known := pairing.state.LastRequest[sender]; known && now.Sub(asked) < PairingRequestInterval {
 		return "", false, nil
 	}
+	// The time is written down before the cap is looked at, so that a sender
+	// turned away because three others are waiting still has to wait ten minutes
+	// before asking again.
+	pairing.rememberRequest(sender, now)
 	waiting := pairing.pendingIndexFor(sender)
 	if waiting < 0 && len(pairing.state.Pending) >= MaxPendingCodes {
-		return "", false, nil
+		return "", false, pairing.saveCodes()
 	}
 
 	code, entry, err := newPendingCode(sender, now)
@@ -119,7 +123,6 @@ func (pairing *Pairing) Offer(sender string) (string, bool, error) {
 	} else {
 		pairing.state.Pending[waiting] = entry
 	}
-	pairing.rememberRequest(sender, now)
 	if err := pairing.saveCodes(); err != nil {
 		return "", false, err
 	}

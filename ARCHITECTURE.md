@@ -44,6 +44,9 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/tui` | The terminal screen | 3 |
 | `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3 |
 | `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2, built |
+
+| `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3, built |
+| `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2 |
 | `internal/reliability` | Leases, ledgers, sentinels, the breaker, the watchdog feed, backups | 4 |
 | `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 4 |
 | `internal/skill` | The skill folder format, loading, learning, replay | 4 |
@@ -103,6 +106,86 @@ The **rulebook** is a list of rules of tool, pattern, and action, compiled once 
 A ruling of ask carries a **preview** of exactly what is about to happen: the whole shell command, and the reason the model gave when it asked for administrator powers; the file and how many bytes it holds now; the intent and the element on the page. The user's answer is remembered **in memory for the session only**: once records nothing, always allows every later call with the same readable form, and reject refuses them with the words the user gave. A **standing approval** registered by a skill names the skill, the readable form it covers, a limit on uses, and an expiry read against `contract.Clock`; it is checked after the answers the user gave, so a rejection still wins. When a run is unattended, a call that would have asked comes back ruled **`contract.RulingStop`** instead, carrying the same preview, so the loop stops the task and reports what it needed rather than waiting for somebody who is not there.
 
 The tool input field names this package reduces by are the ones fixed in `docs/briefs/wave-2/2.5-tools.md`: `command`, `escalate` and `reason` for the shell; `path` and `content` for a write; `path`, `old` and `new` for an edit; `pattern` for a search; `url` and `query` for the web; and `intent`, `element` and `text` for the browser and desktop tools. They live in one table in `reduce.go`, and a name that is not there falls back to the tool's bare name rather than failing.
+
+## Signal (built, wave 3)
+
+`internal/signal` is the second channel. It depends on `internal/contract`, the
+standard library, and one outside library, `github.com/mdp/qrterminal/v3`, which
+draws the linking code. It imports no other package of Coeus.
+
+**The daemon.** Signal is reached through **signal-cli**, a separate program
+linked to the user's Signal account as a secondary device. `signal.Daemon` starts
+it as `signal-cli -a <account> daemon --http <host>:<port> --no-receive-stdout`,
+in a **process group of its own** (`Setpgid`), and stops it by signalling that
+group by the child's **exact process identifier**, never by anything that looks
+like its name. `Start` polls the health endpoint every 250 milliseconds and gives
+up after `DaemonStartupTimeout`, thirty seconds, killing what it started. A
+daemon that dies is started again after a wait that grows the same way the
+stream's does, and after `MaxDaemonStarts`, twenty starts, the supervisor stops
+trying. Coeus starts no daemon at all when `ChannelOptions.Program` is empty,
+which is how a machine running signal-cli in a container is served, and is what
+the tests use.
+
+**The three paths.** signal-cli 0.13.23 serves exactly three: `/api/v1/check`
+answers the health check, `/api/v1/events` streams inbound messages as
+server-sent events with the account as a query parameter, and `/api/v1/rpc` takes
+every JSON-RPC call. There is no fourth, so an attachment is fetched by calling
+`getAttachment` with the attachment's opaque identifier and the sender, and the
+daemon answers with the file as base64 under a `data` field. `signal.Client`
+makes those calls, treats a `201` answer as a success with nothing to say, caps
+what it will read, and sends every outbound message through
+`contract.Secrets.Redact` first, so a secret cannot leave this way.
+Attachments land in a cache under the home's Signal folder capped at
+`AttachmentCacheLimit`, two hundred megabytes, from which the files that have
+been there longest are removed first.
+
+**The stream.** `signal.Stream` reads the server-sent frames, joins the `data:`
+lines of one event, ignores the daemon's keepalive comments, and hands each
+payload to the decoder in `event.go`. That decoder drops everything a person did
+not send: a receipt, a typing notification, an envelope with no sender or no
+words, and anything carrying a `syncMessage` key at all, because signal-cli
+writes that key with a null under it and a message the agent already sent must
+never come back as a new one. A stream that ends is opened again after a wait
+that starts at two seconds and doubles to sixty; a stream that says nothing for
+two minutes is dropped and opened again at once. Every wait is measured on
+`contract.Clock`, so no test waits on a real one.
+
+**Pairing.** A sender the agent does not know gets an eight-character code drawn
+without bias from thirty-two characters that cannot be mistaken for each other,
+and nothing else. Codes live one hour, three may be waiting at once, one sender
+may ask once every ten minutes, and five wrong tries shut the door for an hour.
+They are kept salted and hashed in `~/.coeus/signal/pairing.json`, mode 0600,
+written to a file beside it and moved into place, and compared with
+`subtle.ConstantTimeCompare` against every waiting entry rather than stopping at
+the first match. Approved senders are kept the same way in
+`~/.coeus/signal/approved.json`. The `/pair` command, exported as
+`signal.PairCommand`, approves the sender whose code matches; it refuses anywhere
+but the terminal until the first sender is paired, after which a paired sender
+may pair the next one from their phone.
+
+**The channel.** `signal.Channel` implements `contract.Channel` under the name
+`signal`. Inbound messages come only from paired senders and only from direct
+conversations, because a reply to a group message would go to the wrong place. A
+reply goes to whoever last wrote, and to the account itself when nobody has
+written yet; it is split at paragraph breaks into as few messages as fit Signal's
+two-thousand-unit length, never in the middle of a sentence while a sentence
+break is available, capped at ten messages with a note on the last one, and sent
+with a typing indicator around it. A preview arrives as the actual text with the
+three answers explained once, and waits `PreviewTimeout`, thirty minutes, for
+`approve`, `always`, or `deny`. A handoff arrives through `SendFile` with its
+screenshot. `AskSecret` always returns `contract.ErrNoMaskedPrompt`, because
+Signal cannot hide what is typed. One "still working" note is sent five minutes
+into a task that has said nothing, and only one. Inbound photos and files are
+downloaded, kept in the cache, copied into `~/.coeus/inbox/`, and their paths
+ride on `contract.Inbound.Attachments`.
+
+**What the orchestrator wires.** `cmd/coeus/signal.go` holds `signalSubcommand`,
+whose one action is `link`: it finds signal-cli on the PATH, draws the `sgnl://`
+address it prints as a code, waits five minutes for the phone, and writes
+`signal_account` into `config.toml` in place of the line that was there.
+`signal.NewChannel` builds the channel, `channel.Pairing()` hands back the store,
+and `signal.PairCommand(store)` is the command to register, so that both work on
+the same codes.
 
 ## The local socket (planned, wave 3)
 

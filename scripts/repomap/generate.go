@@ -141,13 +141,20 @@ func trackedFiles(root string) ([]string, error) {
 		return nil, fmt.Errorf("cannot read the list of files %s tracks: %w", root, readErr)
 	}
 
+	return pathsInListing(read), nil
+}
+
+// pathsInListing reads the NUL-separated list of paths git prints for
+// "ls-files -z", leaving out the empty piece after the last separator and any
+// other empty piece, because a path is never nothing.
+func pathsInListing(listing []byte) []string {
 	paths := []string{}
-	for _, path := range strings.Split(string(read), "\x00") {
+	for _, path := range strings.Split(string(listing), "\x00") {
 		if path != "" {
 			paths = append(paths, path)
 		}
 	}
-	return paths, nil
+	return paths
 }
 
 // environmentWithoutGitVariables is this program's environment with every GIT_

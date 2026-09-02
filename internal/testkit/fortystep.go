@@ -150,10 +150,19 @@ func (task FortyStepTask) Script() Script {
 }
 
 // stepFor turns one round into one step of the script.
+//
+// A round after the correction expects the correction to still be in the
+// request, and a round after the stop expects the user's reply as well, because
+// the stop condition fired at round thirty and nothing may run until the user
+// has answered. A harness that runs straight through the stop fails on the
+// round after it.
 func (task FortyStepTask) stepFor(round FortyStepRound) Step {
 	step := Step{Text: round.Orient, Finish: contract.FinishToolCalls}
 	if round.Number > task.CorrectionRound {
-		step.Expect = []string{task.Correction}
+		step.Expect = append(step.Expect, task.Correction)
+	}
+	if round.Number > task.StopRound {
+		step.Expect = append(step.Expect, task.UserReplyAfterStop)
 	}
 	if round.ToolName == "" {
 		step.Text = round.Reply

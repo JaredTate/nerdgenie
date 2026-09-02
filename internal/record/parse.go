@@ -130,17 +130,28 @@ func (reading *reader) readHeader(text string) error {
 func (reading *reader) readHeaderField(field string) error {
 	header := &reading.record.Header
 	if origin, found := strings.CutPrefix(field, "from "); found {
-		header.Origin = unfoldText(origin)
-		return nil
+		return reading.readWordsField(field, origin, &header.Origin, "the channel the ask came in on")
 	}
 	if header.Kind == contract.RecordTask {
 		return reading.readBudgetField(field)
 	}
 	if due, found := strings.CutPrefix(field, "next: "); found {
-		header.NextDue = unfoldText(due)
-		return nil
+		return reading.readWordsField(field, due, &header.NextDue, "the next task that is due")
 	}
 	return reading.readProgressField(field)
+}
+
+// readWordsField reads a header field whose value is words rather than numbers.
+// The header holds its fields three spaces apart, so a value padded with spaces
+// of its own would lose them the next time the record was read, and the record
+// would no longer say what it said. Such a value is refused here.
+func (reading *reader) readWordsField(field string, value string, into *string, what string) error {
+	if value == "" || value != strings.TrimSpace(value) {
+		return reading.fail("the header field %q is %s and it is empty or padded with spaces, so write it with none at either end",
+			field, what)
+	}
+	*into = unfoldText(value)
+	return nil
 }
 
 // readBudgetField reads how much of a task's budget is left.

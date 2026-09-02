@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/JaredTate/coeus/internal/contract"
+
 	// The pure-Go SQLite driver, registered under the name "sqlite", which is
 	// what keeps bin/coeus a single static binary with no C compiler and no
 	// system library behind it.
@@ -71,6 +73,10 @@ type Log struct {
 	reader  *sql.DB
 	closed  bool
 }
+
+// A log is the one real event log, so the compiler is asked to say at once if it
+// ever stops matching the contract every other package writes against.
+var _ contract.Store = (*Log)(nil)
 
 // Open opens the event log in one SQLite file, making the file and its schema
 // when they are not there yet. The caller passes the path, which in a running

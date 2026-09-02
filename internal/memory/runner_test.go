@@ -144,8 +144,10 @@ func TestACounterThatHoldsSomethingOtherThanANumberStartsAgainAtOne(t *testing.T
 
 func TestABudgetRunsOut(t *testing.T) {
 	budget := &runBudget{left: 2}
-	if !budget.spend() || !budget.spend() {
-		t.Fatal("a budget of two would not pay for two pieces of work")
+	for spent := 1; spent <= 2; spent++ {
+		if !budget.spend() {
+			t.Fatalf("a budget of two would not pay for piece of work number %d", spent)
+		}
 	}
 	if budget.spend() {
 		t.Error("a budget of two paid for a third piece of work")

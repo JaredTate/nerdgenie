@@ -46,8 +46,8 @@ It runs on rosie (Linux Mint, 32 cores, 60 GB, an RTX 5070 Ti, a display, Chrome
 
 Seven decisions. Pieces of some exist elsewhere; the combination does not. Each one is simple to build.
 
-**1. A task record beside the log, not a summary instead of it.**
-Every agent studied is trace-driven: the transcript is the state, and each turn the model re-reads the trace to work out where it is. Coeus keeps an explicit **task record**: your ask word for word, your corrections word for word, the plan with step status, the facts found with their sources, open questions, and open handles. The harness writes the parts it can verify; the model writes the judgment parts. The transcript stays on disk as the log of how we got there. Section 4 has the format.
+**1. Three layers of state: history, state, and working context.**
+Every agent studied is trace-driven: the transcript is the state, and each turn the model re-reads the trace to work out where it is. Coeus separates what happened (an append-only log), what is true now (a small task record with the ask and corrections verbatim, the plan, facts, decisions, and failures), and what the model sees this turn (built fresh, sized to the model). The harness writes the parts it can verify; the model writes the judgment parts. Section 4 has the model and the format.
 
 **2. Evidence is paged, never deleted.**
 Recent exchanges stay in context verbatim, in a window sized to the model. Tool results the model or the harness pins stay in verbatim too. Older results fall out of the window but keep a one-line entry in the record and can be read back by id at any time. Tool results arrive as what changed, not whole dumps. Nothing is summarized away. A 260k model gets a big window; a 24k model gets a smaller one; both keep everything.
@@ -76,6 +76,7 @@ Facts the harness can verify are recorded with zero model tokens: files changed,
 | **OpenClaw** | A pure loop with hooks around it; steering at tool boundaries; text-to-tool-call repair; the cron backoff ladder with auto-disable; signal-cli with pairing by default; a cache boundary in the prompt; capped role files; a "save your notes" step before anything leaves the window; a delivery queue on disk; launching real Chrome with its own profile and reading the page as a tree with refs | These are the parts we would keep; the operations code around them is what breaks |
 | **Hermes** | The crash-loop breaker; one lease per session; a delivery ledger that admits "may be a duplicate"; one deadline primitive; MEMORY.md and USER.md with hard caps; your messages kept word for word; cron incidents keyed by error; the masked sudo and password prompt; one redaction function on every output | Each one is a file written after an outage. Hermes paid the tuition |
 | **Prime** | Notes with history and rollback that the next prompt reads; cron as heartbeat; budgets with verifier gates; `bash()` that returns a handle; variables that outlive the chat, which became the task record | One of three learning loops in the field whose read path is real |
+| **A ChatGPT conversation of yours** | History, state, and working context as three separate things; decisions and failures as first-class records with reasons; "do not make the model remember what the environment can tell it"; checkpoints | The clearest statement of the split, which the plan builds out |
 | **OpenCode** | One core with an API inside it and every screen a client; streaming as field deltas; one command table; inline approvals with once, always, reject; the permission engine (rules, last match wins, default ask); tool descriptions as plain text; output caps with spill files; the `invalid` handling that turns a bad call into a fixable error; re-reading role files every step | The interface you like is these decisions, not the codebase around them |
 | **ZeroClaw** | The designs of its Signal channel, cron store with claim locks, tool-call parser for messy local models, ten-round cap with a forced final answer, skill creator, updater with rollback, and Landlock wrapper, ported to Go | The Rust project closest to your spec. Too big to fork; these designs are clean |
 | **browser-use, Stagehand, agent-browser** | `[new]` marks on elements that just appeared; "pages below" scroll hints; abort a batch when the page changes; a finish that must say whether it succeeded; cache the selector that worked so the next run is deterministic | What the top live-site scorers share, once you subtract their frontier models and cloud captcha solving |
@@ -84,25 +85,38 @@ Facts the harness can verify are recorded with zero model tokens: files changed,
 
 ---
 
-## 4. Task state
+## 4. State: the three-layer model
 
-**The question.** What is the state of a task? Where does it live? In every agent studied, the answer is "in the transcript, implicitly." Coeus makes it explicit.
+**The question you asked.** What is the state of a task, and where does it live? In every agent studied the answer is the same: in the transcript, implicitly. The model re-reads how it got here to work out where it is. That is a video game loading your save by replaying every button you ever pressed. Coeus separates three things that the others keep in one pile.
 
 ```mermaid
 flowchart LR
-  N["new"] --> P["planning"]
-  P --> X["executing"]
-  X --> W["waiting: your approval, a handoff, a job"]
-  W --> X
-  X --> V["verifying"]
-  V --> D["done"]
-  V --> X
-  X --> F["failed or abandoned"]
+  subgraph H["HISTORY: what happened"]
+    HL["Append-only event log<br/>every message, call, result, decision<br/>never edited, never in context by default"]
+  end
+  subgraph S["STATE: what is true now"]
+    SR["Task record, 1 to 3k tokens<br/>ask, corrections, plan, facts,<br/>decisions, failures, handles"]
+  end
+  subgraph W["WORKING CONTEXT: what the model sees this turn"]
+    WC["prefix + role files + task record<br/>+ pinned evidence + recent window<br/>sized to the model"]
+  end
+  HL -->|"harness folds events into"| SR
+  SR -->|"always included"| WC
+  HL -->|"paged in by id when needed"| WC
+  WC -->|"the model's turn produces"| HL
 ```
 
-A task moves through those phases. "Waiting" is the important one: a task waiting on your `/approve` is suspended, nothing of it is in any context window, and your reply resumes it from its record, even days later.
+| Layer | Question it answers | Who writes it | Size | In context? |
+|---|---|---|---|---|
+| **History** | What happened, in order | The harness, from every event | Unbounded, on disk | No. Paged in by id, or searched |
+| **State** | What is true now | The harness for facts it can verify; the model for judgment | 1 to 3k tokens, capped | Always |
+| **Working context** | What does the model need right now | The harness, built fresh every turn | Sized to the model, 8k to 100k+ | It is the context |
 
-**The record.** One per task, in the database, readable as text:
+**The one rule that sorts everything:** history is a fact about the past, state is a fact about the present, working context is a choice about attention. A test that failed at 14:02 is history. "Tests: 47 passing, 3 failing" is state. The three failing test names and their output are working context while the model is fixing them, and history again once it has.
+
+### The record
+
+One per task, in the database, readable as text. Eight parts, each with one job:
 
 ```
 # t17   status: executing   from: signal   budget: 6/20 rounds, 41k tokens, 9 min
@@ -118,8 +132,10 @@ A task moves through those phases. "Waiting" is the important one: a task waitin
 ## Facts (each with a source)
 - Launched 10 Jan 2014 by Jared Tate  (r3: memory/digibyte.md)
 - Five mining algorithms, 15-second blocks  (r4: digibyte.org/about)
-## Open questions
-- none
+## Decisions (with the reason, so they are not re-argued)
+- D1 Lead with the anniversary date, not the tech. Reason: JT's ask says anniversary.
+## Failures (so they are not repeated)
+- F1 Draft 1 was 312 chars. Cause: two facts too many. Do not: three facts in one tweet.
 ## Handles
 - tab t1: x.com/compose   pinned: r3, r4
 ## Results (one line each; read any with `read r7`)
@@ -129,9 +145,23 @@ A task moves through those phases. "Waiting" is the important one: a task waitin
 - r5 browser_open x.com/compose: ok, tab t1
 ```
 
-**Who writes what.** The harness writes the header, the corrections, the handles, the results list, step status from tool outcomes, and the budget, with zero model tokens. The model writes the plan, the facts, and the questions through the `task` tool. The ask and the corrections are never edited. The record is capped at a few thousand tokens; when it grows, the harness folds finished steps and old result lines into single lines. Nothing is deleted; every result stays readable by id.
+**Who writes what.** The harness writes the header, corrections, handles, the results list, step status from tool outcomes, and the budget, with zero model tokens. It also writes a failure line itself whenever a tool call errors or a browser expectation misses. The model writes the plan, facts, decisions, and the reasons through the `task` tool. The ask and the corrections are never edited. Decisions and failures are the two parts that matter most for hard tasks: they are why the agent does not re-argue a settled choice or walk into the same wall twice. The record is capped; when it grows, the harness folds finished steps and old result lines into single lines, and nothing is deleted.
 
-**Why this is different from a summary.** A summary replaces the history. The record sits beside it. The verbatim window (section 5) is still there, the evidence is still there, and the record only has to hold the things that must never be lost: what you asked, what you corrected, where we are, what we found.
+### What the environment can tell it, it does not remember
+
+The record does not hold what the world can answer. Which files changed is `git diff`. Whether the code compiles is the compiler. What is on the page is the snapshot. Whether a job ran is the jobs table. Only things the world cannot answer go in state: what you asked, what you corrected, what was decided and why, what failed and why. This keeps the record small and, more important, keeps it true, because the world is re-checked instead of trusted.
+
+### Checkpoints
+
+Every time the record changes, the harness saves a numbered checkpoint: the record plus the list of pinned result ids. A task that is waiting on your `/approve` for three days resumes from its last checkpoint with nothing in any context window. `/tasks 17` shows the record; `/tasks 17 back 3` rewinds three checkpoints and lets the model try a different path from there, the way you would reload a save. Because every checkpoint is tied to the log, a failed task can be replayed from any checkpoint as a test after a fix.
+
+### Why nobody built it this way
+
+Agents grew out of chat, and chat is a transcript. The transcript looks like state, users like reading it, cloud caching rewards appending to it, and bigger context windows made the problem look solved. Fragments exist: Prime keeps variables and notes, OpenClaw keeps goals, browser-use keeps a per-step memory field, Claude Code keeps a todo list. None makes the record the primary thing, none lets the harness co-write it from verified events, and none can suspend a task and resume it from the record days later. The three-layer split is how databases (log plus snapshot), operating systems (process control block), and CPUs (registers versus the instruction trace) have worked for fifty years. It has not been applied to agents because nobody had to make one run for a week on a phone.
+
+### Why it cannot be worse than a transcript
+
+The windows are knobs. Turn the recent window up to the model's full context and pin everything, and Coeus degrades to "the whole transcript in context," which is exactly what every other agent does. Every setting below that keeps more, not less: the ask and corrections verbatim, the evidence paged rather than summarized, the decisions and failures written down instead of buried in 100k tokens of history. On your 260k local models the windows are large. On a 24k model they are small. The record is the same size on both, and that is the point.
 
 ---
 
@@ -344,7 +374,7 @@ Eighteen. R read, W write, X execute, N network, I irreversible. Every model see
 | `shell` | Run a command; job id after 10 s; poll, tail, kill; `escalate` with a reason for sudo | X |
 | `web` | Search, or fetch a public page as text; no logins, no clicking; anything interactive is the browser | N |
 | `memory` | Search, get, save | R W |
-| `task` | Update the plan, add a fact with its source, pin or unpin a result, note a question | W |
+| `task` | Update the plan; add a fact with its source; record a decision or a failure with its reason; pin or unpin a result | W |
 | `skill` | View, run, or save a skill | R X W |
 | `schedule` | One job object: at, every, or cron | I |
 | `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_act` | Section 8 | N X |
@@ -362,7 +392,7 @@ One command table; the terminal prints the result, Signal sends it.
 | Command | Does |
 |---|---|
 | `/new`, `/sessions` | Fresh session; list and switch |
-| `/tasks` | What is running, waiting, or done today; `/tasks 17` shows a record |
+| `/tasks` | What is running, waiting, or done today; `/tasks 17` shows a record; `/tasks 17 back 3` rewinds to a checkpoint |
 | `/model` | `/model local` (Qwen 3.8 27B on rosie), `/model claude` |
 | `/status` | Model, tokens, jobs, pending approvals, health |
 | `/stop` | Cancel the current turn |
@@ -440,7 +470,7 @@ Measured on this Mac with the real dependency set:
 | Layer | The test that defines done |
 |---|---|
 | Loop | A fake model that emits identical calls, malformed calls, text calls, and 30 tool calls; the guard handles each without crashing |
-| Task record | A 40-step recorded task: the ask and corrections are byte-identical at the end; every result is readable by id; a suspended task resumes from its record |
+| State | A 40-step recorded task: the ask and corrections are byte-identical at the end; every result is readable by id; a suspended task resumes from its last checkpoint; a recorded failure is not repeated; a rewind resumes from an earlier checkpoint |
 | Tools | A golden input and output per tool; caps and timeouts asserted |
 | Permissions | A table of rules and calls; every row has an expected allow, ask, or deny; every irreversible call produced a preview |
 | Sandbox | A shell command that tries to read `~/.ssh` or the vault must fail; an escalated one must not run without approval |

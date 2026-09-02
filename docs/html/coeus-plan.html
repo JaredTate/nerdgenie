@@ -62,7 +62,7 @@ html{scroll-behavior:smooth}
   <h1>Coeus Plan</h1>
   <p>20 parts. Diagrams draw below; tables scroll sideways on a phone. Source: <code>~/Desktop/COEUS_PLAN.md</code>.</p>
 </header>
-<nav class="parts"><a href="#0-what-it-is">What it is</a><a href="#1-the-architecture-in-one-picture">The architecture in one picture</a><a href="#2-what-is-new">What is new</a><a href="#3-what-we-take-and-from-where">What we take, and from where</a><a href="#4-task-state">Task state</a><a href="#5-context-sized-to-the-model">Context, sized to the model</a><a href="#6-the-loop">The loop</a><a href="#7-memory">Memory</a><a href="#8-the-browser-like-a-human">The browser, like a human</a><a href="#9-desktop-cli-tools-skills">Desktop, CLI tools, skills</a><a href="#10-vault-sudo-secrets">Vault, sudo, secrets</a><a href="#11-tools">Tools</a><a href="#12-signal-tui-commands">Signal, TUI, commands</a><a href="#13-safety-in-five-rules">Safety in five rules</a><a href="#14-reliability-self-fixing-updates">Reliability, self-fixing, updates</a><a href="#15-language">Language</a><a href="#16-tests-first">Tests first</a><a href="#17-what-we-leave-out-and-what-the-review-cut">What we leave out, and what the review cut</a><a href="#18-size-and-build-order">Size and build order</a><a href="#19-open-questions">Open questions</a></nav>
+<nav class="parts"><a href="#0-what-it-is">What it is</a><a href="#1-the-architecture-in-one-picture">The architecture in one picture</a><a href="#2-what-is-new">What is new</a><a href="#3-what-we-take-and-from-where">What we take, and from where</a><a href="#4-state-the-three-layer-model">State: the three-layer model</a><a href="#5-context-sized-to-the-model">Context, sized to the model</a><a href="#6-the-loop">The loop</a><a href="#7-memory">Memory</a><a href="#8-the-browser-like-a-human">The browser, like a human</a><a href="#9-desktop-cli-tools-skills">Desktop, CLI tools, skills</a><a href="#10-vault-sudo-secrets">Vault, sudo, secrets</a><a href="#11-tools">Tools</a><a href="#12-signal-tui-commands">Signal, TUI, commands</a><a href="#13-safety-in-five-rules">Safety in five rules</a><a href="#14-reliability-self-fixing-updates">Reliability, self-fixing, updates</a><a href="#15-language">Language</a><a href="#16-tests-first">Tests first</a><a href="#17-what-we-leave-out-and-what-the-review-cut">What we leave out, and what the review cut</a><a href="#18-size-and-build-order">Size and build order</a><a href="#19-open-questions">Open questions</a></nav>
 <main>
 <p><strong>Coeus: an agent that uses a computer like a human, learns like a colleague, and stays small.</strong></p>
 <p>Design proposal, 2 September 2026. Nothing is built yet. Every choice names the failure it prevents and the project it was learned from. The evidence is in <code>HARNESS_V2.md</code> and the research files in <code>docs/research/</code>. This version has been through a fact-check and a simplicity review; what those cut is listed in section 17.</p>
@@ -96,8 +96,8 @@ flowchart TD
 <hr>
 <h2 id="2-what-is-new">2. What is new</h2>
 <p>Seven decisions. Pieces of some exist elsewhere; the combination does not. Each one is simple to build.</p>
-<p><strong>1. A task record beside the log, not a summary instead of it.</strong>
-Every agent studied is trace-driven: the transcript is the state, and each turn the model re-reads the trace to work out where it is. Coeus keeps an explicit <strong>task record</strong>: your ask word for word, your corrections word for word, the plan with step status, the facts found with their sources, open questions, and open handles. The harness writes the parts it can verify; the model writes the judgment parts. The transcript stays on disk as the log of how we got there. Section 4 has the format.</p>
+<p><strong>1. Three layers of state: history, state, and working context.</strong>
+Every agent studied is trace-driven: the transcript is the state, and each turn the model re-reads the trace to work out where it is. Coeus separates what happened (an append-only log), what is true now (a small task record with the ask and corrections verbatim, the plan, facts, decisions, and failures), and what the model sees this turn (built fresh, sized to the model). The harness writes the parts it can verify; the model writes the judgment parts. Section 4 has the model and the format.</p>
 <p><strong>2. Evidence is paged, never deleted.</strong>
 Recent exchanges stay in context verbatim, in a window sized to the model. Tool results the model or the harness pins stay in verbatim too. Older results fall out of the window but keep a one-line entry in the record and can be read back by id at any time. Tool results arrive as what changed, not whole dumps. Nothing is summarized away. A 260k model gets a big window; a 24k model gets a smaller one; both keep everything.</p>
 <p><strong>3. Act and assert.</strong>
@@ -115,27 +115,37 @@ Facts the harness can verify are recorded with zero model tokens: files changed,
 <div class="tablewrap"><table><thead><tr><th>From</th><th>We take</th><th>Because it worked</th></tr></thead><tbody><tr><td><strong>OpenClaw</strong></td><td>A pure loop with hooks around it; steering at tool boundaries; text-to-tool-call repair; the cron backoff ladder with auto-disable; signal-cli with pairing by default; a cache boundary in the prompt; capped role files; a &quot;save your notes&quot; step before anything leaves the window; a delivery queue on disk; launching real Chrome with its own profile and reading the page as a tree with refs</td><td>These are the parts we would keep; the operations code around them is what breaks</td></tr>
 <tr><td><strong>Hermes</strong></td><td>The crash-loop breaker; one lease per session; a delivery ledger that admits &quot;may be a duplicate&quot;; one deadline primitive; MEMORY.md and USER.md with hard caps; your messages kept word for word; cron incidents keyed by error; the masked sudo and password prompt; one redaction function on every output</td><td>Each one is a file written after an outage. Hermes paid the tuition</td></tr>
 <tr><td><strong>Prime</strong></td><td>Notes with history and rollback that the next prompt reads; cron as heartbeat; budgets with verifier gates; <code>bash()</code> that returns a handle; variables that outlive the chat, which became the task record</td><td>One of three learning loops in the field whose read path is real</td></tr>
+<tr><td><strong>A ChatGPT conversation of yours</strong></td><td>History, state, and working context as three separate things; decisions and failures as first-class records with reasons; &quot;do not make the model remember what the environment can tell it&quot;; checkpoints</td><td>The clearest statement of the split, which the plan builds out</td></tr>
 <tr><td><strong>OpenCode</strong></td><td>One core with an API inside it and every screen a client; streaming as field deltas; one command table; inline approvals with once, always, reject; the permission engine (rules, last match wins, default ask); tool descriptions as plain text; output caps with spill files; the <code>invalid</code> handling that turns a bad call into a fixable error; re-reading role files every step</td><td>The interface you like is these decisions, not the codebase around them</td></tr>
 <tr><td><strong>ZeroClaw</strong></td><td>The designs of its Signal channel, cron store with claim locks, tool-call parser for messy local models, ten-round cap with a forced final answer, skill creator, updater with rollback, and Landlock wrapper, ported to Go</td><td>The Rust project closest to your spec. Too big to fork; these designs are clean</td></tr>
 <tr><td><strong>browser-use, Stagehand, agent-browser</strong></td><td><code>[new]</code> marks on elements that just appeared; &quot;pages below&quot; scroll hints; abort a batch when the page changes; a finish that must say whether it succeeded; cache the selector that worked so the next run is deterministic</td><td>What the top live-site scorers share, once you subtract their frontier models and cloud captcha solving</td></tr>
 <tr><td><strong>Codex, Claude Code</strong></td><td>The kernel sandbox as the real boundary; escalation as a field on the call with a written reason; the model decides, the harness allows, never the same layer</td><td>The two labs settled the safety question the same way</td></tr>
 <tr><td><strong>Systems design, 1960s to now</strong></td><td>Event sourcing: the log is truth, a snapshot is the compact image. Process control blocks: suspend and resume from a small record. Working sets and paging: keep what is touched recently, page the rest in on demand</td><td>Fifty years of proof</td></tr></tbody></table></div>
 <hr>
-<h2 id="4-task-state">4. Task state</h2>
-<p><strong>The question.</strong> What is the state of a task? Where does it live? In every agent studied, the answer is &quot;in the transcript, implicitly.&quot; Coeus makes it explicit.</p>
+<h2 id="4-state-the-three-layer-model">4. State: the three-layer model</h2>
+<p><strong>The question you asked.</strong> What is the state of a task, and where does it live? In every agent studied the answer is the same: in the transcript, implicitly. The model re-reads how it got here to work out where it is. That is a video game loading your save by replaying every button you ever pressed. Coeus separates three things that the others keep in one pile.</p>
 <div class="diagram"><pre class="mermaid">
 flowchart LR
-  N["new"] --> P["planning"]
-  P --> X["executing"]
-  X --> W["waiting: your approval, a handoff, a job"]
-  W --> X
-  X --> V["verifying"]
-  V --> D["done"]
-  V --> X
-  X --> F["failed or abandoned"]
+  subgraph H["HISTORY: what happened"]
+    HL["Append-only event log<br/>every message, call, result, decision<br/>never edited, never in context by default"]
+  end
+  subgraph S["STATE: what is true now"]
+    SR["Task record, 1 to 3k tokens<br/>ask, corrections, plan, facts,<br/>decisions, failures, handles"]
+  end
+  subgraph W["WORKING CONTEXT: what the model sees this turn"]
+    WC["prefix + role files + task record<br/>+ pinned evidence + recent window<br/>sized to the model"]
+  end
+  HL -->|"harness folds events into"| SR
+  SR -->|"always included"| WC
+  HL -->|"paged in by id when needed"| WC
+  WC -->|"the model's turn produces"| HL
 </pre></div>
-<p>A task moves through those phases. &quot;Waiting&quot; is the important one: a task waiting on your <code>/approve</code> is suspended, nothing of it is in any context window, and your reply resumes it from its record, even days later.</p>
-<p><strong>The record.</strong> One per task, in the database, readable as text:</p>
+<div class="tablewrap"><table><thead><tr><th>Layer</th><th>Question it answers</th><th>Who writes it</th><th>Size</th><th>In context?</th></tr></thead><tbody><tr><td><strong>History</strong></td><td>What happened, in order</td><td>The harness, from every event</td><td>Unbounded, on disk</td><td>No. Paged in by id, or searched</td></tr>
+<tr><td><strong>State</strong></td><td>What is true now</td><td>The harness for facts it can verify; the model for judgment</td><td>1 to 3k tokens, capped</td><td>Always</td></tr>
+<tr><td><strong>Working context</strong></td><td>What does the model need right now</td><td>The harness, built fresh every turn</td><td>Sized to the model, 8k to 100k+</td><td>It is the context</td></tr></tbody></table></div>
+<p><strong>The one rule that sorts everything:</strong> history is a fact about the past, state is a fact about the present, working context is a choice about attention. A test that failed at 14:02 is history. &quot;Tests: 47 passing, 3 failing&quot; is state. The three failing test names and their output are working context while the model is fixing them, and history again once it has.</p>
+<h3 id="the-record">The record</h3>
+<p>One per task, in the database, readable as text. Eight parts, each with one job:</p>
 <div class="codewrap"><pre><code># t17   status: executing   from: signal   budget: 6/20 rounds, 41k tokens, 9 min
 ## Ask (verbatim, immutable)
 "Write a tweet for DigiByte's anniversary and post it from the marketing account."
@@ -149,8 +159,10 @@ flowchart LR
 ## Facts (each with a source)
 - Launched 10 Jan 2014 by Jared Tate  (r3: memory/digibyte.md)
 - Five mining algorithms, 15-second blocks  (r4: digibyte.org/about)
-## Open questions
-- none
+## Decisions (with the reason, so they are not re-argued)
+- D1 Lead with the anniversary date, not the tech. Reason: JT's ask says anniversary.
+## Failures (so they are not repeated)
+- F1 Draft 1 was 312 chars. Cause: two facts too many. Do not: three facts in one tweet.
 ## Handles
 - tab t1: x.com/compose   pinned: r3, r4
 ## Results (one line each; read any with `read r7`)
@@ -158,8 +170,15 @@ flowchart LR
 - r3 read memory/digibyte.md: 2,100 chars
 - r4 web fetch digibyte.org/about: 1,800 chars
 - r5 browser_open x.com/compose: ok, tab t1</code></pre></div>
-<p><strong>Who writes what.</strong> The harness writes the header, the corrections, the handles, the results list, step status from tool outcomes, and the budget, with zero model tokens. The model writes the plan, the facts, and the questions through the <code>task</code> tool. The ask and the corrections are never edited. The record is capped at a few thousand tokens; when it grows, the harness folds finished steps and old result lines into single lines. Nothing is deleted; every result stays readable by id.</p>
-<p><strong>Why this is different from a summary.</strong> A summary replaces the history. The record sits beside it. The verbatim window (section 5) is still there, the evidence is still there, and the record only has to hold the things that must never be lost: what you asked, what you corrected, where we are, what we found.</p>
+<p><strong>Who writes what.</strong> The harness writes the header, corrections, handles, the results list, step status from tool outcomes, and the budget, with zero model tokens. It also writes a failure line itself whenever a tool call errors or a browser expectation misses. The model writes the plan, facts, decisions, and the reasons through the <code>task</code> tool. The ask and the corrections are never edited. Decisions and failures are the two parts that matter most for hard tasks: they are why the agent does not re-argue a settled choice or walk into the same wall twice. The record is capped; when it grows, the harness folds finished steps and old result lines into single lines, and nothing is deleted.</p>
+<h3 id="what-the-environment-can-tell-it-it-does-not-remember">What the environment can tell it, it does not remember</h3>
+<p>The record does not hold what the world can answer. Which files changed is <code>git diff</code>. Whether the code compiles is the compiler. What is on the page is the snapshot. Whether a job ran is the jobs table. Only things the world cannot answer go in state: what you asked, what you corrected, what was decided and why, what failed and why. This keeps the record small and, more important, keeps it true, because the world is re-checked instead of trusted.</p>
+<h3 id="checkpoints">Checkpoints</h3>
+<p>Every time the record changes, the harness saves a numbered checkpoint: the record plus the list of pinned result ids. A task that is waiting on your <code>/approve</code> for three days resumes from its last checkpoint with nothing in any context window. <code>/tasks 17</code> shows the record; <code>/tasks 17 back 3</code> rewinds three checkpoints and lets the model try a different path from there, the way you would reload a save. Because every checkpoint is tied to the log, a failed task can be replayed from any checkpoint as a test after a fix.</p>
+<h3 id="why-nobody-built-it-this-way">Why nobody built it this way</h3>
+<p>Agents grew out of chat, and chat is a transcript. The transcript looks like state, users like reading it, cloud caching rewards appending to it, and bigger context windows made the problem look solved. Fragments exist: Prime keeps variables and notes, OpenClaw keeps goals, browser-use keeps a per-step memory field, Claude Code keeps a todo list. None makes the record the primary thing, none lets the harness co-write it from verified events, and none can suspend a task and resume it from the record days later. The three-layer split is how databases (log plus snapshot), operating systems (process control block), and CPUs (registers versus the instruction trace) have worked for fifty years. It has not been applied to agents because nobody had to make one run for a week on a phone.</p>
+<h3 id="why-it-cannot-be-worse-than-a-transcript">Why it cannot be worse than a transcript</h3>
+<p>The windows are knobs. Turn the recent window up to the model&#39;s full context and pin everything, and Coeus degrades to &quot;the whole transcript in context,&quot; which is exactly what every other agent does. Every setting below that keeps more, not less: the ask and corrections verbatim, the evidence paged rather than summarized, the decisions and failures written down instead of buried in 100k tokens of history. On your 260k local models the windows are large. On a 24k model they are small. The record is the same size on both, and that is the point.</p>
 <hr>
 <h2 id="5-context-sized-to-the-model">5. Context, sized to the model</h2>
 <div class="diagram"><pre class="mermaid">
@@ -323,7 +342,7 @@ viewport 1400x900  scroll 0.0 above / 2.3 below  dialogs: none  changed: +3 new
 <tr><td><code>shell</code></td><td>Run a command; job id after 10 s; poll, tail, kill; <code>escalate</code> with a reason for sudo</td><td>X</td></tr>
 <tr><td><code>web</code></td><td>Search, or fetch a public page as text; no logins, no clicking; anything interactive is the browser</td><td>N</td></tr>
 <tr><td><code>memory</code></td><td>Search, get, save</td><td>R W</td></tr>
-<tr><td><code>task</code></td><td>Update the plan, add a fact with its source, pin or unpin a result, note a question</td><td>W</td></tr>
+<tr><td><code>task</code></td><td>Update the plan; add a fact with its source; record a decision or a failure with its reason; pin or unpin a result</td><td>W</td></tr>
 <tr><td><code>skill</code></td><td>View, run, or save a skill</td><td>R X W</td></tr>
 <tr><td><code>schedule</code></td><td>One job object: at, every, or cron</td><td>I</td></tr>
 <tr><td><code>browser_open</code>, <code>browser_read</code>, <code>browser_click</code>, <code>browser_type</code>, <code>browser_act</code></td><td>Section 8</td><td>N X</td></tr>
@@ -334,7 +353,7 @@ viewport 1400x900  scroll 0.0 above / 2.3 below  dialogs: none  changed: +3 new
 <h2 id="12-signal-tui-commands">12. Signal, TUI, commands</h2>
 <p>One command table; the terminal prints the result, Signal sends it.</p>
 <div class="tablewrap"><table><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>/new</code>, <code>/sessions</code></td><td>Fresh session; list and switch</td></tr>
-<tr><td><code>/tasks</code></td><td>What is running, waiting, or done today; <code>/tasks 17</code> shows a record</td></tr>
+<tr><td><code>/tasks</code></td><td>What is running, waiting, or done today; <code>/tasks 17</code> shows a record; <code>/tasks 17 back 3</code> rewinds to a checkpoint</td></tr>
 <tr><td><code>/model</code></td><td><code>/model local</code> (Qwen 3.8 27B on rosie), <code>/model claude</code></td></tr>
 <tr><td><code>/status</code></td><td>Model, tokens, jobs, pending approvals, health</td></tr>
 <tr><td><code>/stop</code></td><td>Cancel the current turn</td></tr>
@@ -389,7 +408,7 @@ viewport 1400x900  scroll 0.0 above / 2.3 below  dialogs: none  changed: +3 new
 <hr>
 <h2 id="16-tests-first">16. Tests first</h2>
 <div class="tablewrap"><table><thead><tr><th>Layer</th><th>The test that defines done</th></tr></thead><tbody><tr><td>Loop</td><td>A fake model that emits identical calls, malformed calls, text calls, and 30 tool calls; the guard handles each without crashing</td></tr>
-<tr><td>Task record</td><td>A 40-step recorded task: the ask and corrections are byte-identical at the end; every result is readable by id; a suspended task resumes from its record</td></tr>
+<tr><td>State</td><td>A 40-step recorded task: the ask and corrections are byte-identical at the end; every result is readable by id; a suspended task resumes from its last checkpoint; a recorded failure is not repeated; a rewind resumes from an earlier checkpoint</td></tr>
 <tr><td>Tools</td><td>A golden input and output per tool; caps and timeouts asserted</td></tr>
 <tr><td>Permissions</td><td>A table of rules and calls; every row has an expected allow, ask, or deny; every irreversible call produced a preview</td></tr>
 <tr><td>Sandbox</td><td>A shell command that tries to read <code>~/.ssh</code> or the vault must fail; an escalated one must not run without approval</td></tr>

@@ -85,13 +85,32 @@ func recordsToRoundTrip() map[string]contract.Record {
 	emptyJob := contract.Record{Header: contract.Header{Kind: contract.RecordJob, ID: "9", Status: contract.StatusDone}}
 
 	return map[string]contract.Record{
-		"task from the design": goldenTaskRecord(),
-		"job from the design":  goldenJobRecord(),
-		"bare task":            bare,
-		"folded text":          folded,
-		"a reply as the proof": replied,
-		"bare job":             emptyJob,
+		"task from the design":        goldenTaskRecord(),
+		"job from the design":         goldenJobRecord(),
+		"bare task":                   bare,
+		"folded text":                 folded,
+		"a reply as the proof":        replied,
+		"bare job":                    emptyJob,
+		"more than one of everything": manyOfEverything(),
 	}
+}
+
+// manyOfEverything is a record with more than one correction, decision, failure,
+// and result, so that the round trip covers the labels counting upwards rather
+// than only the first of each.
+func manyOfEverything() contract.Record {
+	held := goldenTaskRecord()
+	held.Rules.Corrections = append(held.Rules.Corrections,
+		contract.Correction{ID: "C2", Text: "actually, add the logo"},
+		contract.Correction{ID: "C3", Text: "always post at two in the afternoon"})
+	held.Lessons.Decisions = append(held.Lessons.Decisions,
+		contract.Decision{ID: "D2", Text: "Attach the logo", Reason: "correction C2"})
+	held.Lessons.Failures = append(held.Lessons.Failures,
+		contract.Failure{ID: "F2", Text: "The logo would not attach", Cause: "the file was the wrong shape"})
+	held.Work.Results = append(held.Work.Results,
+		contract.ResultLine{ID: "r7", Summary: "attached the logo"},
+		contract.ResultLine{ID: "r11", Summary: "posted, 236 characters, link saved"})
+	return held
 }
 
 // TestTheOneLetterLabelsAgreeWithTheContract holds this package's labels to the

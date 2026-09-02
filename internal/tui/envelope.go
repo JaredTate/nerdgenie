@@ -69,7 +69,7 @@ func (screen *Screen) flushDeltas() {
 		return
 	}
 	if open := screen.openReply(); open != nil {
-		open.text += screen.pending
+		open.text = keepTail(open.text + screen.pending)
 	} else {
 		screen.remember(block{kind: blockReply, text: screen.pending})
 		screen.streaming = true
@@ -87,7 +87,7 @@ func (screen *Screen) finishReply(text string) {
 	case open == nil && text != "":
 		screen.remember(block{kind: blockReply, text: text})
 	case open != nil && text != "":
-		open.text = text
+		open.text = keepTail(text)
 	}
 	screen.streaming = false
 }

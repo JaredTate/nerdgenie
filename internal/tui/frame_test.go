@@ -28,7 +28,7 @@ var frameGlyphs = strings.NewReplacer(
 // glyphs taken out. This is what must survive a resize even though the wrapping
 // does not.
 func transcriptWords(screen *Screen) string {
-	drawn := frameGlyphs.Replace(strings.Join(screen.transcriptLines(), " "))
+	drawn := frameGlyphs.Replace(strings.Join(screen.transcriptRows(1<<20), " "))
 	return strings.Join(strings.Fields(drawn), " ")
 }
 

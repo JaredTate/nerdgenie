@@ -61,6 +61,7 @@ func FuzzWrappingKeepsEveryWordAndFitsTheWidth(f *testing.F) {
 	f.Add("a short line", 20)
 	f.Add("one-very-long-word-with-no-spaces-at-all", 10)
 	f.Add("汉字 と ひらがな", 5)
+	f.Add("\xe3", 51)
 	f.Fuzz(func(t *testing.T, text string, width int) {
 		width = 1 + (width%120+120)%120
 		lines := wrapText(text, width)
@@ -69,9 +70,11 @@ func FuzzWrappingKeepsEveryWordAndFitsTheWidth(f *testing.F) {
 				t.Fatalf("the line %q is %d columns wide and the width is %d", line, displayWidth(line), width)
 			}
 		}
-		wanted := strings.Join(strings.Fields(text), "")
+		// A byte that is not a character cannot be drawn, and Go turns it into the
+		// replacement character, so both sides are compared as characters.
+		wanted := strings.Join(strings.Fields(string([]rune(text))), "")
 		got := strings.Join(strings.Fields(strings.Join(lines, " ")), "")
-		if strings.ReplaceAll(wanted, "\t", "") != strings.ReplaceAll(got, "\t", "") {
+		if wanted != got {
 			t.Fatalf("wrapping %q at %d gave back %q, and no character may be lost", text, width, got)
 		}
 	})

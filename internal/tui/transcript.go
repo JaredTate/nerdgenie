@@ -7,6 +7,11 @@ import "strings"
 // block of a day-long task eventually fills the machine's memory.
 const maxTranscriptBlocks = 500
 
+// maxBlockRunes is the most text one block keeps. A reply longer than this keeps
+// its end, because the newest text is the part being read and the whole of it is
+// in the program's log.
+const maxBlockRunes = 20000
+
 // blockKind is one of the four things docs/TUI_DESIGN.md draws in the
 // transcript.
 type blockKind int
@@ -35,6 +40,7 @@ type block struct {
 // remember puts one block on the end of the transcript and drops the oldest when
 // the transcript is full.
 func (screen *Screen) remember(added block) {
+	added.text = keepTail(added.text)
 	screen.blocks = append(screen.blocks, added)
 	if len(screen.blocks) > maxTranscriptBlocks {
 		screen.blocks = screen.blocks[len(screen.blocks)-maxTranscriptBlocks:]
@@ -56,18 +62,31 @@ func (screen *Screen) transcriptWidth() int {
 	return width
 }
 
-// transcriptLines draws every block, newest last, with one blank line between
-// blocks, which is the whole of the transcript before it is cut to the rows that
-// fit.
-func (screen *Screen) transcriptLines() []string {
-	lines := []string{}
-	for number, item := range screen.blocks {
-		if number > 0 {
-			lines = append(lines, "")
-		}
-		lines = append(lines, screen.blockLines(item)...)
+// keepTail shortens text that is longer than one block may keep, saying that it
+// has done so rather than quietly losing the beginning.
+func keepTail(text string) string {
+	letters := []rune(text)
+	if len(letters) <= maxBlockRunes {
+		return text
 	}
-	return lines
+	return "(the earlier part of this is not shown here; it is in the log)\n" +
+		string(letters[len(letters)-maxBlockRunes:])
+}
+
+// transcriptRows draws the newest blocks, with one blank line between blocks,
+// and stops as soon as it has as many rows as were asked for. Drawing from the
+// bottom up is what makes a frame cost the same on the thousandth block as on
+// the first.
+func (screen *Screen) transcriptRows(wanted int) []string {
+	gathered := []string{}
+	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
+		lines := screen.blockLines(screen.blocks[at])
+		if at > 0 {
+			lines = append([]string{""}, lines...)
+		}
+		gathered = append(lines, gathered...)
+	}
+	return gathered
 }
 
 // blockLines draws one block as the rows it takes up.
@@ -134,23 +153,19 @@ func (screen *Screen) toolLines(text string) []string {
 }
 
 // visibleTranscript is the rows of the transcript that fit in the space it has,
-// pushed to the bottom, less however far the person has scrolled up.
+// pushed to the bottom, less however far the person has scrolled up. A scroll
+// that has run off the top is pulled back here, which is the one place that
+// knows how many rows there really are.
 func (screen *Screen) visibleTranscript(height int) []string {
 	if height < 1 {
 		return []string{}
 	}
-	all := screen.transcriptLines()
-	end := len(all) - screen.scrollBack
-	if end < 0 {
-		end = 0
-	}
-	start := end - height
-	if start < 0 {
-		start = 0
-	}
-	shown := all[start:end]
-	blank := make([]string, height-len(shown))
-	return append(blank, shown...)
+	gathered := screen.transcriptRows(height + screen.scrollBack)
+	screen.scrollBack = min(screen.scrollBack, max(len(gathered)-height, 0))
+	end := len(gathered) - screen.scrollBack
+	start := max(end-height, 0)
+	shown := gathered[start:end]
+	return append(make([]string, height-len(shown)), shown...)
 }
 
 // scrolledUp says whether the person has scrolled away from the newest content,
@@ -159,17 +174,11 @@ func (screen *Screen) scrolledUp() bool {
 	return screen.scrollBack > 0
 }
 
-// scrollBy moves the view up or down inside the transcript, and never past
-// either end of it.
+// scrollBy moves the view up or down inside the transcript. It never goes below
+// the newest row here, and how far up it may go is found when the frame is next
+// drawn.
 func (screen *Screen) scrollBy(rows int) {
-	furthest := len(screen.transcriptLines())
-	screen.scrollBack += rows
-	if screen.scrollBack < 0 {
-		screen.scrollBack = 0
-	}
-	if screen.scrollBack > furthest {
-		screen.scrollBack = furthest
-	}
+	screen.scrollBack = max(screen.scrollBack+rows, 0)
 }
 
 // ruleRow draws one thin dim line across the frame, which is what separates the

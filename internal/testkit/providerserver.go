@@ -7,11 +7,13 @@
 package testkit
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -141,8 +143,13 @@ func (provider *FakeProviderServer) handle(writer http.ResponseWriter, request *
 		return
 	}
 
-	step, err := provider.nextStep()
+	step, err := provider.nextStep(WholeRequestBodyText(body))
 	if err != nil {
+		var lost lostExpectation
+		if errors.As(err, &lost) {
+			http.Error(writer, lost.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -185,8 +192,26 @@ func (provider *FakeProviderServer) recordAndTakeProblem(request *http.Request, 
 	return problem, wait
 }
 
-// nextStep takes the next step off the script.
-func (provider *FakeProviderServer) nextStep() (Step, error) {
+// lostExpectation is the refusal of a request that dropped something the
+// script's step said it must carry. It is its own type so that the server can
+// answer it with a 400 the caller can read, rather than with the 500 an
+// exhausted script gets.
+type lostExpectation struct {
+	// Message names the step, the script, and the text that went missing.
+	Message string
+}
+
+// Error says what the request lost and what that means.
+func (lost lostExpectation) Error() string {
+	return lost.Message
+}
+
+// nextStep takes the next step off the script, refusing a request that lost
+// something the step expected. This is the same check the fake model runs in
+// model.go, so a test catches a dropped correction whether it drives the model
+// in process or over the wire. A refused step stays on the script, so the next
+// good request plays it.
+func (provider *FakeProviderServer) nextStep(whole string) (Step, error) {
 	provider.guard.Lock()
 	defer provider.guard.Unlock()
 	if provider.played >= len(provider.script.Steps) {
@@ -194,6 +219,13 @@ func (provider *FakeProviderServer) nextStep() (Step, error) {
 			provider.script.Name, len(provider.script.Steps), provider.played+1)
 	}
 	step := provider.script.Steps[provider.played]
+	for _, wanted := range step.Expect {
+		if !strings.Contains(whole, wanted) {
+			return Step{}, lostExpectation{Message: fmt.Sprintf(
+				"step %d of the script %q expects the request to carry %q, and it does not, so the harness lost it",
+				provider.played+1, provider.script.Name, wanted)}
+		}
+	}
 	provider.played++
 	return step, nil
 }

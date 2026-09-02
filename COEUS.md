@@ -1,6 +1,8 @@
 # COEUS: how it works and why it is better
 
-This document explains Coeus in plain words. It is for people and for the AI agents that will build it. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
+This document explains Coeus in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it.
+
+Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It stops and tells you when something on your list happens. It cannot declare a job done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
 
 ## 1. The problem every agent has
 
@@ -39,7 +41,25 @@ Here is what each agent does when its window fills up. This comes from reading t
 
 Two of these agents have a good idea. Hermes never summarizes the user's own words. Prime and OpenCode keep some state in a file that the model reads again on every step, so it cannot be lost. Coeus takes both ideas as far as they go.
 
-## 2. The Coeus answer: keep three things apart
+## 2. One task, four ways
+
+Here is a thought experiment. The same job is given to OpenClaw, to Hermes, to the coding agents, and to Coeus.
+
+The job is: "Write a short post about the DigiByte anniversary for X. Use the product notes in my notes folder and get the date from the website. Keep it under 280 characters." It sounds small. It takes about forty tool rounds: reading three notes files, searching the web, fetching two pages, drafting, opening the browser, logging in, showing a preview, and posting. Halfway through, at round twelve, the user texts: "no, lead with the date, not the features." At round thirty, X shows a login page. Then the user walks away for three days.
+
+**In OpenClaw.** Every file and every web page goes into the transcript in full, and the model re-reads all of it on every call. By round fifteen the transcript is bigger than the window. OpenClaw stops, spends a call telling the model to write notes to memory, summarizes the conversation, and keeps the last 20,000 tokens. The user's correction from round twelve is now inside a summary the model wrote. Maybe the summary says "the user wants the date first." Maybe it says "the user gave feedback on the draft." The exact words are gone. The first draft failed because it was 312 characters long. The reason it failed, three facts in one post, is somewhere in the summary or nowhere, so the second draft can make the same mistake. At round thirty the login page appears. There is no list of things that should stop the task, so the model decides on its own whether to keep trying, and there is no hard cap on tool rounds. When the user comes back three days later, OpenClaw reloads the whole transcript, summaries and all, and the model starts re-reading.
+
+**In Hermes.** Hermes does one thing better. When it summarizes at half the window, it keeps the user's messages word for word, so "lead with the date, not the features" survives exactly. But everything the model decided, and every reason it had, is in the summary. So the model may decide the same question again and land somewhere else. The 312-character failure and its cause are thrown out with the old tool output. There is still no stop list and no hard cap on rounds. And the task still lives in the transcript, so coming back after three days means reloading the transcript.
+
+**In OpenCode, Claude Code, and Codex.** These three are coding agents and would not do this job, but their harnesses behave the same way on a coding task of the same length. They summarize when the window fills. They keep an instruction file on disk and read it again every step, which is a good idea, but that file holds standing rules, not the task. The correction, the decisions, and the failures end up in the summary like everywhere else.
+
+**In Coeus.** The ask is written into the record in the user's own words and locked. The model writes the user's intent, a done list with three lines, and a stop list that includes "a login page appears." Each file and page the model reads becomes one line in the record with an id, and its full text sits in the recent messages until the window fills, then drops into the log. At round twelve the correction arrives. The harness writes it into the record, word for word, under Corrections, where it stays until the task ends. The model re-plans and writes a decision: "Lead with the date. Reason: correction C1." The first draft fails at 312 characters. The harness writes the failure and the model adds the cause: three facts in one post. Neither is ever summarized. At round thirty the login page appears. The harness sees it on the stop list before the next tool call, stops, and sends the user a screenshot. Three days later the user logs in and replies "done." Coeus loads the 3,000-token record, not the transcript, and continues, on the same model or a different one. When the model says it is finished, the harness checks the done list. A post is up, it is under 280 characters and mentions the date, and the user saw a preview. Each line points at a result. Then the four review questions run, and one line is saved to memory: for DigiByte posts, lead with the date and keep to one fact.
+
+The cost is the other half of the story. OpenClaw and Hermes send the whole transcript, so their prompts grow with every round, and every summary throws away the provider's cache. Coeus sends a prompt of about the same size on round forty as on round ten, and most of it is served from the cache at a tenth of the price.
+
+That is the whole idea. Everything below explains how the record, the loop, and the window are built so that this story is true on any model.
+
+## 3. The Coeus answer: keep three things apart
 
 Coeus separates three things that other agents mix together in one transcript.
 
@@ -61,7 +81,7 @@ Think of a writer at work. The library holds every book ever written. That is th
 
 This is an old idea in computer science. A database keeps a log of every change and, beside it, a table of what is true now. An operating system can pause a program and start it again days later from one small record. Coeus does the same thing for an agent. The hard part is not the idea. The hard part is giving the record a fixed shape with rules, so the model cannot write whatever it likes into it. That shape is next.
 
-## 3. The task record
+## 4. The task record
 
 Here is a task record, shortened. The full example is in section 4 of the design.
 
@@ -150,7 +170,7 @@ Every change to the record is saved as a numbered checkpoint. A checkpoint is li
 
 A task ends in two steps. When the model says it is done, the harness checks the done list. Each line must point at a result or at an approval from the user. If any line has no proof, the task is not done and the model keeps working. This is what stops the model from declaring victory early. Then, if the task had a correction, a failure, a stop, or more than a few rounds, the after-action review runs. The four questions are answered in one line each. Only the last answer is saved. If it is a fact, it goes into memory. If it is a way of doing something, it becomes a skill. A quick question that needed no tools gets no record and no review. It is just answered.
 
-## 4. The three kinds of state
+## 5. The three kinds of state
 
 Coeus keeps three kinds of state, because they change at three different speeds.
 
@@ -171,7 +191,7 @@ Think of a carpenter. The persona is who the carpenter is. A skill is a joint th
 
 Keeping the three apart is also what makes each call cheap. Model providers charge much less for text they already read on the previous call, because they can reuse their work. That reused text is called the cache. The persona never changes, so it is cached on every call. A skill loads only when it is used, so it costs nothing the rest of the time. The task changes every turn, so it comes last, after everything that is cached.
 
-## 5. What happens on one turn
+## 6. What happens on one turn
 
 A turn starts when the user sends a message and ends when the agent replies or asks a question.
 
@@ -201,7 +221,7 @@ A few rules make this loop safe on any model. The same tool call with the same a
 
 The stop list works like a smoke detector. You decide what counts as an alarm before there is a fire. Because the harness checks the list before every tool call, a login page, a spent budget, or anything the model listed at the start stops the task and tells the user. The model does not get to decide in the moment whether to push on.
 
-## 6. Small models and big models
+## 7. Small models and big models
 
 Coeus has one rule for the working context. It is never smaller than the task needs and never bigger than the model can hold.
 
@@ -236,7 +256,7 @@ Small models also write their tool calls badly, as loose text instead of the pro
 
 Working on any model is a test, not a promise. The build plan has a fixed task with forty tool rounds, a correction at step twelve, and a stop condition at step thirty. It runs on the fake model, on the local Qwen, on Opus 4.8, and on GPT-5.5 at every stage of the build. It checks that the ask and the corrections are still identical to the last character, that the done list passed, and that every result can still be read.
 
-## 7. Why it costs fewer tokens
+## 8. Why it costs fewer tokens
 
 A transcript agent pays to re-read everything on every call. Coeus pays for a record of three thousand tokens plus a window, and most of that is cached. Here is a rough picture for one task of forty tool rounds where each result is about fifteen hundred tokens. These are estimates to show the shape. The real numbers come from the cost line the harness writes every turn.
 
@@ -248,7 +268,7 @@ A transcript agent pays to re-read everything on every call. Coeus pays for a re
 
 The transcript grows with every round, and each summary wipes the cache. The Coeus prompt stays about the same size for the whole task, because the record stays small and the window slides. On a big model the window is wider, so each call costs more, but the cost still does not grow with the length of the task.
 
-## 8. Why it remembers better
+## 9. Why it remembers better
 
 Inside a task, the record is the memory, and its rules are what make it reliable. The user's words are never rewritten. Every decision keeps its reason. Every failure keeps its cause. Every result keeps its id. Every change has a checkpoint. Nothing is summarized, and nothing is thrown away.
 
@@ -269,7 +289,7 @@ Most of what goes into memory is written by the harness, with no model call. It 
 
 Other agents have memory files too. The difference is what gets written and who writes it. OpenClaw pushes recall into every prompt and rewrites its memory file on a schedule, and its memory index caused two of its worst bugs in the week we looked. Coeus writes facts from the log for free, saves one reviewed lesson per task, and keeps the hint to three lines.
 
-## 9. Why it is safer and more reliable
+## 10. Why it is safer and more reliable
 
 The loop cannot run away. There are twenty tool rounds per turn, a forced answer at the cap, no repeated calls, no crashes on bad tool calls, and a budget of rounds, tokens, and minutes on every long task.
 
@@ -283,7 +303,22 @@ The log is the truth. A reply is written to the log before it is sent. After a c
 
 Any failed task becomes a test. Because the log holds every tool result, a failed task can be run again against new code with the same results. A bug fixed once stays fixed.
 
-## 10. What we took from the others, and what is new
+## 11. Why it is better, point by point
+
+| | OpenClaw | Hermes | OpenCode, Claude Code, Codex | Coeus |
+|---|---|---|---|---|
+| Your exact words survive a long task | No. They end up in a summary | Yes for messages. The reasons around them do not | No. They end up in a summary | Yes. The ask and every correction are locked and never rewritten |
+| Decisions keep their reasons | No | No | No | Yes. A decision without a reason is refused |
+| Mistakes are not repeated | Only if the summary kept them | No. Old tool output is pruned | Only if the summary kept them | Yes. Every failure keeps its cause in the record |
+| It knows when to stop and tell you | No stop list | No stop list | No stop list | A stop list, checked before every tool call |
+| It cannot loop forever | No hard cap on rounds | No hard cap on rounds | Not by default | Twenty rounds, then a forced answer; no repeated calls |
+| Done means proven | The model says so | The model says so | The model says so | Every done line must point at a result or an approval |
+| Cost on round forty versus round ten | Much higher, and summaries wipe the cache | Higher, and summaries wipe the cache | Higher, and summaries wipe the cache | About the same, and mostly cached |
+| Pause for days and pick up again | Reloads the transcript | Reloads the transcript | Reloads the transcript | Reloads a 3,000-token record, on any model |
+| Runs the same on a small model | Summarizes every few rounds | Summarizes every few rounds | Summarizes every few rounds | Same record, smaller window, tested on Qwen at every stage |
+| What it learns from a task | A memory index and scheduled rewrites, which caused its worst bugs | A background review with a budget | Nothing, or instruction files you edit yourself | Facts captured for free from the log, plus one reviewed lesson per task |
+
+## 12. What we took from the others, and what is new
 
 From OpenClaw we took a clean loop with hooks around it, a way for a message that arrives mid-turn to steer the next step, a repair layer for badly written tool calls, scheduled jobs that back off after failures, Signal support with pairing for unknown senders, a delivery queue on disk, and a real Chrome browser with its own profile that reads the page as a tree with short tags. We left behind the summarizing, the memory index, and the separate screen process joined by a pipe.
 
@@ -301,7 +336,7 @@ From the browser agents browser-use and Stagehand we took marks on elements that
 
 What is new in Coeus is the combination and five things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only moved out of the window and kept. And a task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering.
 
-## 11. The tools
+## 13. The tools
 
 There are eighteen tools. Every model sees all of them. Each one is described in under forty words. The harness builds every result, so the model cannot invent one.
 
@@ -316,7 +351,7 @@ There are eighteen tools. Every model sees all of them. Each one is described in
 
 Three things tie the tools to the record. Every result gets one line in the record and its full text in the log, which is how the record stays small and nothing is lost. The `task` tool is the only way the model writes to the record, and it enforces the record's rules. And `read r7` brings any old result back in full, which is what makes it safe to drop results out of the window. Asking the user a question is not a tool. The model just asks, and the turn ends.
 
-## 12. The check table
+## 14. The check table
 
 This table is how a person or an agent checks that the design, the build plan, and this explanation agree. For each row, the design section should say what this document says, the brief in the build plan should own the work, and the test should exist in that brief. If any of the three is missing, that is a gap, and it should be reported rather than patched in the wrong place.
 

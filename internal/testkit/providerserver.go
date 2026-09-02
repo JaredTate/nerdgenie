@@ -240,16 +240,35 @@ func overflowBody(path string) string {
 }
 
 // finishReasonFor turns the step's finish reason into the word each API uses.
+// The word comes from the finish reason itself rather than from whether the step
+// asked for tools, so that all four of the contract's reasons can come off the
+// wire and wave 1's mapping can be tested in both directions.
 func finishReasonFor(step Step, forAnthropic bool) string {
-	usedTools := step.Finish == contract.FinishToolCalls || len(step.ToolCalls) > 0
+	words := map[contract.FinishReason][2]string{
+		contract.FinishEnd:       {"end_turn", "stop"},
+		contract.FinishToolCalls: {"tool_use", "tool_calls"},
+		contract.FinishLength:    {"max_tokens", "length"},
+		contract.FinishStopped:   {"refusal", "content_filter"},
+	}
+	pair, known := words[finishOf(step)]
+	if !known {
+		pair = words[contract.FinishEnd]
+	}
 	if forAnthropic {
-		if usedTools {
-			return "tool_use"
-		}
-		return "end_turn"
+		return pair[0]
 	}
-	if usedTools {
-		return "tool_calls"
+	return pair[1]
+}
+
+// finishOf is the step's finish reason, filled in the way the fake model fills
+// it when the script leaves it out: tool calls when the step asks for tools, and
+// a finished answer otherwise.
+func finishOf(step Step) contract.FinishReason {
+	if step.Finish != "" {
+		return step.Finish
 	}
-	return "stop"
+	if len(step.ToolCalls) > 0 {
+		return contract.FinishToolCalls
+	}
+	return contract.FinishEnd
 }

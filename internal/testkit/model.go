@@ -105,17 +105,10 @@ func (model *FakeModel) Send(_ context.Context, request contract.Request, onDelt
 			onDelta(delta)
 		}
 	}
-	finish := step.Finish
-	if finish == "" {
-		finish = contract.FinishEnd
-		if len(step.ToolCalls) > 0 {
-			finish = contract.FinishToolCalls
-		}
-	}
 	return contract.Reply{
 		Text:      step.Text,
 		ToolCalls: step.ToolCalls,
-		Finish:    finish,
+		Finish:    finishOf(step),
 		Usage:     step.Usage,
 	}, nil
 }

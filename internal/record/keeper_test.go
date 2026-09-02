@@ -33,12 +33,18 @@ func jobStart() Start {
 // newKeeper makes a keeper over an empty log, and fails the test if it cannot.
 func newKeeper(t *testing.T, start Start) (*Keeper, *testkit.FakeStore) {
 	t.Helper()
-	store := testkit.NewFakeStore()
-	keeper, err := New(t.Context(), store, start)
+	keeper, err := newKeeperOrError(t, start)
 	if err != nil {
 		t.Fatalf("cannot create the %s record: %v", start.Kind, err)
 	}
-	return keeper, store
+	return keeper, keeper.store.(*testkit.FakeStore)
+}
+
+// newKeeperOrError makes a keeper over an empty log and hands back whatever
+// happened, for the tests that expect the creation itself to be refused.
+func newKeeperOrError(t *testing.T, start Start) (*Keeper, error) {
+	t.Helper()
+	return New(t.Context(), testkit.NewFakeStore(), start)
 }
 
 // TestCreatesARecordOnTheFirstToolCall proves rule six: a record is created with

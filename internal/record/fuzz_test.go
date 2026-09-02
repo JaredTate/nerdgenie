@@ -48,14 +48,15 @@ func FuzzParse(f *testing.F) {
 func fuzzSeeds() []string {
 	bare := "# task 1   running   budget left: 0 rounds, 0 minutes\n" +
 		"this turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n" +
-		"## Goal\n\n## Rules\n\n## Work\n\n## Lessons\n"
+		"## Goal\nAsk: \"do the thing\"\n\n## Rules\n\n## Work\n\n## Lessons\n"
 	return []string{
 		"",
 		"\n",
-		"# job 1   done   0 of 0 tasks done\n\n## Goal\n\n## Rules\n\n## Work\n\n## Lessons\n",
+		"# job 1   done   0 of 0 tasks done\n\n## Goal\nAsk: \"run it\"\n\n## Rules\n\n## Work\n\n## Lessons\n",
 		bare,
 		insertIntoGoal(bare, "Done when:\n- [ ] a line with an arrow in it -> and no result\n"),
 		insertIntoGoal(bare, "Done when:\n- [ ] a line ->\n- [x] a proven line -> r1\n"),
+		insertIntoGoal(bare, "Done when:\n- [ ] a -> ->\n"),
 		insertIntoGoal(bare, "Ask: \"a \\n b \\\\ c \\q d\"\n"),
 		insertIntoGoal(bare, "Ask: \"\"\"\n"),
 	}

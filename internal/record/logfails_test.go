@@ -171,10 +171,13 @@ func TestRefusesToHoldARecordThatIsNotTiedToTheLog(t *testing.T) {
 // TestPrintsARecordWhoseNumbersMakeNoSense proves the printer never writes
 // nonsense, even when it is handed a record nothing in this package would build.
 func TestPrintsARecordWhoseNumbersMakeNoSense(t *testing.T) {
-	held := contract.Record{Header: contract.Header{
-		Kind: contract.RecordTask, ID: "1", Status: contract.StatusRunning,
-		Cost: contract.CostLine{InputTokens: -5, CachedInputTokens: -1, OutputTokens: -100},
-	}}
+	held := contract.Record{
+		Header: contract.Header{
+			Kind: contract.RecordTask, ID: "1", Status: contract.StatusRunning,
+			Cost: contract.CostLine{InputTokens: -5, CachedInputTokens: -1, OutputTokens: -100},
+		},
+		Goal: contract.Goal{Ask: "do the thing"},
+	}
 	text := string(Print(held))
 	if parsed, err := Parse([]byte(text)); err != nil {
 		t.Errorf("a record with a cost below zero printed something that will not read back: %v\n%s", err, text)

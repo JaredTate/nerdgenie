@@ -67,7 +67,10 @@ func TestParsesWhatItPrints(t *testing.T) {
 // recordsToRoundTrip is the set of records the round-trip test uses: the two from
 // the design and the awkward shapes that are easy to get wrong.
 func recordsToRoundTrip() map[string]contract.Record {
-	bare := contract.Record{Header: contract.Header{Kind: contract.RecordTask, ID: "1", Status: contract.StatusRunning}}
+	bare := contract.Record{
+		Header: contract.Header{Kind: contract.RecordTask, ID: "1", Status: contract.StatusRunning},
+		Goal:   contract.Goal{Ask: "do the thing"},
+	}
 
 	folded := bare
 	folded.Goal = contract.Goal{
@@ -77,12 +80,16 @@ func recordsToRoundTrip() map[string]contract.Record {
 
 	replied := bare
 	replied.Header.Status = contract.StatusWaiting
-	replied.Goal = contract.Goal{DoneWhen: []contract.DoneLine{
+	replied.Goal = contract.Goal{Ask: "do the thing", DoneWhen: []contract.DoneLine{
 		{Text: "the user says so", Done: true, UserReply: `yes, "that" is right`},
 		{Text: "and this one is waiting"},
+		{Text: "and this one's words end in an arrow ->"},
 	}}
 
-	emptyJob := contract.Record{Header: contract.Header{Kind: contract.RecordJob, ID: "9", Status: contract.StatusDone}}
+	emptyJob := contract.Record{
+		Header: contract.Header{Kind: contract.RecordJob, ID: "9", Status: contract.StatusDone},
+		Goal:   contract.Goal{Ask: "run the campaign"},
+	}
 
 	return map[string]contract.Record{
 		"task from the design":        goldenTaskRecord(),

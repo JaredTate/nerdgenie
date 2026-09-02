@@ -43,6 +43,7 @@ docs/PROGRESS.md
 docs/TUI_DESIGN.md
 docs/WORK_PLAN.md
 docs/briefs/wave-0/0.1-ready-to-build.md
+docs/briefs/wave-0/0.2-fix-the-wave-0-gate.md
 docs/briefs/wave-1/1.1-event-log.md
 docs/briefs/wave-1/1.2-task-record.md
 docs/briefs/wave-1/1.3-configuration.md

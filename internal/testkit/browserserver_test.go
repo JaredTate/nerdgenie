@@ -3,6 +3,7 @@ package testkit_test
 import (
 	"bufio"
 	"encoding/json"
+	"io"
 	"net"
 	"strings"
 	"testing"
@@ -33,6 +34,33 @@ func callProtocol(t *testing.T, socketPath string, line string) map[string]any {
 		t.Fatalf("cannot read the answer: %v", err)
 	}
 
+	var read map[string]any
+	if err := json.Unmarshal([]byte(answer), &read); err != nil {
+		t.Fatalf("the answer is not JSON: %v\n%s", err, answer)
+	}
+	return read
+}
+
+// callProtocolWithoutWaitingForTheWrite sends a line that may be bigger than
+// anything the server will read, so the write happens on its own and the answer
+// is read whether or not the whole line got through.
+func callProtocolWithoutWaitingForTheWrite(t *testing.T, socketPath string, line string) map[string]any {
+	t.Helper()
+	connection, err := net.DialTimeout("unix", socketPath, 2*time.Second)
+	if err != nil {
+		t.Fatalf("cannot reach the browser worker's socket: %v", err)
+	}
+	defer connection.Close()
+	if err := connection.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		t.Fatalf("cannot set a deadline on the socket: %v", err)
+	}
+
+	go func() { _, _ = connection.Write([]byte(line + "\n")) }()
+
+	answer, err := bufio.NewReader(connection).ReadString('\n')
+	if err != nil {
+		t.Fatalf("cannot read the answer to an oversized line: %v", err)
+	}
 	var read map[string]any
 	if err := json.Unmarshal([]byte(answer), &read); err != nil {
 		t.Fatalf("the answer is not JSON: %v\n%s", err, answer)
@@ -135,6 +163,128 @@ func TestAnActThatAbortsStillReturnsTheDiffsOfTheStepsThatRan(t *testing.T) {
 	diffs, listed := data["diffs"].([]any)
 	if !listed || len(diffs) != 1 {
 		t.Errorf("the aborted batch carried %v, want the one diff of the step that ran", data["diffs"])
+	}
+}
+
+// errorOf reads the error object off one protocol answer, failing the test when
+// the answer carried none.
+func errorOf(t *testing.T, answer map[string]any) map[string]any {
+	t.Helper()
+	failure, isFailure := answer["error"].(map[string]any)
+	if !isFailure {
+		t.Fatalf("the answer carried no error: %+v", answer)
+	}
+	return failure
+}
+
+func TestEveryErrorInTheProtocolTableComesBackWithItsOwnCode(t *testing.T) {
+	for _, row := range []struct {
+		name  string
+		close bool
+		open  bool
+		line  string
+		code  float64
+	}{
+		{
+			name: "a line that is not JSON",
+			line: `{"jsonrpc":`,
+			code: testkit.CodeParseError,
+		},
+		{
+			name: "JSON that is not a request",
+			line: `{"jsonrpc":"2.0","id":1}`,
+			code: testkit.CodeInvalidRequest,
+		},
+		{
+			name: "a version nobody speaks",
+			line: `{"jsonrpc":"1.0","id":1,"method":"health","params":{}}`,
+			code: testkit.CodeInvalidRequest,
+		},
+		{
+			name: "a method the protocol does not have",
+			line: `{"jsonrpc":"2.0","id":1,"method":"fly","params":{}}`,
+			code: testkit.CodeMethodNotFound,
+		},
+		{
+			name: "parameters that are not an object",
+			open: true,
+			line: `{"jsonrpc":"2.0","id":1,"method":"click","params":[1,2,3]}`,
+			code: testkit.CodeBadParameters,
+		},
+		{
+			name: "a reference that is not on the page",
+			open: true,
+			line: `{"jsonrpc":"2.0","id":1,"method":"click","params":{"ref":"e999","expectation":"anything"}}`,
+			code: testkit.CodeNoSuchReference,
+		},
+		{
+			name: "reading with no page open",
+			line: `{"jsonrpc":"2.0","id":1,"method":"read","params":{}}`,
+			code: testkit.CodeNoBrowserOpen,
+		},
+		{
+			name:  "a worker whose browser has gone",
+			close: true,
+			line:  `{"jsonrpc":"2.0","id":1,"method":"read","params":{}}`,
+			code:  testkit.CodeBrowserGone,
+		},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			worker := testkit.NewFakeBrowserWorker()
+			defer worker.Close()
+			server := testkit.NewBrowserProtocolServer(t, worker)
+			if row.open {
+				callProtocol(t, server.SocketPath(),
+					`{"jsonrpc":"2.0","id":0,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
+			}
+			if row.close {
+				if err := worker.Close(); err != nil {
+					t.Fatalf("closing the worker failed: %v", err)
+				}
+			}
+
+			failure := errorOf(t, callProtocol(t, server.SocketPath(), row.line))
+
+			if failure["code"] != row.code {
+				t.Errorf("the answer came back with code %v, want %v. It said: %v",
+					failure["code"], row.code, failure["message"])
+			}
+		})
+	}
+}
+
+func TestARequestLineOverTheCapIsAnsweredRatherThanIgnored(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	server := testkit.NewBrowserProtocolServer(t, worker)
+
+	huge := `{"jsonrpc":"2.0","id":1,"method":"type","params":{"ref":"e2","text":"` +
+		strings.Repeat("a", 2*testkit.MaxProtocolLine) + `"}}`
+	answer := callProtocolWithoutWaitingForTheWrite(t, server.SocketPath(), huge)
+
+	failure := errorOf(t, answer)
+	if failure["code"] != float64(testkit.CodeParseError) {
+		t.Errorf("a line over the cap came back with code %v, want %v", failure["code"], testkit.CodeParseError)
+	}
+}
+
+func TestAConnectionThatSaysNothingIsClosedRatherThanHeldForEver(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	server := testkit.NewBrowserProtocolServer(t, worker)
+	server.IdleAfter(200 * time.Millisecond)
+
+	connection, err := net.DialTimeout("unix", server.SocketPath(), 2*time.Second)
+	if err != nil {
+		t.Fatalf("cannot reach the browser worker's socket: %v", err)
+	}
+	defer connection.Close()
+	if err := connection.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("cannot set a deadline on the socket: %v", err)
+	}
+
+	if _, err := io.ReadAll(connection); err != nil {
+		t.Fatalf("the server held a silent connection open past its own deadline: %v", err)
 	}
 }
 

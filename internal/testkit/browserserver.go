@@ -8,15 +8,19 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// The error codes worker/browser/PROTOCOL.md defines.
+// The error codes worker/browser/PROTOCOL.md defines, all eight of them.
 const (
-	// CodeParseError means the line was not JSON.
+	// CodeParseError means the line was not JSON, or was longer than the cap.
 	CodeParseError = -32700
+	// CodeInvalidRequest means the line was JSON but not a JSON-RPC request.
+	CodeInvalidRequest = -32600
 	// CodeMethodNotFound means there is no such method.
 	CodeMethodNotFound = -32601
 	// CodeBadParameters means the parameters were wrong.
@@ -25,6 +29,28 @@ const (
 	CodeNoSuchReference = -32000
 	// CodeSettleTimeout means the page did not settle before the limit.
 	CodeSettleTimeout = -32001
+	// CodeNoBrowserOpen means no page is open, so there is nothing to act on.
+	CodeNoBrowserOpen = -32002
+	// CodeBrowserGone means the browser died and the worker must be restarted.
+	CodeBrowserGone = -32003
+)
+
+// The bounds the protocol server keeps, because every buffer has a cap and every
+// wait has a timeout.
+const (
+	// MaxProtocolLine is the longest request line the server will read. A longer
+	// one is answered with a parse error rather than ending the connection in
+	// silence.
+	MaxProtocolLine = 256 * 1024
+	// DefaultProtocolIdleTimeout is how long the server waits for the next line
+	// from a caller that has said nothing before it closes the connection.
+	DefaultProtocolIdleTimeout = 30 * time.Second
+	// protocolCallTimeout bounds one method call, so a worker that hangs does not
+	// hold the connection for ever.
+	protocolCallTimeout = 30 * time.Second
+	// maxProtocolCallers is how many callers the server serves at once. More than
+	// this wait in the listener's own queue.
+	maxProtocolCallers = 16
 )
 
 // ErrNoSuchMethod means the caller asked for a method the protocol does not
@@ -39,6 +65,9 @@ type BrowserProtocolServer struct {
 	worker     contract.BrowserWorker
 	listener   net.Listener
 	socketPath string
+
+	guard       sync.Mutex
+	idleTimeout time.Duration
 }
 
 // NewBrowserProtocolServer starts the server on a socket under a temporary
@@ -51,7 +80,12 @@ func NewBrowserProtocolServer(t testing.TB, worker contract.BrowserWorker) *Brow
 		t.Fatalf("cannot open the browser worker's socket: %v", err)
 	}
 
-	server := &BrowserProtocolServer{worker: worker, listener: listener, socketPath: socketPath}
+	server := &BrowserProtocolServer{
+		worker:      worker,
+		listener:    listener,
+		socketPath:  socketPath,
+		idleTimeout: DefaultProtocolIdleTimeout,
+	}
 	go server.accept()
 	t.Cleanup(func() { _ = server.Close() })
 	return server
@@ -60,6 +94,22 @@ func NewBrowserProtocolServer(t testing.TB, worker contract.BrowserWorker) *Brow
 // SocketPath is where the server is listening.
 func (server *BrowserProtocolServer) SocketPath() string {
 	return server.socketPath
+}
+
+// IdleAfter says how long the server waits for the next line from a caller that
+// has said nothing, so that a test can prove the deadline without waiting the
+// usual half a minute for it.
+func (server *BrowserProtocolServer) IdleAfter(wait time.Duration) {
+	server.guard.Lock()
+	defer server.guard.Unlock()
+	server.idleTimeout = wait
+}
+
+// idleWait is how long the server currently waits between lines.
+func (server *BrowserProtocolServer) idleWait() time.Duration {
+	server.guard.Lock()
+	defer server.guard.Unlock()
+	return server.idleTimeout
 }
 
 // Close stops the server.

@@ -13,7 +13,8 @@ import (
 // The two lines the command answers with when it cannot do what was asked.
 const (
 	onlyInTheTerminal = "the vault works only in the terminal, so open a terminal on the machine Coeus runs on and try there"
-	vaultUsage        = "the vault understands four words: list, add <name>, remove <name>, and test <name>"
+	vaultUsage        = "the vault understands four words: list, add <name> <site> <domain,domain> <username>, remove <name>, and test <name>. " +
+		"Only the password and the two-factor secret are asked for, and neither is shown while you type it. The machine password is just: add sudo"
 )
 
 // NewCommand returns the /vault slash command for one vault. The orchestrator
@@ -22,7 +23,7 @@ const (
 func NewCommand(store *Vault) contract.Command {
 	return contract.Command{
 		Name:         "vault",
-		Help:         "Lists, adds, removes, and tests the secrets Coeus holds. Terminal only.",
+		Help:         "Lists, adds, removes, and tests the logins Coeus holds: add <name> <site> <domain,domain> <username>, with the password asked for without being shown. Terminal only.",
 		TerminalOnly: true,
 		Run: func(ctx context.Context, arguments string, where contract.CommandContext) (string, error) {
 			return runVault(ctx, store, arguments, where)
@@ -36,16 +37,16 @@ func runVault(ctx context.Context, store *Vault, arguments string, where contrac
 		return onlyInTheTerminal, nil
 	}
 
-	word, name := splitFirstWord(arguments)
+	word, rest := splitFirstWord(arguments)
 	switch word {
 	case "", "list":
 		return listing(store), nil
 	case "add":
-		return addEntry(ctx, store, name, where.Channel)
+		return addEntry(ctx, store, rest, where.Channel)
 	case "remove":
-		return removeEntry(store, name)
+		return removeEntry(store, rest)
 	case "test":
-		return testEntry(store, name)
+		return testEntry(store, rest)
 	default:
 		return vaultUsage, nil
 	}
@@ -71,64 +72,82 @@ func listing(store *Vault) string {
 	return strings.Join(lines, "\n")
 }
 
-// addEntry asks for every value through the channel's masked prompt and stores
-// them. Nothing that was typed is printed, logged, or sent anywhere.
-func addEntry(ctx context.Context, store *Vault, name string, channel contract.Channel) (string, error) {
-	if name == "" {
+// addEntry reads the plain fields off the command line, where the user can see
+// what they are typing, and asks only for the two that must never be seen. What
+// is typed at the prompt is never printed, logged, or sent anywhere.
+func addEntry(ctx context.Context, store *Vault, arguments string, channel contract.Channel) (string, error) {
+	entry, written := entryFromArguments(arguments)
+	if !written {
 		return vaultUsage, nil
 	}
 
-	entry, err := askForEntry(ctx, channel, name)
+	secrets, err := askForSecrets(ctx, channel, entry.Name)
 	if errors.Is(err, contract.ErrNoMaskedPrompt) {
 		return contract.ErrNoMaskedPrompt.Error(), nil
 	}
 	if err != nil {
 		return "", err
 	}
+	entry.Password = secrets[0]
+	if len(secrets) > 1 {
+		entry.TOTPSecret = secrets[1]
+	}
+
 	if err := store.Add(entry); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("the entry %q is in the vault, and nothing you typed was printed or logged", name), nil
+	return fmt.Sprintf("the entry %q is in the vault, and nothing you typed at the prompt was printed or logged", entry.Name), nil
 }
 
-// questionsFor is what the masked prompt asks for, in order. The sudo entry is
-// only a password, because it is the machine's password and not a login.
+// entryFromArguments reads the plain fields of an entry off the command line:
+// the name, the site, the hostnames separated by commas, and the login name.
+// None of those is a secret, so the user types them in the open and can see what
+// they wrote. The sudo entry is its name alone, because it is the machine's
+// password and not a login. Anything else is a line to write again.
+func entryFromArguments(arguments string) (Entry, bool) {
+	fields := strings.Fields(arguments)
+	if len(fields) == 0 {
+		return Entry{}, false
+	}
+	if fields[0] == SudoEntryName {
+		return Entry{Name: SudoEntryName}, len(fields) == 1
+	}
+	if len(fields) != 4 {
+		return Entry{}, false
+	}
+	return Entry{
+		Name:     fields[0],
+		Site:     fields[1],
+		Domains:  splitDomains(fields[2]),
+		Username: fields[3],
+	}, true
+}
+
+// questionsFor is what the masked prompt asks for, in order: only the values
+// that must never appear on a screen or in a shell history.
 func questionsFor(name string) []string {
 	if name == SudoEntryName {
 		return []string{"the sudo password for this machine"}
 	}
 	return []string{
-		"the site this login is for, such as X",
-		"the hostnames it may be typed into, separated by commas",
-		"the login name",
 		"the password",
 		"the two-factor secret, or nothing if the site has none",
 	}
 }
 
-// askForEntry puts every question to the user through the masked prompt.
-func askForEntry(ctx context.Context, channel contract.Channel, name string) (Entry, error) {
+// askForSecrets puts the questions that must never be seen to the user, through
+// the channel's masked prompt.
+func askForSecrets(ctx context.Context, channel contract.Channel, name string) ([]string, error) {
 	questions := questionsFor(name)
 	answers := make([]string, 0, len(questions))
 	for _, question := range questions {
 		typed, err := channel.AskSecret(ctx, "Enter "+question+": ")
 		if err != nil {
-			return Entry{}, err
+			return nil, err
 		}
 		answers = append(answers, strings.TrimSpace(typed))
 	}
-
-	if name == SudoEntryName {
-		return Entry{Name: name, Password: answers[0]}, nil
-	}
-	return Entry{
-		Name:       name,
-		Site:       answers[0],
-		Domains:    splitDomains(answers[1]),
-		Username:   answers[2],
-		Password:   answers[3],
-		TOTPSecret: answers[4],
-	}, nil
+	return answers, nil
 }
 
 // splitDomains turns a comma-separated answer into the hostnames it names.

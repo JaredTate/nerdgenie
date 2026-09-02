@@ -49,6 +49,56 @@ describe("a page that opens a dialog", () => {
     const again = await worker.result("read");
     expect(again["dialog"]).toEqual({ kind: "confirm", message: "Are you sure?" });
   });
+
+  it("answers it when told to, and the page comes back to life", async () => {
+    const diff = asDiff(await worker.result("dialog", { action: "accept" }));
+    expect(diff.dialog).toBeNull();
+    expect(diff.snapshot.dialog).toBeNull();
+    expect(diff.settled).toBe(true);
+    // The page only writes this once the confirm has been answered yes, so it is
+    // proof that the answer really went through.
+    expect(diff.newElements.some((element) => element.name === "Confirmed by you")).toBe(true);
+  });
+
+  it("can be read again afterwards, which it could not while the dialog was open", async () => {
+    const again = await worker.result("read");
+    expect(again["dialog"]).toBeNull();
+    expect((again["elements"] as SnapshotElement[]).length).toBeGreaterThan(1);
+  });
+
+  it("dismisses a dialog without confirming it", async () => {
+    const page = await worker.result("open", { url: site.page("dialog.html") });
+    await worker.result("click", { ref: refFor(page, "Ask me something") });
+    const diff = asDiff(await worker.result("dialog", { action: "dismiss" }));
+    expect(diff.newElements.some((element) => element.name === "Refused by you")).toBe(true);
+  });
+
+  it("types the text it was given into a prompt before accepting it", async () => {
+    const page = await worker.result("open", { url: site.page("dialog.html") });
+    await worker.result("click", { ref: refFor(page, "Ask me for a name") });
+    const diff = asDiff(await worker.result("dialog", { action: "accept", text: "Coeus" }));
+    expect(diff.newElements.some((element) => element.name === "Hello Coeus")).toBe(true);
+  });
+
+  it("gives a prompt no answer at all when it is dismissed", async () => {
+    const page = await worker.result("open", { url: site.page("dialog.html") });
+    await worker.result("click", { ref: refFor(page, "Ask me for a name") });
+    const diff = asDiff(await worker.result("dialog", { action: "dismiss" }));
+    expect(diff.newElements.some((element) => element.name === "No name given")).toBe(true);
+  });
+
+  it("refuses any answer that is neither accept nor dismiss", async () => {
+    const failure = await worker.fails("dialog", { action: "maybe" });
+    expect(failure.code).toBe(-32602);
+    expect(failure.message).toContain("maybe");
+  });
+
+  it("says plainly when there is no dialog to answer", async () => {
+    await worker.result("open", { url: site.page("links-and-form.html") });
+    const failure = await worker.fails("dialog", { action: "accept" });
+    expect(failure.code).toBe(-32602);
+    expect(failure.message).toContain("no dialog");
+  });
 });
 
 describe("a page that saves a file", () => {

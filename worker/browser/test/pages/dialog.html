@@ -7,11 +7,25 @@
   <body>
     <h1>A dialog</h1>
     <button type="button" id="ask">Ask me something</button>
+    <button type="button" id="ask-name">Ask me for a name</button>
+    <div id="answer"></div>
     <script>
       // The dialog opens while the click is still being handled, which is the
       // hard case: nothing on the page can be read until somebody answers it.
+      // What the page does afterwards says which way it was answered.
+      function show(words) {
+        var answer = document.getElementById("answer");
+        answer.innerHTML = "";
+        var heading = document.createElement("h2");
+        heading.textContent = words;
+        answer.appendChild(heading);
+      }
       document.getElementById("ask").addEventListener("click", function () {
-        window.confirm("Are you sure?");
+        show(window.confirm("Are you sure?") ? "Confirmed by you" : "Refused by you");
+      });
+      document.getElementById("ask-name").addEventListener("click", function () {
+        var given = window.prompt("What is your name?");
+        show(given === null ? "No name given" : "Hello " + given);
       });
     </script>
   </body>

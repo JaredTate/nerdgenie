@@ -87,7 +87,7 @@ describe("parsing one line from standard input", () => {
         error: {
           code: -32601,
           message:
-            'There is no method named "fly". The methods are open, read, click, type, press, scroll, act, tabs, loginFill, screenshot, and health.',
+            'There is no method named "fly". The methods are open, read, click, type, press, scroll, act, tabs, loginFill, screenshot, dialog, and health.',
         },
       },
     });
@@ -182,6 +182,16 @@ describe("checking the parameters of each method", () => {
       'The loginFill method needs a passwordRef, such as "e3".',
     ],
     [
+      "dialog with an answer that is neither accept nor dismiss",
+      '{"jsonrpc":"2.0","id":12,"method":"dialog","params":{"action":"maybe"}}',
+      'The dialog method needs an action of "accept" or "dismiss", and this was "maybe".',
+    ],
+    [
+      "dialog with text that is not text",
+      '{"jsonrpc":"2.0","id":12,"method":"dialog","params":{"action":"accept","text":7}}',
+      "The dialog method needs the text to be text, because it is typed into a prompt.",
+    ],
+    [
       "loginFill with a code but no codeRef to put it in",
       '{"jsonrpc":"2.0","id":9,"method":"loginFill","params":{"usernameRef":"e2","passwordRef":"e3","username":"someone","password":"secret","code":"123456"}}',
       "The loginFill method was given a code but no codeRef saying which field to type it into.",
@@ -203,6 +213,12 @@ describe("checking the parameters of each method", () => {
       '{"jsonrpc":"2.0","id":7,"method":"act","params":{"steps":[{"method":"click","ref":"e3","expectation":"the box takes focus"},{"method":"type","ref":"e3","text":"Nine years of DigiByte."}]}}',
     );
     expect(parsed.kind).toBe("request");
+  });
+
+  it("accepts a dialog answer with no text", () => {
+    expect(parseLine('{"jsonrpc":"2.0","id":12,"method":"dialog","params":{"action":"dismiss"}}').kind).toBe(
+      "request",
+    );
   });
 
   it("accepts loginFill without a code", () => {

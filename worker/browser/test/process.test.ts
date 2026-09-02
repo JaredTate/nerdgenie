@@ -49,6 +49,11 @@ class SpawnedWorker {
     }
   }
 
+  /** Send one already-written line and do not wait for anything back. */
+  writeRaw(line: string): void {
+    this.child.stdin?.write(`${line}\n`);
+  }
+
   /** Send one already-written line, whatever it holds, and wait for the next answer. */
   sendRaw(line: string): Promise<JsonRpcResponse> {
     const before = this.standardOutput.length;
@@ -141,7 +146,7 @@ describe("the worker as its own process", () => {
 
   it("ignores a blank line rather than treating it as a broken request", async () => {
     const before = worker.standardOutput.length;
-    await worker.sendRaw("   ");
+    worker.writeRaw("   ");
     const after = await worker.send("health");
     expect("result" in after).toBe(true);
     // One line came back, and it was the answer to health, not to the blank line.

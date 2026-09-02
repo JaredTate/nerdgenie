@@ -2,6 +2,7 @@ package testkit_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -82,6 +83,58 @@ func TestTheFakeSkillSavesAFolderAndThenListsIt(t *testing.T) {
 	}
 	if files := skills.Files("check-the-blog"); len(files) != 1 {
 		t.Errorf("the saved skill holds %d files, want the one that was saved", len(files))
+	}
+}
+
+func TestSavingOverASkillKeepsItsBodyAndItsTriggerWords(t *testing.T) {
+	ctx := context.Background()
+	skills := testkit.NewFakeSkill()
+	skills.Add(contract.SkillSummary{Name: "post-to-x", Description: "Posts one message to X."},
+		"open x.com, click compose, type, post", "post to x")
+
+	err := skills.Save(ctx, "post-to-x", map[string][]byte{
+		"SKILL.md": []byte("# post-to-x\nPosts one message to X.\n\nOpen x.com, click compose, type, post.\n"),
+	})
+
+	if err != nil {
+		t.Fatalf("saving over an existing skill failed: %v", err)
+	}
+	body, err := skills.Load(ctx, "post-to-x")
+	if err != nil {
+		t.Fatalf("loading the skill after the save failed: %v", err)
+	}
+	if !strings.Contains(body, "click compose") {
+		t.Errorf("the skill body after the save is %q, want what the SKILL.md holds", body)
+	}
+	matched, err := skills.Match(ctx, "please post to x for me")
+	if err != nil {
+		t.Fatalf("matching after the save failed: %v", err)
+	}
+	if !matched.Matched || matched.Name != "post-to-x" {
+		t.Errorf("the matcher returned %+v after the save, and saving must not throw the trigger words away", matched)
+	}
+}
+
+func TestTheDescriptionIsTheLineUnderTheHeadingNotTheHeading(t *testing.T) {
+	ctx := context.Background()
+	skills := testkit.NewFakeSkill()
+
+	err := skills.Save(ctx, "post-to-x", map[string][]byte{
+		"SKILL.md": []byte("# post-to-x\nPosts one message to X.\n"),
+	})
+
+	if err != nil {
+		t.Fatalf("saving the skill failed: %v", err)
+	}
+	listed, err := skills.List(ctx)
+	if err != nil {
+		t.Fatalf("listing the skills failed: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("the skills listed as %+v, want the one that was saved", listed)
+	}
+	if listed[0].Description != "Posts one message to X." {
+		t.Errorf("the description is %q, and the heading is the folder name rather than a description", listed[0].Description)
 	}
 }
 

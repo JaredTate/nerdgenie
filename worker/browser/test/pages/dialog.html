@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A dialog</title>
+  </head>
+  <body>
+    <h1>A dialog</h1>
+    <button type="button" id="ask">Ask me something</button>
+    <script>
+      // The dialog opens while the click is still being handled, which is the
+      // hard case: nothing on the page can be read until somebody answers it.
+      document.getElementById("ask").addEventListener("click", function () {
+        window.confirm("Are you sure?");
+      });
+    </script>
+  </body>
+</html>

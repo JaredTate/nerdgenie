@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A very long page</title>
+    <style>
+      button {
+        display: block;
+        height: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>A very long page</h1>
+    <div id="pile"></div>
+    <script>
+      // Six hundred buttons, one under the other, so that the page is far taller
+      // than any screen and holds twice as many elements as one snapshot may.
+      var pile = document.getElementById("pile");
+      for (var number = 1; number <= 600; number += 1) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Button " + number;
+        pile.appendChild(button);
+      }
+    </script>
+  </body>
+</html>

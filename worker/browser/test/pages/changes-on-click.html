@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Changes on click</title>
+  </head>
+  <body>
+    <h1>Changes on click</h1>
+    <button type="button" id="compose">Compose</button>
+    <div id="where"></div>
+    <script>
+      // Clicking Compose adds a text box and a Post button, which is the change
+      // the worker should see in its diff.
+      document.getElementById("compose").addEventListener("click", function () {
+        var where = document.getElementById("where");
+        if (where.childElementCount > 0) {
+          return;
+        }
+        var box = document.createElement("input");
+        box.type = "text";
+        box.setAttribute("aria-label", "Post text");
+        var post = document.createElement("button");
+        post.type = "button";
+        post.textContent = "Post";
+        where.appendChild(box);
+        where.appendChild(post);
+      });
+    </script>
+  </body>
+</html>

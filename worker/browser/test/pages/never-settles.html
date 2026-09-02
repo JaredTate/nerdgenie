@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A page that never settles</title>
+  </head>
+  <body>
+    <h1>A page that never settles</h1>
+    <button type="button" id="poke">Poke it</button>
+    <p id="tick">0</p>
+    <script>
+      // Something changes every fifty milliseconds, so the page is never quiet
+      // for the three hundred milliseconds that counts as settled.
+      setInterval(function () {
+        document.getElementById("tick").textContent = String(Date.now());
+      }, 50);
+    </script>
+  </body>
+</html>

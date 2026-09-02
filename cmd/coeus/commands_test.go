@@ -45,8 +45,14 @@ func TestTheCommandRegistryFindsACommandByItsName(t *testing.T) {
 	if _, found := registry.Lookup("status"); !found {
 		t.Error("the registry could not find the command that was just registered")
 	}
+	if _, found := registry.Lookup("/status"); !found {
+		t.Error("the registry could not find a command written the way the user types it, with its slash")
+	}
 	if _, found := registry.Lookup("nothing"); found {
 		t.Error("the registry found a command nobody registered")
+	}
+	if _, found := registry.Lookup("/nothing"); found {
+		t.Error("the registry found a command nobody registered, written with its slash")
 	}
 }
 

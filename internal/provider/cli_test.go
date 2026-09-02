@@ -45,9 +45,14 @@ func (record programRecord) read(name string) string {
 	return string(body)
 }
 
-// arguments are the arguments the stand-in was given, one per line.
+// argumentSeparator is what the stand-in writes between the arguments it was
+// given, because one of them is a whole system prompt with newlines in it.
+const argumentSeparator = "\n--- next argument ---\n"
+
+// arguments are the arguments the stand-in was given, whole.
 func (record programRecord) arguments() []string {
-	return strings.Split(strings.TrimSuffix(record.read("args.txt"), "\n"), "\n")
+	written := record.read("args.txt")
+	return strings.Split(strings.TrimSuffix(written, argumentSeparator), argumentSeparator)
 }
 
 // installFakeProgram writes a stand-in for one of the vendor programs onto a
@@ -62,13 +67,14 @@ func installFakeProgram(t *testing.T, name, output string, exitCode int) program
 		t.Fatalf("writing the stand-in's output failed: %v", err)
 	}
 	script := fmt.Sprintf(`#!/bin/sh
-printf '%%s\n' "$@" > %q/args.txt
+printf '%%s%s' "$@" > %q/args.txt
 pwd > %q/cwd.txt
 ls -A > %q/folder.txt
 cat > %q/stdin.txt
 cat %q/stdout.txt
 exit %d
-`, recordFolder, recordFolder, recordFolder, recordFolder, recordFolder, exitCode)
+`, strings.ReplaceAll(argumentSeparator, "\n", "\\n"),
+		recordFolder, recordFolder, recordFolder, recordFolder, recordFolder, exitCode)
 	if err := os.WriteFile(filepath.Join(binFolder, name), []byte(script), 0o700); err != nil {
 		t.Fatalf("writing the stand-in program failed: %v", err)
 	}

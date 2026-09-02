@@ -150,6 +150,11 @@ export async function readPage(
   }
 
   const { url, title, found, frameUrls } = await scanEveryFrame(page, session.log);
+  // Remember what every ref was, so that one that goes stale can be looked for
+  // again by the role and the name it had.
+  for (const element of found) {
+    session.refs.remember(element.ref, element.role, element.name);
+  }
   const shown = found.filter((element) => element.role !== "form");
   const chosen = chooseElements(shown, settings.visibleOnly);
   const outOfSight = shown.filter((element) => !element.aboveFold).length;

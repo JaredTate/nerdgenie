@@ -17,7 +17,8 @@ import type { RunningChrome } from "./chrome.js";
 import { noBrowserOpen } from "./errors.js";
 import { MAX_TABS } from "./limits.js";
 import type { Logger } from "./log.js";
-import type { Chance, Pacing } from "./pacing.js";
+import { keystrokeGaps, type Chance, type Pacing, type Point } from "./pacing.js";
+import { RefBook } from "./refs.js";
 import type { DialogReport, DownloadReport, Snapshot } from "./types.js";
 
 /** Everything the worker needs to drive one browser. */
@@ -33,6 +34,8 @@ export class Session {
   readonly pacing: Pacing;
   readonly chance: Chance;
   readonly log: Logger;
+  /** What every ref handed out was, so a stale one can be looked for again. */
+  readonly refs = new RefBook();
 
   private readonly tabIds = new Map<Page, string>();
   private readonly dialogs = new Map<Page, DialogReport>();
@@ -44,6 +47,8 @@ export class Session {
   private previous: Snapshot | null = null;
   /** A tab that opened during the action now running, or the empty string. */
   private tabOpenedDuringAction = "";
+  /** Where the mouse was left, so the next move starts from there and not from a corner. */
+  private mousePlace: Point = { x: 0, y: 0 };
 
   constructor(parts: SessionParts) {
     this.chrome = parts.chrome;
@@ -187,5 +192,20 @@ export class Session {
   /** The tab that opened while the action was running, or the empty string. */
   tabOpenedDuring(): string {
     return this.tabOpenedDuringAction;
+  }
+
+  /** Where the mouse is now. */
+  mouseAt(): Point {
+    return this.mousePlace;
+  }
+
+  /** Remember where the mouse was left. */
+  mouseMovedTo(place: Point): void {
+    this.mousePlace = place;
+  }
+
+  /** The gap to leave after each key, at this worker's pacing. */
+  keyGaps(keyCount: number): number[] {
+    return keystrokeGaps(this.pacing, keyCount, this.chance);
   }
 }

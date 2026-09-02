@@ -1,0 +1,149 @@
+/**
+ * The methods that change the page: click, type, press, and scroll.
+ *
+ * They all share one shape, which is the act-and-assert loop from design section
+ * 9: take the page as it is, do the one thing, wait for the page to settle, take
+ * the page again, and hand back what changed together with a verdict on the
+ * expectation the model stated. A good mechanic tightens a bolt and then tries to
+ * turn it by hand; that hand check is what these methods do.
+ */
+import type { Page } from "playwright-core";
+import {
+  actionOrDialog,
+  clickAgainAtItsPlace,
+  clickTarget,
+  pressOneKey,
+  scrollInSteps,
+  targetOf,
+  typeIntoTarget,
+} from "./actions.js";
+import { buildDiff } from "./diff.js";
+import { somethingChanged } from "./expectation.js";
+import { DEFAULT_SCROLL_STEPS } from "./limits.js";
+import { readPage } from "./snapshot.js";
+import { settle } from "./settle.js";
+import type { Session } from "./session.js";
+import type { Diff, Snapshot } from "./types.js";
+
+/** Read the page as it is right now, without measuring anything against it. */
+async function pageAsItIs(session: Session, page: Page): Promise<Snapshot> {
+  const reading = await readPage(session, page, { visibleOnly: false, against: null });
+  return reading.snapshot;
+}
+
+/** The snapshot to measure this action against: the last one, if it is of this same tab. */
+async function snapshotBefore(session: Session, page: Page): Promise<Snapshot> {
+  const last = session.previousSnapshot();
+  if (last !== null && last.tabId === session.tabId(page)) {
+    return last;
+  }
+  return pageAsItIs(session, page);
+}
+
+/** A fresh snapshot to hand back with a -32000, so the model can point at something real. */
+export function freshSnapshotFor(
+  session: Session,
+  page: Page,
+): () => Promise<Record<string, unknown>> {
+  return async () => ({ snapshot: await pageAsItIs(session, page) });
+}
+
+/**
+ * Do one thing to the page, then wait for it to settle, read it again, and build
+ * the diff. This is the whole of act and assert, and every action goes through it.
+ */
+export async function actAndAssert(
+  session: Session,
+  expectation: string,
+  work: (page: Page, before: Snapshot) => Promise<void>,
+): Promise<Diff> {
+  const page = session.currentPage();
+  session.beginAction();
+  const before = await snapshotBefore(session, page);
+  await actionOrDialog(session, page, () => work(page, before));
+  await settle(session, page);
+  const reading = await readPage(session, page, { visibleOnly: false, against: before });
+  session.rememberSnapshot(reading.snapshot);
+  if (reading.wall !== null) {
+    session.log(`the action ran into a ${reading.wall.kind} wall: ${reading.wall.detail}.`);
+  }
+  return buildDiff({
+    before,
+    after: reading.snapshot,
+    expectation,
+    newTab: session.tabOpenedDuring(),
+    wall: reading.wall,
+  });
+}
+
+/** Did this diff show anything at all happening? */
+function nothingHappened(before: Snapshot, diff: Diff): boolean {
+  return !somethingChanged({
+    urlChanged: diff.urlChanged,
+    url: diff.url,
+    titleChanged: before.title !== diff.snapshot.title,
+    title: diff.snapshot.title,
+    newElements: diff.newElements,
+    removedCount: 0,
+    dialog: diff.dialog,
+    newTab: diff.newTab,
+    download: diff.download,
+  });
+}
+
+/**
+ * Click one element. A click that produces no visible change is tried once more at
+ * the element's place on the screen, because a page that swallows a click on the
+ * element often takes one on the pixels.
+ */
+export async function clickMethod(
+  session: Session,
+  params: Record<string, unknown>,
+): Promise<Diff> {
+  const ref = String(params["ref"]);
+  const expectation = String(params["expectation"] ?? "");
+  let clicked: Awaited<ReturnType<typeof targetOf>> | undefined;
+  const first = await actAndAssert(session, expectation, async (page) => {
+    clicked = await targetOf(session, page, ref, freshSnapshotFor(session, page));
+    await clickTarget(session, page, clicked);
+  });
+  const before = first.snapshot;
+  if (!nothingHappened(before, first) || clicked === undefined) {
+    return first;
+  }
+  let triedAgain = false;
+  const second = await actAndAssert(session, expectation, async (page) => {
+    triedAgain = await clickAgainAtItsPlace(session, page, clicked!);
+  });
+  return triedAgain ? second : first;
+}
+
+/** Type text into one element. */
+export async function typeMethod(session: Session, params: Record<string, unknown>): Promise<Diff> {
+  const ref = String(params["ref"]);
+  const text = String(params["text"] ?? "");
+  return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
+    const target = await targetOf(session, page, ref, freshSnapshotFor(session, page));
+    await typeIntoTarget(session, page, target, text, false);
+  });
+}
+
+/** Press one key or key combination. */
+export async function pressMethod(session: Session, params: Record<string, unknown>): Promise<Diff> {
+  const key = String(params["key"]);
+  return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
+    await pressOneKey(session, page, key);
+  });
+}
+
+/** Scroll the page in steps. */
+export async function scrollMethod(
+  session: Session,
+  params: Record<string, unknown>,
+): Promise<Diff> {
+  const direction = params["direction"] === "up" ? "up" : "down";
+  const amount = typeof params["amount"] === "number" ? params["amount"] : DEFAULT_SCROLL_STEPS;
+  return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
+    await scrollInSteps(session, page, direction, amount);
+  });
+}

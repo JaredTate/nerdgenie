@@ -1,0 +1,37 @@
+# job 4   running   from Signal   3 of 12 tasks done   next: task 31 today at 14:00
+
+## Goal
+Ask: "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end."
+Why: keep the anniversary in front of people all month.
+Done when:
+- [ ] one post is up for every weekday of the month
+- [ ] the blog piece is published
+- [ ] the user has the summary
+
+## Rules
+Corrections:
+- C1 "keep every post to one fact"
+Stop and tell the user if:
+- any account shows a login page or a captcha
+- a post gets more than ten angry replies
+
+## Work
+Situation:
+- 3 of 12 tasks done, none running, next due today at 14:00
+Tasks:
+- [x] t17 post the anniversary tweet -> j4.1
+- [x] t19 draft the blog piece -> j4.2
+- [x] t22 post for day two -> j4.3
+- [ ] t31 post for day three, today at 14:00
+- [ ] t32 post for day four, tomorrow at 14:00
+- [ ] t40 write the summary for the user, after the last post
+Reports (read any of them in full with `read j4.2`):
+- j4.1 posted, 236 characters, link saved
+- j4.2 draft saved to blog/anniversary.md, 900 words
+- j4.3 posted, 198 characters, link saved
+
+## Lessons
+Decisions:
+- D1 Post at 14:00 each day. Reason: the first two posts did best at that hour.
+Failures:
+- F1 The day-one post had three facts. Cause: no rule yet. Now correction C1.

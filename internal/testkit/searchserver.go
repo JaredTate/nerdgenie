@@ -20,19 +20,46 @@ const (
 	InstructionPagePath = "/instructions"
 )
 
+// SearchResult is one result the fake search server answers with.
+type SearchResult struct {
+	// Title is the heading the result shows.
+	Title string
+	// Path is the fixture page it points at, such as "/notes".
+	Path string
+	// Snippet is the line of text under the heading.
+	Snippet string
+}
+
+// SearchMisbehaviour is one way the fake search server can go wrong on purpose,
+// so that a test can prove the web tool handles it.
+type SearchMisbehaviour string
+
+const (
+	// SearchBehavesWell answers properly, which is what it does by default.
+	SearchBehavesWell SearchMisbehaviour = ""
+	// SearchFailsOutright answers 500, the way a search server that is down does.
+	SearchFailsOutright SearchMisbehaviour = "fail outright"
+	// SearchAnswersNonsense answers with something that is not the shape the web
+	// tool expects.
+	SearchAnswersNonsense SearchMisbehaviour = "answer nonsense"
+)
+
 // FakeSearchServer stands in for a SearXNG instance, for the DuckDuckGo results
 // page, and for the handful of pages a test fetches.
 type FakeSearchServer struct {
 	server *httptest.Server
 
-	guard sync.Mutex
-	pages map[string]string
+	guard       sync.Mutex
+	pages       map[string]string
+	results     map[string][]SearchResult
+	queries     []string
+	nextProblem SearchMisbehaviour
 }
 
 // NewFakeSearchServer starts the fake server with its fixture pages already in
 // it. Close it when the test is done.
 func NewFakeSearchServer() *FakeSearchServer {
-	search := &FakeSearchServer{pages: map[string]string{}}
+	search := &FakeSearchServer{pages: map[string]string{}, results: map[string][]SearchResult{}}
 	search.AddPage("/notes", "<html><head><title>Product notes</title></head><body>"+
 		"<h1>DigiByte product notes</h1><p>The anniversary is in January.</p></body></html>")
 	search.AddPage(InstructionPagePath, "<html><head><title>Read me</title></head><body>"+
@@ -64,6 +91,32 @@ func (search *FakeSearchServer) DuckDuckGoAddress() string {
 // PageAddress is the full address of one fixture page.
 func (search *FakeSearchServer) PageAddress(path string) string {
 	return search.server.URL + path
+}
+
+// AddResult says what to answer for a query that holds this word. A query that
+// matches no added word gets the two fixture results.
+func (search *FakeSearchServer) AddResult(word string, result SearchResult) {
+	search.guard.Lock()
+	defer search.guard.Unlock()
+	search.results[word] = append(search.results[word], result)
+}
+
+// Queries is every query the server was asked, in order, so that a test can say
+// what the web tool actually searched for.
+func (search *FakeSearchServer) Queries() []string {
+	search.guard.Lock()
+	defer search.guard.Unlock()
+	copied := make([]string, len(search.queries))
+	copy(copied, search.queries)
+	return copied
+}
+
+// MisbehaveNext tells the server to go wrong on the next search and behave again
+// afterwards.
+func (search *FakeSearchServer) MisbehaveNext(how SearchMisbehaviour) {
+	search.guard.Lock()
+	defer search.guard.Unlock()
+	search.nextProblem = how
 }
 
 // AddPage puts one more page on the server.

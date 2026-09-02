@@ -285,6 +285,56 @@ func TestReadingCappedStopsAtTheCapAndSaysSo(t *testing.T) {
 	}
 }
 
+// writeFixtureTree writes the paths given into a fresh folder that is not a git
+// work tree, so the generator walks it.
+func writeFixtureTree(t *testing.T, paths ...string) string {
+	t.Helper()
+	root := t.TempDir()
+	for _, path := range paths {
+		full := filepath.Join(root, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("cannot make the folder for %s: %v", path, err)
+		}
+		if err := os.WriteFile(full, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatalf("cannot write %s: %v", path, err)
+		}
+	}
+	return root
+}
+
+func TestTheMapIsSortedEvenWhenTheWalkFindsThingsInAnotherOrder(t *testing.T) {
+	// A walk visits the folder "a" before the file "a.md", and sorted order is the
+	// other way round, because a full stop sorts before a slash.
+	root := writeFixtureTree(t, "a.md", "a/z.md")
+
+	generated, err := generate(root)
+
+	if err != nil {
+		t.Fatalf("generating the map failed: %v", err)
+	}
+	tree := treeOf(t, generated)
+	if strings.Index(tree, "\na.md\n") > strings.Index(tree, "\na/z.md\n") {
+		t.Errorf("the map lists a/z.md before a.md, so the paths were never sorted:\n%s", tree)
+	}
+}
+
+func TestAGitFolderInsideTheTreeIsNeverListed(t *testing.T) {
+	root := writeFixtureTree(t, "README.md", "vendor/library/.git/config", "vendor/library/index.js")
+
+	generated, err := generate(root)
+
+	if err != nil {
+		t.Fatalf("generating the map failed: %v", err)
+	}
+	tree := treeOf(t, generated)
+	if strings.Contains(tree, ".git") {
+		t.Errorf("the map lists something inside a .git folder, and version-control internals are never in it:\n%s", tree)
+	}
+	if !strings.Contains(tree, "vendor/library/index.js") {
+		t.Errorf("the map left out a file beside the .git folder:\n%s", tree)
+	}
+}
+
 func TestGenerateSaysSoWhenTheFolderIsNotThere(t *testing.T) {
 	if _, err := generate(filepath.Join(t.TempDir(), "nowhere")); err == nil {
 		t.Fatal("generating a map for a folder that is not there was reported as a success, want an error naming it")

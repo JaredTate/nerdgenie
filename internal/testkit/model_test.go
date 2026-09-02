@@ -157,6 +157,25 @@ func TestTheFakeModelReportsItsNameAndItsWindow(t *testing.T) {
 	}
 }
 
+func TestTheFakeModelGivesUpWhenItsContextIsDone(t *testing.T) {
+	model := testkit.NewFakeModel(testkit.Script{
+		Name:          "sample",
+		ContextLength: 24000,
+		Steps:         []testkit.Step{{Text: "an answer", Finish: contract.FinishEnd}},
+	})
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := model.Send(cancelled, contract.Request{}, nil)
+
+	if err == nil {
+		t.Fatal("a model call whose context was already cancelled answered anyway, and a hung call must be givable up on")
+	}
+	if model.StepsLeft() != 1 {
+		t.Errorf("the script has %d steps left, and a call nobody waited for should not have played one", model.StepsLeft())
+	}
+}
+
 func TestTheFakeModelKeepsTheModelContract(t *testing.T) {
 	model := testkit.NewFakeModel(testkit.Script{
 		Name:          "contract-check",

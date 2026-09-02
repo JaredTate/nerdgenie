@@ -40,13 +40,23 @@ func TestTheTemporaryHomeSetsTheHomeVariableForTheTest(t *testing.T) {
 	}
 }
 
-func TestTheTemporaryHomeIsSomewhereTemporary(t *testing.T) {
+func TestTheTemporaryHomeIsSomewhereTemporaryAndFreshEveryTime(t *testing.T) {
 	home := testkit.NewTempHome(t)
 
 	if !strings.HasSuffix(home.Root, string(filepath.Separator)+contract.HomeFolderName) {
 		t.Errorf("the temporary home is at %q, want it to end in %q", home.Root, contract.HomeFolderName)
 	}
-	if _, err := os.Stat(filepath.Join(home.Root, "..")); err != nil {
-		t.Errorf("the folder above the temporary home is not there: %v", err)
+	if !strings.HasPrefix(home.Root, os.TempDir()) {
+		t.Errorf("the temporary home is at %q, and it must be under the temporary folder %q so nothing outlives the test",
+			home.Root, os.TempDir())
+	}
+
+	another := testkit.NewTempHome(t)
+
+	if another.Root == home.Root {
+		t.Errorf("two temporary homes are both at %q, and each test needs one nobody else is writing into", home.Root)
+	}
+	if entries, err := os.ReadDir(another.SkillsFolder()); err != nil || len(entries) != 0 {
+		t.Errorf("the second temporary home's skills folder holds %v (error %v), want a fresh empty one", entries, err)
 	}
 }

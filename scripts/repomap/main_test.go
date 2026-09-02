@@ -32,6 +32,16 @@ func TestRunWithNoRootUsesTheCurrentFolder(t *testing.T) {
 	if !strings.Contains(output.String(), "# Repository Map") {
 		t.Errorf("the printed map has no heading:\n%s", output.String())
 	}
+	// This test runs in scripts/repomap, so the generator's own files are at the
+	// top of the tree. A run that used the folder above would list them under
+	// "repomap/" instead.
+	tree := treeOf(t, output.String())
+	if !strings.Contains(tree, "\ngenerate.go\n") {
+		t.Errorf("the map does not list generate.go at the top of the tree, so it was not made for this folder:\n%s", tree)
+	}
+	if strings.Contains(tree, "repomap/generate.go") {
+		t.Errorf("the map lists repomap/generate.go, so it was made for the folder above this one:\n%s", tree)
+	}
 }
 
 func TestRunSaysSoWhenTheRootIsNotThere(t *testing.T) {

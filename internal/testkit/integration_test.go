@@ -29,8 +29,14 @@ func TestTheTemporaryHomeIsRealOnDiskAndHoldsWhatTheFakesWrite(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("saving a skill failed: %v", err)
 	}
+	// The skills folder itself is one NewTempHome made, so only the skill's own
+	// folder is made here. A temporary home that made nothing would fail on the
+	// next line rather than being papered over.
+	if _, err := os.Stat(home.SkillsFolder()); err != nil {
+		t.Fatalf("the temporary home has no skills folder, so it did not build the layout: %v", err)
+	}
 	folder := home.SkillFolder("post-to-x")
-	if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
+	if err := os.Mkdir(folder, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the skill folder on disk: %v", err)
 	}
 	for name, content := range skills.Files("post-to-x") {

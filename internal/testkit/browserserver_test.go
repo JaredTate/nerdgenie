@@ -96,6 +96,7 @@ func TestTheBrowserProtocolServerAnswersHealthAndTheEightOtherMethods(t *testing
 	callProtocol(t, server.SocketPath(),
 		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
 
+	byName := map[string]map[string]any{}
 	calls := []string{
 		`{"jsonrpc":"2.0","id":2,"method":"read","params":{}}`,
 		`{"jsonrpc":"2.0","id":3,"method":"click","params":{"ref":"` + testkit.FixtureChangeLinkRef + `","expectation":"the page changes"}}`,
@@ -110,9 +111,60 @@ func TestTheBrowserProtocolServerAnswersHealthAndTheEightOtherMethods(t *testing
 	for _, call := range calls {
 		answer := callProtocol(t, server.SocketPath(), call)
 		if _, failed := answer["error"]; failed {
-			t.Errorf("the call %s came back with an error: %+v", call, answer["error"])
+			t.Fatalf("the call %s came back with an error: %+v", call, answer["error"])
+		}
+		byName[nameOfCall(t, call)] = resultOf(t, answer)
+	}
+
+	if diffs, listed := byName["act"]["diffs"].([]any); !listed || len(diffs) != 1 {
+		t.Errorf("act answered with %v, want one diff per step that ran", byName["act"]["diffs"])
+	}
+	if tabs, listed := byName["tabs"]["tabs"].([]any); !listed || len(tabs) == 0 {
+		t.Errorf("tabs answered with %v, want the list of tabs PROTOCOL.md shows", byName["tabs"]["tabs"])
+	}
+	if picture, isText := byName["screenshot"]["pngBase64"].(string); !isText || picture == "" {
+		t.Errorf("screenshot answered with no pngBase64: %+v", byName["screenshot"])
+	}
+	if marks, listed := byName["screenshot"]["marks"].([]any); !listed || len(marks) == 0 {
+		t.Errorf("screenshot answered with no marks, and a handoff needs the elements numbered: %+v", byName["screenshot"])
+	}
+	if healthy, isTrue := byName["health"]["healthy"].(bool); !isTrue || !healthy {
+		t.Errorf("health answered %v, want a worker that says it is healthy", byName["health"])
+	}
+	if byName["read"]["url"] != testkit.FixtureSimplePage {
+		t.Errorf("read answered with the page %v, want the one that was opened", byName["read"]["url"])
+	}
+	for _, method := range []string{"click", "type", "press", "scroll"} {
+		snapshot, held := byName[method]["snapshot"].(map[string]any)
+		if !held || snapshot["url"] == "" {
+			t.Errorf("%s answered with no snapshot of the page it left behind: %+v", method, byName[method])
+		}
+		if _, said := byName[method]["expectationMet"]; !said {
+			t.Errorf("%s never said whether the expectation was met: %+v", method, byName[method])
 		}
 	}
+}
+
+// nameOfCall reads the method out of one request line.
+func nameOfCall(t *testing.T, call string) string {
+	t.Helper()
+	var asked struct {
+		Method string `json:"method"`
+	}
+	if err := json.Unmarshal([]byte(call), &asked); err != nil {
+		t.Fatalf("the call %s is not JSON: %v", call, err)
+	}
+	return asked.Method
+}
+
+// resultOf reads the result object off one answer.
+func resultOf(t *testing.T, answer map[string]any) map[string]any {
+	t.Helper()
+	result, isObject := answer["result"].(map[string]any)
+	if !isObject {
+		t.Fatalf("the answer carries no result object: %+v", answer)
+	}
+	return result
 }
 
 func TestTheBrowserProtocolServerReportsAnUnknownMethodAndABadLine(t *testing.T) {

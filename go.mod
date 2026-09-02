@@ -5,6 +5,7 @@ go 1.27
 require (
 	filippo.io/age v1.3.2
 	github.com/BurntSushi/toml v1.6.0
+	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/pquerna/otp v1.5.0
 	modernc.org/sqlite v1.58.0
@@ -14,7 +15,6 @@ require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
-	github.com/charmbracelet/bubbletea v1.3.10 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect

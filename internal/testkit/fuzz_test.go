@@ -68,6 +68,7 @@ func FuzzWholeRequestBodyText(f *testing.F) {
 		`not json at all`,
 		``,
 		`{"messages":[[[[[[[[[[[[[[[[[[[[[[[[[["deep"]]]]]]]]]]]]]]]]]]]]]]]]]]}`,
+		"{\"messages\":\"\xd7\xd3\xd3\"}",
 	} {
 		f.Add([]byte(seed))
 	}
@@ -78,8 +79,10 @@ func FuzzWholeRequestBodyText(f *testing.F) {
 		if again := WholeRequestBodyText(body); again != read {
 			t.Fatalf("the same body read as %q and then as %q, and the walk is supposed to be in sorted order", read, again)
 		}
-		if len(read) > len(body)+1 {
-			t.Fatalf("a body of %d bytes produced %d bytes of text, and the text is what was already in it", len(body), len(read))
+
+		var anything any
+		if json.Unmarshal(body, &anything) != nil && read != "" {
+			t.Fatalf("a body that is not JSON read as %q, and it is supposed to read as no text at all", read)
 		}
 	})
 }

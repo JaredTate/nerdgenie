@@ -405,6 +405,7 @@ internal/testkit/doc.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
 internal/testkit/fortystepchecks.go
+internal/testkit/fuzz_test.go
 internal/testkit/golden.go
 internal/testkit/golden_test.go
 internal/testkit/home.go
@@ -461,10 +462,12 @@ scripts/coverage.sh
 scripts/fuzz.sh
 scripts/gate/coverage_test.go
 scripts/gate/fixture_test.go
+scripts/gate/fuzz_test.go
 scripts/gate/gofmt_test.go
 scripts/gofmt.sh
 scripts/repomap/doc.go
 scripts/repomap/drift_test.go
+scripts/repomap/fuzz_test.go
 scripts/repomap/generate.go
 scripts/repomap/generate_test.go
 scripts/repomap/main.go

@@ -31,6 +31,9 @@ const (
 	// RuleBorrowedHeader covers a borrowed design named without its reference
 	// path.
 	RuleBorrowedHeader = "borrowed-design-header"
+	// RuleParseError covers a file the checker cannot read at all, which is a
+	// file the compiler will refuse too.
+	RuleParseError = "parse-error"
 )
 
 // The two limits from the definition of done in docs/WORK_PLAN.md.

@@ -206,6 +206,129 @@ func TestThePackageDocRuleWantsTheFirstSentenceToNameThePackage(t *testing.T) {
 	}
 }
 
+func TestTheErrorMessageRuleSeesThroughAnAliasAndADotImport(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   string
+		reported bool
+	}{
+		{
+			name:     "an aliased errors import with too few words",
+			source:   "package example\n\nimport stderrors \"errors\"\n\n// Fail fails.\nfunc Fail() error { return stderrors.New(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "an aliased fmt import with too few words",
+			source:   "package example\n\nimport format \"fmt\"\n\n// Fail fails.\nfunc Fail() error { return format.Errorf(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "a dot import of errors with too few words",
+			source:   "package example\n\nimport . \"errors\"\n\n// Fail fails.\nfunc Fail() error { return New(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "a package of somebody else's called errors",
+			source:   "package example\n\nimport errors \"example.com/other/errors\"\n\n// Fail fails.\nfunc Fail() error { return errors.New(\"bad input\") }\n",
+			reported: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reported := containsRule(checkOneFile(test.source), lint.RuleErrorMessage)
+			if reported != test.reported {
+				t.Errorf("the error-message rule reported %v, want %v, for:\n%s", reported, test.reported, test.source)
+			}
+		})
+	}
+}
+
+func TestAFormatVerbIsNotAWordInAnErrorMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   string
+		reported bool
+	}{
+		{
+			name:     "three words padded out with verbs",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail(name string) error { return fmt.Errorf(\"cannot open %s %d\", name, 1) }\n",
+			reported: true,
+		},
+		{
+			name:     "four words beside a verb",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail(name string) error { return fmt.Errorf(\"cannot open the vault %s\", name) }\n",
+			reported: false,
+		},
+		{
+			name:     "a doubled percent sign is a word",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail() error { return fmt.Errorf(\"the disk is 100%% full now\") }\n",
+			reported: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reported := containsRule(checkOneFile(test.source), lint.RuleErrorMessage)
+			if reported != test.reported {
+				t.Errorf("the error-message rule reported %v, want %v, for:\n%s", reported, test.reported, test.source)
+			}
+		})
+	}
+}
+
+func TestATrailingCommentOnAFieldIsASentenceToo(t *testing.T) {
+	source := "package example\n\n// Counter counts.\ntype Counter struct {\n\tTotal int // how many there are\n}\n"
+
+	if !containsRule(checkOneFile(source), lint.RuleCommentSentence) {
+		t.Errorf("a trailing comment on an exported field was not read at all:\n%s", source)
+	}
+
+	proper := "package example\n\n// Counter counts.\ntype Counter struct {\n\tTotal int // How many there are.\n}\n"
+	if containsRule(checkOneFile(proper), lint.RuleCommentSentence) {
+		t.Errorf("a trailing comment that is a complete sentence was reported:\n%s", proper)
+	}
+}
+
+func TestTheOneLetterNamesAreAllowedInTestsAndHandlersAndNowhereElse(t *testing.T) {
+	inAPlainFunction := "package example\n\n// Count counts.\nfunc Count() int {\n\tt := 1\n\treturn t\n}\n"
+	if !containsRule(checkOneFile(inAPlainFunction), lint.RuleIdentifierName) {
+		t.Errorf("a bare t in a plain function was allowed, and the rule allows it in tests and handlers only:\n%s", inAPlainFunction)
+	}
+
+	inATest := "package example\n\nimport \"testing\"\n\nfunc TestCount(t *testing.T) {\n\tb := 1\n\t_ = b\n\t_ = t\n}\n"
+	rules := []string{}
+	for _, violation := range lint.CheckSource("example_test.go", []byte(inATest)) {
+		rules = append(rules, violation.Rule)
+	}
+	if containsRule(rules, lint.RuleIdentifierName) {
+		t.Errorf("a bare b in a test file was reported, and a test is where the convention lives:\n%s", inATest)
+	}
+
+	inAHandler := "package example\n\nimport \"net/http\"\n\n// Serve answers one request.\n" +
+		"func Serve(w http.ResponseWriter, r *http.Request) {\n\t_ = w\n\t_ = r\n}\n"
+	if containsRule(checkOneFile(inAHandler), lint.RuleIdentifierName) {
+		t.Errorf("the conventional w and r in an HTTP handler were reported:\n%s", inAHandler)
+	}
+}
+
+func TestEveryBannedAbbreviationIsRefused(t *testing.T) {
+	for _, abbreviation := range []string{"cfg", "msg", "req", "resp", "buf", "tmp", "str", "num", "val"} {
+		t.Run(abbreviation, func(t *testing.T) {
+			source := "package example\n\n// Count counts.\nfunc Count(" + abbreviation + " string) int { return len(" + abbreviation + ") }\n"
+			if !containsRule(checkOneFile(source), lint.RuleIdentifierName) {
+				t.Errorf("the abbreviation %q was allowed, and it says less than the word it came from", abbreviation)
+			}
+		})
+	}
+	for _, allowed := range []string{"ctx", "err"} {
+		t.Run(allowed, func(t *testing.T) {
+			source := "package example\n\n// Count counts.\nfunc Count(" + allowed + " string) int { return len(" + allowed + ") }\n"
+			if containsRule(checkOneFile(source), lint.RuleIdentifierName) {
+				t.Errorf("the name %q was refused, and Go writes it everywhere", allowed)
+			}
+		})
+	}
+}
+
 // containsRule says whether the rule appears in the list.
 func containsRule(rules []string, wanted string) bool {
 	for _, rule := range rules {

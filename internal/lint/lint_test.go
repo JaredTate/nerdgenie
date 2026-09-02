@@ -136,10 +136,63 @@ func TestASourceFileOverTheCapIsRefusedRatherThanReadWhole(t *testing.T) {
 	}
 }
 
-func TestSourceThatWillNotParseIsLeftToTheCompiler(t *testing.T) {
+// aFunctionOfBodyLines builds a file holding one function whose body is the
+// number of lines given.
+func aFunctionOfBodyLines(lines int) string {
+	body := strings.Repeat("\t_ = 1\n", lines)
+	return "package example\n\n// Count counts.\nfunc Count() {\n" + body + "}\n"
+}
+
+func TestTheFunctionLengthRuleBitesAtSixtyOneLinesAndNotAtSixty(t *testing.T) {
+	if containsRule(checkOneFile(aFunctionOfBodyLines(lint.MaxFunctionLines)), lint.RuleFunctionLength) {
+		t.Errorf("a function of exactly %d body lines was reported, and the limit is %d",
+			lint.MaxFunctionLines, lint.MaxFunctionLines)
+	}
+	if !containsRule(checkOneFile(aFunctionOfBodyLines(lint.MaxFunctionLines+1)), lint.RuleFunctionLength) {
+		t.Errorf("a function of %d body lines was allowed, and the limit is %d",
+			lint.MaxFunctionLines+1, lint.MaxFunctionLines)
+	}
+}
+
+// aFileOfLines builds a file of exactly the number of lines given.
+func aFileOfLines(lines int) string {
+	source := "package example\n"
+	for at := 1; at < lines; at++ {
+		source += "\n"
+	}
+	return source
+}
+
+func TestTheFileLengthRuleBitesAtFiveHundredAndOneLinesAndNotAtFiveHundred(t *testing.T) {
+	if containsRule(checkOneFile(aFileOfLines(lint.MaxFileLines)), lint.RuleFileLength) {
+		t.Errorf("a file of exactly %d lines was reported, and the limit is %d", lint.MaxFileLines, lint.MaxFileLines)
+	}
+	if !containsRule(checkOneFile(aFileOfLines(lint.MaxFileLines+1)), lint.RuleFileLength) {
+		t.Errorf("a file of %d lines was allowed, and the limit is %d", lint.MaxFileLines+1, lint.MaxFileLines)
+	}
+}
+
+func TestSourceThatWillNotParseIsReportedByName(t *testing.T) {
 	violations := lint.CheckSource("broken.go", []byte("package ???"))
-	if len(violations) != 0 {
-		t.Errorf("source that will not parse reported %d violations, want none because the compiler reports it", len(violations))
+
+	if len(violations) == 0 {
+		t.Fatal("source that will not parse reported nothing, so a broken file passes the gate in silence")
+	}
+	if violations[0].Rule != lint.RuleParseError {
+		t.Errorf("the violation is the rule %q, want %q", violations[0].Rule, lint.RuleParseError)
+	}
+	if violations[0].Path != "broken.go" {
+		t.Errorf("the violation names %q, want the file that will not parse", violations[0].Path)
+	}
+	if violations[0].Advice == "" {
+		t.Error("the violation says nothing about what to do")
+	}
+
+	good := lint.CheckSource("fine.go", []byte("package example\n"))
+	for _, violation := range good {
+		if violation.Rule == lint.RuleParseError {
+			t.Errorf("a file that parses was reported as unparseable: %s", violation)
+		}
 	}
 }
 

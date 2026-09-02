@@ -94,7 +94,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
-`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and `dialog`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `dialog`, and `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
 
 ## The browser worker (built, ahead of wave 5)
 
@@ -115,14 +115,28 @@ into the exact error the protocol names. `page-script` is the JavaScript that ru
 inside the page, kept as text because it runs in Chrome and not in Node;
 `page-bridge` calls it with a deadline on every call. `snapshot` builds the compact
 tree the model sees, with a ref written onto each element so that a ref names the
-same element for as long as it exists. `diff` compares two snapshots, `expectation`
-judges the result against what the model said it expected, and `walls` reports a
-login form, a prompt for a second code, or a captcha. `refs` finds an element again
-when its ref has gone stale, by role and name and then by visible text. `actions`
-and `pacing` do the thing at the speed a person would. `redact` takes the vault's
-secrets back out of everything `loginFill` would otherwise hand back. `settle`,
-`session`, `tabs`, `chrome`, `lines`, and `main` hold the waiting, the state, the
-tabs, the browser, the input framing, and the process.
+same element for as long as it exists, and carries the wall so that `open` and
+`read` can report a login page before the agent has done anything. `diff` compares
+two snapshots, `expectation` judges the result against what the model said it
+expected, and `walls` reports a login form, a prompt for a second code, or a
+captcha. `refs` finds an element again when its ref has gone stale, by role and
+name and then by visible text. `actions` and `pacing` do the thing at the speed a
+person would. `pdf` saves a PDF page through the browser's own session, because
+Chrome's viewer exposes no text to a program. `redact` takes the vault's secrets
+back out of everything `loginFill` would otherwise hand back. `settle`, `session`,
+`tabs`, `chrome`, `lines`, and `main` hold the waiting, the state, the tabs, the
+browser, the input framing, and the process.
+
+Three rulings shape how it behaves. An expectation is met when a word from it
+turns up in a new element, in the new address, in the new title, in a dialog's
+message, or in the element the action was aimed at; that last place is what lets
+typing meet an expectation at all, since typing changes no element. Settling is
+measured from the action rather than from whatever the page last did on its own,
+changes to attributes alone do not count, and a page that never comes to rest is
+read as it stands and returned with `settled: false`, so a chat or a clock stays
+usable; `-32001` is kept for the page that cannot be read at all. And `dialog` is
+the twelfth method, because Chrome stops a whole tab until a dialog is answered
+and nothing else can free it.
 
 Its dependencies are in `docs/DEPENDENCIES.md`. `npm test` builds and then runs
 unit tests, property tests with `fast-check`, and tests that drive a real Chrome

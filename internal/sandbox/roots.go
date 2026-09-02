@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -46,17 +45,16 @@ func checkRoots(roots []string, userHome string) ([]string, error) {
 	return checked, nil
 }
 
-// checkOneRoot holds the four rules one root has to keep: it is a full path, it
-// is not one of the paths that must stay outside the fence, it does not hold one
-// of them, and it is a folder that is really there.
+// checkOneRoot holds the rules one root has to keep. The first three are the
+// contract's: it is a full path, it is not one of the paths that must stay
+// outside the fence, and it does not hold one of them. The last is this
+// package's own, because only something about to run a command needs it: the
+// root is a folder that is really there.
 func checkOneRoot(root string, userHome string) (string, error) {
 	if err := contract.CheckSandboxRoot(root, userHome); err != nil {
 		return "", err
 	}
 	clean := filepath.Clean(root)
-	if err := checkRootHoldsNothingForbidden(clean, userHome); err != nil {
-		return "", err
-	}
 
 	details, err := os.Stat(clean)
 	if err != nil {
@@ -66,21 +64,4 @@ func checkOneRoot(root string, userHome string) (string, error) {
 		return "", fmt.Errorf("the sandbox root %q is a file rather than a folder, so name the folder a command may work in", clean)
 	}
 	return clean, nil
-}
-
-// checkRootHoldsNothingForbidden refuses a root that holds one of the paths that
-// must stay outside the fence. The user's whole home directory is the root this
-// catches most often, because it holds the agent's own home folder and the SSH
-// keys.
-func checkRootHoldsNothingForbidden(clean string, userHome string) error {
-	within := clean
-	if !strings.HasSuffix(within, string(filepath.Separator)) {
-		within += string(filepath.Separator)
-	}
-	for _, forbidden := range contract.ExcludedFromSandbox(userHome) {
-		if strings.HasPrefix(forbidden, within) {
-			return fmt.Errorf("the sandbox root %q holds %q, which must stay outside the sandbox, so name a folder that does not contain it", clean, forbidden)
-		}
-	}
-	return nil
 }

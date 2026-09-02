@@ -196,8 +196,13 @@ internal/repair/testdata/repaired-name.txt
 internal/repair/testdata/structured.txt
 internal/repair/testdata/tag-block-unclosed.txt
 internal/repair/testdata/tag-block.txt
+internal/repair/testdata/think-before-a-call.txt
+internal/repair/testdata/think-holds-the-only-call.txt
+internal/repair/testdata/think-never-closed.txt
 internal/repair/testdata/two-calls.txt
 internal/repair/testdata/unknown-name.txt
+internal/repair/thinking.go
+internal/repair/thinking_test.go
 internal/testkit/browser.go
 internal/testkit/browser_test.go
 internal/testkit/browsermore_test.go

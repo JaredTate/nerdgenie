@@ -1,0 +1,26 @@
+{
+  "name": "coeus-browser-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Coeus browser worker: drives a real Chrome and speaks the protocol in PROTOCOL.md over standard input and output.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "playwright-core": "1.62.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@vitest/coverage-v8": "4.1.11",
+    "fast-check": "4.9.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

@@ -172,8 +172,14 @@ func (screen *Screen) View() string {
 		spare++
 	}
 
+	palette := screen.paletteRows()
+	if len(palette) > spare {
+		palette = palette[:max(spare, 0)]
+	}
+
 	rows := []string{screen.headerRow(), screen.ruleRow()}
-	rows = append(rows, screen.visibleTranscript(spare)...)
+	rows = append(rows, screen.visibleTranscript(spare-len(palette))...)
+	rows = append(rows, palette...)
 	rows = append(rows, screen.ruleRow())
 	rows = append(rows, input...)
 	rows = append(rows, screen.statusRow())

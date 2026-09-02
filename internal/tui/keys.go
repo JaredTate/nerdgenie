@@ -37,10 +37,27 @@ func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
 		}
 		return screen.pressedInTheInputBox(key)
 	}
+	if screen.paletteOpen && screen.pressedWhileThePaletteIsOpen(key) {
+		return nil
+	}
 	if screen.focusedCard() != nil && screen.pressedWhileACardWaits(key) {
 		return nil
 	}
 	return screen.pressedInTheInputBox(key)
+}
+
+// pressedWhileThePaletteIsOpen holds the three keys the palette takes: Tab and
+// Enter complete the command that matches, and Escape closes the list and leaves
+// what was typed alone.
+func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyMsg) bool {
+	switch key.Type {
+	case tea.KeyTab, tea.KeyEnter:
+		return screen.completeCommand()
+	case tea.KeyEsc:
+		screen.closePalette()
+		return true
+	}
+	return false
 }
 
 // pressedWhileACardWaits holds the single-key answers a card takes. It says
@@ -108,11 +125,22 @@ func (screen *Screen) pressedInTheInputBox(key tea.KeyMsg) tea.Cmd {
 	case tea.KeySpace:
 		screen.input.insert(" ")
 	case tea.KeyRunes:
-		screen.input.insert(string(key.Runes))
+		screen.typeInto(string(key.Runes))
 	case tea.KeyEsc:
 		screen.pressedStop()
 	}
+	screen.judgePalette()
 	return nil
+}
+
+// typeInto puts characters in the input box, and opens the command palette when
+// the first of them is the slash that starts a command.
+func (screen *Screen) typeInto(letters string) {
+	opening := screen.input.cursor == 0 && strings.HasPrefix(letters, "/")
+	screen.input.insert(letters)
+	if opening {
+		screen.openPalette()
+	}
 }
 
 // pressedStop sends the stop command while a task is running, which is what Esc

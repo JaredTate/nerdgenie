@@ -39,6 +39,9 @@ var (
 	// ErrFinishedTaskRemoved is the rule that a job never takes a finished task
 	// off its list, however much the rest of the list is rearranged.
 	ErrFinishedTaskRemoved = errors.New("a finished task stays on a job's list, so leave it where it is")
+	// ErrBeforeTheFirstCheckpoint says the wind-back asked for a moment before
+	// the record was created, and there is nothing there.
+	ErrBeforeTheFirstCheckpoint = errors.New("that is before the record's first checkpoint, so wind back fewer steps")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
 )

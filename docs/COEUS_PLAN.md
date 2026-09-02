@@ -12,11 +12,11 @@ Coeus is named for the Titan of intellect, the axis the heavens turn on.
 
 Every AI agent today is built the same way. A model is a function: text in, text out. It has no memory and no hands. The **harness** is the program around the model that gives it both. Same models everywhere; the harness is the whole difference.
 
-We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, plus Codex and Claude Code from the labs. All of them keep long-term memory outside the conversation, in files or a database. But every one of them uses the conversation transcript as the record of the task itself: each turn, the model re-reads what happened to work out where it is. When the transcript gets too long, most of them summarize it and hope nothing important was lost (ZeroClaw drops old turns instead; Prime keeps its working data in Python variables, the closest anyone comes to real state). That is like a video game that never saves, and instead replays every button you ever pressed each time you want to take the next step.
+We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, plus Codex and Claude Code from the labs. All of them keep long-term memory outside the conversation, in files or a database. But every one of them uses the conversation transcript as the record of the task itself: each turn, the model re-reads what happened to work out where it is. When the transcript gets too long, most of them summarize it and hope nothing important was lost (ZeroClaw drops old turns instead; Prime keeps its working data in Python variables, the closest anyone comes to real state). That is like a video game loading your save by replaying every button you ever pressed.
 
 Coeus is built on a different idea, and it is an old one.
 
-**State.** In computer science, state is the small amount of information about the past that you need to act correctly next. A counter does not remember every increment; it remembers `7`. A database keeps a log of everything that happened, and a snapshot of what is true now, and they are not the same thing. An operating system can pause a program and resume it days later from one small record. Coeus keeps three things separate: what happened (history), what is true now (state), and what the model is looking at this turn (working context).
+**State.** In computer science, state is the small amount of information about the past that you need to act correctly next. A counter does not remember every increment; it remembers `7`. A database keeps a log of everything that happened, and a snapshot of what is true now, and they are not the same thing. An operating system can pause a program and resume it days later from one small record. Coeus keeps three things separate: what happened (history), what is true now (state), and what the model is looking at this turn (working context). Think of a library, a desk, and the page in front of you. Nobody reads the whole library to write the next sentence.
 
 **The operations order.** The U.S. Army has a bigger version of the same problem: a headquarters that cannot see every unit, radios that fail, people who rotate out mid-mission. Its answer is a fixed document format anyone can write and check, the five-paragraph operations order, plus a rule for what to do when the plan breaks. We borrow its parts directly: the situation, the mission with the user's intent and what done looks like, the plan, the list of things to stop and report, small changes as fragmentary orders, and the after-action review when it is over.
 
@@ -87,7 +87,7 @@ One process owns everything: the queue, the loop, the permissions, the record, t
 
 ### The turn, in ten rules
 
-1. A message that arrives mid-turn is a **fragmentary order**: it changes only what it changes. The harness writes it into the record as a correction and the model re-plans from it. It never interrupts a running tool.
+1. A message that arrives mid-turn is a **fragmentary order**: it changes only what it changes, like texting a driver "take the next exit" without re-sending the whole route. The harness writes it into the record as a correction and the model re-plans from it. It never interrupts a running tool.
 2. **Orient first.** Before any tool call the model writes one line: where we are, what is next. If the situation does not match the plan, the plan changes first.
 3. **Cap: 20 tool rounds per turn** on any model. At the cap, one last call with tools off: "Say what you did and what is left." A long task gets a budget of rounds, tokens, and minutes.
 4. **Same call twice with the same arguments** is not run; the model is told to do something different or answer. A third time ends the turn.
@@ -110,11 +110,11 @@ One process owns everything: the queue, the loop, the permissions, the record, t
 | **Skill** | How we do one kind of thing: steps, expectations, permissions, known failures | When a site or tool changes | Loaded when the skill is used |
 | **Task** | What is true right now about the thing being worked on | Every turn | The record, always in context |
 
-Only the task is volatile. Splitting the three keeps the prompt cache warm and the record small.
+A carpenter, the way they cut a joint, and the cabinet on the bench today. Only the task changes turn to turn. Splitting the three keeps the prompt cache warm and the record small.
 
 ### The task record, shaped like an operations order
 
-An Army order has five paragraphs: Situation, Mission, Execution, Sustainment, and Command and Signal. The mission answers who, what, when, where, and why, and it carries the commander's intent and the end state so that when the plan breaks, the unit still acts correctly. The commander also lists in advance the facts that would change the decision. Our record uses the same shape, with the user in the commander's place.
+An Army order has five paragraphs: Situation, Mission, Execution, Sustainment, and Command and Signal. The mission answers who, what, when, where, and why, and it carries the commander's intent and the end state so that when the plan breaks, the unit still acts correctly. The commander also lists in advance the facts that would change the decision. Our record uses the same shape, with the user in the commander's place. It is the pilot's kneeboard: one card with the mission, the current leg, and the abort rules, while the flight log stays on the ground.
 
 | Record section | Order paragraph | Written by |
 |---|---|---|
@@ -161,7 +161,7 @@ Done: a tweet under 280 characters, previewed and approved, live on the site.
 
 **What goes in.** Only what the world cannot answer. Which files changed is `git diff`. What is on the page is the snapshot. Whether a job ran is the jobs table. Those are looked up, never remembered. The record holds what only the conversation knows: what was asked, why, what was corrected, what was decided and why, what failed and why.
 
-**Who writes what.** The harness writes everything it can verify, with zero model tokens: the header, corrections, situation, results, step status from tool outcomes, and a failure line whenever a tool errors or an expectation misses. The model writes judgment: intent, stop conditions, plan, decisions, failures it understands. The ask, the intent, and the corrections are never edited.
+**Who writes what.** The harness writes everything it can verify, with zero model tokens: the header, corrections, situation, results, step status from tool outcomes, and a failure line whenever a tool errors or an expectation misses. The model writes judgment: intent, stop conditions, plan, decisions, failures it understands. The stop conditions are a smoke detector: you decide what counts as an alarm before the kitchen is on fire. The ask, the intent, and the corrections are never edited.
 
 **Size.** One to three thousand tokens. When it grows, the harness folds finished steps and old result lines into single lines. Nothing is deleted; every result stays readable by id.
 
@@ -171,9 +171,9 @@ Done: a tweet under 280 characters, previewed and approved, live on the site.
 
 ### The done-check and the after-action review
 
-A task cannot close until each line of "Done" is answered true, with the evidence. This is how the agent keeps working until it is finished: the finish was defined before the work started, and the harness will not let the model declare victory otherwise.
+A task cannot close until each line of "Done" is answered true, with the evidence. A plane does not land because the pilot feels done; gear, flaps, clearance, each one checked. The finish was defined before the work started, and the harness will not let the model declare victory otherwise.
 
-Then the four questions of the Army's after-action review, one line each: What was supposed to happen? What happened? Why the difference? What do we keep, and what do we change? The last answer is what goes into memory or into a skill. This replaces the vague "save what you learned" step every other harness uses.
+Then the four questions of the Army's after-action review, one line each, the way a coach runs the film after a game: What was supposed to happen? What happened? Why the difference? What do we keep, and what do we change? The last answer is what goes into memory or into a skill. This replaces the vague "save what you learned" step every other harness uses.
 
 ### Working context: one rule, sized to the model
 
@@ -191,7 +191,7 @@ recent messages              appended, never rewritten, folded from the oldest e
 memory hint                  three lines from search
 ```
 
-**Tiered folding.** When a message or a result leaves the recent window it does not vanish and it is not summarized. It drops one tier: from verbatim in the window, to a one-line entry in the record, to the log, where `read r7` brings it back in full. A large model rarely folds anything. A small model folds constantly and loses nothing.
+**Tiered folding.** When a message or a result leaves the recent window it does not vanish and it is not summarized. It drops one tier: from verbatim in the window, to a one-line entry in the record, to the log, where `read r7` brings it back in full. Today's clothes on the chair, this week's in the closet, the rest in the suitcase, nothing thrown away. A large model rarely folds anything. A small model folds constantly and loses nothing.
 
 **Cost on every turn.** The harness knows the token count of each layer and the cache hit rate, and writes one line into the record header: `this turn: 6.1k in (5.2k cached), 0.4k out`. `/status` totals it per task. The user can always see what a task cost and where.
 
@@ -264,7 +264,7 @@ flowchart TD
 
 **What the model sees.** A compact tree of the page with short refs, a few hundred tokens: every link, button, and field with a name and a ref; marks on what just appeared; a count of what is below the fold. A screenshot with numbered marks is one call away.
 
-**Act and assert.** Every action carries an expected result. The worker waits for the page to settle, diffs the snapshot, and checks the expectation before the next step. This is how test frameworks get reliable.
+**Act and assert.** Every action carries an expected result. The worker waits for the page to settle, diffs the snapshot, and checks the expectation before the next step. A mechanic tightens the bolt and then tries to turn it. This is how test frameworks get reliable.
 
 **Like a human.** A real Chrome so the fingerprint matches, headed on the machine's display, the user's own network, curved mouse moves, typing per key with jitter, scrolling in steps, pauses between actions, a daily action budget per site. No proxies, no headless for logged-in accounts, no cookie copying, no captcha solving. This is about account safety.
 
@@ -282,7 +282,7 @@ flowchart TD
 
 **Any CLI.** `shell` plus a skill. Hand the agent a tool: it reads `--help` and the docs, writes a skill with the commands it will actually use and one example each, runs a smoke test, saves it.
 
-**A skill is a folder:** a `SKILL.md` with the name, one-line description, triggers, and permissions (profile, domains, daily cap, which steps are irreversible); the recorded steps or the script; a dry-run test that stops at the irreversible step; a changelog with rollback. Three ways a skill is born: the user demonstrates once; the user points at docs; the agent finishes a task and offers to save it. Only names and one-liners sit in the prompt; the body loads on use.
+**A skill is a recipe card:** the first time you think hard, after that you follow the card and only think when something looks wrong. On disk it is a folder: a `SKILL.md` with the name, one-line description, triggers, and permissions (profile, domains, daily cap, which steps are irreversible); the recorded steps or the script; a dry-run test that stops at the irreversible step; a changelog with rollback. Three ways a skill is born: the user demonstrates once; the user points at docs; the agent finishes a task and offers to save it. Only names and one-liners sit in the prompt; the body loads on use.
 
 **Memory.** Two capped files in the persona, `MEMORY.md` and `USER.md`, plus a folder of markdown, all indexed by full-text search along with every past message. The harness records what it can verify with zero model tokens: files changed, commands run, sites visited, and any user message that starts with "no," "actually," "always," "never," or "don't," kept word for word as a correction. The after-action review writes the rest. Every fact has a source and a date. Nothing is deleted; a new fact supersedes the old one, which stays searchable. A memory hint of three lines rides below the cache line; the model searches for more.
 
@@ -290,7 +290,7 @@ flowchart TD
 
 ## 9. Safety, vault, reliability
 
-**Five safety rules.** One permission function on every tool: rules of tool, pattern, and action, last match wins, default ask. Every shell and file-writing tool runs in a sandbox (`bwrap` plus Landlock); the vault, the browser profile, and `~/.ssh` are always outside it, and if the sandbox is missing, `shell` is off. A tainted turn cannot do anything irreversible. Secrets are references, never values, and one redaction pass runs on everything that leaves the daemon. Everything is logged.
+**Five safety rules.** One permission function on every tool: rules of tool, pattern, and action, last match wins, default ask. Every shell and file-writing tool runs in a sandbox (`bwrap` plus Landlock); the vault, the browser profile, and `~/.ssh` are always outside it, and if the sandbox is missing, `shell` is off. A tainted turn cannot do anything irreversible. Nothing irreversible runs without a preview, the way you read a text back before you hit send. The sandbox is a workbench with a lip: what rolls off stays on the bench. Secrets are references, never values, and one redaction pass runs on everything that leaves the daemon. Everything is logged.
 
 **Vault.** An encrypted file with a 0600 key. Secrets are entered only in the terminal through a masked prompt, never over Signal. The model never sees a secret: it points at the fields and `browser_login` types them and the 2FA code. Sudo has its own path: a `shell` call with `escalate` and a reason shows a preview; on approval the harness runs it outside the sandbox with the vault's sudo entry. Nightly encrypted backups of the database, the vault, and the browser profile.
 

@@ -338,6 +338,30 @@ func TestAVaultFileThatWillNotDecryptIsRefusedByName(t *testing.T) {
 	}
 }
 
+func TestAVaultOpenedWithNoClockUsesTheMachinesOwnClock(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	opened, err := vault.Open(home, nil)
+	if err != nil {
+		t.Fatalf("opening the vault without a clock failed: %v", err)
+	}
+	defer func() { _ = opened.Close() }()
+	if err := opened.Add(vault.Entry{Name: "x-account", Site: "X", TOTPSecret: rfc6238Secret}); err != nil {
+		t.Fatalf("adding the entry failed: %v", err)
+	}
+
+	_, secondsLeft, err := opened.Code("x-account")
+	if err != nil {
+		t.Fatalf("making a code on the machine's own clock failed: %v", err)
+	}
+	wanted := vault.CodeSeconds - int(time.Now().Unix()%vault.CodeSeconds)
+	if secondsLeft < 1 || secondsLeft > vault.CodeSeconds {
+		t.Errorf("the code has %d seconds left, which is outside the window of %d", secondsLeft, vault.CodeSeconds)
+	}
+	if secondsLeft != wanted && secondsLeft != wanted-1 {
+		t.Errorf("the code has %d seconds left, want about %d from the machine's own clock", secondsLeft, wanted)
+	}
+}
+
 func TestTheVaultKeepsTheSecretsContract(t *testing.T) {
 	opened, _, _ := openTestVault(t)
 	if err := testkit.CheckSecrets(context.Background(), opened); err != nil {

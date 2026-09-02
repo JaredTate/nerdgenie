@@ -458,6 +458,7 @@ internal/tui/client_test.go
 internal/tui/clock.go
 internal/tui/doc.go
 internal/tui/envelope.go
+internal/tui/example_test.go
 internal/tui/frame_fuzz_test.go
 internal/tui/frame_test.go
 internal/tui/geometry.go
@@ -481,6 +482,7 @@ internal/tui/status.go
 internal/tui/status_test.go
 internal/tui/stream_test.go
 internal/tui/style.go
+internal/tui/testdata/example-frame.txt
 internal/tui/testdata/first-frame.txt
 internal/tui/transcript.go
 internal/tui/unixsocket.go

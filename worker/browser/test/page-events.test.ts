@@ -142,6 +142,42 @@ describe("a link that opens a new tab", () => {
   });
 });
 
+describe("a page that is a PDF", () => {
+  let worker: TestWorker;
+  let site: FixtureServer;
+
+  beforeAll(async () => {
+    site = await startFixtureServer();
+    worker = await startTestWorker();
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+    await site.stop();
+  });
+
+  it("saves the file under the profile folder and says plainly what it is", async () => {
+    const result = await worker.result("open", { url: site.page("report.pdf") });
+    expect(result["download"]).toEqual({
+      filename: "report.pdf",
+      path: join(worker.profile, "downloads", "report.pdf"),
+    });
+    const saved = await readFile(join(worker.profile, "downloads", "report.pdf"));
+    expect(saved.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    const elements = result["elements"] as SnapshotElement[];
+    expect(elements).toHaveLength(1);
+    expect(elements[0]?.role).toBe("article");
+    expect(elements[0]?.name).toContain("report.pdf");
+  });
+
+  it("finds no wall on it, and can still be read again afterwards", async () => {
+    await worker.result("open", { url: site.page("report.pdf") });
+    const again = await worker.result("read");
+    expect(again["wall"]).toBeNull();
+    expect(again["url"]).toContain("report.pdf");
+  });
+});
+
 describe("the walls, on real pages", () => {
   let worker: TestWorker;
   let site: FixtureServer;

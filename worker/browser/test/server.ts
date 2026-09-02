@@ -15,6 +15,7 @@ const PAGES = join(fileURLToPath(new URL(".", import.meta.url)), "pages");
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
+  ".pdf": "application/pdf",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
 };

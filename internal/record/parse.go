@@ -45,6 +45,10 @@ func Parse(text []byte) (contract.Record, error) {
 		return contract.Record{}, fmt.Errorf("this record has %d of its four parts, so check that it runs from %q to %q",
 			reading.headings, headingGoal, headingLessons)
 	}
+	if reading.record.Goal.Ask == "" {
+		return contract.Record{}, fmt.Errorf("this record names no ask, and a record opens with the user's message, as in %q",
+			`Ask: "post a tweet"`)
+	}
 	return reading.record, nil
 }
 

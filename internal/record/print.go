@@ -111,7 +111,7 @@ func printGoal(goal contract.Goal) []string {
 		return lines
 	}
 	lines = append(lines, labelDoneWhen)
-	arrows := anyLineIsProven(goal.DoneWhen)
+	arrows := arrowsAreNeeded(goal.DoneWhen)
 	for _, line := range goal.DoneWhen {
 		lines = append(lines, printDoneLine(line, arrows))
 	}
@@ -145,10 +145,15 @@ func proofOf(line contract.DoneLine) string {
 	return ""
 }
 
-// anyLineIsProven says whether any line of the done list has something behind it.
-func anyLineIsProven(lines []contract.DoneLine) bool {
+// arrowsAreNeeded says whether the done list is drawn with an arrow on every
+// line. It is, once any line has something behind it, so that the lines still
+// waiting are plain to see. It is also drawn when a line's own words end in an
+// arrow, because a bare arrow at the end of a line is the mark of a line waiting
+// for its proof, and without one of its own such a line would lose its last two
+// characters the next time the record was read.
+func arrowsAreNeeded(lines []contract.DoneLine) bool {
 	for _, line := range lines {
-		if proofOf(line) != "" {
+		if proofOf(line) != "" || strings.HasSuffix(line.Text, arrowEnd) {
 			return true
 		}
 	}

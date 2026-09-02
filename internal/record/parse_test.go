@@ -134,18 +134,6 @@ func manyOfEverything() contract.Record {
 	return held
 }
 
-// TestTheOneLetterLabelsAgreeWithTheContract holds this package's labels to the
-// identifiers the contract writes, because the two must never drift apart.
-func TestTheOneLetterLabelsAgreeWithTheContract(t *testing.T) {
-	ours := []string{correctionLabel + "1", decisionLabel + "7", failureLabel + "12"}
-	theirs := []string{contract.CorrectionID(1), contract.DecisionID(7), contract.FailureID(12)}
-	for at, mine := range ours {
-		if mine != theirs[at] {
-			t.Errorf("this package writes %q where the contract writes %q", mine, theirs[at])
-		}
-	}
-}
-
 // readGolden reads one of the two records the design wrote, from testdata.
 func readGolden(t *testing.T, name string) []byte {
 	t.Helper()

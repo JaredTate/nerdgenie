@@ -11,14 +11,6 @@ import (
 // for its result ends with.
 const arrowEnd = " ->"
 
-// The one-letter labels the lists of a record count with. They must agree with
-// the identifiers contract writes, and a unit test holds them to it.
-const (
-	correctionLabel = "C"
-	decisionLabel   = "D"
-	failureLabel    = "F"
-)
-
 // readItem reads one line that opens with "- ", which is one entry of whichever
 // list is open above it.
 func (reading *reader) readItem(text string) error {
@@ -129,13 +121,10 @@ func (reading *reader) provesADoneLine(candidate string) bool {
 // is kept in the user's own words and never edited.
 func (reading *reader) readCorrection(text string) error {
 	id, words, split := strings.Cut(text, " ")
-	number, isLabel := numberAfterLabel(id, correctionLabel)
-	if !split || !isLabel {
-		return reading.fail("a correction is labelled %q and then the user's own words in quotes", contract.CorrectionID(1))
-	}
 	corrections := reading.record.Rules.Corrections
-	if err := reading.countsUpwardsFrom(id, number, correctionLabel, lastCorrectionID(corrections)); err != nil {
-		return err
+	wanted := contract.CorrectionID(len(corrections) + 1)
+	if !split || id != wanted {
+		return reading.failRule(ErrIdentifiersOutOfOrder, "this correction is labelled %q and the next label is %q", id, wanted)
 	}
 	said, inQuotes := unquote(words)
 	if !inQuotes || said == "" {
@@ -259,13 +248,10 @@ func (reading *reader) readResultLine(text string) error {
 // readDecision reads one choice the model made, which must carry its reason.
 func (reading *reader) readDecision(text string) error {
 	id, body, split := strings.Cut(text, " ")
-	number, isLabel := numberAfterLabel(id, decisionLabel)
-	if !split || !isLabel {
-		return reading.fail("a decision is labelled %q and then the choice and its reason", contract.DecisionID(1))
-	}
 	decisions := reading.record.Lessons.Decisions
-	if err := reading.countsUpwardsFrom(id, number, decisionLabel, lastDecisionID(decisions)); err != nil {
-		return err
+	wanted := contract.DecisionID(len(decisions) + 1)
+	if !split || id != wanted {
+		return reading.failRule(ErrIdentifiersOutOfOrder, "this decision is labelled %q and the next label is %q", id, wanted)
 	}
 	what, reason, err := reading.splitAtJoin(body, reasonJoin, ErrDecisionNeedsReason, "a reason")
 	if err != nil {
@@ -278,13 +264,10 @@ func (reading *reader) readDecision(text string) error {
 // readFailure reads one thing that went wrong, which must carry its cause.
 func (reading *reader) readFailure(text string) error {
 	id, body, split := strings.Cut(text, " ")
-	number, isLabel := numberAfterLabel(id, failureLabel)
-	if !split || !isLabel {
-		return reading.fail("a failure is labelled %q and then what went wrong and its cause", contract.FailureID(1))
-	}
 	failures := reading.record.Lessons.Failures
-	if err := reading.countsUpwardsFrom(id, number, failureLabel, lastFailureID(failures)); err != nil {
-		return err
+	wanted := contract.FailureID(len(failures) + 1)
+	if !split || id != wanted {
+		return reading.failRule(ErrIdentifiersOutOfOrder, "this failure is labelled %q and the next label is %q", id, wanted)
 	}
 	what, cause, err := reading.splitAtJoin(body, causeJoin, ErrFailureNeedsCause, "a cause")
 	if err != nil {
@@ -292,13 +275,6 @@ func (reading *reader) readFailure(text string) error {
 	}
 	reading.record.Lessons.Failures = append(failures, contract.Failure{ID: id, Text: what, Cause: cause})
 	return nil
-}
-
-// countsUpwardsFrom is countsUpwards for the lists whose labels are one letter
-// and a number.
-func (reading *reader) countsUpwardsFrom(id string, number int, label string, before string) error {
-	beforeNumber, _ := numberAfterLabel(before, label)
-	return reading.countsUpwards(id, number, before, beforeNumber)
 }
 
 // splitAtJoin cuts a lesson into what happened and why, which is the rule that
@@ -319,31 +295,6 @@ func (reading *reader) splitAtJoin(body string, join string, rule error, needs s
 	return unfoldText(what), unfoldText(why), nil
 }
 
-// lastCorrectionID is the label of the correction before this one, or nothing
-// when this is the first.
-func lastCorrectionID(corrections []contract.Correction) string {
-	if len(corrections) == 0 {
-		return ""
-	}
-	return corrections[len(corrections)-1].ID
-}
-
-// lastDecisionID is the label of the decision before this one.
-func lastDecisionID(decisions []contract.Decision) string {
-	if len(decisions) == 0 {
-		return ""
-	}
-	return decisions[len(decisions)-1].ID
-}
-
-// lastFailureID is the label of the failure before this one.
-func lastFailureID(failures []contract.Failure) string {
-	if len(failures) == 0 {
-		return ""
-	}
-	return failures[len(failures)-1].ID
-}
-
 // ResultNumber reads the number out of a result label, and says whether the label
 // is one this kind of record writes: "r7" on a task, "j4.2" on job number four.
 func ResultNumber(header contract.Header, id string) (int, bool) {
@@ -361,16 +312,6 @@ func nextResultID(header contract.Header, sofar int) string {
 		return contract.ReportID(header.ID, sofar+1)
 	}
 	return contract.ResultID(sofar + 1)
-}
-
-// numberAfterLabel reads the number after a one-letter label, such as the 1 in
-// "C1".
-func numberAfterLabel(id string, label string) (int, bool) {
-	rest, found := strings.CutPrefix(id, label)
-	if !found {
-		return 0, false
-	}
-	return readCount(rest)
 }
 
 // readCount reads a whole number of at least one, written the way this package

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -100,10 +101,32 @@ func New(ctx context.Context, store contract.Store, start Start) (*Keeper, error
 		header.RoundsLeft, header.MinutesLeft = start.RoundsLeft, start.MinutesLeft
 	}
 	keeper := &Keeper{store: store, record: contract.Record{Header: header, Goal: contract.Goal{Ask: start.Ask}}}
+	if err := checkItReadsBack(keeper.record); err != nil {
+		return nil, err
+	}
 	if err := keeper.save(ctx); err != nil {
 		return nil, err
 	}
 	return keeper, nil
+}
+
+// checkItReadsBack refuses a record whose printed form would read back as
+// something else. It is what makes the promise of this package true rather than
+// merely intended: the record and its text always say the same thing, so a task
+// put down for days and picked up again is the task that was put down. A piece of
+// text that cannot be written without changing the record's meaning is refused
+// here, where the writer can rephrase it, rather than quietly rewritten later.
+func checkItReadsBack(held contract.Record) error {
+	printed := Print(held)
+	read, err := Parse(printed)
+	if err != nil {
+		return fmt.Errorf("this change writes a record that cannot be read back, so shorten it or rephrase it: %w", err)
+	}
+	if !reflect.DeepEqual(read, held) {
+		return fmt.Errorf("this change writes a record that reads back as something else, so rephrase the text: it may not carry %q, %q, %q, or %q where a line of a record puts its own marks",
+			arrow, ", ", reasonJoin, causeJoin)
+	}
+	return nil
 }
 
 // Hold makes a keeper over a record that is already written, which is what the

@@ -98,7 +98,10 @@ func (reading *reader) readHeader(text string) error {
 	}
 	fields := strings.Split(rest, headerGap)
 	kindText, id, split := strings.Cut(fields[0], " ")
-	if !split || id == "" {
+	// The number must really be a number: a job's reports are labelled from it,
+	// as "j4.2" is from job four, and a job labelled anything else would write
+	// reports that nothing could read back.
+	if _, isNumber := readCount(id); !split || !isNumber {
 		return reading.fail("the first field is %q, and it must be the kind and the number, as in %q", fields[0], "task 17")
 	}
 	kind := contract.RecordKind(kindText)

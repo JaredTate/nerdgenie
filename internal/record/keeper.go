@@ -75,8 +75,9 @@ func New(ctx context.Context, store contract.Store, start Start) (*Keeper, error
 	if start.Kind != contract.RecordTask && start.Kind != contract.RecordJob {
 		return nil, fmt.Errorf("the kind %q is neither a task nor a job, so say which one this record is", start.Kind)
 	}
-	if start.ID == "" {
-		return nil, errors.New("a record needs the number of its task or job, so pass one")
+	if _, isNumber := readCount(start.ID); !isNumber {
+		return nil, fmt.Errorf("a record is numbered, and %q is not a whole number of at least one, so pass a number such as %q",
+			start.ID, "17")
 	}
 	if start.Ask == "" {
 		return nil, errors.New("a record needs the user's ask, word for word, so pass the message")

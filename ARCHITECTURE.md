@@ -19,40 +19,39 @@ signal ────┘   (JSON lines)        │           └── desktop wor
 
 ## Packages and their one-sentence jobs
 
-Packages import only downward in this list. Anything two packages both need is in `internal/contract`.
+Packages are listed in build order, and a package may import only packages listed above it. Anything two packages both need is in `internal/contract`.
 
 | Package | Job | Wave |
 |---|---|---|
 | `internal/contract` | Every interface, type, and constant that crosses a wave boundary, with no dependencies | 0 |
-| `internal/testkit` | Every fake, the golden-file helper, the replayer, and the forty-step fixture | 1 |
+| `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0 |
 | `internal/log` | The append-only event log in SQLite | 1 |
 | `internal/record` | The task record: parse, print, enforce its rules, checkpoint, fold | 1 |
 | `internal/config` | The configuration file and the home folder layout | 1 |
-| `internal/lint` | The plain-English style checker, used only in tests | 1 |
+| `internal/lint` | The plain-English style checker, used only by `make check` | 0 |
 | `internal/provider` | Turn a prompt into a streamed reply through the Anthropic or OpenAI-compatible API, with retries and the fallback chain | 1 |
 | `internal/repair` | Find the tool calls in a model reply, however the model wrote them | 1 |
 | `internal/context` | Build the working context from the layers, sized to the model | 2 |
-| `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat | 2 |
-| `internal/review` | The done-check and the after-action review | 2 |
+| `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat; the done-check and the after-action review | 3 |
 | `internal/tool` | The tool registry and the built-in tools, one folder each | 2 |
 | `internal/permission` | Decide allow, ask, or deny for a tool call | 2 |
-| `internal/sandbox` | Run a command inside bwrap and Landlock | 3 |
+| `internal/sandbox` | Run a command inside bwrap and Landlock | 2 |
 | `internal/channel` | The queue, the event stream, and the local socket | 3 |
-| `internal/command` | The slash commands, defined once for every screen | 3 |
-| `internal/tui` | The terminal screen | 4 |
-| `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 4 |
-| `internal/vault` | The encrypted secret store, the resolver, TOTP, redaction | 4 |
+| `internal/command` | The command registry and the core slash commands | 3 |
+| `internal/tui` | The terminal screen | 3 |
+| `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3 |
+| `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2 |
 | `internal/reliability` | Leases, ledgers, sentinels, the breaker, the watchdog feed, backups | 4 |
-| `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 5 |
-| `internal/skill` | The skill folder format, loading, learning, replay | 5 |
-| `internal/browser` | The Go side of the browser: worker lifecycle, tools, login, handoff | 6 |
-| `internal/schedule` | Scheduled jobs | 7 |
-| `internal/desktop` | The Go side of the desktop worker | 7 |
-| `internal/update` | Install, update, rollback, backup, restore | 7 |
-| `internal/replay` | Re-run any logged task as a test | 7 |
-| `cmd/coeus` | The binary and its subcommands | 3 |
-| `worker/browser` | The TypeScript browser worker | 6 |
-| `worker/desktop` | The TypeScript desktop worker | 7 |
+| `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 4 |
+| `internal/skill` | The skill folder format, loading, learning, replay | 4 |
+| `internal/browser` | The Go side of the browser: worker lifecycle, login, handoff | 5 |
+| `internal/schedule` | Scheduled jobs | 4 |
+| `internal/desktop` | The Go side of the desktop worker | 6 |
+| `internal/update` | Update, rollback, migrations | 6 |
+| `internal/replay` | Re-run any logged task as a test | 6 |
+| `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 3 onward |
+| `worker/browser` | The TypeScript browser worker | 5 |
+| `worker/desktop` | The TypeScript desktop worker | 6 |
 
 ## The contracts (planned, wave 0)
 
@@ -63,6 +62,13 @@ Packages import only downward in this list. Anything two packages both need is i
 - `Channel`: receive, send, send a file, preview and collect a decision, masked prompt, health.
 - `Permission`: decide allow, ask, or deny; the answers once, always for the session, reject with a reason.
 - `Memory`: search, get, save, hint.
+- `Command`: name, help line, run function; each package exports its slash commands as values and `serve.go` registers them.
+- `Skill`: list, load, run, save.
+- `Schedule`: add, list, run, disable.
+- `Sandbox`: run a command inside the fence.
+- `Secrets`: resolve a reference, get the sudo password, redact text.
+- `BrowserWorker`: the methods in `worker/browser/PROTOCOL.md`.
+- `Desktop`: launch, screenshot, click, type, key, drag, clipboard.
 - `Clock`: now, sleep, ticker.
 - `Store`: the event log's write and read shapes.
 - The record types, the configuration struct with defaults, and the exit codes (75 restart me, 78 bad configuration).
@@ -70,11 +76,11 @@ Packages import only downward in this list. Anything two packages both need is i
 
 ## The local socket (planned, wave 3)
 
-The terminal and any future screen attach to the running program over a Unix socket at `~/.coeus/run/coeus.sock`, speaking newline-delimited JSON. Message types from the screen: `message`, `command`, `approve`, `deny`, `secret` (for the masked prompt), `attach`, `detach`. Message types from the program: `delta`, `reply`, `preview`, `ask`, `handoff`, `status`, `error`. The Signal channel does not use the socket; it runs inside the program and feeds the same queue.
+The terminal and any future screen attach to the running program over a Unix socket at `~/.coeus/run/coeus.sock`, speaking newline-delimited JSON. Message types from the screen: `message`, `command`, `approve`, `deny`, `secret` (for the masked prompt), `attach`, `detach`. Message types from the program: `delta`, `reply`, `preview`, `ask`, `handoff`, `status`, `error`. The socket is itself a channel. The Signal channel does not use it; it runs inside the program and feeds the same queue.
 
-## The browser worker protocol (planned, wave 0 document, wave 6 code)
+## The browser worker protocol (planned, wave 0 document, wave 5 code)
 
-`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, and `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
 
 ## Data on disk (planned)
 
@@ -96,7 +102,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## Test architecture
 
-Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and the two real models (Opus 4.8 and the local Qwen) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
+Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen through Ollama, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
 
 ## Repository map
 

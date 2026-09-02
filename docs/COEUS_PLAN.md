@@ -214,7 +214,7 @@ The prompt is built in layers. They are ordered from the part that changes least
 
 ## 5. What the model is told
 
-The model works inside a harness. It cannot do its job well unless it understands what the harness does for it and what the harness expects from it. So the first thing in every prompt, before the persona and before the tools, is a short explanation of the harness written for the model. It is the same on every model, and it is under three hundred words. Here it is in full.
+The model works inside a harness. It cannot do its job well unless it understands what the harness does for it and what the harness expects from it. So the first thing in every prompt, before the persona and before the tools, is a short explanation of the harness written for the model. It is the same on every model, and it is under four hundred words. Here it is in full.
 
 > **Where you are.** You are the reasoning engine inside Coeus, an assistant that runs on the user's computer. You do not remember earlier calls. The harness around you does. On every call it gives you, in this order: these rules, your persona, your tools, the record of the current task, any evidence that has been pinned, the most recent messages, and a short memory hint. Everything else that ever happened is stored on disk, and you can fetch any past result by its id.
 >

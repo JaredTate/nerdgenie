@@ -21,6 +21,14 @@ export interface Pacing {
   dragSteps: number
   /** How long the whole drag takes. */
   dragMilliseconds: number
+  /** How long the window must hold still before it counts as settled. */
+  settleQuiet: number
+  /** The longest the worker waits for a window to settle. */
+  settleLimit: number
+  /** The longest the worker waits for a launched application to show a window. */
+  launchWait: number
+  /** How often it looks for that window while it waits. */
+  launchCheck: number
 }
 
 /** The pacing a person would move at, which is what the agent uses. */
@@ -32,6 +40,10 @@ const humanPacing: Pacing = {
   typingGap: 90,
   dragSteps: 24,
   dragMilliseconds: 600,
+  settleQuiet: 300,
+  settleLimit: 3_000,
+  launchWait: 10_000,
+  launchCheck: 250,
 }
 
 /** The pacing the tests use, which waits for nothing it does not have to. */
@@ -43,6 +55,10 @@ const fastPacing: Pacing = {
   typingGap: 0,
   dragSteps: 4,
   dragMilliseconds: 0,
+  settleQuiet: 30,
+  settleLimit: 600,
+  launchWait: 300,
+  launchCheck: 30,
 }
 
 /** The two profiles, by the name the command line writes. */

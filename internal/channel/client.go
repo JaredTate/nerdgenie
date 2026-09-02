@@ -178,8 +178,13 @@ func (socket *Socket) handle(attached *client, envelope contract.SocketEnvelope)
 		return socket.answerPreview(attached, envelope, approvalIn(envelope))
 	case contract.SocketDeny:
 		return socket.answerPreview(attached, envelope, contract.AnswerReject)
-	default:
+	case contract.SocketSecret:
 		return socket.answerPrompt(attached, envelope)
+	default:
+		// The line reader refuses every other type before it reaches here, so
+		// this can only happen if the two ever drift apart, and then doing
+		// nothing is the safe thing to do.
+		return nil
 	}
 }
 

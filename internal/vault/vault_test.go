@@ -15,7 +15,7 @@ import (
 )
 
 // openTestVault opens a vault in a temporary home with a clock a test controls.
-func openTestVault(t *testing.T) (*vault.Vault, contract.Home, *testkit.FakeClock) {
+func openTestVault(t testing.TB) (*vault.Vault, contract.Home, *testkit.FakeClock) {
 	t.Helper()
 	home := testkit.NewTempHome(t)
 	clock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
@@ -53,7 +53,7 @@ func threeEntries() []vault.Entry {
 }
 
 // addThreeEntries puts the three round-trip entries in the vault.
-func addThreeEntries(t *testing.T, opened *vault.Vault) {
+func addThreeEntries(t testing.TB, opened *vault.Vault) {
 	t.Helper()
 	for _, entry := range threeEntries() {
 		if err := opened.Add(entry); err != nil {

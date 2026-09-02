@@ -96,13 +96,13 @@ var mainFieldsByTool = map[string][]string{
 	contract.ToolWeb:            {"url", "query"},
 	contract.ToolSkill:          {"name"},
 	contract.ToolJob:            {"name"},
-	contract.ToolBrowserOpen:    {"url"},
-	contract.ToolBrowserRead:    {"url"},
+	contract.ToolBrowserOpen:    {"url", "intent"},
+	contract.ToolBrowserRead:    {"url", "intent"},
 	contract.ToolBrowserClick:   {"intent", "element"},
-	contract.ToolBrowserType:    {"intent", "element"},
+	contract.ToolBrowserType:    {"intent", "element", "text"},
 	contract.ToolBrowserAct:     {"intent"},
-	contract.ToolBrowserLogin:   {"url", "site"},
-	contract.ToolBrowserHandoff: {"reason"},
+	contract.ToolBrowserLogin:   {"site", "url"},
+	contract.ToolBrowserHandoff: {"intent", "reason"},
 	contract.ToolComputer:       {"intent"},
 }
 

@@ -27,7 +27,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0, built |
 | `internal/log` | The append-only event log in SQLite | 1, built |
 | `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
-| `internal/config` | The configuration file and the home folder layout | 1 |
+| `internal/config` | The configuration file and the home folder layout | 1, built |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0, built |
 | `internal/provider` | Turn a prompt into a streamed reply through the Anthropic API, the OpenAI-compatible API, or a vendor's command-line program on a subscription, with retries and the fallback chain | 1 |
 | `internal/repair` | Find the tool calls in a model reply, however the model wrote them | 1 |
@@ -83,7 +83,9 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 `worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, and `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
 
-## Data on disk (planned)
+## Data on disk (built, wave 1)
+
+`internal/config` owns this layout and the one file at the top of it. The root is the folder `$COEUS_HOME` names when that variable is set and `~/.coeus` otherwise; `config.Root` and `config.HomeFolder` are the only places that decide, and every path below comes from the helpers on `contract.Home`. `$COEUS_HOME` is the only environment variable Coeus reads.
 
 ```
 ~/.coeus/
@@ -100,6 +102,52 @@ The terminal and any future screen attach to the running program over a Unix soc
   run/                   the socket and the lock
   backups/               nightly encrypted archives
 ```
+
+`config.Load` reads `config.toml` once at startup. It starts from
+`contract.DefaultConfig`, decodes the file over it, fills in the three fields
+whose default is a place rather than a value (the browser profile, the backup
+folder, and the sandbox roots), and then checks every field, so a missing file
+and an empty file are both valid configurations. Decoding is strict: a key the
+configuration does not have is refused rather than ignored. The keys are the
+`toml` tags on `contract.Config`, which write each field name in lower case with
+underscores between the words, so `DefaultModel` is `default_model` and
+`BaseAddress` is `base_address`; a key run together without the underscores, such
+as `defaultmodel`, is refused as unknown. The model aliases are a table array of
+`[[models]]` blocks, the caps live in `[caps]` and `[memory_caps]`, and a length
+of time may be written either as a string such as `"30m"` or as a whole number of
+nanoseconds. Every refusal is a
+`config.Problem`, which prints as `path:line: key: what to do`; the line comes
+from the TOML library when it reports one and from this package's own scan of
+the file otherwise.
+
+The checks are the rules the rest of the program may then assume: every alias has
+a provider kind from `contract.ProviderKinds`, an address or a vendor program to
+match it, a model name, and a context length above zero; a key is a
+`secret://name` reference and never a key; the default model and every fallback
+name an alias that exists; every cap and every length of time is above zero; a
+Signal account is a phone number in international form; every entry kept on the
+ask-me-first list is one of the three `contract.DefaultAskMeFirst` ships, and an
+emptied list is allowed; every permission rule the user writes names a tool, has
+a pattern, and says `allow`, `ask`, or `deny`, never `stop`, which is what the
+permission function decides on its own for an unattended run; and no sandbox root
+is,
+or sits inside, the paths `contract.ExcludedFromSandbox` names, nor sits above
+the user's home directory. The user's home directory itself is allowed, because
+that is `contract.DefaultSandboxRoots` and the sandbox masks the excluded paths
+out of it.
+
+`config.Doctor` reads a home folder and returns a `config.Report`: one `Finding`
+per check, and a `Verdict` that is the worst of them. The line about
+`config.toml` says which model the file reaches for, how much of the
+ask-me-first list the user kept, and how many rules of their own they wrote. A warning means something
+Coeus can work without is switched off, such as a missing browser or a Signal
+account that has not been linked; a problem means something is broken, such as a
+vault key other accounts can read or a configuration that will not load. The
+doctor changes nothing at all: it stats the layout, loads the configuration,
+looks for `signal-cli`, `bwrap`, `rg`, `google-chrome` or `chromium`, and `node`
+on the PATH, and makes one read-only request to the local model daemon's health
+endpoint, which it works out from the base address of the `local` alias. `coeus
+init` and `coeus doctor` in wave 3 both print `Report.String()`.
 
 ### The event log inside `coeus.db` (built, wave 1)
 

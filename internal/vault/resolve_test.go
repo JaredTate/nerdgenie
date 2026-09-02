@@ -77,8 +77,15 @@ func TestAnEntryPrintsAsSecretAndTurnsIntoTheSameJSON(t *testing.T) {
 		TOTPSecret: "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
 	}
 
-	for _, printed := range []string{fmt.Sprint(entry), fmt.Sprintf("%v", entry), fmt.Sprintf("%s", entry), entry.String()} {
-		if printed != vault.SecretTextForm {
+	printedForms := []string{fmt.Sprint(entry), entry.String()}
+	for _, verb := range []string{"%v", "%s", "%q", "the login is %v"} {
+		printedForms = append(printedForms, fmt.Sprintf(verb, entry))
+	}
+	for _, printed := range printedForms {
+		if strings.Contains(printed, "correct-horse") || strings.Contains(printed, "jared") {
+			t.Errorf("an entry printed as %q, which shows what it holds", printed)
+		}
+		if !strings.Contains(printed, vault.SecretTextForm) {
 			t.Errorf("an entry printed as %q, want %q", printed, vault.SecretTextForm)
 		}
 	}

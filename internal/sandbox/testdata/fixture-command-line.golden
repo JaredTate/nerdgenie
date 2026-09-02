@@ -51,6 +51,9 @@ xterm-256color
 --setenv
 GIT_AUTHOR_NAME
 Example
+--setenv
+COEUS_INSIDE_SANDBOX
+1
 --chdir
 /home/example/work
 --

@@ -107,6 +107,8 @@ func buildArguments(plan fencePlan) []string {
 		arguments = append(arguments, "--setenv", name, value)
 	}
 
+	arguments = append(arguments, "--setenv", FenceMarkerVariable, fenceMarkerValue)
+
 	arguments = append(arguments, "--chdir", plan.workingDirectory, optionsEndMarker)
 	arguments = append(arguments, plan.helperProgram, EntrySubcommandName)
 	arguments = append(arguments, helperOptions(plan)...)

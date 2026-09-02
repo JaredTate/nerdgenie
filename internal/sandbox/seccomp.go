@@ -8,6 +8,10 @@ package sandbox
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
+	"syscall"
+	"unsafe"
 )
 
 // systemCall is one system call the filter answers with "operation not
@@ -116,4 +120,52 @@ func encodeSeccompProgram(program []filterWord) []byte {
 		encoded = append(encoded, one...)
 	}
 	return encoded
+}
+
+// setNoNewPrivilegesOption is the number of the prctl option that stops this
+// process and everything it starts from ever gaining privileges again. The
+// kernel insists on it before it will take a seccomp filter, and Landlock
+// insists on it too.
+const setNoNewPrivilegesOption = 38
+
+// The two numbers that install a filter: the prctl option that takes one, and
+// the one mode it accepts.
+const (
+	setSeccompFilterOption = 22
+	filterMode             = 2
+)
+
+// filterProgram is what the kernel is handed: how many instructions there are
+// and where they start. Go lays these two fields out the way the kernel's
+// sock_fprog does on both architectures this package builds for.
+type filterProgram struct {
+	length      uint16
+	instruction *filterWord
+}
+
+// setNoNewPrivileges stops this process and everything it starts from gaining
+// privileges again, which the kernel requires before it will take either
+// restriction.
+func setNoNewPrivileges() error {
+	_, _, errorNumber := syscall.Syscall6(syscall.SYS_PRCTL, setNoNewPrivilegesOption, 1, 0, 0, 0, 0)
+	if errorNumber != 0 {
+		return fmt.Errorf("the kernel refused to set the no-new-privileges flag, which every later restriction needs: %w", errorNumber)
+	}
+	return nil
+}
+
+// applySeccomp installs the filter on this thread and on everything it starts,
+// including the program it is about to become. It can never be undone, which is
+// why nothing calls it but the helper inside the fence.
+func applySeccomp(program []filterWord) error {
+	if len(program) == 0 {
+		return errors.New("the sandbox was asked to install an empty seccomp filter, which would answer nothing, so build the filter first")
+	}
+	handed := filterProgram{length: uint16(len(program)), instruction: &program[0]}
+	_, _, errorNumber := syscall.Syscall6(syscall.SYS_PRCTL, setSeccompFilterOption, filterMode,
+		uintptr(unsafe.Pointer(&handed)), 0, 0, 0)
+	if errorNumber != 0 {
+		return fmt.Errorf("the kernel refused the seccomp filter of %d instructions, so check that the no-new-privileges flag was set first: %w", len(program), errorNumber)
+	}
+	return nil
 }

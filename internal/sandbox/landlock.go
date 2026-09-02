@@ -199,3 +199,28 @@ func addLandlockRule(rulesetFile int, folder string, allowed uint64) error {
 	}
 	return nil
 }
+
+// restrictWithLandlock applies a ruleset to this thread and to everything it
+// starts, including the program it is about to become. It can never be undone,
+// which is why nothing calls it but the helper inside the fence.
+func restrictWithLandlock(rulesetFile int) error {
+	if _, _, errorNumber := syscall.Syscall(restrictSelfCall, uintptr(rulesetFile), 0, 0); errorNumber != 0 {
+		return fmt.Errorf("the kernel refused to apply the Landlock ruleset, so check that the no-new-privileges flag was set first: %w", errorNumber)
+	}
+	return nil
+}
+
+// applyLandlock builds the ruleset and applies it, and returns the Landlock
+// version it was built against so that the helper can say so in its one line.
+func applyLandlock(readable []string, writable []string) (int, error) {
+	rulesetFile, version, err := buildLandlockRuleset(readable, writable)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = syscall.Close(rulesetFile) }()
+
+	if err := restrictWithLandlock(rulesetFile); err != nil {
+		return 0, err
+	}
+	return version, nil
+}

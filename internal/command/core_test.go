@@ -79,7 +79,9 @@ func TestStatusShowsTheModelTheCostTheJobsTheAnswersWaitingAndTheHealth(t *testi
 		Settings:     threeAliases(),
 		Jobs:         jobs,
 		CurrentModel: func() string { return "local" },
-		CostSoFar:    func() contract.CostLine { return contract.CostLine{InputTokens: 6100, CachedInputTokens: 5200, OutputTokens: 400} },
+		CostSoFar: func() contract.CostLine {
+			return contract.CostLine{InputTokens: 6100, CachedInputTokens: 5200, OutputTokens: 400}
+		},
 		PendingPreviews: func(_ context.Context) ([]contract.Preview, error) {
 			return []contract.Preview{{ID: "3", Title: "post the anniversary tweet", Body: "DigiByte turns twelve today."}}, nil
 		},

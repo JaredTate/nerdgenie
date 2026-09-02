@@ -92,12 +92,12 @@ func TestTheListingOfAnEmptyVaultSaysSo(t *testing.T) {
 	}
 }
 
-func TestAddingAnEntryAsksForEveryValueAndShowsNone(t *testing.T) {
+func TestAddingAnEntryTakesThePlainFieldsFromTheLineAndMasksOnlyTheSecrets(t *testing.T) {
 	opened, _, _ := openTestVault(t)
 	terminal := testkit.NewFakeChannel("terminal")
 	terminal.AnswerSecretWith("hunter2")
 
-	reply := runVaultCommand(t, opened, terminal, "add mail")
+	reply := runVaultCommand(t, opened, terminal, "add mail Fastmail fastmail.com,fastmail.fm someone")
 	if strings.Contains(reply, "hunter2") {
 		t.Errorf("the reply to add is %q and shows what was typed", reply)
 	}
@@ -109,8 +109,40 @@ func TestAddingAnEntryAsksForEveryValueAndShowsNone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolving the entry that was just added failed: %v", err)
 	}
+	if credential.Site != "Fastmail" {
+		t.Errorf("the site was stored as %q, want the one typed in the open on the command line", credential.Site)
+	}
+	if credential.Username != "someone" {
+		t.Errorf("the login name was stored as %q, want the one typed in the open", credential.Username)
+	}
+	if len(credential.Domains) != 2 || credential.Domains[0] != "fastmail.com" || credential.Domains[1] != "fastmail.fm" {
+		t.Errorf("the domains were stored as %v, want both of the ones on the command line", credential.Domains)
+	}
 	if credential.Password != "hunter2" {
-		t.Errorf("the entry was stored with the password %q, want what was typed", credential.Password)
+		t.Errorf("the password was stored as %q, want the one from the masked prompt", credential.Password)
+	}
+}
+
+func TestAddingAnEntryWithoutAllFourFieldsPrintsTheForm(t *testing.T) {
+	opened, _, _ := openTestVault(t)
+	terminal := testkit.NewFakeChannel("terminal")
+	terminal.AnswerSecretWith("hunter2")
+
+	tooFew := []string{
+		"add",
+		"add mail",
+		"add mail Fastmail",
+		"add mail Fastmail fastmail.com",
+		"add " + vault.SudoEntryName + " and something else",
+	}
+	for _, arguments := range tooFew {
+		reply := runVaultCommand(t, opened, terminal, arguments)
+		if !strings.Contains(reply, "<site>") || !strings.Contains(reply, "<username>") {
+			t.Errorf("the reply to %q is %q and does not print the form to write", arguments, reply)
+		}
+		if listed := opened.List(); len(listed) != 0 {
+			t.Fatalf("%q added an entry even though the line was short", arguments)
+		}
 	}
 }
 
@@ -122,6 +154,11 @@ func TestAddingTheSudoEntryAsksOnlyForThePassword(t *testing.T) {
 	reply := runVaultCommand(t, opened, terminal, "add "+vault.SudoEntryName)
 	if strings.Contains(reply, "the-machine-password") {
 		t.Errorf("the reply to adding the sudo entry is %q and shows the password", reply)
+	}
+
+	listed := opened.List()
+	if len(listed) != 1 || listed[0].Name != vault.SudoEntryName || listed[0].Site != "" {
+		t.Errorf("the sudo entry came out as %v, want a name on its own with no site to ask for", listed)
 	}
 
 	password, err := opened.SudoPassword(context.Background())
@@ -138,7 +175,7 @@ func TestAddingIsRefusedOverAChannelThatCannotHideTyping(t *testing.T) {
 	terminal := testkit.NewFakeChannel("terminal")
 	terminal.CannotMaskSecrets()
 
-	reply := runVaultCommand(t, opened, terminal, "add mail")
+	reply := runVaultCommand(t, opened, terminal, "add mail Fastmail fastmail.com someone")
 	if !strings.Contains(reply, "terminal") {
 		t.Errorf("the reply is %q and does not say where a secret can be entered", reply)
 	}
@@ -227,7 +264,7 @@ func TestAddingAnEntryTheVaultWillNotTakeIsAnError(t *testing.T) {
 	command := vault.NewCommand(opened)
 
 	tooLong := strings.Repeat("n", 200)
-	if _, err := command.Run(context.Background(), "add "+tooLong, contract.CommandContext{Channel: terminal}); err == nil {
+	if _, err := command.Run(context.Background(), "add "+tooLong+" Fastmail fastmail.com someone", contract.CommandContext{Channel: terminal}); err == nil {
 		t.Errorf("an entry with a name far over the limit was added")
 	}
 	if listed := opened.List(); len(listed) != 0 {
@@ -239,7 +276,7 @@ func TestAWordTheVaultCommandDoesNotKnowPrintsTheFourItDoes(t *testing.T) {
 	opened, _, _ := openTestVault(t)
 	terminal := testkit.NewFakeChannel("terminal")
 
-	for _, arguments := range []string{"frobnicate", "add", "remove", "test"} {
+	for _, arguments := range []string{"frobnicate", "remove", "test"} {
 		reply := runVaultCommand(t, opened, terminal, arguments)
 		for _, wanted := range []string{"list", "add", "remove", "test"} {
 			if !strings.Contains(reply, wanted) {

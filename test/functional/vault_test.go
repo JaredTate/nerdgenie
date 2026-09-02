@@ -31,19 +31,9 @@ func TestASecretGoesInThroughTheTerminalAndNeverComesBackOut(t *testing.T) {
 	command := vault.NewCommand(store)
 	where := contract.CommandContext{Channel: terminal}
 
-	// The fake channel answers every masked prompt with the same text, so the
-	// login with five values is added the way the command adds it, and the sudo
-	// entry, which is one prompt and one value, goes the whole way through the
-	// command.
-	login := vault.Entry{
-		Name:     "x-account",
-		Site:     "X",
-		Domains:  []string{"x.com"},
-		Username: "jared",
-		Password: "correct-horse-battery-staple",
-	}
-	if err := store.Add(login); err != nil {
-		t.Fatalf("adding the login failed: %v", err)
+	terminal.AnswerSecretWith("correct-horse-battery-staple")
+	if _, err := command.Run(ctx, "add x-account X x.com jared", where); err != nil {
+		t.Fatalf("adding the login in the terminal failed: %v", err)
 	}
 	terminal.AnswerSecretWith("the-machine-password")
 	if _, err := command.Run(ctx, "add "+vault.SudoEntryName, where); err != nil {

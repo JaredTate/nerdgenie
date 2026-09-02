@@ -46,6 +46,8 @@ func TestArgumentsThatAreNotAnObjectAreRefusedWithTheShapeTheToolExpects(t *test
 		"a number":                `{"name": "read", "arguments": 5}`,
 		"a string of no JSON":     `{"name": "read", "arguments": "a.txt"}`,
 		"a string of a JSON list": `{"name": "read", "arguments": "[1, 2]"}`,
+		"a string of an object with more written after it": `{"name": "read", ` +
+			`"arguments": "{\"path\": \"a.txt\"} and then some"}`,
 	}
 
 	for about, written := range cases {

@@ -39,7 +39,9 @@ func TestAMessageThroughTheFakeChannelGetsAScriptedReplyInUnderASecond(t *testin
 	}
 
 	started := time.Now()
-	channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "when did DigiByte launch?"})
+	if err := channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "when did DigiByte launch?"}); err != nil {
+		t.Fatalf("pushing the message failed: %v", err)
+	}
 
 	if err := answerOneMessage(ctx, inbound, model, channel); err != nil {
 		t.Fatalf("answering the message failed: %v", err)
@@ -78,7 +80,9 @@ func TestAScriptThatExpectsSomethingTheMessageLostFailsLoudly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("attaching to the channel failed: %v", err)
 	}
-	channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "what is the date?"})
+	if err := channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "what is the date?"}); err != nil {
+		t.Fatalf("pushing the message failed: %v", err)
+	}
 
 	if err := answerOneMessage(ctx, inbound, model, channel); err == nil {
 		t.Fatal("a message that lost the correction was answered anyway, want an error naming what went missing")

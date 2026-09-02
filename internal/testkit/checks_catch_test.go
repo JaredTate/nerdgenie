@@ -37,6 +37,15 @@ func (silentlyUnwellChannel) Health(context.Context) contract.ChannelHealth {
 	return contract.ChannelHealth{Healthy: false}
 }
 
+// clingyChannel hands back a stream that stays open after the context that
+// asked for it was cancelled.
+type clingyChannel struct{ *testkit.FakeChannel }
+
+// Receive hands back a stream nothing ever closes.
+func (clingyChannel) Receive(context.Context) (<-chan contract.Inbound, error) {
+	return make(chan contract.Inbound), nil
+}
+
 func TestTheChannelCheckCatchesAChannelThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -46,6 +55,7 @@ func TestTheChannelCheckCatchesAChannelThatBreaksOnePromise(t *testing.T) {
 		{"a channel with no name", namelessChannel{testkit.NewFakeChannel("terminal")}},
 		{"a channel that answers a preview with a word nobody knows", confusedChannel{testkit.NewFakeChannel("terminal")}},
 		{"a channel that is unwell and will not say why", silentlyUnwellChannel{testkit.NewFakeChannel("terminal")}},
+		{"a channel whose stream never closes", clingyChannel{testkit.NewFakeChannel("terminal")}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

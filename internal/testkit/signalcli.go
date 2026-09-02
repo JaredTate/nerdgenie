@@ -84,8 +84,10 @@ func (daemon *FakeSignalCLI) RemoteProcedureAddress() string {
 	return daemon.server.URL + SignalRemoteProcedurePath
 }
 
-// PushMessage puts one inbound message on the stream, with any attachments.
-func (daemon *FakeSignalCLI) PushMessage(sender string, text string, attachments ...string) {
+// PushMessage puts one inbound message on the stream, with any attachments, and
+// reports the overflow rather than blocking when the queue is full and nothing
+// is reading it.
+func (daemon *FakeSignalCLI) PushMessage(sender string, text string, attachments ...string) error {
 	daemon.guard.Lock()
 	daemon.nextID++
 	number := daemon.nextID
@@ -102,6 +104,7 @@ func (daemon *FakeSignalCLI) PushMessage(sender string, text string, attachments
 		},
 	}
 	daemon.events <- fmt.Sprintf("data: %s\n\n", mustJSON(event))
+	return nil
 }
 
 // Sends is every message the harness asked the daemon to send, in order.

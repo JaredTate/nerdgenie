@@ -2,6 +2,7 @@ package testkit_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +19,9 @@ func TestTheFakeChannelHandsBackWhatTheTestPushedIntoIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("attaching to the channel failed: %v", err)
 	}
-	channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "post the anniversary tweet"})
+	if err := channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "post the anniversary tweet"}); err != nil {
+		t.Fatalf("pushing a message failed: %v", err)
+	}
 
 	select {
 	case message := <-inbound:
@@ -107,5 +110,111 @@ func TestTheFakeChannelReportsTheHealthTheTestSet(t *testing.T) {
 func TestTheFakeChannelKeepsTheChannelContract(t *testing.T) {
 	if err := testkit.CheckChannel(context.Background(), testkit.NewFakeChannel("terminal")); err != nil {
 		t.Fatalf("the fake channel does not keep the channel contract: %v", err)
+	}
+}
+
+func TestTheStreamClosesWhenTheContextIsCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	channel := testkit.NewFakeChannel("terminal")
+
+	inbound, err := channel.Receive(ctx)
+	if err != nil {
+		t.Fatalf("attaching to the channel failed: %v", err)
+	}
+	cancel()
+
+	select {
+	case _, open := <-inbound:
+		if open {
+			t.Error("the stream handed back a message after the context was cancelled, want it closed")
+		}
+	case <-time.After(time.Second):
+		t.Error("the stream did not close within a second of the context being cancelled, and the contract says it does")
+	}
+}
+
+func TestTheStreamClosesWhenTheChannelShutsDown(t *testing.T) {
+	channel := testkit.NewFakeChannel("terminal")
+
+	inbound, err := channel.Receive(context.Background())
+	if err != nil {
+		t.Fatalf("attaching to the channel failed: %v", err)
+	}
+	channel.Shutdown()
+
+	select {
+	case _, open := <-inbound:
+		if open {
+			t.Error("the stream handed back a message after the channel shut down, want it closed")
+		}
+	case <-time.After(time.Second):
+		t.Error("the stream did not close within a second of the channel shutting down")
+	}
+}
+
+func TestEveryAttachGetsItsOwnStream(t *testing.T) {
+	first, cancelFirst := context.WithCancel(context.Background())
+	defer cancelFirst()
+	second, cancelSecond := context.WithCancel(context.Background())
+	defer cancelSecond()
+	channel := testkit.NewFakeChannel("terminal")
+
+	one, err := channel.Receive(first)
+	if err != nil {
+		t.Fatalf("the first attach failed: %v", err)
+	}
+	two, err := channel.Receive(second)
+	if err != nil {
+		t.Fatalf("the second attach failed: %v", err)
+	}
+	cancelFirst()
+
+	select {
+	case _, open := <-one:
+		if open {
+			t.Error("the cancelled stream handed back a message")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cancelling one attach did not close its stream")
+	}
+
+	if err := channel.Push(contract.Inbound{ID: "1", Text: "still listening"}); err != nil {
+		t.Fatalf("pushing after one attach was cancelled failed: %v", err)
+	}
+	select {
+	case message := <-two:
+		if message.Text != "still listening" {
+			t.Errorf("the second stream handed back %q, want the message that was pushed", message.Text)
+		}
+	case <-time.After(time.Second):
+		t.Error("cancelling one attach closed the other one's stream too")
+	}
+}
+
+func TestPushingIntoAFullQueueSaysSoRatherThanBlocking(t *testing.T) {
+	channel := testkit.NewFakeChannel("terminal")
+
+	overflowed := make(chan error, 1)
+	go func() {
+		for at := range 1000 {
+			if err := channel.Push(contract.Inbound{ID: "1", Text: "message"}); err != nil {
+				overflowed <- err
+				return
+			}
+			_ = at
+		}
+		overflowed <- nil
+	}()
+
+	select {
+	case err := <-overflowed:
+		if err == nil {
+			t.Fatal("a thousand messages went into a queue nobody was reading, and the queue is supposed to be capped")
+		}
+		if !strings.Contains(err.Error(), "read") {
+			t.Errorf("the overflow error does not say what to do about it: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("pushing into a full queue blocked the test rather than reporting the overflow")
 	}
 }

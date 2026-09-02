@@ -48,8 +48,10 @@ func NewFakeChannel(name string) *FakeChannel {
 	}
 }
 
-// Push puts one message into the channel as though a user sent it.
-func (channel *FakeChannel) Push(message contract.Inbound) {
+// Push puts one message into the channel as though a user sent it, and reports
+// the overflow rather than blocking when the queue is full and nothing is
+// reading it.
+func (channel *FakeChannel) Push(message contract.Inbound) error {
 	if message.Channel == "" {
 		message.Channel = channel.name
 	}
@@ -57,6 +59,12 @@ func (channel *FakeChannel) Push(message contract.Inbound) {
 		message.Received = time.Unix(0, 0).UTC()
 	}
 	channel.inbound <- message
+	return nil
+}
+
+// Shutdown closes every stream the channel handed out, the way a channel that is
+// going away does.
+func (channel *FakeChannel) Shutdown() {
 }
 
 // Sent is every reply the harness sent, in order.

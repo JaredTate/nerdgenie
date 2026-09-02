@@ -32,8 +32,8 @@ func TestTheFakeSignalDaemonStreamsAMessageAndAnAttachment(t *testing.T) {
 	defer daemon.Close()
 
 	lines := openEventStream(t, daemon.EventsAddress())
-	daemon.PushMessage("+15555550123", "post the anniversary tweet")
-	daemon.PushMessage("+15555550123", "here is the picture", "/tmp/inbox/photo.jpg")
+	pushMessage(t, daemon, "post the anniversary tweet")
+	pushMessage(t, daemon, "here is the picture", "/tmp/inbox/photo.jpg")
 
 	first := readEventLine(t, lines)
 	if !strings.Contains(first, "post the anniversary tweet") {
@@ -102,6 +102,43 @@ func TestTheFakeSignalProgramPrintsALinkAndThenSaysItIsAssociated(t *testing.T) 
 	}
 	if !strings.Contains(text, "Associated") {
 		t.Errorf("the program printed %q, want it to say the device was associated", text)
+	}
+}
+
+func TestPushingIntoAFullEventQueueSaysSoRatherThanBlocking(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
+
+	overflowed := make(chan error, 1)
+	go func() {
+		for range 1000 {
+			if err := daemon.PushMessage("+15555550123", "nobody is reading this"); err != nil {
+				overflowed <- err
+				return
+			}
+		}
+		overflowed <- nil
+	}()
+
+	select {
+	case err := <-overflowed:
+		if err == nil {
+			t.Fatal("a thousand events went onto a stream nobody was reading, and the queue is supposed to be capped")
+		}
+		if !strings.Contains(err.Error(), "read") {
+			t.Errorf("the overflow error does not say what to do about it: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("pushing onto a full event queue blocked the test rather than reporting the overflow")
+	}
+}
+
+// pushMessage puts one message on the fake daemon's stream and fails the test
+// when the queue will not take it.
+func pushMessage(t *testing.T, daemon *testkit.FakeSignalCLI, text string, attachments ...string) {
+	t.Helper()
+	if err := daemon.PushMessage("+15555550123", text, attachments...); err != nil {
+		t.Fatalf("pushing %q onto the stream failed: %v", text, err)
 	}
 }
 

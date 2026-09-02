@@ -17,8 +17,9 @@ import (
 )
 
 // listenOnATempSocket starts a listener on a socket under a temporary home and
-// hands back the home and the one link the screen makes to it.
-func listenOnATempSocket(t *testing.T) (contract.Home, chan net.Conn) {
+// hands back the home, the one link the screen makes to it, and the listener
+// itself, so that a test can take the program away.
+func listenOnATempSocket(t *testing.T) (contract.Home, chan net.Conn, net.Listener) {
 	t.Helper()
 	home := testkit.NewTempHome(t)
 	if err := os.MkdirAll(home.RunFolder(), contract.HomeFolderMode); err != nil {
@@ -37,7 +38,7 @@ func listenOnATempSocket(t *testing.T) (contract.Home, chan net.Conn) {
 			accepted <- link
 		}
 	}()
-	return home, accepted
+	return home, accepted, listener
 }
 
 // acceptOne waits for the screen to reach the listener.
@@ -54,7 +55,7 @@ func acceptOne(t *testing.T, accepted chan net.Conn) net.Conn {
 }
 
 func TestTheUnixDialerReachesTheSocketAndCarriesEnvelopes(t *testing.T) {
-	home, accepted := listenOnATempSocket(t)
+	home, accepted, _ := listenOnATempSocket(t)
 	dialer := NewUnixDialer(home)
 
 	connection, err := dialer.Dial(context.Background())
@@ -109,7 +110,7 @@ func TestALineTooLongIsDroppedWithAnErrorRatherThanRead(t *testing.T) {
 }
 
 func TestALineThatIsNotAMessageBecomesAnErrorCardRatherThanACrash(t *testing.T) {
-	home, accepted := listenOnATempSocket(t)
+	home, accepted, _ := listenOnATempSocket(t)
 	connection, err := NewUnixDialer(home).Dial(context.Background())
 	if err != nil {
 		t.Fatalf("cannot reach the socket: %v", err)

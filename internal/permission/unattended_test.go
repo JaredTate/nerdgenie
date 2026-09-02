@@ -16,11 +16,8 @@ func TestAnUnattendedRunThatHitsTheListStopsAndShowsWhatItWouldHaveAsked(t *test
 
 	decision := decide(t, decider, request)
 
-	if !permission.StoppedForNobodyToAsk(decision) {
-		t.Fatalf("an unattended run was ruled %q with the preview %q, want the stop verdict", decision.Ruling, decision.PreviewText)
-	}
-	if decision.Ruling != contract.RulingDeny {
-		t.Errorf("the stop verdict was ruled %q, want %q, because nothing may run when nobody can answer", decision.Ruling, contract.RulingDeny)
+	if decision.Ruling != contract.RulingStop {
+		t.Fatalf("an unattended run was ruled %q, want %q, because nothing may run and nobody can answer", decision.Ruling, contract.RulingStop)
 	}
 	if !strings.Contains(decision.PreviewText, "rm -rf /tmp/x") {
 		t.Errorf("the stop verdict carries the preview %q, and it has to say what would have been asked about", decision.PreviewText)
@@ -41,10 +38,7 @@ func TestAnUnattendedRunThatHitsNothingOnTheListJustRuns(t *testing.T) {
 	decision := decide(t, decider, request)
 
 	if decision.Ruling != contract.RulingAllow {
-		t.Errorf("an unattended run of an ordinary command was ruled %q, want %q", decision.Ruling, contract.RulingAllow)
-	}
-	if permission.StoppedForNobodyToAsk(decision) {
-		t.Error("an ordinary unattended command came back as the stop verdict, and only a call on the list stops")
+		t.Errorf("an unattended run of an ordinary command was ruled %q, want %q, because only a call on the list stops", decision.Ruling, contract.RulingAllow)
 	}
 }
 
@@ -71,7 +65,7 @@ func TestAnUnattendedRunUsesTheAnswersAndApprovalsItAlreadyHas(t *testing.T) {
 	}
 }
 
-func TestAPlainDenyIsNotTheStopVerdict(t *testing.T) {
+func TestARuleThatDeniesIsARefusalAndNotAStop(t *testing.T) {
 	settings := permission.DefaultSettings()
 	settings.Rules = []permission.Rule{
 		{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingDeny, Reason: "never delete folders"},
@@ -84,19 +78,19 @@ func TestAPlainDenyIsNotTheStopVerdict(t *testing.T) {
 	if decision.Ruling != contract.RulingDeny {
 		t.Fatalf("a rule that denies gave %q, want %q", decision.Ruling, contract.RulingDeny)
 	}
-	if permission.StoppedForNobodyToAsk(decision) {
-		t.Error("a plain deny came back as the stop verdict, and the two mean different things to the loop")
+	if decision.Ruling == contract.RulingStop {
+		t.Error("a rule that denies came back as a stop, and the two mean different things to the loop")
 	}
 }
 
-func TestAnAttendedRunThatHitsTheListIsNotTheStopVerdict(t *testing.T) {
+func TestAnAttendedRunThatHitsTheListAsksRatherThanStopping(t *testing.T) {
 	decider := newDecider(t, permission.DefaultSettings())
 
 	decision := decide(t, decider, shellRequest(t, "rm -rf /tmp/x"))
 	if decision.Ruling != contract.RulingAsk {
 		t.Fatalf("an attended run was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
 	}
-	if permission.StoppedForNobodyToAsk(decision) {
-		t.Error("a call that asks the user came back as the stop verdict, and someone is there to answer it")
+	if decision.Ruling == contract.RulingStop {
+		t.Error("a call that asks the user came back as a stop, and someone is there to answer it")
 	}
 }

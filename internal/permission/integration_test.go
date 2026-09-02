@@ -113,8 +113,11 @@ func TestAScheduledRunOnARealHomeStopsAndReportsInsteadOfWaiting(t *testing.T) {
 		Unattended: true,
 	})
 
-	if !permission.StoppedForNobodyToAsk(decision) {
-		t.Fatalf("a scheduled run was ruled %q with the preview %q, want the stop verdict", decision.Ruling, decision.PreviewText)
+	if decision.Ruling != contract.RulingStop {
+		t.Fatalf("a scheduled run was ruled %q, want %q", decision.Ruling, contract.RulingStop)
+	}
+	if !strings.Contains(decision.PreviewText, big) {
+		t.Errorf("the stop carries the preview %q, and it has to name the file it would have asked about", decision.PreviewText)
 	}
 	if len(channel.Previews()) != 0 {
 		t.Errorf("a scheduled run showed the user %v, and there is nobody there to see it", channel.Previews())

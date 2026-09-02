@@ -110,8 +110,8 @@ func TestAScheduledRunTellsTheUserWhatItWouldHaveAskedAndStops(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ruling on a scheduled call failed: %v", err)
 	}
-	if !permission.StoppedForNobodyToAsk(decision) {
-		t.Fatalf("a scheduled call was ruled %q, want the stop verdict", decision.Ruling)
+	if decision.Ruling != contract.RulingStop {
+		t.Fatalf("a scheduled call was ruled %q, want %q", decision.Ruling, contract.RulingStop)
 	}
 	if err := channel.Send(ctx, "the task stopped: "+decision.Reason+"\n\n"+decision.PreviewText); err != nil {
 		t.Fatalf("sending the report failed: %v", err)

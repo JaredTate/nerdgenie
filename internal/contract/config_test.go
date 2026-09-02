@@ -2,9 +2,11 @@ package contract_test
 
 import (
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -151,4 +153,37 @@ func TestDefaultSandboxRootsPassTheirOwnCheck(t *testing.T) {
 			t.Errorf("the default sandbox root %q fails its own check: %v", root, err)
 		}
 	}
+}
+
+// TestEveryConfigurationFieldHasASnakeCaseTOMLKey pins the key names a person
+// writes in config.toml: the field name in lower case with underscores between
+// the words, such as default_model, which is what TOML files conventionally use.
+func TestEveryConfigurationFieldHasASnakeCaseTOMLKey(t *testing.T) {
+	types := []reflect.Type{
+		reflect.TypeFor[contract.Config](),
+		reflect.TypeFor[contract.ModelAlias](),
+		reflect.TypeFor[contract.Caps](),
+		reflect.TypeFor[contract.MemoryCaps](),
+	}
+	for _, typ := range types {
+		for index := 0; index < typ.NumField(); index++ {
+			field := typ.Field(index)
+			want := snakeCase(field.Name)
+			if got := field.Tag.Get("toml"); got != want {
+				t.Errorf("%s.%s has the toml key %q, want %q", typ.Name(), field.Name, got, want)
+			}
+		}
+	}
+}
+
+// snakeCase turns a Go field name such as BaseAddress into base_address.
+func snakeCase(name string) string {
+	var out []rune
+	for index, letter := range name {
+		if index > 0 && letter >= 'A' && letter <= 'Z' {
+			out = append(out, '_')
+		}
+		out = append(out, unicode.ToLower(letter))
+	}
+	return string(out)
 }

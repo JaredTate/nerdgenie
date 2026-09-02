@@ -68,13 +68,21 @@ func plainNames(name string, specs []contract.ToolSpec) []string {
 // only the closest ones, so that a tie is reported rather than guessed at. A
 // name under five characters is never repaired this way.
 func nearestNames(name string, specs []contract.ToolSpec) []string {
-	if utf8.RuneCountInString(name) < minLengthForEditDistance {
+	length := utf8.RuneCountInString(name)
+	if length < minLengthForEditDistance {
 		return nil
 	}
+	lowered := strings.ToLower(name)
 	closest := maxEditDistance + 1
 	found := []string{}
 	for _, spec := range specs {
-		distance := editDistance(strings.ToLower(name), strings.ToLower(spec.Name))
+		// A name whose length differs by more than the edits allowed cannot be
+		// within them, and leaving it out keeps the comparison bounded however
+		// long a tool name turns out to be.
+		if difference := length - utf8.RuneCountInString(spec.Name); difference > maxEditDistance || difference < -maxEditDistance {
+			continue
+		}
+		distance := editDistance(lowered, strings.ToLower(spec.Name))
 		if distance > maxEditDistance || distance > closest {
 			continue
 		}
@@ -97,10 +105,14 @@ func matchingNames(specs []contract.ToolSpec, matches func(real string) bool) []
 	return found
 }
 
+// separators are the two characters a model puts between the words of a tool
+// name, and the replacer is built once because it is used on every name.
+var separators = strings.NewReplacer("_", "", "-", "")
+
 // plainForm is a name with nothing left but its letters and digits in one case,
 // which is how two spellings of the same name are compared.
 func plainForm(name string) string {
-	return strings.NewReplacer("_", "", "-", "").Replace(strings.ToLower(name))
+	return separators.Replace(strings.ToLower(name))
 }
 
 // editDistance counts the single-character insertions, deletions, and

@@ -66,9 +66,12 @@ func TestTheFilterAnswersEveryDeniedCallWithTheSameInstruction(t *testing.T) {
 	if program[notPermittedAt].value != notPermittedAnswer {
 		t.Fatalf("the last instruction answers %#x, want %#x", program[notPermittedAt].value, notPermittedAnswer)
 	}
-	for index, word := range program {
-		if word.code != jumpIfEqual || word.value == unshareSystemCall {
-			continue
+	// The first four instructions check the architecture and load the system
+	// call number; the deny list starts after them and ends at the unshare test.
+	for index := 4; index < 4+len(deniedSystemCalls); index++ {
+		word := program[index]
+		if word.code != jumpIfEqual {
+			t.Fatalf("instruction %d is a %#x, want a test of the system call number", index, word.code)
 		}
 		landsOn := index + 1 + int(word.jumpIfTrue)
 		if landsOn != notPermittedAt {

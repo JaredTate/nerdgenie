@@ -24,3 +24,13 @@ type Settings struct {
 	// the line goes to the standard library's logger.
 	Note func(line string)
 }
+
+// outputCap is how many bytes of one result the model sees before the rest
+// spills to a file, from the configuration, with the shipped default when the
+// configuration says nothing.
+func (settings Settings) outputCap() int {
+	if settings.Configuration.Caps.ToolOutputBytes > 0 {
+		return settings.Configuration.Caps.ToolOutputBytes
+	}
+	return contract.DefaultConfig().Caps.ToolOutputBytes
+}

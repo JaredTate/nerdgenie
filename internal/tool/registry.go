@@ -6,6 +6,8 @@
 package tool
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -84,12 +86,37 @@ func (registry *Registry) Specs() []contract.ToolSpec {
 	return specs
 }
 
-// Lookup finds one tool by name.
+// Lookup finds one tool by name and hands back a tool whose result is already
+// inside the output cap, so that nothing in the loop has to remember to cap one.
 func (registry *Registry) Lookup(name string) (contract.Tool, bool) {
 	registry.guard.Lock()
 	defer registry.guard.Unlock()
 	found, held := registry.tools[name]
-	return found, held
+	if !held {
+		return nil, false
+	}
+	return &cappedTool{registry: registry, inner: found}, true
+}
+
+// cappedTool is one registered tool with the registry's output cap applied to
+// whatever it returns. The registry never reads the text it passes on, because a
+// tool result is data and never instructions.
+type cappedTool struct {
+	registry *Registry
+	inner    contract.Tool
+}
+
+// Spec is what the model is told about the tool, unchanged.
+func (tool *cappedTool) Spec() contract.ToolSpec { return tool.inner.Spec() }
+
+// Run runs the tool and returns its result inside the output cap, with the whole
+// of a long result written to a file the result names.
+func (tool *cappedTool) Run(ctx context.Context, input json.RawMessage) (contract.ToolOutput, error) {
+	output, err := tool.inner.Run(ctx, input)
+	if err != nil {
+		return output, err
+	}
+	return tool.registry.applyOutputCap(output)
 }
 
 // checkSpec holds the rules every tool's description must satisfy before the

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -140,6 +141,20 @@ func TestACommandThatRunsPastItsTimeoutIsKilledWithEverythingItStarted(t *testin
 	}
 }
 
+// waitForTheFile waits, for a bounded time, until a file turns up. It is how a
+// test knows a shell has got far enough to have set its signal trap, rather than
+// signalling it in the instant before it was ready.
+func waitForTheFile(t *testing.T, path string) {
+	t.Helper()
+	for waited := time.Duration(0); waited < 10*time.Second; waited += 10 * time.Millisecond {
+		if _, err := os.Stat(path); err == nil {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("the file %s never turned up, so the process never got as far as setting its trap", path)
+}
+
 // sizeOf is how many bytes a file holds, or zero when it was never made.
 func sizeOf(t *testing.T, path string) int64 {
 	t.Helper()
@@ -194,19 +209,30 @@ func TestTheExitCodeAndTheInputAndOutputComeBackAsTheyWere(t *testing.T) {
 	}
 }
 
-func TestACommandThatIgnoresBeingAskedToStopIsKilledOutright(t *testing.T) {
-	fence, _, _ := aRealFence(t, theToolOutputCap)
-
-	result, err := fence.Run(context.Background(), contract.SandboxCommand{
-		Program:   "/bin/sh",
-		Arguments: []string{"-c", `trap "" TERM; index=0; while [ $index -lt 200000000 ]; do index=$((index+1)); done`},
-		Timeout:   500 * time.Millisecond,
-	})
-	if err != nil {
-		t.Fatalf("running the command failed: %v", err)
+func TestAProcessThatIgnoresBeingAskedToStopIsKilledOutright(t *testing.T) {
+	// Inside a real fence the second signal is rarely reached, because bwrap dies
+	// on the first one and the process namespace takes everything inside it
+	// along. The stopping still has to work when the first signal is ignored, so
+	// it is tried here on a process this test starts itself and on nothing else.
+	ready := filepath.Join(t.TempDir(), "the-trap-is-set")
+	ignoring := exec.Command("/bin/sh", "-c",
+		`trap "" TERM; : > `+ready+`; index=0; while [ $index -lt 4000000000 ]; do index=$((index+1)); done`)
+	ignoring.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := ignoring.Start(); err != nil {
+		t.Fatalf("cannot start the process that ignores being asked to stop: %v", err)
 	}
-	if !result.TimedOut {
-		t.Error("a command that ignores being asked to stop was not reported as timed out")
+
+	finished := make(chan error, 1)
+	go func() { finished <- ignoring.Wait() }()
+	waitForTheFile(t, ready)
+
+	started := time.Now()
+	if !stopProcessGroup(ignoring.Process.Pid, finished) {
+		t.Fatal("the process group was never stopped, and a killed process must be reaped")
+	}
+	if took := time.Since(started); took < gracePeriod {
+		t.Errorf("the group stopped after %s, and a process that ignores the first signal must be given the whole %s before the second",
+			took, gracePeriod)
 	}
 }
 
@@ -257,25 +283,43 @@ func TestAvailableNamesBwrapWhenNothingIsOnThePath(t *testing.T) {
 	}
 }
 
-func TestTheRealBubblewrapMakesTheFenceOnThisMachine(t *testing.T) {
-	works, reason := realBubblewrapCanMakeAFence()
-	if !works {
-		t.Skipf("bwrap cannot make a user namespace on this machine, so the tests above ran against the stand-in "+
-			"and this one cannot run at all. Fix it with root: either write an AppArmor profile for /usr/bin/bwrap "+
-			"that allows userns, or set kernel.apparmor_restrict_unprivileged_userns to 0. The probe said: %s", reason)
-	}
+// theInitialUserNamespaceMap is what /proc/self/uid_map reads like outside every
+// user namespace. A command inside the fence must never see this.
+const theInitialUserNamespaceMap = "0          0 4294967295"
 
+func TestTheRealFenceGivesTheCommandItsOwnNamespacesAndNothingOfTheUsers(t *testing.T) {
 	fence, userHome, _ := aRealFence(t, theToolOutputCap)
+
 	result, err := fence.Run(context.Background(), contract.SandboxCommand{
-		Program:   "/bin/sh",
-		Arguments: []string{"-c", "ls " + filepath.Join(userHome, ".ssh")},
-		Timeout:   20 * time.Second,
+		Program: "/bin/sh",
+		Arguments: []string{"-c",
+			"echo pid=$$; echo map=$(cat /proc/self/uid_map); echo home=$(ls -a " + userHome + ")"},
+		Timeout: 20 * time.Second,
 	})
 	if err != nil {
 		t.Fatalf("running the command failed: %v", err)
 	}
-	if result.ExitCode == 0 {
-		t.Errorf("the SSH folder was listed inside a real bwrap fence and gave %q", result.StandardOutput)
+	if result.ExitCode != 0 {
+		t.Fatalf("the command reported %d and said %q", result.ExitCode, result.StandardError)
+	}
+	said := string(result.StandardOutput)
+
+	// bwrap puts a reaper at process one inside the new process namespace and
+	// runs the command beside it, so a command that could still see the whole
+	// machine's process table would report a far larger number than this.
+	if !strings.Contains(said, "pid=1\n") && !strings.Contains(said, "pid=2\n") {
+		t.Errorf("the command said %q, and inside its own process namespace it should be process one or two", said)
+	}
+	if strings.Contains(said, theInitialUserNamespaceMap) {
+		t.Errorf("the command said %q, and it is still in the machine's own user namespace", said)
+	}
+	for _, mustNotBeThere := range []string{".ssh", contract.HomeFolderName} {
+		if strings.Contains(said, mustNotBeThere) {
+			t.Errorf("the command can see %s in the home directory, and it must stay outside the fence: %q", mustNotBeThere, said)
+		}
+	}
+	if !strings.Contains(said, contract.WorkFolderName) {
+		t.Errorf("the command cannot see its own sandbox root in %q", said)
 	}
 }
 
@@ -295,7 +339,15 @@ exit 1
 `
 
 func TestAvailableNamesTheAppArmorFixWhenBwrapCannotMakeANamespace(t *testing.T) {
-	fence, _, _ := aRealFence(t, theToolOutputCap)
+	// This fence is built by hand rather than through aRealFence, because that
+	// helper asks the real bwrap first and the answer is remembered for the life
+	// of a fence. A fence that has never asked is the only one this can be tried
+	// on.
+	work := t.TempDir()
+	fence, err := New(Settings{Roots: []string{work}, UserHome: filepath.Dir(work), HelperProgram: "/bin/true"})
+	if err != nil {
+		t.Fatalf("cannot build a fence around %s: %v", work, err)
+	}
 
 	folder := t.TempDir()
 	if err := os.WriteFile(filepath.Join(folder, bubblewrapProgram), []byte(failingBubblewrapScript), 0o755); err != nil {
@@ -303,14 +355,14 @@ func TestAvailableNamesTheAppArmorFixWhenBwrapCannotMakeANamespace(t *testing.T)
 	}
 	t.Setenv("PATH", folder+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	err := fence.Available()
-	if err == nil {
+	refused := fence.Available()
+	if refused == nil {
 		t.Fatal("the sandbox reported itself available with a bwrap that cannot make a user namespace")
 	}
-	said := strings.ToLower(err.Error())
+	said := strings.ToLower(refused.Error())
 	for _, wanted := range []string{"apparmor", "userns"} {
 		if !strings.Contains(said, wanted) {
-			t.Errorf("the reason says %q, and it must name %q so that a person knows what to change", err, wanted)
+			t.Errorf("the reason says %q, and it must name %q so that a person knows what to change", refused, wanted)
 		}
 	}
 

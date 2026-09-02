@@ -7,9 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -65,74 +63,20 @@ func fetchOnePage(address string) int {
 	return contract.ExitOK
 }
 
-// standInScript is a stand-in for bwrap, used only on a machine that does not
-// allow an unprivileged user namespace. It carries out the parts of the command
-// line the fence's own behaviour depends on, so that the Landlock ruleset and the
-// seccomp filter are still applied for real, and ignores the mounting, which is
-// the part the machine will not let it do.
-const standInScript = `#!/bin/sh
-while [ "$#" -gt 0 ]; do
-	case "$1" in
-	--) shift; break ;;
-	--setenv) export "$2=$3"; shift 3 ;;
-	--chdir) cd "$2" || exit 1; shift 2 ;;
-	--bind|--ro-bind) shift 3 ;;
-	--proc|--dev|--tmpfs) shift 2 ;;
-	*) shift ;;
-	esac
-done
-exec "$@"
-`
-
-// The answer to whether the real bwrap can build a fence on this machine, asked
-// once, because asking it starts a process.
-var (
-	bubblewrapProbe  sync.Once
-	bubblewrapWorks  bool
-	bubblewrapReason string
-)
-
-// realBubblewrapCanMakeAFence says whether bwrap can really make a user
-// namespace here. Ubuntu's AppArmor refuses one to an unconfined program unless
-// a profile allows it, and there is no way around that without root.
-func realBubblewrapCanMakeAFence() (bool, string) {
-	bubblewrapProbe.Do(func() {
-		probe := exec.Command(bubblewrapProgram, "--unshare-user", "--ro-bind", "/", "/", "/bin/true")
-		output, err := probe.CombinedOutput()
-		bubblewrapWorks = err == nil
-		bubblewrapReason = fmt.Sprintf("%v: %s", err, output)
-	})
-	return bubblewrapWorks, bubblewrapReason
-}
-
-// useAFenceProgram makes sure something answers to "bwrap" on the PATH: the real
-// one when this machine allows it, and the stand-in when it does not.
-func useAFenceProgram(t *testing.T) {
-	t.Helper()
-	if works, _ := realBubblewrapCanMakeAFence(); works {
-		return
-	}
-
-	folder := t.TempDir()
-	standIn := filepath.Join(folder, bubblewrapProgram)
-	if err := os.WriteFile(standIn, []byte(standInScript), 0o755); err != nil {
-		t.Fatalf("cannot write the stand-in for %s: %v", bubblewrapProgram, err)
-	}
-	t.Setenv("PATH", folder+string(os.PathListSeparator)+os.Getenv("PATH"))
-}
-
 // aRealFence makes a temporary home holding the agent's own folder, an SSH
 // folder with a fixture key in it, and one work folder as the sandbox root, and
 // returns a fence whose helper is this test binary.
+//
+// Every test below runs against the real bwrap and the real Landlock. When this
+// machine will not allow a fence, the test stops here with the reason rather
+// than going on to fail somewhere less obvious.
 func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 	t.Helper()
-	useATemporaryHomeOutsideTheFence(t)
 	home := testkit.NewTempHome(t)
 	userHome := filepath.Dir(home.Root)
-	useAFenceProgram(t)
 
 	sshFolder := filepath.Join(userHome, ".ssh")
-	work := filepath.Join(userHome, "work")
+	work := filepath.Join(userHome, contract.WorkFolderName)
 	for _, folder := range []string{sshFolder, work} {
 		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
 			t.Fatalf("cannot make the folder %s: %v", folder, err)
@@ -150,27 +94,10 @@ func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 	if err != nil {
 		t.Fatalf("cannot build a fence around %s: %v", work, err)
 	}
-	return fence, userHome, work
-}
-
-// useATemporaryHomeOutsideTheFence points the temporary directory at a folder
-// the fence does not grant.
-//
-// Inside a real bwrap fence, /tmp is a fresh empty folder of its own, so a
-// fixture home under the machine's own /tmp would not be there at all. The
-// helper's Landlock rules allow /tmp for that reason, which means a fixture home
-// under it would be allowed along with it whenever the tests have to fall back to
-// the stand-in. Putting the fixtures under /var/tmp keeps the two "this must
-// fail" tests honest either way.
-func useATemporaryHomeOutsideTheFence(t *testing.T) {
-	t.Helper()
-	base, err := os.MkdirTemp("/var/tmp", "coeus-sandbox-")
-	if err != nil {
-		t.Skipf("cannot make a folder under /var/tmp, which these tests need so that the fixture home sits outside "+
-			"every folder the fence allows: %v", err)
+	if err := fence.Available(); err != nil {
+		t.Fatalf("this machine cannot make a fence, so none of these tests can run: %v", err)
 	}
-	t.Cleanup(func() { _ = os.RemoveAll(base) })
-	t.Setenv("TMPDIR", base)
+	return fence, userHome, work
 }
 
 // fixtureKey stands in for a private key. It is not one, and nothing anywhere

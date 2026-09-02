@@ -2,7 +2,7 @@
  * The eleven methods of PROTOCOL.md, and the one place a request turns into work.
  */
 import { clickMethod, pressMethod, scrollMethod, typeMethod } from "./act-methods.js";
-import { chromeDied } from "./errors.js";
+import { actMethod, loginFillMethod, screenshotMethod } from "./batch-methods.js";
 import { readPage } from "./snapshot.js";
 import { settle } from "./settle.js";
 import { tabsMethod } from "./tabs.js";
@@ -65,10 +65,6 @@ function asDiffResult(diff: Diff): Record<string, unknown> {
   return { ...diff };
 }
 
-const notBuiltYet: Method = async () => {
-  throw chromeDied("that method has not been built yet.");
-};
-
 /** Say whether the worker can act on a page, and which Chrome it drove. */
 const health: Method = async (session) => ({
   healthy: session.chrome.isAlive(),
@@ -82,10 +78,10 @@ const METHODS: Readonly<Record<MethodName, Method>> = {
   type: async (session, params) => asDiffResult(await typeMethod(session, params)),
   press: async (session, params) => asDiffResult(await pressMethod(session, params)),
   scroll: async (session, params) => asDiffResult(await scrollMethod(session, params)),
-  act: notBuiltYet,
+  act: async (session, params) => actMethod(session, params),
   tabs: async (session, params) => tabsMethod(session, params),
-  loginFill: notBuiltYet,
-  screenshot: notBuiltYet,
+  loginFill: async (session, params) => loginFillMethod(session, params),
+  screenshot: async (session) => screenshotMethod(session),
   health,
 };
 

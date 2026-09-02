@@ -16,7 +16,13 @@ import {
   MAX_TYPE_CHARS,
   MIN_SCROLL_STEPS,
 } from "./limits.js";
-import { STEP_METHOD_NAMES, type MethodName, type StepMethodName } from "./types.js";
+import {
+  DIALOG_ACTIONS,
+  STEP_METHOD_NAMES,
+  type DialogAnswer,
+  type MethodName,
+  type StepMethodName,
+} from "./types.js";
 
 /** Say what a value was, in a form that reads well inside an error message. */
 function describeValue(value: unknown): string {
@@ -210,6 +216,20 @@ function checkLoginFill(params: Record<string, unknown>): void {
   }
 }
 
+function checkDialog(params: Record<string, unknown>): void {
+  const action = params["action"];
+  if (!DIALOG_ACTIONS.includes(action as DialogAnswer)) {
+    throw wrongParameters(
+      `The dialog method needs an action of "accept" or "dismiss", and this was ${describeValue(action)}.`,
+    );
+  }
+  optionalText(
+    params,
+    "text",
+    "The dialog method needs the text to be text, because it is typed into a prompt.",
+  );
+}
+
 const CHECKERS: Readonly<Record<MethodName, (params: Record<string, unknown>) => void>> = {
   open: checkOpen,
   read: checkRead,
@@ -221,6 +241,7 @@ const CHECKERS: Readonly<Record<MethodName, (params: Record<string, unknown>) =>
   tabs: checkTabs,
   loginFill: checkLoginFill,
   screenshot: () => {},
+  dialog: checkDialog,
   health: () => {},
 };
 

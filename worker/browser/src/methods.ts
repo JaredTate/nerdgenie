@@ -1,8 +1,9 @@
 /**
- * The eleven methods of PROTOCOL.md, and the one place a request turns into work.
+ * The twelve methods of PROTOCOL.md, and the one place a request turns into work.
  */
 import {
   clickMethod,
+  dialogMethod,
   pressMethod,
   readOrSayItCannotBeRead,
   scrollMethod,
@@ -61,10 +62,14 @@ function asDiffResult(diff: Diff): Record<string, unknown> {
 }
 
 /** Say whether the worker can act on a page, and which Chrome it drove. */
-const health: Method = async (session) => ({
-  healthy: session.chrome.isAlive(),
-  chromeVersion: session.chrome.version,
-});
+const health: Method = async (session) => {
+  const healthy = session.chrome.isAlive();
+  return {
+    healthy,
+    chromeVersion: session.chrome.version,
+    detail: healthy ? "" : "the browser window is gone, so nothing can be driven any more",
+  };
+};
 
 const METHODS: Readonly<Record<MethodName, Method>> = {
   open,
@@ -77,6 +82,7 @@ const METHODS: Readonly<Record<MethodName, Method>> = {
   tabs: async (session, params) => tabsMethod(session, params),
   loginFill: async (session, params) => loginFillMethod(session, params),
   screenshot: async (session) => screenshotMethod(session),
+  dialog: async (session, params) => asDiffResult(await dialogMethod(session, params)),
   health,
 };
 

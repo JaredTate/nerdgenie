@@ -20,12 +20,12 @@ import {
 import { buildDiff } from "./diff.js";
 import { somethingChanged, type AimedAt } from "./expectation.js";
 import { DEFAULT_SCROLL_STEPS } from "./limits.js";
-import { couldNotBeRead, WorkerError } from "./errors.js";
+import { couldNotBeRead, wrongParameters, WorkerError } from "./errors.js";
 import { SETTLE_LIMIT_MS } from "./limits.js";
 import { readPage, type PageReading } from "./snapshot.js";
 import { settle } from "./settle.js";
 import type { Session } from "./session.js";
-import type { Diff, Snapshot } from "./types.js";
+import type { DialogAnswer, Diff, Snapshot } from "./types.js";
 
 /** How many times a read is tried again when a move to a new address interrupts it. */
 const READ_ATTEMPTS = 3;
@@ -190,6 +190,38 @@ export async function pressMethod(session: Session, params: Record<string, unkno
   const key = String(params["key"]);
   return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
     await pressOneKey(session, page, key);
+    return undefined;
+  });
+}
+
+/**
+ * Answer the open dialog box. Chrome stops the whole tab until a dialog is
+ * answered, so until this runs the tab can be neither read nor acted on, and this
+ * is the only way it comes back to life.
+ *
+ * The dialog is taken off the tab before it is answered, so that the wait for a
+ * dialog inside the action does not fire on the very dialog being answered.
+ */
+export async function dialogMethod(
+  session: Session,
+  params: Record<string, unknown>,
+): Promise<Diff> {
+  const action = params["action"] as DialogAnswer;
+  const text = typeof params["text"] === "string" ? params["text"] : "";
+  const page = session.currentPage();
+  const waiting = session.takeOpenDialog(page);
+  if (waiting === undefined) {
+    throw wrongParameters(
+      "There is no dialog box open on this page, so there is nothing to answer. Read the page to see what is on it.",
+    );
+  }
+  session.log(`answering the open dialog with ${action}.`);
+  return actAndAssert(session, String(params["expectation"] ?? ""), async () => {
+    if (action === "accept") {
+      await waiting.accept(text);
+    } else {
+      await waiting.dismiss();
+    }
     return undefined;
   });
 }

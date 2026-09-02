@@ -12,7 +12,7 @@
  * the old page. This worker notices instead.
  */
 import { join } from "node:path";
-import type { BrowserContext, Download, Page } from "playwright-core";
+import type { BrowserContext, Dialog, Download, Page } from "playwright-core";
 import type { RunningChrome } from "./chrome.js";
 import { noBrowserOpen } from "./errors.js";
 import { MAX_TABS } from "./limits.js";
@@ -38,7 +38,7 @@ export class Session {
   readonly refs = new RefBook();
 
   private readonly tabIds = new Map<Page, string>();
-  private readonly dialogs = new Map<Page, DialogReport>();
+  private readonly dialogs = new Map<Page, { report: DialogReport; dialog: Dialog }>();
   private readonly downloads = new Map<Page, DownloadReport>();
   private readonly saving: Array<Promise<void>> = [];
   private nextTabNumber = 1;
@@ -87,7 +87,10 @@ export class Session {
     // A dialog is reported, never answered. Answering for the user would be
     // deciding for the user, and the design says the worker never does that.
     page.on("dialog", (dialog) => {
-      this.dialogs.set(page, { kind: dialog.type() as DialogReport["kind"], message: dialog.message() });
+      this.dialogs.set(page, {
+        report: { kind: dialog.type() as DialogReport["kind"], message: dialog.message() },
+        dialog,
+      });
       this.log(`the page opened a ${dialog.type()} dialog and it is waiting for an answer.`);
     });
     page.on("download", (download) => this.save(page, download));
@@ -164,7 +167,18 @@ export class Session {
 
   /** The dialog waiting on a tab, if one is. */
   dialogOn(page: Page): DialogReport | null {
-    return this.dialogs.get(page) ?? null;
+    return this.dialogs.get(page)?.report ?? null;
+  }
+
+  /**
+   * Take the open dialog off the tab so that it can be answered. It is taken
+   * before it is answered, so that the worker no longer treats the tab as
+   * blocked while the answer is going through.
+   */
+  takeOpenDialog(page: Page): Dialog | undefined {
+    const waiting = this.dialogs.get(page);
+    this.dialogs.delete(page);
+    return waiting?.dialog;
   }
 
   /** The download a tab started, which is reported once and then forgotten. */
@@ -179,8 +193,16 @@ export class Session {
     return this.previous;
   }
 
-  /** Remember this snapshot as the one the next diff is measured against. */
+  /**
+   * Remember this snapshot as the one the next diff is measured against. A
+   * snapshot taken while a dialog was open is not remembered: nothing on the page
+   * could be read through the dialog, so keeping it would make every element on
+   * the page look new the moment the dialog was answered.
+   */
   rememberSnapshot(snapshot: Snapshot): void {
+    if (snapshot.dialog !== null) {
+      return;
+    }
     this.previous = snapshot;
   }
 

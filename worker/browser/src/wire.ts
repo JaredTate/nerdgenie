@@ -99,7 +99,7 @@ export function parseLine(line: string): ParsedLine {
       errorResponse(
         request.id,
         ERROR_CODES.noSuchMethod,
-        `There is no method named ${JSON.stringify(request.method)}. The methods are open, read, click, type, press, scroll, act, tabs, loginFill, screenshot, and health.`,
+        `There is no method named ${JSON.stringify(request.method)}. The methods are open, read, click, type, press, scroll, act, tabs, loginFill, screenshot, dialog, and health.`,
       ),
     );
   }

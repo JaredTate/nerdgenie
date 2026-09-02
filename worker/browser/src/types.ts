@@ -5,7 +5,7 @@
  * says the same thing in Go. When the two disagree, the protocol document wins.
  */
 
-/** The eleven methods, in the order the protocol lists them. */
+/** The twelve methods, in the order the protocol lists them. */
 export const METHOD_NAMES = [
   "open",
   "read",
@@ -17,6 +17,7 @@ export const METHOD_NAMES = [
   "tabs",
   "loginFill",
   "screenshot",
+  "dialog",
   "health",
 ] as const;
 
@@ -102,6 +103,11 @@ export interface TabReport {
   /** Present and true only on the tab the worker is acting on. */
   active?: true;
 }
+
+/** What to do with an open dialog box. */
+export const DIALOG_ACTIONS = ["accept", "dismiss"] as const;
+
+export type DialogAnswer = (typeof DIALOG_ACTIONS)[number];
 
 /** One numbered mark drawn on a screenshot. */
 export interface ScreenshotMark {

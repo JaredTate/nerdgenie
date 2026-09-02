@@ -65,9 +65,12 @@ func (registry *Registry) Register(command contract.Command) error {
 	return nil
 }
 
-// Lookup finds one command by name, with or without its leading slash.
+// Lookup finds one command by name, with or without its leading slash. The name
+// is read by the same splitter Run uses, so that the two can never disagree
+// about which command a piece of text names.
 func (registry *Registry) Lookup(name string) (contract.Command, bool) {
-	command, found := registry.byName[strings.TrimPrefix(strings.TrimSpace(name), "/")]
+	bare, _ := SplitLine(name)
+	command, found := registry.byName[bare]
 	return command, found
 }
 
@@ -129,9 +132,13 @@ func inTheTerminal(where contract.CommandContext) bool {
 // SplitLine reads a typed line apart into the command's name, without its
 // leading slash, and everything after it. A line with no command on it gives
 // back two empty strings, and nothing here can panic, whatever the line holds.
+//
+// Every leading slash and space is taken off, not just the first, so that a
+// name never begins with either. A name that still began with a slash would be
+// looked up as the command without it, which would make "//status" quietly run
+// "/status", and splitting a name a second time would not give the same answer.
 func SplitLine(line string) (string, string) {
-	trimmed := strings.TrimSpace(line)
-	trimmed = strings.TrimSpace(strings.TrimPrefix(trimmed, "/"))
+	trimmed := strings.TrimLeft(line, " \t\r\n/")
 	if trimmed == "" {
 		return "", ""
 	}

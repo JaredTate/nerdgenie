@@ -25,6 +25,8 @@ func FuzzTheLineSplitterNeverPanics(f *testing.F) {
 	f.Add("/")
 	f.Add("//")
 	f.Add("/ ")
+	f.Add("/ /")
+	f.Add("/a/b")
 	f.Add("\t\n\r ")
 	f.Add("/tasks\t17 back 3")
 	f.Add("/\x00status")
@@ -50,8 +52,11 @@ func FuzzTheLineSplitterNeverPanics(f *testing.F) {
 		if name == "" && arguments != "" {
 			t.Errorf("the line %q came back with arguments %q and no command to give them to", line, arguments)
 		}
-		if name == "" && strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), "/")) != "" {
+		if name == "" && strings.TrimLeft(line, " \t\r\n/") != "" {
 			t.Errorf("the line %q holds a command and came back with none", line)
+		}
+		if again, rest := command.SplitLine(name); again != name || rest != "" {
+			t.Errorf("splitting the name %q again gave %q and %q, so the answer is not settled: line %q", name, again, rest, line)
 		}
 	})
 }

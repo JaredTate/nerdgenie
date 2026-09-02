@@ -259,7 +259,8 @@ func TestSplitLineReadsTheNameAndTheArgumentsApart(t *testing.T) {
 		{"/tasks\t17 back 3", "tasks", "17 back 3"},
 		{"", "", ""},
 		{"/", "", ""},
-		{"//double", "/double", ""},
+		{"//double", "double", ""},
+		{"/a/b", "a/b", ""},
 	} {
 		name, arguments := command.SplitLine(one.line)
 		if name != one.name || arguments != one.arguments {

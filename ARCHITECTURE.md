@@ -13,7 +13,7 @@ terminal ──┐                                   ┌── browser worker (T
            ├── local socket ──▶ coeus (Go) ────┤
 signal ────┘   (JSON lines)        │           └── desktop worker (TypeScript, cua-driver)
                                    │
-                              one SQLite file: event log, task records, memory index, jobs
+                              one SQLite file: event log, task and job records, memory index
                               plus markdown files: persona, memory, skills
 ```
 
@@ -45,7 +45,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 4 |
 | `internal/skill` | The skill folder format, loading, learning, replay | 4 |
 | `internal/browser` | The Go side of the browser: worker lifecycle, login, handoff | 5 |
-| `internal/schedule` | Scheduled jobs | 4 |
+| `internal/job` | Job records, the task list, and the scheduler | 4 |
 | `internal/desktop` | The Go side of the desktop worker | 6 |
 | `internal/update` | Update, rollback, migrations | 6 |
 | `internal/replay` | Re-run any logged task as a test | 6 |
@@ -64,7 +64,7 @@ Packages are listed in build order, and a package may import only packages liste
 - `Memory`: search, get, save, hint.
 - `Command`: name, help line, run function; each package exports its slash commands as values and `serve.go` registers them.
 - `Skill`: list, load, run, save.
-- `Schedule`: add, list, run, disable.
+- `Job`: create, add a task, list, run now, pause, switch off.
 - `Sandbox`: run a command inside the fence.
 - `Secrets`: resolve a reference, get the sudo password, redact text.
 - `BrowserWorker`: the methods in `worker/browser/PROTOCOL.md`.
@@ -102,7 +102,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## Test architecture
 
-Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen through Ollama, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
+Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen 3.8 through the llama-server daemon on the development machine, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
 
 ## Repository map
 

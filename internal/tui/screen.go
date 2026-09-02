@@ -73,6 +73,8 @@ type Screen struct {
 
 	blocks     []block
 	scrollBack int
+	pending    string
+	streaming  bool
 
 	input        editor
 	secretPrompt string
@@ -138,6 +140,7 @@ func (screen *Screen) nextTick() tea.Cmd {
 // the spinner decide whether it is still due.
 func (screen *Screen) beat(at time.Time) {
 	screen.now = at
+	screen.flushDeltas()
 	screen.judgeSpinner()
 }
 
@@ -151,6 +154,8 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMessage:
 		screen.beat(typed.at)
 		return screen, screen.nextTick()
+	case envelopeMessage:
+		screen.receive(typed.envelope)
 	}
 	return screen, nil
 }

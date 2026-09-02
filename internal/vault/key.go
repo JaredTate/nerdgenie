@@ -10,6 +10,7 @@ package vault
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -28,17 +29,25 @@ const maxKeyFileBytes = 4096
 // on first use and refusing it when anyone but the agent's own user account
 // could read it.
 func loadOrCreateIdentity(path string) (*age.X25519Identity, error) {
-	info, err := os.Lstat(path)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
+	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
 		return createIdentity(path)
-	case err != nil:
+	} else if err != nil {
 		return nil, fmt.Errorf("the vault key file %s could not be looked at: %w", path, err)
 	}
+	return readIdentity(path)
+}
 
+// readIdentity reads the private key out of a key file that is already there,
+// after making sure nobody else could have read or written it.
+func readIdentity(path string) (*age.X25519Identity, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, fmt.Errorf("the vault key file %s could not be looked at: %w", path, err)
+	}
 	if err := checkKeyFile(path, info); err != nil {
 		return nil, err
 	}
+
 	written, err := readShortFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("the vault key file %s could not be read: %w", path, err)
@@ -52,7 +61,8 @@ func loadOrCreateIdentity(path string) (*age.X25519Identity, error) {
 
 // createIdentity makes a new private key and publishes it without replacing an
 // existing one, so that two copies of Coeus starting at once cannot leave one
-// of them holding a key the file no longer has.
+// of them holding a key the file no longer has. The copy that loses the race
+// reads the winner's key instead, and does so once rather than trying again.
 func createIdentity(path string) (*age.X25519Identity, error) {
 	identity, err := age.GenerateX25519Identity()
 	if err != nil {
@@ -60,7 +70,7 @@ func createIdentity(path string) (*age.X25519Identity, error) {
 	}
 	if err := publishKeyFile(path, identity.String()); err != nil {
 		if errors.Is(err, fs.ErrExist) {
-			return loadOrCreateIdentity(path)
+			return readIdentity(path)
 		}
 		return nil, err
 	}
@@ -136,15 +146,15 @@ func readShortFile(path string) ([]byte, error) {
 		return nil, err
 	}
 	defer func() { _ = file.Close() }()
-	written := make([]byte, maxKeyFileBytes+1)
-	read, err := file.Read(written)
-	if err != nil && read == 0 {
+
+	written, err := io.ReadAll(io.LimitReader(file, maxKeyFileBytes+1))
+	if err != nil {
 		return nil, err
 	}
-	if read > maxKeyFileBytes {
+	if len(written) > maxKeyFileBytes {
 		return nil, fmt.Errorf("the file %s is longer than %d bytes, so it does not hold an age private key", path, maxKeyFileBytes)
 	}
-	return written[:read], nil
+	return written, nil
 }
 
 // writeAndSync writes the whole of the text and waits for the disk to say it is

@@ -46,23 +46,52 @@ func TestALogThatWillNotWriteLeavesTheRecordAsItWas(t *testing.T) {
 	before := keeper.Text()
 	store.refuseWrites = true
 
-	if err := keeper.Apply(ctx, Update{Why: "a why that cannot be saved"}); err == nil {
-		t.Error("the model's writing was accepted although the log refused it")
+	refused := map[string]func() error{
+		"the model's writing": func() error { return keeper.Apply(ctx, Update{Why: "a why that cannot be saved"}) },
+		"a result":            func() error { _, err := keeper.AddResult(ctx, "a result", "the whole text"); return err },
+		"a correction":        func() error { _, err := keeper.AddCorrection(ctx, "no, do it the other way"); return err },
+		"the budget":          func() error { return keeper.SetBudget(ctx, 5, 5) },
+		"the cost line":       func() error { return keeper.SetCost(ctx, contract.CostLine{InputTokens: 100}) },
+		"the situation":       func() error { return keeper.SetSituation(ctx, []string{"the browser is open"}) },
+		"where it stands":     func() error { return keeper.SetStatus(ctx, contract.StatusWaiting) },
+		"a plan step's mark":  func() error { return keeper.MarkPlanStep(ctx, 1, "r1") },
 	}
-	if keeper.Text() != before {
-		t.Errorf("a change the log refused stayed in the record:\n%s", keeper.Text())
-	}
-	if _, err := keeper.AddResult(ctx, "a result", "the whole text"); err == nil {
-		t.Error("a result was added although the log refused it")
-	}
-	if _, err := keeper.AddCorrection(ctx, "no, do it the other way"); err == nil {
-		t.Error("a correction was added although the log refused it")
-	}
-	if err := keeper.SetBudget(ctx, 5, 5); err == nil {
-		t.Error("the budget was written although the log refused it")
+	for what, write := range refused {
+		if err := write(); err == nil {
+			t.Errorf("%s was written although the log refused it", what)
+		}
+		if keeper.Text() != before {
+			t.Errorf("%s stayed in the record although the log refused it:\n%s", what, keeper.Text())
+		}
 	}
 	if keeper.LatestCheckpoint() != 1 {
 		t.Errorf("the record stands at checkpoint %d after every change was refused", keeper.LatestCheckpoint())
+	}
+}
+
+// TestAJobKeepsItsShapeWhenTheLogRefusesAWrite covers the job's own writes the
+// same way, because a job record must not drift from its log either.
+func TestAJobKeepsItsShapeWhenTheLogRefusesAWrite(t *testing.T) {
+	store := &brokenStore{FakeStore: testkit.NewFakeStore()}
+	ctx := t.Context()
+	keeper, err := New(ctx, store, jobStart())
+	if err != nil {
+		t.Fatalf("cannot create the job record: %v", err)
+	}
+	before := keeper.Text()
+	store.refuseWrites = true
+
+	if err := keeper.SetProgress(ctx, 1, 4, "task 31 today"); err == nil {
+		t.Error("the progress line was written although the log refused it")
+	}
+	if _, err := keeper.AddReport(ctx, "a report", "the whole report"); err == nil {
+		t.Error("a report was added although the log refused it")
+	}
+	if err := keeper.MarkJobTask(ctx, "t1", "j4.1"); err == nil {
+		t.Error("a task was marked done although the log refused it")
+	}
+	if keeper.Text() != before {
+		t.Errorf("a change the log refused stayed in the job record:\n%s", keeper.Text())
 	}
 }
 

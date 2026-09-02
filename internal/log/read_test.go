@@ -220,6 +220,16 @@ func TestBoundedLimitNeverGoesPastThePackageMaximum(t *testing.T) {
 	}
 }
 
+func TestBoundedLimitNeverAsksForNothing(t *testing.T) {
+	lowerTheCap(t, 0)
+
+	for _, asked := range []int{-7, 0, 1, 500} {
+		if bounded := boundedLimit(asked); bounded != 1 {
+			t.Errorf("with a cap of nothing a limit of %d became %d, want 1, because a read that asks for no rows can hand nothing back to look at", asked, bounded)
+		}
+	}
+}
+
 func TestTheListReadsSaySoAfterTheLogIsClosed(t *testing.T) {
 	closed, err := Open(context.Background(), filepath.Join(t.TempDir(), "coeus.db"))
 	if err != nil {

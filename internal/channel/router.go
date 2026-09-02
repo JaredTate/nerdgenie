@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -158,11 +159,16 @@ func (router *Router) channelFor(message contract.Inbound) (contract.Channel, er
 
 // SplitCommand reads a line that starts with a slash into the command's name,
 // without the slash and in lower case, and everything the user typed after it.
-// A line that is only a slash has an empty name, which no command answers to.
+// The name ends at the first space of any kind, because a name is one word and a
+// terminal can send a tab as easily as a space. A line that is only a slash has
+// an empty name, which no command answers to.
 func SplitCommand(text string) (string, string) {
 	line := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(text), CommandPrefix))
-	name, arguments, _ := strings.Cut(line, " ")
-	return strings.ToLower(name), strings.TrimSpace(arguments)
+	end := strings.IndexFunc(line, unicode.IsSpace)
+	if end < 0 {
+		return strings.ToLower(line), ""
+	}
+	return strings.ToLower(line[:end]), strings.TrimSpace(line[end:])
 }
 
 // maxTextInAMessage is how much of what the user wrote an error message repeats

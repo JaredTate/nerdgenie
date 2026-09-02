@@ -23,7 +23,7 @@ func TestAWriteThatEmptiesARealFileOnDiskAsksAndNamesItsRealSize(t *testing.T) {
 	big := filepath.Join(home.MemoryFolder(), "the-long-notes.md")
 	writeFileOfSize(t, big, 12000)
 
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWrite,
@@ -43,7 +43,7 @@ func TestAWriteToARealSmallFileOnDiskJustRuns(t *testing.T) {
 	small := filepath.Join(home.MemoryFolder(), "the-short-notes.md")
 	writeFileOfSize(t, small, 40)
 
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWrite,
@@ -58,7 +58,7 @@ func TestAWriteToARealSmallFileOnDiskJustRuns(t *testing.T) {
 func TestAFolderIsNotAFileAndSoIsNeverEmptiedByAWrite(t *testing.T) {
 	home := testkit.NewTempHome(t)
 
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWrite,
@@ -74,7 +74,7 @@ func TestTheWholeRoundThroughAChannelFromAskToAlwaysToNotAskingAgain(t *testing.
 	ctx := context.Background()
 	channel := testkit.NewFakeChannel("terminal")
 	channel.AnswerPreviewsWith(contract.AnswerAlways)
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/the-build-folder")
 
 	first := decide(t, decider, request)
@@ -105,7 +105,7 @@ func TestAScheduledRunOnARealHomeStopsAndReportsInsteadOfWaiting(t *testing.T) {
 	writeFileOfSize(t, big, 12000)
 
 	channel := testkit.NewFakeChannel("signal")
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName:   contract.ToolWrite,
@@ -125,7 +125,7 @@ func TestAScheduledRunOnARealHomeStopsAndReportsInsteadOfWaiting(t *testing.T) {
 }
 
 func TestAStandingApprovalRunsOutOnTheRealClock(t *testing.T) {
-	decider, err := permission.New(permission.DefaultSettings(), realClock{})
+	decider, err := permission.New(contract.DefaultConfig(), realClock{})
 	if err != nil {
 		t.Fatalf("building the permission function on the real clock failed: %v", err)
 	}

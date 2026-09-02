@@ -10,7 +10,7 @@ import (
 )
 
 func TestAnUnattendedRunThatHitsTheListStopsAndShowsWhatItWouldHaveAsked(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/x")
 	request.Unattended = true
 
@@ -31,7 +31,7 @@ func TestAnUnattendedRunThatHitsTheListStopsAndShowsWhatItWouldHaveAsked(t *test
 }
 
 func TestAnUnattendedRunThatHitsNothingOnTheListJustRuns(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "git commit -m \"the nightly report\"")
 	request.Unattended = true
 
@@ -43,7 +43,7 @@ func TestAnUnattendedRunThatHitsNothingOnTheListJustRuns(t *testing.T) {
 }
 
 func TestAnUnattendedRunUsesTheAnswersAndApprovalsItAlreadyHas(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	registerStanding(t, decider, permission.StandingApproval{
 		Skill:       "clear-the-build-folder",
 		ReducedForm: "rm -rf",
@@ -66,11 +66,11 @@ func TestAnUnattendedRunUsesTheAnswersAndApprovalsItAlreadyHas(t *testing.T) {
 }
 
 func TestARuleThatDeniesIsARefusalAndNotAStop(t *testing.T) {
-	settings := permission.DefaultSettings()
-	settings.Rules = []permission.Rule{
-		{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingDeny, Reason: "never delete folders"},
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingDeny},
 	}
-	decider := newDecider(t, settings)
+	decider := newDecider(t, configuration)
 	request := shellRequest(t, "rm -rf /tmp/x")
 	request.Unattended = true
 
@@ -84,7 +84,7 @@ func TestARuleThatDeniesIsARefusalAndNotAStop(t *testing.T) {
 }
 
 func TestAnAttendedRunThatHitsTheListAsksRatherThanStopping(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, shellRequest(t, "rm -rf /tmp/x"))
 	if decision.Ruling != contract.RulingAsk {

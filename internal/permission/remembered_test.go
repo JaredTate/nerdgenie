@@ -10,7 +10,7 @@ import (
 )
 
 func TestAnswerOnceDoesNotStickAndTheSameCallAsksAgain(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/x")
 
 	if err := decider.Remember(request, contract.AnswerOnce, ""); err != nil {
@@ -23,7 +23,7 @@ func TestAnswerOnceDoesNotStickAndTheSameCallAsksAgain(t *testing.T) {
 }
 
 func TestAnswerAlwaysSticksForTheRestOfTheSession(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/x")
 
 	if err := decider.Remember(request, contract.AnswerAlways, ""); err != nil {
@@ -40,7 +40,7 @@ func TestAnswerAlwaysSticksForTheRestOfTheSession(t *testing.T) {
 }
 
 func TestAnswerAlwaysCoversOnlyCallsThatReduceToTheSameThing(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	if err := decider.Remember(shellRequest(t, "rm -rf /tmp/x"), contract.AnswerAlways, ""); err != nil {
 		t.Fatalf("remembering an answer of always failed: %v", err)
@@ -58,7 +58,7 @@ func TestAnswerAlwaysCoversOnlyCallsThatReduceToTheSameThing(t *testing.T) {
 }
 
 func TestAnswerRejectRefusesTheCallAndGivesTheModelTheReason(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/x")
 
 	if err := decider.Remember(request, contract.AnswerReject, "that folder is the only copy of the photos"); err != nil {
@@ -75,7 +75,7 @@ func TestAnswerRejectRefusesTheCallAndGivesTheModelTheReason(t *testing.T) {
 }
 
 func TestAnswerRejectWithNoReasonStillSaysTheUserRefusedIt(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	request := shellRequest(t, "rm -rf /tmp/x")
 
 	if err := decider.Remember(request, contract.AnswerReject, ""); err != nil {
@@ -89,7 +89,7 @@ func TestAnswerRejectWithNoReasonStillSaysTheUserRefusedIt(t *testing.T) {
 }
 
 func TestAnAnswerTheHarnessDoesNotUnderstandIsRefused(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	err := decider.Remember(shellRequest(t, "rm -rf /tmp/x"), "maybe", "")
 	if err == nil {
@@ -98,7 +98,7 @@ func TestAnAnswerTheHarnessDoesNotUnderstandIsRefused(t *testing.T) {
 }
 
 func TestMoreRememberedAnswersThanTheCapAreRefusedWithSomethingToDo(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	var lastErr error
 	for index := 0; index <= permission.MaxRememberedAnswers; index++ {

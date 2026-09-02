@@ -9,7 +9,7 @@ import (
 )
 
 func TestThePreviewOfAnEditNamesTheFileAndHowMuchOfItChanges(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolEdit,
@@ -31,7 +31,7 @@ func TestThePreviewOfAnEditNamesTheFileAndHowMuchOfItChanges(t *testing.T) {
 }
 
 func TestThePreviewOfAWebCallSaysWhetherItFetchesOrSearches(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	fetching := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWeb,
@@ -51,7 +51,7 @@ func TestThePreviewOfAWebCallSaysWhetherItFetchesOrSearches(t *testing.T) {
 }
 
 func TestThePreviewOfAnEscalatedCommandCarriesTheReasonTheModelGave(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolShell,
@@ -68,11 +68,11 @@ func TestThePreviewOfAnEscalatedCommandCarriesTheReasonTheModelGave(t *testing.T
 }
 
 func TestThePreviewOfAWriteWithNoFileThereYetSaysItWritesAnEmptyFile(t *testing.T) {
-	settings := permission.DefaultSettings()
-	settings.Rules = []permission.Rule{
-		{Tool: contract.ToolWrite, Pattern: "*", Action: contract.RulingAsk, Reason: "I check every write"},
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWrite, Pattern: "*", Action: contract.RulingAsk},
 	}
-	decider := newDecider(t, settings)
+	decider := newDecider(t, configuration)
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWrite,
@@ -85,11 +85,11 @@ func TestThePreviewOfAWriteWithNoFileThereYetSaysItWritesAnEmptyFile(t *testing.
 }
 
 func TestThePreviewOfACallWithNoFieldTheHarnessKnowsFallsBackToTheReadableForm(t *testing.T) {
-	settings := permission.DefaultSettings()
-	settings.Rules = []permission.Rule{
-		{Tool: "*", Pattern: "*", Action: contract.RulingAsk, Reason: "I check everything"},
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: "*", Pattern: "*", Action: contract.RulingAsk},
 	}
-	decider := newDecider(t, settings)
+	decider := newDecider(t, configuration)
 
 	for _, request := range previewFallbackCalls(t) {
 		decision := decide(t, decider, request)
@@ -100,7 +100,7 @@ func TestThePreviewOfACallWithNoFieldTheHarnessKnowsFallsBackToTheReadableForm(t
 }
 
 func TestAPreviewIsNeverLongerThanTheCap(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, shellRequest(t, "rm -rf "+strings.Repeat("/a-very-long-folder-name", 400)))
 

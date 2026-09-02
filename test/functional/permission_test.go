@@ -139,7 +139,7 @@ func clearTheBuildFolder() contract.ToolCall {
 // newPermission builds the permission function a fresh install would have.
 func newPermission(t *testing.T) *permission.Decider {
 	t.Helper()
-	decider, err := permission.New(permission.DefaultSettings(), testkit.NewFakeClock(time.Unix(0, 0).UTC()))
+	decider, err := permission.New(contract.DefaultConfig(), testkit.NewFakeClock(time.Unix(0, 0).UTC()))
 	if err != nil {
 		t.Fatalf("building the permission function failed: %v", err)
 	}

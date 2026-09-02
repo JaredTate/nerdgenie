@@ -11,7 +11,7 @@ import (
 )
 
 func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	registerStanding(t, decider, permission.StandingApproval{
 		Skill:       "clear-the-build-folder",
 		ReducedForm: "rm -rf",
@@ -37,7 +37,7 @@ func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
 
 func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 	clock := testkit.NewFakeClock(theTestTime)
-	decider, err := permission.New(permission.DefaultSettings(), clock)
+	decider, err := permission.New(contract.DefaultConfig(), clock)
 	if err != nil {
 		t.Fatalf("building the permission function failed: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 }
 
 func TestAStandingApprovalCoversOnlyTheFormItNames(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	registerStanding(t, decider, permission.StandingApproval{
 		Skill:       "clear-the-build-folder",
 		ReducedForm: "rm -rf",
@@ -76,7 +76,7 @@ func TestAStandingApprovalCoversOnlyTheFormItNames(t *testing.T) {
 }
 
 func TestARejectionTheUserGaveBeatsAStandingApproval(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	registerStanding(t, decider, permission.StandingApproval{
 		Skill:       "clear-the-build-folder",
 		ReducedForm: "rm -rf",
@@ -107,7 +107,7 @@ var badStandingApprovals = []struct {
 }
 
 func TestAStandingApprovalTheHarnessCannotUseIsRefusedByName(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	for _, bad := range badStandingApprovals {
 		err := decider.RegisterStandingApproval(bad.approval)
@@ -122,7 +122,7 @@ func TestAStandingApprovalTheHarnessCannotUseIsRefusedByName(t *testing.T) {
 }
 
 func TestMoreStandingApprovalsThanTheCapAreRefused(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	var lastErr error
 	for index := 0; index <= permission.MaxStandingApprovals; index++ {

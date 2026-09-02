@@ -17,7 +17,7 @@ import (
 var theTestTime = time.Date(2026, time.September, 2, 9, 0, 0, 0, time.UTC)
 
 func TestADeciderWithTheShippedListAsksAboutABulkDeleteAndShowsTheCommand(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolShell,
@@ -36,7 +36,7 @@ func TestADeciderWithTheShippedListAsksAboutABulkDeleteAndShowsTheCommand(t *tes
 }
 
 func TestADeciderAllowsACallNoRuleCoversAndSaysSo(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolRead,
@@ -52,7 +52,7 @@ func TestADeciderAllowsACallNoRuleCoversAndSaysSo(t *testing.T) {
 }
 
 func TestAnEmptyAskMeFirstListAllowsEverything(t *testing.T) {
-	decider := newDecider(t, permission.Settings{})
+	decider := newDecider(t, contract.Config{})
 
 	for _, command := range []string{"rm -rf /tmp/x", "sudo apt install ripgrep", "git reset --hard"} {
 		decision := decide(t, decider, contract.PermissionRequest{
@@ -65,41 +65,72 @@ func TestAnEmptyAskMeFirstListAllowsEverything(t *testing.T) {
 	}
 }
 
-func TestAUserRuleWinsOverTheShippedListBecauseItComesLast(t *testing.T) {
-	settings := permission.DefaultSettings()
-	settings.Rules = []permission.Rule{
-		{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingAllow, Reason: "I clear my own scratch folders"},
-		{Tool: contract.ToolShell, Pattern: "*git reset --hard*", Action: contract.RulingDeny, Reason: "never throw my work away"},
+func TestARuleFromTheConfigurationWinsOverAShippedEntryBecauseItComesLast(t *testing.T) {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingAllow},
+		{Tool: contract.ToolShell, Pattern: "*git reset --hard*", Action: contract.RulingDeny},
 	}
-	decider := newDecider(t, settings)
+	decider := newDecider(t, configuration)
 
 	allowed := decide(t, decider, shellRequest(t, "rm -rf /tmp/x"))
-	if allowed.Ruling != contract.RulingAllow || allowed.Reason != "I clear my own scratch folders" {
-		t.Errorf("the user's allow rule gave %q because %q, want an allow with the user's own reason", allowed.Ruling, allowed.Reason)
+	if allowed.Ruling != contract.RulingAllow {
+		t.Errorf("the rule in config.toml that allows gave %q, want %q", allowed.Ruling, contract.RulingAllow)
+	}
+	if !strings.Contains(allowed.Reason, "*rm -r*") {
+		t.Errorf("the reason is %q, and it has to name the rule from config.toml that won", allowed.Reason)
 	}
 
 	denied := decide(t, decider, shellRequest(t, "git reset --hard origin/main"))
-	if denied.Ruling != contract.RulingDeny || denied.Reason != "never throw my work away" {
-		t.Errorf("the user's deny rule gave %q because %q, want a deny with the user's own reason", denied.Ruling, denied.Reason)
+	if denied.Ruling != contract.RulingDeny {
+		t.Errorf("the rule in config.toml that denies gave %q, want %q", denied.Ruling, contract.RulingDeny)
 	}
 }
 
-func TestADeciderRefusesSettingsItCannotUse(t *testing.T) {
+func TestDroppingOneEntryFromTheConfigurationLeavesTheOthersOn(t *testing.T) {
+	configuration := contract.DefaultConfig()
+	configuration.AskMeFirst = []string{contract.AskFirstSpendMoney}
+	decider := newDecider(t, configuration)
+
+	dropped := decide(t, decider, shellRequest(t, "rm -rf /tmp/x"))
+	if dropped.Ruling != contract.RulingAllow {
+		t.Errorf("an entry the user took off the list was ruled %q, want %q", dropped.Ruling, contract.RulingAllow)
+	}
+
+	kept := decide(t, decider, contract.PermissionRequest{
+		ToolName: contract.ToolBrowserAct,
+		Input:    jsonInput(t, map[string]any{"intent": "buy the blue kayak"}),
+	})
+	if kept.Ruling != contract.RulingAsk {
+		t.Errorf("an entry the user kept was ruled %q, want %q", kept.Ruling, contract.RulingAsk)
+	}
+}
+
+func TestADeciderRefusesAConfigurationItCannotUse(t *testing.T) {
 	clock := testkit.NewFakeClock(theTestTime)
 
-	if _, err := permission.New(permission.Settings{AskMeFirst: []string{"whatever"}}, clock); err == nil {
+	unknownEntry := contract.DefaultConfig()
+	unknownEntry.AskMeFirst = []string{"whatever I feel like"}
+	_, err := permission.New(unknownEntry, clock)
+	if err == nil {
 		t.Error("an ask-me-first entry nobody shipped was accepted, want an error naming it")
+	} else if !strings.Contains(err.Error(), "whatever I feel like") {
+		t.Errorf("the error is %q, and it has to name the entry config.toml asked for", err)
 	}
-	if _, err := permission.New(permission.Settings{Rules: []permission.Rule{{Tool: "*", Pattern: "*", Action: "maybe"}}}, clock); err == nil {
+
+	badAction := contract.DefaultConfig()
+	badAction.PermissionRules = []contract.PermissionRule{{Tool: "*", Pattern: "*", Action: "maybe"}}
+	if _, err := permission.New(badAction, clock); err == nil {
 		t.Error("a rule with an action that is not one of the three was accepted, want an error")
 	}
-	if _, err := permission.New(permission.DefaultSettings(), nil); err == nil {
+
+	if _, err := permission.New(contract.DefaultConfig(), nil); err == nil {
 		t.Error("a decider was built with no clock, and it needs one to know when a standing approval has expired")
 	}
 }
 
 func TestADeciderStopsWhenTheContextIsAlreadyCancelled(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -109,7 +140,7 @@ func TestADeciderStopsWhenTheContextIsAlreadyCancelled(t *testing.T) {
 }
 
 func TestADeciderKeepsThePermissionContract(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	if err := testkit.CheckPermission(context.Background(), decider); err != nil {
 		t.Fatalf("the permission function does not keep the permission contract: %v", err)
@@ -119,7 +150,7 @@ func TestADeciderKeepsThePermissionContract(t *testing.T) {
 func TestThePreviewOfAWriteThatEmptiesAFileNamesThePathAndTheSize(t *testing.T) {
 	big := filepath.Join(t.TempDir(), "big.log")
 	writeFileOfSize(t, big, permission.EmptiesFileOverBytes+1)
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolWrite,
@@ -138,7 +169,7 @@ func TestThePreviewOfAWriteThatEmptiesAFileNamesThePathAndTheSize(t *testing.T) 
 }
 
 func TestThePreviewOfABrowserActionNamesTheIntentAndTheElement(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolBrowserClick,
@@ -154,7 +185,7 @@ func TestThePreviewOfABrowserActionNamesTheIntentAndTheElement(t *testing.T) {
 }
 
 func TestThePreviewOfAnEscalatedCommandSaysItAsksForAdministratorPowers(t *testing.T) {
-	decider := newDecider(t, permission.DefaultSettings())
+	decider := newDecider(t, contract.DefaultConfig())
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolShell,
@@ -169,11 +200,11 @@ func TestThePreviewOfAnEscalatedCommandSaysItAsksForAdministratorPowers(t *testi
 	}
 }
 
-func TestARuleWithNoReasonStillGetsOneBuiltFromTheRuleItself(t *testing.T) {
-	settings := permission.Settings{
-		Rules: []permission.Rule{{Tool: contract.ToolShell, Pattern: "*git push*", Action: contract.RulingDeny}},
+func TestARuleFromTheConfigurationIsDescribedByItself(t *testing.T) {
+	configuration := contract.Config{
+		PermissionRules: []contract.PermissionRule{{Tool: contract.ToolShell, Pattern: "*git push*", Action: contract.RulingDeny}},
 	}
-	decider := newDecider(t, settings)
+	decider := newDecider(t, configuration)
 
 	decision := decide(t, decider, shellRequest(t, "git push --force"))
 
@@ -187,10 +218,11 @@ func TestARuleWithNoReasonStillGetsOneBuiltFromTheRuleItself(t *testing.T) {
 	}
 }
 
-// newDecider builds a permission function on a clock a test controls.
-func newDecider(t *testing.T, settings permission.Settings) *permission.Decider {
+// newDecider builds a permission function from a configuration, on a clock a
+// test controls.
+func newDecider(t *testing.T, configuration contract.Config) *permission.Decider {
 	t.Helper()
-	decider, err := permission.New(settings, testkit.NewFakeClock(theTestTime))
+	decider, err := permission.New(configuration, testkit.NewFakeClock(theTestTime))
 	if err != nil {
 		t.Fatalf("building the permission function failed: %v", err)
 	}

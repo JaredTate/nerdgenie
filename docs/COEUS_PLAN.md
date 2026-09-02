@@ -20,7 +20,7 @@ Coeus is built on a different idea, and it is an old one.
 
 **The operations order.** The U.S. Army has a bigger version of the same problem: a headquarters that cannot see every unit, radios that fail, people who rotate out mid-mission. Its answer is a fixed document format anyone can write and check, the five-paragraph operations order, plus a rule for what to do when the plan breaks. We borrow its parts directly: the situation, the mission with the user's intent and what done looks like, the plan, the list of things to stop and report, small changes as fragmentary orders, and the after-action review when it is over.
 
-**The result** is an agent that always knows what it is working on, keeps working until it is done, tells you when it should, and spends tokens on the task instead of on re-reading its own past. It works the same on a small local model and a frontier model; only the size of the working context changes.
+**The result** is an agent that always knows what it is working on, keeps working until it is done, tells you when it should, and spends tokens on the task instead of on re-reading its own past. It works the same on a small local model and a million-token frontier model; only the size of the working context changes, and it never shrinks a big model to fit a small one.
 
 ```mermaid
 flowchart LR
@@ -175,17 +175,29 @@ A task cannot close until each line of "Done" is answered true, with the evidenc
 
 Then the four questions of the Army's after-action review, one line each: What was supposed to happen? What happened? Why the difference? What do we keep, and what do we change? The last answer is what goes into memory or into a skill. This replaces the vague "save what you learned" step every other harness uses.
 
-### Working context, sized to the model
+### Working context: one rule, sized to the model
 
-Context is the model's working memory for one call. Nothing carries over except what the harness puts back. A cached prefix is nearly free, so the order matters more than the size: stable things first, changing things last. Attention dilutes, so twenty thousand tokens of relevant material beat a hundred thousand of noise, on big models too.
+Context is the model's working memory for one call. Nothing carries over except what the harness puts back. Coeus has one rule for it: **the working context is never smaller than the task needs and never bigger than the model can hold.** The record is the same size on every model. The window around it is the only thing that changes, from a few thousand tokens on a small local model to most of a million on a frontier model. A big model is never held back to suit a small one.
 
-| Model context | Pinned evidence | Recent messages | Typical turn |
-|---|---|---|---|
-| 24k | 6k | 6k | 8 to 12k |
-| 64k | 16k | 20k | 10 to 20k |
-| 128k and up | 32k | 48k | 10 to 30k |
+Two facts about tokens decide the layout. A cached prefix costs about a tenth of a fresh one, so the order of the prompt matters more than its size: stable things first. And appending is cheap while rewriting is expensive, because a rewrite breaks the cache. Agents that summarize their transcript rewrite their whole history every time they compact. Coeus appends to history and only rewrites a record of one to three thousand tokens.
 
-The record is the same size on every model. When the recent window is full, the oldest unpinned exchange folds into the record as one line and stays readable by id. Turn the windows all the way up and Coeus becomes "the whole transcript in context," which is what every other agent is. Every setting below that keeps more, not less.
+```
+harness rules + persona      changes weekly              cache point A
+tools                        changes on deploy           cache point B
+record, stable part          ask, intent, corrections, stop conditions, decisions   cache point C
+record, live part            situation, plan status, results
+pinned evidence              what the model or the harness pinned, verbatim
+recent messages              appended, never rewritten, folded from the oldest end
+memory hint                  three lines from search
+```
+
+**Tiered folding.** When a message or a result leaves the recent window it does not vanish and it is not summarized. It drops one tier: from verbatim in the window, to a one-line entry in the record, to the log, where `read r7` brings it back in full. A large model rarely folds anything. A small model folds constantly and loses nothing.
+
+**Cost on every turn.** The harness knows the token count of each layer and the cache hit rate, and writes one line into the record header: `this turn: 6.1k in (5.2k cached), 0.4k out`. `/status` totals it per task. The user can always see what a task cost and where.
+
+**The proof.** The forty-step test task runs on every supported model size at build time and asserts the same three things: the ask and corrections are byte-identical at the end, the done-check passes, and no result became unreadable. "Works on any model" is a test, not a claim.
+
+**Why not just use the million tokens.** Attention dilutes: a model reasons worse over a million tokens of noise than over thirty thousand of signal, and the leaders on long-task benchmarks all use explicit plans and memory for that reason. And the record is what lets a task be paused for three days and resumed, on a different model, with nothing in any window. A million-token context is a bigger window. It is not a save file.
 
 ---
 

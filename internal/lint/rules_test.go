@@ -28,8 +28,11 @@ func TestCommentSentenceRuleAcceptsSentencesAndDirectives(t *testing.T) {
 		{"starting lowercase", "package example\n\n// count returns nothing.\nfunc Count() int { return 0 }\n", true},
 		{"no full stop", "package example\n\n// Count returns nothing\nfunc Count() int { return 0 }\n", true},
 		{"a build directive", "//go:build example\n\npackage example\n", false},
-		{"a nolint line", "package example\n\n//nolint\nfunc Count() int { return 0 }\n", true},
+		{"a nolint line", "package example\n\n//nolint\nfunc Count() int { return 0 }\n", false},
 		{"a link on its own line", "package example\n\n// Count returns nothing.\n// https://example.com/notes\nfunc Count() int { return 0 }\n", false},
+		{"an unexported function naming itself", "package example\n\n// count returns nothing.\nfunc count() int { return 0 }\n", false},
+		{"an unexported type naming itself", "package example\n\n// counter counts one thing.\ntype counter struct{}\n", false},
+		{"an unexported name that does not name itself", "package example\n\n// this counts nothing.\nfunc count() int { return 0 }\n", true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -55,6 +58,7 @@ func TestDocCommentRuleCoversFunctionsTypesFieldsAndMethods(t *testing.T) {
 		{"an undocumented interface method", "package example\n\n// Counter counts.\ntype Counter interface {\n\tCount() int\n}\n", true},
 		{"an undocumented constant", "package example\n\nconst Greeting = \"hello\"\n", true},
 		{"a constant documented by its block", "package example\n\n// Greeting is a greeting.\nconst (\n\tGreeting = \"hello\"\n)\n", false},
+		{"a comment that is only a directive is no doc comment", "package example\n\n//nolint\nfunc Count() int { return 0 }\n", true},
 		{"a test file is left alone", "package example\n\nfunc TestCount(t int) { _ = t }\n", false},
 	}
 	for _, test := range tests {

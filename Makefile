@@ -30,7 +30,7 @@ fuzz:
 
 check:
 	@echo "== gofmt =="
-	@unformatted=$$(gofmt -l .); \
+	@unformatted=$$(gofmt -l $$(find . -name '*.go' -not -path '*/testdata/*')); \
 	if [ -n "$$unformatted" ]; then \
 		echo "these files are not gofmt clean; run gofmt -w on them:"; \
 		echo "$$unformatted"; \

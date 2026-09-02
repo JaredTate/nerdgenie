@@ -61,6 +61,68 @@ func TestTheFakeVaultRedactsEveryValueItHolds(t *testing.T) {
 	}
 }
 
+func TestRedactingDoesNotCorruptTextItHasAlreadyRedacted(t *testing.T) {
+	secrets := testkit.NewFakeSecrets()
+	secrets.Add("long", contract.Credential{Password: "hunter2hunter2"})
+	secrets.Add("short", contract.Credential{Password: "act"})
+
+	redacted := secrets.Redact("logging in with hunter2hunter2 now")
+
+	if redacted != "logging in with "+contract.RedactedMarker+" now" {
+		t.Errorf("the redacted text is %q, and a short secret matched inside the marker a longer one had already written", redacted)
+	}
+}
+
+func TestTheLongestSecretGoesFirstSoNoneIsLeftHalfVisible(t *testing.T) {
+	secrets := testkit.NewFakeSecrets()
+	secrets.Add("part", contract.Credential{Password: "hunter2"})
+	secrets.Add("whole", contract.Credential{Password: "hunter2hunter2"})
+
+	redacted := secrets.Redact("the password is hunter2hunter2 today")
+
+	if redacted != "the password is "+contract.RedactedMarker+" today" {
+		t.Errorf("the redacted text is %q, and the whole secret should have gone in one piece", redacted)
+	}
+}
+
+func TestRedactingTwiceChangesNothingTheSecondTime(t *testing.T) {
+	secrets := testkit.NewFakeSecrets()
+	secrets.Add("x-account", contract.Credential{Password: "correct horse battery staple"})
+
+	once := secrets.Redact("logging in with correct horse battery staple now")
+	twice := secrets.Redact(once)
+
+	if once != twice {
+		t.Errorf("redacting twice gave %q then %q, and the second pass should change nothing", once, twice)
+	}
+}
+
+func FuzzRedact(f *testing.F) {
+	for _, seed := range []string{
+		"", "nothing secret here", "hunter2hunter2", "[redacted]",
+		"logging in with hunter2hunter2 now", "actactact",
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, text string) {
+		secrets := testkit.NewFakeSecrets()
+		secrets.Add("long", contract.Credential{Password: "hunter2hunter2"})
+		secrets.Add("short", contract.Credential{Password: "act"})
+		secrets.SetSudoPassword("open sesame")
+
+		redacted := secrets.Redact(text)
+
+		for _, value := range []string{"hunter2hunter2", "act", "open sesame"} {
+			if strings.Contains(redacted, value) {
+				t.Fatalf("the redacted text still holds %q: %q came out as %q", value, text, redacted)
+			}
+		}
+		if again := secrets.Redact(redacted); again != redacted {
+			t.Fatalf("redacting twice changed the text: %q became %q then %q", text, redacted, again)
+		}
+	})
+}
+
 func TestTheFakeVaultServesTheSudoPassword(t *testing.T) {
 	secrets := testkit.NewFakeSecrets()
 	secrets.SetSudoPassword("open sesame please")

@@ -99,3 +99,43 @@ None. The first trial is at the wave-3 gate.
 Merged into `main` on 2026-09-02 as one merge commit after `make check` passed on the branch tip and again on `main` (every package above ninety percent, the fuzz smoke clean). The orchestrator read `internal/contract` in full and found it true to the design; the ripgrep gap the worker reported was closed by installing it system-wide (`/usr/bin/rg` 14.1.0). Three additions to `internal/contract` followed as orchestrator commits, because waves 3 and 4 need them: the job interface gained the calls that hand a finished task's report to its job and ask for the next task, the file-change event got a body shape for `/undo`, and the home layout got a Signal folder.
 
 A reviewer with fresh eyes then read every other new file and found twenty-five problems, nine of them in safeguards later waves lean on: the coverage gate skipped untested packages, the forty-step fixture never made the model write to the record and never fired its stop, the fake provider server ignored the script's expectations and drifted from both wire protocols, the repo-map fixture could read the wrong tree, the sandbox contract check asserted nothing, and the borrowed-design rule was silent for seven of nine projects. Wave 0 does not pass its gate as merged. The fixes are brief `docs/briefs/wave-0/0.2-fix-the-wave-0-gate.md`, run as a fix wave alongside wave 1, and the gate closes when it merges.
+
+---
+
+## Wave 1: the foundation, and the wave 2 packages that needed only the contracts
+
+Briefs `docs/briefs/wave-1/1.1` to `1.5`, plus `2.2`, `2.3`, and `2.4` from wave 2, which depend only on the contracts and so ran alongside. Five to ten workers at once, per the user's pacing rule, each in its own worktree, merged with `--no-ff` after `make check` passed on the branch and again on `main` in a clean checkout.
+
+### Merged so far
+
+| Package | Brief | Coverage | Notes from the gate |
+|---|---|---|---|
+| `internal/log` | 1.1 | 93.6% | A read that fills its cap of ten thousand events returns an error naming `ByRange`, never a silent truncation. The crash test kills a helper by exact pid mid-write and finds no gap. |
+| `internal/config` | 1.3 | 96.3% | TOML keys are the snake_case tags on the contract (`default_model`, `base_address`); a squashed key is refused as unknown. The default work folder is `~/coeus`, and the whole home directory is refused as a root. |
+| `internal/repair` | 1.5 | 98.5% | Five envelope shapes, name repair, the two-failures rule, and `<think>` blocks stripped before any shape is read. |
+| `internal/provider` | 1.4 | 92.7% | Three providers: Anthropic, OpenAI-compatible, and `cli` for the two subscription programs. |
+| `internal/permission` | 2.2 | 97.9% | The three shipped entries as data, the reduced form, and `RulingStop` for an unattended run. |
+| `internal/sandbox` | 2.3 | 96.1% | Real bwrap and Landlock with zero skips, once an AppArmor profile for bwrap was installed on this machine (Ubuntu 24.04 blocks unprivileged user namespaces without one). |
+| `internal/clock` | orchestrator | 100% | The real clock behind `contract.Clock`, which no brief owned. |
+
+Still open from this batch: `1.2` (the record), which is rebasing after a log-key ruling, and `2.4` (the vault), which is applying three contract additions and a `/vault add` usability change.
+
+### Live results
+
+The provider contract test ran once against all three real models, from an empty scratch folder, with `internal/clock` as the clock:
+
+| Model | Reached through | Text reply | Tool call | Cost |
+|---|---|---|---|---|
+| Qwen 3.8 (`local-coder`) | the llama-server daemon on port 19091 | 315 in, 290 cached, 24 out | 318 in, 290 cached, 25 out | free |
+| Opus 4.8 | `claude -p`, the Claude subscription | 392 in, 0 cached, 36 out | 401 in, 0 cached, 39 out | about 0.8 cents |
+| GPT-5.5 | `codex exec`, the ChatGPT subscription | 8565 in, 7552 cached, 20 out | 8568 in, 4480 cached, 112 out | no dollar figure reported |
+
+The codex program sends about 8,300 tokens of its own environment context on every call regardless of the prompt. The whole run cost about 1.1 cents of subscription.
+
+### Contract changes made at this gate, all by the orchestrator, each tests first
+
+Snake_case TOML tags; the ask-me-first list and the user's permission rules in the configuration; `RulingStop`; the credential prints as `[secret]` on every path; `TerminalChannelName`; `Reply.Model` and `Usage.CostUSD`; the work folder as the default sandbox root and the rule that a root may not hold an excluded path; `RecordLogKey`, so task 17 and job 17 never share a stretch of the log; and the browser protocol's twelfth method `dialog`, a wall on a snapshot, a settled flag on a diff, and the written expectation rule, all from the browser worker's findings.
+
+### Human trial
+
+None until wave 3.

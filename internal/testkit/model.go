@@ -30,6 +30,16 @@ type Step struct {
 	Finish contract.FinishReason
 	// Usage is the token count to report.
 	Usage contract.Usage
+	// CacheCreationTokens is how many input tokens the provider wrote into its
+	// cache on this call. It is separate from Usage because contract.Usage does
+	// not carry it: the harness adds it to the input count rather than reporting
+	// it on its own. Only the Anthropic wire protocol reports it.
+	CacheCreationTokens int
+	// MidStreamError makes the stream go wrong after its first block, carrying
+	// this text in the protocol's own error shape and then stopping. It is how a
+	// test proves the harness reads an error that arrives after the reply has
+	// already started.
+	MidStreamError string
 }
 
 // Script is an ordered list of steps a fake model plays, one per call.

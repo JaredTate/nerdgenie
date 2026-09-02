@@ -93,6 +93,8 @@ func New(alias contract.ModelAlias, options Options) (contract.Model, error) {
 	switch alias.Provider {
 	case contract.ProviderAnthropic:
 		return newAnthropicModel(alias, options), nil
+	case contract.ProviderOpenAI:
+		return newOpenAIModel(alias, options)
 	default:
 		return nil, fmt.Errorf("the model alias %q names the provider kind %q, and the three kinds are %q, %q, and %q",
 			alias.Name, alias.Provider, contract.ProviderAnthropic, contract.ProviderOpenAI, contract.ProviderCommandLine)

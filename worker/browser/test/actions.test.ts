@@ -96,17 +96,18 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect(diff.expectationMet).toBe(true);
   });
 
-  it("scrolls in steps and brings what was below the fold into the answer", async () => {
-    await worker.result("open", { url: site.page("long.html") });
+  it("scrolls in steps and reports the posts the page put up as a result", async () => {
+    await worker.result("open", { url: site.page("more-on-scroll.html") });
     const diff = asDiff(
       await worker.result("scroll", {
         direction: "down",
         amount: 6,
-        expectation: "another button",
+        expectation: "another post",
       }),
     );
     expect(diff.expectationMet).toBe(true);
     expect(diff.newElements.length).toBeGreaterThan(0);
+    expect(diff.newElements.every((element) => element.role === "article")).toBe(true);
   });
 
   it("scrolls back up again", async () => {

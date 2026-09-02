@@ -53,8 +53,8 @@ func TestTheChainMovesOnWhenTheFirstModelIsOutOfTries(t *testing.T) {
 	if finished.reply.Text != "the second model answered" {
 		t.Errorf("the reply is %q, want the second model's answer", finished.reply.Text)
 	}
-	if chain.AnsweredBy() != "second" {
-		t.Errorf("the chain says %q answered, want second", chain.AnsweredBy())
+	if finished.reply.Model != "second" {
+		t.Errorf("the reply says %q answered, want second", finished.reply.Model)
 	}
 	if !strings.Contains(strings.Join(recorder.all(), "\n"), "moving on to the model \"second\"") {
 		t.Errorf("moving on to the next model was not written down: %v", recorder.all())
@@ -135,9 +135,6 @@ func TestTheChainReportsTheModelItWillTryFirst(t *testing.T) {
 	if chain.ContextLength() != 262144 {
 		t.Errorf("the chain reports a window of %d, want the first model's", chain.ContextLength())
 	}
-	if chain.AnsweredBy() != "" {
-		t.Errorf("the chain says %q answered before anything was called", chain.AnsweredBy())
-	}
 }
 
 func TestTheChainPassesTheContractCheck(t *testing.T) {
@@ -151,5 +148,13 @@ func TestTheChainPassesTheContractCheck(t *testing.T) {
 
 	if err := testkit.CheckModel(context.Background(), chain); err != nil {
 		t.Fatalf("the fallback chain does not keep the model contract: %v", err)
+	}
+
+	reply, _, err := sendAndCollect(context.Background(), chain, requestWithEverything())
+	if err != nil {
+		t.Fatalf("one call through the chain failed: %v", err)
+	}
+	if reply.Model != "only" {
+		t.Errorf("the reply says %q answered, want the one model in the chain", reply.Model)
 	}
 }

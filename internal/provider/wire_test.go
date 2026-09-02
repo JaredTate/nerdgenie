@@ -30,7 +30,7 @@ func scriptFinishing(finish contract.FinishReason, cacheCreation int) testkit.Sc
 	}
 }
 
-func TestTheCacheCreationCountIsAddedToTheInputCount(t *testing.T) {
+func TestTheInputCountIsEverythingTheModelReadOnTheAnthropicWire(t *testing.T) {
 	server := testkit.NewFakeProviderServer(scriptFinishing(contract.FinishLength, 300))
 	defer server.Close()
 	model, _, _ := anthropicAgainst(t, server)
@@ -40,12 +40,79 @@ func TestTheCacheCreationCountIsAddedToTheInputCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("one call to the Anthropic provider failed: %v", err)
 	}
-	want := contract.Usage{InputTokens: 1200, CachedInputTokens: 5200, OutputTokens: 64}
+	// The Messages API counts what it read in three places: the plain input
+	// tokens, what it wrote into the cache, and what it read back out of the
+	// cache. The input count the harness reports is all three added together,
+	// and the cached count is the third of them on its own, so the cached count
+	// is always a part of the input count.
+	want := contract.Usage{InputTokens: 900 + 300 + 5200, CachedInputTokens: 5200, OutputTokens: 64}
 	if reply.Usage != want {
-		t.Errorf("the usage came back as %+v, want %+v with the cache-creation tokens added to the input", reply.Usage, want)
+		t.Errorf("the usage came back as %+v, want %+v", reply.Usage, want)
 	}
 	if reply.Finish != contract.FinishLength {
 		t.Errorf("the reply finished with %q, want %q", reply.Finish, contract.FinishLength)
+	}
+}
+
+func TestTheSameScriptGivesTheSameUsageOnBothWiresWhenNothingWasCached(t *testing.T) {
+	plain := testkit.Script{
+		Name:          "fake provider",
+		ContextLength: 200000,
+		Steps: []testkit.Step{{
+			Text:  "nothing was cached",
+			Usage: contract.Usage{InputTokens: 1200, OutputTokens: 34},
+		}},
+	}
+	for _, wire := range []string{"anthropic", "openai"} {
+		t.Run(wire, func(t *testing.T) {
+			server := testkit.NewFakeProviderServer(plain)
+			defer server.Close()
+			model := contract.Model(nil)
+			if wire == "anthropic" {
+				model, _, _ = anthropicAgainst(t, server)
+			} else {
+				model, _ = openAIAgainst(t, server)
+			}
+
+			reply, _, err := sendAndCollect(context.Background(), model, requestWithEverything())
+
+			if err != nil {
+				t.Fatalf("one call failed: %v", err)
+			}
+			want := contract.Usage{InputTokens: 1200, OutputTokens: 34}
+			if reply.Usage != want {
+				t.Errorf("the %s wire reports the usage as %+v, want %+v", wire, reply.Usage, want)
+			}
+			if reply.Usage.CostUSD != 0 {
+				t.Errorf("the %s wire reported a cost of %v, and neither wire reports money", wire, reply.Usage.CostUSD)
+			}
+		})
+	}
+}
+
+func TestBothWiresSayWhichModelAnswered(t *testing.T) {
+	for _, wire := range []string{"anthropic", "openai"} {
+		t.Run(wire, func(t *testing.T) {
+			server := testkit.NewFakeProviderServer(scriptSayingOneThing("done"))
+			defer server.Close()
+			model := contract.Model(nil)
+			want := "opus"
+			if wire == "anthropic" {
+				model, _, _ = anthropicAgainst(t, server)
+			} else {
+				model, _ = openAIAgainst(t, server)
+				want = contract.LocalModelAlias
+			}
+
+			reply, _, err := sendAndCollect(context.Background(), model, requestWithEverything())
+
+			if err != nil {
+				t.Fatalf("one call failed: %v", err)
+			}
+			if reply.Model != want {
+				t.Errorf("the reply says %q answered, want %q", reply.Model, want)
+			}
+		})
 	}
 }
 

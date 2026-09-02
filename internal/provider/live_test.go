@@ -4,7 +4,6 @@ package provider_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/provider"
 	"github.com/JaredTate/coeus/internal/testkit"
@@ -41,42 +41,6 @@ const (
 // and says which model did not answer.
 const liveCallTimeout = 5 * time.Minute
 
-// realClock is the clock the live tests use, because a real call really does
-// wait. Wave 0 ships no implementation of contract.Clock outside the fake, so
-// the live suite carries the small one it needs.
-type realClock struct{}
-
-// Now is the time on this machine.
-func (realClock) Now() time.Time { return time.Now() }
-
-// Sleep waits, or comes back early when the caller gives up.
-func (realClock) Sleep(ctx context.Context, duration time.Duration) error {
-	timer := time.NewTimer(duration)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-// NewTicker starts a real ticker.
-func (realClock) NewTicker(interval time.Duration) contract.Ticker {
-	return &realTicker{inner: time.NewTicker(interval)}
-}
-
-// realTicker is a real ticker behind the contract's shape.
-type realTicker struct {
-	inner *time.Ticker
-}
-
-// Ticks is the channel the times arrive on.
-func (ticking *realTicker) Ticks() <-chan time.Time { return ticking.inner.C }
-
-// Stop ends the ticker.
-func (ticking *realTicker) Stop() { ticking.inner.Stop() }
-
 // liveOptions are the options the live suite calls with: a real clock, an agent
 // home under a temporary directory so that no scratch folder lands in the user's
 // own home, and a log the test prints.
@@ -84,7 +48,7 @@ func liveOptions(t *testing.T) (provider.Options, *noteRecorder) {
 	t.Helper()
 	recorder := &noteRecorder{}
 	return provider.Options{
-		Clock: realClock{},
+		Clock: clock.System(),
 		Home:  liveHome(t),
 		Log:   recorder.add,
 	}, recorder
@@ -132,8 +96,9 @@ func oneToolRequest(ask string) contract.Request {
 // the numbers into docs/PROGRESS.md.
 func reportUsage(t *testing.T, name string, reply contract.Reply, recorder *noteRecorder) {
 	t.Helper()
-	t.Logf("%s: %d tokens in, %d of them cached, %d out, finished with %q",
-		name, reply.Usage.InputTokens, reply.Usage.CachedInputTokens, reply.Usage.OutputTokens, reply.Finish)
+	t.Logf("%s: %s answered with %d tokens in, %d of them cached, %d out, %.5f dollars, finished with %q",
+		name, reply.Model, reply.Usage.InputTokens, reply.Usage.CachedInputTokens,
+		reply.Usage.OutputTokens, reply.Usage.CostUSD, reply.Finish)
 	for _, line := range recorder.all() {
 		t.Logf("%s: %s", name, line)
 	}
@@ -264,7 +229,6 @@ func runTheProgramSubtest(t *testing.T, program, modelName string) {
 		t.Errorf("the program %s wrote a tool call that does not name the read tool:\n%s", program, called.Text)
 	}
 	reportUsage(t, program+" tool call", called, recorder)
-	reportCost(t, program, model)
 }
 
 // checkProgramIsThere fails with the program's name when it is not installed,
@@ -275,15 +239,4 @@ func checkProgramIsThere(t *testing.T, program string) {
 		t.Fatalf("the program %s is not on the path, so install it, sign in, and put its folder and node's folder on PATH: %v",
 			program, err)
 	}
-}
-
-// reportCost prints what the program said the last call cost, when it said
-// anything, so that the orchestrator can record it.
-func reportCost(t *testing.T, program string, model contract.Model) {
-	t.Helper()
-	teller, tells := model.(interface{ LastCostUSD() float64 })
-	if !tells {
-		return
-	}
-	t.Logf("%s: the last call cost %s dollars", program, fmt.Sprintf("%.5f", teller.LastCostUSD()))
 }

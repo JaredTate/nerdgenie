@@ -111,13 +111,22 @@ func TestTheClaudeProgramsTextComesBackAsTheReplyWithItsUsageAndCost(t *testing.
 	if reply.Text != "Reading the notes." || streamed != reply.Text {
 		t.Errorf("the reply is %q and the deltas joined to %q, want the program's text in both", reply.Text, streamed)
 	}
-	want := contract.Usage{InputTokens: 274, CachedInputTokens: 100, OutputTokens: 5}
+	// The claude program reports the Messages API's own three counts, so the
+	// input count is all three added together: 264 read plainly, 10 written into
+	// the cache, and 100 read back out of it.
+	want := contract.Usage{InputTokens: 374, CachedInputTokens: 100, OutputTokens: 5, CostUSD: 0.00239}
 	if reply.Usage != want {
 		t.Errorf("the usage came back as %+v, want %+v", reply.Usage, want)
 	}
 	if len(reply.ToolCalls) != 0 {
 		t.Errorf("the reply carries %d tool calls, and a program that returns text carries none until repair reads them",
 			len(reply.ToolCalls))
+	}
+	if reply.Usage.CostUSD != 0.00239 {
+		t.Errorf("the reply says the call cost %v dollars, want the 0.00239 the program printed", reply.Usage.CostUSD)
+	}
+	if reply.Model != "claude on a subscription" {
+		t.Errorf("the reply says %q answered, want the alias that was asked", reply.Model)
 	}
 	if !strings.Contains(strings.Join(recorder.all(), "\n"), "0.00239") {
 		t.Errorf("the cost the program printed was not written down: %v", recorder.all())
@@ -208,6 +217,9 @@ func TestTheCodexProgramGetsItsSystemPromptInAnInstructionsFile(t *testing.T) {
 	want := contract.Usage{InputTokens: 8565, CachedInputTokens: 4480, OutputTokens: 2}
 	if reply.Usage != want {
 		t.Errorf("the usage came back as %+v, want %+v", reply.Usage, want)
+	}
+	if reply.Usage.CostUSD != 0 {
+		t.Errorf("the reply says the call cost %v dollars, and this program reports no money", reply.Usage.CostUSD)
 	}
 	joined := strings.Join(record.arguments(), " ")
 	for _, wanted := range []string{"exec", "--json", "--sandbox read-only", "--skip-git-repo-check", "--ephemeral", "model_instructions_file"} {

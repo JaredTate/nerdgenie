@@ -52,6 +52,9 @@ func TestTheAnthropicProviderStreamsTheTextInDeltasThatJoinToTheReply(t *testing
 	if model.Name() != "opus" || model.ContextLength() != 200000 {
 		t.Errorf("the model calls itself %q with a window of %d, want opus with 200000", model.Name(), model.ContextLength())
 	}
+	if reply.Model != "opus" {
+		t.Errorf("the reply says %q answered, want the alias that was asked", reply.Model)
+	}
 }
 
 func TestTheAnthropicProviderReturnsTwoToolCallsWhoseJSONArrivedInPieces(t *testing.T) {
@@ -156,9 +159,18 @@ func TestTheAnthropicProviderReportsTheUsageCounts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("one call to the Anthropic provider failed: %v", err)
 	}
-	want := contract.Usage{InputTokens: 6100, CachedInputTokens: 5200, OutputTokens: 400}
+	// The input count is everything the model read, so on this wire it is the
+	// plain input tokens plus what was written into the cache plus what was read
+	// back out of it. The fake feeds the script's whole input count into the
+	// plain field and the cached count into the cache-read field, so the total
+	// here is the sum of the two rather than the script's own 6100.
+	want := contract.Usage{InputTokens: 11300, CachedInputTokens: 5200, OutputTokens: 400}
 	if reply.Usage != want {
 		t.Errorf("the reply reports the usage as %+v, want %+v", reply.Usage, want)
+	}
+	if reply.Usage.CachedInputTokens > reply.Usage.InputTokens {
+		t.Errorf("the reply says %d of %d input tokens were cached, and the cached count is a part of the input count",
+			reply.Usage.CachedInputTokens, reply.Usage.InputTokens)
 	}
 }
 

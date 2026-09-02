@@ -167,24 +167,24 @@ func TestTheAnthropicAddressIsThePublicOneUnlessTheConfigurationSaysOtherwise(t 
 	}
 }
 
-func TestTheCostOfTheLastRunIsKept(t *testing.T) {
+func TestWhatARunCostIsWrittenDownWhetherTheProgramSaysItOrNot(t *testing.T) {
 	said := []string{}
 	model := &commandLineModel{
 		alias:   contract.ModelAlias{Name: "opus", Program: contract.ClaudeProgram},
 		options: Options{Log: func(line string) { said = append(said, line) }},
 	}
 
-	model.rememberCost(programResult{cost: 0.0042, usage: contract.Usage{InputTokens: 10, OutputTokens: 2}})
+	model.noteUsage(contract.Usage{InputTokens: 10, OutputTokens: 2, CostUSD: 0.0042})
+	model.noteUsage(contract.Usage{InputTokens: 10})
 
-	if model.LastCostUSD() != 0.0042 {
-		t.Errorf("the last call is remembered as costing %v, want 0.0042", model.LastCostUSD())
-	}
-	model.rememberCost(programResult{usage: contract.Usage{InputTokens: 10}})
-	if model.LastCostUSD() != 0 {
-		t.Errorf("a run that reported no cost left %v behind", model.LastCostUSD())
-	}
 	if len(said) != 2 {
-		t.Errorf("the two runs were written down %d times: %v", len(said), said)
+		t.Fatalf("the two runs were written down %d times: %v", len(said), said)
+	}
+	if !strings.Contains(said[0], "0.00420") {
+		t.Errorf("the line for a run with a cost does not say it: %q", said[0])
+	}
+	if !strings.Contains(said[1], "no cost") {
+		t.Errorf("the line for a run with no cost does not say so: %q", said[1])
 	}
 }
 

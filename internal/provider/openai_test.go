@@ -50,6 +50,9 @@ func TestTheOpenAIProviderStreamsTheTextInDeltasThatJoinToTheReply(t *testing.T)
 	if reply.Finish != contract.FinishEnd {
 		t.Errorf("the reply finished with %q, want %q", reply.Finish, contract.FinishEnd)
 	}
+	if reply.Model != contract.LocalModelAlias {
+		t.Errorf("the reply says %q answered, want the alias that was asked", reply.Model)
+	}
 }
 
 func TestTheOpenAIProviderReturnsTheStreamedToolCalls(t *testing.T) {
@@ -174,6 +177,9 @@ func TestTheOpenAIProviderReportsTheUsageCounts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("one call to the OpenAI-compatible provider failed: %v", err)
 	}
+	// This wire reports the whole prompt in one field, with the cached part named
+	// separately inside it, so the counts come back exactly as the script wrote
+	// them.
 	want := contract.Usage{InputTokens: 6100, CachedInputTokens: 5200, OutputTokens: 400}
 	if reply.Usage != want {
 		t.Errorf("the reply reports the usage as %+v, want %+v", reply.Usage, want)

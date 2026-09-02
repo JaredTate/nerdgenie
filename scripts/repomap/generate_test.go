@@ -335,6 +335,84 @@ func TestAGitFolderInsideTheTreeIsNeverListed(t *testing.T) {
 	}
 }
 
+// runGitAllowingFailure runs one git command that is expected to fail, such as a
+// merge that conflicts on purpose.
+func runGitAllowingFailure(t *testing.T, root string, arguments ...string) {
+	t.Helper()
+	command := exec.Command("git", append([]string{"-C", root}, arguments...)...)
+	command.Env = fixtureEnvironment()
+	_, _ = command.CombinedOutput()
+}
+
+// commitFixture makes one commit in the fixture repository, with an identity of
+// its own so that it does not depend on whatever this machine is configured
+// with.
+func commitFixture(t *testing.T, root string, message string) {
+	t.Helper()
+	runGit(t, root, "-c", "user.email=fixture@example.test", "-c", "user.name=Fixture",
+		"commit", "--no-gpg-sign", "-m", message)
+}
+
+// newConflictedRepository leaves one file in conflict, which is the one state
+// where git prints a path more than once: one line per stage of the index.
+func newConflictedRepository(t *testing.T) string {
+	t.Helper()
+	root := newFixtureRepository(t, "README.md", "notes.md")
+	commitFixture(t, root, "the first commit")
+
+	runGit(t, root, "checkout", "-b", "the-other-branch")
+	writeFixtureFile(t, root, "README.md", "what the other branch says\n")
+	runGit(t, root, "add", "--", "README.md")
+	commitFixture(t, root, "the other branch's commit")
+
+	runGit(t, root, "checkout", "-")
+	writeFixtureFile(t, root, "README.md", "what this branch says\n")
+	runGit(t, root, "add", "--", "README.md")
+	commitFixture(t, root, "this branch's commit")
+
+	runGitAllowingFailure(t, root, "merge", "--no-gpg-sign", "the-other-branch")
+	return root
+}
+
+// writeFixtureFile writes one file inside a fixture repository.
+func writeFixtureFile(t *testing.T, root string, path string, content string) {
+	t.Helper()
+	full := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatalf("cannot write %s: %v", path, err)
+	}
+}
+
+func TestAFileLeftInConflictIsListedOnceAndNotThreeTimes(t *testing.T) {
+	root := newConflictedRepository(t)
+	if !strings.Contains(gitListing(t, root), "README.md\x00README.md") {
+		t.Skip("this git does not leave the conflicted file in the index more than once, so there is nothing to prove here")
+	}
+
+	generated, err := generate(root)
+
+	if err != nil {
+		t.Fatalf("generating the map for a repository with a conflict failed: %v", err)
+	}
+	tree := treeOf(t, generated)
+	if times := strings.Count(tree, "README.md"); times != 1 {
+		t.Errorf("the map lists README.md %d times, and git prints one line per stage of a file in conflict:\n%s", times, tree)
+	}
+}
+
+// gitListing is what git prints for the tracked files, used to confirm the
+// fixture really is in the state the test is about.
+func gitListing(t *testing.T, root string) string {
+	t.Helper()
+	command := exec.Command("git", "-C", root, "ls-files", "-z")
+	command.Env = fixtureEnvironment()
+	printed, err := command.Output()
+	if err != nil {
+		t.Fatalf("cannot ask git which files the fixture tracks: %v", err)
+	}
+	return string(printed)
+}
+
 func TestGenerateSaysSoWhenTheFolderIsNotThere(t *testing.T) {
 	if _, err := generate(filepath.Join(t.TempDir(), "nowhere")); err == nil {
 		t.Fatal("generating a map for a folder that is not there was reported as a success, want an error naming it")

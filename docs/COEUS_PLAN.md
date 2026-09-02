@@ -373,7 +373,7 @@ There is one command table, meaning one list of commands that works the same eve
 | `/model` | Shows or sets the model |
 | `/status` | Shows the model, the token cost, the jobs, the pending approvals, and the health |
 | `/stop`, `/pause`, and `/resume` | Stops this turn, or pauses and resumes all scheduled work |
-| `/jobs` | Lists, runs, or disables scheduled jobs |
+| `/cron` | Lists every scheduled job with its name, its schedule in plain words such as "every weekday at 7 in the morning," what it does in one line, when it last ran, and when it runs next. `/cron 3` shows one job in full, `/cron run 3` runs it now, and `/cron off 3` disables it |
 | `/approve 3` and `/deny 3` | Answers a preview or a question |
 | `/screen` | Sends a screenshot of the browser or the desktop right now |
 | `/memory`, `/skills`, and `/vault` | Show and manage each. The vault works only in the terminal |

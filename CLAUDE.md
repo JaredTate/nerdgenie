@@ -26,7 +26,7 @@ Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `doc
 
 ## Where the work happens
 
-All building and testing happen on the Linux development machine, `jared-rosie`. This repository lives at `/home/jared/Code/coeus`, and every reference project a brief cites lives beside it: `/home/jared/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`, each pinned to the commit listed in `docs/WORK_PLAN.md` wave 0. A path written as `~/Code/x` in any document means `/home/jared/Code/x`. The orchestrator and the workers run there. Nothing is built anywhere else. The sandbox, the service manager, the visible Chrome window, and the local models only exist there.
+All building and testing happen on the Linux development machine, `jared-irene`. This repository lives at `/home/jared/Code/coeus`, and every reference project a brief cites lives beside it: `/home/jared/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`, each already cloned and checked out at the commit listed in `docs/WORK_PLAN.md` wave 0. A path written as `~/Code/x` in any document means `/home/jared/Code/x`. The orchestrator and the workers run there. Nothing is built anywhere else. The sandbox, the service manager, the visible Chrome window, and the local models only exist there.
 
 ## Commands
 

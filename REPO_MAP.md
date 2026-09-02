@@ -57,6 +57,7 @@ docs/research/16-browser-agent-spec.md
 docs/research/17-chatgpt-state-conversation.txt
 docs/research/coeus-plan-review.md
 docs/research/harness-v2-review.md
+docs/research/work-plan-final-review.md
 docs/research/work-plan-review.md
 docs/WORK_PLAN.md
 README.md

@@ -103,7 +103,6 @@ flowchart LR
     F["Failures<br/>with causes"]
     R["Results<br/>one line each, by id"]
   end
-  Stable --> Live
 ```
 
 | Section | Army name | Who writes it | Rule |

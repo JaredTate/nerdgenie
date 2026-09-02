@@ -8,11 +8,11 @@
   "doneWhen": [
     {
       "text": "one post is up on the DigiByte account",
-      "resultId": "r38"
+      "resultId": "r42"
     },
     {
       "text": "it is under 280 characters and mentions the date",
-      "resultId": "r39"
+      "resultId": "r43"
     }
   ],
   "stopWhen": [
@@ -524,7 +524,7 @@
     {
       "number": 40,
       "orient": "Every line of done is true and each one points at a result.",
-      "reply": "The post is up. What changed: one post on the DigiByte account, 228 characters, leading with 10 January 2014. What I checked: the character count (r39) and the post on the page (r38). What is left: nothing.",
+      "reply": "The post is up. What changed: one post on the DigiByte account, 228 characters, leading with 10 January 2014. What I checked: the character count (r43) and the post on the page (r42). What is left: nothing.",
       "toolName": "",
       "toolInput": null,
       "taskUpdate": null,

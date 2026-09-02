@@ -41,7 +41,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/sandbox` | Run a command inside bwrap and Landlock | 2, built |
 | `internal/channel` | The queue, the event stream, and the local socket | 3 |
 | `internal/command` | The command registry and the core slash commands | 3 |
-| `internal/tui` | The terminal screen | 3 |
+| `internal/tui` | The terminal screen | 3, built |
 | `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3 |
 | `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2, built |
 
@@ -190,6 +190,52 @@ the same codes.
 ## The local socket (planned, wave 3)
 
 The terminal and any future screen attach to the running program over a Unix socket at `~/.coeus/run/coeus.sock`, speaking newline-delimited JSON. Message types from the screen: `message`, `command`, `approve`, `deny`, `secret` (for the masked prompt), `attach`, `detach`. Message types from the program: `delta`, `reply`, `preview`, `ask`, `handoff`, `status`, `error`. The socket is itself a channel. The Signal channel does not use it; it runs inside the program and feeds the same queue.
+
+## The terminal screen (built, wave 3)
+
+`internal/tui` is the terminal screen, and `cmd/coeus/tui.go` is the `tui`
+subcommand that opens it, which is also what the bare `coeus` command runs. The
+screen is a thin client: it holds only what is on the frame, it draws what the
+running program sends over the local socket, and it sends back what the person
+types. It is built on Bubble Tea, and it imports nothing of Coeus but
+`internal/contract`, `internal/config` (in the subcommand, to find the home
+folder), and `internal/testkit` in its tests.
+
+The drawing is `docs/TUI_DESIGN.md`, line for line: a header, a rule, the
+transcript with its four block kinds, a rule, the input box, and the status
+strip. `View` builds the frame as rows of plain text and adds the colour codes at
+the very last step, which is why `NO_COLOR` renders exactly the same structure
+and why a golden file is readable. Nothing is drawn wider than the terminal: the
+transcript wraps, and the header and the status strip are cut. The transcript is
+drawn from the newest block backwards and stops as soon as it has the rows that
+fit, so a long session costs no more to draw than a short one.
+
+Time comes from `contract.Clock` and reaches the screen as one heartbeat every
+thirty milliseconds. That heartbeat does three things: it moves the screen's idea
+of the time on, it flushes the deltas that have arrived since the last one into
+the reply block, and it lets the spinner decide whether it is still due. The
+spinner appears only after five hundred milliseconds of waiting and stays at
+least three seconds once it has appeared.
+
+`Client` is the link. It dials through a `Dialer`, sends `attach`, reads
+envelopes into Bubble Tea messages, and dials again on a wait that doubles from a
+quarter of a second to ten seconds, saying so in the status strip the whole time.
+`UnixDialer` is the real one, on `contract.Home.SocketFile`. A socket line past
+one megabyte is thrown away and shown as an error card, and so is a line that is
+not a message the two sides agree on; neither closes the link.
+
+**What the screen reads that `internal/contract` does not name.** The contract
+gives the socket its message types and one open map of fields, and no more, so
+the screen and `internal/channel` have to agree on three things inside that map.
+A masked prompt is an `ask` whose fields carry `masked` set to `true`, with the
+title of the request in `Title`; there is no message type for asking a secret,
+because `secret` travels only from the screen to the program. A `status` message
+carries what the header, the status strip, and the tool lines show, in the fields
+`model`, `task`, `taskState`, `tokensIn`, `tokensOut`, `cost`, `budget`, `state`,
+`tool`, and `toolLine`. The same message carries the program's slash commands in
+the field `commands`, one per line as a name and a help line with a tab between
+them, which is what the command palette lists. A field or a state word the screen
+does not know changes nothing on the frame.
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
@@ -395,3 +441,20 @@ Each wave gate adds a section here: what was built, what changed in the interfac
 ### Wave 0 (planned)
 
 The development machine readied, the skeleton, the contracts, the browser protocol document, the repo-map generator, and the first versions of the three living documents.
+
+### Wave 3, brief 3.4: the terminal screen
+
+`internal/tui` and `cmd/coeus/tui.go` are built, as described above. Nothing in
+`internal/contract` or `internal/testkit` changed. The screen depends only on the
+socket envelope, the home's socket path, `contract.Command`, and `contract.Clock`,
+so it was written and tested before `internal/channel` existed, against a fake
+dialer of its own and a real Unix socket in a temporary home.
+
+The orchestrator has four things to wire: add `tuiSubcommand` to the table in
+`cmd/coeus/main.go` and map the bare `coeus` command to it; make
+`internal/channel` send the three shapes named under "What the screen reads that
+`internal/contract` does not name" above; decide whether those three belong in
+`internal/contract` rather than in an agreement between two packages; and replace
+this package's own two-dozen-line `systemClock`, which it needed because nothing
+on the branch it was written from had one, with `clock.System` from the
+`internal/clock` package that has since arrived.

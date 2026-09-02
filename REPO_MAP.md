@@ -287,6 +287,7 @@ internal/repair/testdata/unknown-name.txt
 internal/repair/thinking.go
 internal/repair/thinking_test.go
 internal/testkit/browser.go
+internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go

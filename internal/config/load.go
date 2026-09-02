@@ -69,8 +69,8 @@ func Load(home contract.Home) (contract.Config, error) {
 
 // Parse reads configuration text as though it had come from the home folder's
 // configuration file. It starts from the defaults, decodes the text over them,
-// and fills in the paths that depend on where the home folder is, so that an
-// empty document is a valid configuration.
+// fills in the paths that depend on where the home folder is, and then checks
+// every field, so that an empty document is a valid configuration.
 func Parse(home contract.Home, document []byte) (contract.Config, error) {
 	path := home.ConfigFile()
 	if len(document) > MaxConfigBytes {
@@ -93,22 +93,29 @@ func Parse(home contract.Home, document []byte) (contract.Config, error) {
 	if err != nil {
 		return contract.Config{}, errors.New("cannot find your home directory, which the sandbox roots are measured from, so set the HOME environment variable and try again")
 	}
-	fillPathsFromTheHome(&settings, home, userHome)
+	fillPathsFromTheHome(&settings, home, userHome, lines)
+
+	if err := (settingsChecker{settings: settings, path: path, lines: lines, userHome: userHome}).run(); err != nil {
+		return contract.Config{}, err
+	}
 	return settings, nil
 }
 
 // fillPathsFromTheHome sets the three fields whose default is not a fixed value
 // but a place: the browser profile, the backup folder, and the sandbox roots all
 // depend on where the home folder and the user's home directory are, which
-// contract.DefaultConfig cannot know.
-func fillPathsFromTheHome(settings *contract.Config, home contract.Home, userHome string) {
-	if settings.BrowserProfilePath == "" {
+// contract.DefaultConfig cannot know. A key the file writes for itself is left
+// alone even when what it wrote is empty, so that a line saying "sandboxroots =
+// []" means what it says and is refused rather than quietly turned into the
+// default.
+func fillPathsFromTheHome(settings *contract.Config, home contract.Home, userHome string, lines keyLine) {
+	if settings.BrowserProfilePath == "" && lines.of("browserprofilepath") == 0 {
 		settings.BrowserProfilePath = home.BrowserProfile("default")
 	}
-	if settings.BackupPath == "" {
+	if settings.BackupPath == "" && lines.of("backuppath") == 0 {
 		settings.BackupPath = home.BackupsFolder()
 	}
-	if len(settings.SandboxRoots) == 0 {
+	if len(settings.SandboxRoots) == 0 && lines.of("sandboxroots") == 0 {
 		settings.SandboxRoots = contract.DefaultSandboxRoots(userHome)
 	}
 }

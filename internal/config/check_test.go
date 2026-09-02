@@ -57,12 +57,45 @@ modelname = "local-coder"
 contextlength = 262144
 `
 
+// badField is one configuration file that is wrong in one place, with the key
+// the problem must name. The line it must name is the one carrying the marker.
+type badField struct {
+	what     string
+	document string
+	key      string
+}
+
+// eachIsRefused loads every document in the table and asserts that the problem
+// names the key and the marked line.
+func eachIsRefused(t *testing.T, table []badField) {
+	t.Helper()
+	for _, field := range table {
+		t.Run(field.what, func(t *testing.T) {
+			problem := refuses(t, field.document)
+			if problem.Key != field.key {
+				t.Errorf("the problem names the key %q, want %q", problem.Key, field.key)
+			}
+			if want := markedLine(t, field.document); problem.Line != want {
+				t.Errorf("the problem names line %d, want line %d", problem.Line, want)
+			}
+			if len(strings.Fields(problem.Advice)) < 6 {
+				t.Errorf("the advice is %q, want a sentence saying what is wrong and what to do", problem.Advice)
+			}
+			if !strings.Contains(problem.Error(), field.key) {
+				t.Errorf("the printed problem is %q, want it to name the key", problem.Error())
+			}
+		})
+	}
+}
+
 func TestEveryFieldSetToTheWrongTypeIsRefusedWithItsKeyAndItsLine(t *testing.T) {
-	forEachField := []struct {
-		what     string
-		document string
-		key      string
-	}{
+	eachIsRefused(t, fieldsOfTheWrongType())
+}
+
+// fieldsOfTheWrongType is one configuration file per field, each giving that
+// field a value of a type it cannot hold.
+func fieldsOfTheWrongType() []badField {
+	return []badField{
 		{"the default model as a number", "\ndefaultmodel = 7 " + theMarker + "\n", "defaultmodel"},
 		{"the fallback chain as one string", "\nfallbackchain = \"cloud\" " + theMarker + "\n", "fallbackchain"},
 		{"the Signal account as a number", "\nsignalaccount = 15125550123 " + theMarker + "\n", "signalaccount"},
@@ -76,29 +109,18 @@ func TestEveryFieldSetToTheWrongTypeIsRefusedWithItsKeyAndItsLine(t *testing.T) 
 		{"a memory cap as a boolean", "\n[memorycaps]\nuserfactsbytes = true " + theMarker + "\n", "memorycaps.userfactsbytes"},
 		{"a context length with a fraction", "\n[[models]]\ncontextlength = 1.5 " + theMarker + "\n", "models.contextlength"},
 	}
-
-	for _, field := range forEachField {
-		t.Run(field.what, func(t *testing.T) {
-			problem := refuses(t, field.document)
-			if problem.Key != field.key {
-				t.Errorf("the problem names the key %q, want %q", problem.Key, field.key)
-			}
-			if want := markedLine(t, field.document); problem.Line != want {
-				t.Errorf("the problem names line %d, want line %d", problem.Line, want)
-			}
-			if !strings.Contains(problem.Error(), field.key) {
-				t.Errorf("the printed problem is %q, want it to name the key", problem.Error())
-			}
-		})
-	}
 }
 
 func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testing.T) {
-	forEachField := []struct {
-		what     string
-		document string
-		key      string
-	}{
+	eachIsRefused(t, impossibleCaps())
+	eachIsRefused(t, impossibleSettings())
+	eachIsRefused(t, impossibleModelAliases())
+}
+
+// impossibleCaps is one configuration file per cap, each setting a limit that
+// leaves the agent no room to work at all.
+func impossibleCaps() []badField {
+	return []badField{
 		{"no rounds in a task", "\n[caps]\nroundspertask = 0 " + theMarker + "\n", "caps.roundspertask"},
 		{"no queued messages", "\n[caps]\nqueuedmessages = -1 " + theMarker + "\n", "caps.queuedmessages"},
 		{"no room in a tool result", "\n[caps]\ntooloutputbytes = 0 " + theMarker + "\n", "caps.tooloutputbytes"},
@@ -109,6 +131,13 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 		{"no room for world facts", "\n[memorycaps]\nworldfactsbytes = 0 " + theMarker + "\n", "memorycaps.worldfactsbytes"},
 		{"no room for user facts", "\n[memorycaps]\nuserfactsbytes = -8 " + theMarker + "\n", "memorycaps.userfactsbytes"},
 		{"no time for a handoff", "\nhandofftimeout = \"0s\" " + theMarker + "\n", "handofftimeout"},
+	}
+}
+
+// impossibleSettings is one configuration file per setting outside the caps and
+// the model aliases, each holding a value nothing could be done with.
+func impossibleSettings() []badField {
+	return []badField{
 		{"a default model nobody defined", "\ndefaultmodel = \"nowhere\" " + theMarker + "\n", "defaultmodel"},
 		{"no default model at all", "\ndefaultmodel = \"\" " + theMarker + "\n", "defaultmodel"},
 		{"a fallback nobody defined", "\nfallbackchain = [\"nowhere\"] " + theMarker + "\n", "fallbackchain"},
@@ -119,6 +148,13 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 		{"a search server that is not an address", "\nsearchserveraddress = \"not an address\" " + theMarker + "\n", "searchserveraddress"},
 		{"no model aliases at all", "\nmodels = [] " + theMarker + "\n", "models"},
 		{"no sandbox roots at all", "\nsandboxroots = [] " + theMarker + "\n", "sandboxroots"},
+	}
+}
+
+// impossibleModelAliases is the good alias above with one line spoiled at a
+// time, so that every rule about an alias is proved on its own.
+func impossibleModelAliases() []badField {
+	return []badField{
 		{
 			"an alias with no name",
 			strings.Replace(oneGoodAlias, `name = "local"`, `name = "" `+theMarker, 1),
@@ -159,21 +195,6 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 			"\ndefaultmodel = \"cloud\"\n\n[[models]] " + theMarker + "\nname = \"cloud\"\nprovider = \"cli\"\nmodelname = \"opus\"\ncontextlength = 200000\n",
 			"models.0.program",
 		},
-	}
-
-	for _, field := range forEachField {
-		t.Run(field.what, func(t *testing.T) {
-			problem := refuses(t, field.document)
-			if problem.Key != field.key {
-				t.Errorf("the problem names the key %q, want %q", problem.Key, field.key)
-			}
-			if want := markedLine(t, field.document); problem.Line != want {
-				t.Errorf("the problem names line %d, want line %d", problem.Line, want)
-			}
-			if len(strings.Fields(problem.Advice)) < 6 {
-				t.Errorf("the advice is %q, want a sentence saying what is wrong and what to do", problem.Advice)
-			}
-		})
 	}
 }
 

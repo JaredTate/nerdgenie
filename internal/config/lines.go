@@ -15,13 +15,14 @@ type keyLine map[string]int
 // keyLines reads a configuration file and notes the line every key is written
 // on. Keys inside a table carry the table's name, so a "roundspertask" line
 // under a "[caps]" header is noted as "caps.roundspertask", and the entries of a
-// table array are numbered, so the first "[[models]]" block is "models.0". This
+// table array are numbered, so the first "[[models]]" block is "models.0" and a
+// key inside it is noted both with the number and without it. This
 // reads the file as lines rather than as TOML, so a key inside a value spread
 // over several lines may be noted as well; that is harmless, because only keys
 // this package already knows about are ever looked up.
 func keyLines(document string) keyLine {
 	lines := keyLine{}
-	prefix := ""
+	table := ""
 	entries := map[string]int{}
 	for offset, text := range strings.Split(document, "\n") {
 		number := offset + 1
@@ -35,26 +36,44 @@ func keyLines(document string) keyLine {
 			if name == "" {
 				continue
 			}
-			prefix = name + "." + strconv.Itoa(entries[name])
+			table = name + "." + strconv.Itoa(entries[name])
 			entries[name]++
 			lines.note(name, number)
-			lines.note(prefix, number)
+			lines.note(table, number)
 		case strings.HasPrefix(trimmed, "["):
 			name := tableName(trimmed, "[", "]")
 			if name == "" {
 				continue
 			}
-			prefix = name
+			table = name
 			lines.note(name, number)
 		default:
 			written, _, found := strings.Cut(trimmed, "=")
 			if !found {
 				continue
 			}
-			lines.note(joinKey(prefix, cleanKey(written)), number)
+			key := cleanKey(written)
+			lines.note(joinKey(table, key), number)
+			lines.note(joinKey(withoutTheNumber(table), key), number)
 		}
 	}
 	return lines
+}
+
+// withoutTheNumber takes the entry number off a table array's name, so that a
+// key inside the first "[[models]]" block is noted both as "models.0.name" and
+// as "models.name". The TOML library reports an unknown key inside a table array
+// without the number, and the checks in this package use the number to say which
+// block is wrong, so both forms have to lead back to the same line.
+func withoutTheNumber(table string) string {
+	name, entry, found := strings.Cut(table, ".")
+	if !found {
+		return table
+	}
+	if _, err := strconv.Atoi(entry); err != nil {
+		return table
+	}
+	return name
 }
 
 // of returns the line a key is written on, or zero when the file does not say.

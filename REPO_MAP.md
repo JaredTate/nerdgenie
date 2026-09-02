@@ -204,9 +204,12 @@ internal/testkit/model.go
 internal/testkit/model_test.go
 internal/testkit/permission.go
 internal/testkit/permission_test.go
+internal/testkit/providerexpect_test.go
+internal/testkit/providerrequest.go
 internal/testkit/providerserver.go
 internal/testkit/providerserver_test.go
 internal/testkit/providerstream.go
+internal/testkit/providerwire_test.go
 internal/testkit/sandbox.go
 internal/testkit/sandbox_test.go
 internal/testkit/searchserver.go

@@ -1,0 +1,3 @@
+drafts/
+one.md
+two.md

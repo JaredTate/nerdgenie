@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // theSecret is what the user types at the masked prompt in these tests. It is

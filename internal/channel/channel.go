@@ -21,6 +21,10 @@ import (
 // name a command that may only run in the terminal is checked against.
 const TerminalChannelName = "terminal"
 
+// The socket is the first real channel, so the compiler is asked to say at once
+// if it ever stops matching the contract every other package writes against.
+var _ contract.Channel = (*Socket)(nil)
+
 // watcherBacklog is how many messages one caller of Receive may fall behind by.
 // The queue is where a message is kept safe, so a watcher that stops reading
 // loses its copy rather than holding the socket up.

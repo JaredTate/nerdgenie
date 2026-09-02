@@ -46,6 +46,70 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	return answer, nil
 }
 
+// AskSecret asks for a secret on every attached screen, marked so that the
+// screen hides what is typed, and waits for the first screen to send it back.
+// The secret goes straight to the caller: it is never written into the queue,
+// never published on the event stream, and never sent back out to a screen.
+//
+// With no screen attached it returns contract.ErrNoMaskedPrompt, because there
+// is then nowhere to type a secret where nobody can see it, which is what that
+// error tells the caller to do something about.
+func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, error) {
+	id := socket.nextAskID()
+	waiting := make(chan string, 1)
+	socket.waitOnPrompt(id, waiting)
+	defer socket.stopWaitingOnPrompt(id)
+
+	asked, err := socket.writeToScreens(ctx, contract.SocketEnvelope{
+		Type:   contract.SocketAsk,
+		ID:     id,
+		Text:   prompt,
+		Fields: map[string]string{SecretPromptField: SecretPromptValue},
+	})
+	if err != nil {
+		return "", err
+	}
+	if asked == 0 {
+		return "", fmt.Errorf("no screen is attached to type the secret into: %w", contract.ErrNoMaskedPrompt)
+	}
+
+	secret, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
+	if !answered {
+		return "", fmt.Errorf("nobody typed the secret within %s, so ask again when you are at the terminal", socket.options.AnswerDeadline)
+	}
+	return secret, nil
+}
+
+// The two fields that mark a question as a masked prompt rather than an ordinary
+// question, so that a screen knows to hide what is typed and to answer with a
+// secret message rather than an ordinary one.
+//
+// They belong in internal/contract beside the socket message types, because the
+// terminal screen has to read them and cannot import this package. They are here
+// until the orchestrator moves them.
+const (
+	// SecretPromptField is the name of the field that marks the question.
+	SecretPromptField = "secret"
+	// SecretPromptValue is what that field says when the question is a masked
+	// prompt.
+	SecretPromptValue = "yes"
+)
+
+// waitOnPrompt writes down that someone is waiting for a secret.
+func (socket *Socket) waitOnPrompt(id string, waiting chan string) {
+	socket.guard.Lock()
+	defer socket.guard.Unlock()
+	socket.prompts[id] = waiting
+}
+
+// stopWaitingOnPrompt forgets a masked prompt that has been answered or has run
+// out of time, so that a late answer is told there is nothing to answer.
+func (socket *Socket) stopWaitingOnPrompt(id string) {
+	socket.guard.Lock()
+	defer socket.guard.Unlock()
+	delete(socket.prompts, id)
+}
+
 // waitForAnswer waits for one answer from a screen and gives up when the
 // deadline passes or the caller's context is cancelled, so that no question ever
 // waits for ever. It says whether an answer arrived.

@@ -109,9 +109,30 @@ func (jobs *FakeJob) List(_ context.Context) ([]contract.JobSummary, error) {
 	return listed, nil
 }
 
-// RunNow starts the job's next task without waiting for its date.
+// RunNow starts the job's next task without waiting for its date: the job runs
+// again and the next unfinished task loses its due date, so that NextTask hands
+// it out at once. A run-now that only changed the state would leave the task
+// waiting for the very date the user just overrode.
 func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
-	return jobs.setState(jobID, contract.JobRunning)
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+
+	entry.summary.State = contract.JobRunning
+	for index := range entry.tasks {
+		task := &entry.tasks[index]
+		if task.task.Done || task.running {
+			continue
+		}
+		task.dueAt = time.Time{}
+		task.task.DueAt = ""
+		entry.summary.NextDue = time.Time{}
+		break
+	}
+	return nil
 }
 
 // Pause stops the job after the running task finishes.
@@ -249,13 +270,41 @@ func (jobs *FakeJob) appendTask(entry *fakeJobEntry, text string, dueAt time.Tim
 	return taskID
 }
 
+// insertTaskInDueOrder adds one task ahead of every unfinished task that is due
+// later than it is, and returns its id. The caller holds the lock.
+func (jobs *FakeJob) insertTaskInDueOrder(entry *fakeJobEntry, text string, dueAt time.Time, unattended bool) string {
+	taskID := jobs.appendTask(entry, text, dueAt, unattended)
+	added := len(entry.tasks) - 1
+	place := added
+	for index := range entry.tasks[:added] {
+		waiting := entry.tasks[index]
+		if waiting.task.Done || waiting.running {
+			continue
+		}
+		if waiting.dueAt.After(dueAt) {
+			place = index
+			break
+		}
+	}
+	if place != added {
+		moved := entry.tasks[added]
+		copy(entry.tasks[place+1:], entry.tasks[place:added])
+		entry.tasks[place] = moved
+	}
+	entry.summary.NextTaskID = jobs.firstUnfinished(entry)
+	return taskID
+}
+
 // tickSchedule makes one task from the template when a scheduled job's tick has
-// come, and moves the next run on. The caller holds the lock.
+// come, and moves the next run on. The task goes into the list in date order
+// rather than at the end, because NextTask stops at the first task that is not
+// due yet, and a tick behind a task dated next week would never run. The caller
+// holds the lock.
 func (jobs *FakeJob) tickSchedule(entry *fakeJobEntry, now time.Time) {
 	if entry.schedule == nil || entry.summary.NextRun.IsZero() || now.Before(entry.summary.NextRun) {
 		return
 	}
-	jobs.appendTask(entry, entry.template, entry.summary.NextRun, true)
+	jobs.insertTaskInDueOrder(entry, entry.template, entry.summary.NextRun, true)
 	if entry.schedule.Kind == contract.ScheduleAt {
 		entry.summary.NextRun = time.Time{}
 		return
@@ -273,11 +322,16 @@ func (jobs *FakeJob) scheduleGap(schedule *contract.Schedule) time.Duration {
 	return jobs.defaultGap
 }
 
-// applyFailureCount pauses a job at three failures in a row and switches a
-// scheduled job off at ten. The caller holds the lock.
+// applyFailureCount stops a job that keeps failing. A plain job is paused at
+// three failures in a row, because a person is there to look at it. A scheduled
+// job keeps going until ten, because a schedule is meant to survive a bad
+// afternoon, and then it is switched off for good. Pausing a scheduled job at
+// three would make the ten-failure rule unreachable. The caller holds the lock.
 func (jobs *FakeJob) applyFailureCount(entry *fakeJobEntry) {
-	if entry.schedule != nil && entry.summary.FailuresInARow >= failuresThatSwitchOff {
-		entry.summary.State = contract.JobOff
+	if entry.schedule != nil {
+		if entry.summary.FailuresInARow >= failuresThatSwitchOff {
+			entry.summary.State = contract.JobOff
+		}
 		return
 	}
 	if entry.summary.FailuresInARow >= failuresThatPause {
@@ -326,7 +380,8 @@ func recordStatusOfJob(state contract.JobState) contract.RecordStatus {
 }
 
 // setState changes one job's state and reports plainly when there is no such
-// job.
+// job. It leaves LastRun alone: that is when a task last finished, and pausing a
+// job finishes nothing.
 func (jobs *FakeJob) setState(jobID string, state contract.JobState) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -335,7 +390,6 @@ func (jobs *FakeJob) setState(jobID string, state contract.JobState) error {
 		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
 	}
 	entry.summary.State = state
-	entry.summary.LastRun = jobs.clock.Now()
 	return nil
 }
 

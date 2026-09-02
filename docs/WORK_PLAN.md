@@ -2,6 +2,12 @@
 
 **How Coeus gets built, from an empty folder to a working agent, in waves of five workers, with every test written before the code it proves.**
 
+## The goal, and what to do if you are the orchestrator
+
+**The goal is a working Coeus: one Go binary on a Linux machine that a person can install with one script, set up with `coeus init`, use in a terminal, pair to their phone over Signal, and trust to use a real Chrome web browser, remember what it learned, run jobs while they sleep, and update itself without breaking.** Done means every wave in Part 3 has passed its gate, `make check` and `make live` are green on a clean Linux machine, and a person has used it after waves 4, 6, and 7 and their notes have been acted on.
+
+**If you are the AI reading this file, you are the orchestrator, and this is your instruction.** Read this whole plan, then `CLAUDE.md`, `ARCHITECTURE.md`, and `docs/COEUS_PLAN.md`. Then begin at wave 0 and work through every wave in order until the goal above is met. For each wave, write the five briefs into `docs/briefs/wave-N/`, launch five Opus 4.8 workers at extra-high effort at once, one brief each, and hold them to the rules in Part 1: tests first at all four levels, the simplest thing that passes, plain English, one package per worker, designs ported from the reference files and never copied. When the five report back, merge, run `make check`, read every new file, run `make live` for the wave's features, and only then move on. When something fails, write a fix brief and do not advance. After waves 4, 6, and 7, stop and ask a person to try it, then turn their notes into briefs. Keep `ARCHITECTURE.md`, `REPO_MAP.md`, and `docs/PROGRESS.md` true at every gate. Do not stop until the goal is met or a rule in Part 1 cannot be followed, in which case report exactly which rule and why.
+
 This is the plan the orchestrator follows. The design it builds is in `COEUS_PLAN.md`. Read that first. The comparison behind the design is in `HARNESS_V2.md`, and the reasons behind every borrowed idea are in `docs/research/`. This plan was written on a Mac and reviewed by an adversarial pass that found 24 distinct blockers; all of them are fixed in this version and listed at the end.
 
 ---

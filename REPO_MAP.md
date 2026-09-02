@@ -20,6 +20,8 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 
 ```text
 .
+ARCHITECTURE.md
+CLAUDE.md
 docs/COEUS_PLAN.md
 docs/HARNESS_V2.md
 docs/html/build.ts
@@ -55,6 +57,10 @@ docs/research/16-browser-agent-spec.md
 docs/research/17-chatgpt-state-conversation.txt
 docs/research/coeus-plan-review.md
 docs/research/harness-v2-review.md
+docs/research/work-plan-review.md
 docs/WORK_PLAN.md
 README.md
+REPO_MAP.md
+scripts/repo-map.sh
+THIRD_PARTY.md
 ```

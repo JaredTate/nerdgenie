@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -126,6 +127,19 @@ func environmentWithoutGitVariables() []string {
 		kept = append(kept, setting)
 	}
 	return kept
+}
+
+// readCapped reads everything the reader has, up to the cap, and refuses to go
+// past it rather than holding an unbounded amount in memory.
+func readCapped(reader io.Reader, cap int) ([]byte, error) {
+	read, err := io.ReadAll(io.LimitReader(reader, int64(cap)+1))
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the answer: %w", err)
+	}
+	if len(read) > cap {
+		return nil, fmt.Errorf("the answer is longer than the %d byte cap, so something is wrong with the folder being mapped", cap)
+	}
+	return read, nil
 }
 
 // walkedFiles lists every file under the root, for a tree that is not a git work

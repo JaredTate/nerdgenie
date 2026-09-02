@@ -242,6 +242,49 @@ func treeOf(t *testing.T, generated string) string {
 	return tree
 }
 
+func TestAGitWorkTreeGitCannotReadIsAnErrorRatherThanASilentWalk(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("fixture\n"), 0o644); err != nil {
+		t.Fatalf("cannot write the fixture file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "scratch.txt"), []byte("untracked\n"), 0o644); err != nil {
+		t.Fatalf("cannot write the untracked file: %v", err)
+	}
+	// A .git file git cannot make sense of: the folder looks like a work tree and
+	// git refuses to read it.
+	if err := os.WriteFile(filepath.Join(root, ".git"), []byte("this is not a git directory\n"), 0o644); err != nil {
+		t.Fatalf("cannot write the broken .git file: %v", err)
+	}
+
+	generated, err := generate(root)
+
+	if err == nil {
+		t.Fatalf("a work tree git could not read was mapped by walking it instead, which lists untracked files:\n%s", generated)
+	}
+	if !strings.Contains(err.Error(), "git") {
+		t.Errorf("the failure does not say git could not read it: %v", err)
+	}
+}
+
+func TestReadingCappedStopsAtTheCapAndSaysSo(t *testing.T) {
+	within, err := readCapped(strings.NewReader("a short answer"), 64)
+	if err != nil {
+		t.Fatalf("reading well inside the cap failed: %v", err)
+	}
+	if string(within) != "a short answer" {
+		t.Errorf("the reader gave back %q, want what it was given", within)
+	}
+
+	_, err = readCapped(strings.NewReader(strings.Repeat("a", 100)), 64)
+
+	if err == nil {
+		t.Fatal("a hundred bytes came back through a sixty-four byte cap, and every buffer has a cap")
+	}
+	if !strings.Contains(err.Error(), "64") {
+		t.Errorf("the failure does not say what the cap is: %v", err)
+	}
+}
+
 func TestGenerateSaysSoWhenTheFolderIsNotThere(t *testing.T) {
 	if _, err := generate(filepath.Join(t.TempDir(), "nowhere")); err == nil {
 		t.Fatal("generating a map for a folder that is not there was reported as a success, want an error naming it")

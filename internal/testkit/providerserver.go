@@ -28,6 +28,11 @@ const (
 	OpenAIPath = "/v1/chat/completions"
 )
 
+// MaxProviderRequestBytes is the most of one request body the fake provider will
+// read. A real request is a few hundred kilobytes at most, so a megabyte is
+// generous, and a body past it is refused rather than held in memory.
+const MaxProviderRequestBytes = 1 << 20
+
 // Misbehaviour is one way the fake provider can go wrong on purpose, so that a
 // test can prove the harness handles it.
 type Misbehaviour string

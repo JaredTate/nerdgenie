@@ -120,6 +120,22 @@ func TestAFolderOfOnlyTestFilesNeedsNoDocFile(t *testing.T) {
 	}
 }
 
+func TestASourceFileOverTheCapIsRefusedRatherThanReadWhole(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "doc.go"), "// Package huge is a fixture package.\npackage huge\n")
+	writeFile(t, filepath.Join(root, "huge.go"),
+		"package huge\n\n// "+strings.Repeat("a", lint.MaxSourceFileBytes)+"\n")
+
+	_, err := lint.CheckPackage(root)
+
+	if err == nil {
+		t.Fatal("a source file over the cap was read whole, and every buffer in Coeus has a cap")
+	}
+	if !strings.Contains(err.Error(), "huge.go") {
+		t.Errorf("the failure does not name the file that is too big: %v", err)
+	}
+}
+
 func TestSourceThatWillNotParseIsLeftToTheCompiler(t *testing.T) {
 	violations := lint.CheckSource("broken.go", []byte("package ???"))
 	if len(violations) != 0 {

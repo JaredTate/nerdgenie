@@ -39,6 +39,11 @@ const (
 	MaxFunctionLines = 60
 	// MaxFileLines is the longest a file may be.
 	MaxFileLines = 500
+	// MaxSourceFileBytes is the most of one file the checker will read. Rule 4
+	// caps a file at five hundred lines, so a megabyte is far more than any file
+	// this checker should ever meet, and a file past it is refused by name rather
+	// than read into memory whole.
+	MaxSourceFileBytes = 1 << 20
 )
 
 // Violation is one style rule broken at one place, with what to do about it.

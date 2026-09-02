@@ -135,6 +135,57 @@ func (keeper *Keeper) storeResult(ctx context.Context, result StoredResult) erro
 	return nil
 }
 
+// MarkPlanStep marks one step of a task's plan done and points it at the result
+// that proves it. It is a check mark, so the harness writes it and it costs no
+// model call.
+func (keeper *Keeper) MarkPlanStep(ctx context.Context, number int, resultID string) error {
+	if err := keeper.mustBe(contract.RecordTask, "a plan step"); err != nil {
+		return err
+	}
+	return keeper.change(ctx, func(into *contract.Record) error {
+		if number < 1 || number > len(into.Work.Plan) {
+			return fmt.Errorf("there is no plan step numbered %d, and this plan has %d steps in it", number, len(into.Work.Plan))
+		}
+		if !recordHoldsResult(into, resultID) {
+			return fmt.Errorf("the plan step numbered %d would be marked done by %q, which this record never wrote: %w",
+				number, resultID, ErrPlanStepNeedsResult)
+		}
+		into.Work.Plan[number-1].Done = true
+		into.Work.Plan[number-1].ResultID = resultID
+		return nil
+	})
+}
+
+// MarkJobTask marks one task on a job's list done and points it at the report it
+// wrote, which is the same check mark on the job's side.
+func (keeper *Keeper) MarkJobTask(ctx context.Context, taskID string, reportID string) error {
+	if err := keeper.mustBe(contract.RecordJob, "a check mark on a task"); err != nil {
+		return err
+	}
+	return keeper.change(ctx, func(into *contract.Record) error {
+		if _, found := jobTaskLabelled(into.Work.Tasks, taskID); !found {
+			return fmt.Errorf("the task %s is not on this job's list, which holds %d tasks", taskID, len(into.Work.Tasks))
+		}
+		if !recordHoldsResult(into, reportID) {
+			return fmt.Errorf("the task %s would be marked done by %q, which this job never wrote: %w",
+				taskID, reportID, ErrJobTaskNeedsReport)
+		}
+		markTaskDone(into, taskID, reportID)
+		return nil
+	})
+}
+
+// markTaskDone puts the check mark and the report on the task with this label.
+func markTaskDone(into *contract.Record, taskID string, reportID string) {
+	for at := range into.Work.Tasks {
+		if into.Work.Tasks[at].TaskID == taskID {
+			into.Work.Tasks[at].Done = true
+			into.Work.Tasks[at].ReportID = reportID
+			return
+		}
+	}
+}
+
 // Read brings back the whole text of a result by its label, which is the third
 // tier of the design: the line stays in the record, the text stays in the log,
 // and only the copy in the model's window ever leaves.

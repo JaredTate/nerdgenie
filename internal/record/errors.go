@@ -33,6 +33,12 @@ var (
 	// ErrWrongKind is the rule that a task and a job each have their own half of
 	// the work section, and neither takes the other's.
 	ErrWrongKind = errors.New("this belongs to the other kind of record, so use the call that matches this one")
+	// ErrWhyIsSet is the rule that the one line on why the user wants this is
+	// written once and then stands, like the ask above it.
+	ErrWhyIsSet = errors.New("the why is written once and then stands, so leave it as the user's reason")
+	// ErrFinishedTaskRemoved is the rule that a job never takes a finished task
+	// off its list, however much the rest of the list is rearranged.
+	ErrFinishedTaskRemoved = errors.New("a finished task stays on a job's list, so leave it where it is")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
 )

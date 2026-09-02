@@ -2,9 +2,9 @@ package vault_test
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -13,16 +13,24 @@ import (
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
+// waitLimit is how long a test waits for the prompt to print something before
+// it gives up, because every wait in Coeus has a limit.
+const waitLimit = 5 * time.Second
+
 // pseudoTerminal is a pair of files that behave exactly like a terminal and the
 // person sitting at it: what the test writes to the controller arrives as
-// typing, and what the program prints on the terminal comes back out of the
-// controller.
+// typing, and everything the program prints on the terminal is collected as it
+// comes out of the controller.
 type pseudoTerminal struct {
 	controller *os.File
 	terminal   *os.File
+	guard      sync.Mutex
+	seen       []byte
 }
 
-// openPseudoTerminal opens the pair with the standard library alone.
+// openPseudoTerminal opens the pair with the standard library alone, turns off
+// the terminal's own rewriting of the output so that a test can read exactly
+// what the program printed, and starts collecting that output.
 func openPseudoTerminal(t *testing.T) *pseudoTerminal {
 	t.Helper()
 	controller, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
@@ -38,16 +46,67 @@ func openPseudoTerminal(t *testing.T) *pseudoTerminal {
 	if err := deviceControl(controller, syscall.TIOCGPTN, unsafe.Pointer(&number)); err != nil {
 		t.Fatalf("asking for the pseudo-terminal number failed: %v", err)
 	}
-
 	terminal, err := os.OpenFile(fmt.Sprintf("/dev/pts/%d", number), os.O_RDWR|syscall.O_NOCTTY, 0)
 	if err != nil {
 		t.Fatalf("opening the terminal side of the pair failed: %v", err)
 	}
+
+	pair := &pseudoTerminal{controller: controller, terminal: terminal}
+	settings := terminalFlags(t, terminal)
+	settings.Oflag &^= syscall.OPOST
+	if err := deviceControl(terminal, syscall.TCSETS, unsafe.Pointer(&settings)); err != nil {
+		t.Fatalf("turning off the terminal's rewriting of the output failed: %v", err)
+	}
+	go pair.collect()
 	t.Cleanup(func() {
 		_ = terminal.Close()
 		_ = controller.Close()
 	})
-	return &pseudoTerminal{controller: controller, terminal: terminal}
+	return pair
+}
+
+// collect reads everything the program prints until the terminal side is
+// closed, so that no write of the program's can ever block on a full buffer.
+func (pair *pseudoTerminal) collect() {
+	chunk := make([]byte, 4096)
+	for {
+		read, err := pair.controller.Read(chunk)
+		pair.guard.Lock()
+		pair.seen = append(pair.seen, chunk[:read]...)
+		pair.guard.Unlock()
+		if err != nil {
+			return
+		}
+	}
+}
+
+// printed is everything the program has printed on the terminal so far.
+func (pair *pseudoTerminal) printed() string {
+	pair.guard.Lock()
+	defer pair.guard.Unlock()
+	return string(pair.seen)
+}
+
+// waitForPrinted waits until the program has printed the text, which is how a
+// test knows the prompt is up without guessing at how long that takes.
+func (pair *pseudoTerminal) waitForPrinted(t *testing.T, wanted string) {
+	t.Helper()
+	giveUpAt := time.Now().Add(waitLimit)
+	for time.Now().Before(giveUpAt) {
+		if strings.Contains(pair.printed(), wanted) {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("the terminal never printed %q; it printed %q", wanted, pair.printed())
+}
+
+// typeOnTheKeyboard sends what a person typed into the terminal.
+func (pair *pseudoTerminal) typeOnTheKeyboard(t *testing.T, typed string) {
+	t.Helper()
+	if _, err := pair.controller.WriteString(typed); err != nil {
+		t.Fatalf("typing %q into the terminal failed: %v", typed, err)
+	}
 }
 
 // deviceControl asks the kernel a question about a file, which is how a program
@@ -71,35 +130,6 @@ func terminalFlags(t *testing.T, file *os.File) syscall.Termios {
 	return settings
 }
 
-// readExactly reads a fixed number of bytes, which is how the test waits for
-// the prompt without waiting on a clock.
-func readExactly(t *testing.T, from *os.File, count int) string {
-	t.Helper()
-	written := make([]byte, count)
-	if _, err := io.ReadFull(from, written); err != nil {
-		t.Fatalf("reading %d bytes of what the program printed failed: %v", count, err)
-	}
-	return string(written)
-}
-
-// readWhateverIsLeft reads everything the program printed until nothing more
-// arrives for a moment.
-func readWhateverIsLeft(t *testing.T, from *os.File) string {
-	t.Helper()
-	if err := from.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		t.Fatalf("putting a deadline on the terminal read failed: %v", err)
-	}
-	var seen strings.Builder
-	chunk := make([]byte, 256)
-	for {
-		read, err := from.Read(chunk)
-		seen.Write(chunk[:read])
-		if err != nil {
-			return seen.String()
-		}
-	}
-}
-
 // answer is what one run of the masked prompt gave back.
 type answer struct {
 	secret string
@@ -117,27 +147,24 @@ func askInTheBackground(pair *pseudoTerminal, prompt string) <-chan answer {
 	return answers
 }
 
+const testPrompt = "Password: "
+
 func TestTheMaskedPromptPrintsOnlyAsterisksAndNeverTheSecret(t *testing.T) {
 	pair := openPseudoTerminal(t)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
-
-	if printed := readExactly(t, pair.controller, len(prompt)); printed != prompt {
-		t.Fatalf("the prompt printed as %q, want %q", printed, prompt)
-	}
-	if _, err := pair.controller.WriteString("hunter2\n"); err != nil {
-		t.Fatalf("typing the secret failed: %v", err)
-	}
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
+	pair.typeOnTheKeyboard(t, "hunter2\n")
 
 	got := <-answers
 	if got.err != nil {
 		t.Fatalf("the masked prompt failed: %v", got.err)
 	}
 	if got.secret != "hunter2" {
-		t.Errorf("the masked prompt gave back %q, want %q", got.secret, "hunter2")
+		t.Errorf("the masked prompt gave back %q, want hunter2", got.secret)
 	}
 
-	echoed := readWhateverIsLeft(t, pair.controller)
+	pair.waitForPrinted(t, testPrompt+strings.Repeat("*", len("hunter2"))+"\r\n")
+	echoed := strings.TrimPrefix(pair.printed(), testPrompt)
 	if strings.Contains(echoed, "hunter2") {
 		t.Fatalf("the terminal echoed the secret itself in %q", echoed)
 	}
@@ -146,8 +173,7 @@ func TestTheMaskedPromptPrintsOnlyAsterisksAndNeverTheSecret(t *testing.T) {
 	}
 	for _, shown := range echoed {
 		if shown != '*' && shown != '\r' && shown != '\n' {
-			t.Errorf("the terminal showed %q, which holds more than asterisks and the end of the line", echoed)
-			break
+			t.Fatalf("the terminal showed %q, which holds more than asterisks and the end of the line", echoed)
 		}
 	}
 }
@@ -165,7 +191,7 @@ func TestTheMaskedPromptRefusesAPipeBecauseItCannotHideTyping(t *testing.T) {
 		t.Fatalf("writing into the pipe failed: %v", err)
 	}
 
-	secret, err := vault.AskSecret(reader, "Password: ")
+	secret, err := vault.AskSecret(reader, testPrompt)
 	if err == nil {
 		t.Fatalf("the masked prompt read a secret from a pipe, where it cannot hide what is typed")
 	}
@@ -180,15 +206,9 @@ func TestTheMaskedPromptRefusesAPipeBecauseItCannotHideTyping(t *testing.T) {
 func TestTheMaskedPromptPutsTheTerminalBackAfterAnInterrupt(t *testing.T) {
 	pair := openPseudoTerminal(t)
 	before := terminalFlags(t, pair.terminal)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
-
-	if printed := readExactly(t, pair.controller, len(prompt)); printed != prompt {
-		t.Fatalf("the prompt printed as %q, want %q", printed, prompt)
-	}
-	if _, err := pair.controller.WriteString("ab\x03"); err != nil {
-		t.Fatalf("typing the interrupt failed: %v", err)
-	}
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
+	pair.typeOnTheKeyboard(t, "ab\x03")
 
 	got := <-answers
 	if got.err == nil {
@@ -210,17 +230,13 @@ func TestTheMaskedPromptPutsTheTerminalBackAfterAnInterrupt(t *testing.T) {
 func TestTheMaskedPromptPutsTheTerminalBackAfterAnAnswer(t *testing.T) {
 	pair := openPseudoTerminal(t)
 	before := terminalFlags(t, pair.terminal)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
+	pair.typeOnTheKeyboard(t, "hunter2\r")
 
-	readExactly(t, pair.controller, len(prompt))
-	if _, err := pair.controller.WriteString("hunter2\r"); err != nil {
-		t.Fatalf("typing the secret failed: %v", err)
-	}
 	if got := <-answers; got.err != nil || got.secret != "hunter2" {
 		t.Fatalf("the masked prompt gave back %q and %v, want hunter2 and no error", got.secret, got.err)
 	}
-
 	after := terminalFlags(t, pair.terminal)
 	if after.Lflag != before.Lflag {
 		t.Errorf("the terminal was left with the settings %#x, want the %#x it had before the prompt", after.Lflag, before.Lflag)
@@ -229,13 +245,9 @@ func TestTheMaskedPromptPutsTheTerminalBackAfterAnAnswer(t *testing.T) {
 
 func TestBackspaceRubsOutTheLastCharacterOfTheSecret(t *testing.T) {
 	pair := openPseudoTerminal(t)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
-
-	readExactly(t, pair.controller, len(prompt))
-	if _, err := pair.controller.WriteString("hunterX\x7f2\n"); err != nil {
-		t.Fatalf("typing the secret with a backspace failed: %v", err)
-	}
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
+	pair.typeOnTheKeyboard(t, "hunterX\x7f2\n")
 
 	got := <-answers
 	if got.err != nil {
@@ -244,17 +256,14 @@ func TestBackspaceRubsOutTheLastCharacterOfTheSecret(t *testing.T) {
 	if got.secret != "hunter2" {
 		t.Errorf("the masked prompt gave back %q, want hunter2 after the backspace", got.secret)
 	}
+	pair.waitForPrinted(t, "\b \b")
 }
 
 func TestBackspaceOnAnEmptySecretDoesNothing(t *testing.T) {
 	pair := openPseudoTerminal(t)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
-
-	readExactly(t, pair.controller, len(prompt))
-	if _, err := pair.controller.WriteString("\x7f\x08ok\n"); err != nil {
-		t.Fatalf("typing the backspaces failed: %v", err)
-	}
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
+	pair.typeOnTheKeyboard(t, "\x7f\x08ok\n")
 
 	got := <-answers
 	if got.err != nil {
@@ -267,10 +276,8 @@ func TestBackspaceOnAnEmptySecretDoesNothing(t *testing.T) {
 
 func TestASecretLongerThanTheCapIsRefused(t *testing.T) {
 	pair := openPseudoTerminal(t)
-	const prompt = "Password: "
-	answers := askInTheBackground(pair, prompt)
-
-	readExactly(t, pair.controller, len(prompt))
+	answers := askInTheBackground(pair, testPrompt)
+	pair.waitForPrinted(t, testPrompt)
 	go func() {
 		_, _ = pair.controller.WriteString(strings.Repeat("a", vault.MaxValueLength+16) + "\n")
 	}()

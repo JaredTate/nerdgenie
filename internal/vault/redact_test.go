@@ -39,9 +39,10 @@ func vaultWithSecretsToRedact(t testing.TB) *vault.Vault {
 	return opened
 }
 
-func TestRedactionBlacksOutTwelveSecretShapes(t *testing.T) {
+// storedValueCases are the shapes the vault knows about because it holds them.
+func storedValueCases() []redactionCase {
 	marker := contract.RedactedMarker
-	cases := []redactionCase{
+	return []redactionCase{
 		{
 			what:   "a password the vault holds",
 			before: "the password is correct-horse-battery-staple and it works",
@@ -57,6 +58,14 @@ func TestRedactionBlacksOutTwelveSecretShapes(t *testing.T) {
 			before: "the seed is " + rfc6238Secret,
 			after:  "the seed is " + marker,
 		},
+	}
+}
+
+// keyShapeCases are the shapes that look like a key or a token whether or not
+// the vault holds them.
+func keyShapeCases() []redactionCase {
+	marker := contract.RedactedMarker
+	return []redactionCase{
 		{
 			what:   "an Anthropic key",
 			before: "ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789xyz",
@@ -92,6 +101,14 @@ func TestRedactionBlacksOutTwelveSecretShapes(t *testing.T) {
 			before: "aws_access_key_id = AKIAIOSFODNN7EXAMPLE",
 			after:  "aws_access_key_id = " + marker,
 		},
+	}
+}
+
+// blockAndCodeCases are the shapes that take more than one word to recognise: a
+// private key block and a one-time code beside the word that names it.
+func blockAndCodeCases() []redactionCase {
+	marker := contract.RedactedMarker
+	return []redactionCase{
 		{
 			what:   "a private key block",
 			before: "here is the key:\n" + privateKeyBlock + "\nthat is all",
@@ -127,6 +144,15 @@ func TestRedactionBlacksOutTwelveSecretShapes(t *testing.T) {
 			before: "OTP: 123456",
 			after:  "OTP: " + marker,
 		},
+	}
+}
+
+func TestRedactionBlacksOutSeventeenSecretShapes(t *testing.T) {
+	cases := storedValueCases()
+	cases = append(cases, keyShapeCases()...)
+	cases = append(cases, blockAndCodeCases()...)
+	if len(cases) < 10 {
+		t.Fatalf("there are %d shapes in the table, and the brief asks for at least ten", len(cases))
 	}
 
 	redactor := vaultWithSecretsToRedact(t)

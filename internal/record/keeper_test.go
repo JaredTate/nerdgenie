@@ -101,7 +101,7 @@ func TestAJobIsCreatedWithNoBudgetOnIt(t *testing.T) {
 // printed record, so that reloading one needs nothing but the log.
 func TestSavesTheRecordItselfIntoEveryCheckpoint(t *testing.T) {
 	keeper, store := newKeeper(t, taskStart())
-	saved := latestCheckpoint(t, store, "17")
+	saved := latestCheckpoint(t, store, contract.RecordLogKey(contract.RecordTask, "17"))
 	if saved.Number != 1 {
 		t.Errorf("the first checkpoint is numbered %d", saved.Number)
 	}
@@ -291,12 +291,12 @@ func TestAddsAReportOnAJob(t *testing.T) {
 	}
 }
 
-// latestCheckpoint reads the last checkpoint of a record out of the log.
-func latestCheckpoint(t *testing.T, store contract.Store, recordID string) Checkpoint {
+// latestCheckpoint reads the last checkpoint written under one log key.
+func latestCheckpoint(t *testing.T, store contract.Store, logKey string) Checkpoint {
 	t.Helper()
-	events, err := store.ByTask(context.Background(), recordID)
+	events, err := store.ByTask(context.Background(), logKey)
 	if err != nil {
-		t.Fatalf("cannot read the log for %s: %v", recordID, err)
+		t.Fatalf("cannot read the log under %s: %v", logKey, err)
 	}
 	saved := Checkpoint{}
 	found := false
@@ -305,12 +305,12 @@ func latestCheckpoint(t *testing.T, store contract.Store, recordID string) Check
 			continue
 		}
 		if err := json.Unmarshal(event.Body, &saved); err != nil {
-			t.Fatalf("cannot read a checkpoint of %s out of the log: %v", recordID, err)
+			t.Fatalf("cannot read a checkpoint under %s out of the log: %v", logKey, err)
 		}
 		found = true
 	}
 	if !found {
-		t.Fatalf("the log holds no checkpoint of %s at all", recordID)
+		t.Fatalf("the log holds no checkpoint under %s at all", logKey)
 	}
 	return saved
 }

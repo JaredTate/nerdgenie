@@ -37,7 +37,7 @@ func TestLoadsTheLatestCheckpoint(t *testing.T) {
 	keeper, store := keeperWithFourCheckpoints(t)
 	ctx := t.Context()
 
-	loaded, err := Load(ctx, store, "17")
+	loaded, err := Load(ctx, store, contract.RecordTask, "17")
 	if err != nil {
 		t.Fatalf("cannot load task 17 back: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestLoadsACheckpointByItsNumber(t *testing.T) {
 	_, store := keeperWithFourCheckpoints(t)
 	ctx := t.Context()
 
-	second, err := LoadCheckpoint(ctx, store, "17", 2)
+	second, err := LoadCheckpoint(ctx, store, contract.RecordTask, "17", 2)
 	if err != nil {
 		t.Fatalf("cannot load checkpoint two: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestGoesBackByASetNumberOfSteps(t *testing.T) {
 	_, store := keeperWithFourCheckpoints(t)
 	ctx := t.Context()
 
-	wound, err := Back(ctx, store, "17", 3)
+	wound, err := Back(ctx, store, contract.RecordTask, "17", 3)
 	if err != nil {
 		t.Fatalf("cannot wind task 17 back three steps: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestGoesBackByASetNumberOfSteps(t *testing.T) {
 		t.Errorf("winding back changed the ask to %q", held.Goal.Ask)
 	}
 
-	again, err := Load(ctx, store, "17")
+	again, err := Load(ctx, store, contract.RecordTask, "17")
 	if err != nil {
 		t.Fatalf("cannot load task 17 after winding it back: %v", err)
 	}
@@ -119,16 +119,16 @@ func TestRefusesToGoBackPastTheFirstCheckpoint(t *testing.T) {
 	_, store := keeperWithFourCheckpoints(t)
 	ctx := t.Context()
 
-	if _, err := Back(ctx, store, "17", 4); !errors.Is(err, ErrBeforeTheFirstCheckpoint) {
+	if _, err := Back(ctx, store, contract.RecordTask, "17", 4); !errors.Is(err, ErrBeforeTheFirstCheckpoint) {
 		t.Errorf("winding back four steps from checkpoint four was allowed: %v", err)
 	}
-	if _, err := Back(ctx, store, "17", 99); !errors.Is(err, ErrBeforeTheFirstCheckpoint) {
+	if _, err := Back(ctx, store, contract.RecordTask, "17", 99); !errors.Is(err, ErrBeforeTheFirstCheckpoint) {
 		t.Errorf("winding back further than the record goes was allowed: %v", err)
 	}
-	if _, err := Back(ctx, store, "17", 0); err == nil {
+	if _, err := Back(ctx, store, contract.RecordTask, "17", 0); err == nil {
 		t.Error("winding back no steps at all was allowed, and a step back is at least one")
 	}
-	if _, err := Back(ctx, store, "17", -1); err == nil {
+	if _, err := Back(ctx, store, contract.RecordTask, "17", -1); err == nil {
 		t.Error("winding back a negative number of steps was allowed")
 	}
 }
@@ -149,7 +149,7 @@ func TestAWindBackNeverHandsOutAResultLabelTwice(t *testing.T) {
 		t.Fatalf("cannot add the second result: %v", err)
 	}
 
-	wound, err := Back(ctx, store, "17", 1)
+	wound, err := Back(ctx, store, contract.RecordTask, "17", 1)
 	if err != nil {
 		t.Fatalf("cannot wind the record back one step: %v", err)
 	}
@@ -177,16 +177,16 @@ func TestRefusesToLoadWhatIsNotInTheLog(t *testing.T) {
 	_, store := keeperWithFourCheckpoints(t)
 	ctx := t.Context()
 
-	if _, err := Load(ctx, store, "44"); err == nil {
+	if _, err := Load(ctx, store, contract.RecordTask, "44"); err == nil {
 		t.Error("a task that was never written loaded anyway")
 	}
-	if _, err := LoadCheckpoint(ctx, store, "17", 9); err == nil {
+	if _, err := LoadCheckpoint(ctx, store, contract.RecordTask, "17", 9); err == nil {
 		t.Error("a checkpoint that was never saved loaded anyway")
 	}
-	if _, err := LoadCheckpoint(ctx, store, "17", 0); err == nil {
+	if _, err := LoadCheckpoint(ctx, store, contract.RecordTask, "17", 0); err == nil {
 		t.Error("checkpoint zero loaded, and checkpoints count from one")
 	}
-	if _, err := Load(ctx, nil, "17"); err == nil {
+	if _, err := Load(ctx, nil, contract.RecordTask, "17"); err == nil {
 		t.Error("a record loaded with no log to load it from")
 	}
 }
@@ -200,7 +200,7 @@ func TestRefusesACheckpointThatWillNotRead(t *testing.T) {
 	if _, err := store.Append(ctx, broken); err != nil {
 		t.Fatalf("cannot write the broken checkpoint: %v", err)
 	}
-	if _, err := Load(ctx, store, "17"); err == nil {
+	if _, err := Load(ctx, store, contract.RecordTask, "17"); err == nil {
 		t.Error("a checkpoint holding something that is not a record loaded anyway")
 	}
 }

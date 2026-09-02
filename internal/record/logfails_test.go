@@ -121,7 +121,7 @@ func TestALogThatWillNotReadSaysSo(t *testing.T) {
 	if _, err := keeper.Read(ctx, "r1"); err == nil {
 		t.Error("a result was read although the log refused the read")
 	}
-	if _, err := Load(ctx, store, "17"); err == nil {
+	if _, err := Load(ctx, store, contract.RecordTask, "17"); err == nil {
 		t.Error("a record loaded although the log refused the read")
 	}
 }

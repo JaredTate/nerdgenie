@@ -45,7 +45,7 @@ func TestARecordSurvivesBeingPutDownAndPickedUp(t *testing.T) {
 	}
 
 	reading := newFileStore(path)
-	loaded, err := Load(ctx, reading, "17")
+	loaded, err := Load(ctx, reading, contract.RecordTask, "17")
 	if err != nil {
 		t.Fatalf("cannot load the record back out of %s: %v", path, err)
 	}
@@ -63,7 +63,7 @@ func TestARecordSurvivesBeingPutDownAndPickedUp(t *testing.T) {
 		}
 	}
 
-	wound, err := Back(ctx, reading, "17", 3)
+	wound, err := Back(ctx, reading, contract.RecordTask, "17", 3)
 	if err != nil {
 		t.Fatalf("cannot wind the record back three steps: %v", err)
 	}

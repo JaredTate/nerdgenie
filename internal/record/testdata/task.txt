@@ -1,0 +1,34 @@
+# task 17   running   from Signal   budget left: 86 rounds, 51 minutes
+this turn: 6.1k tokens in, 5.2k of them cached, 0.4k out
+
+## Goal
+Ask: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters."
+Why: mark the anniversary publicly today.
+Done when:
+- [ ] one post is up on the DigiByte account ->
+- [x] it is under 280 characters and mentions the date -> r6
+
+## Rules
+Corrections:
+- C1 "no, lead with the date not the features"
+Stop and tell the user if:
+- the account shows a login page or a captcha
+- the post is still over 280 characters after two tries
+
+## Work
+Situation:
+- browser tab t1: x.com/compose, "Compose post"
+- files changed in this task: none
+Plan:
+- [x] 1 read the product notes -> r3
+- [x] 2 draft the post -> r6
+- [ ] 3 post it
+Results (read any of them in full with `read r7`):
+- r3 read memory/product.md, 2,100 characters
+- r6 draft post, 236 characters
+
+## Lessons
+Decisions:
+- D1 Lead with the date. Reason: correction C1.
+Failures:
+- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.

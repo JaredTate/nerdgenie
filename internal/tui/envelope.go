@@ -22,7 +22,7 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 	case contract.SocketHandoff:
 		screen.showCard(cardFrom(envelope, cardHandoff, handoffTitle))
 	case contract.SocketStatus:
-		screen.readStatus(envelope)
+		screen.readStatus(envelope.Fields)
 	case contract.SocketError:
 		screen.flushDeltas()
 		screen.showTrouble(troubleWords(envelope))
@@ -103,12 +103,4 @@ func (screen *Screen) openReply() *block {
 		return nil
 	}
 	return last
-}
-
-// readStatus takes what the program says about itself and puts it in the header,
-// the status strip, and the command palette.
-func (screen *Screen) readStatus(envelope contract.SocketEnvelope) {
-	if listed, sent := envelope.Fields[commandsField]; sent {
-		screen.learnCommands(listed)
-	}
 }

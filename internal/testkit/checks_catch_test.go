@@ -227,6 +227,22 @@ func TestTheSandboxCheckCatchesAnUnavailableSandboxThatRunsAnyway(t *testing.T) 
 	}
 }
 
+// boastfulSandbox is available and reports every command as a success without
+// looking at it, which is what replacing the whole body of Run with a constant
+// looks like.
+type boastfulSandbox struct{ *testkit.FakeSandbox }
+
+// Run reports a success whatever it was asked to run.
+func (boastfulSandbox) Run(context.Context, contract.SandboxCommand) (contract.SandboxResult, error) {
+	return contract.SandboxResult{}, nil
+}
+
+func TestTheSandboxCheckCatchesASandboxThatSaysEverythingWorked(t *testing.T) {
+	if err := testkit.CheckSandbox(context.Background(), boastfulSandbox{testkit.NewFakeSandbox()}); err == nil {
+		t.Fatal("the sandbox check passed a sandbox that reported a program nobody has as a success")
+	}
+}
+
 // leakyVault hands back a credential for anything it is asked about.
 type leakyVault struct{ *testkit.FakeSecrets }
 

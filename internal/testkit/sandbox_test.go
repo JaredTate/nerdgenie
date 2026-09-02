@@ -51,9 +51,20 @@ func TestTheFakeSandboxCanBeMadeUnavailableTheWayAMissingBwrapWouldBe(t *testing
 	}
 }
 
-func TestTheFakeSandboxKeepsTheSandboxContract(t *testing.T) {
+func TestTheFakeSandboxKeepsTheSandboxContractAvailableAndNot(t *testing.T) {
+	ctx := context.Background()
 	sandbox := testkit.NewFakeSandbox()
-	if err := testkit.CheckSandbox(context.Background(), sandbox); err != nil {
-		t.Fatalf("the fake sandbox does not keep the sandbox contract: %v", err)
+
+	if err := testkit.CheckSandbox(ctx, sandbox); err != nil {
+		t.Fatalf("the fake sandbox does not keep the contract while it is available: %v", err)
+	}
+	if len(sandbox.Commands()) == 0 {
+		t.Error("the sandbox check ran nothing against an available sandbox, so it asserted nothing at all")
+	}
+
+	sandbox.SetAvailable(errors.New("bwrap is not installed, so install bubblewrap and try again"))
+
+	if err := testkit.CheckSandbox(ctx, sandbox); err != nil {
+		t.Fatalf("the fake sandbox does not keep the contract once it is unavailable: %v", err)
 	}
 }

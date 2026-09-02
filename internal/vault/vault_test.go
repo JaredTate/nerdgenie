@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
 	"github.com/JaredTate/coeus/internal/vault"
@@ -18,13 +19,13 @@ import (
 func openTestVault(t testing.TB) (*vault.Vault, contract.Home, *testkit.FakeClock) {
 	t.Helper()
 	home := testkit.NewTempHome(t)
-	clock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
-	opened, err := vault.Open(home, clock)
+	testClock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
+	opened, err := vault.Open(home, testClock)
 	if err != nil {
 		t.Fatalf("opening the vault in a temporary home failed: %v", err)
 	}
 	t.Cleanup(func() { _ = opened.Close() })
-	return opened, home, clock
+	return opened, home, testClock
 }
 
 // threeEntries is the set the round-trip tests add.
@@ -63,13 +64,13 @@ func addThreeEntries(t testing.TB, opened *vault.Vault) {
 }
 
 func TestAThreeEntryVaultSurvivesCloseAndReopen(t *testing.T) {
-	opened, home, clock := openTestVault(t)
+	opened, home, testClock := openTestVault(t)
 	addThreeEntries(t, opened)
 	if err := opened.Close(); err != nil {
 		t.Fatalf("closing the vault failed: %v", err)
 	}
 
-	reopened, err := vault.Open(home, clock)
+	reopened, err := vault.Open(home, testClock)
 	if err != nil {
 		t.Fatalf("reopening the vault failed: %v", err)
 	}
@@ -177,7 +178,7 @@ func TestAddingAnEntryWithNoNameIsRefused(t *testing.T) {
 }
 
 func TestRemovingAnEntryTakesItOutAndRemovingAMissingOneSaysSo(t *testing.T) {
-	opened, home, clock := openTestVault(t)
+	opened, home, testClock := openTestVault(t)
 	if err := opened.Add(vault.Entry{Name: "mail", Site: "Fastmail", Password: "a-long-enough-password"}); err != nil {
 		t.Fatalf("adding the entry failed: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestRemovingAnEntryTakesItOutAndRemovingAMissingOneSaysSo(t *testing.T) {
 	if err := opened.Close(); err != nil {
 		t.Fatalf("closing the vault failed: %v", err)
 	}
-	reopened, err := vault.Open(home, clock)
+	reopened, err := vault.Open(home, testClock)
 	if err != nil {
 		t.Fatalf("reopening the emptied vault failed: %v", err)
 	}
@@ -255,13 +256,13 @@ func TestTheKeyFileIsMadeOnFirstUseWithOwnerOnlyMode(t *testing.T) {
 func TestALooseKeyFileModeIsRefusedWithTheModeToSet(t *testing.T) {
 	for _, mode := range []fs.FileMode{0o644, 0o660, 0o604, 0o666} {
 		home := testkit.NewTempHome(t)
-		clock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
-		makeKeyFile(t, home, clock)
+		testClock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
+		makeKeyFile(t, home, testClock)
 		if err := os.Chmod(home.VaultKeyFile(), mode); err != nil {
 			t.Fatalf("loosening the key file mode failed: %v", err)
 		}
 
-		_, err := vault.Open(home, clock)
+		_, err := vault.Open(home, testClock)
 		if err == nil {
 			t.Fatalf("the vault opened with a key file of mode %v, which others can read", mode)
 		}
@@ -276,13 +277,13 @@ func TestALooseKeyFileModeIsRefusedWithTheModeToSet(t *testing.T) {
 
 func TestAnOwnerOnlyKeyFileIsAccepted(t *testing.T) {
 	home := testkit.NewTempHome(t)
-	clock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
-	makeKeyFile(t, home, clock)
+	testClock := testkit.NewFakeClock(time.Unix(0, 0).UTC())
+	makeKeyFile(t, home, testClock)
 	if err := os.Chmod(home.VaultKeyFile(), contract.SecretFileMode); err != nil {
 		t.Fatalf("setting the key file mode failed: %v", err)
 	}
 
-	reopened, err := vault.Open(home, clock)
+	reopened, err := vault.Open(home, testClock)
 	if err != nil {
 		t.Fatalf("the vault refused a key file of mode 0600, which is the right mode: %v", err)
 	}
@@ -292,9 +293,9 @@ func TestAnOwnerOnlyKeyFileIsAccepted(t *testing.T) {
 }
 
 // makeKeyFile opens and closes a vault once, so that its key file exists.
-func makeKeyFile(t *testing.T, home contract.Home, clock contract.Clock) {
+func makeKeyFile(t *testing.T, home contract.Home, testClock contract.Clock) {
 	t.Helper()
-	opened, err := vault.Open(home, clock)
+	opened, err := vault.Open(home, testClock)
 	if err != nil {
 		t.Fatalf("opening the vault to make its key failed: %v", err)
 	}
@@ -318,7 +319,7 @@ func TestAKeyFileThatIsNotAnIdentityIsRefusedByName(t *testing.T) {
 }
 
 func TestAVaultFileThatWillNotDecryptIsRefusedByName(t *testing.T) {
-	opened, home, clock := openTestVault(t)
+	opened, home, testClock := openTestVault(t)
 	if err := opened.Add(vault.Entry{Name: "mail", Password: "a-long-enough-password"}); err != nil {
 		t.Fatalf("adding the entry failed: %v", err)
 	}
@@ -329,7 +330,7 @@ func TestAVaultFileThatWillNotDecryptIsRefusedByName(t *testing.T) {
 		t.Fatalf("overwriting the vault file failed: %v", err)
 	}
 
-	_, err := vault.Open(home, clock)
+	_, err := vault.Open(home, testClock)
 	if err == nil {
 		t.Fatalf("the vault opened on a file that is not an age file")
 	}
@@ -338,11 +339,23 @@ func TestAVaultFileThatWillNotDecryptIsRefusedByName(t *testing.T) {
 	}
 }
 
-func TestAVaultOpenedWithNoClockUsesTheMachinesOwnClock(t *testing.T) {
+func TestAVaultWithoutAClockIsRefused(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	opened, err := vault.Open(home, nil)
+	if err == nil {
+		_ = opened.Close()
+		t.Fatalf("the vault opened with no clock, and it needs one to say when a code runs out")
+	}
+	if !strings.Contains(err.Error(), "clock") {
+		t.Errorf("the error %q does not say that a clock is missing", err)
+	}
+}
+
+func TestAVaultOnTheRealClockCountsDownAgainstTheMachine(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	opened, err := vault.Open(home, clock.System())
 	if err != nil {
-		t.Fatalf("opening the vault without a clock failed: %v", err)
+		t.Fatalf("opening the vault on the real clock failed: %v", err)
 	}
 	defer func() { _ = opened.Close() }()
 	if err := opened.Add(vault.Entry{Name: "x-account", Site: "X", TOTPSecret: rfc6238Secret}); err != nil {

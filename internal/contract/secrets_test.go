@@ -15,7 +15,7 @@ func TestACredentialNeverPrintsItsValues(t *testing.T) {
 		"String":     credential.String(),
 		"%v":         fmt.Sprintf("%v", credential),
 		"%+v":        fmt.Sprintf("%+v", credential),
-		"%s":         fmt.Sprintf("%s", credential),
+		"Sprint":     fmt.Sprint(credential),
 		"pointer %v": fmt.Sprintf("%v", &credential),
 	} {
 		if printed != contract.SecretMarker {

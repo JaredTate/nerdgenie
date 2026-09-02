@@ -119,8 +119,9 @@ func TestPairingLocksOutAfterFiveWrongTriesAndOpensAgainAfterAnHour(t *testing.T
 	}
 
 	clock.Advance(PairingLockout + time.Minute)
-	if _, err := pairing.Approve(code); err != nil {
-		t.Errorf("the right code was still refused an hour after the lockout began: %v", err)
+	fresh := offerTo(t, pairing, "+15125550123")
+	if _, err := pairing.Approve(fresh); err != nil {
+		t.Errorf("a fresh code was still refused an hour after the lockout began: %v", err)
 	}
 }
 

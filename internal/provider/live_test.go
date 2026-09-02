@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -75,17 +77,33 @@ func (ticking *realTicker) Ticks() <-chan time.Time { return ticking.inner.C }
 // Stop ends the ticker.
 func (ticking *realTicker) Stop() { ticking.inner.Stop() }
 
-// liveOptions are the options the live suite calls with: a real clock, the real
-// home folder layout under a temporary directory so that no scratch folder lands
-// in the user's own home, and a log the test prints.
+// liveOptions are the options the live suite calls with: a real clock, an agent
+// home under a temporary directory so that no scratch folder lands in the user's
+// own home, and a log the test prints.
 func liveOptions(t *testing.T) (provider.Options, *noteRecorder) {
 	t.Helper()
 	recorder := &noteRecorder{}
 	return provider.Options{
 		Clock: realClock{},
-		Home:  testkit.NewTempHome(t),
+		Home:  liveHome(t),
 		Log:   recorder.add,
 	}, recorder
+}
+
+// liveHome is the agent's home layout under a temporary directory, built by hand
+// rather than with the temporary home from testkit. That one points the HOME
+// variable at the temporary directory, and the two subscription programs keep
+// their sign-in under the user's real home, so moving HOME would make every live
+// call fail as though nobody had ever logged in.
+func liveHome(t *testing.T) contract.Home {
+	t.Helper()
+	home := contract.NewHome(filepath.Join(t.TempDir(), contract.HomeFolderName))
+	for _, folder := range home.Folders() {
+		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
+			t.Fatalf("the folder %s for the live run could not be made: %v", folder, err)
+		}
+	}
+	return home
 }
 
 // oneToolRequest is the short request every live subtest sends: a plain question

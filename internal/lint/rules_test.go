@@ -154,6 +154,48 @@ func TestBorrowedHeaderRuleWantsAPathBesideTheProjectName(t *testing.T) {
 	}
 }
 
+// theNineBorrowedProjects is every project Coeus took a design from, written the
+// way CLAUDE.md teaches a worker to write it: the folder name beside this
+// repository, or the folder under docs/reference for a project not on disk.
+var theNineBorrowedProjects = []string{
+	"openclaw", "hermes-agent", "prime-agent", "opencode", "zeroclaw",
+	"homerecon", "browser-use", "codex", "moltis",
+}
+
+// theSameNineInTheirOwnCapitals is how the same projects write their own names,
+// which a worker is just as likely to type.
+var theSameNineInTheirOwnCapitals = []string{
+	"OpenClaw", "Hermes", "Prime Agent", "OpenCode", "ZeroClaw",
+	"HomeRecon", "browser-use", "Codex", "Moltis",
+}
+
+func TestTheBorrowedHeaderRuleKnowsEveryProjectByItsFolderName(t *testing.T) {
+	for _, project := range theNineBorrowedProjects {
+		t.Run(project, func(t *testing.T) {
+			named := "// The design here is ported from " + project + ", wherever that lives.\n\npackage example\n"
+			if !containsRule(checkOneFile(named), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s with no reference path reported nothing", project)
+			}
+			withPath := "// The design here is ported from " + project +
+				" at ~/Code/" + project + "/source/main.go.\n\npackage example\n"
+			if containsRule(checkOneFile(withPath), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s beside its reference path was reported anyway", project)
+			}
+		})
+	}
+}
+
+func TestTheBorrowedHeaderRuleDoesNotCareAboutCapitalLetters(t *testing.T) {
+	for _, project := range theSameNineInTheirOwnCapitals {
+		t.Run(project, func(t *testing.T) {
+			named := "// The design here is ported from " + project + ", wherever that lives.\n\npackage example\n"
+			if !containsRule(checkOneFile(named), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s with no reference path reported nothing", project)
+			}
+		})
+	}
+}
+
 func TestThePackageDocRuleWantsTheFirstSentenceToNameThePackage(t *testing.T) {
 	rules := []string{}
 	for _, violation := range lint.CheckSource("doc.go", []byte("// This file explains the package.\npackage example\n")) {

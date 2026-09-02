@@ -139,6 +139,9 @@ func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string
 		return contract.Diff{}, err
 	}
 
+	if problem.dialog != nil {
+		worker.openDialog = problem.dialog
+	}
 	diff := contract.Diff{
 		URLChanged:  moved,
 		URL:         page.URL,
@@ -147,6 +150,7 @@ func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string
 		Download:    problem.download,
 		NewTab:      problem.newTab,
 		Wall:        wallOn(page.URL),
+		Settled:     true,
 		Snapshot:    page,
 	}
 	worker.previous = page.Elements

@@ -165,9 +165,25 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 		return server.worker.Screenshot(ctx)
 	case "health":
 		return server.worker.Health(ctx)
+	case "dialog":
+		return server.dialog(ctx, call.Params)
 	default:
-		return nil, fmt.Errorf("the method %q is not one of the eleven: %w", call.Method, ErrNoSuchMethod)
+		return nil, fmt.Errorf("the method %q is not one of the twelve: %w", call.Method, ErrNoSuchMethod)
 	}
+}
+
+// dialog reads the two dialog fields and answers the open dialog box.
+func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMessage) (any, error) {
+	var params struct {
+		Action contract.DialogAction `json:"action"`
+		Text   string                `json:"text"`
+	}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &params); err != nil {
+			return nil, fmt.Errorf("cannot read the dialog parameters: %w", )
+		}
+	}
+	return server.worker.Dialog(ctx, params.Action, params.Text)
 }
 
 // loginFill reads the credential fields separately, so that they are never part

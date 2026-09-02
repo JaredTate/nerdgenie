@@ -15,7 +15,7 @@ func TestTheFakeBrowserWorkerAnswersADialogAndRefusesAnUnknownAnswer(t *testing.
 		t.Fatalf("opening the fixture page failed: %v", err)
 	}
 	worker.NextActionOpensADialog(contract.Dialog{Kind: "confirm", Message: "Post this?"})
-	opened, err := worker.Click(ctx, testkit.FixtureButtonRef, "a dialog asks")
+	opened, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "a dialog asks")
 	if err != nil {
 		t.Fatalf("the click failed: %v", err)
 	}

@@ -57,6 +57,16 @@ type FakeBrowserWorker struct {
 	recoveries  int
 	closed      bool
 	nextProblem browserProblem
+	openDialog  *contract.Dialog
+	answers     []DialogAnswer
+}
+
+// DialogAnswer is one answer a test gave through the Dialog method.
+type DialogAnswer struct {
+	// Action is accept or dismiss.
+	Action contract.DialogAction
+	// Text is what was typed for a prompt.
+	Text string
 }
 
 // browserProblem is the one thing a test told the worker to do wrong next.
@@ -324,6 +334,29 @@ func (worker *FakeBrowserWorker) Health(_ context.Context) (contract.BrowserHeal
 		return contract.BrowserHealth{Healthy: false, Detail: "the fixture browser was closed"}, nil
 	}
 	return contract.BrowserHealth{Healthy: true, ChromeVersion: "fixture"}, nil
+}
+
+// Dialog answers the open dialog box, or refuses when none is open or the
+// action is not one of the two.
+func (worker *FakeBrowserWorker) Dialog(_ context.Context, action contract.DialogAction, text string) (contract.Diff, error) {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	if !contract.KnownDialogAction(action) {
+		return contract.Diff{}, fmt.Errorf("the dialog action %q is not one of accept or dismiss, so use one of those two", action)
+	}
+	if worker.openDialog == nil {
+		return contract.Diff{}, fmt.Errorf("no dialog is open, so there is nothing to %s", action)
+	}
+	worker.openDialog = nil
+	worker.answers = append(worker.answers, DialogAnswer{Action: action, Text: text})
+	return worker.actAndSettle("", "")
+}
+
+// DialogAnswers is every answer given through Dialog, which a test reads.
+func (worker *FakeBrowserWorker) DialogAnswers() []DialogAnswer {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	return append([]DialogAnswer(nil), worker.answers...)
 }
 
 // Close shuts the fixture browser down.

@@ -119,7 +119,7 @@ func TestTheClientRefusesAnAnswerThatIsNeitherAResultNorAnError(t *testing.T) {
 
 func TestTheClientGivesUpWhenTheWorkerNeverAnswers(t *testing.T) {
 	worker := newScriptedWorker()
-	worker.sendRaw("health", "")
+	worker.staySilent("health")
 	client := newClient(worker.start())
 	ctx, giveUp := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer giveUp()

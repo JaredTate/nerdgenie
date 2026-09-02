@@ -16,6 +16,7 @@ type scriptedWorker struct {
 	results  map[string]any
 	failures map[string]*workerFailure
 	rawLines map[string]string
+	silent   map[string]bool
 	asked    []string
 	closed   bool
 
@@ -30,6 +31,7 @@ func newScriptedWorker() *scriptedWorker {
 		results:  map[string]any{"health": map[string]any{"healthy": true, "driverVersion": "0.23.2"}},
 		failures: map[string]*workerFailure{},
 		rawLines: map[string]string{},
+		silent:   map[string]bool{},
 		stopped:  make(chan struct{}),
 	}
 	return worker
@@ -54,6 +56,13 @@ func (worker *scriptedWorker) sendRaw(method string, line string) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.rawLines[method] = line
+}
+
+// staySilent says that one method is never answered at all.
+func (worker *scriptedWorker) staySilent(method string) {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	worker.silent[method] = true
 }
 
 // methodsAsked is every method the Go side asked for, in order.
@@ -120,6 +129,9 @@ func (worker *scriptedWorker) answerTo(line []byte) (string, bool) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.asked = append(worker.asked, request.Method)
+	if worker.silent[request.Method] {
+		return "", false
+	}
 	if raw, written := worker.rawLines[request.Method]; written {
 		return raw, true
 	}

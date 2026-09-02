@@ -85,3 +85,16 @@ func TestTheTextFormOfAToolCallIsTheOneShapeRepairMustRead(t *testing.T) {
 			len(strings.Fields(instruction)), instruction)
 	}
 }
+
+func TestAReplyNamesTheModelThatAnsweredAndCarriesTheCostWhenKnown(t *testing.T) {
+	reply := contract.Reply{Model: "claude-opus-4-8", Usage: contract.Usage{InputTokens: 10, OutputTokens: 5, CostUSD: 0.004}}
+	if reply.Model != "claude-opus-4-8" {
+		t.Errorf("the reply's model is %q, want the one that answered", reply.Model)
+	}
+	if reply.Usage.CostUSD != 0.004 {
+		t.Errorf("the reply's cost is %v, want 0.004", reply.Usage.CostUSD)
+	}
+	if (contract.Usage{}).CostUSD != 0 {
+		t.Error("an unknown cost should read as zero")
+	}
+}

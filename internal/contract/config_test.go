@@ -209,3 +209,21 @@ func TestTheConfigurationCarriesTheAskMeFirstListAndTheUserRules(t *testing.T) {
 		}
 	}
 }
+
+func TestTheDefaultSandboxRootIsAWorkFolderAndARootMayNotHoldAnExcludedPath(t *testing.T) {
+	userHome := filepath.Join("/home", "someone")
+	roots := contract.DefaultSandboxRoots(userHome)
+	if len(roots) != 1 || roots[0] != filepath.Join(userHome, "coeus") {
+		t.Errorf("the default sandbox roots are %v, want the one work folder %s", roots, filepath.Join(userHome, "coeus"))
+	}
+	for _, root := range []string{userHome, "/home", "/", filepath.Join(userHome, ".coeus"), filepath.Join(userHome, ".ssh"), filepath.Join(userHome, ".coeus", "browser")} {
+		if err := contract.CheckSandboxRoot(root, userHome); err == nil {
+			t.Errorf("the root %q was accepted, and it is or holds a path that must stay outside the sandbox", root)
+		}
+	}
+	for _, root := range []string{filepath.Join(userHome, "coeus"), filepath.Join(userHome, "Code"), "/srv/work"} {
+		if err := contract.CheckSandboxRoot(root, userHome); err != nil {
+			t.Errorf("the root %q was refused: %v", root, err)
+		}
+	}
+}

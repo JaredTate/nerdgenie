@@ -91,7 +91,9 @@ func buildSeccompProgram(architecture uint32, denied []systemCall, unshareNumber
 	}
 
 	// The refusal is the last instruction, so a test that matches jumps from
-	// where it sits to the end of the program.
+	// where it sits to the end of the program. A jump is one byte wide, which
+	// caps the deny list at about two hundred and fifty; a test holds it to the
+	// fifteen the brief names.
 	for index, call := range denied {
 		toTheRefusal := uint8(len(denied) - index + 4)
 		program = append(program, filterWord{code: jumpIfEqual, jumpIfTrue: toTheRefusal, value: call.number})

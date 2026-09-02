@@ -21,10 +21,11 @@ const landlockModuleName = "landlock"
 // and turns itself off when it returns an error.
 func (fence *Fence) Available() error {
 	_, lookupErr := exec.LookPath(bubblewrapProgram)
-	modules, readErr := os.ReadFile(securityModulesFile)
-	if readErr != nil {
-		modules = nil
-	}
+
+	// A kernel with no Landlock has no such file, and os.ReadFile hands back
+	// nothing along with the error, which reads as a list with no landlock in it
+	// and produces the right answer either way.
+	modules, _ := os.ReadFile(securityModulesFile)
 	return checkAvailability(lookupErr == nil, string(modules))
 }
 

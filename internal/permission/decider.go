@@ -56,6 +56,7 @@ type Decider struct {
 
 	guard      sync.Mutex
 	remembered map[string]rememberedAnswer
+	standing   []*standingApproval
 }
 
 // New builds a permission function from the user's settings and the clock a
@@ -102,7 +103,8 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 }
 
 // ruleOnSomethingToAskAbout takes a call a rule says to ask about and sees
-// whether the user has already answered a call like it in this session.
+// whether the user has already answered a call like it in this session, and
+// then whether a skill holds a standing approval for it.
 func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, matched Rule, reduced string) contract.PermissionDecision {
 	decider.guard.Lock()
 	answered, alreadyAnswered := decider.remembered[rememberedKey(request.ToolName, reduced)]
@@ -110,6 +112,9 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 
 	if alreadyAnswered {
 		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}
+	}
+	if why, standing := decider.useStandingApproval(reduced); standing {
+		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: why}
 	}
 	return contract.PermissionDecision{
 		Ruling:      contract.RulingAsk,

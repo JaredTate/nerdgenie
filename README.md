@@ -2,7 +2,7 @@
 
 Coeus is an open-source AI agent for Linux. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
 
-Coeus is at the design stage. Nothing is built yet. The design is in `docs/COEUS_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
+Coeus is at the design stage. Nothing is built yet. Start with `COEUS.md`, the plain-words explanation of how it works and why it is better. The design is in `docs/COEUS_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
 
 ## The idea
 
@@ -59,6 +59,7 @@ Tests are written before the code they prove, at four levels: unit, integration,
 
 | File | What it is |
 |---|---|
+| `COEUS.md` | The plain-words explanation: the problem every agent has, the three things Coeus keeps apart, the task record, the three kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
 | `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives |
 | `docs/COEUS_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the three kinds of state and the task record, what the model is told, tools, browser, safety |
 | `docs/WORK_PLAN.md` | How it gets built: the goal, the rules, the four kinds of tests, the test framework, seven waves of briefs, and where each borrowed design lives in the other code bases |

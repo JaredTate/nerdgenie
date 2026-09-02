@@ -21,7 +21,7 @@ echo "The generator omits dependency folders, build outputs, test artifacts, and
 echo
 echo "## Roots"
 echo
-echo "- \`./\` - The three living documents, the license, the third-party notes, the Makefile."
+echo "- \`./\` - The three living documents, the plain-words explanation COEUS.md, the license, the third-party notes, the Makefile."
 echo "- \`cmd/coeus/\` - The one binary and its subcommands."
 echo "- \`internal/\` - The Go packages, one job each; see ARCHITECTURE.md for the list."
 echo "- \`worker/\` - The TypeScript browser and desktop workers."

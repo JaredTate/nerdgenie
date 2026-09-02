@@ -4,10 +4,11 @@
 
 ## Get up to speed (read in this order)
 
-1. `docs/COEUS_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the three kinds of state, what the model is told.
-2. `ARCHITECTURE.md` — how the code is put together and what each wave built. Updated every wave.
-3. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.
-4. `docs/WORK_PLAN.md` — the goal, the rules for building, the four kinds of tests, the test framework, and the waves of briefs. Your brief is in `docs/briefs/wave-N/`, and it begins by telling you to read these same four files.
+1. `COEUS.md` — the plain-words explanation: what Coeus is, how its state works, why it is better than the other agents, and a check table that ties every claim to a design section, a brief, and a test.
+2. `docs/COEUS_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the three kinds of state, what the model is told.
+3. `ARCHITECTURE.md` — how the code is put together and what each wave built. Updated every wave.
+4. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.
+5. `docs/WORK_PLAN.md` — the goal, the rules for building, the four kinds of tests, the test framework, and the waves of briefs. Your brief is in `docs/briefs/wave-N/`, and it begins by telling you to read these same five files.
 
 Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `docs/research/` (seventeen studies with line-level citations into the other code bases) · `docs/reference/` (copies of reference files from projects not on disk) · `THIRD_PARTY.md` (the projects whose designs were ported, and their licenses).
 

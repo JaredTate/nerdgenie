@@ -25,7 +25,7 @@ Packages are listed in build order, and a package may import only packages liste
 |---|---|---|
 | `internal/contract` | Every interface, type, and constant that crosses a wave boundary, with no dependencies | 0, built |
 | `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0, built |
-| `internal/log` | The append-only event log in SQLite | 1 |
+| `internal/log` | The append-only event log in SQLite | 1, built |
 | `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
 | `internal/config` | The configuration file and the home folder layout | 1 |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0, built |
@@ -100,6 +100,12 @@ The terminal and any future screen attach to the running program over a Unix soc
   run/                   the socket and the lock
   backups/               nightly encrypted archives
 ```
+
+### The event log inside `coeus.db` (built, wave 1)
+
+`internal/log` owns the first two tables in the one SQLite file, and `internal/log/doc.go` is the fuller description. `events` holds one row per thing that happened: a sequence number that is the primary key, that only ever grows, and that is never reused; the time it happened, written as text in UTC so that any moment comes back exactly as it went in; the task or job it belongs to, which may be empty; its kind, one of the eight in `contract.EventKind`; and its own fields as JSON. There is one index on the task and one on the kind, which are two of the read shapes, and nothing cleverer than that. `schema_version` holds one number, `1`, which is where wave 6's migrations start. Nothing in either table is ever changed or removed.
+
+The file is opened in write-ahead mode with `synchronous=NORMAL` and a five-second busy timeout, through one connection for writing held behind a mutex, so there is only ever one writer, and four connections for reading. `Append` returns the sequence number it gave the row, which is what lets a caller write down what it is about to do before doing it. The four list reads stop at `log.MaxEventsPerRead`, ten thousand rows, so nothing can pull the whole log into memory by accident; `Replay` streams a row at a time instead and so has no such limit. Opening a file that holds another program's tables, or one written by a newer Coeus, is refused with an error that names the file. A row the running version cannot read is an error from every read rather than a silently skipped line.
 
 ## The fakes and the fixture (built, wave 0)
 

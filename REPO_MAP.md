@@ -110,6 +110,7 @@ docs/research/harness-v2-review.md
 docs/research/work-plan-final-review.md
 docs/research/work-plan-review.md
 go.mod
+go.sum
 internal/contract/browser.go
 internal/contract/channel.go
 internal/contract/clock.go
@@ -168,6 +169,19 @@ internal/lint/testdata/functionlength/doc.go
 internal/lint/testdata/identifiername/bad.go
 internal/lint/testdata/identifiername/doc.go
 internal/lint/testdata/packagedoc/bad.go
+internal/log/append.go
+internal/log/append_test.go
+internal/log/damaged_test.go
+internal/log/doc.go
+internal/log/event.go
+internal/log/event_test.go
+internal/log/integration_test.go
+internal/log/open.go
+internal/log/open_test.go
+internal/log/read.go
+internal/log/read_test.go
+internal/log/replay.go
+internal/log/replay_test.go
 internal/testkit/browser.go
 internal/testkit/browser_test.go
 internal/testkit/browsermore_test.go

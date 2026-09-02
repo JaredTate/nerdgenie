@@ -3,6 +3,7 @@ package record
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -63,6 +64,29 @@ func TestCreatesARecordOnTheFirstToolCall(t *testing.T) {
 	}
 	if store.Count() != 1 {
 		t.Errorf("creating a record wrote %d events to the log, and it should write one checkpoint", store.Count())
+	}
+}
+
+// TestAJobIsCreatedWithNoBudgetOnIt proves a record never holds anything its own
+// text does not print, because the two must always say the same thing: a job
+// carries progress where a task carries a budget, so a budget handed to a job is
+// dropped rather than kept where nothing would ever show it.
+func TestAJobIsCreatedWithNoBudgetOnIt(t *testing.T) {
+	start := jobStart()
+	start.RoundsLeft, start.MinutesLeft = 100, 60
+	keeper, _ := newKeeper(t, start)
+
+	held := keeper.Record()
+	if held.Header.RoundsLeft != 0 || held.Header.MinutesLeft != 0 {
+		t.Errorf("the job holds a budget of %d rounds and %d minutes, which its text never prints",
+			held.Header.RoundsLeft, held.Header.MinutesLeft)
+	}
+	parsed, err := Parse([]byte(keeper.Text()))
+	if err != nil {
+		t.Fatalf("the job record does not read back: %v", err)
+	}
+	if !reflect.DeepEqual(parsed, held) {
+		t.Errorf("the job record and its text do not say the same thing.\nheld   %+v\nparsed %+v", held, parsed)
 	}
 }
 

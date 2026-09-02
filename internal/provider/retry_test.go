@@ -3,9 +3,11 @@ package provider_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,6 +29,19 @@ func sendInBackground(model contract.Model, request contract.Request) <-chan cal
 	done := make(chan callResult, 1)
 	go func() {
 		reply, err := model.Send(context.Background(), request, nil)
+		done <- callResult{reply: reply, err: err}
+	}()
+	return done
+}
+
+// sendInBackgroundCollecting starts one call, keeping every delta it streams as
+// it arrives, and hands back the channel its result will arrive on. The text it
+// gathers is only safe to read once that result has come back.
+func sendInBackgroundCollecting(model contract.Model, request contract.Request,
+	streamed *strings.Builder) <-chan callResult {
+	done := make(chan callResult, 1)
+	go func() {
+		reply, err := model.Send(context.Background(), request, func(delta string) { streamed.WriteString(delta) })
 		done <- callResult{reply: reply, err: err}
 	}()
 	return done
@@ -208,6 +223,67 @@ func TestARefusalThatIsNotWorthRetryingComesStraightBack(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "404") {
 		t.Errorf("the error does not say what the server answered: %v", err)
+	}
+}
+
+// serverThatBreaksOffAfterSaying answers the Chat Completions path with a stream
+// of its own. Its first call streams the first text and then stops without ever
+// saying why it stopped, which is what a connection that broke half way through
+// an answer looks like; every call after that one streams the whole text
+// properly. It is how a test makes a model fail after the caller has already
+// been given some of the model's words.
+func serverThatBreaksOffAfterSaying(first, whole string) *httptest.Server {
+	calls := &atomic.Int64{}
+	return httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != testkit.OpenAIPath {
+			http.Error(writer, "this server answers only "+testkit.OpenAIPath, http.StatusNotFound)
+			return
+		}
+		writer.Header().Set("Content-Type", "text/event-stream")
+		writer.WriteHeader(http.StatusOK)
+		if calls.Add(1) == 1 {
+			fmt.Fprint(writer, openAITextChunk(first))
+			return
+		}
+		fmt.Fprint(writer, openAITextChunk(whole))
+		fmt.Fprint(writer, `data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}`+"\n\n")
+		fmt.Fprint(writer, "data: [DONE]\n\n")
+	}))
+}
+
+// openAITextChunk is one line of a Chat Completions stream carrying a piece of
+// the answer's text.
+func openAITextChunk(text string) string {
+	return fmt.Sprintf(`data: {"choices":[{"index":0,"delta":{"content":%q}}]}`+"\n\n", text)
+}
+
+func TestARetryNeverReplaysTheTextTheFailedAttemptStreamed(t *testing.T) {
+	server := serverThatBreaksOffAfterSaying("Hello ", "Hello world")
+	defer server.Close()
+	clock := newTestClock()
+	options, recorder := testOptions(t, clock)
+	base, err := provider.New(localAliasAt(server.URL, 262144), options)
+	if err != nil {
+		t.Fatalf("building the provider failed: %v", err)
+	}
+	model := provider.WithRetries(base, options)
+
+	streamed := &strings.Builder{}
+	done := sendInBackgroundCollecting(model, requestWithEverything(), streamed)
+	waitForNotes(t, recorder, 1)
+	waitForSleeper(t, clock, 1)
+	clock.Advance(30 * time.Second)
+	finished := waitForResult(t, done)
+
+	if finished.err != nil {
+		t.Fatalf("a call whose stream broke and was then tried again came back as %v", finished.err)
+	}
+	if finished.reply.Text != "Hello world" {
+		t.Fatalf("the reply is %q, want the whole answer the second attempt streamed", finished.reply.Text)
+	}
+	if streamed.String() != finished.reply.Text {
+		t.Errorf("the caller was streamed %q while the reply is %q, and a caller must never be handed the text of an attempt that was thrown away",
+			streamed.String(), finished.reply.Text)
 	}
 }
 

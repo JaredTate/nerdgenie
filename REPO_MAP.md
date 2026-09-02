@@ -39,6 +39,7 @@ cmd/coeus/version.go
 docs/COEUS_PLAN.md
 docs/DEPENDENCIES.md
 docs/HARNESS_V2.md
+docs/PROGRESS.md
 docs/WORK_PLAN.md
 docs/briefs/wave-0/0.1-ready-to-build.md
 docs/html/build.ts

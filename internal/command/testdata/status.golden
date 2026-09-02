@@ -1,0 +1,10 @@
+model: local
+cost so far: 6100 tokens in, 5200 of them cached, 400 out
+jobs: 1 running, 1 paused
+  job 1 running, 0 of 2 tasks done: run the DigiByte anniversary campaign
+  job 2 paused, 0 of 0 tasks done: post the weekly update
+waiting for an answer: 1
+  3 post the anniversary tweet
+channels:
+  terminal  ok
+  signal    not working: signal-cli is not running

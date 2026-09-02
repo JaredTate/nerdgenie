@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
@@ -185,6 +186,41 @@ func TestTheBrowserProtocolServerReportsAnUnknownMethodAndABadLine(t *testing.T)
 	failure, isFailure = broken["error"].(map[string]any)
 	if !isFailure || failure["code"] != float64(-32700) {
 		t.Errorf("a line that is not JSON came back as %+v, want an error with code -32700", broken)
+	}
+}
+
+func TestTheProtocolServerAnswersTheDialogMethod(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	server := testkit.NewBrowserProtocolServer(t, worker)
+
+	callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
+	worker.NextActionOpensADialog(contract.Dialog{Kind: "confirm", Message: "Are you sure?"})
+	callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":2,"method":"click","params":{"ref":"`+testkit.FixtureChangeLinkRef+`","expectation":"a dialog opens"}}`)
+
+	answer := callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":3,"method":"dialog","params":{"action":"accept","text":"yes"}}`)
+
+	if failed, isFailure := answer["error"]; isFailure {
+		t.Fatalf("answering the dialog came back with an error: %+v", failed)
+	}
+	result := resultOf(t, answer)
+	if _, held := result["snapshot"].(map[string]any); !held {
+		t.Errorf("the dialog answer carries no snapshot of the page it left behind: %+v", result)
+	}
+	if settled, said := result["settled"].(bool); !said || !settled {
+		t.Errorf("the dialog answer does not say the page settled: %+v", result)
+	}
+	if answers := worker.DialogAnswers(); len(answers) != 1 || answers[0].Text != "yes" {
+		t.Errorf("the worker recorded the answers %+v, want the one that was given", answers)
+	}
+
+	refused := callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":4,"method":"dialog","params":{"action":"maybe"}}`)
+	if _, isFailure := refused["error"]; !isFailure {
+		t.Errorf("a dialog action nobody defined was accepted: %+v", refused)
 	}
 }
 

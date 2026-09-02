@@ -83,6 +83,7 @@ type DialogAnswer struct {
 type browserProblem struct {
 	changeNothing bool
 	neverSettle   bool
+	cannotRead    bool
 	dialog        *contract.Dialog
 	download      *contract.Download
 	newTab        string
@@ -120,9 +121,18 @@ func (worker *FakeBrowserWorker) NextActionChangesNothing() {
 	worker.setProblem(browserProblem{changeNothing: true})
 }
 
-// NextActionTimesOutSettling makes the next action never settle.
+// NextActionTimesOutSettling makes the page keep changing past the limit. The
+// action still returns a diff, of the page as it stood, with settled false, the
+// way worker/browser/PROTOCOL.md says a live page is handled.
 func (worker *FakeBrowserWorker) NextActionTimesOutSettling() {
 	worker.setProblem(browserProblem{neverSettle: true})
+}
+
+// NextActionCannotBeRead makes the page unreadable after the limit, which is the
+// one settling failure that is an error rather than a diff, and the one the
+// protocol answers with -32001.
+func (worker *FakeBrowserWorker) NextActionCannotBeRead() {
+	worker.setProblem(browserProblem{cannotRead: true})
 }
 
 // NextActionOpensADialog makes the next action open a dialog box.

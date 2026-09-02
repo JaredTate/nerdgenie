@@ -30,7 +30,7 @@ func TestTheHandledAccessMatchesWhatEachLandlockVersionKnowsAbout(t *testing.T) 
 }
 
 func TestTheReadableAccessIsReadAndRunAndNothingElse(t *testing.T) {
-	wanted := accessExecute | accessReadFile | accessReadDirectory
+	var wanted uint64 = accessExecute | accessReadFile | accessReadDirectory
 
 	if readableAccess() != wanted {
 		t.Errorf("a read-only folder is given %#x, want %#x, which is read and run and nothing else", readableAccess(), wanted)

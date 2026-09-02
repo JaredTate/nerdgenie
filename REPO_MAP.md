@@ -209,6 +209,7 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/memory/broken_test.go
 internal/memory/capture.go
 internal/memory/capture_test.go
 internal/memory/command.go

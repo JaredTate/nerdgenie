@@ -180,7 +180,7 @@ func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMes
 	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, fmt.Errorf("cannot read the dialog parameters: %w")
+			return nil, fmt.Errorf("cannot read the dialog parameters, so check the action and text fields: %w", err)
 		}
 	}
 	return server.worker.Dialog(ctx, params.Action, params.Text)

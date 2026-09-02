@@ -3,6 +3,8 @@ package record
 import (
 	"errors"
 	"testing"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 // jobWithTasks makes a job whose list holds three tasks, the first of which is
@@ -107,6 +109,50 @@ func TestMarksAJobTaskDoneOnlyWithARealReport(t *testing.T) {
 	task, _ := newKeeper(t, taskStart())
 	if err := task.MarkJobTask(ctx, "t1", "j4.1"); !errors.Is(err, ErrWrongKind) {
 		t.Errorf("a task record took a job's check mark: %v", err)
+	}
+}
+
+// TestAJobKeepsTheSameRulesAsATask proves the rules a job shares with a task hold
+// on a job too: the ask is never edited, the why is written once, a decision
+// carries its reason, a failure carries its cause, and a done line names what
+// proves it.
+func TestAJobKeepsTheSameRulesAsATask(t *testing.T) {
+	keeper, _ := newKeeper(t, jobStart())
+	ctx := t.Context()
+
+	if err := keeper.Apply(ctx, Update{Why: "keep the anniversary in front of people"}); err != nil {
+		t.Fatalf("cannot write the job's why: %v", err)
+	}
+	if err := keeper.Apply(ctx, Update{Why: "a different why"}); !errors.Is(err, ErrWhyIsSet) {
+		t.Errorf("a job's why was rewritten, and it is written once: %v", err)
+	}
+	if err := keeper.Apply(ctx, Update{Decision: &NewDecision{Text: "post at two"}}); !errors.Is(err, ErrDecisionNeedsReason) {
+		t.Errorf("a job took a decision with no reason: %v", err)
+	}
+	if err := keeper.Apply(ctx, Update{Failure: &NewFailure{Text: "the post had three facts"}}); !errors.Is(err, ErrFailureNeedsCause) {
+		t.Errorf("a job took a failure with no cause: %v", err)
+	}
+
+	waiting := []contract.DoneLine{{Text: "the blog piece is published", Done: true}}
+	if err := keeper.Apply(ctx, Update{DoneWhen: waiting}); !errors.Is(err, ErrDoneLineNeedsProof) {
+		t.Errorf("a job took a done line with nothing behind it: %v", err)
+	}
+	if err := keeper.SetStatus(ctx, contract.StatusDone); !errors.Is(err, ErrDoneLineNeedsProof) {
+		t.Errorf("a job closed with no done list at all: %v", err)
+	}
+
+	if _, err := keeper.AddReport(ctx, "the blog piece went up", "the whole report"); err != nil {
+		t.Fatalf("cannot add the report: %v", err)
+	}
+	proved := []contract.DoneLine{{Text: "the blog piece is published", Done: true, ResultID: "j4.1"}}
+	if err := keeper.Apply(ctx, Update{DoneWhen: proved}); err != nil {
+		t.Fatalf("a job's done line proved by its own report was refused: %v", err)
+	}
+	if err := keeper.SetStatus(ctx, contract.StatusDone); err != nil {
+		t.Fatalf("a job whose every line is proved would not close: %v", err)
+	}
+	if keeper.Record().Goal.Ask != jobStart().Ask {
+		t.Errorf("the job's ask now reads %q", keeper.Record().Goal.Ask)
 	}
 }
 

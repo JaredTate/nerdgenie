@@ -28,6 +28,38 @@ type rowScanner interface {
 	Scan(into ...any) error
 }
 
+// ByTask returns every event of one task or job, in order. It stops at
+// MaxEventsPerRead events, which is far more than one task ever writes.
+func (eventLog *Log) ByTask(ctx context.Context, taskID string) ([]contract.Event, error) {
+	if taskID == "" {
+		return nil, errors.New("cannot read the events of a task with no id, so pass the id of the task you want")
+	}
+	return eventLog.events(ctx, "WHERE task_id = ?", MaxEventsPerRead, taskID)
+}
+
+// ByKind returns every event of one kind, in order, up to MaxEventsPerRead of
+// them. A kind the log does not know is an error rather than an empty answer,
+// because an empty answer would look like a log that had nothing of that kind.
+func (eventLog *Log) ByKind(ctx context.Context, kind contract.EventKind) ([]contract.Event, error) {
+	if !contract.KnownEventKind(kind) {
+		return nil, fmt.Errorf("cannot read the events of the kind %q, so use one of the kinds listed in internal/contract", kind)
+	}
+	return eventLog.events(ctx, "WHERE kind = ?", MaxEventsPerRead, string(kind))
+}
+
+// ByRange returns every event in a span of sequence numbers, from the first up
+// to and including the last, in order and up to MaxEventsPerRead of them. It is
+// how a caller walks a log longer than one read can hold.
+func (eventLog *Log) ByRange(ctx context.Context, span contract.EventRange) ([]contract.Event, error) {
+	if span.From < 1 {
+		return nil, fmt.Errorf("cannot read the events from number %d, because the log numbers its events from one upwards", span.From)
+	}
+	if span.To < span.From {
+		return nil, fmt.Errorf("cannot read the events from number %d to number %d, because that span ends before it starts, so put the smaller number first", span.From, span.To)
+	}
+	return eventLog.events(ctx, "WHERE sequence >= ? AND sequence <= ?", MaxEventsPerRead, span.From, span.To)
+}
+
 // ByID returns one event by its sequence number. A number no event has is an
 // error that names the number.
 func (eventLog *Log) ByID(ctx context.Context, sequence int64) (contract.Event, error) {
@@ -43,6 +75,42 @@ func (eventLog *Log) ByID(ctx context.Context, sequence int64) (contract.Event, 
 		return contract.Event{}, fmt.Errorf("cannot read event %d from the log at %s: %w", sequence, eventLog.path, err)
 	}
 	return found, nil
+}
+
+// events runs one of the fixed read shapes and returns what it found, in
+// sequence order. The condition is written out in one of the methods above and
+// never built from anything a caller passed; the values a caller passed arrive
+// as arguments and are bound by the driver.
+func (eventLog *Log) events(ctx context.Context, condition string, limit int, arguments ...any) ([]contract.Event, error) {
+	query := selectColumns + " " + condition + " ORDER BY sequence LIMIT ?"
+	rows, err := eventLog.reader.QueryContext(ctx, query, append(arguments, boundedLimit(limit))...)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the log at %s: %w", eventLog.path, err)
+	}
+	defer rows.Close()
+
+	found := []contract.Event{}
+	for rows.Next() {
+		event, err := scanEvent(rows)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read a row of the log at %s: %w", eventLog.path, err)
+		}
+		found = append(found, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("cannot finish reading the log at %s: %w", eventLog.path, err)
+	}
+	return found, nil
+}
+
+// boundedLimit returns the smaller of the limit asked for and the package
+// maximum, and the maximum for a limit that makes no sense, so that no read can
+// pull the whole log into memory by accident.
+func boundedLimit(limit int) int {
+	if limit < 1 || limit > MaxEventsPerRead {
+		return MaxEventsPerRead
+	}
+	return limit
 }
 
 // scanEvent reads one row into an event.

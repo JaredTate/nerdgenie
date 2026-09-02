@@ -1,3 +1,12 @@
+// What one search covers is the design of OpenClaw's memory tool contract at
+// ~/Code/openclaw/extensions/memory-core/src/memory-tool-contract.ts, written
+// fresh in Go: search over MEMORY.md, USER.md, the markdown files under the
+// memory folder, and the indexed past conversations, with a second call that
+// reads one of them back in full by the name the search gave it. OpenClaw makes
+// the corpus a parameter the model has to choose; Coeus searches all of it at
+// once and says in the id of each result which kind of thing it is, because a
+// model that has to pick a corpus first will pick the wrong one.
+
 package memory
 
 import (

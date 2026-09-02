@@ -15,20 +15,21 @@ var bookForMatching = []permission.Rule{
 	{Tool: "*", Pattern: "*", Action: contract.RulingAsk, Reason: "everything asks by default here"},
 	{Tool: contract.ToolRead, Pattern: "*", Action: contract.RulingAllow, Reason: "reading is always allowed"},
 	{Tool: contract.ToolShell, Pattern: "*rm -r*", Action: contract.RulingAsk, Reason: "deleting many files at once"},
-	{Tool: contract.ToolShell, Pattern: "*rm -r /home*", Action: contract.RulingDeny, Reason: "never delete a home directory"},
+	{Tool: contract.ToolShell, Pattern: "*rm -rf*", Action: contract.RulingDeny, Reason: "never delete without being able to stop"},
 	{Tool: "browser_*", Pattern: "*checkout*", Action: contract.RulingAsk, Reason: "spending money"},
 }
 
-// matchingCalls are the calls the rulebook is asked about and the reason of the
-// rule that has to win, or an empty reason when no rule covers the call.
+// matchingCalls are the readable forms the rulebook is asked about and the
+// reason of the rule that has to win. Each one is a reduced form, because that
+// is the only thing a rule ever sees.
 var matchingCalls = []struct {
 	toolName string
 	reduced  string
 	reason   string
 }{
 	{contract.ToolRead, "read /home/jared/notes.md", "reading is always allowed"},
-	{contract.ToolShell, "rm -rf /tmp/x", "deleting many files at once"},
-	{contract.ToolShell, "rm -rf /home/jared", "never delete a home directory"},
+	{contract.ToolShell, "rm -r", "deleting many files at once"},
+	{contract.ToolShell, "rm -rf", "never delete without being able to stop"},
 	{contract.ToolShell, "git commit", "everything asks by default here"},
 	{contract.ToolBrowserClick, "browser_click go to checkout", "spending money"},
 	{contract.ToolBrowserClick, "browser_click read the news", "everything asks by default here"},

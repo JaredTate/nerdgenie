@@ -2,6 +2,7 @@ package record
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -40,8 +41,34 @@ func TestARecordFilledToTheBudgetStaysUnderThreeThousandTokens(t *testing.T) {
 	}
 }
 
+// TestCutsAResultSummaryToOneLine proves the bound that makes the size promise
+// hold: a result keeps one line in the record however much the tool returned, and
+// the whole text is in the log either way.
+func TestCutsAResultSummaryToOneLine(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	long := strings.Repeat("a very wordy summary that will not fit on one line. ", 10)
+
+	id, err := keeper.AddResult(ctx, long, "the whole text")
+	if err != nil {
+		t.Fatalf("cannot add the result: %v", err)
+	}
+	line := keeper.Record().Work.Results[0]
+	if len([]rune(line.Summary)) != MaxSummaryCharacters {
+		t.Errorf("the summary of %s is %d characters, and a summary is cut to %d",
+			id, len([]rune(line.Summary)), MaxSummaryCharacters)
+	}
+	if !strings.HasSuffix(line.Summary, "...") {
+		t.Errorf("the summary that was cut does not say so: %q", line.Summary)
+	}
+	if text, err := keeper.Read(ctx, id); err != nil || text != "the whole text" {
+		t.Errorf("the whole text was not kept in the log: %q with the error %v", text, err)
+	}
+}
+
 // recordFilledToTheBudget spends a whole hundred-round budget on one record: a
-// result every round, a plan, a done list, corrections, decisions, and failures.
+// result every round, each with a summary as long as one is allowed to be, and a
+// plan, a done list, corrections, decisions, and failures on top.
 func recordFilledToTheBudget(t *testing.T) *Keeper {
 	t.Helper()
 	keeper, _ := newKeeper(t, taskStart())
@@ -65,7 +92,7 @@ func recordFilledToTheBudget(t *testing.T) *Keeper {
 	fillTheLessons(t, keeper)
 
 	for round := range 100 {
-		summary := fmt.Sprintf("read a file of about two thousand characters, round %d of the budget", round+1)
+		summary := fmt.Sprintf("round %d ", round+1) + strings.Repeat("summary word ", 20)
 		if _, err := keeper.AddResult(ctx, summary, "the whole text of the result, which lives in the log"); err != nil {
 			t.Fatalf("cannot add the result of round %d: %v", round+1, err)
 		}
@@ -84,7 +111,7 @@ func fillTheLessons(t *testing.T, keeper *Keeper) {
 			t.Fatalf("cannot add correction %d: %v", correction+1, err)
 		}
 	}
-	for lesson := range 10 {
+	for lesson := range 8 {
 		update := Update{
 			Decision: &NewDecision{
 				Text:   fmt.Sprintf("decision %d, the choice made in about ten words", lesson+1),

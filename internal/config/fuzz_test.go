@@ -15,16 +15,16 @@ import (
 // there stops Coeus from starting at all.
 func FuzzTheLoaderNeverPanics(f *testing.F) {
 	f.Add("")
-	f.Add("defaultmodel = \"local\"\n")
+	f.Add("default_model = \"local\"\n")
 	f.Add("[caps]\nroundspertask = 100\ntimepertask = \"1h\"\n")
 	f.Add("[[models]]\nname = \"local\"\nprovider = \"openai\"\nbaseaddress = \"http://127.0.0.1:19091/v1\"\nmodelname = \"local-coder\"\ncontextlength = 262144\n")
-	f.Add("handofftimeout = 1800000000000\n")
+	f.Add("handoff_timeout = 1800000000000\n")
 	f.Add("[[[models]]]\n")
-	f.Add("defaultmodel = \n")
+	f.Add("default_model = \n")
 	f.Add("\x00\x01\x02")
 	f.Add("models = [{name = \"x\"}]\n")
 	f.Add("[caps]\nroundspertask = 99999999999999999999\n")
-	f.Add("signalaccount = \"+15125550123\"\nsandboxroots = [\"/\"]\n")
+	f.Add("signal_account = \"+15125550123\"\nsandboxroots = [\"/\"]\n")
 	f.Add("a.b.c.d.e.f.g.h = 1\n")
 
 	home := contract.NewHome(filepath.Join("/nowhere", contract.HomeFolderName))

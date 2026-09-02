@@ -129,11 +129,11 @@ func TestThePathsThatDependOnTheHomeFolderAreFilledIn(t *testing.T) {
 
 func TestAFileOverridesOnlyTheKeysItSets(t *testing.T) {
 	home := writeConfig(t, `
-signalaccount = "+15125550123"
-searchserveraddress = "https://search.example.com"
+signal_account = "+15125550123"
+search_server_address = "https://search.example.com"
 
 [caps]
-roundspertask = 12
+rounds_per_task = 12
 `)
 
 	settings, err := config.Load(home)
@@ -158,9 +158,9 @@ roundspertask = 12
 
 func TestALengthOfTimeMayBeWrittenAsAStringOrAsNanoseconds(t *testing.T) {
 	forEachWay := map[string]string{
-		"a string":     `handofftimeout = "90s"`,
-		"nanoseconds":  "handofftimeout = 90000000000",
-		"a whole hour": `handofftimeout = "1h30m"`,
+		"a string":     `handoff_timeout = "90s"`,
+		"nanoseconds":  "handoff_timeout = 90000000000",
+		"a whole hour": `handoff_timeout = "1h30m"`,
 	}
 	wanted := map[string]time.Duration{
 		"a string":     90 * time.Second,
@@ -183,21 +183,21 @@ func TestALengthOfTimeMayBeWrittenAsAStringOrAsNanoseconds(t *testing.T) {
 
 func TestATableArrayReplacesTheShippedModelAliases(t *testing.T) {
 	home := writeConfig(t, `
-defaultmodel = "cloud"
+default_model = "cloud"
 
 [[models]]
 name = "cloud"
 provider = "cli"
 program = "claude"
-modelname = "opus"
-contextlength = 200000
+model_name = "opus"
+context_length = 200000
 
 [[models]]
 name = "local"
 provider = "openai"
-baseaddress = "http://127.0.0.1:19091/v1"
-modelname = "local-coder"
-contextlength = 262144
+base_address = "http://127.0.0.1:19091/v1"
+model_name = "local-coder"
+context_length = 262144
 `)
 
 	settings, err := config.Load(home)
@@ -213,7 +213,7 @@ contextlength = 262144
 }
 
 func TestLoadNamesTheConfigurationFileInEveryError(t *testing.T) {
-	home := writeConfig(t, "defaultmodel = 7\n")
+	home := writeConfig(t, "default_model = 7\n")
 
 	_, err := config.Load(home)
 	if err == nil {

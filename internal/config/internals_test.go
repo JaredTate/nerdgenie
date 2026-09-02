@@ -9,11 +9,11 @@ import (
 func TestKeyLinesNotesEveryKeyWithTheTableItIsIn(t *testing.T) {
 	document := strings.Join([]string{
 		"# a comment on line one",
-		"defaultmodel = \"local\"",
-		"memorycaps.userfactsbytes = 4000",
+		"default_model = \"local\"",
+		"memory_caps.user_facts_bytes = 4000",
 		"",
 		"[caps]",
-		"roundspertask = 100 # and a comment after the value",
+		"rounds_per_task = 100 # and a comment after the value",
 		"",
 		"[[models]]",
 		"name = \"local\"",
@@ -25,21 +25,21 @@ func TestKeyLinesNotesEveryKeyWithTheTableItIsIn(t *testing.T) {
 
 	lines := keyLines(document)
 	forEachKey := map[string]int{
-		"defaultmodel":               2,
-		"memorycaps.userfactsbytes":  3,
-		"MemoryCaps.UserFactsBytes":  3,
-		"caps":                       5,
-		"caps.roundspertask":         6,
-		"models":                     8,
-		"models.0":                   8,
-		"models.0.name":              9,
-		"models.name":                9,
-		"models.1":                   11,
-		"models.1.name":              12,
-		"models.1.quoted key":        13,
-		"caps.nosuchkey":             5,
-		"nothing.like.this":          0,
-		"models.0.name.deeper.still": 9,
+		"default_model":                2,
+		"memory_caps.user_facts_bytes": 3,
+		"Memory_Caps.User_Facts_Bytes": 3,
+		"caps":                         5,
+		"caps.rounds_per_task":         6,
+		"models":                       8,
+		"models.0":                     8,
+		"models.0.name":                9,
+		"models.name":                  9,
+		"models.1":                     11,
+		"models.1.name":                12,
+		"models.1.quoted key":          13,
+		"caps.nosuchkey":               5,
+		"nothing.like.this":            0,
+		"models.0.name.deeper.still":   9,
 	}
 	for key, want := range forEachKey {
 		if got := lines.of(key); got != want {
@@ -65,8 +65,8 @@ func TestKeyLinesIgnoresLinesThatAreNotKeys(t *testing.T) {
 }
 
 func TestKeyLinesKeepsTheFirstOfARepeatedKey(t *testing.T) {
-	lines := keyLines("defaultmodel = \"a\"\ndefaultmodel = \"b\"\n")
-	if got := lines.of("defaultmodel"); got != 1 {
+	lines := keyLines("default_model = \"a\"\ndefaultmodel = \"b\"\n")
+	if got := lines.of("default_model"); got != 1 {
 		t.Errorf("a key written twice is noted on line %d, want the first one, line 1", got)
 	}
 }
@@ -92,8 +92,8 @@ func TestJoinKeyPutsTheTableInFront(t *testing.T) {
 		key   string
 		want  string
 	}{
-		{"caps", "roundspertask", "caps.roundspertask"},
-		{"", "defaultmodel", "defaultmodel"},
+		{"caps", "rounds_per_task", "caps.rounds_per_task"},
+		{"", "default_model", "default_model"},
 		{"caps", "", "caps"},
 		{"", "", ""},
 	}
@@ -131,8 +131,8 @@ func TestReadDecodeMessageTakesTheLineAndTheKeyOutOfWhatTheLibrarySays(t *testin
 	}{
 		{
 			"a value of the wrong type",
-			`toml: line 4 (last key "caps.roundspertask"): incompatible types`,
-			4, "caps.roundspertask", "incompatible types",
+			`toml: line 4 (last key "caps.rounds_per_task"): incompatible types`,
+			4, "caps.rounds_per_task", "incompatible types",
 		},
 		{
 			"a sentence with no line at all",

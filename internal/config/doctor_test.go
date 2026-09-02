@@ -150,7 +150,7 @@ func TestTheDoctorReportsAConfigurationThatWillNotLoad(t *testing.T) {
 	if finding.Result != config.Trouble {
 		t.Errorf("a configuration that will not load is reported %s, want it a problem", finding.Result)
 	}
-	if !strings.Contains(finding.Detail, "caps.roundspertask") {
+	if !strings.Contains(finding.Detail, "caps.rounds_per_task") {
 		t.Errorf("the detail is %q, want it to carry the problem the loader found", finding.Detail)
 	}
 }
@@ -343,14 +343,14 @@ func TestTheDoctorReportsAFileWhereAFolderBelongs(t *testing.T) {
 
 func TestTheDoctorSkipsTheDaemonWhenNoAliasPointsAtThisMachine(t *testing.T) {
 	home := writeConfig(t, strings.Join([]string{
-		`defaultmodel = "cloud"`,
+		`default_model = "cloud"`,
 		"",
 		"[[models]]",
 		`name = "cloud"`,
 		`provider = "cli"`,
 		`program = "claude"`,
-		`modelname = "opus"`,
-		"contextlength = 200000",
+		`model_name = "opus"`,
+		"context_length = 200000",
 		"",
 	}, "\n"))
 

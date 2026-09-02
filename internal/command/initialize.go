@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/config"
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
@@ -110,8 +109,8 @@ func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 
 // finish prints what the doctor found and the commands a new user needs.
 func (setup Setup) finish(ctx context.Context, signalWanted bool) error {
-	report := config.Doctor(ctx, setup.Home)
-	fmt.Fprintf(setup.Output, "\n%s", report)
+	fmt.Fprintln(setup.Output)
+	Doctor(ctx, setup.Home, setup.Output)
 	fmt.Fprint(setup.Output, nextSteps(signalWanted))
 	return nil
 }

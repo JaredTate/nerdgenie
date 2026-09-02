@@ -22,10 +22,12 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 .
 ARCHITECTURE.md
 CLAUDE.md
+COEUS.md
 docs/COEUS_PLAN.md
 docs/HARNESS_V2.md
 docs/html/build.ts
 docs/html/coeus-plan.html
+docs/html/coeus.html
 docs/html/harness-v2.html
 docs/html/work-plan.html
 docs/reference/browser-use/prompts.py

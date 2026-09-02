@@ -1,8 +1,8 @@
 # COEUS: how it works and why it is better
 
-This document explains Coeus in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it.
+This document explains Coeus in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
 
-Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It stops and tells you when something on your list happens. It cannot declare a job done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
+Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It works on its own, and it only stops to ask you about the few things you told it to ask about. It stops and tells you when something on its stop list happens. It cannot call a job done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why.
 
 ## 1. The problem every agent has
 
@@ -41,23 +41,21 @@ Here is what each agent does when its window fills up. This comes from reading t
 
 Two of these agents have a good idea. Hermes never summarizes the user's own words. Prime and OpenCode keep some state in a file that the model reads again on every step, so it cannot be lost. Coeus takes both ideas as far as they go.
 
-## 2. One task, four ways
+## 2. One task, two ways
 
-Here is a thought experiment. The same job is given to OpenClaw, to Hermes, to the coding agents, and to Coeus.
+Here is the same job given to a transcript agent and to Coeus. The job is: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters." It takes about forty tool rounds: reading the notes, searching the web, drafting, opening the browser, logging in, and posting. At round twelve the user texts a correction. At round thirty, X shows a login page. Then the user walks away for three days.
 
-The job is: "Write a short post about the DigiByte anniversary for X. Use the product notes in my notes folder and get the date from the website. Keep it under 280 characters." It sounds small. It takes about forty tool rounds: reading three notes files, searching the web, fetching two pages, drafting, opening the browser, logging in, showing a preview, and posting. Halfway through, at round twelve, the user texts: "no, lead with the date, not the features." At round thirty, X shows a login page. Then the user walks away for three days.
+| What happens | A transcript agent | Coeus |
+|---|---|---|
+| Round 12. You text: "no, lead with the date, not the features" | Your message goes into the pile. When the pile is summarized, your words are replaced by the model's summary of them. Hermes keeps your words, but not the reasons around them | The harness writes your words into the record under corrections. They stay there, unchanged, until the task ends |
+| The first draft is 312 characters and fails | The failure and its cause get summarized away. The next draft can make the same mistake | The failure and its cause are written in the record. The next draft is told: one fact per post |
+| Round 30. X shows a login page | The model decides on its own whether to keep trying. There is no hard cap on how long it tries | "A login page appears" is on the stop list. The harness stops before the next tool call and sends you a screenshot |
+| You are gone for three days | The whole transcript is reloaded, summaries and all | The 3,000-token record is reloaded, on the same model or a different one |
+| Round 40 | The prompt is about 65,000 tokens, and the cache was wiped by two summaries | The prompt is about 20,000 tokens, and most of it is cached |
+| The model says "done" | It is done because the model said so | Each line on the done list must point at a result. A line with no proof sends the model back to work |
+| The same job on a small local model | It summarizes every few rounds and loses a little each time | The record is the same. Only the window is smaller |
 
-**In OpenClaw.** Every file and every web page goes into the transcript in full, and the model re-reads all of it on every call. By round fifteen the transcript is bigger than the window. OpenClaw stops, spends a call telling the model to write notes to memory, summarizes the conversation, and keeps the last 20,000 tokens. The user's correction from round twelve is now inside a summary the model wrote. Maybe the summary says "the user wants the date first." Maybe it says "the user gave feedback on the draft." The exact words are gone. The first draft failed because it was 312 characters long. The reason it failed, three facts in one post, is somewhere in the summary or nowhere, so the second draft can make the same mistake. At round thirty the login page appears. There is no list of things that should stop the task, so the model decides on its own whether to keep trying, and there is no hard cap on tool rounds. When the user comes back three days later, OpenClaw reloads the whole transcript, summaries and all, and the model starts re-reading.
-
-**In Hermes.** Hermes does one thing better. When it summarizes at half the window, it keeps the user's messages word for word, so "lead with the date, not the features" survives exactly. But everything the model decided, and every reason it had, is in the summary. So the model may decide the same question again and land somewhere else. The 312-character failure and its cause are thrown out with the old tool output. There is still no stop list and no hard cap on rounds. And the task still lives in the transcript, so coming back after three days means reloading the transcript.
-
-**In OpenCode, Claude Code, and Codex.** These three are coding agents and would not do this job, but their harnesses behave the same way on a coding task of the same length. They summarize when the window fills. They keep an instruction file on disk and read it again every step, which is a good idea, but that file holds standing rules, not the task. The correction, the decisions, and the failures end up in the summary like everywhere else.
-
-**In Coeus.** The ask is written into the record in the user's own words and locked. The model writes the user's intent, a done list with three lines, and a stop list that includes "a login page appears." Each file and page the model reads becomes one line in the record with an id, and its full text sits in the recent messages until the window fills, then drops into the log. At round twelve the correction arrives. The harness writes it into the record, word for word, under Corrections, where it stays until the task ends. The model re-plans and writes a decision: "Lead with the date. Reason: correction C1." The first draft fails at 312 characters. The harness writes the failure and the model adds the cause: three facts in one post. Neither is ever summarized. At round thirty the login page appears. The harness sees it on the stop list before the next tool call, stops, and sends the user a screenshot. Three days later the user logs in and replies "done." Coeus loads the 3,000-token record, not the transcript, and continues, on the same model or a different one. When the model says it is finished, the harness checks the done list. A post is up, it is under 280 characters and mentions the date, and the user saw a preview. Each line points at a result. Then the four review questions run, and one line is saved to memory: for DigiByte posts, lead with the date and keep to one fact.
-
-The cost is the other half of the story. OpenClaw and Hermes send the whole transcript, so their prompts grow with every round, and every summary throws away the provider's cache. Coeus sends a prompt of about the same size on round forty as on round ten, and most of it is served from the cache at a tenth of the price.
-
-That is the whole idea. Everything below explains how the record, the loop, and the window are built so that this story is true on any model.
+That is the whole difference. Everything below explains how the record, the loop, and the window are built so that the right-hand column is true on any model.
 
 ## 3. The Coeus answer: keep three things apart
 
@@ -71,112 +69,94 @@ The third is the working context. This is the text that is actually sent to the 
 
 ```mermaid
 flowchart LR
-  H["History<br/>what happened"] -->|"folded into"| S["State<br/>what is true now"]
+  H["History<br/>what happened"] -->|"listed in"| S["State<br/>what is true now"]
   S -->|"always included"| W["Working context<br/>what the model reads"]
   H -->|"fetched by id"| W
   W -->|"produces"| H
 ```
 
-Think of a writer at work. The library holds every book ever written. That is the history. The desk holds the few books that are open for today's chapter. That is the state. The page in front of the writer is the working context. The writer does not re-read the whole library to remember what the chapter is about.
-
 This is an old idea in computer science. A database keeps a log of every change and, beside it, a table of what is true now. An operating system can pause a program and start it again days later from one small record. Coeus does the same thing for an agent. The hard part is not the idea. The hard part is giving the record a fixed shape with rules, so the model cannot write whatever it likes into it. That shape is next.
 
 ## 4. The task record
 
-Here is a task record, shortened. The full example is in section 4 of the design.
+The task record has four parts. The goal says what the user asked for and what done looks like. The rules say what the user has corrected and what should stop the work. The work says where things stand. The lessons say what has been decided and what has gone wrong. Here is a complete example.
 
 ```
-# task 17   running   from Signal   budget left: 14 rounds, 41k tokens, 9 minutes
+# task 17   running   from Signal   budget left: 86 rounds, 51 minutes
 this turn: 6.1k tokens in, 5.2k of them cached, 0.4k out
 
-## The ask
-Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters.
+## Goal
+Ask: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters."
+Why: mark the anniversary publicly today.
+Done when:
+- [ ] one post is up on the DigiByte account ->
+- [x] it is under 280 characters and mentions the date -> r6
 
-## The user's intent
-Mark the anniversary publicly today.
-
-## What done looks like
-- one tweet is posted from the DigiByte account
-- it is under 280 characters and mentions the date
-- the user saw a preview before it was posted
-
-## Corrections
+## Rules
+Corrections:
 - C1 "no, lead with the date not the features"
-
-## Stop and tell the user if
+Stop and tell the user if:
 - the account shows a login page or a captcha
-- the tweet is still over 280 characters after two tries
-- the budget runs out
+- the post is still over 280 characters after two tries
 
-## Situation
+## Work
+Situation:
 - browser tab t1: x.com/compose, "Compose post"
 - files changed in this task: none
-- last command: none
-
-## Plan
+Plan:
 - [x] 1 read the product notes -> r3
-- [x] 2 draft the tweet -> r6
-- [ ] 3 show the user a preview, then post
+- [x] 2 draft the post -> r6
+- [ ] 3 post it
+Results (read any of them in full with `read r7`):
+- r3 read memory/product.md, 2,100 characters
+- r6 draft post, 236 characters
 
-## Decisions
+## Lessons
+Decisions:
 - D1 Lead with the date. Reason: correction C1.
-
-## Failures
-- F1 Draft 1 was 312 characters. Cause: it had three facts in it. One fact per post.
-
-## Results (read any of them in full with `read r7`)
-- r3 read memory/product.md: 2,100 characters
-- r6 draft tweet: 236 characters
+Failures:
+- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.
 ```
-
-Each part has one job.
-
-- **The ask** is what the user asked for, in the user's own words. It is never edited.
-- **The user's intent** is why the user wants it. When the plan breaks, this is what lets the model make the right call instead of guessing.
-- **What done looks like** is a checklist. The task cannot end until every line on it has been checked off with proof.
-- **Corrections** are anything the user said while the task was running, in the user's own words. They are only ever added to, never changed.
-- **Stop and tell the user if** is a short list of things that should stop the task at once. The harness checks it before every tool call.
-- **Situation** is what the tools say the world looks like right now: the page the browser is on, the files changed so far, the last command and whether it worked. The harness writes it. The model never has to remember it.
-- **The plan** is the list of steps and which of them are done.
-- **Decisions** are choices the model made, each with its reason, so it does not argue with itself three steps later.
-- **Failures** are things that went wrong, each with its cause, so they are not repeated.
-- **Results** are one line for each thing a tool returned, with a short id like r7. The full text is in the log, and `read r7` brings it back.
 
 ```mermaid
 flowchart LR
-  subgraph Live["Changes every turn"]
+  subgraph Later["Changes every turn"]
     direction TB
-    S["Situation"]
-    P["The plan"]
-    F["Failures, with causes"]
-    R["Results, one line each"]
+    W["Work<br/>situation, plan, results"]
+    L["Lessons<br/>decisions, failures"]
   end
-  subgraph Stable["Rarely changes, so it is cached"]
+  subgraph First["Rarely changes, so it is cached"]
     direction TB
-    A["The ask"]
-    I["The user's intent"]
-    D["What done looks like"]
-    C["Corrections"]
-    X["Stop and tell the user if"]
-    E["Decisions, with reasons"]
+    G["Goal<br/>the ask, why, done when"]
+    R["Rules<br/>corrections, stop list"]
   end
 ```
 
-Where the shape comes from. The U.S. Army writes every order in the same fixed format, called the five-paragraph operations order. It works because anyone can write one and anyone can check one, even when the radio is dead and the plan has fallen apart. We borrowed five ideas from it. The order states the situation first. It states the mission in the words of the person who gave it, which is our ask. It states the commander's intent, the reason behind the mission, so that people can still act correctly when the plan breaks. Ours is the user's intent. Before the operation, the commander lists the facts that must be reported the moment they happen. Ours is the stop list. When the plan changes during the operation, the change goes out as a short note that changes one part of the order without rewriting the rest. Ours are the corrections. And after the operation, the unit holds an after-action review with four questions: what was supposed to happen, what actually happened, why was there a difference, and what should we keep or change. Coeus asks the same four questions at the end of any task that was worth reviewing.
+**The goal.** The ask is the user's message, word for word. It is never edited. Under it is one line on why the user wants it. That line is what lets the model make a sensible call when the plan breaks, instead of guessing. Under that is the done list. Each line is one thing that must be true at the end, and each line ends with an arrow pointing at the result that proves it.
 
-Three rules keep the record honest. First, it holds only what the tools cannot tell you. Which files changed, what is on the page, and whether a job ran are all looked up, never remembered. Second, the harness writes everything that ordinary code can verify: the header, the corrections, the situation, the results, and whether each step finished. That costs no model tokens. The model writes only the parts that need judgment: the intent, the done list, the stop list, the plan, the decisions, and the failures. Third, the model can write to the record only through one tool, called `task`. That tool refuses a decision with no reason, a failure with no cause, and any change to the ask, the intent, or the corrections.
+**The rules.** Corrections are anything the user said while the task was running, in the user's own words. They are only ever added to. The stop list is a short list of things that should stop the task at once. The harness checks it before every tool call. The harness also adds two lines of its own to every stop list: the budget running out, and a login page or a captcha appearing.
 
-Every change to the record is saved as a numbered checkpoint. A checkpoint is like a saved game. A task that is waiting for the user holds nothing in the model's memory. It picks up from its last checkpoint when the user replies, even days later, even on a different model. The command `/tasks 17 back 3` goes back three checkpoints and lets the model try a different path.
+**The work.** The situation is a few facts the harness can check on its own: the page the browser is on, the files changed in this task, and the last command and whether it worked. The plan is the list of steps, with a check mark and a result id on each finished one. The results are one line for each thing a tool returned, with an id like r7. The full text of every result is in the log, and `read r7` brings it back.
 
-A task ends in two steps. When the model says it is done, the harness checks the done list. Each line must point at a result or at an approval from the user. If any line has no proof, the task is not done and the model keeps working. This is what stops the model from declaring victory early. Then, if the task had a correction, a failure, a stop, or more than a few rounds, the after-action review runs. The four questions are answered in one line each. Only the last answer is saved. If it is a fact, it goes into memory. If it is a way of doing something, it becomes a skill. A quick question that needed no tools gets no record and no review. It is just answered.
+**The lessons.** A decision is a choice the model made, with its reason, so it does not argue with itself later. A failure is something that went wrong, with its cause, so it is not repeated.
+
+**Where the shape comes from.** The U.S. Army writes every order in the same fixed format, called the five-paragraph operations order, so that anyone can write one and anyone can check one, even when the radio is dead and the plan has fallen apart. We borrowed five ideas from it. State the situation first. Keep the request in the words of the person who gave it. Write down why they want it, so people can still act correctly when the plan breaks. List, before the work starts, the things that must stop the work and be reported at once. And when the work is over, hold a short review that asks what was supposed to happen, what happened, why they differ, and what to keep or change.
+
+**Who writes what.** The harness writes everything that ordinary code can verify: the header, the corrections, the situation, the results, and the check marks on the plan. That costs no model tokens. The model writes the parts that need judgment: the why, the done list, the stop list, the plan, the decisions, and the failures. It writes them through a tool called `task`, in the same reply as its other tool calls, so updating the record never costs an extra call. The `task` tool refuses a decision with no reason, a failure with no cause, and any change to the ask or to a correction.
+
+**When a record exists.** A record is created on the first tool call. A question that can be answered without tools gets an answer and nothing else.
+
+**Checkpoints.** Every change to the record is saved as a numbered checkpoint, like a saved game. A task that is waiting for the user holds nothing in the model's memory. It picks up from its last checkpoint when the user replies, even days later, even on a different model. The command `/tasks 17 back 3` goes back three checkpoints and lets the model try a different path.
+
+**How a task ends.** When the model says it is done, the harness reads the done list. Every line must point at a result or at a reply from the user. A line with nothing behind it sends the model back to work. Where a line names something the harness can check itself, such as a file that should exist, the harness checks it. Otherwise the model judges whether the result satisfies the line, and it must say which result. This is what stops the model from declaring victory early. Then, if the task had a correction, a failure, a stop, or more than five rounds, the four review questions are asked, and only the last answer is saved, as a fact in memory or as a skill. Finally the user gets a short message: what changed, what was checked, and what is left. If a task stops or fails, the user gets a message saying what happened.
 
 ## 5. The three kinds of state
 
 Coeus keeps three kinds of state, because they change at three different speeds.
 
-The persona is who the agent is and who the user is. It holds the standing rules and two small memory files. It almost never changes.
+The persona is who the agent is and who the user is. It is three plain text files you can edit by hand, each with a size limit. It almost never changes.
 
-A skill is how to do one kind of job. It holds the steps, what to expect at each step, and what it is allowed to do. It changes only when a website or a tool changes.
+A skill is how to do one kind of job. It is a folder with a description, the steps, a test, and a list of changes. It changes only when a website or a tool changes.
 
 The task is what the agent is working on right now. It is the task record from the last section. It changes every turn.
 
@@ -193,8 +173,6 @@ Keeping the three apart is also what makes each call cheap. Model providers char
 
 ## 6. What happens on one turn
 
-A turn starts when the user sends a message and ends when the agent replies or asks a question.
-
 ```mermaid
 sequenceDiagram
   participant U as User
@@ -202,22 +180,24 @@ sequenceDiagram
   participant M as Model
   participant T as Tool
   U->>H: message
-  H->>M: rules, the record, recent messages
+  H->>M: rules, the record, recent results
   M->>H: where I am, and a tool call
   H->>H: check the call and the stop list
-  H->>U: preview, if it cannot be undone
-  U->>H: approve
+  H->>U: preview, only if it is on the ask-me-first list
+  U->>H: yes
   H->>T: run it
   T->>H: result
   H->>H: one line to the record, full text to the log
-  H->>M: rules, the updated record, recent messages
+  H->>M: rules, the updated record, recent results
   M->>H: answer, or a question
   H->>U: reply
 ```
 
-The message is saved to a queue on disk first, so it cannot be lost. If it is a slash command like `/status`, or it matches a saved skill, the harness handles it without calling the model. Otherwise it is a task. The harness sends the model the rules, the record, and the recent messages. The model writes one line saying where the work stands, then either answers or asks for a tool. Before any tool runs, the harness checks the call. Is it the same call as last time? Is it badly written? Has the model hit the limit of twenty tool rounds for this turn? Does anything on the stop list apply? If the tool would do something that cannot be undone, the user sees a preview first. Then the tool runs, the result gets one line in the record and its full text in the log, and the model is called again with the updated record. When the model answers in plain text, the turn is over. When it asks the user a question, the turn is over too, and the task waits.
+The message is saved to a queue on disk first, so it cannot be lost. If it is a slash command like `/status`, or it matches a saved skill, the harness handles it without calling the model. Otherwise it is a task. The harness sends the model the rules, the record, and the recent results. The model writes one line saying where the work stands, then either answers or asks for a tool. Before any tool runs, the harness checks the call. Is it the same call as last time? Is it badly written? Is the budget used up? Does anything on the stop list apply? If the tool would do something on the ask-me-first list, the user sees a preview first. Otherwise it just runs. The result gets one line in the record and its full text in the log, and the model is called again with the updated record. When the model answers in plain text, the turn is over. When it asks the user a question, the turn is over too, and the task waits.
 
-A few rules make this loop safe on any model. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. After twenty tool rounds, the model gets one last call with the tools switched off and must say what it did and what is left. A message from the user in the middle of a turn is added to the record as a correction and never interrupts a tool that is already running. And if the model's provider fails, the harness retries three times and then moves to the next model on the list, all outside the loop.
+A few rules make this loop safe on any model. The agent works on one task at a time, and new tasks wait in line. Every task has a budget, one hundred tool rounds and one hour by default, and when it runs out the model gets one last call to say what it did and what is left. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. Words inside a web page or a file are never instructions, so nothing the agent reads can make it send a secret or spend money. And if the model's provider fails, the harness retries three times and then moves to the next model on the list.
+
+When you send a message during a task, the task pauses as soon as the current tool call finishes, and the model reads your message. If it changes the job, it goes into the record as a correction and the model steers from there. If it is a new request, the agent handles it and then goes back to the task. If it says stop, the task stops.
 
 The stop list works like a smoke detector. You decide what counts as an alarm before there is a fire. Because the harness checks the list before every tool call, a login page, a spent budget, or anything the model listed at the start stops the task and tells the user. The model does not get to decide in the moment whether to push on.
 
@@ -229,28 +209,30 @@ Coeus has one rule for the working context. It is never smaller than the task ne
 flowchart TB
   subgraph Big["A frontier model, one million tokens"]
     direction TB
-    B1["Rules and persona"] --> B2["Tools"] --> B3["Task record, up to 3k"] --> B4["Recent messages: most of a million"]
+    B1["Rules and persona"] --> B2["Tools"] --> B3["Task record, up to 3k"] --> B4["Recent results: most of a million"]
   end
   subgraph Small["A local model, 24k tokens"]
     direction TB
-    S1["Rules and persona"] --> S2["Tools"] --> S3["Task record, up to 3k"] --> S4["Recent messages: about 15k"]
+    S1["Rules and persona"] --> S2["Tools"] --> S3["Task record, up to 3k"] --> S4["Recent results: about 15k"]
   end
 ```
 
-The first three parts are the same on every model. The rules, the persona, the tool list, and the record add up to about six thousand tokens, and the record never grows past three thousand. Whatever room is left is filled with the most recent messages and tool results, in full. On a small model on your own machine, that room is about fifteen thousand tokens. On a frontier model, it is most of a million. A big model is never held back to suit a small one. A small model is never asked to hold more than it can.
+The first three parts are the same on every model. The rules, the persona, the tool list, and the record add up to about six thousand tokens, and the record never grows past three thousand. Whatever room is left is filled with the most recent results, in full. On a small model on your own machine, that room is about fifteen thousand tokens. On a frontier model, it is most of a million. A big model is never held back to suit a small one. A small model is never asked to hold more than it can.
 
-The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, and the parts of the record that rarely change. The parts that change every turn come last. Nothing above the last cached part is ever rewritten during a task. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest.
+Here is what happens when that room runs out. Say you are researching a question in a library. You pull books off the shelf and read them. As you go, you keep a notes page. Every book gets one line: its call number, its title, and what it told you. The table only holds so many open books, so when you are done with one, it goes back on the shelf. Your notes page still lists it. If you need it again, you use the call number and get it back.
 
-When the window is full, the oldest tool result drops out of the recent messages. It does not get summarized. It is still one line in the record, and its full text is still in the log. If the model needs it again, it calls `read r7` and gets it back in full.
+The books are the tool results, the web pages and files and command output the agent pulls in. The notes page is the task record. The shelves are the log. The open books on the table are what the model is reading right now. Nothing is thrown away, and nothing is rewritten. The only thing that ever changes is which books are open on the table.
+
+Other agents keep every book they have ever pulled open on the table. When the table is full, they write a one-page summary from memory and clear the table. Whatever did not make it onto that page is gone.
 
 ```mermaid
 flowchart LR
-  A["Recent messages<br/>full text"] -->|"drops out when full"| B["Task record<br/>one line, id r7"]
-  B -->|"always kept"| C["Log<br/>full text"]
+  A["On the table<br/>full text"] -->|"table is full"| B["On the notes page<br/>one line, r7"]
+  B -->|"always"| C["On the shelf<br/>full text kept"]
   C -->|"read r7"| A
 ```
 
-Think of packing for a trip. Today's clothes are on the chair. That is the recent messages. This week's clothes are in the closet. That is the record. Everything else is in the suitcase. That is the log. Nothing gets thrown away. A big model rarely has to move anything to the closet. A small model does it all the time and loses nothing.
+The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, and the goal and rules of the record. The parts that change every turn come last. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest. Coeus never rewrites anything above the record's work section.
 
 Small models also write their tool calls badly, as loose text instead of the proper form. The harness reads every common shape and fixes tool names that are close. So a small model drives the same eighteen tools as a big one.
 
@@ -291,13 +273,17 @@ Other agents have memory files too. The difference is what gets written and who 
 
 ## 10. Why it is safer and more reliable
 
-The loop cannot run away. There are twenty tool rounds per turn, a forced answer at the cap, no repeated calls, no crashes on bad tool calls, and a budget of rounds, tokens, and minutes on every long task.
+The agent runs on its own. It stops for a yes only for the things on your ask-me-first list. That list starts with three entries: deleting many files at once or anything like `rm -rf`, running a command with sudo, and spending money. You can add to it or empty it. A skill you have approved once never asks again. For anything on the list, you see a preview of exactly what is about to happen, the same way you read a text back before you hit send.
+
+The loop cannot run away. There is a budget of a hundred tool rounds and an hour per task, a forced answer when it runs out, no repeated calls, and no crashes on bad tool calls.
 
 The finish is defined before the work starts. The done list and the stop list are written before the first tool call, and the harness enforces both.
 
-Nothing that cannot be undone happens without a preview. One permission function decides every tool call from a short list of rules, and when no rule matches, it asks. Commands run inside a sandbox, which is a fenced-off part of the machine that cannot reach your keys or the vault. Think of a workbench with a raised edge. Whatever rolls away stays on the bench instead of falling to the floor.
+Commands run inside a sandbox, which is a fenced-off part of the machine that cannot reach your keys or the vault. Think of a workbench with a raised edge. Whatever rolls away stays on the bench instead of falling to the floor.
 
 The model never sees a password. Passwords live in an encrypted vault. You type them once in the terminal, through a prompt that shows stars. When the agent needs to log in to a site, it points at the login boxes, and the harness types the password itself.
+
+Words inside a web page or a file are never instructions. The harness marks everything a tool returns as data. Nothing the agent reads can make it send a secret, spend money, or do anything on your ask-me-first list.
 
 The log is the truth. A reply is written to the log before it is sent. After a crash, the agent replays the log and rebuilds its state. A message that had to be sent again says it might be a duplicate. If the agent keeps crashing, a breaker stops the loop. The service manager restarts it, a watchdog restarts it if it stops checking in, and an update that does not come up within a minute rolls itself back.
 
@@ -311,8 +297,9 @@ Any failed task becomes a test. Because the log holds every tool result, a faile
 | Decisions keep their reasons | No | No | No | Yes. A decision without a reason is refused |
 | Mistakes are not repeated | Only if the summary kept them | No. Old tool output is pruned | Only if the summary kept them | Yes. Every failure keeps its cause in the record |
 | It knows when to stop and tell you | No stop list | No stop list | No stop list | A stop list, checked before every tool call |
-| It cannot loop forever | No hard cap on rounds | No hard cap on rounds | Not by default | Twenty rounds, then a forced answer; no repeated calls |
-| Done means proven | The model says so | The model says so | The model says so | Every done line must point at a result or an approval |
+| It cannot loop forever | No hard cap on rounds | No hard cap on rounds | Not by default | A budget of a hundred rounds and an hour, and no repeated calls |
+| Done means proven | The model says so | The model says so | The model says so | Every done line must point at a result or a reply from you |
+| It works on its own | Asks often | Asks often | Asks often | Asks only about your ask-me-first list |
 | Cost on round forty versus round ten | Much higher, and summaries wipe the cache | Higher, and summaries wipe the cache | Higher, and summaries wipe the cache | About the same, and mostly cached |
 | Pause for days and pick up again | Reloads the transcript | Reloads the transcript | Reloads the transcript | Reloads a 3,000-token record, on any model |
 | Runs the same on a small model | Summarizes every few rounds | Summarizes every few rounds | Summarizes every few rounds | Same record, smaller window, tested on Qwen at every stage |
@@ -334,7 +321,7 @@ From Codex and Claude Code we took the rule that the operating system sandbox is
 
 From the browser agents browser-use and Stagehand we took marks on elements that just appeared, hints about what is below the fold, and a finish step that must say whether it succeeded.
 
-What is new in Coeus is the combination and five things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only moved out of the window and kept. And a task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering.
+What is new in Coeus is the combination and five things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only put back on the shelf and kept. And a task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering.
 
 ## 13. The tools
 
@@ -349,7 +336,7 @@ There are eighteen tools. Every model sees all of them. Each one is described in
 | Desktop | `computer` | Open an app, take a screenshot with numbered marks, click, type, drag. The last resort when the browser cannot do the job |
 | The agent's own | `memory`, `skill`, `schedule`, `task` | Search and save memory. View, run, or save a skill. Create a scheduled job. Update the record |
 
-Three things tie the tools to the record. Every result gets one line in the record and its full text in the log, which is how the record stays small and nothing is lost. The `task` tool is the only way the model writes to the record, and it enforces the record's rules. And `read r7` brings any old result back in full, which is what makes it safe to drop results out of the window. Asking the user a question is not a tool. The model just asks, and the turn ends.
+Three things tie the tools to the record. Every result gets one line in the record and its full text in the log, which is how the record stays small and nothing is lost. The `task` tool is the only way the model writes to the record, and it enforces the record's rules. And `read r7` brings any old result back in full. Asking the user a question is not a tool. The model just asks, and the turn ends.
 
 ## 14. The check table
 
@@ -358,23 +345,25 @@ This table is how a person or an agent checks that the design, the build plan, a
 | What Coeus does | Design | Built in | Proved by |
 |---|---|---|---|
 | Keeps the history, the record, and the working context as three separate things | §1, §4 | Log 1.1, record 1.2, context 2.1 | Log replay test; record round-trip; golden prompts for a 24k model and a 200k model |
-| Never edits the ask, the intent, or the corrections | §4 | 1.2 | Each rule rejects a bad edit; the forty-round task checks them to the last character |
+| Never edits the ask or the corrections | §4 | 1.2 | Each rule rejects a bad edit; the forty-round task checks them to the last character |
 | Requires a reason on every decision and a cause on every failure | §4 | 1.2, and the `task` tool in 2.5 | Rule tests; every `task` operation checked against the rules |
-| Gives every result an id and returns its full text with `read r7` | §4, §7 | 1.2, `read` in 2.5 | Every dropped result still readable by id |
-| Drops old results out of the window without summarizing or losing them | §4 | 1.2, 2.1 | Folding keeps every exchange readable by id |
-| Keeps the record under three thousand tokens | §4 | 1.2 | Fold tests at the cap |
+| Gives every result an id and returns its full text with `read r7` | §4, §7 | 1.2, `read` in 2.5 | Every result that left the window still readable by id |
+| Keeps the record under three thousand tokens with a hundred-round budget | §4 | 1.2 | Size tests at the budget |
 | Saves a checkpoint on every change and can go back | §4, §12 | 1.2, 3.1 | Rewind test; `/tasks` through the fake channel |
 | Writes the situation, the results, and the corrections without a model call | §4 | 3.1 | Scripted conversations; the situation filled from tool results |
 | Checks the stop list before every tool call | §3, §4 | 3.1 | The forty-round task stops at step thirty |
-| Turns a mid-turn message into a correction without interrupting a tool | §3 | 3.1 | The forty-round task's correction at step twelve |
-| Caps a turn at twenty tool rounds, never runs the same call twice, repairs bad calls | §3 | 3.1, 1.5 | Cap test; detector test; a golden file per bad-call shape; a fuzz test that never crashes |
+| Pauses on a mid-turn message, then steers, answers, or stops | §3 | 3.1 | A mid-turn correction, a mid-turn new request, and a mid-turn stop |
+| Budgets a task at a hundred rounds and an hour, never runs the same call twice, repairs bad calls | §3 | 3.1, 1.5 | Budget test; detector test; a golden file per bad-call shape; a fuzz test that never crashes |
+| Runs one task at a time and queues the rest | §3 | 3.1, 3.2 | A second task waits until the first ends |
 | Sizes the working context to the model with one rule | §4 | 2.1 | Golden prompts for two sizes; the live test on three models within each window |
 | Puts the unchanging parts first and never rewrites them during a task | §4 | 2.1 | Nothing above the cache line changes across ten turns |
 | Writes a cost line every turn | §4 | 2.1 | The cost line matches the fake provider's counts |
-| Refuses to end a task with an unproven done line | §4 | 3.1 | The done-check fails on one line |
-| Asks the four review questions and saves only the last answer | §4 | 3.1, 4.2, 4.3 | The review hands off; a procedure answer produces a skill offer |
+| Refuses to end a task with an unproven done line | §4 | 3.1 | The done-check fails on a line with no evidence |
+| Reviews only tasks worth reviewing and saves only the last answer | §4 | 3.1, 4.2, 4.3 | The review runs only when it should; a procedure answer produces a skill offer |
+| Sends a report when a task finishes and a message when it stops or fails | §3, §12 | 3.1, 3.5 | A finished task and a failed task each produce the right message through the fake channel |
 | Captures memory from the log for free and keeps corrections word for word | §10 | 4.2 | Each capture rule; a correction retrievable the same turn |
 | Replays a skill without calling the model | §8 | 4.3, 5.3 | A trigger runs a skill with the fake model never called |
 | Works on the local Qwen, Opus 4.8, and GPT-5.5 | §4 | Every wave gate, `make live` | The live forty-round task from wave 2 onward |
-| Previews anything that cannot be undone | §11 | 2.2, 3.1 | Escalation previews and does not run until approved |
+| Runs on its own and asks only about the ask-me-first list | §11 | 2.2, 3.1 | Each default entry previews; an empty list allows everything |
+| Treats words in web pages and files as data, never instructions | §3, §11 | 2.5, 3.1 | A fixture page with instructions in it changes nothing |
 | Never shows the model a password | §11 | 2.4, 5.2 | The vault never returns a value to the model; the login tool never returns what it typed |

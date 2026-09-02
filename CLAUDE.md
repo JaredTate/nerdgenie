@@ -22,7 +22,7 @@ Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `doc
 - **Bound everything.** Every loop has a limit, every wait a timeout, every buffer a cap, every outside call a failure path.
 - **Every cross-wave interface lives in `internal/contract`.** Fakes in `internal/testkit` and real implementations are written against the same lines. Never define an interface two packages share anywhere else.
 - **Never touch a package another worker owns this wave, and never edit `cmd/coeus/main.go` or `cmd/coeus/serve.go`.** Your brief names your package. A new subcommand goes in its own file under `cmd/coeus/`, a slash command is exported as a `contract.Command` value, and the orchestrator registers both. If you need something from a neighbor, it is already in `contract` or your brief is wrong; stop and report.
-- **Nothing irreversible without a preview, nothing secret in the model's context, everything logged.** These are product rules and code rules at once. The permission function, the vault resolver, and the event log exist to enforce them; do not route around them.
+- **Nothing on the user's ask-me-first list without a yes, nothing secret in the model's context, everything logged.** These are product rules and code rules at once. The permission function, the vault resolver, and the event log exist to enforce them; do not route around them.
 - **Keep the docs honest.** When your brief changes a package's job, interface, or dependencies, update the matching section of `ARCHITECTURE.md` in the same branch. After adding or moving files, run `make repo-map`. `make check` fails if either is stale.
 
 ## Where the work happens

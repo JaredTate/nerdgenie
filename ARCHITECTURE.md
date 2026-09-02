@@ -26,7 +26,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/contract` | Every interface, type, and constant that crosses a wave boundary, with no dependencies | 0 |
 | `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0 |
 | `internal/log` | The append-only event log in SQLite | 1 |
-| `internal/record` | The task record: parse, print, enforce its rules, checkpoint, fold | 1 |
+| `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
 | `internal/config` | The configuration file and the home folder layout | 1 |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0 |
 | `internal/provider` | Turn a prompt into a streamed reply through the Anthropic or OpenAI-compatible API, with retries and the fallback chain | 1 |

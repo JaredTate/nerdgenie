@@ -1,0 +1,128 @@
+/**
+ * The shapes in worker/browser/PROTOCOL.md, written as TypeScript types.
+ *
+ * The Go side reads exactly these fields, and `internal/contract/browser.go`
+ * says the same thing in Go. When the two disagree, the protocol document wins.
+ */
+
+/** The eleven methods, in the order the protocol lists them. */
+export const METHOD_NAMES = [
+  "open",
+  "read",
+  "click",
+  "type",
+  "press",
+  "scroll",
+  "act",
+  "tabs",
+  "loginFill",
+  "screenshot",
+  "health",
+] as const;
+
+export type MethodName = (typeof METHOD_NAMES)[number];
+
+/** The four methods that may appear as a step inside an act batch. */
+export const STEP_METHOD_NAMES = ["click", "type", "press", "scroll"] as const;
+
+export type StepMethodName = (typeof STEP_METHOD_NAMES)[number];
+
+/** One element of a snapshot: what the model points at. */
+export interface SnapshotElement {
+  /** The short label the model points at later, always the letter e and a number. */
+  ref: string;
+  role: string;
+  name: string;
+  /** Present and true only when the element was not in the previous snapshot. */
+  new?: true;
+}
+
+/** A dialog box that the page opened and that nobody has answered. */
+export interface DialogReport {
+  kind: "alert" | "confirm" | "prompt" | "beforeunload";
+  message: string;
+}
+
+/** A file the page started downloading, saved under the profile folder. */
+export interface DownloadReport {
+  filename: string;
+  path: string;
+}
+
+/** What the model sees of a page: a compact tree, never the page's markup. */
+export interface Snapshot {
+  url: string;
+  title: string;
+  tabId: string;
+  elements: SnapshotElement[];
+  /** How many elements a person would have to scroll to see, plus any the cap cut. */
+  belowFold: number;
+  dialog: DialogReport | null;
+  download: DownloadReport | null;
+}
+
+/** One of the three things that stop the agent and hand the browser to the user. */
+export interface Wall {
+  kind: "login" | "two-factor" | "captcha";
+  detail: string;
+}
+
+/** What one action changed, and whether what the model expected actually happened. */
+export interface Diff {
+  urlChanged: boolean;
+  url: string;
+  newElements: SnapshotElement[];
+  dialog: DialogReport | null;
+  /** The id of a tab that appeared during the action, or the empty string. */
+  newTab: string;
+  download: DownloadReport | null;
+  expectationMet: boolean;
+  /** Plain words for what happened instead, filled in only when the expectation was not met. */
+  seen: string;
+  wall: Wall | null;
+  snapshot: Snapshot;
+}
+
+/** One open tab. */
+export interface TabReport {
+  id: string;
+  url: string;
+  title: string;
+  /** Present and true only on the tab the worker is acting on. */
+  active?: true;
+}
+
+/** One numbered mark drawn on a screenshot. */
+export interface ScreenshotMark {
+  number: number;
+  ref: string;
+  role: string;
+  name: string;
+}
+
+/** One step of an act batch: a flat object, the way OpenClaw's tool schema keeps them flat. */
+export interface ActStep {
+  method: StepMethodName;
+  ref?: string;
+  text?: string;
+  key?: string;
+  direction?: "up" | "down";
+  amount?: number;
+  expectation?: string;
+}
+
+/** A request the worker accepted and is about to run. */
+export interface WorkerRequest {
+  id: number;
+  method: MethodName;
+  params: Record<string, unknown>;
+}
+
+/** A JSON-RPC response, in the two shapes the protocol allows. */
+export type JsonRpcResponse =
+  | { jsonrpc: "2.0"; id: number; result: Record<string, unknown> }
+  | {
+      jsonrpc: "2.0";
+      id: number | null;
+      error: { code: number; message: string; data?: Record<string, unknown> };
+    };

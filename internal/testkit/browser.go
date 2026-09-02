@@ -42,6 +42,15 @@ var ErrSettleTimeout = errors.New("the page did not settle before the limit, so 
 // after every way of finding it again has been tried.
 var ErrNoSuchReference = errors.New("that element is not on this page, so read the page again and use a reference from the new snapshot")
 
+// ErrNoPageOpen means nothing has been opened yet, so there is nothing to act
+// on. The protocol answers it with -32002.
+var ErrNoPageOpen = errors.New("no page is open in the browser, so open one before acting on it")
+
+// ErrBrowserGone means the browser the worker was driving is not there any more.
+// The protocol answers it with -32003, which tells the Go side to start the
+// worker again.
+var ErrBrowserGone = errors.New("the browser worker is closed, so start it again before opening a page")
+
 // FakeBrowserWorker is a browser that never opens one: it moves between fixture
 // pages, records what was typed, and does on command the six things that go
 // wrong on a real page.
@@ -159,7 +168,7 @@ func (worker *FakeBrowserWorker) Open(_ context.Context, address string) (contra
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	if worker.closed {
-		return contract.Snapshot{}, errors.New("the browser worker is closed, so start it again before opening a page")
+		return contract.Snapshot{}, ErrBrowserGone
 	}
 	page, found := worker.pages[address]
 	if !found {

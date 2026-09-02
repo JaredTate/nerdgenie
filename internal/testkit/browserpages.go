@@ -1,7 +1,6 @@
 package testkit
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -89,10 +88,10 @@ func (worker *FakeBrowserWorker) LinkGoesTo(ref string, address string) {
 // page is the page the worker is on, and an error when it is on none.
 func (worker *FakeBrowserWorker) page() (contract.Snapshot, error) {
 	if worker.closed {
-		return contract.Snapshot{}, errors.New("the browser worker is closed, so start it again before reading a page")
+		return contract.Snapshot{}, ErrBrowserGone
 	}
 	if worker.current == "" {
-		return contract.Snapshot{}, errors.New("no page is open in the browser, so open one before acting on it")
+		return contract.Snapshot{}, ErrNoPageOpen
 	}
 	return worker.pages[worker.current], nil
 }

@@ -117,35 +117,74 @@ func (server *BrowserProtocolServer) Close() error {
 	return server.listener.Close()
 }
 
-// accept takes callers one at a time until the listener closes.
+// accept takes callers until the listener closes, no more than
+// maxProtocolCallers of them at once. A caller beyond that waits in the
+// listener's own queue rather than costing another goroutine.
 func (server *BrowserProtocolServer) accept() {
+	callers := make(chan struct{}, maxProtocolCallers)
 	for {
 		connection, err := server.listener.Accept()
 		if err != nil {
 			return
 		}
-		go server.serve(connection)
+		callers <- struct{}{}
+		go func() {
+			defer func() { <-callers }()
+			server.serve(connection)
+		}()
 	}
 }
 
-// serve answers every line one caller sends.
+// serve answers every line one caller sends, until the caller goes quiet for
+// longer than the idle timeout or sends a line longer than the cap.
 func (server *BrowserProtocolServer) serve(connection net.Conn) {
 	defer connection.Close()
 	lines := bufio.NewScanner(connection)
-	for lines.Scan() {
-		answer := server.answer(lines.Bytes())
-		written, err := json.Marshal(answer)
-		if err != nil {
+	lines.Buffer(make([]byte, 0, 64*1024), MaxProtocolLine)
+
+	for {
+		if err := connection.SetDeadline(time.Now().Add(server.idleWait())); err != nil {
 			return
 		}
-		if _, err := connection.Write(append(written, '\n')); err != nil {
+		if !lines.Scan() {
+			server.sayWhyTheLineWasNotRead(connection, lines.Err())
+			return
+		}
+		if !server.write(connection, server.answer(lines.Bytes())) {
 			return
 		}
 	}
+}
+
+// sayWhyTheLineWasNotRead answers a caller whose line could not be read at all,
+// which the protocol calls a parse error. A caller that simply went away or went
+// quiet gets nothing, because there is nobody left to tell.
+func (server *BrowserProtocolServer) sayWhyTheLineWasNotRead(connection net.Conn, err error) {
+	if !errors.Is(err, bufio.ErrTooLong) {
+		return
+	}
+	server.write(connection, protocolFailure(nil, CodeParseError,
+		fmt.Sprintf("that request line is longer than the %d byte cap, so send a smaller one", MaxProtocolLine), nil))
+}
+
+// write sends one answer and says whether the caller is still there.
+func (server *BrowserProtocolServer) write(connection net.Conn, answer map[string]any) bool {
+	written, err := json.Marshal(answer)
+	if err != nil {
+		return false
+	}
+	if err := connection.SetWriteDeadline(time.Now().Add(server.idleWait())); err != nil {
+		return false
+	}
+	_, err = connection.Write(append(written, '\n'))
+	return err == nil
 }
 
 // protocolCall is one JSON-RPC request as it arrives on the socket.
 type protocolCall struct {
+	// Version must be "2.0", and anything else is not a request this server
+	// speaks.
+	Version string `json:"jsonrpc"`
 	// ID is the caller's number for the request, echoed back on the answer.
 	ID any `json:"id"`
 	// Method is which of the eleven methods was asked for.
@@ -160,6 +199,10 @@ func (server *BrowserProtocolServer) answer(line []byte) map[string]any {
 	if err := json.Unmarshal(line, &call); err != nil {
 		return protocolFailure(nil, CodeParseError, "the line was not JSON, so send one JSON object per line", nil)
 	}
+	if call.Version != "2.0" || call.Method == "" {
+		return protocolFailure(call.ID, CodeInvalidRequest,
+			"that is JSON but not a JSON-RPC request, so send a jsonrpc of 2.0 and a method", nil)
+	}
 
 	result, err := server.run(call)
 	if err != nil {
@@ -173,7 +216,8 @@ func (server *BrowserProtocolServer) answer(line []byte) map[string]any {
 
 // run does the work of one method and returns whatever it produced.
 func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), protocolCallTimeout)
+	defer cancel()
 	var params struct {
 		URL         string                   `json:"url"`
 		VisibleOnly bool                     `json:"visibleOnly"`
@@ -282,7 +326,10 @@ func protocolFailure(id any, code int, message string, data any) map[string]any 
 	}
 }
 
-// codeFor picks the protocol's error code for one Go error.
+// codeFor picks the protocol's error code for one Go error, following the table
+// in worker/browser/PROTOCOL.md. What is left over is a bad set of parameters,
+// which is the one thing the model can act on, so it is the residue rather than
+// the catch-all it used to be.
 func codeFor(err error) int {
 	switch {
 	case errors.Is(err, ErrSettleTimeout):
@@ -291,6 +338,10 @@ func codeFor(err error) int {
 		return CodeMethodNotFound
 	case errors.Is(err, ErrNoSuchReference):
 		return CodeNoSuchReference
+	case errors.Is(err, ErrBrowserGone):
+		return CodeBrowserGone
+	case errors.Is(err, ErrNoPageOpen):
+		return CodeNoBrowserOpen
 	default:
 		return CodeBadParameters
 	}

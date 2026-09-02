@@ -177,14 +177,25 @@ func errorOf(t *testing.T, answer map[string]any) map[string]any {
 	return failure
 }
 
-func TestEveryErrorInTheProtocolTableComesBackWithItsOwnCode(t *testing.T) {
-	for _, row := range []struct {
-		name  string
-		close bool
-		open  bool
-		line  string
-		code  float64
-	}{
+// protocolErrorRow is one row of the error table in
+// worker/browser/PROTOCOL.md: what to send, in what state, and the code that
+// must come back.
+type protocolErrorRow struct {
+	// name says what the row is about.
+	name string
+	// close shuts the worker down before the call, so the browser is gone.
+	close bool
+	// open opens a page before the call, so there is something to act on.
+	open bool
+	// line is the request to send.
+	line string
+	// code is the error code the protocol says must come back.
+	code float64
+}
+
+// theProtocolErrorTable is the whole of PROTOCOL.md's error table as rows.
+func theProtocolErrorTable() []protocolErrorRow {
+	return []protocolErrorRow{
 		{
 			name: "a line that is not JSON",
 			line: `{"jsonrpc":`,
@@ -228,7 +239,11 @@ func TestEveryErrorInTheProtocolTableComesBackWithItsOwnCode(t *testing.T) {
 			line:  `{"jsonrpc":"2.0","id":1,"method":"read","params":{}}`,
 			code:  testkit.CodeBrowserGone,
 		},
-	} {
+	}
+}
+
+func TestEveryErrorInTheProtocolTableComesBackWithItsOwnCode(t *testing.T) {
+	for _, row := range theProtocolErrorTable() {
 		t.Run(row.name, func(t *testing.T) {
 			worker := testkit.NewFakeBrowserWorker()
 			defer worker.Close()

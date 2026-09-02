@@ -83,6 +83,16 @@ func FailureID(number int) string {
 	return failurePrefix + strconv.Itoa(number)
 }
 
+// RecordLogKey returns the id a record's events are logged under: a task's own
+// number, and "j" followed by the number for a job, because task 17 and job 17
+// are different records and their events must never mix in the log.
+func RecordLogKey(kind RecordKind, id string) string {
+	if kind == RecordJob {
+		return reportPrefix + id
+	}
+	return id
+}
+
 // ElementRef returns the short label of one element on a web page, such as
 // "e12".
 func ElementRef(number int) string {

@@ -59,19 +59,15 @@ func TestASlowSubscriberIsDroppedAndTheFastOneIsUnaffected(t *testing.T) {
 	}
 
 	// The fast reader takes every event as it arrives; the slow one never reads.
-	read := make(chan int, 1)
-	go func() {
-		seen := 0
-		for range fast.Events() {
-			seen++
-		}
-		read <- seen
-	}()
-
 	sent := SubscriberBacklog + 5
 	for number := range sent {
 		if err := stream.Publish(aDelta("event")); err != nil {
 			t.Fatalf("publishing event %d failed: %v", number, err)
+		}
+		if got, open := <-fast.Events(); !open {
+			t.Fatalf("the fast reader lost its stream at event %d, and it never fell behind", number)
+		} else if got.Text != "event" {
+			t.Fatalf("the fast reader saw %q at event %d, want %q", got.Text, number, "event")
 		}
 	}
 
@@ -90,10 +86,8 @@ func TestASlowSubscriberIsDroppedAndTheFastOneIsUnaffected(t *testing.T) {
 	if fast.Dropped() {
 		t.Error("the fast reader was dropped, and one slow reader must never cost another reader its stream")
 	}
-
-	stream.Close()
-	if seen := <-read; seen != sent {
-		t.Errorf("the fast reader saw %d events, want all %d", seen, sent)
+	if held := stream.Subscribers(); held != 1 {
+		t.Errorf("the stream holds %d readers after the slow one was dropped, want 1", held)
 	}
 }
 

@@ -267,13 +267,52 @@ func TestASkillThatFailsTellsTheUserAndSaysSo(t *testing.T) {
 	}
 }
 
+func TestASkillThatAnswersWithNothingSendsNothing(t *testing.T) {
+	harness := newRouterHarness(t)
+	router, err := NewRouter(Routes{
+		FindCommand: harness.router.routes.FindCommand,
+		FindChannel: harness.router.routes.FindChannel,
+		StartTask:   harness.router.routes.StartTask,
+		Skills:      silentSkill{},
+	})
+	if err != nil {
+		t.Fatalf("building the router failed: %v", err)
+	}
+
+	if _, err := router.Route(context.Background(), anInbound("post the note")); err != nil {
+		t.Fatalf("routing a skill that answers with nothing failed: %v", err)
+	}
+	if sent := harness.terminal.Sent(); len(sent) != 0 {
+		t.Errorf("a skill that answered with nothing still sent %v", sent)
+	}
+}
+
 func TestAMessageFromAChannelTheProgramDoesNotKnowIsRefused(t *testing.T) {
 	harness := newRouterHarness(t)
-	fromNowhere := anInbound("/help")
-	fromNowhere.Channel = "telegram"
+	harness.skills.Add(contract.SkillSummary{Name: "weekly-note", Description: "posts it"}, "steps", "weekly note")
 
-	if _, err := harness.router.Route(context.Background(), fromNowhere); err == nil {
-		t.Fatal("a message from a channel the program does not know was routed, and the answer would have gone nowhere")
+	for _, text := range []string{"/help", "post the weekly note"} {
+		fromNowhere := anInbound(text)
+		fromNowhere.Channel = "telegram"
+		if _, err := harness.router.Route(context.Background(), fromNowhere); err == nil {
+			t.Errorf("%q came from a channel the program does not know and was routed anyway, and the answer would have gone nowhere", text)
+		}
+	}
+}
+
+func TestAVeryLongCommandNameIsCutDownBeforeItIsRepeatedBack(t *testing.T) {
+	harness := newRouterHarness(t)
+	typed := CommandPrefix + strings.Repeat("wibble", 40)
+
+	if kind := harness.route(t, typed); kind != KindCommand {
+		t.Errorf("a very long unknown command was a %s, want a command", kind)
+	}
+	sent := harness.terminal.Sent()
+	if len(sent) != 1 {
+		t.Fatalf("a very long unknown command was answered with %d messages, want 1", len(sent))
+	}
+	if len(sent[0]) >= len(typed) {
+		t.Errorf("the answer is %d characters long and what was typed was %d, so the name was not cut down", len(sent[0]), len(typed))
 	}
 }
 
@@ -364,4 +403,13 @@ type alwaysMatchingSkills struct{ brokenSkills }
 // Match says the weekly note skill fired.
 func (alwaysMatchingSkills) Match(context.Context, string) (contract.SkillMatch, error) {
 	return contract.SkillMatch{Name: "weekly-note", Matched: true}, nil
+}
+
+// silentSkill matches every message and runs without anything to say, which is a
+// skill whose work is all on the machine.
+type silentSkill struct{ alwaysMatchingSkills }
+
+// Run does the work and says nothing.
+func (silentSkill) Run(context.Context, string, string) (string, error) {
+	return "  ", nil
 }

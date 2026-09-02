@@ -82,6 +82,37 @@ describe("clicking, typing, pressing, and scrolling", () => {
     );
   });
 
+  it("meets an expectation that names the box it typed into, though the page did not change", async () => {
+    const page = await worker.result("open", { url: site.page("links-and-form.html") });
+    const diff = asDiff(
+      await worker.result("type", {
+        ref: refFor(page, "Post text"),
+        text: "Nine years of DigiByte.",
+        expectation: "the text box holds the post",
+      }),
+    );
+    // Nothing on the page changed: a value typed into a box is not in the tree.
+    expect(diff.newElements).toEqual([]);
+    expect(diff.urlChanged).toBe(false);
+    // The rule's fifth place is the element the action was aimed at, and this
+    // box is named "Post text", so both "text" and "post" are found.
+    expect(diff.expectationMet).toBe(true);
+    expect(diff.seen).toBe("");
+  });
+
+  it("still refuses an expectation the box it typed into has nothing to do with", async () => {
+    const page = await worker.result("open", { url: site.page("links-and-form.html") });
+    const diff = asDiff(
+      await worker.result("type", {
+        ref: refFor(page, "Post text"),
+        text: "hello",
+        expectation: "the timeline loads",
+      }),
+    );
+    expect(diff.expectationMet).toBe(false);
+    expect(diff.seen).toBe("nothing changed");
+  });
+
   it("presses a key and follows the page to a new address", async () => {
     const page = await worker.result("open", { url: site.page("keyboard.html") });
     await worker.result("type", {

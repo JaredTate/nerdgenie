@@ -114,6 +114,7 @@ describe("any string at all as an expectation", () => {
     }),
     newTab: fc.string(),
     download: fc.option(fc.record({ filename: fc.string(), path: fc.string() }), { nil: null }),
+    aimedAt: fc.option(fc.record({ role: fc.string(), name: fc.string() }), { nil: null }),
   });
 
   it("never throws, and always gives a verdict and a sentence", () => {

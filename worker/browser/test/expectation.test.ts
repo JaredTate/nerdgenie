@@ -21,6 +21,7 @@ function nothing(): Change {
     dialog: null,
     newTab: "",
     download: null,
+    aimedAt: null,
   };
 }
 
@@ -81,6 +82,16 @@ describe("deciding whether the expectation was met", () => {
       change({ titleChanged: true, title: "Compose post" }),
     ],
     [
+      "a word appears in the name of the element the action was aimed at",
+      "the text box holds the post",
+      change({ aimedAt: { role: "textbox", name: "Post text" } }),
+    ],
+    [
+      "a word appears in the role of the element the action was aimed at",
+      "the checkbox is ticked",
+      change({ aimedAt: { role: "checkbox", name: "Agree" } }),
+    ],
+    [
       "a word appears in a dialog's message",
       "a warning about leaving",
       change({ dialog: { kind: "confirm", message: "Leaving will lose your draft" } }),
@@ -127,6 +138,22 @@ describe("deciding whether the expectation was met", () => {
 
   it("only looks at the address when the address actually changed", () => {
     expect(isExpectationMet("start", nothing())).toBe(false);
+  });
+
+  it("is met by the element aimed at even though nothing on the page changed, which is what typing does", () => {
+    const typed = change({ aimedAt: { role: "textbox", name: "Post text" } });
+    expect(somethingChanged(typed)).toBe(false);
+    expect(isExpectationMet("the text box holds the post", typed)).toBe(true);
+  });
+
+  it("is still not met when the element aimed at has nothing to do with the expectation", () => {
+    expect(
+      isExpectationMet("the timeline loads", change({ aimedAt: { role: "button", name: "Cancel" } })),
+    ).toBe(false);
+  });
+
+  it("counts an empty expectation as met when only the aim is known and nothing changed", () => {
+    expect(isExpectationMet("", change({ aimedAt: { role: "button", name: "Post" } }))).toBe(false);
   });
 });
 

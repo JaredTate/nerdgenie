@@ -143,20 +143,22 @@ func (checker settingsChecker) checkDefaultAndFallback() error {
 // sandboxed command may reach are full paths, and none of them is the agent's
 // own home folder, the vault, the browser profiles, or the user's SSH keys, nor
 // a folder above the user's home directory, which would put every account on the
-// machine inside the fence. The user's home directory itself is allowed, and is
-// the shipped default, because the sandbox masks the excluded paths out of it.
+// machine inside the fence. The user's home directory itself is refused too,
+// because it holds the daily browser profile, cloud credentials, and keys, and
+// the fence can only grant, never subtract; the shipped default is the work
+// folder contract.DefaultSandboxRoots names, which "coeus init" creates.
 func (checker settingsChecker) checkSandboxRoots() error {
 	if len(checker.settings.SandboxRoots) == 0 {
 		return checker.complain("sandbox_roots", "there are no sandbox roots, so a sandboxed command could reach nothing; leave the key out to use the default")
 	}
 	for _, root := range checker.settings.SandboxRoots {
-		if err := contract.CheckSandboxRoot(root, checker.userHome); err != nil {
-			return checker.complain("sandbox_roots", err.Error())
-		}
-		if clean := filepath.Clean(root); clean != checker.userHome && folderHolds(clean, checker.userHome) {
+		if clean := filepath.Clean(root); filepath.IsAbs(clean) && clean != checker.userHome && folderHolds(clean, checker.userHome) {
 			return checker.complain("sandbox_roots", fmt.Sprintf(
 				"the sandbox root %q is above your home directory %q, so a sandboxed command could reach every account on the machine; use your home directory or a folder inside it",
 				root, checker.userHome))
+		}
+		if err := contract.CheckSandboxRoot(root, checker.userHome); err != nil {
+			return checker.complain("sandbox_roots", err.Error())
 		}
 	}
 	return nil

@@ -122,7 +122,8 @@ func TestCheckSandboxRootRefusesAnythingInsideAnExcludedPath(t *testing.T) {
 		root    string
 		refused bool
 	}{
-		{"the home folder itself is allowed", home, false},
+		{"the home folder itself is refused, because it holds the excluded paths", home, true},
+		{"the work folder is allowed", filepath.Join(home, "coeus"), false},
 		{"a project folder is allowed", filepath.Join(home, "Code", "coeus"), false},
 		{"the agent's own home folder is refused", filepath.Join(home, ".coeus"), true},
 		{"a folder inside the agent's home is refused", filepath.Join(home, ".coeus", "skills"), true},

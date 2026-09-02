@@ -28,6 +28,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/log` | The append-only event log in SQLite | 1, built |
 | `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
 | `internal/config` | The configuration file and the home folder layout | 1, built |
+| `internal/clock` | The real clock behind `contract.Clock`: the machine's time, a sleep that stops with its context, a ticker | 1, built |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0, built |
 | `internal/provider` | Turn a prompt into a streamed reply through the Anthropic API, the OpenAI-compatible API, or a vendor's command-line program on a subscription, with retries and the fallback chain | 1 |
 | `internal/repair` | Find the tool calls in a model reply, however the model wrote them | 1 |
@@ -130,11 +131,11 @@ ask-me-first list is one of the three `contract.DefaultAskMeFirst` ships, and an
 emptied list is allowed; every permission rule the user writes names a tool, has
 a pattern, and says `allow`, `ask`, or `deny`, never `stop`, which is what the
 permission function decides on its own for an unattended run; and no sandbox root
-is,
-or sits inside, the paths `contract.ExcludedFromSandbox` names, nor sits above
-the user's home directory. The user's home directory itself is allowed, because
-that is `contract.DefaultSandboxRoots` and the sandbox masks the excluded paths
-out of it.
+is, sits inside, or holds the paths `contract.ExcludedFromSandbox` names, nor sits
+above the user's home directory. The user's home directory itself is refused,
+because it holds the daily browser profile, cloud credentials, and keys, and the
+fence can only grant, never subtract; the shipped default is the work folder
+`~/coeus`, which `coeus init` creates.
 
 `config.Doctor` reads a home folder and returns a `config.Report`: one `Finding`
 per check, and a `Verdict` that is the worst of them. The line about

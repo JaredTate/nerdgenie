@@ -320,22 +320,25 @@ func TestASandboxRootThatIsNotAFullPathIsRefused(t *testing.T) {
 	}
 }
 
-func TestTheUsersOwnHomeDirectoryIsAGoodSandboxRoot(t *testing.T) {
+func TestTheUsersOwnHomeDirectoryIsRefusedAsASandboxRootAndTheWorkFolderIsTheDefault(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("the test cannot find the user's home directory: %v", err)
 	}
-	if err := os.WriteFile(home.ConfigFile(), []byte("sandbox_roots = [\""+userHome+"\"]\n"), contract.DataFileMode); err != nil {
+	problem := refusesRoot(t, home, userHome)
+	if !strings.Contains(problem.Advice, "must stay outside the sandbox") {
+		t.Errorf("the advice is %q, want it to say the home directory holds a path that must stay outside the sandbox", problem.Advice)
+	}
+	if err := os.WriteFile(home.ConfigFile(), []byte(""), contract.DataFileMode); err != nil {
 		t.Fatalf("cannot write the configuration file for the test: %v", err)
 	}
-
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the user's home directory was refused as a sandbox root, and it is the shipped default: %v", err)
+		t.Fatalf("an empty configuration was refused: %v", err)
 	}
-	if len(settings.SandboxRoots) != 1 || settings.SandboxRoots[0] != userHome {
-		t.Errorf("the sandbox roots are %v, want just the user's home directory", settings.SandboxRoots)
+	if want := contract.DefaultSandboxRoots(userHome); len(settings.SandboxRoots) != 1 || settings.SandboxRoots[0] != want[0] {
+		t.Errorf("the default sandbox roots are %v, want the work folder %v", settings.SandboxRoots, want)
 	}
 }
 

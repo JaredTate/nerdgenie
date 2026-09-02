@@ -13,6 +13,15 @@ const SecretReferencePrefix = "secret://"
 // text on its way out of the program.
 const RedactedMarker = "[redacted]"
 
+// SecretMarker is what a credential prints as, on every path that could turn it
+// into text, so that a log line, an error, or a JSON body can never carry a
+// value by accident.
+const SecretMarker = "[secret]"
+
+// TerminalChannelName is the name of the terminal channel, the only channel that
+// may carry a secret, because it is the only one that can hide what is typed.
+const TerminalChannelName = "terminal"
+
 // Credential is one login the vault holds. The harness uses it to fill a login
 // form; it is never returned to the model and never written to the log.
 type Credential struct {
@@ -28,6 +37,13 @@ type Credential struct {
 	// TOTPSecret is the shared secret for the site's two-factor code, or empty.
 	TOTPSecret string
 }
+
+// String prints the marker and never a value, whatever verb printed it.
+func (Credential) String() string { return SecretMarker }
+
+// MarshalJSON writes the marker and never a value, so a credential nested in any
+// JSON body comes out as "[secret]".
+func (Credential) MarshalJSON() ([]byte, error) { return []byte(`"` + SecretMarker + `"`), nil }
 
 // Secrets is the vault: an encrypted file whose key only the agent's own user
 // account can read.

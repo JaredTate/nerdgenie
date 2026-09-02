@@ -111,6 +111,7 @@ docs/research/work-plan-final-review.md
 docs/research/work-plan-review.md
 go.mod
 go.sum
+internal/clock/clock_test.go
 internal/config/check.go
 internal/config/check_test.go
 internal/config/doc.go
@@ -148,6 +149,7 @@ internal/contract/provider_test.go
 internal/contract/record.go
 internal/contract/sandbox.go
 internal/contract/secrets.go
+internal/contract/secrets_test.go
 internal/contract/skill.go
 internal/contract/socket.go
 internal/contract/socket_test.go

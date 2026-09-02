@@ -156,19 +156,25 @@ func ExcludedFromSandbox(userHome string) []string {
 	}
 }
 
+// WorkFolderName is the folder under the user's home directory that a fresh
+// install lets the agent work in.
+const WorkFolderName = "coeus"
+
 // DefaultSandboxRoots returns the folders a sandboxed command may reach on a
-// fresh install: the user's home directory, with the excluded paths masked out
-// from inside it.
+// fresh install: one work folder under the user's home directory, which "coeus
+// init" creates. The whole home directory is never a root, because it holds the
+// user's daily browser profile, cloud credentials, and keys, and the fence can
+// only grant, never subtract.
 func DefaultSandboxRoots(userHome string) []string {
-	return []string{userHome}
+	return []string{filepath.Join(userHome, WorkFolderName)}
 }
 
 // CheckSandboxRoot returns an error when a configured sandbox root is one of the
-// excluded paths or sits inside one, because a root like that would put the
-// vault or the SSH keys inside the fence.
+// excluded paths, sits inside one, or holds one, because a root like that would
+// put the vault, the browser profile, or the SSH keys inside the fence.
 func CheckSandboxRoot(root string, userHome string) error {
 	if root == "" {
-		return fmt.Errorf("a sandbox root is empty, so give it a full path such as %q", userHome)
+		return fmt.Errorf("a sandbox root is empty, so give it a full path such as %q", filepath.Join(userHome, WorkFolderName))
 	}
 	if !filepath.IsAbs(root) {
 		return fmt.Errorf("the sandbox root %q is not a full path, so write it starting from the root of the filesystem", root)
@@ -177,6 +183,9 @@ func CheckSandboxRoot(root string, userHome string) error {
 	for _, excluded := range ExcludedFromSandbox(userHome) {
 		if clean == excluded || strings.HasPrefix(clean, excluded+string(filepath.Separator)) {
 			return fmt.Errorf("the sandbox root %q is inside %q, which must stay outside the sandbox, so choose a root that does not contain it", root, excluded)
+		}
+		if strings.HasPrefix(excluded, clean+string(filepath.Separator)) || clean == string(filepath.Separator) {
+			return fmt.Errorf("the sandbox root %q holds %q, which must stay outside the sandbox, so choose a narrower root such as %q", root, excluded, filepath.Join(userHome, WorkFolderName))
 		}
 	}
 	return nil

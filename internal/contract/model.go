@@ -165,6 +165,9 @@ type Usage struct {
 	CachedInputTokens int
 	// OutputTokens is what the model wrote.
 	OutputTokens int
+	// CostUSD is what the call cost in dollars when the provider reports it, and
+	// zero when it does not; the status command shows it beside the tokens.
+	CostUSD float64
 }
 
 // Reply is the whole of what one model call produced.
@@ -177,6 +180,9 @@ type Reply struct {
 	Finish FinishReason
 	// Usage is the token count for this call.
 	Usage Usage
+	// Model is the name of the model that answered, which matters when the
+	// fallback chain moved on from the one that was asked.
+	Model string
 }
 
 // Model is one language model reached through one provider.

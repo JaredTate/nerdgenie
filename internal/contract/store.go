@@ -59,6 +59,23 @@ type Event struct {
 	Body json.RawMessage
 }
 
+// FileChangeBody is the body of a file-change event: which file the agent
+// wrote and what it held before, which is what "/undo" puts back. The write and
+// edit tools record one before touching a file, and the undo command reads them
+// back newest first.
+type FileChangeBody struct {
+	// Path is the file that was written.
+	Path string `json:"path"`
+	// Existed says the file was there before the change. When it was not, undo
+	// removes it rather than restoring it.
+	Existed bool `json:"existed"`
+	// PriorContents is everything the file held before the change, and is empty
+	// when the file did not exist.
+	PriorContents []byte `json:"priorContents,omitempty"`
+	// Mode is the file's permission bits before the change.
+	Mode uint32 `json:"mode,omitempty"`
+}
+
 // EventRange is a span of sequence numbers, from From up to and including To.
 type EventRange struct {
 	// From is the first sequence number wanted.

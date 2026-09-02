@@ -101,6 +101,21 @@ type NewTask struct {
 	DueAt time.Time
 }
 
+// TaskToRun is the next task a job wants started. The loop asks for one
+// whenever nothing else is running, and runs it as an ordinary task whose
+// report goes back into the job when it finishes.
+type TaskToRun struct {
+	// JobID is the job the task belongs to.
+	JobID string
+	// TaskID is the task's label inside the job, such as "t31".
+	TaskID string
+	// Text is the one line saying what the task does.
+	Text string
+	// Unattended says a schedule made the task, so nobody is there to answer a
+	// preview, and anything on the ask-me-first list stops the task instead.
+	Unattended bool
+}
+
 // Job is a piece of work too big for one sitting: the same four parts as a task
 // record, but its plan is a list of tasks and its results are their reports.
 // A scheduled job is simply a job with a schedule, so there is one idea here and
@@ -119,4 +134,17 @@ type Job interface {
 	Pause(ctx context.Context, jobID string) error
 	// SwitchOff stops the job for good and tells the user.
 	SwitchOff(ctx context.Context, jobID string) error
+	// NextTask returns the next task that may start now: the first unfinished
+	// task of the oldest running job whose due time has passed, or, for a job
+	// with a schedule whose tick has come, one new task made from its template.
+	// It returns false when nothing is due.
+	NextTask(ctx context.Context, now time.Time) (TaskToRun, bool, error)
+	// FinishTask writes a finished task's report into its job and returns the
+	// report's id, such as "j4.2". A task that failed stays on the list to be
+	// tried again and counts toward the failures in a row: three pause the job,
+	// and ten switch a scheduled job off.
+	FinishTask(ctx context.Context, jobID string, taskID string, report string, failed bool) (string, error)
+	// Load returns the job's record, which is what rides above the task record
+	// while one of the job's tasks runs and what "/jobs 4" prints.
+	Load(ctx context.Context, jobID string) (Record, error)
 }

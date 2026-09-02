@@ -69,17 +69,19 @@ func TestTheChannelHasTheSixThingsEveryChannelDoes(t *testing.T) {
 	}
 }
 
-func TestTheJobContractIsTheSixOperationsTheDesignNames(t *testing.T) {
+func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheThreeTheLoopNeeds(t *testing.T) {
 	job := reflect.TypeFor[contract.Job]()
 
-	wanted := []string{"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff"}
+	// The design names six operations. The loop needs three more to run a job's
+	// tasks: the next due task, a finished task's report, and the job's record.
+	wanted := []string{"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff", "NextTask", "FinishTask", "Load"}
 	for _, name := range wanted {
 		if _, found := job.MethodByName(name); !found {
-			t.Errorf("Job has no %s method, and the design names it", name)
+			t.Errorf("Job has no %s method, and the design or the loop needs it", name)
 		}
 	}
 	if job.NumMethod() != len(wanted) {
-		t.Errorf("Job has %d methods, want the six the design names", job.NumMethod())
+		t.Errorf("Job has %d methods, want the nine listed in this test", job.NumMethod())
 	}
 }
 

@@ -122,6 +122,10 @@ func (home Home) LockFile() string { return filepath.Join(home.RunFolder(), "coe
 // BackupsFolder holds the nightly encrypted archives.
 func (home Home) BackupsFolder() string { return filepath.Join(home.Root, "backups") }
 
+// SignalFolder holds what the Signal channel keeps between runs: the pairing
+// codes, hashed and salted, the approved senders, and the attachment cache.
+func (home Home) SignalFolder() string { return filepath.Join(home.Root, "signal") }
+
 // Folders lists every folder that must exist, in the order to create them.
 func (home Home) Folders() []string {
 	return []string{
@@ -135,5 +139,6 @@ func (home Home) Folders() []string {
 		home.ReleasesFolder(),
 		home.RunFolder(),
 		home.BackupsFolder(),
+		home.SignalFolder(),
 	}
 }

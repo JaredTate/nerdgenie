@@ -64,7 +64,7 @@ Packages are listed in build order, and a package may import only packages liste
 - `Memory`: search, get, save, hint.
 - `Command`: name, help line, run function; each package exports its slash commands as values and `serve.go` registers them.
 - `Skill`: list, load, run, save.
-- `Job`: create, add a task, list, run now, pause, switch off.
+- `Job`: create, add a task, list, run now, pause, switch off; and for the loop, the next due task, a finished task's report, and the job's record.
 - `Sandbox`: run a command inside the fence.
 - `Secrets`: resolve a reference, get the sudo password, redact text.
 - `BrowserWorker`: the methods in `worker/browser/PROTOCOL.md`.

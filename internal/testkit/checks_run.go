@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -160,7 +161,40 @@ func CheckJob(ctx context.Context, jobs contract.Job) error {
 		if summary.TasksTotal != 1 {
 			return fmt.Errorf("the job has %d tasks, want the one that was added", summary.TasksTotal)
 		}
-		return nil
+		return checkJobRunsItsTask(ctx, jobs, jobID, taskID)
 	}
 	return errors.New("a job was created and then was not in the listing")
+}
+
+// checkJobRunsItsTask is the second half of CheckJob: the one task is handed out
+// as due, its report lands in the job with a report id, and the record shows it.
+func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, jobID string, taskID string) error {
+	next, due, err := jobs.NextTask(ctx, time.Now().Add(time.Hour))
+	if err != nil {
+		return fmt.Errorf("asking for the next task failed: %w", err)
+	}
+	if !due || next.JobID != jobID || next.TaskID != taskID {
+		return fmt.Errorf("the next task is %+v (due %v), want task %s of job %s", next, due, taskID, jobID)
+	}
+	reportID, err := jobs.FinishTask(ctx, jobID, taskID, "the contract check finished it", false)
+	if err != nil {
+		return fmt.Errorf("finishing the task failed: %w", err)
+	}
+	if _, _, valid := contract.ParseReportID(reportID); !valid {
+		return fmt.Errorf("the report id is %q, want the shape the design shows, such as j4.2", reportID)
+	}
+	record, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("loading the job record failed: %w", err)
+	}
+	if record.Header.Kind != contract.RecordJob || record.Header.TasksDone != 1 {
+		return fmt.Errorf("the job record's header is %+v, want a job with one task done", record.Header)
+	}
+	if len(record.Work.Results) != 1 || record.Work.Results[0].ID != reportID {
+		return fmt.Errorf("the job record's reports are %+v, want one with id %s", record.Work.Results, reportID)
+	}
+	if _, err := jobs.Load(ctx, "no-such-job"); err == nil {
+		return errors.New("loading a job that is not there returned no error, and it must name what is missing")
+	}
+	return nil
 }

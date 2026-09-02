@@ -26,6 +26,13 @@ var borrowedProjects = []string{
 // copy kept in this repository.
 var referencePathMarkers = []string{"~/Code/", "/home/jared/Code/", "docs/reference/"}
 
+// The vendors' own command-line programs, written the way a comment writes them
+// when it says how to run one. Their names are also the names of projects Coeus
+// read designs from, so a header saying how to run the program is naming no
+// design at all and these are taken out of the header before the projects are
+// looked for.
+var programInvocations = []string{"codex exec", "claude -p"}
+
 // checkFileLength reports a file longer than the limit.
 func (inspector *fileInspector) checkFileLength(source []byte) {
 	lines := strings.Count(string(source), "\n")
@@ -47,6 +54,9 @@ func (inspector *fileInspector) checkBorrowedHeader() {
 	}
 	text := header.Text()
 	folded := strings.ToLower(text)
+	for _, invocation := range programInvocations {
+		folded = strings.ReplaceAll(folded, invocation, " ")
+	}
 	named := ""
 	for _, project := range borrowedProjects {
 		if strings.Contains(folded, project) {

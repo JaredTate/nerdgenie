@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +40,42 @@ func writeFixtureModule(t *testing.T, files map[string]string) string {
 		}
 	}
 	return root
+}
+
+// makeFixtureRepository turns the folder into a git repository and stages the
+// paths given, so that a script driven by "git ls-files" has something to read.
+//
+// Every git command runs with the GIT_ settings stripped out of its
+// environment: git exports GIT_DIR and GIT_WORK_TREE to the programs it runs,
+// and GIT_DIR outranks the -C flag, so a fixture that inherited them would stage
+// files into the real repository.
+func makeFixtureRepository(t *testing.T, root string, paths ...string) {
+	t.Helper()
+	runGitInFixture(t, root, "init")
+	runGitInFixture(t, root, append([]string{"add", "--"}, paths...)...)
+}
+
+// runGitInFixture runs one git command inside the fixture repository.
+func runGitInFixture(t *testing.T, root string, arguments ...string) {
+	t.Helper()
+	command := exec.Command("git", append([]string{"-C", root}, arguments...)...)
+	command.Env = environmentWithoutGitSettings()
+	if printed, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("git %s failed in the fixture: %v\n%s", strings.Join(arguments, " "), err, printed)
+	}
+}
+
+// environmentWithoutGitSettings is this process's environment with every GIT_
+// setting taken out.
+func environmentWithoutGitSettings() []string {
+	kept := []string{}
+	for _, setting := range os.Environ() {
+		if strings.HasPrefix(setting, "GIT_") {
+			continue
+		}
+		kept = append(kept, setting)
+	}
+	return kept
 }
 
 // copyScript copies one script out of the repository's scripts folder into the

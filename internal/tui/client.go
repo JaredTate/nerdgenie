@@ -93,10 +93,7 @@ func (client *Client) Close() {
 // Send hands one envelope to the program, and says so plainly when there is no
 // link to hand it to, so that nothing the person typed is ever lost quietly.
 func (client *Client) Send(envelope contract.SocketEnvelope) error {
-	if err := client.tellProgram(envelope); err != nil {
-		return err
-	}
-	return nil
+	return client.tellProgram(envelope)
 }
 
 // tellProgram writes one envelope on whatever link is open.
@@ -107,10 +104,7 @@ func (client *Client) tellProgram(envelope contract.SocketEnvelope) error {
 	if open == nil {
 		return errors.New("there is no link to the running program right now, so wait for the status strip to say it is back")
 	}
-	if err := open.Send(envelope); err != nil {
-		return err
-	}
-	return nil
+	return open.Send(envelope)
 }
 
 // keepTrying is the whole life of the link: dial, attach, read until it breaks,

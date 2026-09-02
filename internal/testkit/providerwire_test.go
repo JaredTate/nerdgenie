@@ -225,6 +225,7 @@ func TestTheAnthropicStreamReportsTheCacheCreationTokensTheStepAsksFor(t *testin
 func TestAStepThatMisbehavesMidStreamSendsAnErrorEventAndStops(t *testing.T) {
 	script := scriptWithTwoToolCalls()
 	script.Steps[0].MidStreamError = "the provider is overloaded, so try again"
+	script.Steps = append(script.Steps, script.Steps[0])
 	server := testkit.NewFakeProviderServer(script)
 	defer server.Close()
 
@@ -239,6 +240,15 @@ func TestAStepThatMisbehavesMidStreamSendsAnErrorEventAndStops(t *testing.T) {
 	}
 	if !strings.Contains(anthropic, "the provider is overloaded") {
 		t.Errorf("the error event does not carry the step's message:\n%s", anthropic)
+	}
+
+	_, _, openAI := postJSON(t, server.OpenAIAddress(), `{"messages":[]}`)
+
+	if !strings.Contains(openAI, `"error"`) {
+		t.Errorf("the Chat Completions stream sent no error line mid-way:\n%s", openAI)
+	}
+	if strings.Contains(openAI, "[DONE]") {
+		t.Errorf("the Chat Completions stream that errored mid-way still ended properly:\n%s", openAI)
 	}
 }
 

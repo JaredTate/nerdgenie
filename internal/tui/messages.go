@@ -20,3 +20,12 @@ type envelopeMessage struct {
 	// envelope is the message itself, in the shape internal/contract defines.
 	envelope contract.SocketEnvelope
 }
+
+// linkMessage says the link to the running program came up or went down, which
+// is the one thing the status strip must never be wrong about.
+type linkMessage struct {
+	// up is true when the screen is attached to the program.
+	up bool
+	// detail says what went wrong when it is not.
+	detail string
+}

@@ -92,11 +92,10 @@ func (socket *fakeSocket) everySent() []contract.SocketEnvelope {
 // fakeDialer opens fake sockets, or refuses, the way nothing listening on the
 // real socket would.
 type fakeDialer struct {
-	guard   sync.Mutex
-	tries   int
-	refuse  error
-	opened  chan *fakeSocket
-	stopped bool
+	guard  sync.Mutex
+	tries  int
+	refuse error
+	opened chan *fakeSocket
 }
 
 // newFakeDialer makes a dialer that opens links.

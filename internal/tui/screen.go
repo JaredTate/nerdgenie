@@ -35,8 +35,12 @@ type Options struct {
 	// Environment is how the screen reads the terminal's settings, which is
 	// os.Getenv outside a test.
 	Environment func(name string) string
-	// Commands are the slash commands the palette offers.
+	// Commands are the slash commands the palette offers before the program has
+	// reported its own list.
 	Commands []contract.Command
+	// Dialer opens the link to the running program. A screen built without one
+	// draws its frame and never connects, which is what the drawing tests use.
+	Dialer Dialer
 	// Width and Height are the size to draw the first frame at, before the
 	// terminal has said how big it really is.
 	Width, Height int
@@ -51,6 +55,8 @@ type Screen struct {
 	canDrawEmoji bool
 	pictures     pictureProtocol
 	link         sender
+	client       *Client
+	events       <-chan tea.Msg
 
 	width  int
 	height int
@@ -116,14 +122,62 @@ func New(options Options) *Screen {
 		state:        stateConnecting,
 		commands:     options.Commands,
 	}
-	screen.historyAt = 0
+	if options.Dialer != nil {
+		screen.client = NewClient(options.Dialer, clock)
+		screen.link = screen.client
+	}
 	return screen
 }
 
 // Init is what Bubble Tea runs once the screen is on the terminal. It starts the
 // heartbeat and nothing else, because the first frame must not wait on anything.
 func (screen *Screen) Init() tea.Cmd {
-	return screen.nextTick()
+	if screen.client == nil {
+		return screen.nextTick()
+	}
+	screen.events = screen.client.Start()
+	return tea.Batch(screen.nextTick(), screen.listen())
+}
+
+// listen is the command that waits for the next thing the link has to say. Every
+// message re-arms it, which is how one stream becomes a run of Bubble Tea
+// messages.
+func (screen *Screen) listen() tea.Cmd {
+	if screen.events == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		message, more := <-screen.events
+		if !more {
+			return nil
+		}
+		return message
+	}
+}
+
+// Close ends the link to the running program. Bubble Tea has no place to do
+// this, so whoever started the screen does it when the program is over.
+func (screen *Screen) Close() {
+	if screen.client != nil {
+		screen.client.Close()
+	}
+}
+
+// linkChanged takes the link coming up or going down. The status strip says so
+// at once, and the input box stays usable either way, so that the person can
+// still read back what happened.
+func (screen *Screen) linkChanged(change linkMessage) {
+	if change.up {
+		screen.attached = true
+		screen.lastHealth = screen.now
+		screen.setState(stateIdle, "")
+		return
+	}
+	if screen.attached && change.detail != "" {
+		screen.showTrouble("The link to the running program went away: " + change.detail + ". The screen will keep trying.")
+	}
+	screen.attached = false
+	screen.setState(stateDisconnected, change.detail)
 }
 
 // nextTick is the command that brings the screen its next heartbeat, one
@@ -157,6 +211,10 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return screen, screen.nextTick()
 	case envelopeMessage:
 		screen.receive(typed.envelope)
+		return screen, screen.listen()
+	case linkMessage:
+		screen.linkChanged(typed)
+		return screen, screen.listen()
 	}
 	return screen, nil
 }

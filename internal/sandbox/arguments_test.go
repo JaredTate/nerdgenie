@@ -224,4 +224,7 @@ func TestTheFencePlanRefusesTextWithAZeroByteInIt(t *testing.T) {
 	if _, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Arguments: []string{"a\x00b"}}); err == nil {
 		t.Error("an argument holding a zero byte was accepted")
 	}
+	if _, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{"NAME=a\x00b"}}); err == nil {
+		t.Error("an environment entry holding a zero byte was accepted")
+	}
 }

@@ -194,6 +194,38 @@ func TestTheExitCodeAndTheInputAndOutputComeBackAsTheyWere(t *testing.T) {
 	}
 }
 
+func TestACommandThatIgnoresBeingAskedToStopIsKilledOutright(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+
+	result, err := fence.Run(context.Background(), contract.SandboxCommand{
+		Program:   "/bin/sh",
+		Arguments: []string{"-c", `trap "" TERM; index=0; while [ $index -lt 200000000 ]; do index=$((index+1)); done`},
+		Timeout:   500 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("running the command failed: %v", err)
+	}
+	if !result.TimedOut {
+		t.Error("a command that ignores being asked to stop was not reported as timed out")
+	}
+}
+
+func TestRunSaysSoWhenItCannotMakeTheScratchHomeFolder(t *testing.T) {
+	fence, _, work := aRealFence(t, theToolOutputCap)
+	if err := os.Chmod(work, 0o500); err != nil {
+		t.Fatalf("cannot make the root read-only for the test: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(work, contract.HomeFolderMode) })
+
+	_, err := fence.Run(context.Background(), contract.SandboxCommand{Program: "/bin/true", Timeout: 20 * time.Second})
+	if err == nil {
+		t.Fatal("the fence ran a command with no home folder to give it")
+	}
+	if !strings.Contains(err.Error(), scratchHomeName) {
+		t.Errorf("the refusal says %q, and it must name the folder it could not make", err)
+	}
+}
+
 func TestTheHelperRefusesToRunWhenNothingStartedItInsideAFence(t *testing.T) {
 	thisProgram, err := os.Executable()
 	if err != nil {

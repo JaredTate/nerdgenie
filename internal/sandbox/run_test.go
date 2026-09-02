@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -30,6 +31,12 @@ func TestRunRefusesEveryCommandWhenBwrapIsNotOnThePath(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "bwrap") {
 		t.Errorf("the refusal says %q, and it must name what is missing", err)
+	}
+}
+
+func TestACommandThatWasNeverWaitedForReportsAFailureRatherThanASuccess(t *testing.T) {
+	if code := exitCodeOf(&exec.Cmd{}); code != contract.ExitFailure {
+		t.Errorf("a command with no result at all reported %d, want %d", code, contract.ExitFailure)
 	}
 }
 

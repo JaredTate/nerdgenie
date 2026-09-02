@@ -51,6 +51,33 @@ func TestTheWritableAccessIsEverythingTheVersionKnowsAbout(t *testing.T) {
 	}
 }
 
+func TestARuleOnAFileIsCutDownToTheRightsAFileCanHave(t *testing.T) {
+	full := writableAccess(7)
+
+	if accessForTarget(full, true) != full {
+		t.Errorf("a rule on a folder was cut down to %#x, want everything at %#x", accessForTarget(full, true), full)
+	}
+	onAFile := accessForTarget(full, false)
+	if onAFile&accessReadDirectory != 0 || onAFile&accessMakeRegularFile != 0 {
+		t.Errorf("a rule on a file keeps %#x, and a file cannot be listed or have files made inside it", onAFile)
+	}
+	if onAFile&accessExecute == 0 || onAFile&accessReadFile == 0 {
+		t.Errorf("a rule on a file keeps %#x, and the helper program has to be readable and runnable", onAFile)
+	}
+}
+
+func TestTheKernelRefusesARulesetAskingForRightsItHasNeverHeardOf(t *testing.T) {
+	if _, err := createLandlockRuleset(1 << 40); err == nil {
+		t.Fatal("the kernel accepted a ruleset arbitrating a right that does not exist")
+	}
+}
+
+func TestARuleCannotBeAddedToSomethingThatIsNotARuleset(t *testing.T) {
+	if err := addLandlockRule(-1, "/usr", readableAccess()); err == nil {
+		t.Fatal("a rule was added to a file number that is not a ruleset")
+	}
+}
+
 func TestTheRulesetAttributeIsEightBytesInTheOrderTheKernelReads(t *testing.T) {
 	encoded := encodeRulesetAttribute(0x1fff)
 

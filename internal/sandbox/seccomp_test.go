@@ -94,6 +94,12 @@ func TestEveryInstructionIsEightBytesInTheOrderTheKernelReads(t *testing.T) {
 	}
 }
 
+func TestAnEmptyFilterIsRefusedBeforeTheKernelIsAskedToTakeIt(t *testing.T) {
+	if err := applySeccomp(nil); err == nil {
+		t.Fatal("an empty filter was installed, and a filter that answers nothing would let everything through")
+	}
+}
+
 func TestTheWholeFilterIsWhatTheGoldenFileHolds(t *testing.T) {
 	program := buildSeccompProgram(seccompArchitecture, deniedSystemCalls, unshareSystemCall)
 

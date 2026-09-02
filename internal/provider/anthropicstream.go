@@ -80,11 +80,11 @@ type anthropicReply struct {
 	blocks    map[int]*toolCallBuild
 	order     []int
 	usage     contract.Usage
-	// inputTokens and cacheCreation are kept apart because the input count the
-	// harness reports is the two of them added together, and either one may
-	// arrive on its own.
+	// The three input counts are kept apart because the count the harness reports
+	// is all three added together, and any one of them may arrive on its own.
 	inputTokens   int
 	cacheCreation int
+	cacheRead     int
 	stopReason    string
 	sawStop       bool
 }
@@ -193,12 +193,19 @@ func (building *anthropicReply) countTokens(counted anthropicCount) {
 		building.usage.OutputTokens = *counted.OutputTokens
 	}
 	if counted.CacheRead != nil {
-		building.usage.CachedInputTokens = *counted.CacheRead
+		building.cacheRead = *counted.CacheRead
 	}
 	if counted.CacheCreation != nil {
 		building.cacheCreation = *counted.CacheCreation
 	}
-	building.usage.InputTokens = building.inputTokens + building.cacheCreation
+	// The input count is everything the model read. This wire counts that in
+	// three places, because it charges differently for each: what it read
+	// plainly, what it wrote into the cache, and what it read back out of the
+	// cache. The cached count the harness reports is the last of the three on its
+	// own, which is what makes it a part of the input count rather than an
+	// addition to it.
+	building.usage.CachedInputTokens = building.cacheRead
+	building.usage.InputTokens = building.inputTokens + building.cacheCreation + building.cacheRead
 }
 
 // finished turns the built-up state into the reply the harness reads.
@@ -217,6 +224,7 @@ func (building *anthropicReply) finished(options Options) contract.Reply {
 		ToolCalls: calls,
 		Finish:    anthropicFinish(building.stopReason, len(calls) > 0, building.modelName, options),
 		Usage:     building.usage,
+		Model:     building.modelName,
 	}
 }
 

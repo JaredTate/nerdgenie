@@ -108,8 +108,12 @@ func parseClaudeOutput(reader io.Reader, onDelta func(delta string)) programResu
 		found.failed = line.IsError
 		found.message = line.Result
 		found.cost = line.TotalCostUSD
+		// The program reports the Messages API's own three counts, so the input
+		// count is all three added together and the cached count is the one that
+		// came back out of the cache.
 		found.usage = contract.Usage{
-			InputTokens:       line.Usage.InputTokens + line.Usage.CacheCreationInputTokens,
+			InputTokens: line.Usage.InputTokens + line.Usage.CacheCreationInputTokens +
+				line.Usage.CacheReadInputTokens,
 			CachedInputTokens: line.Usage.CacheReadInputTokens,
 			OutputTokens:      line.Usage.OutputTokens,
 		}

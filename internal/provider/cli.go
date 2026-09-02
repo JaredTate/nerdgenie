@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -42,9 +41,6 @@ type commandLineModel struct {
 	alias   contract.ModelAlias
 	options Options
 	path    string
-
-	guard    sync.Mutex
-	lastCost float64
 }
 
 // newCommandLineModel returns the model a command-line alias names, after
@@ -69,15 +65,6 @@ func (model *commandLineModel) Name() string { return model.alias.Name }
 // ContextLength is how many tokens the model holds on one call.
 func (model *commandLineModel) ContextLength() int { return model.alias.ContextLength }
 
-// LastCostUSD is what the program said the last call cost, or zero when it said
-// nothing. The contract's reply has no room for money, so the harness reads it
-// here for the cost line.
-func (model *commandLineModel) LastCostUSD() float64 {
-	model.guard.Lock()
-	defer model.guard.Unlock()
-	return model.lastCost
-}
-
 // Send runs the program once in a folder of its own and turns what it printed
 // into a reply.
 func (model *commandLineModel) Send(ctx context.Context, request contract.Request,
@@ -101,11 +88,18 @@ func (model *commandLineModel) Send(ctx context.Context, request contract.Reques
 	if err != nil {
 		return contract.Reply{}, err
 	}
-	model.rememberCost(found)
+	usage := found.usage
+	usage.CostUSD = found.cost
+	model.noteUsage(usage)
 	if failure := model.failureIn(found); failure != nil {
 		return contract.Reply{}, failure
 	}
-	return contract.Reply{Text: found.text, Finish: contract.FinishEnd, Usage: found.usage}, nil
+	return contract.Reply{
+		Text:   found.text,
+		Finish: contract.FinishEnd,
+		Usage:  usage,
+		Model:  model.alias.Name,
+	}, nil
 }
 
 // scratchFolder makes an empty folder under the home's run folder for one run,
@@ -164,19 +158,17 @@ func (model *commandLineModel) readOutput(printed io.Reader, onDelta func(delta 
 	return parseClaudeOutput(printed, onDelta)
 }
 
-// rememberCost keeps what the program said the call cost and writes one line
-// about it, which is the only place money is recorded.
-func (model *commandLineModel) rememberCost(found programResult) {
-	model.guard.Lock()
-	model.lastCost = found.cost
-	model.guard.Unlock()
-	if found.cost > 0 {
+// noteUsage writes down what one run read, wrote, and cost. It is the only place
+// money is logged, because the two subscription programs are the only providers
+// that report any.
+func (model *commandLineModel) noteUsage(usage contract.Usage) {
+	if usage.CostUSD > 0 {
 		model.options.note("the model %q used %d tokens in, %d of them cached, and %d out, and cost %.5f dollars",
-			model.alias.Name, found.usage.InputTokens, found.usage.CachedInputTokens, found.usage.OutputTokens, found.cost)
+			model.alias.Name, usage.InputTokens, usage.CachedInputTokens, usage.OutputTokens, usage.CostUSD)
 		return
 	}
 	model.options.note("the model %q used %d tokens in, %d of them cached, and %d out, and the program reported no cost",
-		model.alias.Name, found.usage.InputTokens, found.usage.CachedInputTokens, found.usage.OutputTokens)
+		model.alias.Name, usage.InputTokens, usage.CachedInputTokens, usage.OutputTokens)
 }
 
 // failureIn turns a program's own report of trouble into the error the harness

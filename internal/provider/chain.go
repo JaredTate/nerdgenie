@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -18,9 +17,6 @@ import (
 type Chain struct {
 	models  []contract.Model
 	options Options
-
-	guard      sync.Mutex
-	answeredBy string
 }
 
 // NewChain returns the chain the configuration's fallback list names, in order.
@@ -39,15 +35,6 @@ func (chain *Chain) Name() string { return chain.models[0].Name() }
 // the working context is sized against.
 func (chain *Chain) ContextLength() int { return chain.models[0].ContextLength() }
 
-// AnsweredBy is the alias of the model that answered the last call, and is empty
-// until one has. The contract's reply carries no room for it, so the chain keeps
-// it here and the harness reads it after the call.
-func (chain *Chain) AnsweredBy() string {
-	chain.guard.Lock()
-	defer chain.guard.Unlock()
-	return chain.answeredBy
-}
-
 // Send tries each model in turn until one answers.
 func (chain *Chain) Send(ctx context.Context, request contract.Request,
 	onDelta func(delta string)) (contract.Reply, error) {
@@ -55,7 +42,10 @@ func (chain *Chain) Send(ctx context.Context, request contract.Request,
 	for at, model := range chain.models {
 		reply, err := model.Send(ctx, request, onDelta)
 		if err == nil {
-			chain.remember(model.Name())
+			// The reply names the model that answered, which is the whole point
+			// of a chain: the caller asked for the first one and may have been
+			// answered by the third.
+			reply.Model = model.Name()
 			return reply, nil
 		}
 		if errors.Is(err, contract.ErrContextOverflow) {
@@ -77,11 +67,4 @@ func (chain *Chain) noteFallback(at int, err error) {
 		return
 	}
 	chain.options.note("the model %q is out of tries and it was the last one in the chain: %v", failed, err)
-}
-
-// remember keeps the name of the model that answered.
-func (chain *Chain) remember(name string) {
-	chain.guard.Lock()
-	defer chain.guard.Unlock()
-	chain.answeredBy = name
 }

@@ -184,6 +184,7 @@ func (building *openAIReply) finished(options Options) contract.Reply {
 		ToolCalls: calls,
 		Finish:    openAIFinish(building.finish, len(calls) > 0, building.modelName, options),
 		Usage:     building.usage,
+		Model:     building.modelName,
 	}
 }
 

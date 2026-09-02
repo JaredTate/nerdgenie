@@ -108,6 +108,8 @@ func TestRefusesToCreateARecordWithoutWhatItNeeds(t *testing.T) {
 	cases := map[string]Start{
 		"a kind that is neither task nor job": {Kind: "thing", ID: "1", Ask: "do it"},
 		"no number":                           {Kind: contract.RecordTask, Ask: "do it"},
+		"a number that is not a number":       {Kind: contract.RecordJob, ID: "four", Ask: "do it"},
+		"a number below one":                  {Kind: contract.RecordTask, ID: "0", Ask: "do it"},
 		"no ask":                              {Kind: contract.RecordTask, ID: "1"},
 		"a budget below zero":                 {Kind: contract.RecordTask, ID: "1", Ask: "do it", RoundsLeft: -1},
 	}

@@ -29,6 +29,7 @@ func brokenTaskLines() []brokenLine {
 	header := "# task 17   running   from Signal   budget left: 86 rounds, 51 minutes"
 	return []brokenLine{
 		{"a first line that is not a header", header, "task 17"},
+		{"a task number that is not a number", header, "# task seventeen   running   budget left: 86 rounds, 51 minutes"},
 		{"a kind that is neither task nor job", header, "# thing 17   running   budget left: 86 rounds, 51 minutes"},
 		{"a status nobody knows", header, "# task 17   sprinting   budget left: 86 rounds, 51 minutes"},
 		{"a header field nobody knows", header, header + "   surprise"},
@@ -67,6 +68,8 @@ func brokenJobLines() []brokenLine {
 	header := "# job 4   running   from Signal   3 of 12 tasks done   next: task 31 today at 14:00"
 	return []brokenLine{
 		{"a job header with no progress on it", header, "# job 4   running   from Signal"},
+		{"a job number that is not a number, which its reports are labelled from",
+			header, "# job four   running   from Signal   3 of 12 tasks done"},
 		{"a job task marked done that names no report",
 			"- [x] t17 post the anniversary tweet -> j4.1",
 			"- [x] t17 post the anniversary tweet"},

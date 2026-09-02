@@ -1,0 +1,186 @@
+// The design of a fixed-format record with rules on what may change comes from
+// Prime Agent's goal state at
+// ~/Code/prime-agent/packages/coding-agent/src/core/goals.ts, where the
+// objective is validated on the way in and treated as the user's data rather
+// than as instructions. The Go here is written fresh.
+
+package record
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+
+	"github.com/JaredTate/coeus/internal/contract"
+)
+
+// Start is what a record is created from, on the first tool call of a piece of
+// work. A question the agent can answer without a tool gets an answer and no
+// record at all.
+type Start struct {
+	// Kind says whether this is a task or a job.
+	Kind contract.RecordKind
+	// ID is the number of the task or the job, as a string.
+	ID string
+	// Origin is the channel the ask came in on, such as "Signal".
+	Origin string
+	// Ask is the user's message, word for word. It is never edited afterwards.
+	Ask string
+	// RoundsLeft is the task's tool-round budget from the configuration, and is
+	// unused on a job.
+	RoundsLeft int
+	// MinutesLeft is the task's minute budget from the configuration, and is
+	// unused on a job.
+	MinutesLeft int
+}
+
+// Checkpoint is one saved copy of a record, which is what a checkpoint event in
+// the event log holds. Reloading one needs nothing but the log.
+type Checkpoint struct {
+	// Number counts from one, in the order the checkpoints were saved.
+	Number int `json:"number"`
+	// Text is the record, printed.
+	Text string `json:"text"`
+}
+
+// StoredResult is the full text of one result, which is what a tool-result event
+// in the log holds and what "read r7" brings back after the text itself has left
+// the model's window.
+type StoredResult struct {
+	// ID is the result's label, such as "r7" or "j4.2".
+	ID string `json:"id"`
+	// Summary is the one line the record keeps.
+	Summary string `json:"summary"`
+	// Text is the whole of what the tool returned.
+	Text string `json:"text"`
+}
+
+// Keeper owns one record and the event log behind it. Every change to the record
+// goes through a method on this type, because that is where the rules live, and
+// every change saves the next numbered checkpoint into the log. One keeper is
+// used by one turn at a time, which is how the agent runs a task.
+type Keeper struct {
+	store      contract.Store
+	record     contract.Record
+	checkpoint int
+}
+
+// New creates a record on the first tool call and saves the first checkpoint.
+func New(ctx context.Context, store contract.Store, start Start) (*Keeper, error) {
+	if store == nil {
+		return nil, errors.New("a record needs an event log to write to, so pass the store")
+	}
+	if start.Kind != contract.RecordTask && start.Kind != contract.RecordJob {
+		return nil, fmt.Errorf("the kind %q is neither a task nor a job, so say which one this record is", start.Kind)
+	}
+	if start.ID == "" {
+		return nil, errors.New("a record needs the number of its task or job, so pass one")
+	}
+	if start.Ask == "" {
+		return nil, errors.New("a record needs the user's ask, word for word, so pass the message")
+	}
+	if start.RoundsLeft < 0 || start.MinutesLeft < 0 {
+		return nil, fmt.Errorf("the budget is %d rounds and %d minutes, and neither may be below zero",
+			start.RoundsLeft, start.MinutesLeft)
+	}
+
+	keeper := &Keeper{store: store, record: contract.Record{
+		Header: contract.Header{
+			Kind:        start.Kind,
+			ID:          start.ID,
+			Status:      contract.StatusRunning,
+			Origin:      start.Origin,
+			RoundsLeft:  start.RoundsLeft,
+			MinutesLeft: start.MinutesLeft,
+		},
+		Goal: contract.Goal{Ask: start.Ask},
+	}}
+	if err := keeper.save(ctx); err != nil {
+		return nil, err
+	}
+	return keeper, nil
+}
+
+// Hold makes a keeper over a record that is already written, which is what the
+// checkpoint readers use after they have parsed one out of the log.
+func Hold(store contract.Store, held contract.Record, checkpoint int) (*Keeper, error) {
+	if store == nil {
+		return nil, errors.New("a record needs an event log to write to, so pass the store")
+	}
+	if held.Header.ID == "" {
+		return nil, errors.New("this record carries no number, so it cannot be tied to the log")
+	}
+	if checkpoint < 1 {
+		return nil, fmt.Errorf("this record is held at checkpoint %d, and checkpoints count from one", checkpoint)
+	}
+	return &Keeper{store: store, record: held, checkpoint: checkpoint}, nil
+}
+
+// Record returns a copy of the record, so that a caller reading it cannot change
+// it behind the rules.
+func (keeper *Keeper) Record() contract.Record {
+	return cloneRecord(keeper.record)
+}
+
+// Text returns the record printed, which is what the working context puts in
+// front of the model.
+func (keeper *Keeper) Text() string {
+	return string(Print(keeper.record))
+}
+
+// ID is the number of the task or job this record belongs to.
+func (keeper *Keeper) ID() string {
+	return keeper.record.Header.ID
+}
+
+// Kind says whether this record is a task or a job.
+func (keeper *Keeper) Kind() contract.RecordKind {
+	return keeper.record.Header.Kind
+}
+
+// LatestCheckpoint is the number of the last checkpoint saved, which counts from
+// one and grows by one with every change.
+func (keeper *Keeper) LatestCheckpoint() int {
+	return keeper.checkpoint
+}
+
+// save writes the record into the log as the next numbered checkpoint. Every
+// change calls it, which is what makes a task resumable days later on another
+// model, and what "/tasks 17 back 3" winds through.
+func (keeper *Keeper) save(ctx context.Context) error {
+	number := keeper.checkpoint + 1
+	body, err := json.Marshal(Checkpoint{Number: number, Text: string(Print(keeper.record))})
+	if err != nil {
+		return fmt.Errorf("cannot write checkpoint %d of %s %s as JSON: %w", number, keeper.Kind(), keeper.ID(), err)
+	}
+	event := contract.Event{TaskID: keeper.ID(), Kind: contract.EventCheckpoint, Body: body}
+	if _, err := keeper.store.Append(ctx, event); err != nil {
+		return fmt.Errorf("cannot save checkpoint %d of %s %s to the log: %w", number, keeper.Kind(), keeper.ID(), err)
+	}
+	keeper.checkpoint = number
+	return nil
+}
+
+// mustBe says no to an operation that belongs to the other kind of record.
+func (keeper *Keeper) mustBe(kind contract.RecordKind, what string) error {
+	if keeper.Kind() == kind {
+		return nil
+	}
+	return fmt.Errorf("%s belongs to a %s and this record is a %s: %w", what, kind, keeper.Kind(), ErrWrongKind)
+}
+
+// cloneRecord copies a record and every list inside it.
+func cloneRecord(held contract.Record) contract.Record {
+	held.Goal.DoneWhen = slices.Clone(held.Goal.DoneWhen)
+	held.Rules.Corrections = slices.Clone(held.Rules.Corrections)
+	held.Rules.StopWhen = slices.Clone(held.Rules.StopWhen)
+	held.Work.Situation = slices.Clone(held.Work.Situation)
+	held.Work.Plan = slices.Clone(held.Work.Plan)
+	held.Work.Tasks = slices.Clone(held.Work.Tasks)
+	held.Work.Results = slices.Clone(held.Work.Results)
+	held.Lessons.Decisions = slices.Clone(held.Lessons.Decisions)
+	held.Lessons.Failures = slices.Clone(held.Lessons.Failures)
+	return held
+}

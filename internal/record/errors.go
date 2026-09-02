@@ -27,4 +27,12 @@ var (
 	// ErrIdentifiersOutOfOrder is the rule that the labels of a list only count
 	// upwards, so that nothing a reader has already seen is renumbered.
 	ErrIdentifiersOutOfOrder = errors.New("the labels of a list only count upwards, so give this one a number above the last")
+	// ErrCorrectionIsFixed is the rule that a correction is the user's own words,
+	// only ever appended and never edited or removed.
+	ErrCorrectionIsFixed = errors.New("a correction is the user's own words and is only ever added, so pass what the user said")
+	// ErrWrongKind is the rule that a task and a job each have their own half of
+	// the work section, and neither takes the other's.
+	ErrWrongKind = errors.New("this belongs to the other kind of record, so use the call that matches this one")
+	// ErrNoSuchResult says the label names no result this record ever wrote.
+	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
 )

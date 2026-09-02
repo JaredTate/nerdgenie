@@ -1,6 +1,8 @@
 package tool
 
 import (
+	"time"
+
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
@@ -23,6 +25,15 @@ type Settings struct {
 	// Note is where the registry says what it skipped and why. When it is nil
 	// the line goes to the standard library's logger.
 	Note func(line string)
+}
+
+// toolTimeout is how long one tool may run, from the configuration, with the
+// shipped default when the configuration says nothing.
+func (settings Settings) toolTimeout() time.Duration {
+	if settings.Configuration.Caps.TimePerTool > 0 {
+		return settings.Configuration.Caps.TimePerTool
+	}
+	return contract.DefaultConfig().Caps.TimePerTool
 }
 
 // outputCap is how many bytes of one result the model sees before the rest

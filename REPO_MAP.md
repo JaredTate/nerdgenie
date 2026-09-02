@@ -384,6 +384,7 @@ internal/signal/stream_test.go
 internal/testkit/browser.go
 internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
+internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
 internal/testkit/browserrules_test.go

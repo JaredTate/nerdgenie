@@ -223,6 +223,35 @@ func (task FortyStepTask) ToolResults() []FortyStepResult {
 	return results
 }
 
+// ResultsOfRound is what one round's tool calls produced, in order and with the
+// labels they carry in the whole list: the round's own tool result, and the
+// record write when the round made one. A harness driving the fixture adds these
+// as it goes, and ends with exactly the list ToolResults returns.
+func (task FortyStepTask) ResultsOfRound(number int) []FortyStepResult {
+	produced := []FortyStepResult{}
+	at := 0
+	for _, round := range task.Rounds {
+		if round.ToolName == "" {
+			continue
+		}
+		mine := round.Number == number
+		if mine {
+			produced = append(produced, task.ToolResults()[at])
+		}
+		at++
+		if round.TaskUpdate != nil {
+			if mine {
+				produced = append(produced, task.ToolResults()[at])
+			}
+			at++
+		}
+		if mine {
+			return produced
+		}
+	}
+	return produced
+}
+
 // taskUpdateResult is what the task tool gives back for one record write: a one
 // line summary for the record, and the whole update for the log, so that a
 // record write can be read back by its id just like any other result.

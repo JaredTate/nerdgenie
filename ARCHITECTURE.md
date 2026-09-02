@@ -94,7 +94,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
-`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, and `health`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+`worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and `dialog`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
 
 ## Data on disk (built, wave 1)
 

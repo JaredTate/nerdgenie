@@ -47,6 +47,9 @@ type Snapshot struct {
 	Dialog *Dialog `json:"dialog,omitempty"`
 	// Download is a download the page started, or nil.
 	Download *Download `json:"download,omitempty"`
+	// Wall is the login form, two-factor prompt, or captcha the page shows, or
+	// nil; "open" and "read" report it here, an action reports it on its diff.
+	Wall *Wall `json:"wall,omitempty"`
 }
 
 // WallKind names the three things that stop the agent and hand the browser to
@@ -92,8 +95,29 @@ type Diff struct {
 	// Wall is the login form, two-factor prompt, or captcha the action ran into,
 	// or nil.
 	Wall *Wall `json:"wall,omitempty"`
-	// Snapshot is the page after the action settled.
+	// Settled says the page came to rest within the limit. When it did not, the
+	// diff is still returned from the page as it stood, with Seen saying so, so
+	// that a live page stays usable.
+	Settled bool `json:"settled"`
+	// Snapshot is the page after the action settled, or as it stood at the
+	// limit.
 	Snapshot Snapshot `json:"snapshot"`
+}
+
+// DialogAction is what to do with an open dialog box.
+type DialogAction string
+
+const (
+	// DialogAccept presses the dialog's confirming button, with the text given
+	// for a prompt.
+	DialogAccept DialogAction = "accept"
+	// DialogDismiss closes the dialog without confirming.
+	DialogDismiss DialogAction = "dismiss"
+)
+
+// KnownDialogAction says whether the action is one of the two.
+func KnownDialogAction(action DialogAction) bool {
+	return action == DialogAccept || action == DialogDismiss
 }
 
 // ReadOptions says how much of the page to read.
@@ -228,6 +252,10 @@ type BrowserWorker interface {
 	Screenshot(ctx context.Context) (Screenshot, error)
 	// Health says whether the worker is alive.
 	Health(ctx context.Context) (BrowserHealth, error)
+	// Dialog answers an open dialog box, accepting it with the text given for a
+	// prompt or dismissing it, because Chrome blocks the whole tab until one is
+	// answered.
+	Dialog(ctx context.Context, action DialogAction, text string) (Diff, error)
 	// Close shuts the worker down and closes the browser.
 	Close() error
 }

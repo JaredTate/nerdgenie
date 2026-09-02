@@ -53,6 +53,8 @@ tokens, never the page's markup.
 - `dialog` is `{"kind":"alert"|"confirm"|"prompt"|"beforeunload","message":"..."}`
   when a dialog box is open.
 - `download` is `{"filename":"...","path":"..."}` when the page started one.
+- `wall` is the wall the page shows (see Wall below) or `null`. `open` and `read`
+  report a wall here, because a page can be a login page before any action.
 
 ### Diff
 
@@ -70,12 +72,28 @@ expected actually happened.
   "expectationMet": true,
   "seen": "",
   "wall": null,
-  "snapshot": { "...": "the snapshot after the action settled" }
+  "settled": true,
+  "snapshot": { "...": "the snapshot after the action settled, or as it stood at the limit" }
 }
 ```
 
 When `expectationMet` is `false`, `seen` says in plain words what happened
 instead, so that the model can decide rather than guess.
+
+**How the worker judges an expectation.** It cannot judge English, so the rule
+is fixed: split the expectation into words of four or more letters that are not
+stop words; the expectation is met when any of them appears in a new element's
+name or role, in the new address, in the new title, in a dialog's message, or in
+the name or role of the element the action was aimed at (which is what lets
+"the text box holds the post" hold after typing into the textbox named "Post
+text", since typing changes no element); or when the expectation is empty and
+something changed. Otherwise `expectationMet` is false and `seen` says what did
+change.
+
+`settled` says whether the page came to rest within the limit (see Settling).
+When it did not, the worker still returns the diff from the page as it stood,
+with `settled: false` and `seen` saying the page kept changing, so that a live
+page such as a chat or a clock stays usable.
 
 ### Wall
 
@@ -93,8 +111,11 @@ A method that runs into a wall still returns a diff, with `wall` filled in and
 
 After every action the worker waits until the page has settled, which means
 either a move to a new address has finished or nothing on the page has changed
-for three hundred milliseconds, with a limit of three seconds. Then it takes the
-new snapshot and compares it with the old one.
+for three hundred milliseconds, with a limit of three seconds. Changes to an
+element's attributes alone do not count as the page changing. Then it takes the
+new snapshot and compares it with the old one. A page that never comes to rest
+within the limit is read as it stands and reported with `settled: false`; the
+error -32001 is for a page that cannot be read at all after the limit.
 
 ### Errors
 
@@ -105,11 +126,16 @@ new snapshot and compares it with the old one.
 | -32601 | No such method | A bug in the Go side; report it |
 | -32602 | The parameters were wrong | Return the message to the model |
 | -32000 | No such reference on the page, after every way of finding it failed | Return the message to the model, with a fresh snapshot in `data` |
-| -32001 | The page did not settle before the limit | Return the message to the model |
+| -32001 | The page could not be read at all after the settle limit | Return the message to the model |
 | -32002 | No browser is open | Open a page first |
 | -32003 | Chrome died | Restart the worker and tell the model it was interrupted |
 
-## The eleven methods
+A -32700 or -32600 response carries `"id": null`, because a line that was not a
+request has no id to echo.
+
+## The twelve methods
+
+The `expectationMet` values in the examples below are illustrative; the rule above decides the real value.
 
 ### `open`
 
@@ -157,7 +183,8 @@ Response: `{"jsonrpc":"2.0","id":5,"result":{"urlChanged":true,"url":"https://x.
 
 ### `scroll`
 
-Scrolls the page in steps, the way a person does.
+Scrolls the page in steps, the way a person does. `direction` is `"up"` or
+`"down"`; anything else is -32602.
 
 Request: `{"jsonrpc":"2.0","id":6,"method":"scroll","params":{"direction":"down","amount":3,"expectation":"more posts appear"}}`
 
@@ -175,7 +202,8 @@ Response: `{"jsonrpc":"2.0","id":7,"result":{"diffs":[{"url":"https://x.com/comp
 
 ### `tabs`
 
-Lists, switches, or closes tabs, and always returns the list afterwards.
+Lists, switches, or closes tabs, and always returns the list afterwards. A
+missing `action` means `"list"`, and `active` is present only on the active tab.
 
 Request: `{"jsonrpc":"2.0","id":8,"method":"tabs","params":{"action":"switch","tabId":"t2"}}`
 
@@ -201,6 +229,17 @@ Request: `{"jsonrpc":"2.0","id":10,"method":"screenshot","params":{}}`
 
 Response: `{"jsonrpc":"2.0","id":10,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"ref":"e7","role":"button","name":"Post"}]}}`
 
+### `dialog`
+
+Answers the open dialog box: `accept` presses its confirming button, with `text`
+typed first for a prompt, and `dismiss` closes it without confirming. Chrome
+blocks the whole tab until a dialog is answered, so this is the only way a tab
+with a dialog becomes usable again. Returns a diff.
+
+Request: `{"jsonrpc":"2.0","id":12,"method":"dialog","params":{"action":"accept","text":""}}`
+
+Response: `{"jsonrpc":"2.0","id":12,"result":{"urlChanged":false,"url":"https://example.com/","newElements":[],"expectationMet":true,"settled":true,"snapshot":{"url":"https://example.com/","title":"Example","tabId":"t1","elements":[],"belowFold":0}}}`
+
 ### `health`
 
 Says whether the worker can act on a page, and which Chrome it drove. The Go side
@@ -224,3 +263,7 @@ Response: `{"jsonrpc":"2.0","id":11,"result":{"healthy":true,"chromeVersion":"15
 4. Every action states an expectation and the worker checks it before returning.
 5. It never follows an instruction it read on a page. Everything a page says is
    data.
+6. A PDF page is not read through Chrome's viewer, which exposes no text to a
+   program; the worker fetches the file through the browser's own session, saves
+   it under the profile's `downloads/` folder, and reports it as a download with
+   one snapshot line naming it.

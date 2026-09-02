@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"text/tabwriter"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -29,7 +30,28 @@ type subcommand struct {
 // file in this folder holding one subcommand value, and the orchestrator adds
 // that value to this list; no worker edits this file.
 func subcommands() []subcommand {
-	return []subcommand{versionSubcommand}
+	return []subcommand{versionSubcommand, helpSubcommand()}
+}
+
+// helpName is what the user types to see the list of subcommands.
+const helpName = "help"
+
+// helpFlags are the two ways a person asks for the list without typing the word.
+// Both are the help row of the table rather than a case of their own.
+var helpFlags = []string{"-h", "--help"}
+
+// helpSubcommand prints the list of subcommands. It is a row of the table like
+// every other subcommand, so that the table's own rules apply to it too, and it
+// is a function rather than a value because it names the table it sits in.
+func helpSubcommand() subcommand {
+	return subcommand{
+		name: helpName,
+		help: "Shows this list.",
+		run: func(_ []string, output io.Writer, _ io.Writer) int {
+			writeHelp(subcommands(), output)
+			return contract.ExitOK
+		},
+	}
 }
 
 func main() {
@@ -47,9 +69,8 @@ func run(table []subcommand, arguments []string, output io.Writer, problems io.W
 	}
 
 	asked := arguments[0]
-	if asked == "help" || asked == "-h" || asked == "--help" {
-		writeHelp(table, output)
-		return contract.ExitOK
+	if slices.Contains(helpFlags, asked) {
+		asked = helpName
 	}
 
 	for _, command := range table {
@@ -74,7 +95,6 @@ func writeHelp(table []subcommand, output io.Writer) {
 	for _, command := range table {
 		fmt.Fprintf(listing, "  %s\t%s\n", command.name, command.help)
 	}
-	fmt.Fprintf(listing, "  %s\t%s\n", "help", "Shows this list.")
 	if err := listing.Flush(); err != nil {
 		fmt.Fprintln(output, "  (the list could not be laid out)")
 	}

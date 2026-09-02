@@ -125,14 +125,21 @@ a provider kind from `contract.ProviderKinds`, an address or a vendor program to
 match it, a model name, and a context length above zero; a key is a
 `secret://name` reference and never a key; the default model and every fallback
 name an alias that exists; every cap and every length of time is above zero; a
-Signal account is a phone number in international form; and no sandbox root is,
+Signal account is a phone number in international form; every entry kept on the
+ask-me-first list is one of the three `contract.DefaultAskMeFirst` ships, and an
+emptied list is allowed; every permission rule the user writes names a tool, has
+a pattern, and says `allow`, `ask`, or `deny`, never `stop`, which is what the
+permission function decides on its own for an unattended run; and no sandbox root
+is,
 or sits inside, the paths `contract.ExcludedFromSandbox` names, nor sits above
 the user's home directory. The user's home directory itself is allowed, because
 that is `contract.DefaultSandboxRoots` and the sandbox masks the excluded paths
 out of it.
 
 `config.Doctor` reads a home folder and returns a `config.Report`: one `Finding`
-per check, and a `Verdict` that is the worst of them. A warning means something
+per check, and a `Verdict` that is the worst of them. The line about
+`config.toml` says which model the file reaches for, how much of the
+ask-me-first list the user kept, and how many rules of their own they wrote. A warning means something
 Coeus can work without is switched off, such as a missing browser or a Signal
 account that has not been linked; a problem means something is broken, such as a
 vault key other accounts can read or a configuration that will not load. The

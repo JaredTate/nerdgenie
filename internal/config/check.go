@@ -34,6 +34,8 @@ func (checker settingsChecker) run() error {
 		checker.checkLengthsOfTime,
 		checker.checkSignalAccount,
 		checker.checkAddressesAndPaths,
+		checker.checkAskMeFirst,
+		checker.checkPermissionRules,
 	} {
 		if err := one(); err != nil {
 			return err
@@ -237,6 +239,64 @@ func (checker settingsChecker) checkAddressesAndPaths() error {
 			"the search server address %q is not a web address, so write it with a scheme and a host, such as \"https://search.example.com\", or leave the key out to search DuckDuckGo instead", search))
 	}
 	return nil
+}
+
+// checkAskMeFirst holds the rule that every entry the user keeps on the
+// ask-me-first list is one of the three the design ships. The list may be
+// emptied, which is the user saying they want to be asked about nothing, but it
+// cannot name something the permission function has never heard of.
+func (checker settingsChecker) checkAskMeFirst() error {
+	shipped := contract.DefaultAskMeFirst()
+	for _, entry := range checker.settings.AskMeFirst {
+		if !slices.Contains(shipped, entry) {
+			return checker.complain("ask_me_first", fmt.Sprintf(
+				"nothing on the ask-me-first list is called %q, so use one of %s, or empty the list to be asked about nothing",
+				entry, strings.Join(quoteEach(shipped), ", ")))
+		}
+	}
+	return nil
+}
+
+// checkPermissionRules holds the rules a rule of the user's own must obey: it
+// names a tool, it has a pattern to match on, and it says what to do.
+func (checker settingsChecker) checkPermissionRules() error {
+	for at, rule := range checker.settings.PermissionRules {
+		where := "permission_rules." + strconv.Itoa(at)
+		if err := checker.checkOneRule(where, rule); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkOneRule holds the three parts of one line of the user's rulebook, named
+// by its place in the file so that the message points at the right block.
+func (checker settingsChecker) checkOneRule(where string, rule contract.PermissionRule) error {
+	switch {
+	case strings.TrimSpace(rule.Tool) == "":
+		return checker.complain(where+".tool",
+			"this rule does not say which tool it is about, so name a tool or write \"*\" for every tool")
+	case strings.TrimSpace(rule.Pattern) == "":
+		return checker.complain(where+".pattern",
+			"this rule has nothing to match on, so give it a pattern such as \"git push*\", or \"*\" for every call")
+	case !writableRuleAction(rule.Action):
+		return checker.complain(where+".action", fmt.Sprintf(
+			"this rule says to %q, and a rule you write can only say %q, %q, or %q; stopping is what the harness decides on its own when a run is unattended",
+			rule.Action, contract.RulingAllow, contract.RulingAsk, contract.RulingDeny))
+	}
+	return nil
+}
+
+// writableRuleAction says whether an action is one a user may write in a rule.
+// The fourth ruling, stop, is what the permission function decides for an
+// unattended run that has nobody to answer it, so it never appears in the file.
+func writableRuleAction(action contract.PermissionRuling) bool {
+	switch action {
+	case contract.RulingAllow, contract.RulingAsk, contract.RulingDeny:
+		return true
+	default:
+		return false
+	}
 }
 
 // isWebAddress says whether the text is a web address something can be fetched

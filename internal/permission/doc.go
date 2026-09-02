@@ -10,6 +10,6 @@
 // wins, and a call no rule matches runs on its own. When the answer is to ask,
 // the decision carries a preview of exactly what is about to happen. The user's
 // answer is remembered for the session, a skill may hold a standing approval
-// with a limit and an expiry, and a run with nobody there to answer stops and
-// reports rather than waiting forever.
+// with a limit and an expiry, and a run with nobody there to answer is ruled
+// stop, so the task reports what it needed rather than waiting forever.
 package permission

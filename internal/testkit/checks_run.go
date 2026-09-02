@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -85,8 +86,57 @@ func CheckPermission(ctx context.Context, permission contract.Permission) error 
 	if err := permission.Remember(request, "maybe", ""); err == nil {
 		return errors.New("an answer of \"maybe\" was accepted, and the three answers are once, always, and reject")
 	}
-	if err := permission.Remember(request, contract.AnswerOnce, ""); err != nil {
+	return checkTheThreeAnswers(ctx, permission, request, decision.Ruling)
+}
+
+// checkTheThreeAnswers holds the promise contract.Permission makes about
+// Remember: always allows the same request for the session, reject denies it
+// with the same reason, and once covers one call and changes nothing.
+func checkTheThreeAnswers(ctx context.Context, permission contract.Permission, once contract.PermissionRequest, before contract.PermissionRuling) error {
+	if err := permission.Remember(once, contract.AnswerOnce, ""); err != nil {
 		return fmt.Errorf("remembering an answer of once failed: %w", err)
+	}
+	after, err := permission.Decide(ctx, once)
+	if err != nil {
+		return fmt.Errorf("deciding after an answer of once failed: %w", err)
+	}
+	if after.Ruling != before {
+		return fmt.Errorf("an answer of once changed the ruling from %q to %q, and once covers one call only", before, after.Ruling)
+	}
+
+	allowed := contract.PermissionRequest{ToolName: contract.ToolWrite, CommandPrefix: "write the contract check's file"}
+	if err := permission.Remember(allowed, contract.AnswerAlways, ""); err != nil {
+		return fmt.Errorf("remembering an answer of always failed: %w", err)
+	}
+	decision, err := permission.Decide(ctx, allowed)
+	if err != nil {
+		return fmt.Errorf("deciding after an answer of always failed: %w", err)
+	}
+	if decision.Ruling != contract.RulingAllow {
+		return fmt.Errorf("the ruling after the user said always is %q, and always allows the same request for the session", decision.Ruling)
+	}
+
+	return checkARejectSticks(ctx, permission)
+}
+
+// checkARejectSticks is the last half of the answer check: a rejected request
+// stays refused, and the refusal carries the user's own reason.
+func checkARejectSticks(ctx context.Context, permission contract.Permission) error {
+	reason := "the contract check said never to run this"
+	refused := contract.PermissionRequest{ToolName: contract.ToolShell, CommandPrefix: "the contract check's command"}
+
+	if err := permission.Remember(refused, contract.AnswerReject, reason); err != nil {
+		return fmt.Errorf("remembering an answer of reject failed: %w", err)
+	}
+	decision, err := permission.Decide(ctx, refused)
+	if err != nil {
+		return fmt.Errorf("deciding after an answer of reject failed: %w", err)
+	}
+	if decision.Ruling != contract.RulingDeny {
+		return fmt.Errorf("the ruling after the user rejected it is %q, and a reject refuses the same request", decision.Ruling)
+	}
+	if !strings.Contains(decision.Reason, reason) {
+		return fmt.Errorf("the refusal says %q, and it must carry the user's own reason", decision.Reason)
 	}
 	return nil
 }

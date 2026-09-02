@@ -56,7 +56,11 @@ func generate(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Sorted, and then with the repeats taken out: git prints one line per stage
+	// of a file left in conflict, so a merge in progress would otherwise put the
+	// same path in the map three times.
 	slices.Sort(paths)
+	paths = slices.Compact(paths)
 
 	var built strings.Builder
 	built.WriteString(mapHeader)

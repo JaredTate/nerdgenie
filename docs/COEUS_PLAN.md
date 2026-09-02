@@ -4,19 +4,19 @@
 
 This is the design overview for the first version. Nothing is built yet. The next document will be the work plan for building it. The comparison of other agents that this design grew out of is in `HARNESS_V2.md`, and the research behind that comparison is in `docs/research/`.
 
-Coeus is named for the Titan of intellect, the axis the heavens turn on.
+The name comes from Greek mythology. Coeus was the Titan of intelligence.
 
 ---
 
 ## 1. The idea in one page
 
-Every AI agent today is built the same way. A language model is a function. Text goes in and text comes out. The model has no memory of previous calls and no way to act on the world. The **harness** is the program wrapped around the model that gives it both memory and the ability to act. The same models are available to everyone, so the harness is where one agent differs from another.
+Every AI agent today is built the same way. A language model is a function. Text goes in and text comes out. The model has no memory of previous calls and no way to act on the world. The **harness** is the program wrapped around the model that gives it both memory and the ability to act. Everyone can use the same models, so the harness is what makes one agent different from another.
 
-We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, and the two built by the model companies themselves, Codex and Claude Code. All of them keep long-term memory outside the conversation, in files or in a database. But every one of them uses the conversation transcript as the record of the task the agent is working on. On each turn, the model re-reads the whole transcript in order to work out where it is. When the transcript grows too long to fit, most of them summarize it and hope that nothing important was lost. That is like a video game loading your save by replaying every button you ever pressed.
+We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, and the two built by the model companies themselves, Codex and Claude Code. All of them keep long-term memory outside the conversation, in files or in a database. But every one of them uses the conversation transcript as the record of the task the agent is working on. On each turn, the model re-reads the whole transcript in order to work out where it is. When the transcript grows too long to fit, most of them summarize it and hope that nothing important was lost. That is like a video game loading your save by replaying every button you ever pressed since you started playing.
 
-Coeus is built on a different idea, and it is an old one.
+Coeus is built on a different idea. It is not a new one.
 
-**State.** In computer science, state is the small amount of information about the past that you need in order to act correctly next. A counter does not remember every increment that ever happened to it. It remembers the number seven. A database keeps a log of everything that happened, and it also keeps a snapshot of what is true right now, and those two things are not the same. An operating system can pause a program and resume it days later from one small record. Coeus keeps three things separate: the history of what happened, the state of what is true now, and the working context, which is what the model is looking at during this one turn. Think of a library, a desk, and the page in front of you. Nobody reads the whole library to write the next sentence.
+**State.** In computer science, state is the small amount of information about the past that you need in order to act correctly next. A counter does not remember every increment that ever happened to it. It remembers the number seven. A database keeps a log of everything that happened, and it also keeps a snapshot of what is true right now, and those two things are not the same. An operating system can pause a program and resume it days later from one small record. Coeus keeps three things separate: the history of what happened, the state of what is true now, and the working context, which is what the model is looking at during this one turn. Think of a library, a desk, and the page in front of you. Nobody reads the whole library before writing the next sentence.
 
 **The operations order.** The United States Army faces a larger version of the same problem. A headquarters cannot see every unit, radios fail, and people rotate out in the middle of a mission. The Army's answer is a fixed document format that anyone can write and anyone can check, called the five-paragraph operations order, together with rules for what to do when the plan breaks. We borrow its parts directly. The situation. The mission, including the user's intent and a description of what "done" looks like. The plan. A list of conditions that should make the agent stop and report. Small changes delivered as fragmentary orders. And an after-action review when the work is over.
 
@@ -105,11 +105,11 @@ One process owns everything: the queue, the loop, the permissions, the record, t
 | **Skill** | How to do one kind of thing: the steps, what to expect at each step, the permissions, and the known failures | When a website or a tool changes | Loaded only when the skill is used |
 | **Task** | What is true right now about the thing being worked on | Every turn | In the task record, which is always in context |
 
-Think of a carpenter, the way that carpenter cuts a joint, and the cabinet on the bench today. Only the task changes from turn to turn. Keeping the three separate keeps the prompt cache warm and keeps the record small.
+Think of a carpenter, the way that carpenter has learned to cut a joint, and the cabinet on the workbench today. Only the task changes from turn to turn. Keeping the three separate keeps the prompt cache warm and keeps the record small.
 
 ### The task record, shaped like an operations order
 
-An Army order has five paragraphs: situation, mission, execution, sustainment, and command and signal. The mission paragraph answers who, what, when, where, and why. It also carries the commander's intent and the desired end state, so that when the plan breaks, the unit can still act correctly. Before the operation, the commander also lists the facts that would change a decision, called the critical information requirements. Our record uses the same shape, with the user in the commander's place. It is the pilot's kneeboard: one card that holds the mission, the current leg, and the abort rules, while the full flight log stays on the ground.
+An Army order has five paragraphs: situation, mission, execution, sustainment, and command and signal. The mission paragraph answers who, what, when, where, and why. It also carries the commander's intent and the desired end state, so that when the plan breaks, the unit can still act correctly. Before the operation, the commander also lists the facts that would change a decision, called the critical information requirements. Our record uses the same shape, with the user in the commander's place. It works like the card a pilot straps to one knee. The card holds the mission, the current leg of the flight, and the rules for when to abort. The full flight log stays on the ground.
 
 | Section of the record | Paragraph of the order | Who writes it |
 |---|---|---|
@@ -158,7 +158,7 @@ Done: a tweet under 280 characters, previewed and approved, live on the site.
 
 **What goes in.** The record holds only what the world cannot answer on its own. Which files changed is answered by `git diff`. What is on the web page is answered by the snapshot. Whether a job ran is answered by the jobs table. Those things are looked up, never remembered. The record holds what only the conversation knows: what was asked, why it was asked, what was corrected, what was decided and why, and what failed and why.
 
-**Who writes what.** The harness writes everything it can verify, and it does so with zero model tokens: the header, the corrections, the situation, the results, the status of each step based on tool outcomes, and a failure line whenever a tool errors or an expectation is not met. The model writes the parts that require judgment: the intent, the stop conditions, the plan, the decisions, and the failures it understands. The stop conditions work like a smoke detector. You decide what counts as an alarm before the kitchen is on fire. The ask, the intent, and the corrections are never edited by anyone.
+**Who writes what.** The harness writes everything it can verify, and it does so with zero model tokens: the header, the corrections, the situation, the results, the status of each step based on tool outcomes, and a failure line whenever a tool errors or an expectation is not met. The model writes the parts that require judgment: the intent, the stop conditions, the plan, the decisions, and the failures it understands. The stop conditions work like a smoke detector. You decide what counts as an alarm before there is a fire, not during one. The ask, the intent, and the corrections are never edited by anyone.
 
 **Size.** The record stays between one and three thousand tokens. When it grows past that, the harness folds finished steps and old result lines into single lines. Nothing is deleted, and every result stays readable by its id.
 
@@ -168,9 +168,9 @@ Done: a tweet under 280 characters, previewed and approved, live on the site.
 
 ### The done-check and the after-action review
 
-A task cannot close until every line under "Done" has been answered true, with evidence. A plane does not land because the pilot feels done. The landing gear, the flaps, and the clearance are each checked in turn. The finish was defined before the work started, and the harness will not let the model declare victory otherwise.
+A task cannot close until every line under "Done" has been answered true, with evidence. A pilot does not land because the flight feels finished. The pilot checks the landing gear, the flaps, and the clearance from the tower, one at a time. The finish was defined before the work started, and the harness will not let the model declare victory otherwise.
 
-Then come the four questions of the Army's after-action review, answered in one line each, the way a coach runs the film after a game. What was supposed to happen? What actually happened? Why was there a difference? What do we keep, and what do we change? The answer to the last question is what goes into memory or into a skill. This replaces the vague "save what you learned" step that every other harness uses.
+Then come the four questions of the Army's after-action review, answered in one line each, the way a football coach reviews the game film with the team. What was supposed to happen? What actually happened? Why was there a difference? What do we keep, and what do we change? The answer to the last question is what goes into memory or into a skill. This replaces the vague "save what you learned" step that every other harness uses.
 
 ### Working context: one rule, sized to the model
 
@@ -190,13 +190,13 @@ The prompt is built in layers, ordered from the part that changes least to the p
 | Recent messages, appended and never rewritten | Every turn | |
 | Memory hint, three lines from search | Every turn | |
 
-**Tiered folding.** When a message or a result leaves the recent window, it does not vanish and it is not summarized. It drops one tier. It goes from being in the window word for word, to a one-line entry in the record, to the log, where `read r7` brings it back in full. Today's clothes are on the chair, this week's clothes are in the closet, the rest are in the suitcase, and nothing was thrown away. A large model rarely folds anything. A small model folds constantly and loses nothing.
+**Tiered folding.** When a message or a result leaves the recent window, it does not vanish and it is not summarized. It drops one tier. It goes from being in the window word for word, to a one-line entry in the record, to the log, where `read r7` brings it back in full. It is like packing for a trip. Today's clothes are on the chair, this week's clothes are in the closet, and the rest are in the suitcase. Nothing gets thrown away. A large model rarely folds anything. A small model folds constantly and loses nothing.
 
 **Cost on every turn.** The harness knows the token count of each layer and the cache hit rate. It writes one line into the record header, such as "this turn: 6.1k in, 5.2k of it cached, 0.4k out." The `/status` command totals the cost per task. The user can always see what a task cost and where the tokens went.
 
 **The proof.** The forty-step test task runs on every supported model size when the software is built, and it checks the same three things every time: the ask and the corrections are byte-for-byte identical at the end, the done-check passes, and no result has become unreadable. "Works on any model" is a test, not a claim.
 
-**Why not just use the million tokens.** Attention dilutes. A model reasons worse over a million tokens of noise than over thirty thousand tokens of signal, and the leaders on long-task benchmarks all use explicit plans and memory for exactly that reason. The record is also what lets a task be paused for three days and resumed, possibly on a different model, with nothing held in any window. A million-token context is a bigger window. It is not a save file.
+**Why not just use the million tokens.** Attention dilutes. A model reasons worse over a million tokens of noise than over thirty thousand tokens of signal, and the leaders on long-task benchmarks all use explicit plans and memory for exactly that reason. The record is also what lets a task be paused for three days and resumed, possibly on a different model, with nothing held in any window. A million-token context window is a bigger window. It is not a save file.
 
 ---
 
@@ -273,7 +273,7 @@ Tool results are built by the harness. They are never parsed out of the model's 
 
 ## 8. Skills
 
-A skill is a recipe card. The first time you cook the dish, you think hard. After that, you follow the card and only think when something looks wrong.
+A skill works like a recipe card. The first time you cook a dish, you have to think about every step. After that, you follow the card and only stop to think when something looks wrong.
 
 On disk, a skill is a folder that contains four things. A file named `SKILL.md` holds the skill's name, a one-line description, the words that trigger it, and its permissions, which cover the browser profile it may use, the websites it may visit, its daily limit, and which of its steps cannot be undone. A file of recorded steps, or a script, holds the procedure itself. A dry-run test runs the procedure up to the first step that cannot be undone and then stops. And a changelog records every change with a way to roll it back.
 
@@ -303,7 +303,7 @@ Every browser action works the same way. The model asks for an action and states
 
 **What the model sees.** The model sees a compact tree of the web page with short reference tags, a few hundred tokens in all. Every link, button, and text field appears with its name and its tag. Elements that just appeared are marked as new. A count shows how much of the page is below the fold. A screenshot with numbered marks on the clickable elements is available with one call.
 
-**Act and assert.** Every action carries an expected result, and the worker checks that result before the next step. A mechanic tightens the bolt and then tries to turn it. This is how automated testing frameworks get reliable, and it is why the agent will not click the wrong thing three times in a row.
+**Act and assert.** Every action carries an expected result, and the worker checks that result before the next step. A good mechanic tightens a bolt and then tries to turn it by hand to make sure it is tight. This is how automated testing frameworks get reliable, and it is why the agent will not click the wrong thing three times in a row.
 
 **Like a human.** The agent uses a real Chrome web browser so its fingerprint matches a real browser. It runs with the window visible on the machine's own display, on the user's own network connection. It moves the mouse along a curve, holds a click for a human length of time, types one key at a time with small variations in speed, scrolls in steps, and pauses between actions. Each website gets a daily budget of actions. There are no proxy servers, no invisible headless mode for logged-in accounts, no copying of cookies from one browser to another, and no captcha solving. All of this is about keeping the user's accounts safe.
 
@@ -327,7 +327,7 @@ Every browser action works the same way. The model asks for an action and states
 
 ## 11. Safety, the vault, and reliability
 
-**Five safety rules.** First, one permission function checks every tool call. It is built from rules that name a tool, a pattern, and an action. The last matching rule wins, and the default is to ask the user. Second, every shell command and every file-writing tool runs inside a sandbox built on the Linux tools bwrap and Landlock. The vault, the browser profile, and the user's SSH keys are always outside the sandbox. If the sandbox is missing from the machine, the shell tool is turned off. Third, a tainted turn cannot do anything that cannot be undone. Fourth, nothing that cannot be undone runs without a preview, the way you read a text message back before you hit send. The sandbox itself is a workbench with a lip, so that whatever rolls off stays on the bench. Fifth, secrets are references and never values, one redaction pass runs on everything that leaves the program, and everything is logged.
+**Five safety rules.** First, one permission function checks every tool call. It is built from rules that name a tool, a pattern, and an action. The last matching rule wins, and the default is to ask the user. Second, every shell command and every file-writing tool runs inside a sandbox built on the Linux tools bwrap and Landlock. The vault, the browser profile, and the user's SSH keys are always outside the sandbox. If the sandbox is missing from the machine, the shell tool is turned off. Third, a tainted turn cannot do anything that cannot be undone. Fourth, nothing that cannot be undone runs without a preview, the same way you read a text message back before you hit send. The sandbox works like a workbench with a raised edge. Whatever rolls off stays on the bench instead of falling on the floor. Fifth, secrets are references and never values, one redaction pass runs on everything that leaves the program, and everything is logged.
 
 **The vault.** The vault is an encrypted file with a key that only the agent's own user account can read. Secrets are entered only in the terminal, through a masked prompt that shows asterisks, and never over Signal. The model never sees a secret. It points at the login fields on the page, and the `browser_login` tool types the username, the password, and the two-factor code itself. Sudo has its own path. A shell call with the `escalate` field and a written reason produces a preview. When the user approves it, the harness runs the command outside the sandbox with the sudo password from the vault. The database, the vault, and the browser profile are backed up every night in encrypted form.
 

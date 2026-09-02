@@ -63,7 +63,7 @@ func TestAvailableOnThisMachineReadsTheRealPathAndTheRealKernel(t *testing.T) {
 }
 
 func TestTheReasonANamespaceWasRefusedNamesTheFixAPersonHasToApply(t *testing.T) {
-	err := namespaceRefusedError("bwrap: setting up uid map: Permission denied", errors.New("exit status 1"))
+	err := namespaceRefusedError("bwrap: setting up uid map: Permission denied", errors.New("bwrap quit with exit status 1"))
 
 	if err == nil {
 		t.Fatal("a refused namespace came back as no error at all")

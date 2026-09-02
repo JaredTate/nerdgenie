@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -51,6 +52,13 @@ type Fence struct {
 	userHome      string
 	outputCap     int
 	helperProgram string
+
+	// The answer to whether bwrap can really make a user namespace here, asked
+	// once and then remembered, because asking it starts a process and the
+	// answer does not change while the agent is running.
+	probeGuard  sync.Mutex
+	probed      bool
+	probeReason error
 }
 
 // New checks the settings and returns a fence, or an error saying which setting

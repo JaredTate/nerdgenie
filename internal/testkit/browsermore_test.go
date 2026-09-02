@@ -188,13 +188,32 @@ func TestTheProtocolServerReportsAPageThatNeverSettles(t *testing.T) {
 
 	callProtocol(t, server.SocketPath(),
 		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
+
+	// A page that keeps changing comes back as a diff with settled false, so
+	// that a live page such as a chat or a clock stays usable.
 	worker.NextActionTimesOutSettling()
-	answer := callProtocol(t, server.SocketPath(),
+	living := callProtocol(t, server.SocketPath(),
 		`{"jsonrpc":"2.0","id":2,"method":"press","params":{"key":"Enter","expectation":"the form is submitted"}}`)
+	if failed, isFailure := living["error"]; isFailure {
+		t.Fatalf("a page that kept changing came back as an error: %+v", failed)
+	}
+	result, isResult := living["result"].(map[string]any)
+	if !isResult {
+		t.Fatalf("a page that kept changing came back with no result: %+v", living)
+	}
+	if settled, said := result["settled"].(bool); !said || settled {
+		t.Errorf("the diff says the page settled: %+v", result)
+	}
+
+	// A page that cannot be read at all is the one settling failure that is an
+	// error, and -32001 is what the protocol answers it with.
+	worker.NextActionCannotBeRead()
+	answer := callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":3,"method":"press","params":{"key":"Enter","expectation":"the form is submitted"}}`)
 
 	failure, isFailure := answer["error"].(map[string]any)
 	if !isFailure {
-		t.Fatalf("a page that never settled came back with no error: %+v", answer)
+		t.Fatalf("a page that could not be read came back with no error: %+v", answer)
 	}
 	if failure["code"] != float64(testkit.CodeSettleTimeout) {
 		t.Errorf("the error came back with code %v, want %d", failure["code"], testkit.CodeSettleTimeout)

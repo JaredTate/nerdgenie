@@ -233,7 +233,7 @@ func TestAnActThatAbortsStillReturnsTheDiffsOfTheStepsThatRan(t *testing.T) {
 		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
 	answer := callProtocol(t, server.SocketPath(),
 		`{"jsonrpc":"2.0","id":2,"method":"act","params":{"steps":[`+
-			`{"method":"press","key":"Enter","expectation":"the form is submitted"},`+
+			`{"method":"click","ref":"`+testkit.FixtureChangeLinkRef+`","expectation":"the page changed"},`+
 			`{"method":"click","ref":"e999","expectation":"anything at all"}]}}`)
 
 	failure, isFailure := answer["error"].(map[string]any)

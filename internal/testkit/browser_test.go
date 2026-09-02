@@ -94,7 +94,9 @@ func TestTheFakeBrowserCanBeToldToDoTheFourThingsThatGoWrong(t *testing.T) {
 	}
 
 	worker.NextActionChangesNothing()
-	diff, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changes")
+	// The expectation names nothing on the page and nothing on the link that was
+	// clicked, so the rule in PROTOCOL.md cannot find any of its words.
+	diff, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the timeline fills with posts")
 	if err != nil {
 		t.Fatalf("a click that changes nothing failed instead of reporting: %v", err)
 	}
@@ -115,8 +117,14 @@ func TestTheFakeBrowserCanBeToldToDoTheFourThingsThatGoWrong(t *testing.T) {
 	}
 
 	worker.NextActionTimesOutSettling()
-	if _, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changes"); err == nil {
-		t.Error("a click that never settles was reported as a success, want an error saying the page did not settle")
+	diff, err = worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changed")
+	if err != nil || diff.Settled {
+		t.Errorf("a click on a page that kept changing gave %+v and error %v, want a diff with settled false", diff, err)
+	}
+
+	worker.NextActionCannotBeRead()
+	if _, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changed"); err == nil {
+		t.Error("a click on a page that cannot be read was reported as a success, want the settle timeout")
 	}
 }
 

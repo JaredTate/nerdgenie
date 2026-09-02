@@ -207,6 +207,16 @@ func (worker echoingBrowser) LoginFill(ctx context.Context, fields contract.Logi
 	return diff, nil
 }
 
+// blindBrowser opens a login page and says nothing about the wall on it.
+type blindBrowser struct{ *testkit.FakeBrowserWorker }
+
+// Open hands back the page with whatever wall it holds taken off.
+func (worker blindBrowser) Open(ctx context.Context, address string) (contract.Snapshot, error) {
+	page, err := worker.FakeBrowserWorker.Open(ctx, address)
+	page.Wall = nil
+	return page, err
+}
+
 // eagerBrowser clicks before any page is open.
 type eagerBrowser struct{ *testkit.FakeBrowserWorker }
 
@@ -234,6 +244,12 @@ func TestTheBrowserCheckCatchesAWorkerThatBreaksOnePromise(t *testing.T) {
 	defer eager.Close()
 	if err := testkit.CheckBrowserWorker(ctx, eager); err == nil {
 		t.Error("the browser check passed a worker that clicks with no page open")
+	}
+
+	blind := blindBrowser{testkit.NewFakeBrowserWorker()}
+	defer blind.Close()
+	if err := testkit.CheckBrowserWorker(ctx, blind); err == nil {
+		t.Error("the browser check passed a worker that says nothing about the wall on the page it opened")
 	}
 }
 

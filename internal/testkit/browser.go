@@ -210,7 +210,7 @@ func (worker *FakeBrowserWorker) Click(_ context.Context, ref string, expectatio
 	if err := worker.findable(ref); err != nil {
 		return contract.Diff{}, err
 	}
-	return worker.actAndSettle(worker.links[ref], expectation)
+	return worker.actAndSettle(worker.links[ref], expectation, ref)
 }
 
 // Type types into one element and records what was typed.
@@ -221,21 +221,21 @@ func (worker *FakeBrowserWorker) Type(_ context.Context, ref string, text string
 		return contract.Diff{}, err
 	}
 	worker.typed[ref] = append(worker.typed[ref], text)
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, ref)
 }
 
 // Press presses one key.
 func (worker *FakeBrowserWorker) Press(_ context.Context, _ string, expectation string) (contract.Diff, error) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, "")
 }
 
 // Scroll scrolls the page.
 func (worker *FakeBrowserWorker) Scroll(_ context.Context, _ contract.ScrollDirection, _ int, expectation string) (contract.Diff, error) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, "")
 }
 
 // Act runs a batch of steps and stops at the first one that fails.
@@ -311,7 +311,7 @@ func (worker *FakeBrowserWorker) LoginFill(ctx context.Context, fields contract.
 
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	diff, err := worker.actAndSettle("", "the login is accepted")
+	diff, err := worker.actAndSettle("", "the login is accepted", fields.PasswordRef)
 	if err != nil {
 		return contract.Diff{}, err
 	}
@@ -420,7 +420,7 @@ func (worker *FakeBrowserWorker) Dialog(_ context.Context, action contract.Dialo
 	}
 	worker.openDialog = nil
 	worker.answers = append(worker.answers, DialogAnswer{Action: action, Text: text})
-	return worker.actAndSettle("", "")
+	return worker.actAndSettle("", "", "")
 }
 
 // DialogAnswers is every answer given through Dialog, which a test reads.

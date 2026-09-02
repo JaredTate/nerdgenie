@@ -112,8 +112,11 @@ func FuzzRedact(f *testing.F) {
 
 		redacted := secrets.Redact(text)
 
+		// The marker itself spells "act" inside "redacted", so the markers are
+		// taken out before the search: nothing secret may survive anywhere else.
+		outsideTheMarkers := strings.ReplaceAll(redacted, contract.RedactedMarker, "\x00")
 		for _, value := range []string{"hunter2hunter2", "act", "open sesame"} {
-			if strings.Contains(redacted, value) {
+			if strings.Contains(outsideTheMarkers, value) {
 				t.Fatalf("the redacted text still holds %q: %q came out as %q", value, text, redacted)
 			}
 		}

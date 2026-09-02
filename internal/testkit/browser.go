@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -269,7 +270,14 @@ func (worker *FakeBrowserWorker) Tabs(_ context.Context, action contract.TabActi
 }
 
 // LoginFill types the credentials and returns a diff that holds none of them.
+// The diff describes the whole login rather than the last keystroke, so an
+// element the page grew while the form was being filled is reported as new, the
+// way the real worker reports it.
 func (worker *FakeBrowserWorker) LoginFill(ctx context.Context, fields contract.LoginFields) (contract.Diff, error) {
+	worker.guard.Lock()
+	beforeTheLogin := worker.previous
+	worker.guard.Unlock()
+
 	if _, err := worker.Type(ctx, fields.UsernameRef, fields.Username, "the username box holds the login name"); err != nil {
 		return contract.Diff{}, err
 	}
@@ -288,11 +296,18 @@ func (worker *FakeBrowserWorker) LoginFill(ctx context.Context, fields contract.
 	if err != nil {
 		return contract.Diff{}, err
 	}
+	diff.NewElements = elementsNotIn(diff.Snapshot.Elements, beforeTheLogin)
 	return scrubCredentials(diff, fields), nil
 }
 
 // scrubCredentials takes every value that was typed back out of the diff, so
 // that no method of the browser worker can ever hand a credential to the model.
+//
+// It works on the whole diff at once rather than on a list of fields, because a
+// list of fields is a list somebody will forget to add to. The diff is turned
+// into plain values, every piece of text in it is rewritten, and it is read back
+// as a diff. A diff that cannot be written or read that way comes back holding
+// nothing but the marker, because a credential must never escape a failure here.
 func scrubCredentials(diff contract.Diff, fields contract.LoginFields) contract.Diff {
 	hide := func(text string) string {
 		for _, secret := range []string{fields.Password, fields.Code, fields.Username} {
@@ -302,13 +317,50 @@ func scrubCredentials(diff contract.Diff, fields contract.LoginFields) contract.
 		}
 		return text
 	}
-	diff.Seen = hide(diff.Seen)
-	diff.URL = hide(diff.URL)
-	diff.Snapshot.Title = hide(diff.Snapshot.Title)
-	for at := range diff.Snapshot.Elements {
-		diff.Snapshot.Elements[at].Name = hide(diff.Snapshot.Elements[at].Name)
+
+	written, err := json.Marshal(diff)
+	if err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
 	}
-	return diff
+	var opened any
+	if err := json.Unmarshal(written, &opened); err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	rewritten, err := json.Marshal(rewriteEveryString(opened, hide))
+	if err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	var scrubbed contract.Diff
+	if err := json.Unmarshal(rewritten, &scrubbed); err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	return scrubbed
+}
+
+// scrubFailureNote is what a diff says when the scrubber could not read it. It
+// is deliberately the only thing that comes back, because a diff that could not
+// be scrubbed may still hold a credential.
+const scrubFailureNote = "the browser worker could not check this diff for credentials, so it was thrown away"
+
+// rewriteEveryString rewrites every piece of text inside a decoded piece of
+// JSON, however deeply it is buried, and leaves the shape alone.
+func rewriteEveryString(value any, rewrite func(text string) string) any {
+	switch typed := value.(type) {
+	case string:
+		return rewrite(typed)
+	case []any:
+		for at, item := range typed {
+			typed[at] = rewriteEveryString(item, rewrite)
+		}
+		return typed
+	case map[string]any:
+		for key, item := range typed {
+			typed[key] = rewriteEveryString(item, rewrite)
+		}
+		return typed
+	default:
+		return value
+	}
 }
 
 // Screenshot returns a picture with the clickable elements numbered.

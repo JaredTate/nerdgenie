@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -62,11 +63,14 @@ func checkBrowserLogin(ctx context.Context, worker contract.BrowserWorker) error
 		return fmt.Errorf("filling the login form failed: %w", err)
 	}
 
-	whole := diff.URL + diff.Seen + diff.Snapshot.Title
-	for _, element := range diff.Snapshot.Elements {
-		whole += element.Name + element.Role
+	// The whole diff as JSON is the only haystack that cannot miss a field
+	// somebody forgot to scrub, which is exactly how the password used to get out
+	// through the list of elements that appeared.
+	whole, err := json.Marshal(diff)
+	if err != nil {
+		return fmt.Errorf("cannot read the diff from a login back as JSON to check it for credentials: %w", err)
 	}
-	if strings.Contains(whole, password) {
+	if strings.Contains(string(whole), password) {
 		return errors.New("the diff from a login holds the password, and no method may ever hand a credential back")
 	}
 	return nil

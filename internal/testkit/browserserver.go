@@ -108,12 +108,15 @@ type protocolCall struct {
 func (server *BrowserProtocolServer) answer(line []byte) map[string]any {
 	var call protocolCall
 	if err := json.Unmarshal(line, &call); err != nil {
-		return protocolFailure(nil, CodeParseError, "the line was not JSON, so send one JSON object per line")
+		return protocolFailure(nil, CodeParseError, "the line was not JSON, so send one JSON object per line", nil)
 	}
 
 	result, err := server.run(call)
 	if err != nil {
-		return protocolFailure(call.ID, codeFor(err), err.Error())
+		// A failed call may still have something to report: PROTOCOL.md promises
+		// one diff per step of a batch that ran, and says a -32000 carries a fresh
+		// snapshot. Both ride in the error's data field.
+		return protocolFailure(call.ID, codeFor(err), err.Error(), result)
 	}
 	return map[string]any{"jsonrpc": "2.0", "id": call.ID, "result": result}
 }
@@ -142,48 +145,67 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 
 	switch call.Method {
 	case "open":
-		return server.worker.Open(ctx, params.URL)
+		return onlyOnSuccess(server.worker.Open(ctx, params.URL))
 	case "read":
-		return server.worker.Read(ctx, contract.ReadOptions{VisibleOnly: params.VisibleOnly})
+		return onlyOnSuccess(server.worker.Read(ctx, contract.ReadOptions{VisibleOnly: params.VisibleOnly}))
 	case "click":
-		return server.worker.Click(ctx, params.Ref, params.Expectation)
+		return onlyOnSuccess(server.worker.Click(ctx, params.Ref, params.Expectation))
 	case "type":
-		return server.worker.Type(ctx, params.Ref, params.Text, params.Expectation)
+		return onlyOnSuccess(server.worker.Type(ctx, params.Ref, params.Text, params.Expectation))
 	case "press":
-		return server.worker.Press(ctx, params.Key, params.Expectation)
+		return onlyOnSuccess(server.worker.Press(ctx, params.Key, params.Expectation))
 	case "scroll":
-		return server.worker.Scroll(ctx, params.Direction, params.Amount, params.Expectation)
+		return onlyOnSuccess(server.worker.Scroll(ctx, params.Direction, params.Amount, params.Expectation))
 	case "act":
-		diffs, err := server.worker.Act(ctx, params.Steps)
-		return map[string]any{"diffs": diffs}, err
+		return server.act(ctx, params.Steps)
 	case "tabs":
 		tabs, err := server.worker.Tabs(ctx, params.Action, params.TabID)
-		return map[string]any{"tabs": tabs}, err
+		return onlyOnSuccess(map[string]any{"tabs": tabs}, err)
 	case "loginFill":
 		return server.loginFill(ctx, call.Params)
 	case "screenshot":
-		return server.worker.Screenshot(ctx)
+		return onlyOnSuccess(server.worker.Screenshot(ctx))
 	case "health":
-		return server.worker.Health(ctx)
+		return onlyOnSuccess(server.worker.Health(ctx))
 	case "dialog":
-		return server.dialog(ctx, call.Params)
+		return onlyOnSuccess(server.dialog(ctx, call.Params))
 	default:
 		return nil, fmt.Errorf("the method %q is not one of the twelve: %w", call.Method, ErrNoSuchMethod)
 	}
 }
 
 // dialog reads the two dialog fields and answers the open dialog box.
-func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMessage) (any, error) {
+func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMessage) (contract.Diff, error) {
 	var params struct {
 		Action contract.DialogAction `json:"action"`
 		Text   string                `json:"text"`
 	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, fmt.Errorf("cannot read the dialog parameters, so check the action and text fields: %w", err)
+			return contract.Diff{}, fmt.Errorf("cannot read the dialog parameters, so check the action and text fields: %w", err)
 		}
 	}
 	return server.worker.Dialog(ctx, params.Action, params.Text)
+}
+
+// act runs a batch and keeps the diffs of the steps that ran, even when a later
+// step failed, because PROTOCOL.md promises one diff per step that ran and the
+// model needs to see exactly where the batch stopped.
+func (server *BrowserProtocolServer) act(ctx context.Context, steps []contract.ActStep) (any, error) {
+	diffs, err := server.worker.Act(ctx, steps)
+	if err != nil && len(diffs) == 0 {
+		return nil, err
+	}
+	return map[string]any{"diffs": diffs}, err
+}
+
+// onlyOnSuccess drops a half-built result when the call failed, so that an error
+// carries nothing but what it meant to carry.
+func onlyOnSuccess[Result any](result Result, err error) (any, error) {
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loginFill reads the credential fields separately, so that they are never part
@@ -196,12 +218,17 @@ func (server *BrowserProtocolServer) loginFill(ctx context.Context, raw json.Raw
 	return server.worker.LoginFill(ctx, fields)
 }
 
-// protocolFailure builds the error answer PROTOCOL.md describes.
-func protocolFailure(id any, code int, message string) map[string]any {
+// protocolFailure builds the error answer PROTOCOL.md describes, carrying
+// whatever the failed call still had to report in the error's data field.
+func protocolFailure(id any, code int, message string, data any) map[string]any {
+	failure := map[string]any{"code": code, "message": message}
+	if data != nil {
+		failure["data"] = data
+	}
 	return map[string]any{
 		"jsonrpc": "2.0",
 		"id":      id,
-		"error":   map[string]any{"code": code, "message": message},
+		"error":   failure,
 	}
 }
 

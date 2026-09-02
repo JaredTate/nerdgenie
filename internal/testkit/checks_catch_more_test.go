@@ -34,6 +34,20 @@ func (agreeablePermission) Remember(contract.PermissionRequest, contract.Preview
 	return nil
 }
 
+// forgetfulPermission files every answer it understands as an always, so a
+// reject the user gave with a reason is allowed anyway and the reason is thrown
+// away. It is the mutation the reviewer named.
+type forgetfulPermission struct{ *testkit.FakePermission }
+
+// Remember files an answer it understands as an always, and passes an answer it
+// does not understand through so that the refusal still happens.
+func (forgetful forgetfulPermission) Remember(request contract.PermissionRequest, answer contract.PreviewAnswer, reason string) error {
+	if !contract.KnownPreviewAnswer(answer) {
+		return forgetful.FakePermission.Remember(request, answer, reason)
+	}
+	return forgetful.FakePermission.Remember(request, contract.AnswerAlways, "")
+}
+
 func TestThePermissionCheckCatchesADeciderThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -43,6 +57,7 @@ func TestThePermissionCheckCatchesADeciderThatBreaksOnePromise(t *testing.T) {
 		{"a ruling nobody defined", undecidedPermission{testkit.NewFakePermission(contract.RulingAllow)}},
 		{"an ask with nothing to show the user", silentAsker{testkit.NewFakePermission(contract.RulingAllow)}},
 		{"an answer of maybe that was accepted", agreeablePermission{testkit.NewFakePermission(contract.RulingAllow)}},
+		{"a reject filed as an always", forgetfulPermission{testkit.NewFakePermission(contract.RulingAllow)}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

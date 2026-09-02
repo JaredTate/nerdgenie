@@ -408,5 +408,6 @@ scripts/stylecheck/main_test.go
 test/fixtures/forty-step/task.json
 test/functional/permission_test.go
 test/functional/sample_test.go
+test/functional/vault_test.go
 worker/browser/PROTOCOL.md
 ```

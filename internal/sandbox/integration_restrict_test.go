@@ -118,7 +118,32 @@ func TestTheHelperAppliesEverythingAndThenTriesToBecomeTheCommand(t *testing.T) 
 		t.Errorf("the helper said %q, and it must name the program it could not become", err)
 	}
 	if !strings.Contains(said.String(), "landlock version") {
-		t.Errorf("the helper wrote %q to its error output, and it must say in one line what it did", said)
+		t.Errorf("the helper wrote %q to its error output, and when it fails it must say in one line how far it got", said)
+	}
+}
+
+func TestTheHelperSaysNothingAtAllWhenItHasNothingToReport(t *testing.T) {
+	t.Setenv(FenceMarkerVariable, fenceMarkerValue)
+	work := t.TempDir()
+	said := &strings.Builder{}
+
+	// The helper cannot be watched succeeding from in here, because on success it
+	// becomes another program and never comes back. What can be checked is that
+	// nothing is written before that moment, which is what keeps a shell result
+	// free of a line the model would have to read on every single call.
+	err := onAThreadThatIsThrownAway(t, func() error {
+		return Entry([]string{"--write", work, "--", filepath.Join(work, "no-such-program")}, said)
+	})
+	if err == nil {
+		t.Fatal("the helper reported that it became a program that is not on disk")
+	}
+
+	wrote := said.String()
+	if strings.Count(wrote, "\n") != 1 {
+		t.Errorf("the helper wrote %q, want the one line it writes only when it could not become the command", wrote)
+	}
+	if strings.Contains(wrote, "running ") {
+		t.Errorf("the helper wrote %q, and it must not announce a command it never started", wrote)
 	}
 }
 

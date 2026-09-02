@@ -8,17 +8,48 @@ import (
 	"time"
 )
 
-// ProviderKind names the wire protocol a model provider speaks.
+// ProviderKind names how a model is reached. There are three: two wire
+// protocols, and the vendor's own command-line program.
 type ProviderKind string
 
 const (
 	// ProviderAnthropic is the Anthropic Messages API.
 	ProviderAnthropic ProviderKind = "anthropic"
-	// ProviderOpenAICompatible is the OpenAI Chat Completions API at a base
-	// address, which covers OpenAI itself, llama-server, LM Studio, Ollama, and
-	// every cloud gateway.
-	ProviderOpenAICompatible ProviderKind = "openai-compatible"
+	// ProviderOpenAI is the OpenAI Chat Completions API at a base address, which
+	// covers OpenAI itself, llama-server, LM Studio, Ollama, and every cloud
+	// gateway.
+	ProviderOpenAI ProviderKind = "openai"
+	// ProviderCommandLine runs the vendor's own command-line program on the
+	// user's subscription, which is how the two cloud models are reached on a
+	// machine with no API keys. The program returns text and nothing else, so a
+	// model reached this way writes its tool calls in the text form below.
+	ProviderCommandLine ProviderKind = "cli"
 )
+
+// The two command-line programs a "cli" alias may name. Each one is the vendor's
+// own program, already signed in to the user's subscription: "claude -p" for
+// Anthropic and "codex exec" for OpenAI.
+const (
+	// ClaudeProgram is Anthropic's command-line program.
+	ClaudeProgram = "claude"
+	// CodexProgram is OpenAI's command-line program.
+	CodexProgram = "codex"
+)
+
+// ProviderKinds returns the three ways a model can be reached.
+func ProviderKinds() []ProviderKind {
+	return []ProviderKind{ProviderAnthropic, ProviderOpenAI, ProviderCommandLine}
+}
+
+// KnownProviderKind says whether the kind is one of the three.
+func KnownProviderKind(kind ProviderKind) bool {
+	switch kind {
+	case ProviderAnthropic, ProviderOpenAI, ProviderCommandLine:
+		return true
+	default:
+		return false
+	}
+}
 
 // CacheBoundary marks a place in the system prompt where everything above may be
 // reused from the provider's cache on the next call.

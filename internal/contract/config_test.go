@@ -23,8 +23,8 @@ func TestDefaultConfigMatchesTheDocumentedDefaults(t *testing.T) {
 	if local.Name != contract.LocalModelAlias {
 		t.Errorf("the shipped alias is named %q, want %q", local.Name, contract.LocalModelAlias)
 	}
-	if local.Provider != contract.ProviderOpenAICompatible {
-		t.Errorf("the local alias speaks %q, want %q", local.Provider, contract.ProviderOpenAICompatible)
+	if local.Provider != contract.ProviderOpenAI {
+		t.Errorf("the local alias speaks %q, want %q", local.Provider, contract.ProviderOpenAI)
 	}
 	if local.BaseAddress != "http://127.0.0.1:19091/v1" {
 		t.Errorf("the local alias points at %q, want the llama-server daemon", local.BaseAddress)

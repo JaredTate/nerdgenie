@@ -45,6 +45,24 @@ const (
 	ToolComputer = "computer"
 )
 
+// The one text form of a tool call. A model reached through a command-line
+// program has no tool interface at all: it can only write text. So it writes its
+// calls in this form, and internal/repair reads them back out. Every other
+// text-shaped call a small model invents is repaired into this same shape.
+const (
+	// ToolCallOpenTag begins a tool call written as text.
+	ToolCallOpenTag = "<tool_call>"
+	// ToolCallCloseTag ends one.
+	ToolCallCloseTag = "</tool_call>"
+)
+
+// ToolCallTextInstruction is the sentence that tells a model with no tool
+// interface how to ask for a tool. It rides in the prompt for those models only,
+// so it is one sentence and no longer.
+const ToolCallTextInstruction = `To use a tool, write ` + ToolCallOpenTag +
+	`{"name": "the tool's name", "arguments": {}}` + ToolCallCloseTag +
+	` on a line of its own, and nothing else on that line.`
+
 // BuiltInToolNames returns the eighteen built-in tool names in the order design
 // section 7 lists them.
 func BuiltInToolNames() []string {

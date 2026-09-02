@@ -17,12 +17,18 @@ const LocalModelAlias = "local"
 type ModelAlias struct {
 	// Name is what the user and the record call it, such as "local".
 	Name string
-	// Provider is the wire protocol to speak.
+	// Provider is how the model is reached: one of the two wire protocols, or
+	// the vendor's own command-line program.
 	Provider ProviderKind
 	// BaseAddress is the address of the server, for an OpenAI-compatible
-	// provider. It is empty for the Anthropic provider, which has one address.
+	// provider. It is empty for the Anthropic provider, which has one address,
+	// and for a command-line provider, which has none.
 	BaseAddress string
-	// ModelName is what the server calls the model, such as "local-coder".
+	// Program is the command-line program to run, for a "cli" provider: either
+	// ClaudeProgram or CodexProgram. It is empty for the other two.
+	Program string
+	// ModelName is what the server or the program calls the model, such as
+	// "local-coder".
 	ModelName string
 	// ContextLength is how many tokens the model can hold, which is the one
 	// number the working-context rule is sized from.
@@ -106,7 +112,7 @@ func DefaultConfig() Config {
 	return Config{
 		Models: []ModelAlias{{
 			Name:          LocalModelAlias,
-			Provider:      ProviderOpenAICompatible,
+			Provider:      ProviderOpenAI,
 			BaseAddress:   "http://127.0.0.1:19091/v1",
 			ModelName:     "local-coder",
 			ContextLength: 262144,

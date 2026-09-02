@@ -107,6 +107,21 @@ func writableAccess(version int) uint64 {
 	return handledAccess(version)
 }
 
+// fileOnlyRights are the rights the kernel will hang on something that is not a
+// folder. Listing a folder, or making a file inside one, means nothing for a
+// single file, and asking for those makes the kernel refuse the whole rule.
+const fileOnlyRights = accessExecute | accessWriteFile | accessReadFile | accessTruncate | accessDeviceControl
+
+// accessForTarget cuts the rights down to what the kernel will accept for the
+// thing this rule hangs on. The fence hangs one rule on a file rather than a
+// folder: the helper program itself, which the command has to be able to run.
+func accessForTarget(allowed uint64, isFolder bool) uint64 {
+	if isFolder {
+		return allowed
+	}
+	return allowed & fileOnlyRights
+}
+
 // encodeRulesetAttribute lays out struct landlock_ruleset_attr by hand. Only its
 // first field is written, so the kernel arbitrates the filesystem and leaves the
 // network alone, which is what lets a sandboxed command reach the internet.
@@ -191,7 +206,11 @@ func addLandlockRule(rulesetFile int, folder string, allowed uint64) error {
 	}
 	defer func() { _ = syscall.Close(parentFile) }()
 
-	rule := encodePathBeneathRule(allowed, int32(parentFile))
+	details := syscall.Stat_t{}
+	if err := syscall.Fstat(parentFile, &details); err != nil {
+		return fmt.Errorf("the sandbox cannot tell whether %q is a folder, which decides what a rule on it may allow: %w", folder, err)
+	}
+	rule := encodePathBeneathRule(accessForTarget(allowed, details.Mode&syscall.S_IFMT == syscall.S_IFDIR), int32(parentFile))
 	_, _, errorNumber := syscall.Syscall6(addRuleCall, uintptr(rulesetFile), pathBeneathRuleKind,
 		uintptr(unsafe.Pointer(&rule[0])), 0, 0, 0)
 	if errorNumber != 0 {

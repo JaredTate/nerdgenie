@@ -25,14 +25,14 @@ const fetchMode = "fetch-a-page"
 // its helper as "<the coeus binary> sandbox-entry ...", and on this branch the
 // orchestrator has not yet added that subcommand to cmd/coeus/main.go, so the
 // test binary answers to the same word. It is the same function either way.
-func TestMain(m *testing.M) {
+func TestMain(tests *testing.M) {
 	switch {
 	case len(os.Args) > 1 && os.Args[1] == EntrySubcommandName:
 		os.Exit(runTheHelper())
 	case len(os.Args) > 2 && os.Args[1] == fetchMode:
 		os.Exit(fetchOnePage(os.Args[2]))
 	}
-	os.Exit(m.Run())
+	os.Exit(tests.Run())
 }
 
 // runTheHelper is what cmd/coeus/sandbox_entry.go does, written here so that the
@@ -126,6 +126,7 @@ func useAFenceProgram(t *testing.T) {
 // returns a fence whose helper is this test binary.
 func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 	t.Helper()
+	useATemporaryHomeOutsideTheFence(t)
 	home := testkit.NewTempHome(t)
 	userHome := filepath.Dir(home.Root)
 	useAFenceProgram(t)
@@ -150,6 +151,26 @@ func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 		t.Fatalf("cannot build a fence around %s: %v", work, err)
 	}
 	return fence, userHome, work
+}
+
+// useATemporaryHomeOutsideTheFence points the temporary directory at a folder
+// the fence does not grant.
+//
+// Inside a real bwrap fence, /tmp is a fresh empty folder of its own, so a
+// fixture home under the machine's own /tmp would not be there at all. The
+// helper's Landlock rules allow /tmp for that reason, which means a fixture home
+// under it would be allowed along with it whenever the tests have to fall back to
+// the stand-in. Putting the fixtures under /var/tmp keeps the two "this must
+// fail" tests honest either way.
+func useATemporaryHomeOutsideTheFence(t *testing.T) {
+	t.Helper()
+	base, err := os.MkdirTemp("/var/tmp", "coeus-sandbox-")
+	if err != nil {
+		t.Skipf("cannot make a folder under /var/tmp, which these tests need so that the fixture home sits outside "+
+			"every folder the fence allows: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(base) })
+	t.Setenv("TMPDIR", base)
 }
 
 // fixtureKey stands in for a private key. It is not one, and nothing anywhere

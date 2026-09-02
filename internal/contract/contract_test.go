@@ -133,3 +133,17 @@ func TestARecordCanHoldATaskAndAJobWithOneSetOfTypes(t *testing.T) {
 		t.Errorf("a job task points at %q, want %q", job.Work.Tasks[0].ReportID, contract.ReportID("4", 1))
 	}
 }
+
+func TestThePermissionRulingsAreAllowAskDenyAndStop(t *testing.T) {
+	for _, ruling := range []contract.PermissionRuling{contract.RulingAllow, contract.RulingAsk, contract.RulingDeny, contract.RulingStop} {
+		if !contract.KnownPermissionRuling(ruling) {
+			t.Errorf("the ruling %q is not known, and the loop must be able to read it", ruling)
+		}
+	}
+	if contract.KnownPermissionRuling("maybe") {
+		t.Error("the ruling \"maybe\" is known, and only the four rulings should be")
+	}
+	if contract.RulingStop != "stop" {
+		t.Errorf("the stop ruling is %q, want \"stop\"", contract.RulingStop)
+	}
+}

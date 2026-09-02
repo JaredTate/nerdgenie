@@ -187,3 +187,25 @@ func snakeCase(name string) string {
 	}
 	return string(out)
 }
+
+func TestTheConfigurationCarriesTheAskMeFirstListAndTheUserRules(t *testing.T) {
+	defaults := contract.DefaultConfig()
+	if !reflect.DeepEqual(defaults.AskMeFirst, contract.DefaultAskMeFirst()) {
+		t.Errorf("a fresh configuration's ask-me-first list is %v, want the three shipped entries %v", defaults.AskMeFirst, contract.DefaultAskMeFirst())
+	}
+	if len(defaults.PermissionRules) != 0 {
+		t.Errorf("a fresh configuration has %d user rules, want none", len(defaults.PermissionRules))
+	}
+	rule := contract.PermissionRule{Tool: "shell", Pattern: "git push*", Action: contract.RulingAsk}
+	if rule.Tool != "shell" || rule.Pattern != "git push*" || rule.Action != contract.RulingAsk {
+		t.Errorf("a permission rule did not hold its three parts: %+v", rule)
+	}
+	for _, typ := range []reflect.Type{reflect.TypeFor[contract.PermissionRule]()} {
+		for index := 0; index < typ.NumField(); index++ {
+			field := typ.Field(index)
+			if got, want := field.Tag.Get("toml"), snakeCase(field.Name); got != want {
+				t.Errorf("%s.%s has the toml key %q, want %q", typ.Name(), field.Name, got, want)
+			}
+		}
+	}
+}

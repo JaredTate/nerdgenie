@@ -55,6 +55,18 @@ func newMemory(t *testing.T, caps contract.MemoryCaps) openedMemory {
 	return openedMemory{memory: remembering, home: home, eventLog: eventLog, clock: clock}
 }
 
+// reopen opens the memory a second time on the same home, which is what makes
+// the indexer run again over the files on disk and the events in the log.
+func reopen(t *testing.T, opened openedMemory) *memory.Memory {
+	t.Helper()
+	again, err := memory.Open(context.Background(), opened.home, opened.eventLog, opened.clock, shippedCaps)
+	if err != nil {
+		t.Fatalf("cannot open the memory again: %v", err)
+	}
+	t.Cleanup(func() { _ = again.Close() })
+	return again
+}
+
 // saveWorldFact saves one fact about the world and fails the test if it cannot.
 func (opened openedMemory) saveWorldFact(t *testing.T, text string) {
 	t.Helper()

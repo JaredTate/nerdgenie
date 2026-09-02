@@ -114,7 +114,7 @@ describe("numbering the controls of a window", () => {
 
 describe("the middle of a control", () => {
   test("is the middle of its place on the screen, rounded to whole pixels", () => {
-    expect(middleOf({ x: 10, y: 20, w: 101, h: 31 })).toEqual({ x: 60, y: 36 })
+    expect(middleOf({ x: 10, y: 20, w: 101, h: 31 })).toEqual({ x: 61, y: 36 })
   })
 })
 

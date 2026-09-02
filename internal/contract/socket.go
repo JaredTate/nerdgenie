@@ -95,7 +95,14 @@ type SocketEnvelope struct {
 	Reason string `json:"reason,omitempty"`
 	// Fields carries the name-and-value pairs of a status message.
 	Fields map[string]string `json:"fields,omitempty"`
+	// MaskInput, on an ask, tells the screen to hide what the person types,
+	// because the answer is a secret that comes back in a secret envelope.
+	MaskInput bool `json:"maskInput,omitempty"`
 }
+
+// ApproveAlwaysText is the text an approve envelope carries when the person
+// chose "always for the session" rather than this once.
+const ApproveAlwaysText = "always"
 
 // ErrEmptySocketLine means the caller handed the decoder a blank line.
 var ErrEmptySocketLine = errors.New("the socket line was empty, so there is no message to read")

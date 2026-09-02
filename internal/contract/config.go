@@ -57,6 +57,10 @@ type Caps struct {
 	// IdenticalCallWindow is how many recent tool calls the guard compares a new
 	// call against. Default 20.
 	IdenticalCallWindow int `toml:"identical_call_window"`
+	// OutputTokensPerCall caps what the model may write on one call. Default
+	// 8192, which every provider sends, because a zero cap is refused on the
+	// wire.
+	OutputTokensPerCall int `toml:"output_tokens_per_call"`
 }
 
 // MemoryCaps are the hard size limits on the two persona memory files, which is
@@ -135,6 +139,7 @@ func DefaultConfig() Config {
 			QueuedMessages:      100,
 			ToolOutputBytes:     30000,
 			IdenticalCallWindow: 20,
+			OutputTokensPerCall: 8192,
 		},
 		MemoryCaps: MemoryCaps{
 			WorldFactsBytes: 8000,
@@ -144,16 +149,31 @@ func DefaultConfig() Config {
 }
 
 // ExcludedFromSandbox returns the paths that must never be reachable from inside
-// the sandbox, given the user's home directory. They are the agent's own home
-// folder, the vault, the browser profiles, and the user's SSH keys.
-func ExcludedFromSandbox(userHome string) []string {
-	home := NewHome(filepath.Join(userHome, HomeFolderName))
+// the sandbox, given the user's home directory and the agent's own home folder,
+// which COEUS_HOME may have moved anywhere. They are the agent's home, the
+// vault, the browser profiles, and the user's SSH keys.
+func ExcludedFromSandbox(userHome string, agentHome string) []string {
+	if agentHome == "" {
+		agentHome = filepath.Join(userHome, HomeFolderName)
+	}
+	home := NewHome(agentHome)
 	return []string{
 		home.Root,
 		home.VaultFile(),
 		home.BrowserFolder(),
 		filepath.Join(userHome, ".ssh"),
 	}
+}
+
+// resolvedPath follows symbolic links when the path exists, so that a link to
+// an excluded path is judged by where it leads, and leaves a path that does not
+// exist yet as it is.
+func resolvedPath(path string) string {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	return resolved
 }
 
 // WorkFolderName is the folder under the user's home directory that a fresh
@@ -171,16 +191,19 @@ func DefaultSandboxRoots(userHome string) []string {
 
 // CheckSandboxRoot returns an error when a configured sandbox root is one of the
 // excluded paths, sits inside one, or holds one, because a root like that would
-// put the vault, the browser profile, or the SSH keys inside the fence.
-func CheckSandboxRoot(root string, userHome string) error {
+// put the vault, the browser profile, or the SSH keys inside the fence. Links
+// are followed on both sides, so a root that is a link to the home directory
+// is judged as the home directory.
+func CheckSandboxRoot(root string, userHome string, agentHome string) error {
 	if root == "" {
 		return fmt.Errorf("a sandbox root is empty, so give it a full path such as %q", filepath.Join(userHome, WorkFolderName))
 	}
 	if !filepath.IsAbs(root) {
 		return fmt.Errorf("the sandbox root %q is not a full path, so write it starting from the root of the filesystem", root)
 	}
-	clean := filepath.Clean(root)
-	for _, excluded := range ExcludedFromSandbox(userHome) {
+	clean := resolvedPath(root)
+	for _, excluded := range ExcludedFromSandbox(userHome, agentHome) {
+		excluded = resolvedPath(excluded)
 		if clean == excluded || strings.HasPrefix(clean, excluded+string(filepath.Separator)) {
 			return fmt.Errorf("the sandbox root %q is inside %q, which must stay outside the sandbox, so choose a root that does not contain it", root, excluded)
 		}

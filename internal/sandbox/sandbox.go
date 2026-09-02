@@ -34,6 +34,10 @@ type Settings struct {
 	// UserHome is the user's own home directory, which is what the forbidden
 	// paths are worked out from.
 	UserHome string
+	// AgentHome is the agent's own home folder, which COEUS_HOME may have moved
+	// away from the default under the user's home; the fence must keep it out
+	// wherever it is. Empty means the default, ~/.coeus.
+	AgentHome string
 	// OutputCap is the most bytes kept from each of a command's two output
 	// streams. Zero means the tool output cap from the configuration's defaults.
 	OutputCap int
@@ -65,7 +69,7 @@ type Fence struct {
 // cannot be allowed and what to do about it. Everything that can be refused is
 // refused here, once, rather than on every command.
 func New(settings Settings) (*Fence, error) {
-	roots, err := checkRoots(settings.Roots, settings.UserHome)
+	roots, err := checkRoots(settings.Roots, settings.UserHome, settings.AgentHome)
 	if err != nil {
 		return nil, err
 	}

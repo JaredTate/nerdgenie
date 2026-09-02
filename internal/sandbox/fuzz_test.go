@@ -29,7 +29,7 @@ func FuzzTheFenceNeverBindsAForbiddenFolder(f *testing.F) {
 	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		f.Fatalf("cannot write the stand-in helper program: %v", err)
 	}
-	forbidden := contract.ExcludedFromSandbox(userHome)
+	forbidden := contract.ExcludedFromSandbox(userHome, "")
 
 	f.Add("work", "/bin/sh", "-c", "")
 	f.Add(".ssh", "/bin/cat", "id_rsa", "")

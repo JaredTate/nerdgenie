@@ -16,10 +16,11 @@ import (
 // checked, the file it came from, which line each key is written on, and the
 // user's home directory, which the sandbox rules are measured from.
 type settingsChecker struct {
-	settings contract.Config
-	path     string
-	lines    keyLine
-	userHome string
+	settings  contract.Config
+	path      string
+	lines     keyLine
+	userHome  string
+	agentHome string
 }
 
 // run works through the checks in the order a person reads the file, and returns
@@ -157,7 +158,7 @@ func (checker settingsChecker) checkSandboxRoots() error {
 				"the sandbox root %q is above your home directory %q, so a sandboxed command could reach every account on the machine; use your home directory or a folder inside it",
 				root, checker.userHome))
 		}
-		if err := contract.CheckSandboxRoot(root, checker.userHome); err != nil {
+		if err := contract.CheckSandboxRoot(root, checker.userHome, checker.agentHome); err != nil {
 			return checker.complain("sandbox_roots", err.Error())
 		}
 	}

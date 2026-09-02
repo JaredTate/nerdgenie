@@ -31,7 +31,7 @@ func TestCheckRootsAcceptsAFolderBesideTheAgentsOwnHome(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 
-	checked, err := checkRoots([]string{work + "/"}, userHome)
+	checked, err := checkRoots([]string{work + "/"}, userHome, "")
 	if err != nil {
 		t.Fatalf("a folder beside the agent's home was refused: %v", err)
 	}
@@ -43,8 +43,8 @@ func TestCheckRootsAcceptsAFolderBesideTheAgentsOwnHome(t *testing.T) {
 func TestCheckRootsRefusesEveryPathThatMustStayOutside(t *testing.T) {
 	userHome := tempUserHome(t)
 
-	for _, forbidden := range contract.ExcludedFromSandbox(userHome) {
-		if _, err := checkRoots([]string{forbidden}, userHome); err == nil {
+	for _, forbidden := range contract.ExcludedFromSandbox(userHome, "") {
+		if _, err := checkRoots([]string{forbidden}, userHome, ""); err == nil {
 			t.Errorf("the root %q was accepted, and it must stay outside the fence", forbidden)
 		}
 	}
@@ -54,7 +54,7 @@ func TestCheckRootsRefusesAFolderInsideThePathsThatMustStayOutside(t *testing.T)
 	userHome := tempUserHome(t)
 	inside := filepath.Join(userHome, contract.HomeFolderName, "browser", "default")
 
-	_, err := checkRoots([]string{inside}, userHome)
+	_, err := checkRoots([]string{inside}, userHome, "")
 	if err == nil {
 		t.Fatalf("the root %q was accepted, and it sits inside the browser profile", inside)
 	}
@@ -66,7 +66,7 @@ func TestCheckRootsRefusesAFolderInsideThePathsThatMustStayOutside(t *testing.T)
 func TestCheckRootsRefusesAParentOfTheAgentsHome(t *testing.T) {
 	userHome := tempUserHome(t)
 
-	_, err := checkRoots([]string{userHome}, userHome)
+	_, err := checkRoots([]string{userHome}, userHome, "")
 	if err == nil {
 		t.Fatal("the user's whole home directory was accepted as a root, and it holds the agent's own home")
 	}
@@ -78,7 +78,7 @@ func TestCheckRootsRefusesAParentOfTheAgentsHome(t *testing.T) {
 func TestCheckRootsRefusesTheWholeFilesystem(t *testing.T) {
 	userHome := tempUserHome(t)
 
-	if _, err := checkRoots([]string{"/"}, userHome); err == nil {
+	if _, err := checkRoots([]string{"/"}, userHome, ""); err == nil {
 		t.Fatal("the whole filesystem was accepted as a root, and it holds everything that must stay outside")
 	}
 }
@@ -86,7 +86,7 @@ func TestCheckRootsRefusesTheWholeFilesystem(t *testing.T) {
 func TestCheckRootsRefusesAPathThatIsNotAFullPath(t *testing.T) {
 	userHome := tempUserHome(t)
 
-	if _, err := checkRoots([]string{"work"}, userHome); err == nil {
+	if _, err := checkRoots([]string{"work"}, userHome, ""); err == nil {
 		t.Fatal("a relative path was accepted as a root, and a root must be a full path")
 	}
 }
@@ -94,7 +94,7 @@ func TestCheckRootsRefusesAPathThatIsNotAFullPath(t *testing.T) {
 func TestCheckRootsRefusesAListWithNoRootsInIt(t *testing.T) {
 	userHome := tempUserHome(t)
 
-	if _, err := checkRoots(nil, userHome); err == nil {
+	if _, err := checkRoots(nil, userHome, ""); err == nil {
 		t.Fatal("an empty list of roots was accepted, and a fence with no root can reach nothing")
 	}
 }
@@ -111,7 +111,7 @@ func TestCheckRootsRefusesMoreRootsThanTheCap(t *testing.T) {
 		roots = append(roots, folder)
 	}
 
-	if _, err := checkRoots(roots, userHome); err == nil {
+	if _, err := checkRoots(roots, userHome, ""); err == nil {
 		t.Fatalf("%d roots were accepted, and the cap is %d", len(roots), MaxRoots)
 	}
 }
@@ -120,7 +120,7 @@ func TestCheckRootsRefusesARootThatIsNotThere(t *testing.T) {
 	userHome := tempUserHome(t)
 	missing := filepath.Join(userHome, "work", "nowhere")
 
-	if _, err := checkRoots([]string{missing}, userHome); err == nil {
+	if _, err := checkRoots([]string{missing}, userHome, ""); err == nil {
 		t.Fatalf("the root %q was accepted, and there is no such folder", missing)
 	}
 }
@@ -132,13 +132,13 @@ func TestCheckRootsRefusesARootThatIsAFileRatherThanAFolder(t *testing.T) {
 		t.Fatalf("cannot write the file for the test: %v", err)
 	}
 
-	if _, err := checkRoots([]string{note}, userHome); err == nil {
+	if _, err := checkRoots([]string{note}, userHome, ""); err == nil {
 		t.Fatalf("the root %q was accepted, and it is a file rather than a folder", note)
 	}
 }
 
 func TestCheckRootsRefusesAnEmptyUserHome(t *testing.T) {
-	if _, err := checkRoots([]string{"/tmp"}, ""); err == nil {
+	if _, err := checkRoots([]string{"/tmp"}, "", ""); err == nil {
 		t.Fatal("the roots were checked with no home directory to check them against")
 	}
 }

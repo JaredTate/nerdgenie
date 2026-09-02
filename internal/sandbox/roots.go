@@ -23,7 +23,7 @@ const MaxRoots = 16
 // The configuration package refuses a bad root as well. This package refuses it
 // again, because it is the last thing standing between a bad root and a command
 // that can read the vault.
-func checkRoots(roots []string, userHome string) ([]string, error) {
+func checkRoots(roots []string, userHome string, agentHome string) ([]string, error) {
 	if userHome == "" {
 		return nil, errors.New("the sandbox was given no home directory to work the forbidden paths out from, so pass the user's home directory")
 	}
@@ -36,7 +36,7 @@ func checkRoots(roots []string, userHome string) ([]string, error) {
 
 	checked := make([]string, 0, len(roots))
 	for _, root := range roots {
-		clean, err := checkOneRoot(root, userHome)
+		clean, err := checkOneRoot(root, userHome, agentHome)
 		if err != nil {
 			return nil, err
 		}
@@ -50,8 +50,8 @@ func checkRoots(roots []string, userHome string) ([]string, error) {
 // outside the fence, and it does not hold one of them. The last is this
 // package's own, because only something about to run a command needs it: the
 // root is a folder that is really there.
-func checkOneRoot(root string, userHome string) (string, error) {
-	if err := contract.CheckSandboxRoot(root, userHome); err != nil {
+func checkOneRoot(root string, userHome string, agentHome string) (string, error) {
+	if err := contract.CheckSandboxRoot(root, userHome, agentHome); err != nil {
 		return "", err
 	}
 	clean := filepath.Clean(root)

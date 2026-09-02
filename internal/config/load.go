@@ -95,7 +95,7 @@ func Parse(home contract.Home, document []byte) (contract.Config, error) {
 	}
 	fillPathsFromTheHome(&settings, home, userHome, lines)
 
-	if err := (settingsChecker{settings: settings, path: path, lines: lines, userHome: userHome}).run(); err != nil {
+	if err := (settingsChecker{settings: settings, path: path, lines: lines, userHome: userHome, agentHome: home.Root}).run(); err != nil {
 		return contract.Config{}, err
 	}
 	return settings, nil

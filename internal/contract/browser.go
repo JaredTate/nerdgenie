@@ -137,6 +137,10 @@ type ActStep struct {
 	Text string `json:"text,omitempty"`
 	// Key is the key to press, when the method is "press".
 	Key string `json:"key,omitempty"`
+	// Direction is which way to scroll, when the method is "scroll".
+	Direction ScrollDirection `json:"direction,omitempty"`
+	// Amount is how many steps to scroll, when the method is "scroll".
+	Amount int `json:"amount,omitempty"`
 	// Expectation is what the model expects to happen, in plain words.
 	Expectation string `json:"expectation"`
 }

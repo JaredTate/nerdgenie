@@ -147,8 +147,8 @@ func TestReplayHandsBackTenThousandEventsInOrderAndReadsStopAtTheMaximum(t *test
 	}
 
 	found, err := eventLog.ByTask(ctx, "t1")
-	if err != nil {
-		t.Fatalf("reading the task's events failed: %v", err)
+	if err == nil {
+		t.Error("reading a task with more events than one read returns gave no error, and it must say it was cut short")
 	}
 	if len(found) != MaxEventsPerRead {
 		t.Errorf("reading a task with %d events gave back %d of them, want the maximum of %d", written, len(found), MaxEventsPerRead)

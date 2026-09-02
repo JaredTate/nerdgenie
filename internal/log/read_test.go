@@ -181,7 +181,7 @@ func TestByRangeRefusesASpanThatEndsBeforeItStarts(t *testing.T) {
 	}
 }
 
-func TestAReadStopsAtTheLimitItIsGiven(t *testing.T) {
+func TestAReadCutShortByItsLimitHandsBackWhatItReadAndSaysSo(t *testing.T) {
 	eventLog := newTestLog(t)
 	writeEvents(t, eventLog, []contract.Event{
 		{TaskID: "t1", Kind: contract.EventMessage},
@@ -190,8 +190,8 @@ func TestAReadStopsAtTheLimitItIsGiven(t *testing.T) {
 	})
 
 	found, err := eventLog.events(context.Background(), "WHERE task_id = ?", 2, "t1")
-	if err != nil {
-		t.Fatalf("reading with a limit failed: %v", err)
+	if err == nil {
+		t.Fatal("a read cut short by its limit returned no error, and it must say it was cut short")
 	}
 	if len(found) != 2 {
 		t.Errorf("a limit of two gave back %d events, want 2", len(found))

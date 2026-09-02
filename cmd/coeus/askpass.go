@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/vault"
 )
@@ -27,7 +28,7 @@ var askpassSubcommand = subcommand{
 			return contract.ExitBadConfiguration
 		}
 
-		opened, err := vault.Open(home, nil)
+		opened, err := vault.Open(home, clock.System())
 		if err != nil {
 			fmt.Fprintf(problems, "coeus askpass: %v\n", err)
 			return contract.ExitFailure

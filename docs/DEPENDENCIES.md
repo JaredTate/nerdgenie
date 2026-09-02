@@ -11,8 +11,11 @@ list needs the orchestrator's yes before it is added, and a new row here with it
 one-line reason. A library that stops being used is removed from `go.mod` and its
 row is struck from this file at the next wave gate.
 
-Each library below is added to `go.mod` by the first wave that imports it; the wave 1 packages brought in the TOML parser and the SQLite driver.
-uses only the standard library.
+Each library below is added to `go.mod` by the first wave that imports it.
+The wave 1 packages brought in the TOML parser and the SQLite driver, and
+`internal/vault` in wave 2 brought in `filippo.io/age` and
+`github.com/pquerna/otp`. Everything else built so far uses only the standard
+library.
 
 ## The pre-approved list
 

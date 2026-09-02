@@ -98,7 +98,7 @@ html{scroll-behavior:smooth}
 <div class="page">
 <header class="top">
   <h1>${title}</h1>
-  <p>${parts.length} parts. Diagrams draw below; tables scroll sideways on a phone. Source: <code>~/Desktop/${inPath.split("/").pop()}</code>.</p>
+  <p>${parts.length} parts. Diagrams draw below; tables scroll sideways on a phone. Source: <code>docs/${inPath.split("/").pop()}</code> in the Coeus repository.</p>
 </header>
 <nav class="parts">${nav}</nav>
 <main>

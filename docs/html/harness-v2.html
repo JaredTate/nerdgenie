@@ -60,287 +60,291 @@ html{scroll-behavior:smooth}
 <div class="page">
 <header class="top">
   <h1>Harness V2</h1>
-  <p>8 parts. Diagrams draw below; tables scroll sideways on a phone. Source: <code>~/Desktop/HARNESS_V2.md</code>.</p>
+  <p>8 parts. Diagrams draw below; tables scroll sideways on a phone. Source: <code>docs/HARNESS_V2.md</code> in the Coeus repository.</p>
 </header>
-<nav class="parts"><a href="#part-0-the-one-page-version">The One-Page Version</a><a href="#part-1-seven-harnesses-one-diagram-each">Seven Harnesses, One Diagram Each</a><a href="#part-2-the-nine-things-that-actually-differ">The Nine Things That Actually Differ</a><a href="#part-3-what-makes-some-work-better-than-others">What Makes Some Work Better Than Others</a><a href="#part-4-your-screenshot-in-one-diagram">Your Screenshot, In One Diagram</a><a href="#part-5-the-scoreboard">The Scoreboard</a><a href="#part-6-local-models-and-languages-one-page-each">Local Models and Languages, One Page Each</a><a href="#appendix-method-sources-corrections">Method, Sources, Corrections</a></nav>
+<nav class="parts"><a href="#part-0-the-one-page-version">Part 0: The one-page version</a><a href="#part-1-seven-harnesses-one-diagram-each">Part 1: Seven harnesses, one diagram each</a><a href="#part-2-the-nine-things-that-actually-differ">Part 2: The nine things that actually differ</a><a href="#part-3-what-makes-some-work-better-than-others">Part 3: What makes some work better than others</a><a href="#part-4-one-failed-update-in-one-diagram">Part 4: One failed update, in one diagram</a><a href="#part-5-the-scoreboard">Part 5: The scoreboard</a><a href="#part-6-local-models-and-languages">Part 6: Local models and languages</a><a href="#appendix-method-sources-and-corrections">Appendix: Method, sources, and corrections</a></nav>
 <main>
-<p><strong>Agent Harnesses, Compared: OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, and what actually makes one work</strong></p>
-<p>2 September 2026. Same method as the August report: research agents read the real source code on this machine, measured your Linux box over SSH, and benchmarked languages on this Mac. Every number was then re-checked by a second agent against the studies and the repositories; anything unverified says so. The design that comes out of this is in <code>COEUS_PLAN.md</code>.</p>
+<p><strong>Agent harnesses compared: OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, and what actually makes one work.</strong></p>
+<p>This report was written on 2 September 2026. The method was the same as the August report. Research agents read the real source code of each project, measured a running Linux installation over SSH, and benchmarked candidate languages on a Mac. A second agent then re-checked every number against the studies and the repositories. Anything that could not be verified says so. The design that comes out of this comparison is in <code>COEUS_PLAN.md</code>.</p>
 <hr>
-<h1 id="part-0-the-one-page-version">Part 0 — The One-Page Version</h1>
+<h1 id="part-0-the-one-page-version">Part 0: The one-page version</h1>
 <h2 id="what-a-harness-is">What a harness is</h2>
-<p>A model is a function: text in, text out, no memory, no hands. <strong>The harness is the program around it that gives it memory and hands.</strong> Same models everywhere. Different wrappers. This document is about the wrappers.</p>
+<p>A language model is a function. Text goes in, text comes out, and the model has no memory and no hands. <strong>The harness is the program wrapped around the model that gives it memory and hands.</strong> The same models are available to everyone, so the harness is where the difference lies. This document is about the harnesses.</p>
 <h2 id="the-verdict">The verdict</h2>
-<div class="tablewrap"><table><thead><tr><th>Harness</th><th>Language</th><th>What it is</th><th>Verdict</th></tr></thead><tbody><tr><td><strong>OpenClaw 2.0</strong></td><td>TypeScript</td><td>A daemon with 27 chat channels, 57 tools, 160 database tables</td><td>Great loop, buried under install and update code that breaks every release. <strong class="bad">Not for you</strong></td></tr>
-<tr><td><strong>Hermes</strong></td><td>Python</td><td>An always-on assistant with the best memory and reliability ideas</td><td>Steal its ideas. Its terminal UI is two processes joined by a pipe. <strong class="bad">Not for you</strong></td></tr>
-<tr><td><strong>Prime</strong></td><td>TypeScript + Python</td><td>One tool: a Python process the model types into</td><td>Good for data analysis. No safety gate at all. <strong class="bad">Not for you</strong></td></tr>
-<tr><td><strong>OpenCode</strong></td><td>TypeScript (Bun)</td><td>A coding agent with the best interface in the field</td><td>Copy the interface design. No memory, no Signal, no sandbox</td></tr>
-<tr><td><strong>Atomic</strong></td><td>TypeScript</td><td>A developer preview, Telegram only</td><td>Too early</td></tr>
-<tr><td><strong>ZeroClaw</strong></td><td>Rust</td><td>Signal, cron, web UI, local models in one binary, if you build it yourself</td><td>Closest to your spec. 775,000 lines. Port five of its designs, do not fork</td></tr>
-<tr><td><strong>Codex / Claude Code</strong></td><td>Rust / compiled</td><td>Coding agents from the labs</td><td>Reference designs for sandboxing and permissions</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Harness</th><th>Language</th><th>What it is</th><th>Verdict</th></tr></thead><tbody><tr><td><strong>OpenClaw 2.0</strong></td><td>TypeScript</td><td>A daemon with 27 chat channels, 57 tools, and 160 database tables</td><td>A great loop, buried under install and update code that breaks on every release. <strong>Not recommended.</strong></td></tr>
+<tr><td><strong>Hermes</strong></td><td>Python</td><td>An always-on assistant with the best ideas about memory and reliability</td><td>Borrow its ideas. Its terminal interface is two processes joined by a pipe. <strong>Not recommended.</strong></td></tr>
+<tr><td><strong>Prime</strong></td><td>TypeScript and Python</td><td>An agent with one tool, which is a Python process the model types into</td><td>Good for data analysis. It has no safety gate at all. <strong>Not recommended.</strong></td></tr>
+<tr><td><strong>OpenCode</strong></td><td>TypeScript on Bun</td><td>A coding agent with the best interface in the field</td><td>Copy the interface design. It has no memory, no Signal, and no sandbox.</td></tr>
+<tr><td><strong>Atomic</strong></td><td>TypeScript</td><td>A developer preview that supports Telegram only</td><td>Too early to judge.</td></tr>
+<tr><td><strong>ZeroClaw</strong></td><td>Rust</td><td>Signal, scheduled jobs, a web interface, and local models in one binary, if you build it from source</td><td>The closest existing project to the goal, at 775,000 lines. Port five of its designs; do not fork it.</td></tr>
+<tr><td><strong>Codex and Claude Code</strong></td><td>Rust, and a compiled binary</td><td>Coding agents from the model labs</td><td>Reference designs for sandboxing and permissions.</td></tr></tbody></table></div>
 <h2 id="the-five-things-that-decide-whether-a-harness-works">The five things that decide whether a harness works</h2>
 <ol>
-<li><strong>How big the wrapper is.</strong> Every loop is small (1,000 to 7,000 lines). The code around it is 50 to 75 times bigger. That is where things break.</li>
-<li><strong>Whether there is a cap.</strong> OpenClaw has no maximum number of turns. Its brakes are a 48-hour timeout, a loop detector, and a retry budget, and none of them is a cap. That is &quot;gets stuck.&quot;</li>
-<li><strong>Where the conversation goes when the window fills.</strong> Summarize and lose things, or keep state in files that get re-read. The second one works.</li>
-<li><strong>Whether learning has a read path.</strong> Writing notes nobody reads back is logging, not learning.</li>
-<li><strong>Whether the screen owns any state.</strong> If the UI holds state and talks to the core over a pipe, it glitches. If it is a dumb client of one core, it works.</li>
+<li><strong>How big the wrapper is.</strong> Every agent loop is small, between one and seven thousand lines. The code wrapped around it is fifty to seventy-five times bigger, and that wrapper is where things break.</li>
+<li><strong>Whether there is a cap.</strong> OpenClaw has no maximum number of turns. Its only brakes are a 48-hour timeout, a loop detector, and a retry budget, and none of those is a cap. That is what &quot;it got stuck&quot; means.</li>
+<li><strong>Where the conversation goes when the window fills.</strong> A harness can summarize the conversation and lose things, or it can keep its state in files that get re-read. The second approach works.</li>
+<li><strong>Whether learning has a read path.</strong> Writing notes that nobody reads back is logging, not learning.</li>
+<li><strong>Whether the screen owns any state.</strong> If the user interface holds state and talks to the core over a pipe, it glitches. If it is a dumb client of one core, it works.</li>
 </ol>
 <h2 id="the-one-number">The one number</h2>
-<p>OpenClaw merged <strong>10,574 commits in the last 30 days, 63 percent of them from one person at 223 a day.</strong> Nobody reviews code at that pace. That is why it breaks when you update.</p>
+<p>OpenClaw merged <strong>10,574 commits in the last 30 days, and 63 percent of them came from one person at a rate of 223 a day.</strong> Nobody reviews code at that pace. That is why it breaks when you update.</p>
 <hr>
-<h1 id="part-1-seven-harnesses-one-diagram-each">Part 1 — Seven Harnesses, One Diagram Each</h1>
-<p>Every diagram has the same shape so you can flip between them: input at the top, context, the model, tools on the right, overflow below, storage at the bottom. <strong>Where a box is missing, that is the point.</strong></p>
+<h1 id="part-1-seven-harnesses-one-diagram-each">Part 1: Seven harnesses, one diagram each</h1>
+<p>Every diagram has the same shape, so you can flip between them and see what changed. Input is at the top, then the prompt, then the model, then the tools, then what happens when the window fills, then storage at the bottom. <strong>Where a box is missing, that is the point.</strong></p>
 <h2 id="1-openclaw-2-0">1. OpenClaw 2.0</h2>
 <blockquote>
 <p><strong>A daemon that does everything, surrounded by more install code than agent code.</strong></p>
 </blockquote>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  U["27 channels, cron, web UI, apps"] --> Q["Two queues: steer now, or follow up after"]
-  Q --> C["Prompt: ~45 sections, 6 role files up to 60k chars"]
-  C --> M["Model: 76 provider ids, can swap mid-run"]
-  M --> R["Text-to-tool-call repair for weak models"]
+  U["27 channels"] --> Q["Two queues"]
+  Q --> C["Prompt: 45 sections"]
+  C --> M["Model: 76 providers"]
+  M --> R["Repair text tool calls"]
   R --> K{"Tool calls?"}
   K -->|"no"| F["Reply"]
-  K -->|"yes"| G["8 permission layers, taint label"]
-  G --> T["57 tools, run in parallel"]
-  T --> Z{"Loop detector: 10 warn, 20 block, 30 stop"}
-  Z -->|"ok"| M
-  Z -->|"no turn cap otherwise"| M
-  T --> S["SQLite: 121 + 39 tables. Memory: FTS5 + vectors"]
+  K -->|"yes"| G["8 permission layers"]
+  G --> T["57 tools, in parallel"]
+  T --> Z{"Loop detector"}
+  Z -->|"under 30 repeats"| M
+  T --> S["SQLite: 160 tables"]
   S --> C
 </pre></div>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language, speed</td><td>TypeScript on Node. Idles at <strong>504 MB</strong> on rosie, plus 288 MB of Java for Signal, plus 195 MB of helpers. Starting the gateway statically imports 41 percent of the 8,703 files in <code>src/</code>, about 1.9 million lines</td></tr>
-<tr><td>The good</td><td>The purest loop with hooks around it. Steering at tool boundaries. A repair layer for models that print tool calls as text. Cron with backoff and auto-disable. Pairing by default on Signal. A cache boundary in the prompt. A persisted delivery queue</td></tr>
-<tr><td>The bad</td><td>317,000 lines of operations code (CLI commands, infra, service install, updater) around a 67,000-line loop. No turn cap. Five liveness timers that cannot kill a running tool. 10,175 config options. Your screenshot</td></tr></tbody></table></div>
+<p>Messages arrive from 27 channels, scheduled jobs, a web interface, and native apps. They enter one of two queues: a message can steer the current turn or wait until it finishes. The prompt has about 45 sections, and it includes six role files that can total 60,000 characters. The model can be any of 76 providers and can be swapped in the middle of a run. A repair layer turns tool calls that weak models write as plain text into real tool calls. Eight permission layers are checked, and the turn is labeled if it read anything from the network. The 57 tools run in parallel. A loop detector warns after 10 identical calls, blocks after 20, and stops after 30, but there is no cap on turns otherwise. Everything is stored in SQLite across 160 tables, and memory is indexed with full-text search and vectors.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language and speed</td><td>TypeScript on Node. On the machine we measured, it idles at <strong>504 MB</strong>, plus 288 MB of Java for Signal, plus 195 MB of helper processes. Starting the gateway imports 41 percent of the 8,703 source files, which is about 1.9 million lines.</td></tr>
+<tr><td>The good</td><td>The purest loop in the field, with hooks around it. A message that arrives mid-turn steers the next step. A repair layer for models that print tool calls as text. Scheduled jobs with backoff and automatic disabling. Pairing by default on Signal. A cache boundary in the prompt. A delivery queue that survives restarts.</td></tr>
+<tr><td>The bad</td><td>317,000 lines of operations code, meaning commands, infrastructure, service installation, and the updater, around a 67,000-line loop. No turn cap. Five separate liveness timers, none of which can kill a running tool. 10,175 configuration options. And the update failure in Part 4.</td></tr></tbody></table></div>
 <h2 id="2-hermes">2. Hermes</h2>
 <blockquote>
 <p><strong>An assistant that assumes the conversation never ends, so it spends its effort on shrinking context and writing down what it learned.</strong></p>
 </blockquote>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  U["CLI, 31 chat platforms"] --> C["Prompt in 3 tiers: stable, project, volatile. MEMORY.md 2,200 chars, USER.md 1,375"]
+  U["31 platforms"] --> C["Prompt in 3 tiers"]
   C --> M["Model: 41 providers"]
   M --> K{"Tool calls?"}
   K -->|"no"| F["Reply"]
-  K -->|"yes"| G["4 approval layers, 12 patterns nobody can approve"]
-  G --> T["83 tools: about 33 always shown, 18 behind tool_search"]
-  T --> Z{"Context over 50 percent?"}
+  K -->|"yes"| G["4 approval layers"]
+  G --> T["83 tools, 33 shown"]
+  T --> Z{"Context over half?"}
   Z -->|"no"| M
-  Z -->|"yes"| Y["Prune old tool output, summarize the middle, keep YOUR messages word for word"]
+  Z -->|"yes"| Y["Summarize the middle"]
   Y --> C
-  T --> R["After 10 tool calls with no notes: fork a copy that may only write memory and skills"]
-  R --> S["SQLite + FTS5, MEMORY.md, SKILL.md files"]
+  T --> R["Fork a copy to write notes"]
+  R --> S["SQLite, memory files, skills"]
   S --> C
 </pre></div>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language, speed</td><td>Python, 1.5 million hand-written lines, 1.06 million of them Python. Idle memory not measured: the gateway was not running on rosie, only the dashboard at 88 MB. On disk: a 678 MB virtualenv plus a 204 MB bundled Node just for the terminal UI. <code>run_conversation()</code> is one 7,245-line function</td></tr>
-<tr><td>The good</td><td>The best compaction rule in the field: your words survive word for word. A budgeted learning fork. A watchdog on a plain thread, added after a 30-hour deadlock. A delivery ledger that admits possible duplicates. One lease per session. A masked password prompt for sudo</td></tr>
-<tr><td>The bad</td><td>The terminal UI: a Node screen and a Python brain joined by a pipe that child processes can break, with a recovery hack that gives up after ten tries a minute, plus an optional third process to dodge the GIL. 120 UI bugs opened in one month. 57 percent of 6,440 commits in 28 days were fixes</td></tr></tbody></table></div>
+<p>Messages arrive from a command line and 31 chat platforms. The prompt is built in three tiers: a stable tier, a project tier, and a volatile tier that holds a memory file capped at 2,200 characters and a user file capped at 1,375. The model can be any of 41 providers. Four approval layers check each tool call, and twelve patterns can never be approved by anyone. Of the 83 tools, about 33 are always shown and 18 sit behind a search tool. When the context passes half its size, old tool output is pruned, the middle is summarized, and the user&#39;s own messages are kept word for word. After ten tool calls with no notes written, a copy of the agent is forked that can only write memory and skills. Everything is stored in SQLite with full-text search, plus memory and skill files.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language and speed</td><td>Python, with 1.5 million hand-written lines, of which 1.06 million are Python. Idle memory was not measured, because the gateway was not running on the machine we checked; the dashboard alone used 88 MB. On disk it needs a 678 MB virtual environment plus a 204 MB bundled copy of Node just for the terminal interface. The main conversation function is 7,245 lines long.</td></tr>
+<tr><td>The good</td><td>The best compaction rule in the field: the user&#39;s words survive word for word. A learning fork with a budget. A watchdog on a plain thread, added after a 30-hour deadlock. A delivery ledger that admits when a message may be a duplicate. One lease per session. A masked password prompt for sudo.</td></tr>
+<tr><td>The bad</td><td>The terminal interface is a Node screen and a Python brain joined by a pipe that child processes can break, with a recovery hack that gives up after ten tries a minute, plus an optional third process to work around the Python interpreter lock. 120 interface bugs were opened in one month. Of 6,440 commits in 28 days, 57 percent were fixes.</td></tr></tbody></table></div>
 <h2 id="3-prime">3. Prime</h2>
 <blockquote>
 <p><strong>One tool. The model types Python into a process that outlives the chat.</strong></p>
 </blockquote>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  U["Terminal, attaches to a daemon"] --> C["Prompt + AGENTS.md + notes it wrote for itself"]
-  C --> M["Model: 9 real APIs"]
+  U["Terminal"] --> C["Prompt + notes"]
+  C --> M["Model: 9 APIs"]
   M --> K{"Tool call?"}
   K -->|"no"| F["Reply"]
-  K -->|"yes"| T["The only tool: run Python"]
-  T --> V["Python process: variables, bash() handles, child agents"]
+  K -->|"yes"| T["Run Python"]
+  T --> V["Python process"]
   V --> M
-  M --> Z{"After the turn"}
-  Z --> W["Refine: write notes into harness_state.json, with rollback"]
+  M --> W["Refine notes"]
   W --> C
-  V --> S["JSONL transcript tree, pickled variables"]
+  V --> S["JSONL log, pickled variables"]
 </pre></div>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language, speed</td><td>TypeScript host plus one Python child per session. 171,000 lines. A 33,000-line daemon just to keep sessions attachable</td></tr>
-<tr><td>The good</td><td>Work lives in variables, not in the chat. Notes with history and rollback that the next prompt actually reads. Cron as a heartbeat. Budgets with verifier gates</td></tr>
-<tr><td>The bad</td><td><strong>No permission gate anywhere.</strong> Approving &quot;run Python&quot; is approving everything. Three processes per session. It still ships Claude Code&#39;s OAuth client id to log into your subscription</td></tr></tbody></table></div>
+<p>A terminal attaches to a daemon. The prompt is the base prompt, a project file, and notes the agent wrote for itself. The model can use one of nine real API implementations. There is exactly one tool, which runs Python in a persistent process. Variables, shell handles, and child agents all live in that process. After each turn, a refine step writes notes into a state file, with history and rollback, and the next prompt reads them. Transcripts are a JSONL tree, and the Python variables are pickled to disk.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language and speed</td><td>A TypeScript host plus one Python child per session, in 171,000 lines. A 33,000-line daemon exists just to keep sessions attachable.</td></tr>
+<tr><td>The good</td><td>Work lives in variables, not in the chat. Notes with history and rollback that the next prompt actually reads. Scheduled jobs as a heartbeat. Budgets with a checker at the end.</td></tr>
+<tr><td>The bad</td><td><strong>There is no permission gate anywhere.</strong> Approving &quot;run Python&quot; means approving everything. There are three processes per session. It still ships Claude Code&#39;s OAuth client id so that it can log into your subscription.</td></tr></tbody></table></div>
 <h2 id="4-opencode">4. OpenCode</h2>
 <blockquote>
 <p><strong>One process with an HTTP API inside it. Every screen is a client. It never makes you wait.</strong></p>
 </blockquote>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  U["Terminal UI, desktop app, web, attach over the network"] -->|"one API, one event stream"| C["Prompt + AGENTS.md re-read from disk every step"]
-  C --> M["Model via Vercel AI SDK"]
+  U["Terminal, desktop, web"] -->|"one API"| C["Prompt + AGENTS.md"]
+  C --> M["Model via AI SDK"]
   M --> K{"Tool calls?"}
-  K -->|"no"| F["Reply as field-level deltas"]
-  K -->|"yes"| G["One permission function: ask, allow, deny. Last rule wins"]
-  G --> T["17 tools defined, 13 to 14 visible, plain-text descriptions, 50 KB cap"]
-  T --> D{"Same call 3 times in one response?"}
+  K -->|"no"| F["Reply as deltas"]
+  K -->|"yes"| G["One permission function"]
+  G --> T["17 tools"]
+  T --> D{"Same call 3 times?"}
   D -->|"yes"| A["Ask the user"]
   D -->|"no"| M
-  T --> S["SQLite, 20 tables. No memory system at all"]
+  T --> S["SQLite, 20 tables"]
 </pre></div>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language, speed</td><td>TypeScript on Bun. A 137 MB single binary. Starts in 0.26 s. <strong>Idles at 380 to 400 MB</strong></td></tr>
-<tr><td>The good</td><td>The five decisions you like: one core owns all state; every screen subscribes to one event stream; streaming as small deltas; permissions as inline questions with once, always, reject; one command table for everything. Files re-read every step so compaction cannot lose them. Malformed tool calls become fixable errors instead of crashes</td></tr>
-<tr><td>The bad</td><td>No memory, no scheduling, no Signal, no sandbox. By code reading (not run), the &quot;doom loop&quot; detector only sees three identical calls inside one model response; one bad call per step slips past it because step markers sit between steps. Not light: 341,000 lines, 3,233 packages</td></tr></tbody></table></div>
+<p>The terminal, the desktop app, and the web app all talk to one API and one event stream, and the same interface can attach to a remote server. The prompt includes an <code>AGENTS.md</code> file that is re-read from disk on every step. The model is called through the Vercel AI SDK. One permission function decides ask, allow, or deny, and the last matching rule wins. Seventeen tools are defined, of which 13 or 14 are visible, each with a plain-text description and a 50 KB output cap. If the same call appears three times in one response, the user is asked. Storage is SQLite with 20 tables. There is no memory system at all.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language and speed</td><td>TypeScript on Bun, shipped as a 137 MB single binary. It starts in 0.26 seconds and <strong>idles at 380 to 400 MB</strong>.</td></tr>
+<tr><td>The good</td><td>The five decisions that make the interface feel good: one core owns all state, every screen subscribes to one event stream, streaming arrives as small deltas, permissions are inline questions with the choices once, always, and reject, and one command table drives everything. Files are re-read every step so compaction cannot lose them. Malformed tool calls become fixable errors instead of crashes.</td></tr>
+<tr><td>The bad</td><td>No memory, no scheduling, no Signal, no sandbox. By code reading, not by running it, the loop detector only sees three identical calls inside one model response, so one bad call per step slips past it. It is not light: 341,000 lines and 3,233 packages.</td></tr></tbody></table></div>
 <h2 id="5-atomic-agent">5. Atomic Agent</h2>
 <blockquote>
 <p><strong>A TypeScript developer preview that constrains local-model tool calls with a grammar.</strong></p>
 </blockquote>
-<p>No diagram; it is the standard loop. Telegram only, no Signal, no web UI. Local model support for Ollama and LM Studio landed between 7 and 31 August, and its own README says small models emit malformed calls more often. Two open memory-leak crashes in the terminal UI. Worth a look in a few months, not now.</p>
-<h2 id="6-zeroclaw-and-moltis">6. ZeroClaw (and Moltis)</h2>
+<p>There is no diagram because it is the standard loop. It supports Telegram only, with no Signal and no web interface. Support for local models through Ollama and LM Studio landed between 7 and 31 August, and its own README says that small models emit malformed calls more often. Two memory-leak crashes in the terminal interface are still open. It is worth a look in a few months, not now.</p>
+<h2 id="6-zeroclaw-and-moltis">6. ZeroClaw, and Moltis</h2>
 <blockquote>
-<p><strong>A Rust binary that already does Signal, cron, a web UI, and local models. It is not small.</strong></p>
+<p><strong>A Rust binary that already does Signal, scheduled jobs, a web interface, and local models. It is not small.</strong></p>
 </blockquote>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  U["30+ channels incl. Signal via signal-cli"] --> C["Prompt + SOUL, USER, MEMORY files + recalled memories"]
-  C --> M["Model: fallback chain in one config line"]
-  M --> P["Parser for text-shaped tool calls, 2 retries"]
+  U["30+ channels"] --> C["Prompt + role files"]
+  C --> M["Model with fallback chain"]
+  M --> P["Parse text tool calls"]
   P --> K{"Tool calls?"}
   K -->|"no"| F["Reply"]
-  K -->|"yes"| G["Approval gate, Landlock or Seatbelt sandbox"]
-  G --> T["~120 tools, parallel, HMAC receipt on every result"]
-  T --> Z{"10 iterations?"}
+  K -->|"yes"| G["Approval + sandbox"]
+  G --> T["120 tools with receipts"]
+  T --> Z{"10 rounds?"}
   Z -->|"no"| M
   Z -->|"yes"| B["Forced final answer"]
-  T --> S["SQLite memory with FTS5, cron jobs with claim locks, skills it can write itself"]
+  T --> S["SQLite memory, jobs, skills"]
 </pre></div>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language, speed</td><td>Rust, 775,000 lines (394,000 outside tests), 20 crates, a 43,000-line config schema source file. 27 MB tarball, but the prebuilt binary <strong>leaves out Signal and the sandbox</strong>. Moltis: Rust, 407,000 lines, one maintainer, a nightly toolchain, 63 MB</td></tr>
-<tr><td>The good</td><td>A ten-iteration cap with a bounded final answer. Receipts so the model cannot fake a tool result. A standalone parser for messy tool calls. A cron store where two processes cannot double-run. A skill creator that turns a successful run into a skill. An updater with rollback. Moltis has a browser with a persistent profile on by default</td></tr>
-<tr><td>The bad</td><td>506 open issues, memory subsystem being redesigned in three RFCs, no release in a month. Too big to fork. Five designs worth porting</td></tr></tbody></table></div>
+<p>Messages arrive from more than 30 channels, including Signal through the signal-cli daemon. The prompt includes role files for the agent, the user, and memory, plus recalled memories. The model comes from a fallback chain set in one line of configuration. A parser recovers tool calls that models write as text, with two retries. Each call passes an approval gate and runs under a Landlock or Seatbelt sandbox. About 120 tools run in parallel, and every result carries a cryptographic receipt so the model cannot fake one. After ten rounds, the model is forced to give a final answer. Storage is SQLite with full-text memory, scheduled jobs with claim locks, and skills the agent can write itself.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Language and speed</td><td>Rust, with 775,000 lines, of which 394,000 are outside tests, in 20 crates, including a 43,000-line configuration schema source file. The release is a 27 MB tarball, but the prebuilt binary <strong>leaves out Signal and the sandbox</strong>. Moltis is a similar project in Rust, with 407,000 lines, one maintainer, a nightly toolchain, and a 63 MB download.</td></tr>
+<tr><td>The good</td><td>A ten-round cap with a bounded final answer. Receipts so the model cannot fake a tool result. A standalone parser for messy tool calls. A job store where two processes cannot run the same job. A skill creator that turns a successful run into a skill. An updater with rollback. Moltis has a browser with a persistent profile turned on by default.</td></tr>
+<tr><td>The bad</td><td>506 open issues, a memory subsystem being redesigned in three proposals, and no release in a month. Too big to fork. Five designs are worth porting.</td></tr></tbody></table></div>
 <h2 id="7-codex-cli-and-claude-code">7. Codex CLI and Claude Code</h2>
-<p>Two ideas the others argue about, settled:</p>
-<ul>
-<li><strong>Codex:</strong> the kernel is the sandbox. File access goes only through &quot;run a command&quot; and &quot;apply a patch&quot; (there are about twenty tool specs in all, most for planning, images, asking the user, and multi-agent work), and commands run under Seatbelt on macOS or Landlock plus seccomp on Linux by default. Escalation is a field on the call with a written justification.</li>
-<li><strong>Claude Code:</strong> its docs say permission rules are enforced by Claude Code, not by the model. Tool schemas and skills load on demand so the prompt stays small. Hooks can rewrite a tool&#39;s arguments before it runs.</li>
-</ul>
+<p>These two settle questions that the others argue about.</p>
+<p><strong>Codex</strong> treats the kernel as the sandbox. File access goes only through &quot;run a command&quot; and &quot;apply a patch.&quot; There are about twenty tool specifications in all, most of them for planning, images, asking the user, and multi-agent work. Commands run under Seatbelt on macOS or Landlock plus seccomp on Linux by default. Escalation is a field on the tool call with a written justification.</p>
+<p><strong>Claude Code</strong> enforces its permission rules in the harness, not in the model, and its documentation says so plainly. Tool schemas and skills are loaded on demand so the prompt stays small. Hooks can rewrite a tool&#39;s arguments before the tool runs.</p>
 <hr>
-<h1 id="part-2-the-nine-things-that-actually-differ">Part 2 — The Nine Things That Actually Differ</h1>
+<h1 id="part-2-the-nine-things-that-actually-differ">Part 2: The nine things that actually differ</h1>
 <h2 id="1-language-and-what-it-costs">1. Language, and what it costs</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>Prime</th><th>OpenCode</th><th>ZeroClaw</th></tr></thead><tbody><tr><td>Language</td><td>TypeScript</td><td>Python</td><td>TypeScript + Python</td><td>TypeScript (Bun)</td><td>Rust</td></tr>
-<tr><td>Hand-written lines</td><td>2,937,809</td><td>1,485,870</td><td>171,389</td><td>341,520</td><td>~394,000</td></tr>
-<tr><td>Idle memory</td><td>~990 MB total</td><td>not measured (dashboard alone 88 MB)</td><td>not measured</td><td>380 to 400 MB</td><td>not verified</td></tr>
-<tr><td>Commits, last 30 days</td><td>10,574</td><td>6,718</td><td>191</td><td>354</td><td>373</td></tr>
-<tr><td>Open issues</td><td>3,683</td><td>12,965</td><td>78</td><td>~5,600 incl. PRs</td><td>506</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> small and slow-changing. OpenCode ships ten small releases in three weeks and nothing breaks. The measured languages for a new daemon (Part 6): Go starts in 8 ms and idles at 19 MB with every library needed; Rust saves 10 MB and costs extra fix rounds; Bun is fine until you import Playwright, which adds 85 MB.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>Prime</th><th>OpenCode</th><th>ZeroClaw</th></tr></thead><tbody><tr><td>Language</td><td>TypeScript</td><td>Python</td><td>TypeScript and Python</td><td>TypeScript on Bun</td><td>Rust</td></tr>
+<tr><td>Hand-written lines</td><td>2,937,809</td><td>1,485,870</td><td>171,389</td><td>341,520</td><td>about 394,000</td></tr>
+<tr><td>Idle memory</td><td>about 990 MB in total</td><td>not measured; the dashboard alone uses 88 MB</td><td>not measured</td><td>380 to 400 MB</td><td>not verified</td></tr>
+<tr><td>Commits in the last 30 days</td><td>10,574</td><td>6,718</td><td>191</td><td>354</td><td>373</td></tr>
+<tr><td>Open issues</td><td>3,683</td><td>12,965</td><td>78</td><td>about 5,600, including pull requests</td><td>506</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> small and slow-changing. OpenCode shipped ten small releases in three weeks and nothing broke. For a new daemon, Go starts in 8 milliseconds and idles at 19 MB with every library it needs, Rust saves 10 MB but costs extra fix rounds, and Bun is fine until you import Playwright, which adds 85 MB. The measurements are in Part 6.</p>
 <h2 id="2-how-a-turn-ends">2. How a turn ends</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Turn cap</th><th>What stops a loop</th></tr></thead><tbody><tr><td>OpenClaw</td><td><strong>none</strong></td><td>48-hour timeout; a detector that warns at 10 identical calls, blocks at 20, stops at 30; up to 160 outer retries</td></tr>
-<tr><td>Hermes</td><td>none by default</td><td>wall-clock budget; no identical-call detector, only a guard for repeated text</td></tr>
-<tr><td>Prime</td><td>none</td><td>token budget on a goal</td></tr>
-<tr><td>OpenCode</td><td>optional</td><td>three identical calls in one response become a question</td></tr>
-<tr><td>ZeroClaw</td><td><strong>10 iterations</strong></td><td>then a forced final answer; nudge at 3 identical, block at 4, stop at 5</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> a hard cap with a bounded final answer (ZeroClaw), plus an identical-call detector that counts across steps and never asks the user.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Turn cap</th><th>What stops a loop</th></tr></thead><tbody><tr><td>OpenClaw</td><td><strong>None</strong></td><td>A 48-hour timeout, a detector that warns at 10 identical calls, blocks at 20, and stops at 30, and up to 160 outer retries</td></tr>
+<tr><td>Hermes</td><td>None by default</td><td>A wall-clock budget. There is no identical-call detector, only a guard for repeated text</td></tr>
+<tr><td>Prime</td><td>None</td><td>A token budget on a goal</td></tr>
+<tr><td>OpenCode</td><td>Optional</td><td>Three identical calls in one response become a question to the user</td></tr>
+<tr><td>ZeroClaw</td><td><strong>10 rounds</strong></td><td>Then a forced final answer. It nudges at 3 identical calls, blocks at 4, and stops at 5</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> a hard cap with a bounded final answer, as ZeroClaw does, plus an identical-call detector that counts across steps and never asks the user.</p>
 <h2 id="3-what-happens-when-you-message-it-mid-turn">3. What happens when you message it mid-turn</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Default</th></tr></thead><tbody><tr><td>OpenClaw</td><td><strong>Steer</strong>: inject at the next tool boundary, skip tools that have not started</td></tr>
+<div class="tablewrap"><table><thead><tr><th></th><th>Default behavior</th></tr></thead><tbody><tr><td>OpenClaw</td><td><strong>Steer.</strong> The message is injected at the next tool boundary, and tools that have not started are skipped</td></tr>
 <tr><td>Hermes gateway</td><td><strong>Interrupt</strong></td></tr>
-<tr><td>Prime</td><td>Steer while streaming, else queue</td></tr>
-<tr><td>OpenCode</td><td>Re-reads the message list each step</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> steer. Interrupting throws away work; queuing makes you wait.</p>
+<tr><td>Prime</td><td>Steer while streaming, otherwise queue</td></tr>
+<tr><td>OpenCode</td><td>Re-reads the message list on each step</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> steering. Interrupting throws away work, and queuing makes you wait.</p>
 <h2 id="4-where-the-conversation-goes-when-the-window-fills">4. Where the conversation goes when the window fills</h2>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  A["Window is filling up"] --> B{"What happens?"}
-  B -->|"OpenClaw"| C["Summarize, keep 20k recent, silent 'save your notes' turn first"]
-  B -->|"Hermes"| D["At 50%: prune tool output, summarize middle, keep YOUR messages verbatim"]
-  B -->|"Prime"| E["Summarize; Python variables survive"]
-  B -->|"OpenCode"| F["Summarize; AGENTS.md re-read from disk so it cannot be lost"]
-  B -->|"ZeroClaw"| G["No summary. Drop whole old turns that do not fit"]
+  A["Window is full"] --> B{"What happens?"}
+  B -->|"OpenClaw"| C["Save notes, then summarize"]
+  B -->|"Hermes"| D["Summarize, keep user's words"]
+  B -->|"Prime"| E["Summarize, variables survive"]
+  B -->|"OpenCode"| F["Summarize, re-read files"]
+  B -->|"ZeroClaw"| G["Drop old turns whole"]
 </pre></div>
-<p><strong>What works better:</strong> anything that lives in a file survives; anything that lives only in the chat is at risk. Hermes&#39; rule that your own words are never summarized is the sharpest single idea here.</p>
+<p>OpenClaw runs a silent &quot;save your notes&quot; turn, then summarizes and keeps the most recent 20,000 tokens. Hermes acts at 50 percent of the window: it prunes old tool output, summarizes the middle, and keeps the user&#39;s messages word for word. Prime summarizes but its Python variables survive untouched. OpenCode summarizes but re-reads its project file from disk on every step, so that file cannot be lost. ZeroClaw never summarizes; it drops whole old turns that do not fit.</p>
+<p><strong>What works better:</strong> anything that lives in a file survives, and anything that lives only in the chat is at risk. The Hermes rule that the user&#39;s own words are never summarized is the sharpest single idea here.</p>
 <h2 id="5-how-it-learns">5. How it learns</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Writes</th><th>Read back by</th><th>On by default</th></tr></thead><tbody><tr><td>OpenClaw</td><td>6 role files; a memory index; a scheduled &quot;Dreaming&quot; rewrite; recall injected before every prompt</td><td>the next prompt; a search tool</td><td>yes, all four</td></tr>
-<tr><td>Hermes</td><td>MEMORY.md (2,200 chars), USER.md (1,375), skills; a review fork writes them</td><td>the next prompt; a search tool</td><td>yes</td></tr>
-<tr><td>Prime</td><td>notes with history and rollback</td><td>appended to every prompt</td><td>yes, review-gated</td></tr>
-<tr><td>OpenCode</td><td>nothing</td><td></td><td></td></tr>
-<tr><td>ZeroClaw</td><td>a memory database; skills written from successful runs</td><td>recalled into the prompt</td><td>skills off by default</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> small capped files the model curates, a budgeted background review, and search over the past by tool. OpenClaw&#39;s memory index rebuild caused two of its worst bugs this week (a 19 GB temp-file leak and a CPU-pegging reindex); its every-turn recall and scheduled rewrites are on by default on top of that index.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>What it writes</th><th>How it is read back</th><th>On by default</th></tr></thead><tbody><tr><td>OpenClaw</td><td>Six role files, a memory index, a scheduled rewrite of the memory file, and recall injected before every prompt</td><td>Into the next prompt, and through a search tool</td><td>Yes, all four</td></tr>
+<tr><td>Hermes</td><td>A memory file capped at 2,200 characters, a user file capped at 1,375, and skills, written by a review fork</td><td>Into the next prompt, and through a search tool</td><td>Yes</td></tr>
+<tr><td>Prime</td><td>Notes with history and rollback</td><td>Appended to every prompt</td><td>Yes, gated by a review</td></tr>
+<tr><td>OpenCode</td><td>Nothing</td><td></td><td></td></tr>
+<tr><td>ZeroClaw</td><td>A memory database, and skills written from successful runs</td><td>Recalled into the prompt</td><td>Skills are off by default</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> small capped files that the model curates, a background review with a budget, and a search tool over the past. OpenClaw&#39;s memory index rebuild caused two of its worst bugs in the week we looked, a 19 GB temporary-file leak and a reindex that pegged a CPU core, and its every-turn recall and scheduled rewrites are on by default on top of that index.</p>
 <h2 id="6-how-tools-are-gated">6. How tools are gated</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Gate</th><th>Sandbox</th></tr></thead><tbody><tr><td>OpenClaw</td><td>8 intersected allowlists; taint label that blocks nothing</td><td>Docker, off by default</td></tr>
-<tr><td>Hermes</td><td>4 in-process layers; unattended runs fail closed</td><td>none in-process; &quot;the only security boundary against an adversarial LLM is the operating system&quot;</td></tr>
-<tr><td>Prime</td><td><strong>none</strong></td><td>none</td></tr>
-<tr><td>OpenCode</td><td>one rule list, last match wins, default ask</td><td><strong>none</strong></td></tr>
-<tr><td>ZeroClaw</td><td>approval gate</td><td>Landlock, Seatbelt, bubblewrap, not in prebuilt binaries</td></tr>
-<tr><td>Codex</td><td>approval policy</td><td><strong>kernel sandbox by default</strong>; escalation is a field on the call</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> OpenCode&#39;s gate design plus Codex&#39;s sandbox. Nobody ships both.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Gate</th><th>Sandbox</th></tr></thead><tbody><tr><td>OpenClaw</td><td>Eight intersected allowlists, plus a taint label that blocks nothing</td><td>Docker, off by default</td></tr>
+<tr><td>Hermes</td><td>Four in-process layers; unattended runs fail closed</td><td>None in the process. Its own documentation says the operating system is the only real boundary</td></tr>
+<tr><td>Prime</td><td><strong>None</strong></td><td>None</td></tr>
+<tr><td>OpenCode</td><td>One rule list, last match wins, default ask</td><td><strong>None</strong></td></tr>
+<tr><td>ZeroClaw</td><td>An approval gate</td><td>Landlock, Seatbelt, and bubblewrap, but not in the prebuilt binaries</td></tr>
+<tr><td>Codex</td><td>An approval policy</td><td><strong>A kernel sandbox by default.</strong> Escalation is a field on the call</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> OpenCode&#39;s gate design combined with Codex&#39;s sandbox. Nobody ships both.</p>
 <h2 id="7-how-the-screen-attaches">7. How the screen attaches</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Design</th><th>Result</th></tr></thead><tbody><tr><td>OpenCode</td><td>UI is a client of an in-process API; same UI attaches remotely</td><td>fast, few glitches</td></tr>
-<tr><td>OpenClaw</td><td>UI over one WebSocket to the gateway</td><td>fine; the web app is 338,000 lines</td></tr>
-<tr><td>Hermes</td><td>Node screen + Python brain over stdin/stdout, optional third process</td><td>120 UI bugs in a month</td></tr>
-<tr><td>Prime</td><td>terminal attaches to a supervisor, then a worker, then Python</td><td>33,000 lines of attach code</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th></th><th>Design</th><th>Result</th></tr></thead><tbody><tr><td>OpenCode</td><td>The interface is a client of an in-process API, and the same interface can attach remotely</td><td>Fast, with few glitches</td></tr>
+<tr><td>OpenClaw</td><td>The interface talks to the gateway over one WebSocket</td><td>Fine, but the web app is 338,000 lines</td></tr>
+<tr><td>Hermes</td><td>A Node screen and a Python brain over standard input and output, with an optional third process</td><td>120 interface bugs in a month</td></tr>
+<tr><td>Prime</td><td>The terminal attaches to a supervisor, which attaches to a worker, which attaches to Python</td><td>33,000 lines of attach code</td></tr></tbody></table></div>
 <p><strong>What works better:</strong> the screen never owns state.</p>
 <h2 id="8-how-it-updates">8. How it updates</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Method</th><th>Rollback</th></tr></thead><tbody><tr><td>OpenClaw</td><td>npm swaps thousands of files under a running process; the updater inspects your host and refuses if unsure</td><td>git checkouts only</td></tr>
-<tr><td>Hermes</td><td>git pull plus pip, with a pre-update backup and git rescue refs</td><td>binary-level rollback not verified</td></tr>
-<tr><td>ZeroClaw</td><td>download one binary, verify checksum, back up, swap, smoke test</td><td>yes</td></tr>
-<tr><td>Moltis</td><td>same plus a GPG signature</td><td>not verified</td></tr></tbody></table></div>
-<p><strong>What works better:</strong> one static file, versioned folders, a symlink flip, a health check, automatic rollback. Nobody does all of it. Your screenshot (Part 4) is the cost of not doing it.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Method</th><th>Rollback</th></tr></thead><tbody><tr><td>OpenClaw</td><td>npm swaps thousands of files under a running process, and the updater inspects the host and refuses if it is unsure</td><td>Git checkouts only</td></tr>
+<tr><td>Hermes</td><td>Git pull plus pip, with a pre-update backup and git rescue references</td><td>Binary-level rollback not verified</td></tr>
+<tr><td>ZeroClaw</td><td>Download one binary, verify the checksum, back up the old one, swap, and run a smoke test</td><td>Yes</td></tr>
+<tr><td>Moltis</td><td>The same, plus a signature check</td><td>Not verified</td></tr></tbody></table></div>
+<p><strong>What works better:</strong> one static file, versioned folders, a symlink flip, a health check, and automatic rollback. Nobody does all of it. Part 4 shows the cost of not doing it.</p>
 <h2 id="9-how-they-drive-a-browser">9. How they drive a browser</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>browser-use</th><th>Stagehand</th><th>agent-browser</th></tr></thead><tbody><tr><td>Engine</td><td>Playwright over DevTools protocol to a real Chrome it launches</td><td>Vercel&#39;s agent-browser CLI; its own Chromium by default, real Chrome only with <code>use_real_profile</code></td><td>Raw DevTools protocol, its own Chrome or yours</td><td>Raw DevTools protocol</td><td>Rust CLI, raw DevTools protocol</td></tr>
-<tr><td>What the model sees</td><td>Accessibility tree with <code>[ref=eN]</code>, <code>[new]</code> marks, 8k &quot;efficient&quot; tier</td><td>Same tree via agent-browser, cut at 15k chars and stored</td><td>DOM text with <code>[index]</code> per element, <code>*[</code> for new, &quot;pages below&quot; hints, optional screenshot with boxes</td><td>Candidate actions with selectors from <code>observe()</code>; screenshot optional</td><td>Accessibility tree with refs</td></tr>
-<tr><td>Waits after an action</td><td>250 ms grace after navigation</td><td>none of its own</td><td>0.25 s minimum, network idle 0.5 s, pending-request check</td><td>not verified</td><td>scroll into view, dialogs</td></tr>
-<tr><td>Checks that it worked</td><td>no</td><td>no</td><td><strong>yes</strong>: the model must grade its last action every step; <code>done</code> must say success or not; a judge model grades the run</td><td>caches the action that worked; no verification</td><td>no</td></tr>
-<tr><td>Stale refs</td><td>friendly error</td><td>error</td><td>re-index each step</td><td>re-observe</td><td>error</td></tr>
-<tr><td>Own profile</td><td>yes, managed</td><td>copies your auth files into its own dir</td><td><code>user_data_dir</code>, <code>keep_alive</code></td><td>via app code</td><td><code>--profile</code></td></tr>
-<tr><td>Human pacing</td><td>optional 75 ms per key typing; no mouse pacing</td><td>no (fill is instant)</td><td>50 to 80 ms press, 10 ms per key</td><td>no</td><td>no</td></tr>
-<tr><td>Captcha, 2FA</td><td>stop and ask</td><td>warns and points at cloud stealth; a vision tool for captchas; no 2FA handling</td><td>its cloud</td><td></td><td></td></tr></tbody></table></div>
-<p><strong>What works better:</strong> the top scorers on live-site benchmarks (90 percent and up on Online-Mind2Web) share six things: a frontier model with thinking on, text for targeting plus a screenshot for checking, an explicit &quot;did that work?&quot; step, a different strategy on retry, a plan for long tasks, and cloud browsers with captcha solving. Coeus keeps the first five in the harness and gives up the sixth on purpose: your accounts, your machine, human volume.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>browser-use</th><th>Stagehand</th><th>agent-browser</th></tr></thead><tbody><tr><td>Engine</td><td>Playwright over the DevTools protocol, attached to a real Chrome that it launches</td><td>Vercel&#39;s agent-browser command-line tool. It uses its own Chromium by default and a real Chrome only with a consent flag</td><td>The raw DevTools protocol, with its own Chrome or yours</td><td>The raw DevTools protocol</td><td>A Rust command-line tool over the raw DevTools protocol</td></tr>
+<tr><td>What the model sees</td><td>An accessibility tree with reference tags and marks on new elements, with an 8,000-character efficient mode</td><td>The same tree through agent-browser, cut at 15,000 characters and stored</td><td>DOM text with an index number on each element, marks on new elements, hints about pages below, and an optional screenshot with boxes</td><td>Candidate actions with selectors from its observe step, and an optional screenshot</td><td>An accessibility tree with reference tags</td></tr>
+<tr><td>Waits after an action</td><td>A 250 millisecond grace period after navigation</td><td>None of its own</td><td>A 0.25 second minimum, network idle for 0.5 seconds, and a pending-request check</td><td>Not verified</td><td>Scroll into view, and dialogs</td></tr>
+<tr><td>Checks that it worked</td><td>No</td><td>No</td><td><strong>Yes.</strong> The model must grade its last action on every step, the finish step must say whether it succeeded, and a judge model grades the run</td><td>It caches the action that worked, with no verification</td><td>No</td></tr>
+<tr><td>Stale references</td><td>A friendly error</td><td>An error</td><td>Re-index each step</td><td>Re-observe</td><td>An error</td></tr>
+<tr><td>Own profile</td><td>Yes, managed</td><td>It copies your login files into its own directory</td><td>A user data directory, kept alive between runs</td><td>Through application code</td><td>A profile flag</td></tr>
+<tr><td>Human pacing</td><td>Optional typing at 75 milliseconds per key, with no mouse pacing</td><td>No, since filling a field is instant</td><td>A 50 to 80 millisecond press and 10 milliseconds per key</td><td>No</td><td>No</td></tr>
+<tr><td>Captchas and two-factor prompts</td><td>Stop and ask</td><td>It warns and points at a cloud stealth service, offers a vision tool for captchas, and has no two-factor handling</td><td>Its cloud service</td><td></td><td></td></tr></tbody></table></div>
+<p><strong>What works better:</strong> the top scorers on live-site benchmarks, at 90 percent and above on Online-Mind2Web, share six things: a frontier model with thinking turned on, text for targeting plus a screenshot for checking, an explicit &quot;did that work?&quot; step, a different strategy on retry, a plan for long tasks, and cloud browsers with captcha solving. Coeus keeps the first five in the harness and gives up the sixth on purpose, because the goal is your accounts, on your machine, at human volume.</p>
 <hr>
-<h1 id="part-3-what-makes-some-work-better-than-others">Part 3 — What Makes Some Work Better Than Others</h1>
+<h1 id="part-3-what-makes-some-work-better-than-others">Part 3: What makes some work better than others</h1>
 <ol>
-<li><strong>Small wrappers survive updates.</strong> OpenCode&#39;s wrapper is 75 times its loop and it still ships boring releases, because the wrapper is a thin API, not install machinery.</li>
-<li><strong>Caps beat timeouts.</strong> Ten iterations and a forced answer beat a 48-hour timeout every time.</li>
+<li><strong>Small wrappers survive updates.</strong> OpenCode&#39;s wrapper is 75 times the size of its loop, and it still ships boring releases, because the wrapper is a thin API rather than install machinery.</li>
+<li><strong>Caps beat timeouts.</strong> Ten rounds and a forced answer beat a 48-hour timeout every time.</li>
 <li><strong>Files beat summaries.</strong> State that lives on disk and is re-read each step cannot be lost to compaction.</li>
-<li><strong>Your words are sacred.</strong> Summarize what the agent did; never summarize what you said.</li>
-<li><strong>Learning needs a reader.</strong> Capped files the prompt injects, and a search tool the model calls. Nothing else counts.</li>
-<li><strong>Expect the model to be wrong.</strong> Repair malformed tool calls, feed back the allowed alternatives, never crash the loop. With small local models this is the difference between working and not.</li>
+<li><strong>The user&#39;s words are sacred.</strong> Summarize what the agent did. Never summarize what the user said.</li>
+<li><strong>Learning needs a reader.</strong> Capped files that the prompt includes, and a search tool that the model calls, are the only two things that count.</li>
+<li><strong>Expect the model to be wrong.</strong> Repair malformed tool calls, feed back the allowed alternatives, and never crash the loop. With small local models, this is the difference between working and not working.</li>
 <li><strong>The screen is a client.</strong> One core, one event stream, thin screens.</li>
-<li><strong>One file to install.</strong> Everything that touches Node versions, package managers, and hashed chunks is a failure waiting to happen.</li>
+<li><strong>One file to install.</strong> Everything that touches Node versions, package managers, and hashed file chunks is a failure waiting to happen.</li>
 </ol>
 <hr>
-<h1 id="part-4-your-screenshot-in-one-diagram">Part 4 — Your Screenshot, In One Diagram</h1>
+<h1 id="part-4-one-failed-update-in-one-diagram">Part 4: One failed update, in one diagram</h1>
+<p>This is what happened when a user ran <code>openclaw update</code> on a Linux desktop. Every line of the error output has a cause in the source code.</p>
 <div class="diagram"><pre class="mermaid">
 flowchart TD
-  A["openclaw update"] --> B["npm replaces dist/ under the running gateway"]
-  B --> C["Old updater asks for a hashed chunk that no longer exists: ERR_MODULE_NOT_FOUND"]
-  A --> D["Updater checks the systemd user dir or its nearest parent: one is group-writable, likely 775 from the private-group umask (which one: not verified)"]
-  D --> E["'unsafe-permissions' refusal. No override flag exists"]
-  A --> F["Updater runs 'npm root -g' with your nvm PATH"]
-  F --> G["Answer does not match ~/.local: 'package manager owner is unknown', refuse"]
-  A --> H["Service unit points at /usr/bin/node; your shell uses nvm"]
-  H --> I["'Current Node differs'"]
+  A["openclaw update"] --> B["Files swapped under the running process"]
+  B --> C["Missing module error"]
+  A --> D["Folder permission check"]
+  D --> E["Refused, no override"]
+  A --> F["Asks npm who owns the install"]
+  F --> G["Wrong answer, refused"]
+  A --> H["Two Node versions"]
+  H --> I["Node mismatch warning"]
 </pre></div>
-<p>Four root causes: code swapped under a running process; host checks a user-space tool cannot prove; new refusals shipped without an escape hatch (the 8.2 update installed the rule that refused your second run); and 317,000 lines of operations code that changes daily. The fix is not better checks. It is one static binary with nothing to install.</p>
+<p>Four things went wrong at once. The updater swapped thousands of files under a process that was still running, so the old code asked for a file chunk that no longer existed. It checked the permissions of the systemd folder and refused because the folder was group-writable, which is the default on Ubuntu-family systems, and there is no flag to override the check. It asked npm which package manager owned the installation, using the user&#39;s shell path, and got an answer that did not match, so it refused again. And the service was running one version of Node while the user&#39;s shell ran another.</p>
+<p>The four root causes are code swapped under a running process, host checks that a user-space tool cannot prove, new refusals shipped without an escape hatch (the update installed the rule that refused the next update), and 317,000 lines of operations code that changes every day. The fix is not better checks. It is one static binary with nothing to install.</p>
 <hr>
-<h1 id="part-5-the-scoreboard">Part 5 — The Scoreboard</h1>
-<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>Prime</th><th>OpenCode</th><th>ZeroClaw</th></tr></thead><tbody><tr><td>Loop lines vs wrapper lines</td><td>6,944 vs 404,920</td><td>one 7,245-line function</td><td>2,326 vs 123,871</td><td>~1,000 vs 75,929</td><td>~30,000 across <code>agent/turn/*</code> and a 17,898-line <code>loop_.rs</code></td></tr>
-<tr><td>Tools</td><td>57</td><td>83 (18 deferred)</td><td>1</td><td>17 defined, 13 to 14 visible</td><td>~120</td></tr>
-<tr><td>Chat channels</td><td>27</td><td>31</td><td>0</td><td>0</td><td>30+</td></tr>
-<tr><td>Providers</td><td>76</td><td>41</td><td>9 real</td><td>32</td><td>~20</td></tr>
-<tr><td>Database tables</td><td>160</td><td>not measured</td><td>0</td><td>20</td><td>not counted</td></tr>
-<tr><td>Config options</td><td>10,175</td><td>~406</td><td>?</td><td>~90</td><td>43,000-line schema</td></tr>
-<tr><td>Turn cap</td><td>none</td><td>none</td><td>none</td><td>optional</td><td>10</td></tr>
-<tr><td>Sandbox on by default</td><td>no</td><td>no</td><td>no</td><td>none exists</td><td>not in prebuilt</td></tr>
-<tr><td>Signal</td><td>yes</td><td>yes</td><td>no</td><td>no</td><td>yes (source build)</td></tr>
-<tr><td>Learns by itself</td><td>yes</td><td>yes</td><td>yes</td><td>no</td><td>optional</td></tr>
-<tr><td>Install on rosie</td><td>898 MB, 35,979 files</td><td>1.4 GB</td><td></td><td>430 MB</td><td></td></tr></tbody></table></div>
+<h1 id="part-5-the-scoreboard">Part 5: The scoreboard</h1>
+<div class="tablewrap"><table><thead><tr><th></th><th>OpenClaw</th><th>Hermes</th><th>Prime</th><th>OpenCode</th><th>ZeroClaw</th></tr></thead><tbody><tr><td>Loop lines versus wrapper lines</td><td>6,944 versus 404,920</td><td>One 7,245-line function</td><td>2,326 versus 123,871</td><td>About 1,000 versus 75,929</td><td>About 30,000 across the turn module and a 17,898-line loop file</td></tr>
+<tr><td>Tools</td><td>57</td><td>83, with 18 hidden behind search</td><td>1</td><td>17 defined, 13 or 14 visible</td><td>About 120</td></tr>
+<tr><td>Chat channels</td><td>27</td><td>31</td><td>0</td><td>0</td><td>More than 30</td></tr>
+<tr><td>Model providers</td><td>76</td><td>41</td><td>9 real implementations</td><td>32</td><td>About 20</td></tr>
+<tr><td>Database tables</td><td>160</td><td>Not measured</td><td>0</td><td>20</td><td>Not counted</td></tr>
+<tr><td>Configuration options</td><td>10,175</td><td>About 406</td><td>Unknown</td><td>About 90</td><td>A 43,000-line schema</td></tr>
+<tr><td>Turn cap</td><td>None</td><td>None</td><td>None</td><td>Optional</td><td>10</td></tr>
+<tr><td>Sandbox on by default</td><td>No</td><td>No</td><td>No</td><td>None exists</td><td>Not in the prebuilt binary</td></tr>
+<tr><td>Signal</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>Yes, from a source build</td></tr>
+<tr><td>Learns by itself</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>Optional</td></tr>
+<tr><td>Installed size</td><td>898 MB in 35,979 files</td><td>1.4 GB</td><td></td><td>430 MB</td><td></td></tr></tbody></table></div>
 <hr>
-<h1 id="part-6-local-models-and-languages-one-page-each">Part 6 — Local Models and Languages, One Page Each</h1>
+<h1 id="part-6-local-models-and-languages">Part 6: Local models and languages</h1>
 <h2 id="local-models">Local models</h2>
-<div class="tablewrap"><table><thead><tr><th>Model</th><th>Tool-use score (τ²-bench airline, 2 Sept)</th></tr></thead><tbody><tr><td>Qwen3.5 9B</td><td><strong>67.5</strong></td></tr>
+<div class="tablewrap"><table><thead><tr><th>Model</th><th>Tool-use score on the τ²-bench airline test, 2 September</th></tr></thead><tbody><tr><td>Qwen3.5 9B</td><td><strong>67.5</strong></td></tr>
 <tr><td>Qwen3 32B</td><td>42.0</td></tr>
 <tr><td>Llama 3.1 8B</td><td>30.9</td></tr>
 <tr><td>Qwen2.5 7B</td><td>16.7</td></tr></tbody></table></div>
-<p>One model generation beats three times the size. Run Qwen3.5 9B or 4B on rosie; Gemma 4 12B as backup; never Gemma 3 for tools. The Pi cannot host a model: prompt reading runs about 9 tokens a second.</p>
-<p>When a model cannot call tools natively, in this order: fix the chat template, JSON-schema mode, a prompted text protocol with JSON bodies, then repair loops that feed back the allowed options (a 44-point gain in the published study). Grammar-forced output last: it makes calls valid and wrong (91 to 48 percent on one task).</p>
-<h2 id="languages-measured-on-this-mac">Languages, measured on this Mac</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th>Rust</th><th>Go</th><th>Bun</th></tr></thead><tbody><tr><td>Daemon start</td><td>2.9 ms</td><td>8.2 ms</td><td>11 ms</td></tr>
-<tr><td>Idle memory with real dependencies</td><td>9.7 MB</td><td>19 MB</td><td>22 MB (<strong>107 MB if Playwright is imported</strong>)</td></tr>
+<p>One model generation beats three times the parameter count. For a local machine with a GPU, Qwen3.5 at 9B or 4B is the best choice, Gemma 4 at 12B is the backup, and Gemma 3 should never be used for tool calling because it has no native tool format. A Raspberry Pi cannot host a model, because it reads prompts at about 9 tokens a second.</p>
+<p>When a model cannot call tools natively, the fixes go in this order: fix the chat template, then try JSON-schema mode, then a prompted text protocol with JSON bodies, then repair loops that feed back the allowed options, which gave a 44-point gain in the published study. Grammar-forced output comes last, because it makes calls valid and wrong at the same time: on one task it dropped accuracy from 91 percent to 48 percent.</p>
+<h2 id="languages-measured">Languages, measured</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th>Rust</th><th>Go</th><th>Bun</th></tr></thead><tbody><tr><td>Time to start the daemon</td><td>2.9 ms</td><td>8.2 ms</td><td>11 ms</td></tr>
+<tr><td>Idle memory with real dependencies</td><td>9.7 MB</td><td>19 MB</td><td>22 MB, or <strong>107 MB if Playwright is imported</strong></td></tr>
 <tr><td>Static Linux binary</td><td>6 MB</td><td>23 MB</td><td>103 MB</td></tr>
 <tr><td>Clean build</td><td>25 s</td><td>10 s</td><td>0.3 s</td></tr>
-<tr><td>Rebuild on a Pi 5</td><td>5 to 12 min</td><td>1 to 2 min</td><td>none</td></tr>
-<tr><td>Friction today</td><td>old cargo, crate API drift</td><td>none</td><td>none</td></tr></tbody></table></div>
-<p>Go for the daemon. A separate spawned worker for the browser, in any language, because Playwright must not load inside the daemon.</p>
+<tr><td>Rebuild on a Raspberry Pi 5</td><td>5 to 12 minutes</td><td>1 to 2 minutes</td><td>None needed</td></tr>
+<tr><td>Friction we hit</td><td>An old compiler and crate API drift</td><td>None</td><td>None</td></tr></tbody></table></div>
+<p>Go is the right choice for the daemon. The browser needs a separate spawned worker in any language, because Playwright must not be loaded inside the daemon.</p>
 <hr>
-<h1 id="appendix-method-sources-corrections">Appendix — Method, Sources, Corrections</h1>
-<p><strong>Method.</strong> 18 research agents in three waves, roughly 4 million tokens by their own usage reports. Source read directly at HEAD on 2 September: <code>~/Code/openclaw</code>, <code>hermes-agent</code>, <code>prime-agent</code>, <code>opencode</code>, <code>zeroclaw</code>; cloned read-only: Moltis, Codex, Atomic Agent, browser-use. Rosie measured over SSH, read-only. Language benchmarks built and timed here. Line counts with tokei and wc. Papers: arXiv 2605.26128, 2607.14167, 2608.06370, 2608.23552. Benchmarks: τ²-bench on OpenRouter. Seventeen detailed study files with <code>file:line</code> citations back every claim here, and a separate fact-check pass re-verified about 415 claims in this document against them and against the repositories.</p>
-<p><strong>Corrections.</strong> Three things I believed at the start and retracted: OpenCode&#39;s UI is not Go and Bubble Tea (that was deleted in November 2025; it is TypeScript on OpenTUI); OpenClaw&#39;s pure loop is 6,944 lines, not 1,600; and OpenCode&#39;s doom loop is not what makes it work with small models. One recommendation I made and withdrew: cutting the browser. It is the centerpiece of <code>COEUS_PLAN.md</code>. The fact-check pass found and fixed 44 further slips in an earlier draft, most of them overstated wording; the worst were Hermes&#39; tool deferral stated backwards, a disk figure labeled as memory, and Codex described as having two tools.</p>
-<p><strong>Not verified.</strong> Claude Code and Codex internals (compiled or docs only); OpenClaw&#39;s startup time (not built here); Hermes&#39; idle memory (gateway not running); ZeroClaw&#39;s and Moltis&#39;s binary size claims; Pi build times are estimates; the OpenCode doom-loop gap is from code reading, not a runtime test.</p>
+<h1 id="appendix-method-sources-and-corrections">Appendix: Method, sources, and corrections</h1>
+<p><strong>Method.</strong> Eighteen research agents ran in three waves and used roughly four million tokens by their own usage reports. They read the source directly at the current commit on 2 September for OpenClaw, Hermes, Prime, OpenCode, and ZeroClaw, and cloned Moltis, Codex, Atomic Agent, and browser-use read-only. A running Linux installation was measured over SSH without changing anything. The language benchmarks were built and timed on a Mac. Line counts used tokei and wc. The papers cited are arXiv 2605.26128, 2607.14167, 2608.06370, and 2608.23552. The tool-use benchmark is τ²-bench as run on OpenRouter. Seventeen detailed study files with line-level citations back every claim here, and a separate fact-check pass re-verified about 415 claims in this document against those studies and against the repositories.</p>
+<p><strong>Corrections.</strong> Three things I believed at the start turned out to be wrong. OpenCode&#39;s interface is not written in Go with Bubble Tea; that code was deleted in November 2025, and the interface is now TypeScript on OpenTUI. OpenClaw&#39;s pure loop is 6,944 lines, not 1,600. And OpenCode&#39;s loop detector is not what makes it work with small models. One recommendation I made and then withdrew was to cut the browser from the first version; it is now the centerpiece of <code>COEUS_PLAN.md</code>. The fact-check pass found and fixed 44 further slips in an earlier draft, most of them overstated wording. The worst were Hermes&#39; tool deferral stated backwards, a disk figure labeled as memory, and Codex described as having two tools.</p>
+<p><strong>Not verified.</strong> The internals of Claude Code and Codex, because one is compiled and the other was read only from its tool specifications. OpenClaw&#39;s startup time, because it was not built here. Hermes&#39; idle memory, because its gateway was not running. The binary size claims made by ZeroClaw and Moltis. The Raspberry Pi build times, which are estimates. And the OpenCode loop-detector gap, which comes from reading the code rather than running it.</p>
 
 </main>
 </div>

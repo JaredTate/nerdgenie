@@ -22,10 +22,12 @@ import (
 // decide what has to be done to an older file.
 const SchemaVersion = 1
 
-// MaxEventsPerRead is the most events one read returns. A read asks for the
-// caller's limit bounded by this number, so that nothing can pull the whole log
-// into memory by accident. A caller that needs more walks the log with ByRange
-// or with Replay, which streams.
+// MaxEventsPerRead is the most events one read returns. Every read asks for a
+// limit bounded by this number, so that nothing can pull the whole log into
+// memory by accident; contract.Store has no limit of its own to pass, so this is
+// the limit each of the three list reads applies. A caller with more than this
+// to read walks the log with ByRange, or streams the whole of it with Replay,
+// which has no such limit.
 const MaxEventsPerRead = 10000
 
 // The two tables one Coeus log holds. A file with other tables in it belongs to

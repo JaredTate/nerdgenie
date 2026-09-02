@@ -17,9 +17,10 @@
 // behind a mutex so there is only ever one writer, and a few connections for
 // reading. There are five ways to read it and no others: by task, by kind, by
 // sequence number, by a span of sequence numbers, and a replay that hands every
-// event to a function in order. Each of the four that return a list stops at
+// event to a function in order. The three that return a list stop at
 // MaxEventsPerRead rows, so no read can pull the whole log into memory by
-// accident. Every call takes a context and gives up when it is cancelled. The
-// caller supplies the time on each event, because time in Coeus is read from
-// contract.Clock and never from the machine directly.
+// accident, and a caller with more than that to read walks the log with ByRange
+// or streams it with Replay. Every call takes a context and gives up when it is
+// cancelled. The caller supplies the time on each event, because time in Coeus
+// is read from contract.Clock and never from the machine directly.
 package log

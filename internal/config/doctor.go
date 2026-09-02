@@ -57,8 +57,22 @@ func configurationFinding(home contract.Home, settings contract.Config, loading 
 // configuration that loads: the model it reaches for, how much of the
 // ask-me-first list the user kept, and how many rules of their own they wrote.
 func whatTheConfigurationAsksFor(settings contract.Config) string {
-	return fmt.Sprintf("loads, and names %s as the model to use, keeps %d of the %d ask-me-first entries, and adds %d permission rule(s) of its own",
-		settings.DefaultModel, len(settings.AskMeFirst), len(contract.DefaultAskMeFirst()), len(settings.PermissionRules))
+	return fmt.Sprintf("loads, and names %s as the model to use, keeps %d of the %d ask-me-first entries, and adds %s of its own",
+		settings.DefaultModel, len(settings.AskMeFirst), len(contract.DefaultAskMeFirst()),
+		countOf(len(settings.PermissionRules), "permission rule", "permission rules"))
+}
+
+// countOf writes a number and the thing it counts the way a person would say it,
+// so that a report reads "one permission rule" rather than "1 permission rule(s)".
+func countOf(many int, one string, more string) string {
+	switch many {
+	case 0:
+		return "no " + more
+	case 1:
+		return "one " + one
+	default:
+		return fmt.Sprintf("%d %s", many, more)
+	}
 }
 
 // folderFindings looks at the home folder and every folder of the layout inside

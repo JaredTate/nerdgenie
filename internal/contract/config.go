@@ -99,6 +99,13 @@ type Config struct {
 	// HandoffTimeout is how long a browser or desktop handoff waits for the user
 	// before giving up. Default thirty minutes.
 	HandoffTimeout time.Duration `toml:"handoff_timeout"`
+	// AskMeFirst is the list of shipped entries the user keeps on the
+	// ask-me-first list, by name. Default is all three; the user can remove any
+	// or empty the list.
+	AskMeFirst []string `toml:"ask_me_first"`
+	// PermissionRules are the user's own rules, applied after the shipped
+	// entries, where the last match wins. Default empty.
+	PermissionRules []PermissionRule `toml:"permission_rules"`
 	// Caps are the limits from the design.
 	Caps Caps `toml:"caps"`
 	// MemoryCaps are the size limits on the two persona memory files.
@@ -119,6 +126,7 @@ func DefaultConfig() Config {
 		}},
 		DefaultModel:   LocalModelAlias,
 		HandoffTimeout: 30 * time.Minute,
+		AskMeFirst:     DefaultAskMeFirst(),
 		Caps: Caps{
 			RoundsPerTask:       100,
 			TimePerTask:         time.Hour,

@@ -15,7 +15,32 @@ const (
 	RulingAsk PermissionRuling = "ask"
 	// RulingDeny refuses the call and tells the model why.
 	RulingDeny PermissionRuling = "deny"
+	// RulingStop means the call would have asked, but the run is unattended and
+	// nobody is there to answer, so the task stops and reports what it needed.
+	RulingStop PermissionRuling = "stop"
 )
+
+// KnownPermissionRuling says whether the ruling is one of the four.
+func KnownPermissionRuling(ruling PermissionRuling) bool {
+	switch ruling {
+	case RulingAllow, RulingAsk, RulingDeny, RulingStop:
+		return true
+	default:
+		return false
+	}
+}
+
+// PermissionRule is one line of the user's rulebook in config.toml: a tool name
+// or "*", a pattern matched against the call's reduced form, and what to do.
+// The last rule that matches wins, and no match means allow.
+type PermissionRule struct {
+	// Tool is the tool the rule applies to, or "*" for every tool.
+	Tool string `toml:"tool"`
+	// Pattern is a glob matched against the call's reduced form.
+	Pattern string `toml:"pattern"`
+	// Action is allow, ask, or deny.
+	Action PermissionRuling `toml:"action"`
+}
 
 // The three entries the ask-me-first list ships with, from design section 11.
 // The user can add to this list or empty it.

@@ -128,6 +128,23 @@ func TestAKeyFileIsSafeOnlyWhenNobodyElseCanReadItAndItIsOurs(t *testing.T) {
 	}
 }
 
+func TestTheDomainsAnswerIsSplitOnCommasAndEmptyWhenThereAreNone(t *testing.T) {
+	cases := []struct {
+		answer  string
+		domains []string
+	}{
+		{"", nil},
+		{" , ,, ", nil},
+		{"x.com", []string{"x.com"}},
+		{" x.com , twitter.com ", []string{"x.com", "twitter.com"}},
+	}
+	for _, one := range cases {
+		if got := splitDomains(one.answer); !slices.Equal(got, one.domains) {
+			t.Errorf("the answer %q became the domains %v, want %v", one.answer, got, one.domains)
+		}
+	}
+}
+
 func FuzzParseDocumentNeverPanicsAndAlwaysNamesTheFile(f *testing.F) {
 	seeds := [][]byte{
 		nil,

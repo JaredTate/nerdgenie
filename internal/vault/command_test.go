@@ -208,6 +208,33 @@ func TestTestingAnEntryTheVaultDoesNotHoldIsAnError(t *testing.T) {
 	}
 }
 
+func TestTestingAnEntryInAClosedVaultIsAnError(t *testing.T) {
+	opened, _, _ := openTestVault(t)
+	addThreeEntries(t, opened)
+	if err := opened.Close(); err != nil {
+		t.Fatalf("closing the vault failed: %v", err)
+	}
+
+	if _, err := opened.Check("x-account"); err == nil {
+		t.Errorf("a closed vault tested an entry")
+	}
+}
+
+func TestAddingAnEntryTheVaultWillNotTakeIsAnError(t *testing.T) {
+	opened, _, _ := openTestVault(t)
+	terminal := testkit.NewFakeChannel("terminal")
+	terminal.AnswerSecretWith("hunter2")
+	command := vault.NewCommand(opened)
+
+	tooLong := strings.Repeat("n", 200)
+	if _, err := command.Run(context.Background(), "add "+tooLong, contract.CommandContext{Channel: terminal}); err == nil {
+		t.Errorf("an entry with a name far over the limit was added")
+	}
+	if listed := opened.List(); len(listed) != 0 {
+		t.Errorf("the vault holds %d entries after a refused add, want none", len(listed))
+	}
+}
+
 func TestAWordTheVaultCommandDoesNotKnowPrintsTheFourItDoes(t *testing.T) {
 	opened, _, _ := openTestVault(t)
 	terminal := testkit.NewFakeChannel("terminal")

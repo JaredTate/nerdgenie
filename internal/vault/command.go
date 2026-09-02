@@ -10,11 +10,6 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// terminalChannelName is the name of the channel a person types into directly.
-// The vault answers on that channel and on no other, because Signal cannot hide
-// what is typed and a secret must never travel through a message.
-const terminalChannelName = "terminal"
-
 // The two lines the command answers with when it cannot do what was asked.
 const (
 	onlyInTheTerminal = "the vault works only in the terminal, so open a terminal on the machine Coeus runs on and try there"
@@ -37,7 +32,7 @@ func NewCommand(store *Vault) contract.Command {
 
 // runVault does the work of the slash command.
 func runVault(ctx context.Context, store *Vault, arguments string, where contract.CommandContext) (string, error) {
-	if where.Channel == nil || where.Channel.Name() != terminalChannelName {
+	if where.Channel == nil || where.Channel.Name() != contract.TerminalChannelName {
 		return onlyInTheTerminal, nil
 	}
 

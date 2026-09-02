@@ -67,6 +67,39 @@ func TestTheResolverRefusesANameTheVaultDoesNotHoldAndSaysWhichName(t *testing.T
 	}
 }
 
+func TestWhatTheResolverGivesBackPrintsAsSecret(t *testing.T) {
+	opened, _, _ := openTestVault(t)
+	addThreeEntries(t, opened)
+
+	credential, err := opened.Resolve(context.Background(), contract.SecretReferencePrefix+"x-account")
+	if err != nil {
+		t.Fatalf("resolving a good reference failed: %v", err)
+	}
+
+	printedForms := []string{fmt.Sprint(credential)}
+	for _, verb := range []string{"%v", "%s", "the login is %v"} {
+		printedForms = append(printedForms, fmt.Sprintf(verb, credential))
+	}
+	for _, printed := range printedForms {
+		if strings.Contains(printed, "correct-horse") || strings.Contains(printed, "jared") {
+			t.Errorf("what the resolver gave back printed as %q, which shows what it holds", printed)
+		}
+		if !strings.Contains(printed, contract.SecretMarker) {
+			t.Errorf("what the resolver gave back printed as %q, want %q", printed, contract.SecretMarker)
+		}
+	}
+
+	written, err := json.Marshal(struct {
+		Login contract.Credential `json:"login"`
+	}{Login: credential})
+	if err != nil {
+		t.Fatalf("turning what the resolver gave back into JSON failed: %v", err)
+	}
+	if strings.Contains(string(written), "correct-horse") {
+		t.Errorf("what the resolver gave back leaked its password into %s", written)
+	}
+}
+
 func TestAnEntryPrintsAsSecretAndTurnsIntoTheSameJSON(t *testing.T) {
 	entry := vault.Entry{
 		Name:       "x-account",
@@ -85,8 +118,8 @@ func TestAnEntryPrintsAsSecretAndTurnsIntoTheSameJSON(t *testing.T) {
 		if strings.Contains(printed, "correct-horse") || strings.Contains(printed, "jared") {
 			t.Errorf("an entry printed as %q, which shows what it holds", printed)
 		}
-		if !strings.Contains(printed, vault.SecretTextForm) {
-			t.Errorf("an entry printed as %q, want %q", printed, vault.SecretTextForm)
+		if !strings.Contains(printed, contract.SecretMarker) {
+			t.Errorf("an entry printed as %q, want %q", printed, contract.SecretMarker)
 		}
 	}
 
@@ -94,7 +127,7 @@ func TestAnEntryPrintsAsSecretAndTurnsIntoTheSameJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("turning an entry into JSON failed: %v", err)
 	}
-	if string(written) != `"`+vault.SecretTextForm+`"` {
+	if string(written) != `"`+contract.SecretMarker+`"` {
 		t.Errorf("an entry turned into the JSON %s, and it must never carry a value into a tool result", written)
 	}
 

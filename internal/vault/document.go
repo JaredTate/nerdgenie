@@ -9,10 +9,6 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// SecretTextForm is the text an entry prints as, wherever one is printed,
-// logged, or turned into JSON by mistake. An entry never shows its values.
-const SecretTextForm = "[secret]"
-
 // SudoEntryName is the name of the one entry that holds the machine password,
 // which the shell tool uses when the user approves a command that needs sudo.
 const SudoEntryName = "sudo"
@@ -37,8 +33,10 @@ const documentVersion = 1
 // Entry is one login the vault holds: a name to point at it by, the site it is
 // for, the hostnames it may be typed into, and the values themselves.
 //
-// An entry's text form is always "[secret]", and so is its JSON form, so that a
-// value cannot leak by being printed, logged, or serialized into a tool result.
+// An entry's text form is contract.SecretMarker, and so is its JSON form, so
+// that a value cannot leak by being printed, logged, or serialized into a tool
+// result. That is the same marker contract.Credential prints as, so nothing on
+// the way out of the program shows a value whichever of the two it is holding.
 // The harness reads the values through the fields; nothing model-facing ever
 // holds one of these.
 type Entry struct {
@@ -57,13 +55,13 @@ type Entry struct {
 }
 
 // String is the text form of an entry, which says nothing about what it holds.
-func (entry Entry) String() string { return SecretTextForm }
+func (entry Entry) String() string { return contract.SecretMarker }
 
 // MarshalJSON writes an entry as the string "[secret]", so that model-facing
 // code cannot serialize a password even by accident. The vault file is written
 // through the stored shape below rather than through this method.
 func (entry Entry) MarshalJSON() ([]byte, error) {
-	return json.Marshal(SecretTextForm)
+	return json.Marshal(contract.SecretMarker)
 }
 
 // Credential is the entry in the shape the harness fills a login form with.

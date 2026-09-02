@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -27,6 +28,9 @@ const (
 	SignalEventsPath = "/api/v1/events"
 	// SignalRemoteProcedurePath is where sends and typing indicators go.
 	SignalRemoteProcedurePath = "/api/v1/rpc"
+	// SignalAttachmentsPath is where the daemon serves the bytes of one
+	// attachment, named by the opaque id it put on the event.
+	SignalAttachmentsPath = "/api/v1/attachments/"
 )
 
 // SignalSend is one message the harness asked the daemon to send.
@@ -82,6 +86,12 @@ func (daemon *FakeSignalCLI) EventsAddress() string {
 // RemoteProcedureAddress is the full address sends and typing indicators go to.
 func (daemon *FakeSignalCLI) RemoteProcedureAddress() string {
 	return daemon.server.URL + SignalRemoteProcedurePath
+}
+
+// AttachmentAddress is the full address of one attachment's bytes, by the id the
+// daemon put on the event.
+func (daemon *FakeSignalCLI) AttachmentAddress(identifier string) string {
+	return daemon.server.URL + SignalAttachmentsPath + url.PathEscape(identifier)
 }
 
 // PushMessage puts one inbound message on the stream, with any attachments, and

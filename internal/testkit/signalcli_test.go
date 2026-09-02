@@ -3,7 +3,10 @@ package testkit_test
 import (
 	"bufio"
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -83,6 +86,152 @@ func TestTheFakeSignalDaemonCanDropItsStream(t *testing.T) {
 	case <-deadline:
 		t.Fatal("the stream stayed open after it was dropped")
 	}
+}
+
+// drainStream reads a scanner until it ends, which is how a test waits for the
+// server to let go of a connection it dropped.
+func drainStream(t *testing.T, lines *bufio.Scanner) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		for lines.Scan() {
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the stream stayed open two seconds after it was dropped")
+	}
+}
+
+func TestADroppedStreamLetsTheNextConnectionSucceed(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
+
+	first := openEventStream(t, daemon.EventsAddress())
+	daemon.DropStream()
+	drainStream(t, first)
+
+	second := openEventStream(t, daemon.EventsAddress())
+	pushMessage(t, daemon, "the harness reconnected")
+
+	line := readEventLine(t, second)
+	if !strings.Contains(line, "the harness reconnected") {
+		t.Errorf("the stream after the drop carried %q, want the message pushed after it", line)
+	}
+}
+
+func TestAStalledStreamGoesQuietAfterItHasSentSomething(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
+	daemon.StallStream(500 * time.Millisecond)
+	pushMessage(t, daemon, "the first message")
+	pushMessage(t, daemon, "the second message")
+
+	lines := openEventStream(t, daemon.EventsAddress())
+	started := time.Now()
+	first := readEventLine(t, lines)
+	untilFirst := time.Since(started)
+	second := readEventLine(t, lines)
+	untilSecond := time.Since(started)
+
+	if !strings.Contains(first, "the first message") || !strings.Contains(second, "the second message") {
+		t.Fatalf("the stream carried %q then %q, want both messages in order", first, second)
+	}
+	if untilFirst > 300*time.Millisecond {
+		t.Errorf("the first event took %s, and a stall models a stream that goes quiet after some bytes, not a connect that hangs", untilFirst)
+	}
+	if untilSecond < 400*time.Millisecond {
+		t.Errorf("the second event took %s, and the stream was told to go quiet for half a second", untilSecond)
+	}
+}
+
+func TestAStallCoversTheCurrentStreamOnly(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
+	daemon.StallStream(5 * time.Second)
+	pushMessage(t, daemon, "the first message")
+	pushMessage(t, daemon, "the second message")
+
+	stalled := openEventStream(t, daemon.EventsAddress())
+	readEventLine(t, stalled)
+	daemon.DropStream()
+	drainStream(t, stalled)
+
+	fresh := openEventStream(t, daemon.EventsAddress())
+	started := time.Now()
+	line := readEventLine(t, fresh)
+
+	if !strings.Contains(line, "the second message") {
+		t.Errorf("the new stream carried %q, want the message the stalled one never sent", line)
+	}
+	if took := time.Since(started); took > time.Second {
+		t.Errorf("the new connection waited %s, and a stall covers the stream it was set on and no other", took)
+	}
+}
+
+func TestAnAttachmentIsAnOpaqueIdTheDaemonServes(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
+	path := filepath.Join(t.TempDir(), "photo.jpg")
+	if err := os.WriteFile(path, []byte("the picture the user sent"), 0o644); err != nil {
+		t.Fatalf("cannot write the fixture attachment: %v", err)
+	}
+
+	lines := openEventStream(t, daemon.EventsAddress())
+	pushMessage(t, daemon, "here is the picture", path)
+	line := readEventLine(t, lines)
+
+	identifier := attachmentIDIn(t, line)
+	if identifier == path {
+		t.Errorf("the attachment id is the local path %q, and signal-cli hands back an opaque id the harness has to download", identifier)
+	}
+	if strings.Contains(line, path) {
+		t.Errorf("the event carries the local path:\n%s", line)
+	}
+	if !strings.Contains(line, "photo.jpg") {
+		t.Errorf("the event carries no readable filename:\n%s", line)
+	}
+
+	answer, err := http.Get(daemon.AttachmentAddress(identifier))
+	if err != nil {
+		t.Fatalf("downloading the attachment failed: %v", err)
+	}
+	defer answer.Body.Close()
+	content, err := io.ReadAll(answer.Body)
+	if err != nil {
+		t.Fatalf("reading the attachment failed: %v", err)
+	}
+	if answer.StatusCode != http.StatusOK || string(content) != "the picture the user sent" {
+		t.Errorf("the attachment endpoint answered %d with %q, want the bytes that were pushed", answer.StatusCode, content)
+	}
+}
+
+// attachmentIDIn reads the id of the first attachment out of one event line.
+func attachmentIDIn(t *testing.T, line string) string {
+	t.Helper()
+	body, found := strings.CutPrefix(line, "data: ")
+	if !found {
+		t.Fatalf("that is not an event line: %s", line)
+	}
+	var event struct {
+		Envelope struct {
+			DataMessage struct {
+				Attachments []struct {
+					ID       string `json:"id"`
+					Filename string `json:"filename"`
+				} `json:"attachments"`
+			} `json:"dataMessage"`
+		} `json:"envelope"`
+	}
+	if err := json.Unmarshal([]byte(body), &event); err != nil {
+		t.Fatalf("the event is not JSON: %v\n%s", err, body)
+	}
+	if len(event.Envelope.DataMessage.Attachments) == 0 {
+		t.Fatalf("the event carries no attachments:\n%s", body)
+	}
+	return event.Envelope.DataMessage.Attachments[0].ID
 }
 
 func TestTheFakeSignalProgramPrintsALinkAndThenSaysItIsAssociated(t *testing.T) {

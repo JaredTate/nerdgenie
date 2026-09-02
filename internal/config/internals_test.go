@@ -155,7 +155,7 @@ func TestReadDecodeMessageTakesTheLineAndTheKeyOutOfWhatTheLibrarySays(t *testin
 }
 
 func TestProblemFromDecodeErrorAlwaysSaysWhatToDo(t *testing.T) {
-	problem := problemFromDecodeError("/home/someone/.coeus/config.toml", errors.New("toml: nothing useful"))
+	problem := problemFromDecodeError("/home/someone/.coeus/config.toml", errors.New("toml: nothing useful was said here"))
 	if !strings.Contains(problem.Advice, "so give the key a value") {
 		t.Errorf("the advice is %q, want it to say what to do even when the library said little", problem.Advice)
 	}

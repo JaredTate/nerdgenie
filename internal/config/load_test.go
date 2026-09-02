@@ -223,3 +223,41 @@ func TestLoadNamesTheConfigurationFileInEveryError(t *testing.T) {
 		t.Errorf("the error is %q, want it to name the file the mistake is in", err)
 	}
 }
+
+func TestAConfigurationFileFarTooBigIsRefusedRatherThanRead(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	huge := strings.Repeat("# a comment line that says nothing at all\n", 40000)
+	if len(huge) <= config.MaxConfigBytes {
+		t.Fatalf("this test needs a document over %d bytes and built one of %d", config.MaxConfigBytes, len(huge))
+	}
+	if err := os.WriteFile(home.ConfigFile(), []byte(huge), contract.DataFileMode); err != nil {
+		t.Fatalf("cannot write the oversized configuration file: %v", err)
+	}
+
+	_, err := config.Load(home)
+	if err == nil {
+		t.Fatal("a configuration file of over a megabyte was read, want it refused before anything is parsed")
+	}
+	if !strings.Contains(err.Error(), "settings file") {
+		t.Errorf("the error is %q, want it to say the file is not a settings file", err)
+	}
+
+	if _, err := config.Parse(home, []byte(huge)); err == nil {
+		t.Fatal("parsing over a megabyte of text was allowed, want it refused")
+	}
+}
+
+func TestAConfigurationFileThisAccountCannotReadSaysSo(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	if err := os.Mkdir(home.ConfigFile(), contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot put a folder where the configuration file belongs: %v", err)
+	}
+
+	_, err := config.Load(home)
+	if err == nil {
+		t.Fatal("a folder where the configuration file belongs was accepted, want it refused")
+	}
+	if !strings.Contains(err.Error(), home.ConfigFile()) {
+		t.Errorf("the error is %q, want it to name the path it could not read", err)
+	}
+}

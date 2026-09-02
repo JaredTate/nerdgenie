@@ -22,36 +22,7 @@ func TestARealConfigurationFileLoadsAndTheDoctorReadsTheSameHome(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	t.Setenv(config.HomeVariable, home.Root)
 
-	document := strings.Join([]string{
-		"# The configuration coeus init writes on a fresh machine.",
-		`defaultmodel = "local"`,
-		`fallbackchain = ["cloud"]`,
-		`signalaccount = "+15125550123"`,
-		`handofftimeout = "30m"`,
-		"",
-		"[[models]]",
-		`name = "local"`,
-		`provider = "openai"`,
-		`baseaddress = "http://127.0.0.1:19091/v1"`,
-		`modelname = "local-coder"`,
-		"contextlength = 262144",
-		"",
-		"[[models]]",
-		`name = "cloud"`,
-		`provider = "cli"`,
-		`program = "claude"`,
-		`modelname = "opus"`,
-		"contextlength = 200000",
-		"",
-		"[caps]",
-		"roundspertask = 100",
-		`timepertask = "1h"`,
-		`timepertool = "7m"`,
-		`timeperturn = "15m"`,
-		"queuedmessages = 100",
-		"",
-	}, "\n")
-	if err := os.WriteFile(home.ConfigFile(), []byte(document), contract.DataFileMode); err != nil {
+	if err := os.WriteFile(home.ConfigFile(), []byte(aWholeConfiguration()), contract.DataFileMode); err != nil {
 		t.Fatalf("cannot write the configuration file: %v", err)
 	}
 
@@ -84,4 +55,38 @@ func TestARealConfigurationFileLoadsAndTheDoctorReadsTheSameHome(t *testing.T) {
 	if printed := report.String(); !strings.Contains(printed, home.Root) {
 		t.Errorf("the printed report does not name the home folder:\n%s", printed)
 	}
+}
+
+// aWholeConfiguration is the file "coeus init" writes on a fresh machine, with
+// every key a first run sets.
+func aWholeConfiguration() string {
+	return strings.Join([]string{
+		"# The configuration coeus init writes on a fresh machine.",
+		`defaultmodel = "local"`,
+		`fallbackchain = ["cloud"]`,
+		`signalaccount = "+15125550123"`,
+		`handofftimeout = "30m"`,
+		"",
+		"[[models]]",
+		`name = "local"`,
+		`provider = "openai"`,
+		`baseaddress = "http://127.0.0.1:19091/v1"`,
+		`modelname = "local-coder"`,
+		"contextlength = 262144",
+		"",
+		"[[models]]",
+		`name = "cloud"`,
+		`provider = "cli"`,
+		`program = "claude"`,
+		`modelname = "opus"`,
+		"contextlength = 200000",
+		"",
+		"[caps]",
+		"roundspertask = 100",
+		`timepertask = "1h"`,
+		`timepertool = "7m"`,
+		`timeperturn = "15m"`,
+		"queuedmessages = 100",
+		"",
+	}, "\n")
 }

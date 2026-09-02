@@ -322,3 +322,43 @@ func buildFullHome(t testing.TB) contract.Home {
 	}
 	return home
 }
+
+func TestTheDoctorReportsAFileWhereAFolderBelongs(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	if err := os.RemoveAll(home.MemoryFolder()); err != nil {
+		t.Fatalf("cannot take the memory folder away for the test: %v", err)
+	}
+	if err := os.WriteFile(home.MemoryFolder(), []byte("not a folder\n"), contract.DataFileMode); err != nil {
+		t.Fatalf("cannot put a file where the memory folder belongs: %v", err)
+	}
+
+	finding := findingAbout(t, config.Doctor(context.Background(), home), "memory")
+	if finding.Result != config.Trouble {
+		t.Errorf("a file where a folder belongs is reported %s, want it a problem", finding.Result)
+	}
+	if !strings.Contains(finding.Detail, "folder") {
+		t.Errorf("the detail is %q, want it to say a folder belongs there", finding.Detail)
+	}
+}
+
+func TestTheDoctorSkipsTheDaemonWhenNoAliasPointsAtThisMachine(t *testing.T) {
+	home := writeConfig(t, strings.Join([]string{
+		`defaultmodel = "cloud"`,
+		"",
+		"[[models]]",
+		`name = "cloud"`,
+		`provider = "cli"`,
+		`program = "claude"`,
+		`modelname = "opus"`,
+		"contextlength = 200000",
+		"",
+	}, "\n"))
+
+	finding := findingAbout(t, config.Doctor(context.Background(), home), "the local model daemon")
+	if finding.Result != config.Warning {
+		t.Errorf("a configuration with no local alias reports the daemon %s, want a warning", finding.Result)
+	}
+	if !strings.Contains(finding.Detail, contract.LocalModelAlias) {
+		t.Errorf("the detail is %q, want it to name the alias it looked for", finding.Detail)
+	}
+}

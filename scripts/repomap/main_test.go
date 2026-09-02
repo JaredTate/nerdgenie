@@ -47,6 +47,39 @@ func TestRunSaysSoWhenTheRootIsNotThere(t *testing.T) {
 	}
 }
 
+// closedOutput stands in for a pipe whose other end has already gone away.
+type closedOutput struct{}
+
+// Write always fails, the way a write to a closed pipe does.
+func (closedOutput) Write([]byte) (int, error) {
+	return 0, errClosedOutput
+}
+
+// errClosedOutput is what a closed pipe reports.
+var errClosedOutput = closedPipeError{}
+
+// closedPipeError is the error a closed pipe reports.
+type closedPipeError struct{}
+
+// Error says what went wrong and what to do about it.
+func (closedPipeError) Error() string {
+	return "the output is closed, so send the map somewhere that is still open"
+}
+
+func TestRunSaysSoWhenItCannotPrintTheMap(t *testing.T) {
+	root := newFixtureRepository(t, "README.md")
+
+	var problems bytes.Buffer
+	code := run([]string{"--root", root}, closedOutput{}, &problems)
+
+	if code != 1 {
+		t.Errorf("printing to a closed output returned %d, want 1", code)
+	}
+	if problems.Len() == 0 {
+		t.Error("printing to a closed output said nothing, want an error saying what went wrong")
+	}
+}
+
 func TestRunSaysHowToUseItWhenTheArgumentsAreWrong(t *testing.T) {
 	tests := [][]string{
 		{"--root"},

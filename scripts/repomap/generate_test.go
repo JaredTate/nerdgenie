@@ -169,6 +169,33 @@ func TestGenerateWalksTheTreeWhenThereIsNoGitRepository(t *testing.T) {
 	}
 }
 
+func TestWalkingATreeWithNoGitStillSkipsTheExcludedFolders(t *testing.T) {
+	root := t.TempDir()
+	for _, path := range []string{"README.md", "node_modules/library/index.js", "bin/coeus", "notes.log"} {
+		full := filepath.Join(root, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("cannot make the folder for %s: %v", path, err)
+		}
+		if err := os.WriteFile(full, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatalf("cannot write %s: %v", path, err)
+		}
+	}
+
+	generated, err := generate(root)
+	if err != nil {
+		t.Fatalf("generating the map outside a git work tree failed: %v", err)
+	}
+
+	for _, unwanted := range []string{"node_modules", "bin/coeus", "notes.log"} {
+		if strings.Contains(generated, unwanted) {
+			t.Errorf("the map lists %q from a tree with no git in it:\n%s", unwanted, generated)
+		}
+	}
+	if !strings.Contains(generated, "README.md") {
+		t.Errorf("the map left out README.md:\n%s", generated)
+	}
+}
+
 func TestGenerateSaysSoWhenTheFolderIsNotThere(t *testing.T) {
 	if _, err := generate(filepath.Join(t.TempDir(), "nowhere")); err == nil {
 		t.Fatal("generating a map for a folder that is not there was reported as a success, want an error naming it")

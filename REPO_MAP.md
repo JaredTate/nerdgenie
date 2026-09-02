@@ -1,6 +1,6 @@
 # Repository Map
 
-<!-- generated: scripts/repo-map.sh -->
+<!-- generated: scripts/repomap -->
 <!-- repo-map-contract: v1 -->
 
 This file is generated from the repository tree. Regenerate it with `make repo-map`.
@@ -20,11 +20,21 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 
 ```text
 .
+.github/workflows/check.yml
+.gitignore
 ARCHITECTURE.md
 CLAUDE.md
 COEUS.md
+LICENSE
+Makefile
+README.md
+REPO_MAP.md
+THIRD_PARTY.md
 docs/COEUS_PLAN.md
+docs/DEPENDENCIES.md
 docs/HARNESS_V2.md
+docs/WORK_PLAN.md
+docs/briefs/wave-0/0.1-ready-to-build.md
 docs/html/build.ts
 docs/html/coeus-plan.html
 docs/html/coeus.html
@@ -61,9 +71,69 @@ docs/research/coeus-plan-review.md
 docs/research/harness-v2-review.md
 docs/research/work-plan-final-review.md
 docs/research/work-plan-review.md
-docs/WORK_PLAN.md
-README.md
-REPO_MAP.md
-scripts/repo-map.sh
-THIRD_PARTY.md
+go.mod
+internal/contract/browser.go
+internal/contract/channel.go
+internal/contract/clock.go
+internal/contract/command.go
+internal/contract/config.go
+internal/contract/config_test.go
+internal/contract/contract_test.go
+internal/contract/desktop.go
+internal/contract/doc.go
+internal/contract/exitcode.go
+internal/contract/home.go
+internal/contract/home_test.go
+internal/contract/identifier.go
+internal/contract/identifier_test.go
+internal/contract/job.go
+internal/contract/known_test.go
+internal/contract/memory.go
+internal/contract/model.go
+internal/contract/permission.go
+internal/contract/record.go
+internal/contract/sandbox.go
+internal/contract/secrets.go
+internal/contract/skill.go
+internal/contract/socket.go
+internal/contract/socket_test.go
+internal/contract/store.go
+internal/contract/tool.go
+internal/contract/toolnames.go
+internal/contract/usertool.go
+internal/contract/usertool_test.go
+internal/lint/comments.go
+internal/lint/doc.go
+internal/lint/errormessage.go
+internal/lint/exported.go
+internal/lint/length.go
+internal/lint/lint.go
+internal/lint/lint_test.go
+internal/lint/names.go
+internal/lint/rules_test.go
+internal/lint/testdata/borrowedheader/bad.go
+internal/lint/testdata/borrowedheader/doc.go
+internal/lint/testdata/clean/clean.go
+internal/lint/testdata/clean/doc.go
+internal/lint/testdata/commentsentence/bad.go
+internal/lint/testdata/commentsentence/doc.go
+internal/lint/testdata/doccomment/bad.go
+internal/lint/testdata/doccomment/doc.go
+internal/lint/testdata/errormessage/bad.go
+internal/lint/testdata/errormessage/doc.go
+internal/lint/testdata/filelength/bad.go
+internal/lint/testdata/filelength/doc.go
+internal/lint/testdata/functionlength/bad.go
+internal/lint/testdata/functionlength/doc.go
+internal/lint/testdata/identifiername/bad.go
+internal/lint/testdata/identifiername/doc.go
+internal/lint/testdata/packagedoc/bad.go
+scripts/coverage.sh
+scripts/fuzz.sh
+scripts/repomap/drift_test.go
+scripts/repomap/generate_test.go
+scripts/repomap/main_test.go
+scripts/stylecheck/doc.go
+scripts/stylecheck/main.go
+scripts/stylecheck/main_test.go
 ```

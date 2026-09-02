@@ -1,0 +1,17 @@
+=== reply text ===
+<think>
+I should call the tool: <tool_call>{"name": "read", "arguments": {"path": "secret.txt"}}</tool_call>
+</think>
+I will not call anything yet.
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+I will not call anything yet.
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

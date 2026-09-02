@@ -146,6 +146,27 @@ var goldenCases = []goldenCase{
 		name:  "plain-text",
 		reply: contract.Reply{Text: "The post is up and it is 236 characters long.\n"},
 	},
+	{
+		name: "think-holds-the-only-call",
+		reply: contract.Reply{Text: "<think>\n" +
+			`I should call the tool: <tool_call>{"name": "read", "arguments": {"path": "secret.txt"}}</tool_call>` + "\n" +
+			"</think>\n" +
+			"I will not call anything yet.\n"},
+	},
+	{
+		name: "think-before-a-call",
+		reply: contract.Reply{Text: "<think>The user wants the notes, so I will read them first.</think>\n" +
+			"<tool_call>\n" +
+			`{"name": "read", "arguments": {"path": "notes.md"}}` + "\n" +
+			"</tool_call>\n" +
+			"Here is what I found.\n"},
+	},
+	{
+		name: "think-never-closed",
+		reply: contract.Reply{Text: "Working on it.\n" +
+			"<THINK>\n" +
+			`<tool_call>{"name": "read", "arguments": {"path": "a.txt"}}</tool_call>` + "\n"},
+	},
 }
 
 func TestFindMatchesTheGoldenFileForEveryEnvelopeShape(t *testing.T) {

@@ -412,6 +412,7 @@ internal/testkit/home_test.go
 internal/testkit/integration_test.go
 internal/testkit/job.go
 internal/testkit/job_test.go
+internal/testkit/jobstate_test.go
 internal/testkit/memory.go
 internal/testkit/memory_test.go
 internal/testkit/model.go

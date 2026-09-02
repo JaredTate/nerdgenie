@@ -107,9 +107,9 @@ func CheckPackage(folder string) ([]Violation, error) {
 			continue
 		}
 		path := filepath.Join(folder, entry.Name())
-		source, err := os.ReadFile(path)
+		source, err := readSourceFile(path, entry)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read the file %s to check it: %w", path, err)
+			return nil, err
 		}
 		if !strings.HasSuffix(entry.Name(), "_test.go") {
 			sourceFiles++
@@ -129,6 +129,24 @@ func CheckPackage(folder string) ([]Violation, error) {
 		})
 	}
 	return found, nil
+}
+
+// readSourceFile reads one file, refusing anything past the cap by name rather
+// than holding it in memory whole.
+func readSourceFile(path string, entry os.DirEntry) ([]byte, error) {
+	about, err := entry.Info()
+	if err != nil {
+		return nil, fmt.Errorf("cannot look at the file %s to check it: %w", path, err)
+	}
+	if about.Size() > MaxSourceFileBytes {
+		return nil, fmt.Errorf("the file %s is %d bytes and the cap is %d, so split it before the checker reads it",
+			path, about.Size(), MaxSourceFileBytes)
+	}
+	source, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the file %s to check it: %w", path, err)
+	}
+	return source, nil
 }
 
 // CheckTree walks a folder and checks every package under it. It skips the

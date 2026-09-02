@@ -128,7 +128,12 @@ func (provider *FakeProviderServer) Close() {
 // handle answers one call: record it, then either misbehave once or write the
 // next step of the script in the shape the path asks for.
 func (provider *FakeProviderServer) handle(writer http.ResponseWriter, request *http.Request) {
-	body, _ := io.ReadAll(request.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(writer, request.Body, MaxProviderRequestBytes))
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("the request body is longer than the %d byte cap, so send a smaller one",
+			MaxProviderRequestBytes), http.StatusRequestEntityTooLarge)
+		return
+	}
 	problem, wait := provider.recordAndTakeProblem(request, body)
 
 	if request.URL.Path != AnthropicPath && request.URL.Path != OpenAIPath {

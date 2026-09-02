@@ -276,10 +276,10 @@ func TestABadLineDisconnectsTheClientWithOneErrorMessage(t *testing.T) {
 	harness := newSocketHarness(t)
 
 	for what, line := range map[string]string{
-		"a line that is not JSON":                  "{this is not JSON",
-		"a line that is JSON but not an object":    `"just a string"`,
-		"a message type neither side sends":        `{"type":"wibble"}`,
-		"a message type only the program sends":    `{"type":"delta","text":"hello"}`,
+		"a line that is not JSON":                   "{this is not JSON",
+		"a line that is JSON but not an object":     `"just a string"`,
+		"a message type neither side sends":         `{"type":"wibble"}`,
+		"a message type only the program sends":     `{"type":"delta","text":"hello"}`,
 		"a line the program sends back to a screen": `{"type":"reply","text":"hello"}`,
 	} {
 		client := harness.dial(t)

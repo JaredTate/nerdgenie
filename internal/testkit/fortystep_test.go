@@ -228,6 +228,33 @@ func TestEveryRoundBeforeTheLastHasAResultWithTheNextIdentifier(t *testing.T) {
 	}
 }
 
+func TestTheResultsOfEachRoundJoinIntoTheWholeListInOrder(t *testing.T) {
+	task := loadFixture(t)
+
+	joined := []testkit.FortyStepResult{}
+	for _, round := range task.Rounds {
+		produced := task.ResultsOfRound(round.Number)
+		if round.ToolName == "" && len(produced) != 0 {
+			t.Errorf("round %d uses no tool and produced %d results", round.Number, len(produced))
+		}
+		if round.ToolName != "" && round.TaskUpdate != nil && len(produced) != 2 {
+			t.Errorf("round %d uses a tool and writes the record, so it produced %d results, want 2",
+				round.Number, len(produced))
+		}
+		joined = append(joined, produced...)
+	}
+
+	whole := task.ToolResults()
+	if len(joined) != len(whole) {
+		t.Fatalf("the rounds produced %d results between them and the whole list has %d", len(joined), len(whole))
+	}
+	for at, result := range joined {
+		if result != whole[at] {
+			t.Errorf("the result at position %d is %+v, and the whole list has %+v", at, result, whole[at])
+		}
+	}
+}
+
 func TestEveryDoneLinePointsAtAResultTheFixtureActuallyProduced(t *testing.T) {
 	task := loadFixture(t)
 

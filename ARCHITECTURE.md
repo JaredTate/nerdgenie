@@ -26,7 +26,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/contract` | Every interface, type, and constant that crosses a wave boundary, with no dependencies | 0, built |
 | `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0, built |
 | `internal/log` | The append-only event log in SQLite | 1, built |
-| `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
+| `internal/record` | The task record and the job record: parse, print, enforce their rules, checkpoint | 1, built |
 | `internal/config` | The configuration file and the home folder layout | 1, built |
 | `internal/clock` | The real clock behind `contract.Clock`: the machine's time, a sleep that stops with its context, a ticker | 1, built |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0, built |
@@ -76,6 +76,15 @@ Packages are listed in build order, and a package may import only packages liste
 - The configuration struct with every field and its default, the home folder layout as path helpers with the file modes, and the exit codes (75 restart me, 78 bad configuration).
 - The user-tool protocol: an executable in `~/.coeus/tools/` answers `--describe` with JSON and takes a JSON object on standard input.
 
+## The record (built, wave 1)
+
+`internal/record` owns the one text form of a task record and a job record, which is the pair of examples in section 4 of the design, and it owns the rules that make the record worth trusting. `Print` is the only thing in Coeus that writes that text and `Parse` is the only thing that reads it; the two round-trip byte for byte on both examples, which are the golden files in the package's `testdata`. Anything that must sit on one line is folded when it is printed and unfolded when it is read, so a message with more than one line in it comes back exactly as the user wrote it.
+
+Every change goes through a `Keeper`, which holds one record and the event log behind it. The model's half of the record goes through one door, `Apply`, which takes an `Update` carrying only what the model may write: the why, the done list, the stop list, the plan or the task list, one decision, one failure. There is no field there for the ask, for a correction, for the header, or for the situation, so rules seven and eight of the brief are kept by the shape of the type rather than by a check. The harness's half is the rest of the methods: the budget, the cost line, the progress line, the situation, corrections, results, reports, and the check marks on the plan and the task list. Every rule has a named error, so a caller can tell one refusal from another with `errors.Is` and hand the model back a line it can act on, and an update is all or nothing: nothing changes unless every rule holds.
+
+A result gets the next label, one line of at most seventy characters in the record, and its whole text in the log as a tool-result event, which is what `Read` brings back long after the text left the model's window. Every change also saves the next numbered checkpoint into the log, holding the printed record, so `Load`, `LoadCheckpoint`, and `Back` need nothing but the log: a task can be put down for days and picked up on a different model, or wound back three steps to try another path. The done-check reads the done list and returns the lines with nothing behind them, and a record cannot be set to done while any of them is waiting. The one estimate of size lives here too: a record filled to a hundred-round budget measures about 2,800 tokens by this package's ratio, under the three thousand the design promises.
+
+Two notes for later waves. The checkpoints and the results of a record are written into the log under the record's own number, so a task and a job that happen to share a number would share a stretch of the log; the design keeps task numbers and job numbers in separate spaces, and if that ever changes the log needs a key that says which kind. And the integration test in this package writes to a file of JSON lines rather than to `internal/log`, because the two packages were written in the same wave; when wave 3 joins them, the same test should run against the real log.
 ## The permission function (built, wave 2)
 
 `internal/permission` implements `contract.Permission`. It depends on `internal/contract` and the Go standard library and nothing else.

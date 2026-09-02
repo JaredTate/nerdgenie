@@ -21,25 +21,6 @@ import (
 // been asked a thousand different questions and something is wrong.
 const MaxRememberedAnswers = 1000
 
-// Settings are what a permission function is built from. They come from the
-// user's configuration, and nothing in them is hidden from the user.
-type Settings struct {
-	// AskMeFirst names the entries of the ask-me-first list that are switched
-	// on, in the plain words contract.DefaultAskMeFirst returns. An empty list
-	// means the user emptied it, and then everything the rules below do not
-	// cover simply runs.
-	AskMeFirst []string
-	// Rules are the user's own rules. They are read after the ask-me-first
-	// entries, so a rule here can change what an entry would have said.
-	Rules []Rule
-}
-
-// DefaultSettings returns the settings a fresh install starts from: the three
-// entries the ask-me-first list ships with, and no rules of the user's own.
-func DefaultSettings() Settings {
-	return Settings{AskMeFirst: contract.DefaultAskMeFirst()}
-}
-
 // rememberedAnswer is what one answer from the user turned into: a ruling to
 // give the next call that reduces to the same thing, and the words to give with
 // it.
@@ -59,23 +40,37 @@ type Decider struct {
 	standing   []*standingApproval
 }
 
-// New builds a permission function from the user's settings and the clock a
-// standing approval's expiry is read against. It returns an error naming
-// whatever in the settings cannot be used.
-func New(settings Settings, clock contract.Clock) (*Decider, error) {
+// New builds a permission function from ~/.coeus/config.toml and the clock a
+// standing approval's expiry is read against. The shipped entries the user kept
+// in "ask_me_first" are read first and the rules in "permission_rules" after
+// them, so the last rule that matches is the user's own when the user wrote one.
+// It returns an error naming whatever in the configuration cannot be used, which
+// includes an entry nobody shipped.
+func New(configuration contract.Config, clock contract.Clock) (*Decider, error) {
 	if clock == nil {
 		return nil, errors.New("the permission function was built without a clock, so pass one, because a standing approval expires at a time")
 	}
 
-	rules, err := RulesForAskMeFirst(settings.AskMeFirst)
+	rules, err := RulesForAskMeFirst(configuration.AskMeFirst)
 	if err != nil {
 		return nil, err
 	}
-	book, err := NewRulebook(append(rules, settings.Rules...))
+	book, err := NewRulebook(append(rules, rulesFromConfiguration(configuration.PermissionRules)...))
 	if err != nil {
 		return nil, err
 	}
 	return &Decider{clock: clock, book: book, remembered: map[string]rememberedAnswer{}}, nil
+}
+
+// rulesFromConfiguration turns the rules the user wrote in config.toml into the
+// rules the rulebook matches with. A rule from a file has no reason of its own,
+// so it is described by itself when it wins.
+func rulesFromConfiguration(written []contract.PermissionRule) []Rule {
+	rules := make([]Rule, 0, len(written))
+	for _, rule := range written {
+		rules = append(rules, Rule{Tool: rule.Tool, Pattern: rule.Pattern, Action: rule.Action})
+	}
+	return rules
 }
 
 // Decide rules on one call: allow it, ask the user about it, or refuse it. A

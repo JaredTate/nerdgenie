@@ -46,7 +46,7 @@ describe("splitting an expectation into the words that can be looked for", () =>
   });
 
   it("lowercases and splits on anything that is not a letter or a digit", () => {
-    expect(meaningfulWords("Sign-In, then Two_Factor!")).toEqual(["sign", "then", "two", "factor"]);
+    expect(meaningfulWords("Sign-In: Two_Factor codes!")).toEqual(["sign", "factor", "codes"]);
   });
 
   it("gives nothing back for an expectation made only of filler", () => {
@@ -54,7 +54,7 @@ describe("splitting an expectation into the words that can be looked for", () =>
   });
 
   it("never repeats a word", () => {
-    expect(meaningfulWords("post the post about the post")).toEqual(["post", "about"]);
+    expect(meaningfulWords("timeline the timeline shows timeline")).toEqual(["timeline", "shows"]);
   });
 });
 

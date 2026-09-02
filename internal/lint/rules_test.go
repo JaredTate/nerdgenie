@@ -184,6 +184,22 @@ func TestTheBorrowedHeaderRuleKnowsEveryProjectByItsFolderName(t *testing.T) {
 	}
 }
 
+func TestAVendorsProgramNamedAsAProgramIsNotABorrowedDesign(t *testing.T) {
+	// "codex" is both a project Coeus read a design from and the name of the
+	// program that runs GPT on the user's subscription. A header that says how to
+	// run the program is not naming a borrowed design.
+	source := "// Package example runs \"codex exec\" in a scratch folder and reads the text back.\n\npackage example\n"
+
+	if containsRule(checkOneFile(source), lint.RuleBorrowedHeader) {
+		t.Errorf("a header naming the codex program was read as a borrowed design:\n%s", source)
+	}
+
+	borrowed := "// The design here is ported from codex, wherever that lives.\n\npackage example\n"
+	if !containsRule(checkOneFile(borrowed), lint.RuleBorrowedHeader) {
+		t.Errorf("a header naming the codex project with no reference path reported nothing:\n%s", borrowed)
+	}
+}
+
 func TestTheBorrowedHeaderRuleDoesNotCareAboutCapitalLetters(t *testing.T) {
 	for _, project := range theSameNineInTheirOwnCapitals {
 		t.Run(project, func(t *testing.T) {

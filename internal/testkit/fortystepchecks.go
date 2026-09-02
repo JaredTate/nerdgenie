@@ -27,11 +27,6 @@ func (task FortyStepTask) RecordAtTheEnd() contract.Record {
 		lines = append(lines, contract.ResultLine{ID: result.ID, Summary: result.Summary})
 	}
 
-	doneWhen := make([]contract.DoneLine, 0, len(task.DoneWhen))
-	for _, line := range task.DoneWhen {
-		doneWhen = append(doneWhen, contract.DoneLine{Text: line.Text, Done: true, ResultID: line.ResultID})
-	}
-
 	return contract.Record{
 		Header: contract.Header{
 			Kind:   contract.RecordTask,
@@ -39,7 +34,7 @@ func (task FortyStepTask) RecordAtTheEnd() contract.Record {
 			Status: contract.StatusDone,
 			Origin: task.Origin,
 		},
-		Goal: contract.Goal{Ask: task.Ask, Why: task.Why, DoneWhen: doneWhen},
+		Goal: contract.Goal{Ask: task.Ask, Why: task.Why, DoneWhen: task.DoneLinesAtTheEnd()},
 		Rules: contract.Rules{
 			Corrections: []contract.Correction{{ID: contract.CorrectionID(1), Text: task.Correction}},
 			StopWhen:    task.StopWhen,

@@ -113,6 +113,13 @@ func LoadFortyStepTask() (FortyStepTask, error) {
 	if len(task.Rounds) == 0 {
 		return FortyStepTask{}, errors.New("the forty-step fixture has no rounds in it, so check the file on disk")
 	}
+	// Every record write is read here, so that a fixture holding something no
+	// reader knows fails at the door rather than in the middle of a wave 1 test.
+	for _, round := range task.Rounds {
+		if _, err := round.Update(); err != nil {
+			return FortyStepTask{}, fmt.Errorf("cannot read the forty-step fixture: %w", err)
+		}
+	}
 	return task, nil
 }
 
@@ -238,6 +245,50 @@ func asJSON(value any) json.RawMessage {
 	return written
 }
 
+// PlanAtTheEnd is the plan the model wrote through the task tool, numbered from
+// one. No step is ticked: the harness ticks a step when it sees it finish, and
+// the fixture says nothing about that, so this is what the record holds after
+// the forty rounds.
+func (task FortyStepTask) PlanAtTheEnd() []contract.PlanStep {
+	steps := []contract.PlanStep{}
+	for _, written := range task.updates() {
+		for _, text := range written.Plan {
+			steps = append(steps, contract.PlanStep{Number: len(steps) + 1, Text: text})
+		}
+	}
+	return steps
+}
+
+// DecisionsAtTheEnd is every choice the model wrote through the task tool, with
+// its reason and its label, in the order the rounds made them.
+func (task FortyStepTask) DecisionsAtTheEnd() []contract.Decision {
+	decisions := []contract.Decision{}
+	for _, written := range task.updates() {
+		if written.Decision == nil {
+			continue
+		}
+		decided := *written.Decision
+		decided.ID = contract.DecisionID(len(decisions) + 1)
+		decisions = append(decisions, decided)
+	}
+	return decisions
+}
+
+// FailuresAtTheEnd is everything that went wrong, with its cause and its label,
+// in the order the rounds hit them.
+func (task FortyStepTask) FailuresAtTheEnd() []contract.Failure {
+	failures := []contract.Failure{}
+	for _, written := range task.updates() {
+		if written.Failure == nil {
+			continue
+		}
+		failed := *written.Failure
+		failed.ID = contract.FailureID(len(failures) + 1)
+		failures = append(failures, failed)
+	}
+	return failures
+}
+
 // DoneLinesAtTheEnd is the done list as it stands when the task closes: every
 // line ticked and pointing at the result that proves it.
 func (task FortyStepTask) DoneLinesAtTheEnd() []contract.DoneLine {
@@ -248,53 +299,18 @@ func (task FortyStepTask) DoneLinesAtTheEnd() []contract.DoneLine {
 	return lines
 }
 
-// PlanAtTheEnd is the plan the model wrote through the task tool, every step
-// ticked because the task finished. The fixture does not say which result
-// finished which step, because that is the harness's own bookkeeping.
-func (task FortyStepTask) PlanAtTheEnd() []contract.PlanStep {
-	steps := []contract.PlanStep{}
+// updates is every round's record write, in order, already read into the
+// contract's shapes. The loader has checked them, so nothing here can fail.
+func (task FortyStepTask) updates() []FortyStepUpdate {
+	written := make([]FortyStepUpdate, 0, len(task.Rounds))
 	for _, round := range task.Rounds {
-		for _, text := range textsIn(round.TaskUpdate["plan"]) {
-			steps = append(steps, contract.PlanStep{Number: len(steps) + 1, Text: text, Done: true})
-		}
-	}
-	return steps
-}
-
-// DecisionsAtTheEnd is every choice the model wrote through the task tool, with
-// its reason, in the order the rounds made them.
-func (task FortyStepTask) DecisionsAtTheEnd() []contract.Decision {
-	decisions := []contract.Decision{}
-	for _, round := range task.Rounds {
-		written, found := round.TaskUpdate["decision"].(map[string]any)
-		if !found {
+		update, err := round.Update()
+		if err != nil {
 			continue
 		}
-		decisions = append(decisions, contract.Decision{
-			ID:     contract.DecisionID(len(decisions) + 1),
-			Text:   textOf(written["text"]),
-			Reason: textOf(written["reason"]),
-		})
+		written = append(written, update)
 	}
-	return decisions
-}
-
-// FailuresAtTheEnd is everything that went wrong, with its cause, in the order
-// the rounds hit them.
-func (task FortyStepTask) FailuresAtTheEnd() []contract.Failure {
-	failures := []contract.Failure{}
-	for _, round := range task.Rounds {
-		written, found := round.TaskUpdate["failure"].(map[string]any)
-		if !found {
-			continue
-		}
-		failures = append(failures, contract.Failure{
-			ID:    contract.FailureID(len(failures) + 1),
-			Text:  textOf(written["text"]),
-			Cause: textOf(written["cause"]),
-		})
-	}
-	return failures
+	return written
 }
 
 // textsIn reads a list of lines out of a piece of a record write, which arrives

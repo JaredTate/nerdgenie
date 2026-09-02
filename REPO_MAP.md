@@ -405,6 +405,7 @@ internal/testkit/doc.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
 internal/testkit/fortystepchecks.go
+internal/testkit/fortystepupdate.go
 internal/testkit/fuzz_test.go
 internal/testkit/golden.go
 internal/testkit/golden_test.go

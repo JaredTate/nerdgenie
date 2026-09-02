@@ -38,12 +38,12 @@ func TestEveryCrossWaveInterfaceExists(t *testing.T) {
 	}
 }
 
-func TestTheBrowserWorkerHasTheElevenProtocolMethodsAndClose(t *testing.T) {
+func TestTheBrowserWorkerHasTheTwelveProtocolMethodsAndClose(t *testing.T) {
 	worker := reflect.TypeFor[contract.BrowserWorker]()
 
 	wanted := []string{
 		"Open", "Read", "Click", "Type", "Press", "Scroll",
-		"Act", "Tabs", "LoginFill", "Screenshot", "Health", "Close",
+		"Act", "Tabs", "LoginFill", "Screenshot", "Health", "Dialog", "Close",
 	}
 	for _, name := range wanted {
 		if _, found := worker.MethodByName(name); !found {
@@ -51,7 +51,7 @@ func TestTheBrowserWorkerHasTheElevenProtocolMethodsAndClose(t *testing.T) {
 		}
 	}
 	if worker.NumMethod() != len(wanted) {
-		t.Errorf("BrowserWorker has %d methods, want the eleven protocol methods plus Close", worker.NumMethod())
+		t.Errorf("BrowserWorker has %d methods, want the twelve protocol methods plus Close", worker.NumMethod())
 	}
 }
 
@@ -145,5 +145,24 @@ func TestThePermissionRulingsAreAllowAskDenyAndStop(t *testing.T) {
 	}
 	if contract.RulingStop != "stop" {
 		t.Errorf("the stop ruling is %q, want \"stop\"", contract.RulingStop)
+	}
+}
+
+func TestASnapshotCanReportAWallAndADiffSaysWhetherThePageSettled(t *testing.T) {
+	snapshot := contract.Snapshot{URL: "https://x.com/login", Wall: &contract.Wall{Kind: contract.WallLogin, Detail: "a password field"}}
+	if snapshot.Wall == nil || snapshot.Wall.Kind != contract.WallLogin {
+		t.Errorf("a snapshot did not hold the wall it hit: %+v", snapshot)
+	}
+	diff := contract.Diff{URL: "https://x.com/home", Settled: false, Seen: "the page kept changing"}
+	if diff.Settled {
+		t.Error("a diff for a page that never settled reads as settled")
+	}
+	for _, action := range []contract.DialogAction{contract.DialogAccept, contract.DialogDismiss} {
+		if !contract.KnownDialogAction(action) {
+			t.Errorf("the dialog action %q is not known", action)
+		}
+	}
+	if contract.KnownDialogAction("ignore") {
+		t.Error("the dialog action \"ignore\" is known, and only accept and dismiss should be")
 	}
 }

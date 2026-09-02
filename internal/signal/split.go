@@ -51,6 +51,12 @@ func SplitReply(text string) []string {
 	messages := []string{}
 	building := ""
 	for _, paragraph := range paragraphBreak.Split(trimmed, -1) {
+		if len(messages) > MaxMessagesPerReply {
+			// One message more than the cap is enough to know the rest was cut,
+			// and stopping here keeps a huge reply from being laid out in full
+			// only to be thrown away.
+			break
+		}
 		paragraph = strings.TrimSpace(paragraph)
 		if paragraph == "" {
 			continue

@@ -286,3 +286,35 @@ func TestARealFenceKeepsTheSandboxContract(t *testing.T) {
 		t.Fatalf("the fence does not keep the sandbox contract: %v", err)
 	}
 }
+
+// failingBubblewrapScript stands in for a bwrap that is installed but cannot make
+// a user namespace, which is what an unfixed Ubuntu looks like.
+const failingBubblewrapScript = `#!/bin/sh
+echo "bwrap: setting up uid map: Permission denied" >&2
+exit 1
+`
+
+func TestAvailableNamesTheAppArmorFixWhenBwrapCannotMakeANamespace(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+
+	folder := t.TempDir()
+	if err := os.WriteFile(filepath.Join(folder, bubblewrapProgram), []byte(failingBubblewrapScript), 0o755); err != nil {
+		t.Fatalf("cannot write the stand-in for %s: %v", bubblewrapProgram, err)
+	}
+	t.Setenv("PATH", folder+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	err := fence.Available()
+	if err == nil {
+		t.Fatal("the sandbox reported itself available with a bwrap that cannot make a user namespace")
+	}
+	said := strings.ToLower(err.Error())
+	for _, wanted := range []string{"apparmor", "userns"} {
+		if !strings.Contains(said, wanted) {
+			t.Errorf("the reason says %q, and it must name %q so that a person knows what to change", err, wanted)
+		}
+	}
+
+	if _, runErr := fence.Run(context.Background(), contract.SandboxCommand{Program: "/bin/true"}); runErr == nil {
+		t.Error("the fence ran a command through a bwrap that cannot fence anything")
+	}
+}

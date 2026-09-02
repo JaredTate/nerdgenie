@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -58,5 +59,37 @@ func TestAvailableOnThisMachineReadsTheRealPathAndTheRealKernel(t *testing.T) {
 	// answer is one of the two shapes the caller has to handle.
 	if err := fence.Available(); err != nil && !strings.Contains(err.Error(), "sandbox") {
 		t.Errorf("the reason the sandbox cannot run says %q, and it must say what is missing and what to do", err)
+	}
+}
+
+func TestTheReasonANamespaceWasRefusedNamesTheFixAPersonHasToApply(t *testing.T) {
+	err := namespaceRefusedError("bwrap: setting up uid map: Permission denied", errors.New("exit status 1"))
+
+	if err == nil {
+		t.Fatal("a refused namespace came back as no error at all")
+	}
+	said := err.Error()
+	for _, wanted := range []string{"apparmor", "userns", "bwrap"} {
+		if !strings.Contains(strings.ToLower(said), wanted) {
+			t.Errorf("the reason says %q, and it must name %q so that a person knows what to change", said, wanted)
+		}
+	}
+	if !strings.Contains(said, "uid map") {
+		t.Errorf("the reason says %q, and it must carry what bwrap itself said", said)
+	}
+}
+
+func TestTheNamespaceProbeIsRunOnceAndItsAnswerRemembered(t *testing.T) {
+	fence, _ := aFenceForTesting(t)
+
+	first := fence.canMakeANamespace()
+	if !fence.probed {
+		t.Fatal("the fence did not remember that it had already asked bwrap")
+	}
+
+	// The second answer comes from what was remembered, so it is the same value
+	// even though nothing runs the second time.
+	if second := fence.canMakeANamespace(); !errors.Is(second, first) && second != first {
+		t.Errorf("the second answer is %v and the first was %v, want the one that was remembered", second, first)
 	}
 }

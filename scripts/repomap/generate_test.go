@@ -196,6 +196,52 @@ func TestWalkingATreeWithNoGitStillSkipsTheExcludedFolders(t *testing.T) {
 	}
 }
 
+// theRealGitDirectory is where this repository keeps its git folder, asked of
+// git itself so that the answer is right inside a work tree as well as inside a
+// plain clone.
+func theRealGitDirectory(t *testing.T) string {
+	t.Helper()
+	command := exec.Command("git", "rev-parse", "--absolute-git-dir")
+	command.Env = fixtureEnvironment()
+	answer, err := command.Output()
+	if err != nil {
+		t.Fatalf("cannot ask git where this repository's git folder is: %v", err)
+	}
+	return strings.TrimSpace(string(answer))
+}
+
+func TestTheGeneratorIgnoresTheGitVariablesInItsOwnEnvironment(t *testing.T) {
+	root := newFixtureRepository(t, "README.md")
+	t.Setenv("GIT_DIR", theRealGitDirectory(t))
+
+	generated, err := generate(root)
+
+	if err != nil {
+		t.Fatalf("generating the map with GIT_DIR set failed: %v", err)
+	}
+	tree := treeOf(t, generated)
+	for _, unwanted := range []string{"ARCHITECTURE.md", "internal/testkit/", "scripts/repomap/"} {
+		if strings.Contains(tree, unwanted) {
+			t.Errorf("with GIT_DIR set the generator mapped this repository instead of the fixture, because it lists %q:\n%s",
+				unwanted, tree)
+		}
+	}
+	if !strings.Contains(tree, "README.md") {
+		t.Errorf("the map left out the only file in the fixture:\n%s", tree)
+	}
+}
+
+// treeOf is the list of paths inside a generated map, without the header, which
+// names files of its own that would otherwise read as a match.
+func treeOf(t *testing.T, generated string) string {
+	t.Helper()
+	_, tree, found := strings.Cut(generated, "```text\n")
+	if !found {
+		t.Fatalf("the generated map has no tree block in it:\n%s", generated)
+	}
+	return tree
+}
+
 func TestGenerateSaysSoWhenTheFolderIsNotThere(t *testing.T) {
 	if _, err := generate(filepath.Join(t.TempDir(), "nowhere")); err == nil {
 		t.Fatal("generating a map for a folder that is not there was reported as a success, want an error naming it")

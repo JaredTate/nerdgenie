@@ -29,7 +29,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/record` | The task record: parse, print, enforce its rules, checkpoint | 1 |
 | `internal/config` | The configuration file and the home folder layout | 1 |
 | `internal/lint` | The plain-English style checker, used only by `make check` | 0 |
-| `internal/provider` | Turn a prompt into a streamed reply through the Anthropic or OpenAI-compatible API, with retries and the fallback chain | 1 |
+| `internal/provider` | Turn a prompt into a streamed reply through the Anthropic API, the OpenAI-compatible API, or a vendor's command-line program on a subscription, with retries and the fallback chain | 1 |
 | `internal/repair` | Find the tool calls in a model reply, however the model wrote them | 1 |
 | `internal/context` | Build the working context from the layers, sized to the model | 2 |
 | `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat; the done-check and the after-action review | 3 |
@@ -102,7 +102,7 @@ The terminal and any future screen attach to the running program over a Unix soc
 
 ## Test architecture
 
-Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen 3.8 through the llama-server daemon on the development machine, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
+Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functional, fuzz. Two tiers of model: the scripted fake on every commit, and three real models (the local Qwen 3.8 through the llama-server daemon on the development machine, Opus 4.8 through the Claude Code program on the user's subscription, and GPT-5.5 through the Codex program on the user's subscription, both driven by the `cli` provider) at every wave gate under the `live` tag. Every fake has a contract test against the real thing. The forty-step fixture is the proof of the record and the context builder.
 
 ## Repository map
 

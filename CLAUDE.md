@@ -37,7 +37,7 @@ All building and testing happen on the Linux development machine, `jared-irene`.
 - `make test` — unit tests, integration tests, the functional suite against the fake model, and a five-second fuzz smoke per target.
 - `make fuzz` — one minute of fuzzing per target. Runs before every wave gate and nightly.
 - `make check` — `go vet`, `staticcheck`, `gofmt`, the style checker, the repo-map drift test, the coverage threshold, and `make test`. CI runs this on every push. A wave does not pass until it is clean.
-- `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen 3.8 through the llama-server daemon on this machine, Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI. Tagged `live`; development machine only; a missing key or a daemon that is down is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
+- `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen 3.8 through the llama-server daemon on this machine, Opus 4.8 through `claude -p` on the user's Claude subscription, and GPT-5.5 through `codex exec` on the user's ChatGPT subscription. There are no API keys on this machine and none are wanted. Tagged `live`; development machine only; a program that is missing or not logged in, or a daemon that is down, is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
 - `make release` — binaries for `linux/amd64` and `linux/arm64`, the worker bundles, a checksum file, and a manifest, into `dist/`.
 - `make repo-map` — regenerate `REPO_MAP.md`.
 - `make install` — build and install the systemd user unit on this machine.

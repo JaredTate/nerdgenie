@@ -1,0 +1,36 @@
+# Continuous integration. Every push and every pull request runs `make check`,
+# which is the same gate a wave must pass on the development machine.
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: make check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository with its full history
+        uses: actions/checkout@v4
+        with:
+          # The repository-map drift test asks git which files are tracked, so
+          # the checkout must be a real work tree rather than an archive.
+          fetch-depth: 0
+
+      - name: Install bubblewrap and ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap ripgrep
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          check-latest: false
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run make check
+        run: make check

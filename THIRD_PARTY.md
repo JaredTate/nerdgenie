@@ -14,6 +14,15 @@ Coeus ports designs from these projects. Porting means a worker read the referen
 | Codex CLI | Apache-2.0 | The shell tool's justification field, the Landlock rules |
 | HomeRecon | private, same owner | The three living documents and the repo-map drift test |
 
+**Ported so far.** As of wave 0: HomeRecon's repository-map generator and its
+contract test, ported fresh into Go in `scripts/repomap/`; the two provider wire
+protocols read from Prime's `packages/ai/src/providers/` and written fresh as the
+fake provider server in `internal/testkit/providerserver.go`; and the three
+signal-cli HTTP paths and the event envelope read from OpenClaw's
+`extensions/signal/src/` and written fresh as the fake daemon in
+`internal/testkit/signalcli.go`. Each of those Go files names its reference path
+in a comment at the top, which the style checker enforces.
+
 ## Verbatim copies in `docs/reference/`
 
 These files are unmodified copies kept for reading, because their projects were cloned only during research and are not on the development machine. They remain under their own licenses, named above, and are not part of the Coeus program.

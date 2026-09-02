@@ -1,0 +1,133 @@
+package contract_test
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+
+	"github.com/JaredTate/coeus/internal/contract"
+)
+
+func TestEveryScreenMessageTypeIsFromTheScreenAndNotFromTheProgram(t *testing.T) {
+	fromScreen := []contract.SocketMessageType{
+		contract.SocketMessage,
+		contract.SocketCommand,
+		contract.SocketApprove,
+		contract.SocketDeny,
+		contract.SocketSecret,
+		contract.SocketAttach,
+		contract.SocketDetach,
+	}
+	for _, kind := range fromScreen {
+		if !kind.FromScreen() {
+			t.Errorf("%q is not marked as coming from the screen, and it should be", kind)
+		}
+		if kind.FromProgram() {
+			t.Errorf("%q is marked as coming from the program, and it should not be", kind)
+		}
+	}
+}
+
+func TestEveryProgramMessageTypeIsFromTheProgramAndNotFromTheScreen(t *testing.T) {
+	fromProgram := []contract.SocketMessageType{
+		contract.SocketDelta,
+		contract.SocketReply,
+		contract.SocketPreview,
+		contract.SocketAsk,
+		contract.SocketHandoff,
+		contract.SocketStatus,
+		contract.SocketError,
+	}
+	for _, kind := range fromProgram {
+		if !kind.FromProgram() {
+			t.Errorf("%q is not marked as coming from the program, and it should be", kind)
+		}
+		if kind.FromScreen() {
+			t.Errorf("%q is marked as coming from the screen, and it should not be", kind)
+		}
+	}
+}
+
+func TestAnUnknownMessageTypeBelongsToNeitherSide(t *testing.T) {
+	unknown := contract.SocketMessageType("shout")
+	if unknown.FromScreen() || unknown.FromProgram() {
+		t.Error("an unknown socket message type was accepted by one of the two sides, and it should be accepted by neither")
+	}
+}
+
+func TestASocketEnvelopeSurvivesEncodingAndDecoding(t *testing.T) {
+	original := contract.SocketEnvelope{
+		Type:        contract.SocketPreview,
+		ID:          "3",
+		TaskID:      "17",
+		Text:        "post the draft to x.com",
+		Attachments: []string{"/tmp/shot.png"},
+		Reason:      "spending money is on the ask-me-first list",
+	}
+
+	var written bytes.Buffer
+	if err := contract.EncodeSocketEnvelope(&written, original); err != nil {
+		t.Fatalf("encoding the envelope failed: %v", err)
+	}
+	if !strings.HasSuffix(written.String(), "\n") {
+		t.Error("the encoded envelope does not end in a newline, and the socket is newline delimited")
+	}
+	if strings.Count(written.String(), "\n") != 1 {
+		t.Errorf("the encoded envelope holds %d newlines, want exactly one", strings.Count(written.String(), "\n"))
+	}
+
+	decoded, err := contract.DecodeSocketEnvelope(written.Bytes())
+	if err != nil {
+		t.Fatalf("decoding the envelope failed: %v", err)
+	}
+	if decoded.Type != original.Type || decoded.ID != original.ID || decoded.Text != original.Text {
+		t.Errorf("the envelope came back as %+v, want %+v", decoded, original)
+	}
+	if len(decoded.Attachments) != 1 || decoded.Attachments[0] != original.Attachments[0] {
+		t.Errorf("the attachments came back as %v, want %v", decoded.Attachments, original.Attachments)
+	}
+}
+
+func TestDecodeSocketEnvelopeRefusesBadInput(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+	}{
+		{"empty input", ""},
+		{"only whitespace", "   \n"},
+		{"not json at all", "hello"},
+		{"json that is not an object", "[1,2,3]"},
+		{"an object with no type", `{"text":"hi"}`},
+		{"an object with an unknown type", `{"type":"shout"}`},
+		{"a truncated object", `{"type":"message"`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := contract.DecodeSocketEnvelope([]byte(test.line)); err == nil {
+				t.Fatalf("decoding %q was accepted, want an error naming what is wrong", test.line)
+			}
+		})
+	}
+}
+
+func FuzzDecodeSocketEnvelope(f *testing.F) {
+	seeds := []string{
+		`{"type":"message","text":"hello"}`,
+		`{"type":"delta","text":""}`,
+		`{"type":`,
+		"",
+		"{\"type\":\"secret\",\"secret\":\"\x00\"}",
+	}
+	for _, seed := range seeds {
+		f.Add([]byte(seed))
+	}
+	f.Fuzz(func(t *testing.T, line []byte) {
+		envelope, err := contract.DecodeSocketEnvelope(line)
+		if err != nil {
+			return
+		}
+		if !envelope.Type.FromScreen() && !envelope.Type.FromProgram() {
+			t.Fatalf("decoding accepted the unknown message type %q", envelope.Type)
+		}
+	})
+}

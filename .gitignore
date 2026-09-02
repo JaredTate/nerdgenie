@@ -1,0 +1,9 @@
+# Build outputs and test artifacts. The fuzz corpus under testdata/fuzz/ is
+# deliberately not ignored: a crashing input found by the fuzzer is committed so
+# that it becomes a permanent regression test.
+bin/
+dist/
+coverage/
+*.test
+*.out
+node_modules/

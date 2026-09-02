@@ -39,7 +39,7 @@ failed=0
 
 for package in $packages; do
 	case "$package" in
-	*/internal/tui) threshold="$tui_threshold" ;;
+	*/internal/tui | */internal/tui/*) threshold="$tui_threshold" ;;
 	*) threshold="$default_threshold" ;;
 	esac
 

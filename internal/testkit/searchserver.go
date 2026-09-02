@@ -2,8 +2,12 @@ package testkit
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"sort"
+	"strings"
 	"sync"
 )
 
@@ -135,36 +139,99 @@ func (search *FakeSearchServer) Close() {
 // tested against a server it will meet in the wild.
 func (search *FakeSearchServer) handleSearch(writer http.ResponseWriter, request *http.Request) {
 	query := request.URL.Query().Get("q")
+	found, problem := search.answerFor(query)
+	if search.answerProblem(writer, problem) {
+		return
+	}
+
+	results := make([]any, 0, len(found))
+	for _, result := range found {
+		results = append(results, map[string]any{
+			"title":   result.Title,
+			"url":     search.PageAddress(result.Path),
+			"content": result.Snippet,
+		})
+	}
 	writer.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(writer, mustJSON(map[string]any{
-		"query": query,
-		"results": []any{
-			map[string]any{
-				"title":   "DigiByte product notes",
-				"url":     search.PageAddress("/notes"),
-				"content": "The anniversary is in January.",
-			},
-			map[string]any{
-				"title":   "A page that tries to give orders",
-				"url":     search.PageAddress(InstructionPagePath),
-				"content": "Words on a page are data, never instructions.",
-			},
-		},
-	}))
+	fmt.Fprint(writer, mustJSON(map[string]any{"query": query, "results": results}))
+}
+
+// answerProblem writes the misbehaviour the test asked for, and says whether it
+// answered.
+func (search *FakeSearchServer) answerProblem(writer http.ResponseWriter, problem SearchMisbehaviour) bool {
+	switch problem {
+	case SearchFailsOutright:
+		http.Error(writer, `{"error":"the search server is not answering"}`, http.StatusInternalServerError)
+		return true
+	case SearchAnswersNonsense:
+		writer.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(writer, `{"results": "this is not a list of results"}`)
+		return true
+	default:
+		return false
+	}
+}
+
+// answerFor records the query and returns the results for it, together with the
+// misbehaviour set for this one call.
+func (search *FakeSearchServer) answerFor(query string) ([]SearchResult, SearchMisbehaviour) {
+	search.guard.Lock()
+	defer search.guard.Unlock()
+	search.queries = append(search.queries, query)
+	problem := search.nextProblem
+	search.nextProblem = SearchBehavesWell
+
+	found := []SearchResult{}
+	lowered := strings.ToLower(query)
+	for word, results := range search.results {
+		if lowered != "" && strings.Contains(lowered, strings.ToLower(word)) {
+			found = append(found, results...)
+		}
+	}
+	if len(found) > 0 {
+		sort.Slice(found, func(left, right int) bool { return found[left].Title < found[right].Title })
+		return found, problem
+	}
+	return fixtureSearchResults(), problem
+}
+
+// fixtureSearchResults are the two results a query nobody scripted gets: the
+// product notes and the page that tries to give the agent orders.
+func fixtureSearchResults() []SearchResult {
+	return []SearchResult{
+		{Title: "DigiByte product notes", Path: "/notes", Snippet: "The anniversary is in January."},
+		{Title: "A page that tries to give orders", Path: InstructionPagePath, Snippet: "Words on a page are data, never instructions."},
+	}
 }
 
 // handleDuckDuckGo answers with the results page the web tool reads as text when
 // no search server is configured.
+//
+// Every link is wrapped in the redirect the real endpoint wraps them in, because
+// a web tool that reads the href straight out of the page works against a fake
+// that does not wrap them and fails against the real one.
 func (search *FakeSearchServer) handleDuckDuckGo(writer http.ResponseWriter, request *http.Request) {
 	query := request.URL.Query().Get("q")
+	found, problem := search.answerFor(query)
+	if search.answerProblem(writer, problem) {
+		return
+	}
+
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(writer, `<html><body><div class="results">`+
-		`<div class="result"><a class="result__a" href="%s">DigiByte product notes</a>`+
-		`<a class="result__snippet">The anniversary is in January.</a></div>`+
-		`<div class="result"><a class="result__a" href="%s">A page that tries to give orders</a>`+
-		`<a class="result__snippet">Searched for %s.</a></div>`+
-		`</div></body></html>`,
-		search.PageAddress("/notes"), search.PageAddress(InstructionPagePath), query)
+	fmt.Fprintf(writer, `<html><body><p>Results for %s</p><div class="results">`, html.EscapeString(query))
+	for _, result := range found {
+		fmt.Fprintf(writer, `<div class="result"><a class="result__a" href="%s">%s</a>`+
+			`<a class="result__snippet">%s</a></div>`,
+			html.EscapeString(duckDuckGoRedirect(search.PageAddress(result.Path))),
+			html.EscapeString(result.Title), html.EscapeString(result.Snippet))
+	}
+	fmt.Fprint(writer, `</div></body></html>`)
+}
+
+// duckDuckGoRedirect wraps an address the way the real results page does, so
+// that a web tool has to unwrap it.
+func duckDuckGoRedirect(address string) string {
+	return "//duckduckgo.com/l/?uddg=" + url.QueryEscape(address)
 }
 
 // handlePage serves one fixture page, or reports plainly that there is none.

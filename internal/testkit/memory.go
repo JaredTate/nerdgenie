@@ -71,14 +71,39 @@ func (memory *FakeMemory) Save(_ context.Context, facts []contract.Fact) error {
 
 // Hint returns up to three lines for the end of the prompt, and nothing at all
 // when nothing matches.
+//
+// A fact another fact supersedes is left out. Nothing is ever deleted, so a
+// search still finds it, but the lines that ride in every prompt say what stands
+// now rather than what used to.
 func (memory *FakeMemory) Hint(ctx context.Context, query string) ([]string, error) {
-	found, err := memory.Search(ctx, query, contract.MemoryHintLines)
+	found, err := memory.Search(ctx, query, 0)
 	if err != nil {
 		return nil, err
 	}
-	lines := make([]string, 0, len(found))
+
+	superseded := memory.supersededIdentifiers()
+	lines := []string{}
 	for _, fact := range found {
+		if superseded[fact.ID] {
+			continue
+		}
 		lines = append(lines, fact.Text)
+		if len(lines) == contract.MemoryHintLines {
+			break
+		}
 	}
 	return lines, nil
+}
+
+// supersededIdentifiers is the set of facts some other fact has replaced.
+func (memory *FakeMemory) supersededIdentifiers() map[string]bool {
+	memory.guard.Lock()
+	defer memory.guard.Unlock()
+	replaced := map[string]bool{}
+	for _, fact := range memory.facts {
+		if fact.Supersedes != "" {
+			replaced[fact.Supersedes] = true
+		}
+	}
+	return replaced
 }

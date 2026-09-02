@@ -436,6 +436,7 @@ internal/testkit/signalcli.go
 internal/testkit/signalcli_test.go
 internal/testkit/skill.go
 internal/testkit/skill_test.go
+internal/testkit/smaller_test.go
 internal/testkit/store.go
 internal/testkit/store_test.go
 internal/testkit/testdata/greeting.txt
@@ -464,6 +465,7 @@ scripts/gate/coverage_test.go
 scripts/gate/fixture_test.go
 scripts/gate/fuzz_test.go
 scripts/gate/gofmt_test.go
+scripts/gate/threshold_test.go
 scripts/gofmt.sh
 scripts/repomap/doc.go
 scripts/repomap/drift_test.go

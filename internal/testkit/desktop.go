@@ -62,27 +62,38 @@ func (desktop *FakeDesktop) Screenshot(_ context.Context) (contract.DesktopScree
 	return contract.DesktopScreenshot{PNGBase64: fixturePicture, Marks: fixtureDesktopMarks()}, nil
 }
 
-// Click clicks the control with that number.
+// Click clicks the control with that number. The numbers on a screenshot start
+// at one, so zero is no control at all.
 func (desktop *FakeDesktop) Click(_ context.Context, mark int) error {
 	return desktop.act(fmt.Sprintf("click %d", mark), mark)
 }
 
 // Type types text at human pacing.
 func (desktop *FakeDesktop) Type(_ context.Context, text string) error {
-	return desktop.act("type "+text, 0)
+	return desktop.act("type "+text, noMark)
 }
 
 // Press presses a key combination.
 func (desktop *FakeDesktop) Press(_ context.Context, keys string) error {
-	return desktop.act("press "+keys, 0)
+	return desktop.act("press "+keys, noMark)
 }
 
-// Drag drags from one numbered control to another.
+// Drag drags from one numbered control to another. Both ends are checked before
+// anything is recorded, so a test never sees a drag the desktop refused.
 func (desktop *FakeDesktop) Drag(_ context.Context, fromMark int, toMark int) error {
-	if err := desktop.act(fmt.Sprintf("drag %d to %d", fromMark, toMark), fromMark); err != nil {
+	desktop.guard.Lock()
+	defer desktop.guard.Unlock()
+	if err := desktop.somethingRunning(); err != nil {
 		return err
 	}
-	return desktop.knownMark(toMark)
+	if err := desktop.knownMark(fromMark); err != nil {
+		return err
+	}
+	if err := desktop.knownMark(toMark); err != nil {
+		return err
+	}
+	desktop.actions = append(desktop.actions, fmt.Sprintf("drag %d to %d", fromMark, toMark))
+	return nil
 }
 
 // Clipboard reads what is on the clipboard.
@@ -97,7 +108,7 @@ func (desktop *FakeDesktop) Clipboard(_ context.Context) (string, error) {
 
 // SetClipboard puts text on the clipboard.
 func (desktop *FakeDesktop) SetClipboard(_ context.Context, text string) error {
-	if err := desktop.act("set the clipboard", 0); err != nil {
+	if err := desktop.act("set the clipboard", noMark); err != nil {
 		return err
 	}
 	desktop.guard.Lock()
@@ -106,15 +117,20 @@ func (desktop *FakeDesktop) SetClipboard(_ context.Context, text string) error {
 	return nil
 }
 
+// noMark is what an action that points at no control passes, such as typing.
+const noMark = -1
+
 // act records one action, after checking that something is running and that the
-// mark, when there is one, is on the screen.
+// mark, when the action has one, is on the screen. Zero is a mark like any
+// other, and there is no control numbered zero, so an action that names it is
+// refused.
 func (desktop *FakeDesktop) act(what string, mark int) error {
 	desktop.guard.Lock()
 	defer desktop.guard.Unlock()
 	if err := desktop.somethingRunning(); err != nil {
 		return err
 	}
-	if mark != 0 {
+	if mark != noMark {
 		if err := desktop.knownMark(mark); err != nil {
 			return err
 		}

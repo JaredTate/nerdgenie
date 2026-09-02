@@ -88,6 +88,13 @@ The U.S. Army has the same problem as an agent. Headquarters cannot see every un
 
 ```mermaid
 flowchart LR
+  subgraph Live["Live part, changes every turn"]
+    direction TB
+    S["Situation<br/>what the world says now"]
+    P["Plan<br/>steps and status"]
+    F["Failures<br/>with causes"]
+    R["Results<br/>one line each, by id"]
+  end
   subgraph Stable["Stable part, rarely changes, cached"]
     direction TB
     A["Ask<br/>user's words, never edited"]
@@ -95,13 +102,6 @@ flowchart LR
     C["Corrections<br/>user's words, only added"]
     X["Stop and tell the user if"]
     D["Decisions<br/>with reasons"]
-  end
-  subgraph Live["Live part, changes every turn"]
-    direction TB
-    S["Situation<br/>what the world says now"]
-    P["Plan<br/>steps and status"]
-    F["Failures<br/>with causes"]
-    R["Results<br/>one line each, by id"]
   end
 ```
 

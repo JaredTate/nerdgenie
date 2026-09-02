@@ -125,6 +125,13 @@ flowchart LR
 <p>The U.S. Army has the same problem as an agent. Headquarters cannot see every unit, radios fail, and people rotate out in the middle of a mission. The Army&#39;s answer is the five-paragraph operations order, a fixed document that anyone can write and anyone can check. Its mission paragraph carries the commander&#39;s intent, which is the purpose behind the mission, and the end state, which is what things should look like when it is over. Those two let a unit act correctly when the plan breaks. Before the operation, the commander lists the facts that would change a decision, called the critical information requirements. A change to the plan is sent as a fragmentary order, a short message that changes one part without restating the rest. After the operation comes the after-action review. Coeus borrows all of it, with the user in the commander&#39;s seat.</p>
 <div class="diagram"><pre class="mermaid">
 flowchart LR
+  subgraph Live["Live part, changes every turn"]
+    direction TB
+    S["Situation<br/>what the world says now"]
+    P["Plan<br/>steps and status"]
+    F["Failures<br/>with causes"]
+    R["Results<br/>one line each, by id"]
+  end
   subgraph Stable["Stable part, rarely changes, cached"]
     direction TB
     A["Ask<br/>user's words, never edited"]
@@ -132,13 +139,6 @@ flowchart LR
     C["Corrections<br/>user's words, only added"]
     X["Stop and tell the user if"]
     D["Decisions<br/>with reasons"]
-  end
-  subgraph Live["Live part, changes every turn"]
-    direction TB
-    S["Situation<br/>what the world says now"]
-    P["Plan<br/>steps and status"]
-    F["Failures<br/>with causes"]
-    R["Results<br/>one line each, by id"]
   end
 </pre></div>
 <div class="tablewrap"><table><thead><tr><th>Section</th><th>Army name</th><th>Who writes it</th><th>Rule</th></tr></thead><tbody><tr><td>Ask</td><td>Mission: who and what</td><td>The user, word for word</td><td>Never edited by anyone</td></tr>

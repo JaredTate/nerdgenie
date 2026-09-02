@@ -1,0 +1,5 @@
+these are the commands Coeus answers:
+
+  /help    Shows this list.
+  /status  Shows the model, the cost so far, the jobs, the answers waiting, and the health of each channel.
+  /vault   Lists and manages the logins Coeus holds. Terminal only.

@@ -35,6 +35,9 @@ const (
 type card struct {
 	// kind says which of the four this is.
 	kind cardKind
+	// id is what an answer names, so that the answer the screen sends and the
+	// request the program made point at the same thing.
+	id string
 	// title is the line in the top rule of the box.
 	title string
 	// body is the exact text or command that is about to run.
@@ -61,9 +64,14 @@ func (shown card) answersLine() string {
 	}
 }
 
-// waiting says whether this card still holds the keys.
-func (shown card) waiting() bool {
-	return !shown.answered && shown.kind != cardError
+// takesKeys says whether this card holds the single keys. A preview and a
+// handoff do until they are answered; a question is answered in the input box,
+// and an error needs no answer at all.
+func (shown card) takesKeys() bool {
+	if shown.answered {
+		return false
+	}
+	return shown.kind == cardPreview || shown.kind == cardHandoff
 }
 
 // titleStyle is how the title in the top rule is drawn: accent on a preview,

@@ -16,15 +16,67 @@ import (
 // scrollRows is how far one page-up or page-down moves the transcript.
 const scrollRows = 10
 
-// pressed takes one key press and does what docs/TUI_DESIGN.md says it does.
-// Anything that is not a binding is a character going into the input box.
+// pressed takes one key press and gives it to whatever holds the keys: the card
+// that is waiting for an answer, the reason prompt, or the input box.
 func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
 	if key.Type != tea.KeyCtrlC {
 		screen.quitArmed = false
 	}
-	switch key.Type {
-	case tea.KeyCtrlC:
+	if key.Type == tea.KeyCtrlC {
 		return screen.pressedQuit()
+	}
+	if screen.askingWhyNot {
+		if screen.pressedWhileGivingAReason(key) {
+			return nil
+		}
+		return screen.pressedInTheInputBox(key)
+	}
+	if screen.focusedCard() != nil && screen.pressedWhileACardWaits(key) {
+		return nil
+	}
+	return screen.pressedInTheInputBox(key)
+}
+
+// pressedWhileACardWaits holds the single-key answers a card takes. It says
+// false only for the keys that still belong to the screen as a whole, such as
+// scrolling, so that stray typing never lands in a box the person cannot use.
+func (screen *Screen) pressedWhileACardWaits(key tea.KeyMsg) bool {
+	if key.Type == tea.KeyPgUp || key.Type == tea.KeyPgDown {
+		return false
+	}
+	if key.Type != tea.KeyRunes {
+		return true
+	}
+	switch string(key.Runes) {
+	case "a":
+		screen.answerCard(contract.AnswerOnce, "")
+	case "A":
+		screen.answerCard(contract.AnswerAlways, "")
+	case "r":
+		screen.askWhyNot()
+	}
+	return true
+}
+
+// pressedWhileGivingAReason holds the two keys that end the reason prompt, and
+// lets every other key through to the input box so that the reason can be typed.
+func (screen *Screen) pressedWhileGivingAReason(key tea.KeyMsg) bool {
+	switch key.Type {
+	case tea.KeyEnter:
+		screen.answerCard(contract.AnswerReject, screen.input.text())
+		return true
+	case tea.KeyEsc:
+		screen.askingWhyNot = false
+		screen.input.clear()
+		return true
+	}
+	return false
+}
+
+// pressedInTheInputBox is the ordinary case: a binding that edits what is being
+// typed, or a character going into it.
+func (screen *Screen) pressedInTheInputBox(key tea.KeyMsg) tea.Cmd {
+	switch key.Type {
 	case tea.KeyEnter:
 		screen.sendWhatWasTyped()
 	case tea.KeyCtrlJ:
@@ -51,8 +103,19 @@ func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
 		screen.input.insert(" ")
 	case tea.KeyRunes:
 		screen.input.insert(string(key.Runes))
+	case tea.KeyEsc:
+		screen.pressedStop()
 	}
 	return nil
+}
+
+// pressedStop sends the stop command while a task is running, which is what Esc
+// does when there is nothing else for it to close.
+func (screen *Screen) pressedStop() {
+	if !screen.busy() {
+		return
+	}
+	screen.tell(contract.SocketEnvelope{Type: contract.SocketCommand, Text: "stop"})
 }
 
 // pressedQuit holds the rule that Ctrl+C twice quits, so that one stray press
@@ -76,6 +139,7 @@ func (screen *Screen) sendWhatWasTyped() {
 	screen.input.clear()
 	screen.rememberTyped(text)
 	screen.remember(block{kind: blockPerson, text: text})
+	screen.answerTheQuestion()
 
 	envelope := contract.SocketEnvelope{Type: contract.SocketMessage, Text: text}
 	if command, isCommand := slashCommand(text); isCommand {

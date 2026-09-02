@@ -44,7 +44,7 @@ func pressKey(screen *Screen, which tea.KeyType) {
 	screen.Update(tea.KeyMsg{Type: which})
 }
 
-// type_ types a whole word into the input box, one key press at a time.
+// typeWord types a whole phrase into the input box, one key press at a time.
 func typeWord(screen *Screen, text string) {
 	for _, letter := range text {
 		if letter == ' ' {

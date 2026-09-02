@@ -11,10 +11,32 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 		screen.pending += envelope.Text
 	case contract.SocketReply:
 		screen.finishReply(envelope.Text)
+	case contract.SocketPreview:
+		screen.showCard(cardFrom(envelope, cardPreview, previewTitle))
+	case contract.SocketAsk:
+		screen.showCard(cardFrom(envelope, cardQuestion, questionTitle))
+	case contract.SocketHandoff:
+		screen.showCard(cardFrom(envelope, cardHandoff, handoffTitle))
 	case contract.SocketError:
 		screen.flushDeltas()
 		screen.showTrouble(troubleWords(envelope))
 	}
+}
+
+// cardFrom turns one message from the program into a card. The title in the
+// rule is always the one docs/TUI_DESIGN.md gives that kind of card, so that the
+// frame reads the same every time; a title the program sent that says something
+// else becomes the first line inside the box.
+func cardFrom(envelope contract.SocketEnvelope, kind cardKind, title string) card {
+	body := envelope.Text
+	if envelope.Title != "" && envelope.Title != title {
+		body = envelope.Title + "\n" + body
+	}
+	picture := ""
+	if len(envelope.Attachments) > 0 {
+		picture = envelope.Attachments[0]
+	}
+	return card{kind: kind, id: envelope.ID, title: title, body: body, picture: picture}
 }
 
 // troubleWords is what an error message says, which is its text, its reason, or

@@ -193,7 +193,7 @@ func (screen *Screen) focusedCard() *card {
 		if screen.blocks[at].kind != blockCard {
 			continue
 		}
-		if screen.blocks[at].shown.waiting() {
+		if screen.blocks[at].shown.takesKeys() {
 			return &screen.blocks[at].shown
 		}
 		return nil

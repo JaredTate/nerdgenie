@@ -1,0 +1,16 @@
+=== reply text ===
+<tool_call>
+{"name": "frobnicate", "arguments": {}}
+</tool_call>
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+The tool name "frobnicate" is not one of the real tools. Write the name exactly as it is spelled here. The real tools are: read, write, edit, search, shell, browser_open.

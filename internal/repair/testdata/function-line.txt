@@ -1,0 +1,14 @@
+=== reply text ===
+read({"path": "notes.md"})
+=== reply calls ===
+(empty)
+=== calls ===
+1 call1 read {"path":"notes.md"}
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

@@ -1,0 +1,17 @@
+=== reply text ===
+```
+[{"name": "read", "arguments": {"path": "a.txt"}}, {"name": "read", "input": {"path": "b.txt"}}]
+```
+=== reply calls ===
+(empty)
+=== calls ===
+1 call1 read {"path":"a.txt"}
+2 call2 read {"path":"b.txt"}
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

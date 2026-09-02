@@ -1,0 +1,16 @@
+=== reply text ===
+<tool_call>
+{"name": "read", "arguments": ["notes.md"]}
+</tool_call>
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+The arguments for "read" must be a JSON object. The read tool takes these fields: path (string, required) - the file to read. Write the arguments as a JSON object. The real tools are: read, write, edit, search, shell, browser_open.

@@ -1,0 +1,22 @@
+=== reply text ===
+Here is the settings file.
+
+```json
+{"model": "local", "rounds": 100}
+```
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+Here is the settings file.
+
+```json
+{"model": "local", "rounds": 100}
+```
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

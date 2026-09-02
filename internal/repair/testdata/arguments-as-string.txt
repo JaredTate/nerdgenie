@@ -1,0 +1,16 @@
+=== reply text ===
+<tool_call>
+{"name": "read", "arguments": "{\"path\": \"notes.md\"}"}
+</tool_call>
+=== reply calls ===
+(empty)
+=== calls ===
+1 call1 read {"path":"notes.md"}
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

@@ -1,0 +1,15 @@
+=== reply text ===
+Sure, creating the file now.
+{"name": "write", "arguments": {"path": "hello.txt", "content": "hi"}}
+=== reply calls ===
+(empty)
+=== calls ===
+1 call1 write {"path":"hello.txt","content":"hi"}
+=== text ===
+Sure, creating the file now.
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

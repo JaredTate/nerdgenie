@@ -86,9 +86,14 @@ test. Nothing outside the standard library is imported.
 
 None. There are no `live` tests until wave 1, and `make live` passes trivially.
 The three real models are the local Qwen 3.8 through the llama-server daemon,
-Opus 4.8 through Anthropic, and GPT-5.5 through OpenAI; from wave 1 their results
-and token costs go here.
+Opus 4.8 through `claude -p` on the user's Claude subscription, and GPT-5.5
+through `codex exec` on the user's ChatGPT subscription; from wave 1 their results
+and token costs go here. There are no API keys on the machine and none are wanted.
 
 ### Human trial
 
 None. The first trial is at the wave-3 gate.
+
+### The gate
+
+Merged into `main` on 2026-09-02 as one merge commit after `make check` passed on the branch tip and again on `main` (every package above ninety percent, the fuzz smoke clean). The orchestrator read `internal/contract` in full and found it true to the design; the ripgrep gap the worker reported was closed by installing it system-wide (`/usr/bin/rg` 14.1.0). Three additions to `internal/contract` followed as orchestrator commits, because waves 3 and 4 need them: the job interface gained the calls that hand a finished task's report to its job and ask for the next task, the file-change event got a body shape for `/undo`, and the home layout got a Signal folder.

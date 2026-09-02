@@ -36,6 +36,9 @@ const (
 	// maxLinkLines caps how many lines are read from signal-cli, so that a
 	// program printing forever cannot hold the terminal open.
 	maxLinkLines = 1000
+	// linkFinishGrace is how long signal-cli is given to finish on its own once
+	// the linking is done, before it is signalled.
+	linkFinishGrace = 2 * time.Second
 )
 
 // LinkOptions is everything the link flow needs.
@@ -77,12 +80,13 @@ func Link(ctx context.Context, options LinkOptions) (string, error) {
 	if err := running.Start(); err != nil {
 		return "", fmt.Errorf("cannot run signal-cli at %s, so install it and try again: %w", options.Program, err)
 	}
-	defer stopLinking(running)
-
 	account, err := readLinking(ctx, options, printed)
 	if err != nil {
+		stopLinking(running)
 		return "", err
 	}
+	finishLinking(running)
+
 	if err := options.SaveAccount(account); err != nil {
 		return "", fmt.Errorf("signal-cli linked this device as %s, but the account could not be written into the configuration: %w", account, err)
 	}
@@ -190,12 +194,33 @@ func readLinkLines(printed io.Reader, lines chan<- string) {
 	}
 }
 
-// stopLinking ends signal-cli and everything it started, by the process group
-// the child leads rather than by anything that looks like its name.
+// stopLinking ends signal-cli and everything it started at once, by the process
+// group the child leads rather than by anything that looks like its name. It is
+// what happens when the linking did not work.
 func stopLinking(running *exec.Cmd) {
 	if running.Process == nil {
 		return
 	}
 	_ = syscall.Kill(-running.Process.Pid, syscall.SIGTERM)
 	_ = running.Wait()
+}
+
+// finishLinking gives signal-cli a moment to finish on its own, because it says
+// it has been linked just before it finishes writing the account down, and only
+// signals it when it takes longer than that.
+func finishLinking(running *exec.Cmd) {
+	if running.Process == nil {
+		return
+	}
+	finished := make(chan struct{})
+	go func() {
+		_ = running.Wait()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(linkFinishGrace):
+		_ = syscall.Kill(-running.Process.Pid, syscall.SIGTERM)
+		<-finished
+	}
 }

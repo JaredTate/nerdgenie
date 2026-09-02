@@ -46,6 +46,7 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect(diff.newTab).toBe("");
     expect(diff.download).toBeNull();
     expect(diff.wall).toBeNull();
+    expect(diff.settled).toBe(true);
     expect(diff.expectationMet).toBe(true);
     expect(diff.seen).toBe("");
     expect(diff.newElements.map((element) => element.name).sort()).toEqual(["Post", "Post text"]);
@@ -247,10 +248,41 @@ describe("a page that never stops changing", () => {
     expect(result["title"]).toBe("A page that never settles");
   });
 
-  it("answers -32001 when an action cannot be told apart from the page's own churn", async () => {
+  it("is still acted on, and the diff says the page never came to rest", async () => {
     const page = await worker.result("open", { url: site.page("never-settles.html") });
-    const failure = await worker.fails("click", { ref: refFor(page, "Poke it") });
+    const diff = asDiff(
+      await worker.result("click", { ref: refFor(page, "Poke it"), expectation: "" }),
+    );
+    expect(diff.settled).toBe(false);
+    expect(diff.seen).toContain("kept changing");
+    expect(diff.snapshot.elements.length).toBeGreaterThan(0);
+  });
+
+  it("does not count a change to an attribute alone as the page changing", async () => {
+    const page = await worker.result("open", { url: site.page("busy-attributes.html") });
+    const diff = asDiff(
+      await worker.result("click", { ref: refFor(page, "Poke it"), expectation: "" }),
+    );
+    expect(diff.settled).toBe(true);
+  });
+});
+
+describe("a page that cannot be read at all", () => {
+  let worker: TestWorker;
+  let site: FixtureServer;
+
+  beforeAll(async () => {
+    site = await startFixtureServer();
+    worker = await startTestWorker();
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+    await site.stop();
+  });
+
+  it("answers -32001, which is now only for a page there is no reading", async () => {
+    const failure = await worker.fails("open", { url: site.page("reloads-forever.html") });
     expect(failure.code).toBe(ERROR_CODES.didNotSettle);
-    expect(failure.message).toContain("3000");
   });
 });

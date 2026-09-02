@@ -56,6 +56,7 @@ describe("building the diff an action returns", () => {
       expectation: "",
       newTab: "",
       wall: null,
+      settled: true,
     });
     expect(diff).toEqual({
       urlChanged: false,
@@ -67,6 +68,7 @@ describe("building the diff an action returns", () => {
       expectationMet: false,
       seen: "nothing changed",
       wall: null,
+      settled: true,
       snapshot: after,
     });
   });
@@ -138,6 +140,52 @@ describe("building the diff an action returns", () => {
   });
 });
 
+describe("a page that never came to rest", () => {
+  it("is still returned, with settled false and a sentence saying so", () => {
+    const diff = buildDiff({
+      before: snapshot({}),
+      after: snapshot({ elements: [{ ...element("e1", "button", "Post"), new: true }] }),
+      expectation: "a Post button",
+      newTab: "",
+      wall: null,
+      settled: false,
+    });
+    expect(diff.settled).toBe(false);
+    expect(diff.expectationMet).toBe(true);
+    expect(diff.seen).toBe(
+      "the page kept changing and never came to rest, so this is the page as it stood",
+    );
+  });
+
+  it("says the page kept changing and then what it saw instead", () => {
+    const diff = buildDiff({
+      before: snapshot({}),
+      after: snapshot({ url: "https://example.com/home" }),
+      expectation: "the timeline",
+      newTab: "",
+      wall: null,
+      settled: false,
+    });
+    expect(diff.settled).toBe(false);
+    expect(diff.expectationMet).toBe(false);
+    expect(diff.seen).toBe(
+      "the page kept changing and never came to rest, so this is the page as it stood; the address changed to https://example.com/home",
+    );
+  });
+
+  it("says the page came to rest when it did", () => {
+    const diff = buildDiff({
+      before: snapshot({}),
+      after: snapshot({}),
+      expectation: "",
+      newTab: "",
+      wall: null,
+      settled: true,
+    });
+    expect(diff.settled).toBe(true);
+  });
+});
+
 describe("a diff that ran into a wall", () => {
   const wall = { kind: "captcha", detail: "a frame at https://example.com/captcha" } as const;
 
@@ -148,6 +196,7 @@ describe("a diff that ran into a wall", () => {
       expectation: "the captcha page",
       newTab: "",
       wall,
+      settled: true,
     });
     expect(diff.wall).toEqual(wall);
     expect(diff.expectationMet).toBe(false);

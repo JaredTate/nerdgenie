@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Busy attributes</title>
+  </head>
+  <body>
+    <h1>Busy attributes</h1>
+    <button type="button" id="poke">Poke it</button>
+    <p id="spinner" data-spin="0">Working</p>
+    <script>
+      // Only an attribute changes, over and over. A spinner, a progress bar, and
+      // a class swapped by an animation all look like this, and none of them
+      // means the page is still doing something the worker should wait for.
+      var spin = 0;
+      setInterval(function () {
+        spin += 1;
+        document.getElementById("spinner").setAttribute("data-spin", String(spin));
+      }, 50);
+    </script>
+  </body>
+</html>

@@ -3,6 +3,7 @@ package channel
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -137,18 +138,29 @@ func (client *screen) sendLine(line string) {
 // arrives.
 func (client *screen) next() contract.SocketEnvelope {
 	client.t.Helper()
+	envelope, err := client.tryNext()
+	if err != nil {
+		client.t.Fatalf("reading what the program sent failed: %v", err)
+	}
+	return envelope
+}
+
+// tryNext reads the next message the program sent and gives back the trouble
+// rather than failing the test, which is what a helper running on a goroutine of
+// its own has to do.
+func (client *screen) tryNext() (contract.SocketEnvelope, error) {
 	if err := client.socket.SetReadDeadline(time.Now().Add(aReadWait)); err != nil {
-		client.t.Fatalf("cannot put a deadline on the socket: %v", err)
+		return contract.SocketEnvelope{}, fmt.Errorf("cannot put a deadline on the socket: %w", err)
 	}
 	line, err := client.lines.ReadBytes('\n')
 	if err != nil {
-		client.t.Fatalf("nothing arrived on the socket: %v", err)
+		return contract.SocketEnvelope{}, fmt.Errorf("nothing arrived on the socket: %w", err)
 	}
 	envelope, err := contract.DecodeSocketEnvelope(line)
 	if err != nil {
-		client.t.Fatalf("the program sent a line that is not a message: %v", err)
+		return contract.SocketEnvelope{}, fmt.Errorf("the program sent a line that is not a message: %w", err)
 	}
-	return envelope
+	return envelope, nil
 }
 
 // waitForClose says whether the program hung up, which is what a bad line earns.

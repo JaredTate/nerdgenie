@@ -116,11 +116,26 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 	if why, standing := decider.useStandingApproval(reduced); standing {
 		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: why}
 	}
+	if request.Unattended {
+		return contract.PermissionDecision{
+			Ruling:      contract.RulingDeny,
+			Reason:      fmt.Sprintf("nobody is there to answer, and %q is on your ask-me-first list under %q, so the task stops and reports instead of waiting", reduced, reasonOf(matched, reduced)),
+			PreviewText: previewOf(request, reduced),
+		}
+	}
 	return contract.PermissionDecision{
 		Ruling:      contract.RulingAsk,
 		Reason:      reasonOf(matched, reduced),
 		PreviewText: previewOf(request, reduced),
 	}
+}
+
+// StoppedForNobodyToAsk says whether a decision is the stop verdict: a call that
+// would have been put to the user, on a run with nobody there to answer. It is a
+// refusal that still carries the preview, which no other refusal does, so the
+// loop can tell the two apart and stop the task and report rather than run on.
+func StoppedForNobodyToAsk(decision contract.PermissionDecision) bool {
+	return decision.Ruling == contract.RulingDeny && decision.PreviewText != ""
 }
 
 // Remember records the user's answer for the rest of the session. An answer of

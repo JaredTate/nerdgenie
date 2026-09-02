@@ -78,8 +78,14 @@ func TestASlowSubscriberIsDroppedAndTheFastOneIsUnaffected(t *testing.T) {
 	if !slow.Dropped() {
 		t.Error("the slow reader was kept even though it fell past the backlog cap")
 	}
-	if _, open := <-slow.Events(); open {
-		t.Error("the dropped reader's stream is still open, and a dropped reader must be told by its stream closing")
+	// A dropped reader keeps what it had already been given and then finds its
+	// stream closed, which is how it learns it fell behind.
+	held := 0
+	for range slow.Events() {
+		held++
+	}
+	if held != SubscriberBacklog {
+		t.Errorf("the dropped reader held %d events, want the backlog cap of %d", held, SubscriberBacklog)
 	}
 	if fast.Dropped() {
 		t.Error("the fast reader was dropped, and one slow reader must never cost another reader its stream")

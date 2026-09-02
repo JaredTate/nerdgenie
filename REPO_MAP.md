@@ -29,8 +29,6 @@ LICENSE
 Makefile
 README.md
 REPO_MAP.md
-REPO_MAP.md
-REPO_MAP.md
 THIRD_PARTY.md
 cmd/coeus/commands.go
 cmd/coeus/commands_test.go

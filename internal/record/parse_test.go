@@ -92,7 +92,21 @@ func recordsToRoundTrip() map[string]contract.Record {
 		"a reply as the proof":        replied,
 		"bare job":                    emptyJob,
 		"more than one of everything": manyOfEverything(),
+		"a job proved by its reports": jobProvedByItsReports(),
 	}
+}
+
+// jobProvedByItsReports is a job whose done list points at the reports of its own
+// finished tasks, which is the job's side of the arrow rule.
+func jobProvedByItsReports() contract.Record {
+	held := goldenJobRecord()
+	held.Header.Status = contract.StatusDone
+	held.Goal.DoneWhen = []contract.DoneLine{
+		{Text: "one post is up for every weekday of the month", Done: true, ResultID: "j4.1"},
+		{Text: "the blog piece is published", Done: true, ResultID: "j4.2"},
+		{Text: "the user has the summary", Done: true, UserReply: "got it, thank you"},
+	}
+	return held
 }
 
 // manyOfEverything is a record with more than one correction, decision, failure,

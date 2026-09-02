@@ -88,6 +88,14 @@ func eachIsRefused(t *testing.T, table []badField) {
 	}
 }
 
+// A valid permission rule, which the table below perturbs one line at a time.
+const oneGoodRule = `
+[[permission_rules]]
+tool = "shell"
+pattern = "git push*"
+action = "ask"
+`
+
 func TestEveryFieldSetToTheWrongTypeIsRefusedWithItsKeyAndItsLine(t *testing.T) {
 	eachIsRefused(t, fieldsOfTheWrongType())
 }
@@ -108,6 +116,9 @@ func fieldsOfTheWrongType() []badField {
 		{"a length of time as a list", "\n[caps]\ntime_per_task = [1] " + theMarker + "\n", "caps.time_per_task"},
 		{"a memory cap as a boolean", "\n[memory_caps]\nuser_facts_bytes = true " + theMarker + "\n", "memory_caps.user_facts_bytes"},
 		{"a context length with a fraction", "\n[[models]]\ncontext_length = 1.5 " + theMarker + "\n", "models.context_length"},
+		{"the ask-me-first list as one string", "\nask_me_first = \"spending money\" " + theMarker + "\n", "ask_me_first"},
+		{"the permission rules as a number", "\npermission_rules = 3 " + theMarker + "\n", "permission_rules"},
+		{"a rule's action as a number", "\n[[permission_rules]]\naction = 7 " + theMarker + "\n", "permission_rules.action"},
 	}
 }
 
@@ -115,6 +126,7 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 	eachIsRefused(t, impossibleCaps())
 	eachIsRefused(t, impossibleSettings())
 	eachIsRefused(t, impossibleModelAliases())
+	eachIsRefused(t, impossiblePermissionRules())
 }
 
 // impossibleCaps is one configuration file per cap, each setting a limit that
@@ -148,6 +160,39 @@ func impossibleSettings() []badField {
 		{"a search server that is not an address", "\nsearch_server_address = \"not an address\" " + theMarker + "\n", "search_server_address"},
 		{"no model aliases at all", "\nmodels = [] " + theMarker + "\n", "models"},
 		{"no sandbox roots at all", "\nsandbox_roots = [] " + theMarker + "\n", "sandbox_roots"},
+		{"an ask-me-first entry nobody ships", "\nask_me_first = [\"anything at all\"] " + theMarker + "\n", "ask_me_first"},
+	}
+}
+
+// impossiblePermissionRules is the user's own rulebook with one line spoiled at
+// a time, so that every rule about a rule is proved on its own.
+func impossiblePermissionRules() []badField {
+	return []badField{
+		{
+			"a rule for no tool in particular",
+			strings.Replace(oneGoodRule, `tool = "shell"`, `tool = "" `+theMarker, 1),
+			"permission_rules.0.tool",
+		},
+		{
+			"a rule with nothing to match on",
+			strings.Replace(oneGoodRule, `pattern = "git push*"`, `pattern = "" `+theMarker, 1),
+			"permission_rules.0.pattern",
+		},
+		{
+			"a rule that does not say what to do",
+			strings.Replace(oneGoodRule, `action = "ask"`, `action = "" `+theMarker, 1),
+			"permission_rules.0.action",
+		},
+		{
+			"a rule asking for something the rulebook cannot do",
+			strings.Replace(oneGoodRule, `action = "ask"`, `action = "think about it" `+theMarker, 1),
+			"permission_rules.0.action",
+		},
+		{
+			"a rule that stops an unattended run, which the harness decides and the user does not write",
+			strings.Replace(oneGoodRule, `action = "ask"`, `action = "stop" `+theMarker, 1),
+			"permission_rules.0.action",
+		},
 	}
 }
 
@@ -330,5 +375,33 @@ func TestAProblemPrintsAsPathLineKeyAndAdvice(t *testing.T) {
 	aboutTheWholeFile := config.Problem{Path: "/home/someone/.coeus/config.toml", Advice: "this file is far too big"}
 	if want := "/home/someone/.coeus/config.toml: this file is far too big"; aboutTheWholeFile.Error() != want {
 		t.Errorf("a problem about the whole file prints as %q, want %q", aboutTheWholeFile.Error(), want)
+	}
+}
+
+func TestAnEmptyAskMeFirstListIsAllowed(t *testing.T) {
+	home := writeConfig(t, "ask_me_first = []\n")
+
+	settings, err := config.Load(home)
+	if err != nil {
+		t.Fatalf("emptying the ask-me-first list was refused, and the design says the user may empty it: %v", err)
+	}
+	if len(settings.AskMeFirst) != 0 {
+		t.Errorf("the ask-me-first list is %v, want it empty because the file emptied it", settings.AskMeFirst)
+	}
+}
+
+func TestTheUsersOwnPermissionRulesLoad(t *testing.T) {
+	home := writeConfig(t, oneGoodRule+"\n[[permission_rules]]\ntool = \"*\"\npattern = \"*\"\naction = \"allow\"\n")
+
+	settings, err := config.Load(home)
+	if err != nil {
+		t.Fatalf("loading two permission rules failed: %v", err)
+	}
+	if len(settings.PermissionRules) != 2 {
+		t.Fatalf("the file writes two rules and %d came back", len(settings.PermissionRules))
+	}
+	first := settings.PermissionRules[0]
+	if first.Tool != "shell" || first.Pattern != "git push*" || first.Action != contract.RulingAsk {
+		t.Errorf("the first rule is %+v, want the shell rule the file writes", first)
 	}
 }

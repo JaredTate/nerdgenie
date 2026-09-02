@@ -57,6 +57,12 @@ func TestAnEmptyFileGivesTheDefaultsTheContractProvides(t *testing.T) {
 	if !reflect.DeepEqual(settings.MemoryCaps, wanted.MemoryCaps) {
 		t.Errorf("the memory caps are %+v, want %+v", settings.MemoryCaps, wanted.MemoryCaps)
 	}
+	if !reflect.DeepEqual(settings.AskMeFirst, contract.DefaultAskMeFirst()) {
+		t.Errorf("the ask-me-first list is %v, want the three entries the design ships %v", settings.AskMeFirst, contract.DefaultAskMeFirst())
+	}
+	if len(settings.PermissionRules) != 0 {
+		t.Errorf("the permission rules are %+v, want none on a fresh install", settings.PermissionRules)
+	}
 }
 
 func TestTheLocalAliasDefaultsToTheLlamaServerDaemon(t *testing.T) {

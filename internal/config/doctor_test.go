@@ -362,3 +362,17 @@ func TestTheDoctorSkipsTheDaemonWhenNoAliasPointsAtThisMachine(t *testing.T) {
 		t.Errorf("the detail is %q, want it to name the alias it looked for", finding.Detail)
 	}
 }
+
+func TestTheDoctorSaysWhatTheConfigurationAsksFor(t *testing.T) {
+	home := buildFullHome(t)
+
+	finding := findingAbout(t, config.Doctor(context.Background(), home), "config.toml")
+	if finding.Result != config.Fine {
+		t.Fatalf("the configuration is reported %s: %s, want it fine", finding.Result, finding.Detail)
+	}
+	for _, piece := range []string{contract.LocalModelAlias, "ask-me-first", "permission rule"} {
+		if !strings.Contains(finding.Detail, piece) {
+			t.Errorf("the detail is %q, want it to mention %q so a person can see what the file asks for", finding.Detail, piece)
+		}
+	}
+}

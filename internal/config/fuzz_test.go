@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/config"
@@ -26,6 +27,8 @@ func FuzzTheLoaderNeverPanics(f *testing.F) {
 	f.Add("[caps]\nrounds_per_task = 99999999999999999999\n")
 	f.Add("signal_account = \"+15125550123\"\nsandbox_roots = [\"/\"]\n")
 	f.Add("a.b.c.d.e.f.g.h = 1\n")
+	f.Add("ask_me_first = []\n")
+	f.Add("[[permission_rules]]\ntool = \"shell\"\npattern = \"git push*\"\naction = \"ask\"\n")
 
 	home := contract.NewHome(filepath.Join("/nowhere", contract.HomeFolderName))
 	f.Fuzz(func(t *testing.T, document string) {
@@ -54,5 +57,22 @@ func FuzzTheLoaderNeverPanics(f *testing.F) {
 		if len(settings.SandboxRoots) == 0 {
 			t.Errorf("this configuration was accepted with no sandbox roots:\n%q", document)
 		}
+		for _, entry := range settings.AskMeFirst {
+			if !slices.Contains(contract.DefaultAskMeFirst(), entry) {
+				t.Errorf("this configuration was accepted with the ask-me-first entry %q, which nobody ships:\n%q", entry, document)
+			}
+		}
+		for _, rule := range settings.PermissionRules {
+			if rule.Tool == "" || rule.Pattern == "" || !knownRuleAction(rule.Action) {
+				t.Errorf("this configuration was accepted with the permission rule %+v:\n%q", rule, document)
+			}
+		}
 	})
+}
+
+// knownRuleAction says whether an action is one a user may write in a rule. The
+// fourth ruling, stop, is what the permission function decides for an unattended
+// run, and is never written in the file.
+func knownRuleAction(action contract.PermissionRuling) bool {
+	return action == contract.RulingAllow || action == contract.RulingAsk || action == contract.RulingDeny
 }

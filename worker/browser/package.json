@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --coverage"
+    "test": "npm run build && vitest run --coverage"
   },
   "dependencies": {
     "playwright-core": "1.62.1"

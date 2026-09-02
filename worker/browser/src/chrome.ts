@@ -154,6 +154,13 @@ async function stopChrome(child: ChildProcess, browser: Browser, log: Logger): P
     log(`Chrome did not stop when asked, so it was ended by force.`);
     child.kill("SIGKILL");
   }
+  // Wait for the process to really be gone. Until it is, Chrome is still writing
+  // to the profile folder, and anything that tries to tidy the folder away will
+  // find files appearing under it.
+  const goneBy = Date.now() + CHROME_STOP_LIMIT_MS;
+  while (child.exitCode === null && child.signalCode === null && Date.now() < goneBy) {
+    await wait(25);
+  }
 }
 
 /**

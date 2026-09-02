@@ -2,7 +2,7 @@
 
 This document records how the code is put together and what each wave built. It is read by every worker before starting a brief and updated by any worker whose brief changes a package's job, its interface, or its dependencies. The orchestrator adds a wave section at the end of every wave. The design this code implements is `docs/COEUS_PLAN.md`; when the two disagree, the design is the intent and this document is the fact, and the orchestrator reconciles them at the wave gate.
 
-Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. Everything else below describes what will exist once its wave is done, and is marked planned until then.
+Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `worker/browser` itself is built too, ahead of its wave, because it depends on nothing but that document. Everything else below describes what will exist once its wave is done, and is marked planned until then.
 
 ## Shape
 
@@ -51,7 +51,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/update` | Update, rollback, migrations | 6 |
 | `internal/replay` | Re-run any logged task as a test | 6 |
 | `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, 3 onward |
-| `worker/browser` | The TypeScript browser worker | 5 |
+| `worker/browser` | The TypeScript browser worker | 5, built early |
 | `worker/desktop` | The TypeScript desktop worker | 6 |
 
 ## The contracts (built, wave 0)
@@ -95,6 +95,39 @@ The terminal and any future screen attach to the running program over a Unix soc
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
 `worker/browser/PROTOCOL.md` defines the JSON-RPC methods the Go side calls: `open`, `read`, `click`, `type`, `press`, `scroll`, `act`, `tabs`, `loginFill`, `screenshot`, `health`, and `dialog`, and the snapshot and diff shapes every method returns. The fake worker in `testkit` and the real worker implement the same document.
+
+## The browser worker (built, ahead of wave 5)
+
+`worker/browser` is a TypeScript program on Node that drives a real Google Chrome
+through `playwright-core` and speaks `worker/browser/PROTOCOL.md` over its
+standard input and output. It was built early because it depends on nothing but
+that document. Run it as
+`node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast]`.
+`--pacing fast` exists only for its own tests; the Go side never passes it.
+
+It launches the Chrome binary with its own profile folder, never the user's daily
+one, on a loopback DevTools port the operating system picks, reads the address
+Chrome prints, and attaches with `connectOverCDP`. Nothing but JSON-RPC responses
+goes to standard output; its logging goes to standard error, one line per event.
+
+Inside, one file has one job. `wire` and `params` turn a line into a request or
+into the exact error the protocol names. `page-script` is the JavaScript that runs
+inside the page, kept as text because it runs in Chrome and not in Node;
+`page-bridge` calls it with a deadline on every call. `snapshot` builds the compact
+tree the model sees, with a ref written onto each element so that a ref names the
+same element for as long as it exists. `diff` compares two snapshots, `expectation`
+judges the result against what the model said it expected, and `walls` reports a
+login form, a prompt for a second code, or a captcha. `refs` finds an element again
+when its ref has gone stale, by role and name and then by visible text. `actions`
+and `pacing` do the thing at the speed a person would. `redact` takes the vault's
+secrets back out of everything `loginFill` would otherwise hand back. `settle`,
+`session`, `tabs`, `chrome`, `lines`, and `main` hold the waiting, the state, the
+tabs, the browser, the input framing, and the process.
+
+Its dependencies are in `docs/DEPENDENCIES.md`. `npm test` builds and then runs
+unit tests, property tests with `fast-check`, and tests that drive a real Chrome
+against recorded fixture pages served on a loopback port, and fails under seventy
+percent coverage.
 
 ## Data on disk (built, wave 1)
 

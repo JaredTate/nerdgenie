@@ -30,6 +30,22 @@ export interface TestWorker {
 
 let nextRequestId = 1;
 
+/**
+ * Take the profile folder away. Chrome flushes its last files as it goes, so a
+ * removal that runs at the same moment can find the folder filling up again. Try
+ * a few times before giving up.
+ */
+async function removeWhenChromeHasLetGo(folder: string): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      await rm(folder, { recursive: true, force: true });
+      return;
+    } catch {
+      await new Promise((next) => setTimeout(next, 50));
+    }
+  }
+}
+
 /** Start a worker with a throwaway profile folder and no waiting between actions. */
 export async function startTestWorker(): Promise<TestWorker> {
   const profile = await mkdtemp(join(tmpdir(), "coeus-browser-test-"));
@@ -83,7 +99,7 @@ export async function startTestWorker(): Promise<TestWorker> {
     },
     async stop() {
       await worker.stop();
-      await rm(profile, { recursive: true, force: true });
+      await removeWhenChromeHasLetGo(profile);
     },
   };
 }

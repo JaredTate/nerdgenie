@@ -26,10 +26,18 @@ func openStreamedCall(ctx context.Context, options Options, modelName, address s
 	ctx, releaseDeadline := withCallDeadline(ctx)
 	callCtx, giveUp := context.WithCancel(ctx)
 	watch := &stallWatch{}
-	go watch.watchFor(callCtx, options.Clock, giveUp)
+	watching := make(chan struct{})
+	go func() {
+		defer close(watching)
+		watch.watchFor(callCtx, options.Clock, giveUp)
+	}()
 
+	// The watch is waited for rather than left to end on its own, so that when a
+	// call returns nothing of it is still running: a test that moves the clock
+	// afterwards must not find a wait belonging to a call that is over.
 	stop := func() {
 		giveUp()
+		<-watching
 		releaseDeadline()
 	}
 

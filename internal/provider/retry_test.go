@@ -144,8 +144,8 @@ func TestAnOverflowIsNeverTriedAgain(t *testing.T) {
 	if recorder.count() != 0 {
 		t.Errorf("an overflow was retried, and a retry would fail the same way: %v", recorder.all())
 	}
-	if len(server.Requests()) != 1 {
-		t.Errorf("the server was called %d times, and an overflow is never sent twice", len(server.Requests()))
+	if calls := callsTo(server, testkit.OpenAIPath); calls != 1 {
+		t.Errorf("the model was called %d times, and an overflow is never sent twice", calls)
 	}
 }
 

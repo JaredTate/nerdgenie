@@ -194,6 +194,18 @@ func sendAndCollect(ctx context.Context, model contract.Model, request contract.
 	return reply, streamed.String(), err
 }
 
+// callsTo counts how many requests the fake server received on one of its API
+// paths, leaving out the probe the provider makes at construction.
+func callsTo(server *testkit.FakeProviderServer, path string) int {
+	counted := 0
+	for _, request := range server.Requests() {
+		if request.Path == path {
+			counted++
+		}
+	}
+	return counted
+}
+
 // bodyOfLastCallTo returns the body of the last request the fake server received
 // on one of its two API paths, which is where the cache markers are looked for.
 func bodyOfLastCallTo(t *testing.T, server *testkit.FakeProviderServer, path string) map[string]any {

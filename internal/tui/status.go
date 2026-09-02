@@ -77,6 +77,7 @@ func (screen *Screen) statusRow() string {
 		line.padTo(screen.width - marginColumns - displayWidth(hints))
 		line.add(styleDim, hints)
 	}
+	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
 }
 

@@ -107,21 +107,37 @@ func (screen *Screen) cardLines(shown card) []string {
 	bottom := row{}
 	bottom.blanks(marginColumns)
 	bottom.add(styleDim, "└"+strings.Repeat(string(ruleGlyph), outer-2)+"┘")
-	return append(drawn, bottom.render(screen.colors))
+	drawn = append(drawn, bottom.render(screen.colors))
+
+	// A picture is drawn under the box rather than inside it, because the
+	// terminal, not this screen, decides how many rows an inline picture takes.
+	if picture, canDraw := screen.picture(shown, inner); canDraw {
+		drawn = append(drawn, picture)
+	}
+	return drawn
 }
 
-// cardBodyLines is the text inside the box: the body, and then either the
-// screenshot itself or the path to it when a handoff comes with one.
+// cardBodyLines is the text inside the box: the body, and, when the terminal
+// cannot draw a picture inline, the path of the screenshot instead.
 func (screen *Screen) cardBodyLines(shown card, inner int) []string {
 	lines := wrapText(shown.body, inner)
 	if shown.picture == "" {
 		return lines
 	}
-	if drawn, canDraw := screen.pictureLine(shown.picture, inner); canDraw {
-		return append(lines, drawn)
+	if _, canDraw := screen.picture(shown, inner); canDraw {
+		return lines
 	}
 	lines = append(lines, "open this file to see the page:")
 	return append(lines, wrapText(shown.picture, inner)...)
+}
+
+// picture is the screenshot drawn inline, and says false when there is none or
+// the terminal cannot draw one.
+func (screen *Screen) picture(shown card, inner int) (string, bool) {
+	if shown.picture == "" {
+		return "", false
+	}
+	return screen.pictureLine(shown.picture, inner)
 }
 
 // cardTopRow draws the top of the box, with the title sitting in the rule.

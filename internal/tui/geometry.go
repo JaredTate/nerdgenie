@@ -82,6 +82,32 @@ func (line *row) padTo(columns int) {
 	line.blanks(columns - line.width)
 }
 
+// keepWithin shortens the row so that it fits in a number of columns, dropping
+// whole pieces from the right and cutting the last one that still fits. The
+// header and the status strip are one line each and are cut rather than wrapped,
+// which is how docs/TUI_DESIGN.md says a narrow terminal degrades.
+func (line *row) keepWithin(columns int) {
+	if line.width <= columns {
+		return
+	}
+	kept := []span{}
+	used := 0
+	for _, piece := range line.spans {
+		room := columns - used
+		if room <= 0 {
+			break
+		}
+		shortened := cutTo(piece.text, room)
+		if shortened == "" {
+			break
+		}
+		kept = append(kept, span{style: piece.style, text: shortened})
+		used += displayWidth(shortened)
+	}
+	line.spans = kept
+	line.width = used
+}
+
 // render turns the row into the string the terminal draws. Blanks on the end are
 // dropped, because they are invisible and only make the frame bigger.
 func (line row) render(colors theme) string {
@@ -110,14 +136,52 @@ func trimTrailingBlanks(spans []span) []span {
 }
 
 // displayWidth is how many columns a piece of text takes on the screen. Almost
-// every glyph is one column; a combining mark is none, and an emoji or a Chinese,
-// Japanese, or Korean character is two.
+// every glyph is one column; a combining mark is none, an emoji or a Chinese,
+// Japanese, or Korean character is two, and an escape sequence, such as a colour
+// or a picture, is none at all because the terminal eats it rather than drawing
+// it.
 func displayWidth(text string) int {
 	width := 0
-	for _, letter := range text {
-		width += runeWidth(letter)
+	letters := []rune(text)
+	for at := 0; at < len(letters); at++ {
+		if letters[at] == escapeStart {
+			at = endOfEscape(letters, at)
+			continue
+		}
+		width += runeWidth(letters[at])
 	}
 	return width
+}
+
+// escapeStart is the character every escape sequence begins with.
+const escapeStart = '\x1b'
+
+// endOfEscape returns the position of the last character of the escape sequence
+// beginning at a position, so that the loop above can step past the whole of it.
+// The three shapes that matter here are the colour codes, which end at a letter,
+// and the picture protocols, which end at a bell or at a string terminator.
+func endOfEscape(letters []rune, start int) int {
+	if start+1 >= len(letters) {
+		return start
+	}
+	switch letters[start+1] {
+	case '[':
+		for at := start + 2; at < len(letters); at++ {
+			if letters[at] >= '@' && letters[at] <= '~' {
+				return at
+			}
+		}
+	case ']', '_', 'P', '^':
+		for at := start + 2; at < len(letters); at++ {
+			if letters[at] == '\a' {
+				return at
+			}
+			if letters[at] == escapeStart && at+1 < len(letters) && letters[at+1] == '\\' {
+				return at + 1
+			}
+		}
+	}
+	return len(letters) - 1
 }
 
 // runeWidth is how many columns one character takes.

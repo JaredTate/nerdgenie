@@ -23,6 +23,7 @@ func (screen *Screen) headerRow() string {
 		line.padTo(screen.width - marginColumns - displayWidth(mark.text))
 		line.addSpan(mark)
 	}
+	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
 }
 

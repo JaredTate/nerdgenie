@@ -139,10 +139,22 @@ describe("the worker as its own process", () => {
     expect("result" in after).toBe(true);
   });
 
+  it("ignores a blank line rather than treating it as a broken request", async () => {
+    const before = worker.standardOutput.length;
+    await worker.sendRaw("   ");
+    const after = await worker.send("health");
+    expect("result" in after).toBe(true);
+    // One line came back, and it was the answer to health, not to the blank line.
+    expect(worker.standardOutput.length).toBe(before + 1);
+  });
+
   it("answers arbitrary bytes without ever falling over", async () => {
     await fc.assert(
-      fc.asyncProperty(fc.uint8Array({ maxLength: 120 }), async (bytes) => {
+      fc.asyncProperty(fc.uint8Array({ minLength: 1, maxLength: 120 }), async (bytes) => {
         const line = Buffer.from(bytes).toString("utf8").replace(/[\n\r]/g, " ");
+        if (line.trim() === "") {
+          return;
+        }
         const answer = await worker.sendRaw(line);
         expect(answer.jsonrpc).toBe("2.0");
       }),

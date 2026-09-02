@@ -186,7 +186,9 @@ describe("any page at all put to the wall detector", () => {
 });
 
 describe("any answer at all put through redaction", () => {
-  const plainSecret = fc.hexaString({ minLength: 3, maxLength: 16 });
+  // Secrets made only of letters and digits, so that looking for one in the
+  // written-out answer is a plain search and not a question about JSON escaping.
+  const plainSecret = fc.stringMatching(/^[0-9a-z]{3,16}$/);
   const anyAnswer = fc.jsonValue({ maxDepth: 4 });
 
   it("leaves no trace of a secret anywhere in the written-out answer", () => {

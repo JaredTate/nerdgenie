@@ -1,0 +1,16 @@
+=== reply text ===
+<tool_call>
+{"name": "read", "arguments": {"path": }}
+</tool_call>
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+(empty)
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+A tool call was written as text but its JSON could not be read. Write it as <tool_call>{"name": "the tool's name", "arguments": {}}</tool_call> with valid JSON inside. The real tools are: read, write, edit, search, shell, browser_open.

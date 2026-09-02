@@ -1,0 +1,16 @@
+=== reply text ===
+Working on it.
+<THINK>
+<tool_call>{"name": "read", "arguments": {"path": "a.txt"}}</tool_call>
+=== reply calls ===
+(empty)
+=== calls ===
+(empty)
+=== text ===
+Working on it.
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

@@ -1,0 +1,14 @@
+=== reply text ===
+I will read the product notes.
+=== reply calls ===
+call_1 read {"path": "memory/product.md"}
+=== calls ===
+1 call_1 read {"path":"memory/product.md"}
+=== text ===
+I will read the product notes.
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

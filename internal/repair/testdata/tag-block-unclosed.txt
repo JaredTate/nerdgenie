@@ -1,0 +1,16 @@
+=== reply text ===
+I will call the tool now.
+<tool_call>
+{"name": "shell", "arguments": {"command": "uptime -p"}}
+=== reply calls ===
+(empty)
+=== calls ===
+1 call1 shell {"command":"uptime -p"}
+=== text ===
+I will call the tool now.
+=== repairs ===
+(empty)
+=== note ===
+(empty)
+=== problem ===
+(empty)

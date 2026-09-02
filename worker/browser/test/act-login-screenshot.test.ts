@@ -59,21 +59,21 @@ describe("running a short batch of steps", () => {
   });
 
   it("stops when the page moves out from under the batch", async () => {
-    const page = await worker.result("open", { url: site.page("keyboard.html") });
+    const page = await worker.result("open", { url: site.page("changes-on-click.html") });
     const result = await worker.result("act", {
       steps: [
         {
-          method: "type",
-          ref: refFor(page, "What are you looking for"),
-          text: "coeus",
-          expectation: "",
+          method: "click",
+          ref: refFor(page, "Compose"),
+          expectation: "a Post button appears",
         },
-        { method: "press", key: "Enter", expectation: "the welcome screen" },
+        { method: "click", ref: refFor(page, "Done for now"), expectation: "the welcome screen" },
         { method: "press", key: "Tab", expectation: "never reached" },
       ],
     });
     const diffs = result["diffs"] as Diff[];
     expect(diffs).toHaveLength(2);
+    expect(diffs[0]?.expectationMet).toBe(true);
     expect(diffs[1]?.urlChanged).toBe(true);
   });
 });

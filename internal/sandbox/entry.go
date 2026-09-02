@@ -43,12 +43,14 @@ type entryRequest struct {
 
 // Entry is the helper the fence starts inside itself. It locks its
 // operating-system thread, sets the no-new-privileges flag, applies a Landlock
-// ruleset and a seccomp filter to that thread, writes one line saying what it
-// did, and then becomes the command it was asked to run. Both restrictions
-// survive that change of program, so the command starts already fenced in.
+// ruleset and a seccomp filter to that thread, and then becomes the command it
+// was asked to run. Both restrictions survive that change of program, so the
+// command starts already fenced in.
 //
-// It returns only when something went wrong, because a helper that worked is no
-// longer running.
+// It says nothing when all of that works, so that a command's output is the
+// command's own. It returns only when something went wrong, because a helper
+// that worked is no longer running, and it writes one line saying how far it got
+// when the failure was in the last step.
 func Entry(arguments []string, progress io.Writer) error {
 	request, err := parseEntryArguments(arguments)
 	if err != nil {
@@ -71,9 +73,17 @@ func Entry(arguments []string, progress io.Writer) error {
 		return err
 	}
 
-	fmt.Fprintf(progress, "coeus %s: landlock version %d, %d folders readable, %d writable, %d seccomp instructions, running %s\n",
-		EntrySubcommandName, version, len(request.readable), len(request.writable), len(filter), request.program)
-	return becomeTheCommand(request)
+	// Nothing is said on the way through. A line on standard error here would
+	// ride out with the command's own output on every single call, and the model
+	// would pay to read it every time. It is written only when the helper could
+	// not become the command, which is the one moment a reader needs to know how
+	// far it got.
+	err = becomeTheCommand(request)
+	if err != nil {
+		fmt.Fprintf(progress, "coeus %s: landlock version %d, %d folders readable, %d writable, %d seccomp instructions, and then it could not start the command\n",
+			EntrySubcommandName, version, len(request.readable), len(request.writable), len(filter))
+	}
+	return err
 }
 
 // becomeTheCommand replaces this program with the command, keeping the

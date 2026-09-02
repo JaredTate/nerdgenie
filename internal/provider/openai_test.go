@@ -14,7 +14,7 @@ import (
 
 // openAIAgainst builds the OpenAI-compatible provider pointed at the fake
 // server, whose base address already ends in the version folder.
-func openAIAgainst(t *testing.T, server *testkit.FakeProviderServer) (contract.Model, *[]string) {
+func openAIAgainst(t *testing.T, server *testkit.FakeProviderServer) (contract.Model, *noteRecorder) {
 	t.Helper()
 	options, lines := testOptions(t, newTestClock())
 	options.APIKey = "test-key"

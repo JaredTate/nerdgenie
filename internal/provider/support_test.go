@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -65,17 +66,60 @@ func pushClock(clock *waitingClock, step time.Duration) func() {
 	}
 }
 
+// noteRecorder keeps the lines a provider logged. It holds a lock because a
+// retry is logged from the goroutine the call is running in.
+type noteRecorder struct {
+	guard sync.Mutex
+	lines []string
+}
+
+// add keeps one line.
+func (recorder *noteRecorder) add(line string) {
+	recorder.guard.Lock()
+	defer recorder.guard.Unlock()
+	recorder.lines = append(recorder.lines, line)
+}
+
+// all is every line kept so far.
+func (recorder *noteRecorder) all() []string {
+	recorder.guard.Lock()
+	defer recorder.guard.Unlock()
+	kept := make([]string, len(recorder.lines))
+	copy(kept, recorder.lines)
+	return kept
+}
+
+// count is how many lines have been kept.
+func (recorder *noteRecorder) count() int {
+	return len(recorder.all())
+}
+
+// waitForNotes waits until the providers have logged at least the number of
+// lines given, which is how a test knows a retry has begun without guessing.
+func waitForNotes(t *testing.T, recorder *noteRecorder, count int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if recorder.count() >= count {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("only %d lines were logged after five seconds, and %d were expected: %v",
+		recorder.count(), count, recorder.all())
+}
+
 // testOptions are the options every unit test in this package starts from: the
 // fake clock, a temporary home for the command-line provider's scratch folders,
 // and a log the test can read back.
-func testOptions(t *testing.T, clock *waitingClock) (provider.Options, *[]string) {
+func testOptions(t *testing.T, clock *waitingClock) (provider.Options, *noteRecorder) {
 	t.Helper()
-	lines := &[]string{}
+	recorder := &noteRecorder{}
 	return provider.Options{
 		Clock: clock,
 		Home:  testkit.NewTempHome(t),
-		Log:   func(line string) { *lines = append(*lines, line) },
-	}, lines
+		Log:   recorder.add,
+	}, recorder
 }
 
 // requestWithEverything is a request carrying all three cache boundaries, two

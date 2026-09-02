@@ -13,7 +13,7 @@ import (
 )
 
 // anthropicAgainst builds the Anthropic provider pointed at the fake server.
-func anthropicAgainst(t *testing.T, server *testkit.FakeProviderServer) (contract.Model, provider.Options, *[]string) {
+func anthropicAgainst(t *testing.T, server *testkit.FakeProviderServer) (contract.Model, provider.Options, *noteRecorder) {
 	t.Helper()
 	options, lines := testOptions(t, newTestClock())
 	options.APIKey = "test-key"

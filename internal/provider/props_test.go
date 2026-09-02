@@ -74,7 +74,7 @@ func localAliasAt(address string, contextLength int) contract.ModelAlias {
 func TestTheSmallerWindowTheLocalServerReportsWins(t *testing.T) {
 	double := llamaServerSaying(32768)
 	defer double.Close()
-	options, lines := testOptions(t, newTestClock())
+	options, recorder := testOptions(t, newTestClock())
 
 	model, err := provider.New(localAliasAt(double.URL, 262144), options)
 
@@ -84,15 +84,15 @@ func TestTheSmallerWindowTheLocalServerReportsWins(t *testing.T) {
 	if model.ContextLength() != 32768 {
 		t.Errorf("the model reports a window of %d, and the server said it loaded 32768", model.ContextLength())
 	}
-	if len(*lines) != 1 || !strings.Contains((*lines)[0], "32768") {
-		t.Errorf("the shortened window was not written down in one line: %v", *lines)
+	if recorder.count() != 1 || !strings.Contains(recorder.all()[0], "32768") {
+		t.Errorf("the shortened window was not written down in one line: %v", recorder.all())
 	}
 }
 
 func TestTheConfiguredWindowStandsWhenTheServerReportsALargerOne(t *testing.T) {
 	double := llamaServerSaying(262144)
 	defer double.Close()
-	options, lines := testOptions(t, newTestClock())
+	options, recorder := testOptions(t, newTestClock())
 
 	model, err := provider.New(localAliasAt(double.URL, 65536), options)
 
@@ -102,8 +102,8 @@ func TestTheConfiguredWindowStandsWhenTheServerReportsALargerOne(t *testing.T) {
 	if model.ContextLength() != 65536 {
 		t.Errorf("the model reports a window of %d, and only a smaller reported window replaces the configured one", model.ContextLength())
 	}
-	if len(*lines) != 0 {
-		t.Errorf("nothing was shortened, so nothing should have been written down: %v", *lines)
+	if recorder.count() != 0 {
+		t.Errorf("nothing was shortened, so nothing should have been written down: %v", recorder.all())
 	}
 }
 
@@ -144,7 +144,7 @@ func TestNoExtraFieldGoesToAServerThatDidNotAnswerTheProbe(t *testing.T) {
 }
 
 func TestAServerThatIsNotOnThisMachineIsNeverProbed(t *testing.T) {
-	options, lines := testOptions(t, newTestClock())
+	options, recorder := testOptions(t, newTestClock())
 
 	model, err := provider.New(localAliasAt("http://198.51.100.7:19091", 4096), options)
 
@@ -154,8 +154,8 @@ func TestAServerThatIsNotOnThisMachineIsNeverProbed(t *testing.T) {
 	if model.ContextLength() != 4096 {
 		t.Errorf("the model reports a window of %d, want the configured 4096", model.ContextLength())
 	}
-	if len(*lines) != 0 {
-		t.Errorf("a remote address was probed, and only a loopback address is: %v", *lines)
+	if recorder.count() != 0 {
+		t.Errorf("a remote address was probed, and only a loopback address is: %v", recorder.all())
 	}
 }
 

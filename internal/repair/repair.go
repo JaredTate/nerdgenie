@@ -3,8 +3,8 @@
 // fresh in Go here. ZeroClaw's parser at
 // ~/Code/zeroclaw/crates/zeroclaw-tool-call-parser/src/lib.rs is where the
 // shapes and their order come from. OpenClaw's grammar at
-// ~/Code/openclaw/packages/tool-call-repair/src/grammar.ts is where the caps on
-// a name and on a payload come from. OpenCode's invalid-call path at
+// ~/Code/openclaw/packages/tool-call-repair/src/grammar.ts is where the cap on
+// the length of a written name comes from. OpenCode's invalid-call path at
 // ~/Code/opencode/packages/opencode/src/tool/invalid.ts is where the rule that a
 // bad call becomes an error the model can fix comes from.
 
@@ -20,8 +20,8 @@ import (
 
 // MaxSearchedBytes is how much of a reply is searched for tool calls. Anything
 // past it is left alone and comes back as text, because a model that has not
-// written its call in the first hundred and twenty-eight thousand bytes is not
-// going to write one at all.
+// written its call in the first hundred and twenty-eight kilobytes is not going
+// to write one at all.
 const MaxSearchedBytes = 128 * 1024
 
 // MaxFailedParses is how many parses may fail in a row before this package stops

@@ -5,6 +5,7 @@ import { clickMethod, pressMethod, scrollMethod, typeMethod } from "./act-method
 import { chromeDied } from "./errors.js";
 import { readPage } from "./snapshot.js";
 import { settle } from "./settle.js";
+import { tabsMethod } from "./tabs.js";
 import type { Session } from "./session.js";
 import type { Diff, MethodName, Snapshot, Wall, WorkerRequest } from "./types.js";
 
@@ -82,7 +83,7 @@ const METHODS: Readonly<Record<MethodName, Method>> = {
   press: async (session, params) => asDiffResult(await pressMethod(session, params)),
   scroll: async (session, params) => asDiffResult(await scrollMethod(session, params)),
   act: notBuiltYet,
-  tabs: notBuiltYet,
+  tabs: async (session, params) => tabsMethod(session, params),
   loginFill: notBuiltYet,
   screenshot: notBuiltYet,
   health,

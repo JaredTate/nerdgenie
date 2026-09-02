@@ -8,10 +8,12 @@ Design stage. Nothing is built yet.
 
 | File | What it is |
 |---|---|
+| `docs/WORK_PLAN.md` | How it gets built: the rules for every worker, the four kinds of tests, the test framework, eight waves of five briefs, and where each borrowed design lives in the other code bases |
 | `docs/COEUS_PLAN.md` | The design. Start here: the idea in one page, what we learned from other agents, how the agent works, the three kinds of state and the task record shaped like an operations order, what the model is told, tools, browser, safety, build order |
 | `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |
 | `docs/html/` | Both documents as pages with the diagrams drawn |
 | `docs/research/` | The studies the documents were written from, with citations into the source repositories, plus the fact-check reviews |
+| `docs/reference/` | Copies of the reference files from projects that are not on disk: browser-use, Moltis, and Codex |
 
 Diagrams are mermaid blocks. In VS Code, open the preview with the "Markdown Preview Mermaid Support" extension, or open the pages in `docs/html/`.
 

@@ -23,8 +23,6 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 .github/workflows/check.yml
 .gitignore
 ARCHITECTURE.md
-ARCHITECTURE.md
-ARCHITECTURE.md
 CLAUDE.md
 COEUS.md
 LICENSE

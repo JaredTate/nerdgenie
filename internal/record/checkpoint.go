@@ -84,7 +84,7 @@ func holdCheckpoint(store contract.Store, saved Checkpoint) (*Keeper, error) {
 	if err != nil {
 		return nil, fmt.Errorf("checkpoint %d does not read as a record: %w", saved.Number, err)
 	}
-	return Hold(store, held, saved.Number)
+	return hold(store, held, saved.Number)
 }
 
 // checkpointsOf reads every checkpoint of one record out of the log, in the order

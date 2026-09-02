@@ -129,9 +129,12 @@ func checkItReadsBack(held contract.Record) error {
 	return nil
 }
 
-// Hold makes a keeper over a record that is already written, which is what the
-// checkpoint readers use after they have parsed one out of the log.
-func Hold(store contract.Store, held contract.Record, checkpoint int) (*Keeper, error) {
+// hold makes a keeper over a record that is already written, which is what the
+// checkpoint readers use after they have parsed one out of the log. It is not
+// exported, because a record handed in from outside could carry a rewritten ask
+// or an edited correction, and the rules of this package are only worth having
+// if there is no way round them.
+func hold(store contract.Store, held contract.Record, checkpoint int) (*Keeper, error) {
 	if store == nil {
 		return nil, errors.New("a record needs an event log to write to, so pass the store")
 	}

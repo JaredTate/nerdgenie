@@ -143,6 +143,9 @@ func applyDoneWhen(into *contract.Record, update Update) error {
 		if line.Done && line.ResultID == "" && line.UserReply == "" {
 			return fmt.Errorf("the done line %q is marked done and names nothing behind it: %w", line.Text, ErrDoneLineNeedsProof)
 		}
+		if line.ResultID != "" && line.UserReply != "" {
+			return fmt.Errorf("the done line %q names both a result and a reply from the user, so name the one that proves it", line.Text)
+		}
 		if err := checkNamesAResult(into, line.ResultID, "the done line "+line.Text); err != nil {
 			return err
 		}

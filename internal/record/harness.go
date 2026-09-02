@@ -123,18 +123,47 @@ func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text st
 		return "", fmt.Errorf("a result keeps one line in the record and this one is empty, so say in a few words what it was")
 	}
 	line := cutToOneLine(summary)
-	id := nextResultID(keeper.record.Header, keeper.highestResultNumber())
-	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: line, Text: text}); err != nil {
-		return "", err
-	}
-	err := keeper.change(ctx, func(into *contract.Record) error {
-		into.Work.Results = append(into.Work.Results, contract.ResultLine{ID: id, Summary: line})
-		return nil
-	})
+	id, err := keeper.nextResultLabel(ctx)
 	if err != nil {
 		return "", err
 	}
+	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: line, Text: text}); err != nil {
+		return "", err
+	}
+	written := keeper.change(ctx, func(into *contract.Record) error {
+		into.Work.Results = append(into.Work.Results, contract.ResultLine{ID: id, Summary: line})
+		return nil
+	})
+	if written != nil {
+		return "", written
+	}
 	return id, nil
+}
+
+// nextResultLabel is the label the next result takes: one above the highest this
+// record has ever written, read from the log rather than from the record in hand.
+// It matters after a wind-back, where the record in hand has fewer results than
+// the log remembers: handing out a label twice would leave the two paths' evidence
+// under one name, and a replay of the abandoned one would read the wrong text.
+func (keeper *Keeper) nextResultLabel(ctx context.Context) (string, error) {
+	events, err := keeper.store.ByTask(ctx, keeper.ID())
+	if err != nil {
+		return "", fmt.Errorf("cannot read the log of %s %s to label the next result: %w", keeper.Kind(), keeper.ID(), err)
+	}
+	highest := keeper.highestResultNumber()
+	for _, event := range events {
+		if event.Kind != contract.EventToolResult {
+			continue
+		}
+		stored := StoredResult{}
+		if err := json.Unmarshal(event.Body, &stored); err != nil {
+			continue
+		}
+		if number, valid := ResultNumber(keeper.record.Header, stored.ID); valid && number > highest {
+			highest = number
+		}
+	}
+	return nextResultID(keeper.record.Header, highest), nil
 }
 
 // storeResult writes the whole text of one result into the log before the

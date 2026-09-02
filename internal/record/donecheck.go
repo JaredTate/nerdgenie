@@ -9,18 +9,20 @@ import (
 )
 
 // Unproven returns the lines of the done list with nothing behind them: the ones
-// not marked done, and the ones marked done that name neither a result nor a
-// reply from the user. A line in this list sends the model back to work, which is
-// what stops it from declaring victory early.
+// not marked done, the ones marked done that name neither a result nor a reply
+// from the user, and the ones that name a result this record never wrote, because
+// proof that points at nothing is no proof. A line in this list sends the model
+// back to work, which is what stops it from declaring victory early.
 //
 // This is the reading half of the done-check. The mechanical checks that go on
 // top of it, such as running a command a line names, are wave 3's.
 func Unproven(held contract.Record) []contract.DoneLine {
 	waiting := []contract.DoneLine{}
 	for _, line := range held.Goal.DoneWhen {
-		if !line.Done || (line.ResultID == "" && line.UserReply == "") {
-			waiting = append(waiting, line)
+		if line.Done && (line.UserReply != "" || recordHoldsResult(&held, line.ResultID)) {
+			continue
 		}
+		waiting = append(waiting, line)
 	}
 	return waiting
 }

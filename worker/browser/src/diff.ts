@@ -10,7 +10,7 @@
  * page serializer at docs/reference/browser-use/serializer.py, which stars new
  * elements and marks nothing at all on the first snapshot. The code is fresh.
  */
-import { judge, type Change } from "./expectation.js";
+import { judge, type AimedAt, type Change } from "./expectation.js";
 import type { Diff, Snapshot, SnapshotElement, Wall } from "./types.js";
 
 /**
@@ -33,7 +33,12 @@ export function markNewElements(
 }
 
 /** What one action changed, worked out from the two snapshots around it. */
-function changeBetween(before: Snapshot | null, after: Snapshot, newTab: string): Change {
+function changeBetween(
+  before: Snapshot | null,
+  after: Snapshot,
+  newTab: string,
+  aimedAt: AimedAt | null,
+): Change {
   const stillHere = new Set(after.elements.map((element) => element.ref));
   const removedCount =
     before === null
@@ -49,6 +54,7 @@ function changeBetween(before: Snapshot | null, after: Snapshot, newTab: string)
     dialog: after.dialog,
     newTab,
     download: after.download,
+    aimedAt,
   };
 }
 
@@ -64,6 +70,11 @@ export interface DiffInput {
   newTab: string;
   /** The wall the action ran into, or null. */
   wall: Wall | null;
+  /**
+   * The element the action was aimed at. Left out for an action aimed at no
+   * element at all, such as a key press or a scroll.
+   */
+  aimedAt?: AimedAt | null;
 }
 
 /**
@@ -72,7 +83,7 @@ export interface DiffInput {
  * to hand the browser to the user rather than to try again.
  */
 export function buildDiff(input: DiffInput): Diff {
-  const change = changeBetween(input.before, input.after, input.newTab);
+  const change = changeBetween(input.before, input.after, input.newTab, input.aimedAt ?? null);
   const verdict =
     input.wall === null
       ? judge(input.expectation, change)

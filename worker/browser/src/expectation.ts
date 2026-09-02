@@ -18,6 +18,12 @@ import { meaningfulWords, textHoldsAnyWord } from "./words.js";
 
 export { meaningfulWords } from "./words.js";
 
+/** The element an action was aimed at, as the model named it. */
+export interface AimedAt {
+  role: string;
+  name: string;
+}
+
 /** Everything one action changed, which is all the evidence the rule may use. */
 export interface Change {
   urlChanged: boolean;
@@ -29,6 +35,8 @@ export interface Change {
   dialog: DialogReport | null;
   newTab: string;
   download: DownloadReport | null;
+  /** The element the action was aimed at, or null when it was aimed at no element. */
+  aimedAt: AimedAt | null;
 }
 
 /** Did anything at all happen? An empty expectation is met when this is true. */
@@ -58,6 +66,9 @@ function placesToLook(change: Change): string[] {
   }
   if (change.dialog !== null) {
     places.push(change.dialog.message);
+  }
+  if (change.aimedAt !== null) {
+    places.push(change.aimedAt.name, change.aimedAt.role);
   }
   return places;
 }

@@ -102,6 +102,7 @@ export async function loginFillMethod(
         await target.locator.press("Enter").catch(() => {});
       }
     }
+    return undefined;
   });
   session.log(`filled ${fields.length} login field or fields and pressed Enter in the last one.`);
   // Everything the worker remembers about this page could hold a value too, so

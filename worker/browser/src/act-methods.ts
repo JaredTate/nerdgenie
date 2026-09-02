@@ -18,7 +18,7 @@ import {
   typeIntoTarget,
 } from "./actions.js";
 import { buildDiff } from "./diff.js";
-import { somethingChanged } from "./expectation.js";
+import { somethingChanged, type AimedAt } from "./expectation.js";
 import { DEFAULT_SCROLL_STEPS } from "./limits.js";
 import { readPage } from "./snapshot.js";
 import { settle } from "./settle.js";
@@ -55,12 +55,15 @@ export function freshSnapshotFor(
 export async function actAndAssert(
   session: Session,
   expectation: string,
-  work: (page: Page, before: Snapshot) => Promise<void>,
+  work: (page: Page, before: Snapshot) => Promise<AimedAt | undefined>,
 ): Promise<Diff> {
   const page = session.currentPage();
   session.beginAction();
   const before = await snapshotBefore(session, page);
-  await actionOrDialog(session, page, () => work(page, before));
+  let aimedAt: AimedAt | undefined;
+  await actionOrDialog(session, page, async () => {
+    aimedAt = await work(page, before);
+  });
   await settle(session, page);
   const reading = await readPage(session, page, { visibleOnly: false, against: before });
   session.rememberSnapshot(reading.snapshot);
@@ -73,7 +76,18 @@ export async function actAndAssert(
     expectation,
     newTab: session.tabOpenedDuring(),
     wall: reading.wall,
+    aimedAt: aimedAt ?? null,
   });
+}
+
+/**
+ * What the model was pointing at when it asked for this action, in its own
+ * words. It comes from what the ref meant at the time, not from what the page
+ * holds now, because the expectation was written against the former.
+ */
+export function aimedAtRef(session: Session, ref: string): AimedAt | undefined {
+  const was = session.refs.recall(ref);
+  return was === undefined ? undefined : { role: was.role, name: was.name };
 }
 
 /** Did this diff show anything at all happening? */
@@ -88,6 +102,7 @@ function nothingHappened(before: Snapshot, diff: Diff): boolean {
     dialog: diff.dialog,
     newTab: diff.newTab,
     download: diff.download,
+    aimedAt: null,
   });
 }
 
@@ -106,6 +121,7 @@ export async function clickMethod(
   const first = await actAndAssert(session, expectation, async (page) => {
     clicked = await targetOf(session, page, ref, freshSnapshotFor(session, page));
     await clickTarget(session, page, clicked);
+    return aimedAtRef(session, ref);
   });
   const before = first.snapshot;
   if (!nothingHappened(before, first) || clicked === undefined) {
@@ -114,6 +130,7 @@ export async function clickMethod(
   let triedAgain = false;
   const second = await actAndAssert(session, expectation, async (page) => {
     triedAgain = await clickAgainAtItsPlace(session, page, clicked!);
+    return aimedAtRef(session, ref);
   });
   return triedAgain ? second : first;
 }
@@ -125,6 +142,7 @@ export async function typeMethod(session: Session, params: Record<string, unknow
   return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
     const target = await targetOf(session, page, ref, freshSnapshotFor(session, page));
     await typeIntoTarget(session, page, target, text, false);
+    return aimedAtRef(session, ref);
   });
 }
 
@@ -133,6 +151,7 @@ export async function pressMethod(session: Session, params: Record<string, unkno
   const key = String(params["key"]);
   return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
     await pressOneKey(session, page, key);
+    return undefined;
   });
 }
 
@@ -145,5 +164,6 @@ export async function scrollMethod(
   const amount = typeof params["amount"] === "number" ? params["amount"] : DEFAULT_SCROLL_STEPS;
   return actAndAssert(session, String(params["expectation"] ?? ""), async (page) => {
     await scrollInSteps(session, page, direction, amount);
+    return undefined;
   });
 }

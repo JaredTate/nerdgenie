@@ -1,6 +1,7 @@
 package testkit_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -81,6 +82,57 @@ func TestTheStopConditionFiresAtRoundThirtyAndTheUserLetsItResume(t *testing.T) 
 	}
 	if task.UserReplyAfterStop == "" {
 		t.Error("the fixture has no user reply after the stop, and the task cannot resume without one")
+	}
+}
+
+// carrying builds the one request the fixture tests drive the fake model with:
+// a system block holding whatever the harness is supposed to still be carrying.
+func carrying(pieces ...string) contract.Request {
+	return contract.Request{SystemBlocks: []contract.SystemBlock{{
+		Name: "record",
+		Text: strings.Join(pieces, "\n"),
+	}}}
+}
+
+func TestAScriptDrivenWithoutTheUsersReplyFailsAtTheRoundAfterTheStop(t *testing.T) {
+	task := loadFixture(t)
+	model := testkit.NewFakeModel(task.Script())
+	request := carrying(task.Ask, task.Correction)
+
+	for round := 1; round <= task.StopRound; round++ {
+		if _, err := model.Send(context.Background(), request, nil); err != nil {
+			t.Fatalf("round %d failed, and the harness had not lost anything yet: %v", round, err)
+		}
+	}
+
+	_, err := model.Send(context.Background(), request, nil)
+
+	if err == nil {
+		t.Fatalf("round %d ran without the user's reply, and the task waits until they answer", task.StopRound+1)
+	}
+	if !strings.Contains(err.Error(), task.UserReplyAfterStop) {
+		t.Errorf("the failure after the stop does not name the reply the harness lost: %v", err)
+	}
+}
+
+func TestTheSameScriptRunsToTheEndOnceTheUserHasReplied(t *testing.T) {
+	task := loadFixture(t)
+	model := testkit.NewFakeModel(task.Script())
+	before := carrying(task.Ask, task.Correction)
+	after := carrying(task.Ask, task.Correction, task.UserReplyAfterStop)
+
+	for round := 1; round <= len(task.Rounds); round++ {
+		request := before
+		if round > task.StopRound {
+			request = after
+		}
+		if _, err := model.Send(context.Background(), request, nil); err != nil {
+			t.Fatalf("round %d failed with the reply in the request: %v", round, err)
+		}
+	}
+
+	if model.StepsLeft() != 0 {
+		t.Errorf("the script has %d steps left after forty rounds", model.StepsLeft())
 	}
 }
 

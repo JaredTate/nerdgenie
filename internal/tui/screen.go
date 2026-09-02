@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
@@ -55,6 +56,9 @@ type Screen struct {
 	height int
 	now    time.Time
 
+	busySince    time.Time
+	spinnerSince time.Time
+
 	state      programState
 	detail     string
 	attached   bool
@@ -80,6 +84,11 @@ type Screen struct {
 	paletteOpen bool
 	quitArmed   bool
 }
+
+// heartbeatInterval is how often the screen wakes itself up. It is the thirty
+// milliseconds docs/TUI_DESIGN.md gives for coalescing streamed text, which is
+// also often enough for the spinner's eight frames a second.
+const heartbeatInterval = 30 * time.Millisecond
 
 // New builds a screen ready to draw its first frame. Nothing here waits on the
 // network, which is what lets the first frame appear before the link is made.
@@ -108,10 +117,28 @@ func New(options Options) *Screen {
 	return screen
 }
 
-// Init is what Bubble Tea runs once the screen is on the terminal. There is
-// nothing to do here yet, because the first frame must not wait on anything.
+// Init is what Bubble Tea runs once the screen is on the terminal. It starts the
+// heartbeat and nothing else, because the first frame must not wait on anything.
 func (screen *Screen) Init() tea.Cmd {
-	return nil
+	return screen.nextTick()
+}
+
+// nextTick is the command that brings the screen its next heartbeat, one
+// interval from now on contract.Clock.
+func (screen *Screen) nextTick() tea.Cmd {
+	return func() tea.Msg {
+		if err := screen.clock.Sleep(context.Background(), heartbeatInterval); err != nil {
+			return nil
+		}
+		return tickMessage{at: screen.clock.Now()}
+	}
+}
+
+// beat takes one heartbeat: it moves the screen's idea of the time on and lets
+// the spinner decide whether it is still due.
+func (screen *Screen) beat(at time.Time) {
+	screen.now = at
+	screen.judgeSpinner()
 }
 
 // Update takes one thing that happened and changes the screen to match.
@@ -121,6 +148,9 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		screen.resize(typed.Width, typed.Height)
 	case tea.KeyMsg:
 		return screen, screen.pressed(typed)
+	case tickMessage:
+		screen.beat(typed.at)
+		return screen, screen.nextTick()
 	}
 	return screen, nil
 }

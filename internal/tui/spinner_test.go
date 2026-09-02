@@ -81,13 +81,15 @@ func TestTheSpinnerWalksThroughItsFourFrames(t *testing.T) {
 	screen.setState(stateThinking, "")
 	advance(screen, clock, spinnerDelay)
 
-	seen := map[string]bool{}
-	for range len(spinnerFrames) {
-		seen[screen.spinnerFrame()] = true
+	seen := []string{}
+	for range 2 * len(spinnerFrames) {
+		seen = append(seen, screen.spinnerFrame())
 		advance(screen, clock, spinnerRate)
 	}
-	if len(seen) != len(spinnerFrames) {
-		t.Errorf("the spinner showed %d different frames in %d steps, and the cycle has %d",
-			len(seen), len(spinnerFrames), len(spinnerFrames))
+	wanted := append(append([]string{}, spinnerFrames...), spinnerFrames...)
+	for at := range wanted {
+		if seen[at] != wanted[at] {
+			t.Fatalf("step %d of the spinner drew %q, and the four-frame dot cycle draws %q there", at, seen[at], wanted[at])
+		}
 	}
 }

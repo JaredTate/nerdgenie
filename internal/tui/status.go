@@ -62,6 +62,9 @@ func (screen *Screen) busy() bool {
 func (screen *Screen) statusRow() string {
 	line := row{}
 	line.blanks(marginColumns)
+	if screen.spinnerShowing() {
+		line.add(styleAccent, screen.spinnerFrame()+" ")
+	}
 	line.add(screen.stateStyle(), screen.stateWords())
 	if screen.budget != "" {
 		line.add(styleDim, " · "+screen.budget)

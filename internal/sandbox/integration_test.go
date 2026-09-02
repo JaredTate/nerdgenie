@@ -63,14 +63,10 @@ func fetchOnePage(address string) int {
 	return contract.ExitOK
 }
 
-// aRealFence makes a temporary home holding the agent's own folder, an SSH
-// folder with a fixture key in it, and one work folder as the sandbox root, and
-// returns a fence whose helper is this test binary.
-//
-// Every test below runs against the real bwrap and the real Landlock. When this
-// machine will not allow a fence, the test stops here with the reason rather
-// than going on to fail somewhere less obvious.
-func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
+// aTemporaryUserHome makes a home directory holding the agent's own folder, an
+// SSH folder with a fixture key in it, and one work folder, and returns the home
+// directory and the work folder.
+func aTemporaryUserHome(t *testing.T) (string, string) {
 	t.Helper()
 	home := testkit.NewTempHome(t)
 	userHome := filepath.Dir(home.Root)
@@ -85,19 +81,37 @@ func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 	if err := os.WriteFile(filepath.Join(sshFolder, "id_fixture"), []byte(fixtureKey), contract.SecretFileMode); err != nil {
 		t.Fatalf("cannot write the fixture key: %v", err)
 	}
+	return userHome, work
+}
 
+// aRealFenceAround builds a fence around one sandbox root, with this test binary
+// as the helper the fence starts inside itself.
+//
+// Every test that uses it runs against the real bwrap and the real Landlock.
+// When this machine will not allow a fence, the test stops here with the reason
+// rather than going on to fail somewhere less obvious.
+func aRealFenceAround(t *testing.T, userHome string, root string, outputCap int) *Fence {
+	t.Helper()
 	thisProgram, err := os.Executable()
 	if err != nil {
 		t.Fatalf("cannot find this test binary on disk: %v", err)
 	}
-	fence, err := New(Settings{Roots: []string{work}, UserHome: userHome, OutputCap: outputCap, HelperProgram: thisProgram})
+	fence, err := New(Settings{Roots: []string{root}, UserHome: userHome, OutputCap: outputCap, HelperProgram: thisProgram})
 	if err != nil {
-		t.Fatalf("cannot build a fence around %s: %v", work, err)
+		t.Fatalf("cannot build a fence around %s: %v", root, err)
 	}
 	if err := fence.Available(); err != nil {
 		t.Fatalf("this machine cannot make a fence, so none of these tests can run: %v", err)
 	}
-	return fence, userHome, work
+	return fence
+}
+
+// aRealFence makes a temporary home with one work folder as the sandbox root and
+// returns a fence around it, the home directory, and the work folder.
+func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
+	t.Helper()
+	userHome, work := aTemporaryUserHome(t)
+	return aRealFenceAround(t, userHome, work, outputCap), userHome, work
 }
 
 // fixtureKey stands in for a private key. It is not one, and nothing anywhere

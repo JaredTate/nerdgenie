@@ -142,3 +142,44 @@ func TestCheckRootsRefusesAnEmptyUserHome(t *testing.T) {
 		t.Fatal("the roots were checked with no home directory to check them against")
 	}
 }
+
+func TestCheckRootsKeepsWhereALinkLeadsRatherThanTheLinkItself(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	link := filepath.Join(userHome, "link-to-work")
+	if err := os.Symlink(work, link); err != nil {
+		t.Fatalf("cannot make the link for the test: %v", err)
+	}
+	wanted, err := filepath.EvalSymlinks(work)
+	if err != nil {
+		t.Fatalf("cannot work out where the link leads: %v", err)
+	}
+
+	checked, err := checkRoots([]string{link}, userHome, "")
+	if err != nil {
+		t.Fatalf("a link to a folder beside the agent's home was refused: %v", err)
+	}
+	if len(checked) != 1 || checked[0] != wanted {
+		t.Errorf("the checked roots are %v, want where the link leads, %q, because bwrap binds the folder a link leads to and Landlock hangs its rule there",
+			checked, wanted)
+	}
+}
+
+func TestCheckRootsRefusesALinkThatLeadsSomewhereThatMustStayOutside(t *testing.T) {
+	userHome := tempUserHome(t)
+	targets := map[string]string{
+		"the-home-directory": userHome,
+		"the-ssh-folder":     filepath.Join(userHome, ".ssh"),
+		"the-agents-home":    filepath.Join(userHome, contract.HomeFolderName),
+	}
+
+	for what, target := range targets {
+		link := filepath.Join(userHome, "work", "link-to-"+what)
+		if err := os.Symlink(target, link); err != nil {
+			t.Fatalf("cannot make the link for the test: %v", err)
+		}
+		if _, err := checkRoots([]string{link}, userHome, ""); err == nil {
+			t.Errorf("the root %q was accepted, and it is a link leading to %q, which must stay outside the fence", link, target)
+		}
+	}
+}

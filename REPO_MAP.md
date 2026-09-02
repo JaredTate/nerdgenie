@@ -53,6 +53,7 @@ docs/briefs/wave-1/1.2-task-record.md
 docs/briefs/wave-1/1.3-configuration.md
 docs/briefs/wave-1/1.4-model-providers.md
 docs/briefs/wave-1/1.5-tool-call-repair.md
+docs/briefs/wave-1/1.6-fix-the-wave-1-gate.md
 docs/briefs/wave-2/2.1-working-context.md
 docs/briefs/wave-2/2.2-permission.md
 docs/briefs/wave-2/2.3-sandbox.md
@@ -142,6 +143,7 @@ internal/contract/contract_test.go
 internal/contract/desktop.go
 internal/contract/doc.go
 internal/contract/exitcode.go
+internal/contract/gate1_test.go
 internal/contract/home.go
 internal/contract/home_test.go
 internal/contract/identifier.go

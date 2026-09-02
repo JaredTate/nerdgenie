@@ -109,11 +109,12 @@ func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text st
 	if summary == "" {
 		return "", fmt.Errorf("a result keeps one line in the record and this one is empty, so say in a few words what it was")
 	}
+	line := cutToOneLine(summary)
 	id := nextResultID(keeper.record.Header, keeper.highestResultNumber())
-	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: summary, Text: text}); err != nil {
+	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: line, Text: text}); err != nil {
 		return "", err
 	}
-	keeper.record.Work.Results = append(keeper.record.Work.Results, contract.ResultLine{ID: id, Summary: summary})
+	keeper.record.Work.Results = append(keeper.record.Work.Results, contract.ResultLine{ID: id, Summary: line})
 	if err := keeper.save(ctx); err != nil {
 		return "", err
 	}

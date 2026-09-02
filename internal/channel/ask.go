@@ -23,7 +23,9 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 		id = socket.nextAskID()
 	}
 	waiting := make(chan contract.PreviewAnswer, 1)
-	socket.waitOnPreview(id, waiting)
+	if !socket.waitOnPreview(id, waiting) {
+		return contract.AnswerReject, fmt.Errorf("a preview numbered %q is already waiting to be answered, so give this one a number of its own", shortenedText(id))
+	}
 	defer socket.stopWaitingOnPreview(id)
 
 	shown, err := socket.writeToScreens(ctx, contract.SocketEnvelope{
@@ -143,11 +145,18 @@ func contextTrouble(ctx context.Context) error {
 	return nil
 }
 
-// waitOnPreview writes down that someone is waiting for an answer to a preview.
-func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswer) {
+// waitOnPreview writes down that someone is waiting for an answer to a preview,
+// and says no when that number is already taken. A number is what the user
+// answers with, so two previews sharing one would leave one of them waiting for
+// an answer that could never reach it.
+func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswer) bool {
 	socket.guard.Lock()
 	defer socket.guard.Unlock()
+	if _, taken := socket.previews[id]; taken {
+		return false
+	}
 	socket.previews[id] = waiting
+	return true
 }
 
 // stopWaitingOnPreview forgets a preview whose answer has come or whose time has

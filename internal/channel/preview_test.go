@@ -194,6 +194,27 @@ func TestAPreviewWithNoNumberOfItsOwnIsGivenOne(t *testing.T) {
 	}
 }
 
+func TestTwoPreviewsUnderTheSameNumberAreRefusedRatherThanLeftHanging(t *testing.T) {
+	harness := newSocketHarness(t)
+	client := harness.attach(t)
+	first := harness.showPreview(context.Background())
+	shown := client.next()
+
+	answer, err := harness.socket.ShowPreview(context.Background(), aPreview)
+	if err == nil {
+		t.Fatal("a second preview took the number the first is waiting on, and one of them could never be answered")
+	}
+	if answer != contract.AnswerReject {
+		t.Errorf("the second preview came back as %q, want %q", answer, contract.AnswerReject)
+	}
+
+	// The first is still waiting and is still the one that number answers.
+	client.send(contract.SocketEnvelope{Type: contract.SocketApprove, ID: shown.ID})
+	if got := <-first; got.answer != contract.AnswerOnce {
+		t.Errorf("the first preview was answered %q, want %q", got.answer, contract.AnswerOnce)
+	}
+}
+
 func TestAnAnswerToANumberNothingIsWaitingOnIsRefusedAndTheClientStays(t *testing.T) {
 	harness := newSocketHarness(t)
 	client := harness.attach(t)

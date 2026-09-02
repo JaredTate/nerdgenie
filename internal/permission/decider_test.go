@@ -169,6 +169,24 @@ func TestThePreviewOfAnEscalatedCommandSaysItAsksForAdministratorPowers(t *testi
 	}
 }
 
+func TestARuleWithNoReasonStillGetsOneBuiltFromTheRuleItself(t *testing.T) {
+	settings := permission.Settings{
+		Rules: []permission.Rule{{Tool: contract.ToolShell, Pattern: "*git push*", Action: contract.RulingDeny}},
+	}
+	decider := newDecider(t, settings)
+
+	decision := decide(t, decider, shellRequest(t, "git push --force"))
+
+	if decision.Ruling != contract.RulingDeny {
+		t.Fatalf("the rule gave %q, want %q", decision.Ruling, contract.RulingDeny)
+	}
+	for _, wanted := range []string{"*git push*", contract.ToolShell, string(contract.RulingDeny)} {
+		if !strings.Contains(decision.Reason, wanted) {
+			t.Errorf("the reason is %q, and a rule with no words of its own has to be described by %q", decision.Reason, wanted)
+		}
+	}
+}
+
 // newDecider builds a permission function on a clock a test controls.
 func newDecider(t *testing.T, settings permission.Settings) *permission.Decider {
 	t.Helper()

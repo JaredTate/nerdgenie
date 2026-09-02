@@ -194,6 +194,69 @@ func TestReduceSurvivesInputThatIsNotJSONAtAll(t *testing.T) {
 	}
 }
 
+// oddShellCommands are the command lines a shell would read strangely and a
+// model still might write. None of them may stop the reducer, and each of them
+// still has to come back with the program a person would recognise.
+var oddShellCommands = []struct {
+	command string
+	reduced string
+}{
+	{"rm -rf '/tmp/unclosed", "rm -rf"},
+	{"rm -rf \\", "rm -rf"},
+	{"rm\\ -rf /tmp/x", "rm -rf"},
+	{"rm -rf 'it'\\''s here'", "rm -rf"},
+	{"env", "env"},
+	{"FOO=bar", ""},
+	{"   ", ""},
+	{"|||", ""},
+	{"-", "-"},
+}
+
+func TestReduceSurvivesACommandLineAShellWouldReadStrangely(t *testing.T) {
+	for _, odd := range oddShellCommands {
+		request := contract.PermissionRequest{
+			ToolName: contract.ToolShell,
+			Input:    jsonInput(t, map[string]any{"command": odd.command}),
+		}
+		if reduced := permission.Reduce(request); reduced != odd.reduced {
+			t.Errorf("the reduced form of %q is %q, want %q", odd.command, reduced, odd.reduced)
+		}
+	}
+}
+
+func TestReduceIgnoresAFieldWrittenAsTheWrongKindOfThing(t *testing.T) {
+	notAString := contract.PermissionRequest{
+		ToolName: contract.ToolShell,
+		Input:    json.RawMessage(`{"command": 12, "escalate": "yes"}`),
+	}
+	if reduced := permission.Reduce(notAString); reduced != contract.ToolShell {
+		t.Errorf("a command written as a number reduced to %q, want the tool's name %q", reduced, contract.ToolShell)
+	}
+
+	notABool := contract.PermissionRequest{
+		ToolName: contract.ToolShell,
+		Input:    json.RawMessage(`{"command": "apt install ripgrep", "escalate": "yes"}`),
+	}
+	if reduced := permission.Reduce(notABool); reduced != "apt install" {
+		t.Errorf("an escalate field written as words reduced to %q, want %q", reduced, "apt install")
+	}
+}
+
+func TestReduceStopsAtTheCapsWhenACommandLineNeverEnds(t *testing.T) {
+	request := contract.PermissionRequest{
+		ToolName: contract.ToolShell,
+		Input:    jsonInput(t, map[string]any{"command": strings.Repeat("rm -rf /tmp/x | ", 500)}),
+	}
+
+	reduced := permission.Reduce(request)
+	if !strings.HasPrefix(reduced, "rm -rf") {
+		t.Errorf("a command line of five hundred pipes reduced to %q, want it to start with the first command", reduced)
+	}
+	if len([]rune(reduced)) > permission.MaxReducedRunes {
+		t.Errorf("the reduced form is %d runes, and the cap is %d", len([]rune(reduced)), permission.MaxReducedRunes)
+	}
+}
+
 // jsonInput encodes a tool call's arguments the way a model would write them.
 func jsonInput(t *testing.T, fields map[string]any) json.RawMessage {
 	t.Helper()

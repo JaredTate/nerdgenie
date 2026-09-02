@@ -2,12 +2,13 @@
 
 An open-source agent that runs on any Linux machine, talks to you in a terminal or on Signal, works with any model, and does not forget what it is doing.
 
-Design stage. Nothing is built yet.
+Design stage. Nothing is built yet. Building happens on the Linux development machine at `/home/jared/Code/coeus`; see `CLAUDE.md`.
 
 ## Read
 
 | File | What it is |
 |---|---|
+| `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives (generated) |
 | `docs/WORK_PLAN.md` | How it gets built: the rules for every worker, the four kinds of tests, the test framework, eight waves of five briefs, and where each borrowed design lives in the other code bases |
 | `docs/COEUS_PLAN.md` | The design. Start here: the idea in one page, what we learned from other agents, how the agent works, the three kinds of state and the task record shaped like an operations order, what the model is told, tools, browser, safety, build order |
 | `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |

@@ -238,6 +238,16 @@ func asJSON(value any) json.RawMessage {
 	return written
 }
 
+// DoneLinesAtTheEnd is the done list as it stands when the task closes: every
+// line ticked and pointing at the result that proves it.
+func (task FortyStepTask) DoneLinesAtTheEnd() []contract.DoneLine {
+	lines := make([]contract.DoneLine, 0, len(task.DoneWhen))
+	for _, line := range task.DoneWhen {
+		lines = append(lines, contract.DoneLine{Text: line.Text, Done: true, ResultID: line.ResultID})
+	}
+	return lines
+}
+
 // PlanAtTheEnd is the plan the model wrote through the task tool, every step
 // ticked because the task finished. The fixture does not say which result
 // finished which step, because that is the harness's own bookkeeping.

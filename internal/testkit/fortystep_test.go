@@ -255,8 +255,12 @@ func TestTheFinishedRecordCarriesThePlanTheDecisionAndTheFailure(t *testing.T) {
 		if step.Number != at+1 || step.Text == "" {
 			t.Errorf("plan step at position %d is numbered %d and says %q", at, step.Number, step.Text)
 		}
-		if !step.Done {
-			t.Errorf("plan step %d is not ticked, and the task finished", step.Number)
+		// The fixture never ticks a plan step: the harness ticks one when it sees
+		// the step finish, and the fixture says nothing about that. The record
+		// this fixture leaves behind therefore has an unticked plan, and this must
+		// say the same as what internal/record ends up holding.
+		if step.Done || step.ResultID != "" {
+			t.Errorf("plan step %d is ticked, and the fixture never ticks one: %+v", step.Number, step)
 		}
 	}
 
@@ -274,6 +278,78 @@ func TestTheFinishedRecordCarriesThePlanTheDecisionAndTheFailure(t *testing.T) {
 	failure := record.Lessons.Failures[0]
 	if failure.ID != contract.FailureID(1) || failure.Text == "" || failure.Cause == "" {
 		t.Errorf("the failure is %+v, and the task tool refuses a failure with no cause", failure)
+	}
+}
+
+func TestOneRoundsRecordWriteReadsAsTheContractsOwnShapes(t *testing.T) {
+	task := loadFixture(t)
+
+	first, err := task.Rounds[0].Update()
+	if err != nil {
+		t.Fatalf("reading round one's record write failed: %v", err)
+	}
+	if first.Why != task.Why || len(first.DoneWhen) != 2 || len(first.StopWhen) != 2 {
+		t.Errorf("round one writes %+v, want the why, the done list, and the stop list", first)
+	}
+
+	planned, err := task.Rounds[3].Update()
+	if err != nil {
+		t.Fatalf("reading round four's record write failed: %v", err)
+	}
+	if len(planned.Plan) != 10 {
+		t.Errorf("round four writes %d plan steps, want the ten the design shows", len(planned.Plan))
+	}
+
+	failed, err := task.Rounds[5].Update()
+	if err != nil {
+		t.Fatalf("reading round six's record write failed: %v", err)
+	}
+	if failed.Failure == nil || failed.Failure.Text == "" || failed.Failure.Cause == "" {
+		t.Errorf("round six writes %+v, want the failure with its cause", failed.Failure)
+	}
+
+	decided, err := task.Rounds[11].Update()
+	if err != nil {
+		t.Fatalf("reading round twelve's record write failed: %v", err)
+	}
+	if decided.Decision == nil || decided.Decision.Text == "" || decided.Decision.Reason == "" {
+		t.Errorf("round twelve writes %+v, want the decision with its reason", decided.Decision)
+	}
+
+	quiet, err := task.Rounds[1].Update()
+	if err != nil {
+		t.Fatalf("reading round two's record write failed: %v", err)
+	}
+	if quiet.Why != "" || quiet.Plan != nil || quiet.Decision != nil || quiet.Failure != nil {
+		t.Errorf("round two writes %+v, and it writes nothing to the record", quiet)
+	}
+}
+
+func TestARecordWriteTheLoaderDoesNotKnowIsRefused(t *testing.T) {
+	round := testkit.FortyStepRound{Number: 1, TaskUpdate: map[string]any{"nonsense": "something new"}}
+
+	_, err := round.Update()
+
+	if err == nil {
+		t.Fatal("a record write nobody knows how to read was accepted, and the fixture and its reader must stay in step")
+	}
+	if !strings.Contains(err.Error(), "nonsense") {
+		t.Errorf("the refusal does not name what it could not read: %v", err)
+	}
+}
+
+func TestTheDoneLinesAtTheEndAreTheOnesTheFixtureWrote(t *testing.T) {
+	task := loadFixture(t)
+
+	lines := task.DoneLinesAtTheEnd()
+
+	if len(lines) != len(task.DoneWhen) {
+		t.Fatalf("the done list has %d lines, want the %d the fixture wrote", len(lines), len(task.DoneWhen))
+	}
+	for at, line := range lines {
+		if line.Text != task.DoneWhen[at].Text || line.ResultID != task.DoneWhen[at].ResultID || !line.Done {
+			t.Errorf("the done line at position %d is %+v, want the fixture's own", at, line)
+		}
 	}
 }
 

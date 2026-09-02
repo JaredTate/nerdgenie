@@ -12,7 +12,7 @@ Coeus is named for the Titan of intellect, the axis the heavens turn on.
 
 Every AI agent today is built the same way. A model is a function: text in, text out. It has no memory and no hands. The **harness** is the program around the model that gives it both. Same models everywhere; the harness is the whole difference.
 
-We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, plus Codex and Claude Code from the labs. They share one design: the conversation transcript **is** the agent's memory. Every turn, the model re-reads everything that happened to work out where it is. When the transcript gets too long, the harness summarizes it and hopes nothing important was lost. That is like a video game loading your save by replaying every button you ever pressed.
+We studied the harnesses people run today: OpenClaw, Hermes, Prime, OpenCode, Atomic, ZeroClaw, plus Codex and Claude Code from the labs. All of them keep long-term memory outside the conversation, in files or a database. But every one of them uses the conversation transcript as the record of the task itself: each turn, the model re-reads what happened to work out where it is. When the transcript gets too long, most of them summarize it and hope nothing important was lost (ZeroClaw drops old turns instead; Prime keeps its working data in Python variables, the closest anyone comes to real state). That is like a video game loading your save by replaying every button you ever pressed.
 
 Coeus is built on a different idea, and it is an old one.
 

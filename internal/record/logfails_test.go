@@ -154,16 +154,16 @@ func TestRefusesToHoldARecordThatIsNotTiedToTheLog(t *testing.T) {
 	held := goldenTaskRecord()
 	store := testkit.NewFakeStore()
 
-	if _, err := Hold(nil, held, 1); err == nil {
+	if _, err := hold(nil, held, 1); err == nil {
 		t.Error("a record was held with no log behind it")
 	}
-	if _, err := Hold(store, contract.Record{}, 1); err == nil {
+	if _, err := hold(store, contract.Record{}, 1); err == nil {
 		t.Error("a record with no number was held")
 	}
-	if _, err := Hold(store, held, 0); err == nil {
+	if _, err := hold(store, held, 0); err == nil {
 		t.Error("a record was held at checkpoint zero, and checkpoints count from one")
 	}
-	if _, err := Hold(store, held, 1); err != nil {
+	if _, err := hold(store, held, 1); err != nil {
 		t.Errorf("a whole record would not be held: %v", err)
 	}
 }

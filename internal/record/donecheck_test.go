@@ -11,22 +11,46 @@ import (
 // TestUnprovenNamesTheLinesWithNothingBehindThem proves the done-check reads the
 // done list and hands back the lines that would send the model back to work.
 func TestUnprovenNamesTheLinesWithNothingBehindThem(t *testing.T) {
-	held := contract.Record{Goal: contract.Goal{DoneWhen: []contract.DoneLine{
-		{Text: "proved by a result", Done: true, ResultID: "r6"},
-		{Text: "proved by the user", Done: true, UserReply: "yes, that is right"},
-		{Text: "still waiting"},
-		{Text: "has a result but is not marked done", ResultID: "r7"},
-	}}}
+	held := contract.Record{
+		Goal: contract.Goal{DoneWhen: []contract.DoneLine{
+			{Text: "proved by a result", Done: true, ResultID: "r6"},
+			{Text: "proved by the user", Done: true, UserReply: "yes, that is right"},
+			{Text: "still waiting"},
+			{Text: "has a result but is not marked done", ResultID: "r7"},
+			{Text: "points at a result nobody wrote", Done: true, ResultID: "r99"},
+		}},
+		Work: contract.Work{Results: []contract.ResultLine{
+			{ID: "r6", Summary: "the first result"},
+			{ID: "r7", Summary: "the second result"},
+		}},
+	}
 
 	waiting := Unproven(held)
-	if len(waiting) != 2 {
-		t.Fatalf("the done-check found %d lines with nothing behind them, and two are waiting: %+v", len(waiting), waiting)
+	if len(waiting) != 3 {
+		t.Fatalf("the done-check found %d lines with nothing behind them, and three are waiting: %+v", len(waiting), waiting)
 	}
-	if waiting[0].Text != "still waiting" || waiting[1].Text != "has a result but is not marked done" {
-		t.Errorf("the done-check named %+v", waiting)
+	wanted := []string{"still waiting", "has a result but is not marked done", "points at a result nobody wrote"}
+	for at, line := range waiting {
+		if line.Text != wanted[at] {
+			t.Errorf("the done-check named %q where it should name %q", line.Text, wanted[at])
+		}
 	}
 	if len(Unproven(contract.Record{})) != 0 {
 		t.Error("the done-check found a waiting line in a record with no done list at all")
+	}
+}
+
+// TestRefusesADoneLineWithTwoProofs proves a line names one thing that proves it,
+// because a record only ever prints one and the other would be lost on reload.
+func TestRefusesADoneLineWithTwoProofs(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	if _, err := keeper.AddResult(ctx, "the post went up", "the whole page"); err != nil {
+		t.Fatalf("cannot add the result: %v", err)
+	}
+	both := []contract.DoneLine{{Text: "one post is up", Done: true, ResultID: "r1", UserReply: "yes, I saw it"}}
+	if err := keeper.Apply(ctx, Update{DoneWhen: both}); err == nil {
+		t.Error("a done line naming both a result and a reply was accepted")
 	}
 }
 

@@ -133,6 +133,45 @@ func TestRefusesToGoBackPastTheFirstCheckpoint(t *testing.T) {
 	}
 }
 
+// TestAWindBackNeverHandsOutAResultLabelTwice proves the log stays readable after
+// "/tasks 17 back 3". A result written on the new path takes a label no result on
+// the abandoned path ever had, so a checkpoint on either path still reads back its
+// own evidence, which is what lets a failed task be replayed as a test.
+func TestAWindBackNeverHandsOutAResultLabelTwice(t *testing.T) {
+	keeper, store := newKeeper(t, taskStart())
+	ctx := t.Context()
+
+	if _, err := keeper.AddResult(ctx, "the first result", "the text of the first"); err != nil {
+		t.Fatalf("cannot add the first result: %v", err)
+	}
+	second, err := keeper.AddResult(ctx, "the second result", "the text of the second")
+	if err != nil {
+		t.Fatalf("cannot add the second result: %v", err)
+	}
+
+	wound, err := Back(ctx, store, "17", 1)
+	if err != nil {
+		t.Fatalf("cannot wind the record back one step: %v", err)
+	}
+	if len(wound.Record().Work.Results) != 1 {
+		t.Fatalf("one step back left %d results, and the second came after", len(wound.Record().Work.Results))
+	}
+
+	third, err := wound.AddResult(ctx, "the third result", "the text of the third")
+	if err != nil {
+		t.Fatalf("cannot add a result after winding back: %v", err)
+	}
+	if third == second {
+		t.Errorf("the result written after winding back took the label %q, which the abandoned path already used", third)
+	}
+	if text, err := wound.Read(ctx, second); err != nil || text != "the text of the second" {
+		t.Errorf("%s no longer reads back as itself: %q with the error %v", second, text, err)
+	}
+	if text, err := wound.Read(ctx, third); err != nil || text != "the text of the third" {
+		t.Errorf("%s does not read back: %q with the error %v", third, text, err)
+	}
+}
+
 // TestRefusesToLoadWhatIsNotInTheLog covers the ways a load can find nothing.
 func TestRefusesToLoadWhatIsNotInTheLog(t *testing.T) {
 	_, store := keeperWithFourCheckpoints(t)

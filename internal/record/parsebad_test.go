@@ -1,6 +1,7 @@
 package record
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -120,6 +121,50 @@ func TestRefusesTextThatIsNoRecordAtAll(t *testing.T) {
 	for name, text := range cases {
 		if _, err := Parse([]byte(text)); err == nil {
 			t.Errorf("the parser accepted %s", name)
+		}
+	}
+}
+
+// TestNamesTheRuleThatWasBroken proves a refusal carries the rule it broke and
+// not only a message, so that a caller can tell one refusal from another with
+// errors.Is and hand the model back the one line it needs.
+func TestNamesTheRuleThatWasBroken(t *testing.T) {
+	checkTheRuleIsNamed(t, "task.txt", map[string]error{
+		"- [x] it is under 280 characters and mentions the date ->": ErrDoneLineNeedsProof,
+		"- [x] 2 draft the post":                                    ErrPlanStepNeedsResult,
+		"- r1 draft post, 236 characters":                           ErrIdentifiersOutOfOrder,
+		"- D1 Lead with the date.":                                  ErrDecisionNeedsReason,
+		"- F1 Draft 1 was 312 characters.":                          ErrFailureNeedsCause,
+	}, map[string]string{
+		"- [x] it is under 280 characters and mentions the date ->": "- [x] it is under 280 characters and mentions the date -> r6",
+		"- [x] 2 draft the post":                                    "- [x] 2 draft the post -> r6",
+		"- r1 draft post, 236 characters":                           "- r6 draft post, 236 characters",
+		"- D1 Lead with the date.":                                  "- D1 Lead with the date. Reason: correction C1.",
+		"- F1 Draft 1 was 312 characters.":                          "- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.",
+	})
+
+	checkTheRuleIsNamed(t, "job.txt", map[string]error{
+		"- [ ] t30 post for day four, tomorrow at 14:00": ErrTasksOutOfOrder,
+		"- [x] t17 post the anniversary tweet":           ErrJobTaskNeedsReport,
+	}, map[string]string{
+		"- [ ] t30 post for day four, tomorrow at 14:00": "- [ ] t32 post for day four, tomorrow at 14:00",
+		"- [x] t17 post the anniversary tweet":           "- [x] t17 post the anniversary tweet -> j4.1",
+	})
+}
+
+// checkTheRuleIsNamed swaps each good line for its broken one and asks that the
+// error carry the rule the broken line breaks.
+func checkTheRuleIsNamed(t *testing.T, name string, rules map[string]error, from map[string]string) {
+	t.Helper()
+	golden := string(readGolden(t, name))
+	for broken, rule := range rules {
+		text := strings.Replace(golden, from[broken], broken, 1)
+		if text == golden {
+			t.Fatalf("the test for %q does not change %s, so its line no longer matches the golden record", broken, name)
+		}
+		_, err := Parse([]byte(text))
+		if !errors.Is(err, rule) {
+			t.Errorf("the line %q was refused without naming its rule: %v", broken, err)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package record
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -216,7 +217,7 @@ func TestAddsACorrectionInTheUsersOwnWords(t *testing.T) {
 	if len(held) != 2 || held[0].Text != "no, lead with the date not the features" {
 		t.Errorf("the corrections read %+v, and they are the user's own words", held)
 	}
-	if _, err := keeper.AddCorrection(ctx, ""); err == nil {
+	if _, err := keeper.AddCorrection(ctx, ""); !errors.Is(err, ErrCorrectionIsFixed) {
 		t.Error("an empty correction was added, and a correction is something the user said")
 	}
 }

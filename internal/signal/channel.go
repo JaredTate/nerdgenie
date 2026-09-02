@@ -197,8 +197,12 @@ func (channel *Channel) Receive(ctx context.Context) (<-chan contract.Inbound, e
 	channel.stop = stop
 	channel.guard.Unlock()
 
+	// The ticker that watches for a quiet task is started here rather than
+	// inside the watcher, so that by the time Receive has returned the clock is
+	// already being watched and no tick can be missed.
+	quiet := channel.clock.NewTicker(StillWorkingAfter)
 	go func() { _ = channel.stream.Run(running, func(event Event) { channel.route(running, event) }) }()
-	go channel.watchForQuiet(running)
+	go channel.watchForQuiet(running, quiet)
 	return channel.inbound, nil
 }
 
@@ -231,16 +235,18 @@ func (channel *Channel) SendFile(ctx context.Context, path string, caption strin
 // ShowPreview sends what is about to happen as the message itself, explains the
 // three answers once, and waits for one of them.
 func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswer, error) {
-	shown := strings.TrimSpace(preview.Title + "\n\n" + preview.Body + "\n\n" + previewInstructions)
-	if err := channel.client.Send(ctx, channel.recipient(), shown, nil); err != nil {
-		return contract.AnswerReject, err
-	}
-
+	// The answer is waited for before the preview is sent, never after, because
+	// somebody reading fast can reply before a send has finished returning.
 	answers := make(chan contract.PreviewAnswer, 1)
 	channel.guard.Lock()
 	channel.waiting = answers
 	channel.guard.Unlock()
 	defer channel.forgetPreview(answers)
+
+	shown := strings.TrimSpace(preview.Title + "\n\n" + preview.Body + "\n\n" + previewInstructions)
+	if err := channel.client.Send(ctx, channel.recipient(), shown, nil); err != nil {
+		return contract.AnswerReject, err
+	}
 
 	waited, stopWaiting := context.WithCancel(ctx)
 	defer stopWaiting()
@@ -414,8 +420,7 @@ func (channel *Channel) stopWorking() {
 
 // watchForQuiet says once, five minutes into a task that has said nothing, that
 // the agent is still working.
-func (channel *Channel) watchForQuiet(ctx context.Context) {
-	ticking := channel.clock.NewTicker(StillWorkingAfter)
+func (channel *Channel) watchForQuiet(ctx context.Context, ticking contract.Ticker) {
 	defer ticking.Stop()
 	for {
 		select {

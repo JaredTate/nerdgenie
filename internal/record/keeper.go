@@ -86,17 +86,19 @@ func New(ctx context.Context, store contract.Store, start Start) (*Keeper, error
 			start.RoundsLeft, start.MinutesLeft)
 	}
 
-	keeper := &Keeper{store: store, record: contract.Record{
-		Header: contract.Header{
-			Kind:        start.Kind,
-			ID:          start.ID,
-			Status:      contract.StatusRunning,
-			Origin:      start.Origin,
-			RoundsLeft:  start.RoundsLeft,
-			MinutesLeft: start.MinutesLeft,
-		},
-		Goal: contract.Goal{Ask: start.Ask},
-	}}
+	header := contract.Header{
+		Kind:   start.Kind,
+		ID:     start.ID,
+		Status: contract.StatusRunning,
+		Origin: start.Origin,
+	}
+	// A job carries progress where a task carries a budget, and a record never
+	// holds a number its own text does not print, so a budget handed to a job is
+	// left behind here rather than kept where nothing would ever show it.
+	if start.Kind == contract.RecordTask {
+		header.RoundsLeft, header.MinutesLeft = start.RoundsLeft, start.MinutesLeft
+	}
+	keeper := &Keeper{store: store, record: contract.Record{Header: header, Goal: contract.Goal{Ask: start.Ask}}}
 	if err := keeper.save(ctx); err != nil {
 		return nil, err
 	}

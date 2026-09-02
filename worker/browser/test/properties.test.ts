@@ -188,8 +188,26 @@ describe("any page at all put to the wall detector", () => {
 describe("any answer at all put through redaction", () => {
   // Secrets made only of letters and digits, so that looking for one in the
   // written-out answer is a plain search and not a question about JSON escaping.
+  // A code from the vault really is all digits, so digits alone must count.
   const plainSecret = fc.stringMatching(/^[0-9a-z]{3,16}$/);
-  const anyAnswer = fc.jsonValue({ maxDepth: 4 });
+
+  // An answer whose leaves are text, true, false, and nothing, but never a
+  // number. Redaction leaves numbers exactly as they are on purpose: `belowFold`
+  // is a count, and turning a count into the word "[redacted]" would hand the Go
+  // side a string where its own type says there is a number. The cost is that a
+  // secret made only of digits could in principle be read out of a number that
+  // happens to hold those digits, and this test says so out loud rather than
+  // pretending otherwise. Nothing the worker builds ever puts a secret in a
+  // number: every field a page can reach is text.
+  const anyAnswer = fc.letrec((again) => ({
+    leaf: fc.oneof(fc.string(), fc.boolean(), fc.constant(null)),
+    node: fc.oneof(
+      { maxDepth: 3 },
+      again("leaf"),
+      fc.array(again("node"), { maxLength: 4 }),
+      fc.dictionary(fc.string(), again("node"), { maxKeys: 4 }),
+    ),
+  })).node;
 
   it("leaves no trace of a secret anywhere in the written-out answer", () => {
     fc.assert(
@@ -203,6 +221,16 @@ describe("any answer at all put through redaction", () => {
         }
       }),
       { numRuns: 300 },
+    );
+  });
+
+  it("takes a code made only of digits out of any text it turns up in", () => {
+    fc.assert(
+      fc.property(fc.stringMatching(/^[0-9]{4,8}$/), fc.string(), (code, around) => {
+        const written = JSON.stringify(redactDeep({ url: `${around}${code}${around}` }, [code]));
+        expect(written).not.toContain(code);
+      }),
+      { numRuns: 200 },
     );
   });
 

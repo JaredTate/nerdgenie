@@ -17,6 +17,11 @@ import (
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
+// signalNextStep is the closing line that offers Signal. The doctor's own
+// warning about a missing signal-cli also names the command, so a test that
+// wants to know whether Signal was offered has to look for this whole line.
+const signalNextStep = "coeus signal link  link Coeus to your Signal account"
+
 // emptyHome points the HOME and XDG_CONFIG_HOME variables at folders with
 // nothing in them, which is what a machine looks like before "coeus init" has
 // ever run.
@@ -178,7 +183,7 @@ func TestInitTakesEveryAnswerAsAFlagWithNoTerminalAtAll(t *testing.T) {
 	if len(settings.SandboxRoots) != 1 || settings.SandboxRoots[0] != work {
 		t.Errorf("the sandbox roots came out %v rather than the folder the flag named", settings.SandboxRoots)
 	}
-	if strings.Contains(written.String(), "signal link") {
+	if strings.Contains(written.String(), signalNextStep) {
 		t.Errorf("coeus init offered Signal after being told to switch it off:\n%s", written)
 	}
 }
@@ -300,7 +305,7 @@ func TestInitPrintsTheCommandsANewUserNeeds(t *testing.T) {
 		t.Fatalf("coeus init failed: %v", err)
 	}
 
-	for _, wanted := range []string{"coeus signal link", "/help", "/tasks", "coeus doctor"} {
+	for _, wanted := range []string{signalNextStep, "/help", "/tasks", "coeus doctor"} {
 		if !strings.Contains(written.String(), wanted) {
 			t.Errorf("coeus init does not tell the user about %q:\n%s", wanted, written)
 		}

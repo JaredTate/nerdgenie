@@ -76,6 +76,7 @@ type Socket struct {
 	watchers map[*watcher]struct{}
 	previews map[string]chan contract.PreviewAnswer
 	prompts  map[string]chan string
+	asked    int64
 	closed   bool
 }
 

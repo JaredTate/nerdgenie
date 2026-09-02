@@ -91,22 +91,33 @@ func (socket *Socket) Health(_ context.Context) contract.ChannelHealth {
 	return contract.ChannelHealth{Healthy: true}
 }
 
-// toEveryScreen writes one message to every attached screen. A screen that
-// cannot be written to is hung up on rather than allowed to hold up the rest.
+// toEveryScreen writes one message to every attached screen.
 func (socket *Socket) toEveryScreen(ctx context.Context, envelope contract.SocketEnvelope) error {
+	_, err := socket.writeToScreens(ctx, envelope)
+	return err
+}
+
+// writeToScreens writes one message to every attached screen and says how many
+// screens took it, which is how a question knows whether anyone could have
+// answered it. A screen that cannot be written to is hung up on rather than
+// allowed to hold up the rest.
+func (socket *Socket) writeToScreens(ctx context.Context, envelope contract.SocketEnvelope) (int, error) {
 	if socket.isClosed() {
-		return fmt.Errorf("the local socket at %s is closed, so the %s has nowhere to go", socket.options.Path, envelope.Type)
+		return 0, fmt.Errorf("the local socket at %s is closed, so the %s has nowhere to go", socket.options.Path, envelope.Type)
 	}
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("the %s was not sent to the attached screens: %w", envelope.Type, err)
+		return 0, fmt.Errorf("the %s was not sent to the attached screens: %w", envelope.Type, err)
 	}
 
+	written := 0
 	for _, attached := range socket.attachedClients() {
 		if err := attached.write(envelope); err != nil {
 			attached.close()
+			continue
 		}
+		written++
 	}
-	return nil
+	return written, nil
 }
 
 // attachedClients is every screen reading the event stream, copied out from

@@ -91,15 +91,70 @@ func TestTheFixtureTurnsIntoAScriptTheFakeModelCanPlay(t *testing.T) {
 	if len(script.Steps) != len(task.Rounds) {
 		t.Fatalf("the script has %d steps and the fixture has %d rounds", len(script.Steps), len(task.Rounds))
 	}
-	withTools := 0
+	calls := 0
 	for _, step := range script.Steps {
-		withTools += len(step.ToolCalls)
+		calls += len(step.ToolCalls)
 	}
-	if withTools != len(task.Rounds)-1 {
-		t.Errorf("the script asks for %d tool calls, want one for every round but the last", withTools)
+	if calls != toolCallsInTheFixture(task) {
+		t.Errorf("the script asks for %d tool calls, want %d: one for every round but the last, plus one record write per round that writes",
+			calls, toolCallsInTheFixture(task))
 	}
 	if len(script.Steps[len(script.Steps)-1].ToolCalls) != 0 {
 		t.Error("the last step of the script asks for a tool, and the last round is the report with tools off")
+	}
+}
+
+// toolCallsInTheFixture is how many tool calls the whole fixture asks for: one
+// for each round that uses a tool, and one more for each round that writes to
+// the record, because the model writes the record in the same reply.
+func toolCallsInTheFixture(task testkit.FortyStepTask) int {
+	calls := 0
+	for _, round := range task.Rounds {
+		if round.ToolName != "" {
+			calls++
+		}
+		if round.TaskUpdate != nil {
+			calls++
+		}
+	}
+	return calls
+}
+
+func TestTheScriptWritesToTheRecordThroughTheTaskTool(t *testing.T) {
+	task := loadFixture(t)
+	script := task.Script()
+
+	writes := 0
+	for at, round := range task.Rounds {
+		step := script.Steps[at]
+		if round.TaskUpdate == nil {
+			for _, call := range step.ToolCalls {
+				if call.Name == contract.ToolTask {
+					t.Errorf("round %d writes nothing to the record, and the script asks for the task tool anyway", round.Number)
+				}
+			}
+			continue
+		}
+		writes++
+		if len(step.ToolCalls) != 2 {
+			t.Errorf("round %d writes to the record, so the step wants two tool calls and it has %d",
+				round.Number, len(step.ToolCalls))
+			continue
+		}
+		second := step.ToolCalls[1]
+		if second.Name != contract.ToolTask {
+			t.Errorf("the second tool call of round %d is %q, want the task tool", round.Number, second.Name)
+			continue
+		}
+		for key := range round.TaskUpdate {
+			if !strings.Contains(string(second.Input), key) {
+				t.Errorf("the task call of round %d does not carry %q, so the record write is not what the fixture says",
+					round.Number, key)
+			}
+		}
+	}
+	if writes < 4 {
+		t.Errorf("the fixture writes to the record %d times, want the why and done list, the plan, the failure, and the decision", writes)
 	}
 }
 
@@ -107,8 +162,9 @@ func TestEveryRoundBeforeTheLastHasAResultWithTheNextIdentifier(t *testing.T) {
 	task := loadFixture(t)
 
 	results := task.ToolResults()
-	if len(results) != len(task.Rounds)-1 {
-		t.Fatalf("the fixture has %d results, want one for every round but the last", len(results))
+	if len(results) != toolCallsInTheFixture(task) {
+		t.Fatalf("the fixture has %d results, want one for every tool call the script makes, which is %d",
+			len(results), toolCallsInTheFixture(task))
 	}
 	for at, result := range results {
 		if result.ID != contract.ResultID(at+1) {
@@ -117,6 +173,55 @@ func TestEveryRoundBeforeTheLastHasAResultWithTheNextIdentifier(t *testing.T) {
 		if result.Summary == "" || result.Text == "" {
 			t.Errorf("the result %s has no summary or no full text, and the record needs one line and the log needs the rest", result.ID)
 		}
+	}
+}
+
+func TestEveryDoneLinePointsAtAResultTheFixtureActuallyProduced(t *testing.T) {
+	task := loadFixture(t)
+
+	produced := map[string]bool{}
+	for _, result := range task.ToolResults() {
+		produced[result.ID] = true
+	}
+	for _, line := range task.DoneWhen {
+		if !produced[line.ResultID] {
+			t.Errorf("the done line %q points at %s, and the fixture never produced a result with that id",
+				line.Text, line.ResultID)
+		}
+	}
+}
+
+func TestTheFinishedRecordCarriesThePlanTheDecisionAndTheFailure(t *testing.T) {
+	task := loadFixture(t)
+
+	record := task.RecordAtTheEnd()
+
+	if len(record.Work.Plan) != 10 {
+		t.Errorf("the finished record has %d plan steps, want the ten the model wrote at round 4", len(record.Work.Plan))
+	}
+	for at, step := range record.Work.Plan {
+		if step.Number != at+1 || step.Text == "" {
+			t.Errorf("plan step at position %d is numbered %d and says %q", at, step.Number, step.Text)
+		}
+		if !step.Done {
+			t.Errorf("plan step %d is not ticked, and the task finished", step.Number)
+		}
+	}
+
+	if len(record.Lessons.Decisions) != 1 {
+		t.Fatalf("the finished record holds %d decisions, want the one from round 12", len(record.Lessons.Decisions))
+	}
+	decision := record.Lessons.Decisions[0]
+	if decision.ID != contract.DecisionID(1) || decision.Text == "" || decision.Reason == "" {
+		t.Errorf("the decision is %+v, and the task tool refuses a decision with no reason", decision)
+	}
+
+	if len(record.Lessons.Failures) != 1 {
+		t.Fatalf("the finished record holds %d failures, want the one from round 6", len(record.Lessons.Failures))
+	}
+	failure := record.Lessons.Failures[0]
+	if failure.ID != contract.FailureID(1) || failure.Text == "" || failure.Cause == "" {
+		t.Errorf("the failure is %+v, and the task tool refuses a failure with no cause", failure)
 	}
 }
 

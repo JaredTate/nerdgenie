@@ -169,6 +169,14 @@ func (keeper *Keeper) Kind() contract.RecordKind {
 	return keeper.record.Header.Kind
 }
 
+// LogKey is the id every event of this record is written under. A task's events
+// go under its own number and a job's under "j" and its number, because task 17
+// and job 17 are different records and their events must never mix. Anything else
+// that logs an event about this record uses this key too.
+func (keeper *Keeper) LogKey() string {
+	return contract.RecordLogKey(keeper.Kind(), keeper.ID())
+}
+
 // LatestCheckpoint is the number of the last checkpoint saved, which counts from
 // one and grows by one with every change.
 func (keeper *Keeper) LatestCheckpoint() int {
@@ -184,7 +192,7 @@ func (keeper *Keeper) save(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot write checkpoint %d of %s %s as JSON: %w", number, keeper.Kind(), keeper.ID(), err)
 	}
-	event := contract.Event{TaskID: keeper.ID(), Kind: contract.EventCheckpoint, Body: body}
+	event := contract.Event{TaskID: keeper.LogKey(), Kind: contract.EventCheckpoint, Body: body}
 	if _, err := keeper.store.Append(ctx, event); err != nil {
 		return fmt.Errorf("cannot save checkpoint %d of %s %s to the log: %w", number, keeper.Kind(), keeper.ID(), err)
 	}

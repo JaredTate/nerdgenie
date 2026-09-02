@@ -146,7 +146,7 @@ func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text st
 // the log remembers: handing out a label twice would leave the two paths' evidence
 // under one name, and a replay of the abandoned one would read the wrong text.
 func (keeper *Keeper) nextResultLabel(ctx context.Context) (string, error) {
-	events, err := keeper.store.ByTask(ctx, keeper.ID())
+	events, err := keeper.store.ByTask(ctx, keeper.LogKey())
 	if err != nil {
 		return "", fmt.Errorf("cannot read the log of %s %s to label the next result: %w", keeper.Kind(), keeper.ID(), err)
 	}
@@ -177,7 +177,7 @@ func (keeper *Keeper) storeResult(ctx context.Context, result StoredResult) erro
 	if err != nil {
 		return fmt.Errorf("cannot write the result %s as JSON: %w", result.ID, err)
 	}
-	event := contract.Event{TaskID: keeper.ID(), Kind: contract.EventToolResult, Body: body}
+	event := contract.Event{TaskID: keeper.LogKey(), Kind: contract.EventToolResult, Body: body}
 	if _, err := keeper.store.Append(ctx, event); err != nil {
 		return fmt.Errorf("cannot write the result %s to the log: %w", result.ID, err)
 	}
@@ -243,7 +243,7 @@ func (keeper *Keeper) Read(ctx context.Context, id string) (string, error) {
 		return "", fmt.Errorf("%q is not a label this %s writes, so read one such as %q: %w",
 			id, keeper.Kind(), nextResultID(keeper.record.Header, 0), ErrNoSuchResult)
 	}
-	events, err := keeper.store.ByTask(ctx, keeper.ID())
+	events, err := keeper.store.ByTask(ctx, keeper.LogKey())
 	if err != nil {
 		return "", fmt.Errorf("cannot read the log of %s %s to find %s: %w", keeper.Kind(), keeper.ID(), id, err)
 	}

@@ -47,6 +47,17 @@ func TestTheCommandLineNeverBindsTheHomeFolderOrAnythingForbidden(t *testing.T) 
 	}
 }
 
+func TestTheCommandLineSetsTheMarkerThatTellsTheHelperTheFenceStartedIt(t *testing.T) {
+	arguments := buildArguments(theFixturePlan())
+
+	for index := 0; index+2 < len(arguments); index++ {
+		if arguments[index] == "--setenv" && arguments[index+1] == FenceMarkerVariable {
+			return
+		}
+	}
+	t.Fatalf("the command line never sets %s, and the helper refuses to run without it", FenceMarkerVariable)
+}
+
 func TestTheCommandLineUnsharesEveryNamespaceButTheNetwork(t *testing.T) {
 	arguments := buildArguments(theFixturePlan())
 

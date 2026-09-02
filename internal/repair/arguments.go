@@ -34,13 +34,11 @@ func decodeArguments(raw []byte, spec contract.ToolSpec, specs []contract.ToolSp
 
 // compactObject reads a JSON object and returns it with the whitespace taken
 // out, so that what goes to the tool is what the model wrote and nothing else.
+// Compacting is also the check: it refuses anything that is not one whole,
+// valid JSON value, and the first character says that value is an object.
 func compactObject(raw []byte) (json.RawMessage, bool) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return nil, false
-	}
-	var fields map[string]json.RawMessage
-	if json.Unmarshal(trimmed, &fields) != nil {
 		return nil, false
 	}
 	tightened := &bytes.Buffer{}

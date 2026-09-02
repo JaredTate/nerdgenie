@@ -124,19 +124,19 @@ func build(found []candidate, specs []contract.ToolSpec) Result {
 // buildOne turns one candidate into one tool call, repairing its name and
 // reading its arguments.
 func buildOne(one candidate, specs []contract.ToolSpec, position int) (contract.ToolCall, *Repair, string) {
-	name, problem := repairName(one.name, specs)
+	spec, problem := repairName(one.name, specs)
 	if problem != "" {
 		return contract.ToolCall{}, nil, problem
 	}
-	arguments, problem := decodeArguments(one.arguments, findSpec(specs, name), specs)
+	arguments, problem := decodeArguments(one.arguments, spec, specs)
 	if problem != "" {
 		return contract.ToolCall{}, nil, problem
 	}
 	var repaired *Repair
-	if name != one.name {
-		repaired = &Repair{ModelWrote: one.name, RealName: name}
+	if spec.Name != one.name {
+		repaired = &Repair{ModelWrote: one.name, RealName: spec.Name}
 	}
-	return contract.ToolCall{ID: callID(one.id, position), Name: name, Input: arguments}, repaired, ""
+	return contract.ToolCall{ID: callID(one.id, position), Name: spec.Name, Input: arguments}, repaired, ""
 }
 
 // callID keeps the provider's identifier when there is one and numbers the calls

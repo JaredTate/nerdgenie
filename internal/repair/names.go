@@ -22,17 +22,17 @@ const (
 	minLengthForEditDistance = 5
 )
 
-// repairName reads the name the model wrote as the name of a real tool, trying
-// four rules in order: the same name, the same name in another case, the same
-// name with the underscores and hyphens taken out, and a name within two edits.
-// A name that matches nothing, or that matches two real tools equally well,
-// comes back as a problem for the model instead.
-func repairName(written string, specs []contract.ToolSpec) (string, string) {
+// repairName reads the name the model wrote as a real tool, trying four rules in
+// order: the same name, the same name in another case, the same name with the
+// underscores and hyphens taken out, and a name within two edits. A name that
+// matches nothing, or that matches two real tools equally well, comes back as a
+// problem for the model instead.
+func repairName(written string, specs []contract.ToolSpec) (contract.ToolSpec, string) {
 	name := strings.TrimSpace(written)
 	if name == "" || len(name) > maxToolNameLength {
-		return "", problemUnknownName(written, specs)
+		return contract.ToolSpec{}, problemUnknownName(written, specs)
 	}
-	rules := []func(string, []contract.ToolSpec) []string{exactNames, sameLetterNames, plainNames, nearestNames}
+	rules := []func(string, []contract.ToolSpec) []contract.ToolSpec{exact, sameLetters, plain, nearest}
 	for _, matching := range rules {
 		switch found := matching(name, specs); len(found) {
 		case 0:
@@ -40,41 +40,41 @@ func repairName(written string, specs []contract.ToolSpec) (string, string) {
 		case 1:
 			return found[0], ""
 		default:
-			return "", problemAmbiguousName(written, found, specs)
+			return contract.ToolSpec{}, problemAmbiguousName(written, namesOf(found), specs)
 		}
 	}
-	return "", problemUnknownName(written, specs)
+	return contract.ToolSpec{}, problemUnknownName(written, specs)
 }
 
-// exactNames returns the real tools whose name is the written name.
-func exactNames(name string, specs []contract.ToolSpec) []string {
-	return matchingNames(specs, func(real string) bool { return real == name })
+// exact returns the real tools whose name is the written name.
+func exact(name string, specs []contract.ToolSpec) []contract.ToolSpec {
+	return matchingSpecs(specs, func(real string) bool { return real == name })
 }
 
-// sameLetterNames returns the real tools whose name differs only in case.
-func sameLetterNames(name string, specs []contract.ToolSpec) []string {
-	return matchingNames(specs, func(real string) bool { return strings.EqualFold(real, name) })
+// sameLetters returns the real tools whose name differs only in case.
+func sameLetters(name string, specs []contract.ToolSpec) []contract.ToolSpec {
+	return matchingSpecs(specs, func(real string) bool { return strings.EqualFold(real, name) })
 }
 
-// plainNames returns the real tools whose name is the same once the case, the
+// plain returns the real tools whose name is the same once the case, the
 // underscores, and the hyphens are taken out, which is what catches
 // "BrowserOpen" and "browser-open".
-func plainNames(name string, specs []contract.ToolSpec) []string {
+func plain(name string, specs []contract.ToolSpec) []contract.ToolSpec {
 	wanted := plainForm(name)
-	return matchingNames(specs, func(real string) bool { return plainForm(real) == wanted })
+	return matchingSpecs(specs, func(real string) bool { return plainForm(real) == wanted })
 }
 
-// nearestNames returns the real tools within two edits of the written name, and
-// only the closest ones, so that a tie is reported rather than guessed at. A
-// name under five characters is never repaired this way.
-func nearestNames(name string, specs []contract.ToolSpec) []string {
+// nearest returns the real tools within two edits of the written name, and only
+// the closest of them, so that a tie is reported rather than guessed at. A name
+// under five characters is never repaired this way.
+func nearest(name string, specs []contract.ToolSpec) []contract.ToolSpec {
 	length := utf8.RuneCountInString(name)
 	if length < minLengthForEditDistance {
 		return nil
 	}
 	lowered := strings.ToLower(name)
 	closest := maxEditDistance + 1
-	found := []string{}
+	found := []contract.ToolSpec{}
 	for _, spec := range specs {
 		// A name whose length differs by more than the edits allowed cannot be
 		// within them, and leaving it out keeps the comparison bounded however
@@ -87,22 +87,31 @@ func nearestNames(name string, specs []contract.ToolSpec) []string {
 			continue
 		}
 		if distance < closest {
-			closest, found = distance, []string{}
+			closest, found = distance, []contract.ToolSpec{}
 		}
-		found = append(found, spec.Name)
+		found = append(found, spec)
 	}
 	return found
 }
 
-// matchingNames returns the names of the tools the test says match.
-func matchingNames(specs []contract.ToolSpec, matches func(real string) bool) []string {
-	found := []string{}
+// matchingSpecs returns the tools whose name the test says matches.
+func matchingSpecs(specs []contract.ToolSpec, matches func(real string) bool) []contract.ToolSpec {
+	found := []contract.ToolSpec{}
 	for _, spec := range specs {
 		if matches(spec.Name) {
-			found = append(found, spec.Name)
+			found = append(found, spec)
 		}
 	}
 	return found
+}
+
+// namesOf is the names of a set of tools, for a message that has to list them.
+func namesOf(specs []contract.ToolSpec) []string {
+	names := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		names = append(names, spec.Name)
+	}
+	return names
 }
 
 // separators are the two characters a model puts between the words of a tool
@@ -137,15 +146,4 @@ func editDistance(left string, right string) int {
 		previous, current = current, previous
 	}
 	return previous[len(second)]
-}
-
-// findSpec returns the specification of the named tool, and an empty one holding
-// only the name when the caller asks for a tool that is not there.
-func findSpec(specs []contract.ToolSpec, name string) contract.ToolSpec {
-	for _, spec := range specs {
-		if spec.Name == name {
-			return spec
-		}
-	}
-	return contract.ToolSpec{Name: name}
 }

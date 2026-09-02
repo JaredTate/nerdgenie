@@ -103,8 +103,13 @@ func (daemon *FakeSignalCLI) PushMessage(sender string, text string, attachments
 			},
 		},
 	}
-	daemon.events <- fmt.Sprintf("data: %s\n\n", mustJSON(event))
-	return nil
+	select {
+	case daemon.events <- fmt.Sprintf("data: %s\n\n", mustJSON(event)):
+		return nil
+	default:
+		return fmt.Errorf("the fake signal-cli daemon is already holding %d events nobody has read, so attach to the stream before pushing more",
+			inboundQueueSize)
+	}
 }
 
 // Sends is every message the harness asked the daemon to send, in order.

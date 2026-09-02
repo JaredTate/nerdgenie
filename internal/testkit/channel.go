@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -27,6 +28,8 @@ type FakeChannel struct {
 	guard        sync.Mutex
 	name         string
 	inbound      chan contract.Inbound
+	stopped      chan struct{}
+	shutDown     bool
 	sent         []string
 	files        []SentFile
 	previews     []contract.Preview
@@ -43,6 +46,7 @@ func NewFakeChannel(name string) *FakeChannel {
 	return &FakeChannel{
 		name:    name,
 		inbound: make(chan contract.Inbound, inboundQueueSize),
+		stopped: make(chan struct{}),
 		answer:  contract.AnswerOnce,
 		healthy: true,
 	}
@@ -58,13 +62,25 @@ func (channel *FakeChannel) Push(message contract.Inbound) error {
 	if message.Received.IsZero() {
 		message.Received = time.Unix(0, 0).UTC()
 	}
-	channel.inbound <- message
-	return nil
+	select {
+	case channel.inbound <- message:
+		return nil
+	default:
+		return fmt.Errorf("the fake channel %q is already holding %d messages nobody has read, so read some before pushing more",
+			channel.name, inboundQueueSize)
+	}
 }
 
 // Shutdown closes every stream the channel handed out, the way a channel that is
-// going away does.
+// going away does. Calling it twice is harmless.
 func (channel *FakeChannel) Shutdown() {
+	channel.guard.Lock()
+	defer channel.guard.Unlock()
+	if channel.shutDown {
+		return
+	}
+	channel.shutDown = true
+	close(channel.stopped)
 }
 
 // Sent is every reply the harness sent, in order.
@@ -128,9 +144,38 @@ func (channel *FakeChannel) Name() string {
 	return channel.name
 }
 
-// Receive returns the stream of messages a test pushed.
-func (channel *FakeChannel) Receive(_ context.Context) (<-chan contract.Inbound, error) {
-	return channel.inbound, nil
+// Receive returns a stream of its own, fed from the queue a test pushes into.
+// The stream closes when the context is cancelled or the channel shuts down,
+// which is what contract.Channel promises and what a harness that leaks an
+// attach depends on.
+func (channel *FakeChannel) Receive(ctx context.Context) (<-chan contract.Inbound, error) {
+	stream := make(chan contract.Inbound)
+	go channel.feed(ctx, stream)
+	return stream, nil
+}
+
+// feed moves messages from the queue onto one attached stream until the context
+// is cancelled or the channel shuts down, and closes the stream on its way out.
+func (channel *FakeChannel) feed(ctx context.Context, stream chan contract.Inbound) {
+	defer close(stream)
+	for {
+		var message contract.Inbound
+		select {
+		case <-ctx.Done():
+			return
+		case <-channel.stopped:
+			return
+		case message = <-channel.inbound:
+		}
+
+		select {
+		case stream <- message:
+		case <-ctx.Done():
+			return
+		case <-channel.stopped:
+			return
+		}
+	}
 }
 
 // Send records one reply.

@@ -12,6 +12,11 @@ import (
 // is named without a path, so that the machine's own PATH finds it.
 const bubblewrapProgram = "bwrap"
 
+// EntrySubcommandName is the word the orchestrator registers in
+// cmd/coeus/main.go for the helper this package runs inside the fence. It is not
+// meant to be typed by a person; the fence starts it itself.
+const EntrySubcommandName = "sandbox-entry"
+
 // defaultSystemFolders are the folders bound read-only inside the fence, which
 // is what a command needs to find a shell, its libraries, and the settings that
 // let it look a hostname up. A machine that lacks one of them simply does not

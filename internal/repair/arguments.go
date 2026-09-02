@@ -12,11 +12,12 @@ import (
 // arguments must be a JSON object; a model that wrapped the object in a string,
 // which is what one provider's own interface does, has it read once more; and a
 // model that wrote a list or a number gets a problem naming the tool and the
-// shape it expects. A call with no arguments at all is a call with an empty
-// object, because a tool that needs nothing is still a tool.
+// shape it expects. A call with no arguments at all, or with nothing written
+// where the arguments go, is a call with an empty object, because a tool that
+// needs nothing is still a tool.
 func decodeArguments(raw []byte, spec contract.ToolSpec, specs []contract.ToolSpec) (json.RawMessage, string) {
 	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 {
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
 		return json.RawMessage("{}"), ""
 	}
 	if object, ok := compactObject(trimmed); ok {

@@ -204,15 +204,18 @@ func (daemon *FakeSignalCLI) handleHealth(writer http.ResponseWriter, _ *http.Re
 // handleEvents streams the messages a test pushed until the stream is dropped or
 // the caller goes away.
 func (daemon *FakeSignalCLI) handleEvents(writer http.ResponseWriter, request *http.Request) {
+	// The stream this connection belongs to is claimed before the headers go out,
+	// so that a test which drops the stream the moment it is connected drops this
+	// one rather than the next.
+	dropped, stopped := daemon.streamSignals()
+	stall := daemon.takeStall()
+
 	writer.Header().Set("Content-Type", "text/event-stream")
 	writer.WriteHeader(http.StatusOK)
 	flush, canFlush := writer.(http.Flusher)
 	if canFlush {
 		flush.Flush()
 	}
-
-	dropped, stopped := daemon.streamSignals()
-	stall := daemon.takeStall()
 
 	for {
 		select {

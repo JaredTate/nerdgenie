@@ -191,6 +191,22 @@ func (worker leakyBrowser) LoginFill(_ context.Context, fields contract.LoginFie
 	return contract.Diff{Seen: "typed " + fields.Password, ExpectationMet: true}, nil
 }
 
+// echoingBrowser hands the password back in an element that appeared, which is
+// the one place the old scrubber did not look.
+type echoingBrowser struct{ *testkit.FakeBrowserWorker }
+
+// LoginFill fills the form properly and then adds a message naming the password.
+func (worker echoingBrowser) LoginFill(ctx context.Context, fields contract.LoginFields) (contract.Diff, error) {
+	diff, err := worker.FakeBrowserWorker.LoginFill(ctx, fields)
+	if err != nil {
+		return diff, err
+	}
+	diff.NewElements = append(diff.NewElements, contract.Element{
+		Ref: "e9", Role: "alert", Name: "we could not sign you in with " + fields.Password, New: true,
+	})
+	return diff, nil
+}
+
 // eagerBrowser clicks before any page is open.
 type eagerBrowser struct{ *testkit.FakeBrowserWorker }
 
@@ -206,6 +222,12 @@ func TestTheBrowserCheckCatchesAWorkerThatBreaksOnePromise(t *testing.T) {
 	defer leaky.Close()
 	if err := testkit.CheckBrowserWorker(ctx, leaky); err == nil {
 		t.Error("the browser check passed a worker that hands the password back")
+	}
+
+	echoing := echoingBrowser{testkit.NewFakeBrowserWorker()}
+	defer echoing.Close()
+	if err := testkit.CheckBrowserWorker(ctx, echoing); err == nil {
+		t.Error("the browser check passed a worker that hands the password back in an element that appeared")
 	}
 
 	eager := eagerBrowser{testkit.NewFakeBrowserWorker()}

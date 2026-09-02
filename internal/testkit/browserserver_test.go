@@ -108,6 +108,36 @@ func TestTheBrowserProtocolServerReportsAnUnknownMethodAndABadLine(t *testing.T)
 	}
 }
 
+func TestAnActThatAbortsStillReturnsTheDiffsOfTheStepsThatRan(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	server := testkit.NewBrowserProtocolServer(t, worker)
+
+	callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
+	answer := callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":2,"method":"act","params":{"steps":[`+
+			`{"method":"press","key":"Enter","expectation":"the form is submitted"},`+
+			`{"method":"click","ref":"e999","expectation":"anything at all"}]}}`)
+
+	failure, isFailure := answer["error"].(map[string]any)
+	if !isFailure {
+		t.Fatalf("a batch that hit a reference nobody has came back with no error: %+v", answer)
+	}
+	if failure["code"] != float64(-32000) {
+		t.Errorf("the aborted batch came back with code %v, want -32000", failure["code"])
+	}
+
+	data, carried := failure["data"].(map[string]any)
+	if !carried {
+		t.Fatalf("the aborted batch carried no data, and PROTOCOL.md promises one diff per step that ran: %+v", failure)
+	}
+	diffs, listed := data["diffs"].([]any)
+	if !listed || len(diffs) != 1 {
+		t.Errorf("the aborted batch carried %v, want the one diff of the step that ran", data["diffs"])
+	}
+}
+
 func TestTheBrowserProtocolServerReportsAReferenceItCannotFind(t *testing.T) {
 	worker := testkit.NewFakeBrowserWorker()
 	defer worker.Close()

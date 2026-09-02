@@ -16,47 +16,47 @@ const LocalModelAlias = "local"
 // after asking which provider the user wants.
 type ModelAlias struct {
 	// Name is what the user and the record call it, such as "local".
-	Name string
+	Name string `toml:"name"`
 	// Provider is how the model is reached: one of the two wire protocols, or
 	// the vendor's own command-line program.
-	Provider ProviderKind
+	Provider ProviderKind `toml:"provider"`
 	// BaseAddress is the address of the server, for an OpenAI-compatible
 	// provider. It is empty for the Anthropic provider, which has one address,
 	// and for a command-line provider, which has none.
-	BaseAddress string
+	BaseAddress string `toml:"base_address"`
 	// Program is the command-line program to run, for a "cli" provider: either
 	// ClaudeProgram or CodexProgram. It is empty for the other two.
-	Program string
+	Program string `toml:"program"`
 	// ModelName is what the server or the program calls the model, such as
 	// "local-coder".
-	ModelName string
+	ModelName string `toml:"model_name"`
 	// ContextLength is how many tokens the model can hold, which is the one
 	// number the working-context rule is sized from.
-	ContextLength int
+	ContextLength int `toml:"context_length"`
 	// KeyReference is a "secret://name" reference to the API key, and is empty
 	// for a local server that needs none.
-	KeyReference string
+	KeyReference string `toml:"key_reference"`
 }
 
 // Caps are the limits from the design that keep the agent from running away.
 // Every one of them is a hard stop, not a target.
 type Caps struct {
 	// RoundsPerTask is the tool-round budget of a task. Default 100.
-	RoundsPerTask int
+	RoundsPerTask int `toml:"rounds_per_task"`
 	// TimePerTask is the wall-clock budget of a task. Default one hour.
-	TimePerTask time.Duration
+	TimePerTask time.Duration `toml:"time_per_task"`
 	// TimePerTool is how long one tool may run. Default seven minutes.
-	TimePerTool time.Duration
+	TimePerTool time.Duration `toml:"time_per_tool"`
 	// TimePerTurn is how long one turn may take. Default fifteen minutes.
-	TimePerTurn time.Duration
+	TimePerTurn time.Duration `toml:"time_per_turn"`
 	// QueuedMessages is how many messages may wait in the queue. Default 100.
-	QueuedMessages int
+	QueuedMessages int `toml:"queued_messages"`
 	// ToolOutputBytes is the cap on one tool result before the rest spills to a
 	// file the result names. Default 30000.
-	ToolOutputBytes int
+	ToolOutputBytes int `toml:"tool_output_bytes"`
 	// IdenticalCallWindow is how many recent tool calls the guard compares a new
 	// call against. Default 20.
-	IdenticalCallWindow int
+	IdenticalCallWindow int `toml:"identical_call_window"`
 }
 
 // MemoryCaps are the hard size limits on the two persona memory files, which is
@@ -64,45 +64,45 @@ type Caps struct {
 // crowds out the task.
 type MemoryCaps struct {
 	// WorldFactsBytes caps MEMORY.md. Default 8000.
-	WorldFactsBytes int
+	WorldFactsBytes int `toml:"world_facts_bytes"`
 	// UserFactsBytes caps USER.md. Default 4000.
-	UserFactsBytes int
+	UserFactsBytes int `toml:"user_facts_bytes"`
 }
 
 // Config is the whole of ~/.coeus/config.toml, read once at startup. Every field
 // says its default in its doc comment, and DefaultConfig fills them in.
 type Config struct {
 	// Models are the model aliases the user may name.
-	Models []ModelAlias
+	Models []ModelAlias `toml:"models"`
 	// DefaultModel is the alias used when nothing else says otherwise. Default
 	// "local".
-	DefaultModel string
+	DefaultModel string `toml:"default_model"`
 	// FallbackChain is the aliases to try, in order, when the default one fails.
 	// Default empty, because a fresh install has one model.
-	FallbackChain []string
+	FallbackChain []string `toml:"fallback_chain"`
 	// SignalAccount is the phone number the agent is linked to. Default empty,
 	// which means Signal is off until "coeus signal link" runs.
-	SignalAccount string
+	SignalAccount string `toml:"signal_account"`
 	// BrowserProfilePath is the Chrome profile the agent drives. Default is the
 	// "default" profile inside the home folder's browser folder.
-	BrowserProfilePath string
+	BrowserProfilePath string `toml:"browser_profile_path"`
 	// SandboxRoots are the folders a sandboxed command may reach. Default is the
 	// user's home directory, with the paths in ExcludedFromSandbox masked out.
-	SandboxRoots []string
+	SandboxRoots []string `toml:"sandbox_roots"`
 	// BackupPath is where the nightly encrypted archive is written. Default is
 	// the backups folder inside the home folder.
-	BackupPath string
+	BackupPath string `toml:"backup_path"`
 	// SearchServerAddress is the SearXNG instance the web tool searches through.
 	// Default empty, which makes the web tool read the DuckDuckGo results page
 	// instead, so that search works with no key and no server.
-	SearchServerAddress string
+	SearchServerAddress string `toml:"search_server_address"`
 	// HandoffTimeout is how long a browser or desktop handoff waits for the user
 	// before giving up. Default thirty minutes.
-	HandoffTimeout time.Duration
+	HandoffTimeout time.Duration `toml:"handoff_timeout"`
 	// Caps are the limits from the design.
-	Caps Caps
+	Caps Caps `toml:"caps"`
 	// MemoryCaps are the size limits on the two persona memory files.
-	MemoryCaps MemoryCaps
+	MemoryCaps MemoryCaps `toml:"memory_caps"`
 }
 
 // DefaultConfig returns the configuration a fresh install starts from, before

@@ -73,22 +73,32 @@ type Result struct {
 // is how many replies in a row have already failed to parse; the loop keeps that
 // count and this package only applies the rule that comes with it.
 func Find(reply contract.Reply, specs []contract.ToolSpec, failedParses int) Result {
-	if len(reply.ToolCalls) > 0 {
-		return finish(fromProvider(reply.ToolCalls), strings.TrimSpace(reply.Text), specs, reply, failedParses)
-	}
 	searched, tail := splitAtCap(reply.Text)
-	found := scan(searched)
-	leftover := joinSegments(textOutside(searched, found), tail)
-	return finish(found, leftover, specs, reply, failedParses)
+	visible, thinkingRunsOn := withoutThinking(searched)
+	if thinkingRunsOn {
+		// The thinking never ended inside the text that was searched, so the
+		// rest of the reply is thinking too and none of it is the answer.
+		tail = ""
+	}
+	answer := joinSegments([]string{visible}, tail)
+
+	if len(reply.ToolCalls) > 0 {
+		return finish(fromProvider(reply.ToolCalls), answer, answer, specs, failedParses)
+	}
+	found := scan(visible)
+	leftover := joinSegments(textOutside(visible, found), tail)
+	return finish(found, leftover, answer, specs, failedParses)
 }
 
 // finish turns the candidates into the result, and applies the rule that after
-// two failed parses in a row the text is the answer.
-func finish(found []candidate, leftover string, specs []contract.ToolSpec, reply contract.Reply, failedParses int) Result {
+// two failed parses in a row the text is the answer. The answer is the whole
+// reply with the thinking taken out, which is what comes back when this package
+// gives up on the parse.
+func finish(found []candidate, leftover string, answer string, specs []contract.ToolSpec, failedParses int) Result {
 	built := build(found, specs)
 	if built.Problem != "" {
 		if failedParses >= MaxFailedParses {
-			return Result{Text: strings.TrimSpace(reply.Text)}
+			return Result{Text: answer}
 		}
 		return Result{Text: leftover, Problem: built.Problem}
 	}

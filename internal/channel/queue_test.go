@@ -199,9 +199,9 @@ func TestAFullQueueRefusesWithALineTheChannelCanSendBack(t *testing.T) {
 		t.Errorf("the refusal reads %q, and it is sent to the user, so it has to say what to do", err)
 	}
 
-	waiting, err := queue.Waiting(ctx)
+	waiting, err := queue.Held(ctx)
 	if err != nil {
-		t.Fatalf("counting what is waiting failed: %v", err)
+		t.Fatalf("counting what the queue holds failed: %v", err)
 	}
 	if waiting != 2 {
 		t.Errorf("the queue holds %d messages, want 2", waiting)
@@ -318,7 +318,7 @@ func TestEveryCallOnAClosedQueueSaysItIsClosed(t *testing.T) {
 	if err := queue.Done(ctx, 1); err == nil {
 		t.Error("a closed queue finished a message")
 	}
-	if _, err := queue.Waiting(ctx); err == nil {
+	if _, err := queue.Held(ctx); err == nil {
 		t.Error("a closed queue counted what it holds")
 	}
 }

@@ -458,6 +458,8 @@ internal/vault/vault.go
 internal/vault/vault_test.go
 scripts/coverage.sh
 scripts/fuzz.sh
+scripts/gate/coverage_test.go
+scripts/gate/fixture_test.go
 scripts/repomap/doc.go
 scripts/repomap/drift_test.go
 scripts/repomap/generate.go

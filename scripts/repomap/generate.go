@@ -90,8 +90,16 @@ func listedFiles(root string) ([]string, error) {
 
 // trackedFiles asks git which files it is tracking, and fails when the folder is
 // not a git work tree.
+//
+// The child runs with every GIT_ variable taken out of its environment. Git
+// exports GIT_DIR, GIT_INDEX_FILE, and GIT_WORK_TREE to the programs it runs,
+// and GIT_DIR outranks the -C flag, so a generator that inherited them would
+// list some other repository's files and say nothing about it. HomeRecon wrote
+// the same warning at the top of
+// ~/Code/homerecon/scripts/repo-map/repo-map.test.cjs.
 func trackedFiles(root string) ([]string, error) {
 	command := exec.Command("git", "-C", root, "ls-files", "-z")
+	command.Env = environmentWithoutGitVariables()
 	command.Stderr = nil
 	listing, err := command.Output()
 	if err != nil {
@@ -104,6 +112,20 @@ func trackedFiles(root string) ([]string, error) {
 		}
 	}
 	return paths, nil
+}
+
+// environmentWithoutGitVariables is this program's environment with every GIT_
+// setting removed, so that a git child obeys the folder it was given and nothing
+// else.
+func environmentWithoutGitVariables() []string {
+	kept := []string{}
+	for _, setting := range os.Environ() {
+		if strings.HasPrefix(setting, "GIT_") {
+			continue
+		}
+		kept = append(kept, setting)
+	}
+	return kept
 }
 
 // walkedFiles lists every file under the root, for a tree that is not a git work

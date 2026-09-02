@@ -41,31 +41,6 @@ func waitForSleeper(t *testing.T, clock *waitingClock, count int) {
 	t.Fatalf("no call is waiting on the clock after five seconds, and %d were expected", count)
 }
 
-// pushClock moves the clock forward in the background until the call under test
-// finishes, so that a test never has to guess how many waits there will be. It
-// returns a function the test calls to stop pushing.
-func pushClock(clock *waitingClock, step time.Duration) func() {
-	done := make(chan struct{})
-	stopped := make(chan struct{})
-	go func() {
-		defer close(stopped)
-		for {
-			select {
-			case <-done:
-				return
-			case <-time.After(time.Millisecond):
-				if clock.Sleepers() > 0 {
-					clock.Advance(step)
-				}
-			}
-		}
-	}()
-	return func() {
-		close(done)
-		<-stopped
-	}
-}
-
 // noteRecorder keeps the lines a provider logged. It holds a lock because a
 // retry is logged from the goroutine the call is running in.
 type noteRecorder struct {

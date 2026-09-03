@@ -125,7 +125,7 @@ func attributeOf(page string, at int, wanted string) string {
 		return ""
 	}
 	inside := page[at+1 : at+end]
-	found := strings.Index(strings.ToLower(inside), wanted+"=")
+	found := strings.Index(asciiLower(inside), wanted+"=")
 	if found < 0 {
 		return ""
 	}
@@ -142,6 +142,22 @@ func attributeOf(page string, at int, wanted string) string {
 	}
 	value, _, _ := strings.Cut(rest, " ")
 	return value
+}
+
+// asciiLower turns the letters A to Z into their small forms and leaves every
+// other byte exactly as it was, so that the copy is the same length as the
+// original and a position found in one is a position in the other. Lowercasing
+// the whole alphabet does not keep that promise, because a few letters take
+// fewer bytes small than they do capital, and the name of a tag or an attribute
+// is written in these twenty-six letters anyway.
+func asciiLower(text string) string {
+	written := []byte(text)
+	for at := range written {
+		if written[at] >= 'A' && written[at] <= 'Z' {
+			written[at] += 'a' - 'A'
+		}
+	}
+	return string(written)
 }
 
 // headingLevel is the depth of a heading tag, and zero for a tag that is not

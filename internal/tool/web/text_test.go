@@ -47,3 +47,23 @@ func TestTheTextOfAPageIsBounded(t *testing.T) {
 		t.Errorf("the text of a very long page is %d bytes, and the cap is %d", length, web.MaxPageBytes)
 	}
 }
+
+func TestATagWhoseNameOrAttributesAreWrittenInCapitalsStillReads(t *testing.T) {
+	text := web.HTMLToText(`<A HREF="https://example.com/x">a link</A>`)
+
+	if !strings.Contains(text, "https://example.com/x") {
+		t.Errorf("a tag written in capitals came back as %q", text)
+	}
+}
+
+func TestALetterThatChangesLengthWhenItIsMadeSmallDoesNotUpsetTheAttributeReader(t *testing.T) {
+	// The Kelvin sign takes three bytes as it is written and one when it is made
+	// small, so a reader that looks for an attribute in a lowercased copy and
+	// then cuts the original at what it found would cut in the wrong place. The
+	// fuzzer found this, and the input it found it with is in testdata.
+	for _, page := range []string{"<A \u212ahref=>", "<a \u212ahref=\"https://example.com\">x</a>", "<A \xc4href=>"} {
+		if text := web.HTMLToText(page); strings.Contains(text, "<") {
+			t.Errorf("the page %q came back with a tag still in it: %q", page, text)
+		}
+	}
+}

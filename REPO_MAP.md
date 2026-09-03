@@ -674,6 +674,7 @@ internal/tool/web/testdata/a_fetched_page.txt
 internal/tool/web/testdata/a_page_as_text.txt
 internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
+internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/ec7528631b9ef93e
 internal/tool/web/text.go
 internal/tool/web/text_test.go
 internal/tool/web/web.go

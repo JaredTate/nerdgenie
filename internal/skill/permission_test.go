@@ -18,27 +18,51 @@ func browsingSkill() map[string][]byte {
 	return map[string][]byte{
 		skill.DescriptionFile: []byte("# read-the-news\n\nReads the news site and then somewhere else.\n\n" +
 			"## Permissions\n\n- site: news.example.com\n- daily limit: 7\n"),
-		skill.StepsFile: []byte(buyingStep +
+		skill.StepsFile: []byte(readingStep +
 			"2. Look at another site the block does not name.\n" +
 			"   tool: browser_open\n" +
 			"   input: {\"url\": \"https://other.example.com/\", \"intent\": \"look somewhere else\"}\n"),
 	}
 }
 
-// buyingStep goes to the checkout page of the site the block names. Buying is
-// on the ask-me-first list the harness ships, so this step would put itself to
-// the user were the skill's standing approval not covering the site.
-const buyingStep = "1. Buy the paper from the news site, which spends money.\n" +
+// readingStep reads one story off the site the block names. Reading a page is
+// on none of the shipped ask-me-first entries, and the rule the user wrote in
+// the harness puts every page fetch to the user, so this step runs without a
+// preview only while the skill's standing approval covers its website.
+const readingStep = "1. Read today's story from the news site.\n" +
 	"   tool: web\n" +
-	"   input: {\"url\": \"https://news.example.com/checkout\"}\n\n"
+	"   input: {\"url\": \"https://news.example.com/story\"}\n\n"
+
+// configurationWithTheUsersOwnRule is the shipped ask-me-first list plus one
+// rule the user wrote for themselves: show me the story pages this agent
+// fetches. It has to be the user's own rule rather than one of the shipped
+// entries, because nothing a skill holds may carry a call past the ask-me-first
+// list, so an entry from that list could never show a standing approval doing
+// anything. And it has to be narrower than the website, so that the checkout
+// page of the same website is caught by the shipped spending entry and by
+// nothing else.
+func configurationWithTheUsersOwnRule() contract.Config {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWeb, Pattern: "*/story*", Action: contract.RulingAsk},
+	}
+	return configuration
+}
 
 // realPermissionHarness builds a skill store over a real permission function,
 // so that a test can prove the standing approvals really landed in it.
 func realPermissionHarness(t *testing.T, tools ...contract.Tool) (*skill.Store, *testkit.FakeChannel, *permission.Decider) {
 	t.Helper()
+	return realPermissionHarnessWith(t, configurationWithTheUsersOwnRule(), tools...)
+}
+
+// realPermissionHarnessWith is the same harness over a configuration the test
+// chose, so that a test can say what the user's own rules are.
+func realPermissionHarnessWith(t *testing.T, configuration contract.Config, tools ...contract.Tool) (*skill.Store, *testkit.FakeChannel, *permission.Decider) {
+	t.Helper()
 	home := testkit.NewTempHome(t)
 	clock := testkit.NewFakeClock(startOfTheTests)
-	decider, err := permission.New(contract.DefaultConfig(), clock)
+	decider, err := permission.New(configuration, clock)
 	if err != nil {
 		t.Fatalf("cannot build the permission function: %v", err)
 	}
@@ -58,7 +82,7 @@ func realPermissionHarness(t *testing.T, tools ...contract.Tool) (*skill.Store, 
 }
 
 func TestThePermissionsBlockBecomesStandingApprovals(t *testing.T) {
-	fetched := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "the paper is bought")
+	fetched := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "today's story")
 	opened := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolBrowserOpen}, "the other site")
 	store, channel, decider := realPermissionHarness(t, fetched, opened)
 	ctx := context.Background()
@@ -67,14 +91,14 @@ func TestThePermissionsBlockBecomesStandingApprovals(t *testing.T) {
 	}
 
 	// The second step goes to a site the block does not name, so the run stops
-	// there. The first step spends money, which the shipped rules put to the
-	// user, and it runs anyway because the block covers its website.
+	// there. The first step is a page fetch, which the rule the user wrote puts
+	// to the user, and it runs anyway because the block covers its website.
 	channel.AnswerPreviewsWith(contract.AnswerReject)
 	report, err := store.Run(ctx, "read-the-news", "")
 	if err == nil {
 		t.Fatalf("the whole skill ran, and its second step is outside the block:\n%s", report)
 	}
-	if !strings.Contains(report, "the paper is bought") {
+	if !strings.Contains(report, "today's story") {
 		t.Errorf("the report is %q, want the first step to have run under the standing approval", report)
 	}
 
@@ -86,13 +110,27 @@ func TestThePermissionsBlockBecomesStandingApprovals(t *testing.T) {
 	// The approval is really in the permission function, and it says so by name.
 	decision, err := decider.Decide(ctx, contract.PermissionRequest{
 		ToolName: contract.ToolWeb,
-		Input:    []byte(`{"url": "https://news.example.com/checkout"}`),
+		Input:    []byte(`{"url": "https://news.example.com/story"}`),
 	})
 	if err != nil {
 		t.Fatalf("ruling on a call the approval covers failed: %v", err)
 	}
 	if decision.Ruling != contract.RulingAllow || !strings.Contains(decision.Reason, "read-the-news") {
 		t.Errorf("the ruling is %+v, want it allowed because the skill holds a standing approval", decision)
+	}
+
+	// The checkout page of the very same website is on the user's ask-me-first
+	// list, and nothing a skill holds may carry a call past that list.
+	spending, err := decider.Decide(ctx, contract.PermissionRequest{
+		ToolName: contract.ToolWeb,
+		Input:    []byte(`{"url": "https://news.example.com/checkout"}`),
+	})
+	if err != nil {
+		t.Fatalf("ruling on the checkout page failed: %v", err)
+	}
+	if spending.Ruling != contract.RulingAsk {
+		t.Errorf("the ruling on the checkout page of the site the block names is %+v, want it put to the user,"+
+			" because spending money is on the ask-me-first list and a skill's approval is not the user's word", spending)
 	}
 }
 
@@ -121,7 +159,7 @@ func TestTheDailyLimitIsHandedOutOnceADay(t *testing.T) {
 	store, channel, _ := realPermissionHarness(t, fetched)
 	ctx := context.Background()
 	files := browsingSkill()
-	files[skill.StepsFile] = []byte(buyingStep)
+	files[skill.StepsFile] = []byte(readingStep)
 	if err := store.Save(ctx, "read-the-news", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
@@ -142,7 +180,7 @@ func TestAStoreWithNoPlaceToRegisterApprovalsStillRuns(t *testing.T) {
 	built := newHarness(t, testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "the paper is bought"))
 	ctx := context.Background()
 	files := browsingSkill()
-	files[skill.StepsFile] = []byte(buyingStep)
+	files[skill.StepsFile] = []byte(readingStep)
 	if err := built.store.Save(ctx, "read-the-news", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}

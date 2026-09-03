@@ -35,15 +35,10 @@ const (
 	MaxRowRunes = 300
 )
 
-// PathCheck says whether the tool may search a path and returns it with its
-// links followed. The registry hands one in, so that the rule about where the
-// agent may read lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Settings is what the search tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be searched.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Ripgrep is the path of the ripgrep program. Empty means look for it on the
 	// PATH. When it is not on the machine, the tool searches on its own, more
 	// slowly and with the same answers.

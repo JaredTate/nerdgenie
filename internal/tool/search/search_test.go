@@ -11,6 +11,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/tool/search"
 )
 
@@ -27,7 +28,10 @@ var theTree = map[string]string{
 // and a path that is not there makes the tool use its own slow search.
 func newTool(t *testing.T, ripgrep string) (*search.Tool, string) {
 	t.Helper()
-	root := t.TempDir()
+	root := filepath.Join(t.TempDir(), "work")
+	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder the agent may work in: %v", err)
+	}
 	for name, held := range theTree {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), contract.HomeFolderMode); err != nil {
@@ -37,12 +41,7 @@ func newTool(t *testing.T, ripgrep string) (*search.Tool, string) {
 			t.Fatalf("cannot write %s: %v", name, err)
 		}
 	}
-	allowed := func(path string) (string, error) {
-		if !strings.HasPrefix(filepath.Clean(path), root) {
-			return "", fmt.Errorf("the path %s is outside the folder the agent may work in, which is %s", path, root)
-		}
-		return filepath.Clean(path), nil
-	}
+	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
 	return search.New(search.Settings{Allowed: allowed, Ripgrep: ripgrep}), root
 }
 

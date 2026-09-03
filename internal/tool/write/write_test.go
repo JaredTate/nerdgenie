@@ -12,6 +12,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/tool/write"
 )
 
@@ -19,14 +20,12 @@ import (
 // tool, the folder, and the log behind it.
 func newTool(t *testing.T) (*write.Tool, string, *testkit.FakeStore) {
 	t.Helper()
-	root := t.TempDir()
-	store := testkit.NewFakeStore()
-	allowed := func(path string) (string, error) {
-		if !strings.HasPrefix(filepath.Clean(path), root) {
-			return "", fmt.Errorf("the path %s is outside the folder the agent may work in, which is %s", path, root)
-		}
-		return filepath.Clean(path), nil
+	root := filepath.Join(t.TempDir(), "work")
+	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder the agent may work in: %v", err)
 	}
+	store := testkit.NewFakeStore()
+	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
 	tool := write.New(write.Settings{
 		Allowed: allowed,
 		Log:     store,

@@ -18,15 +18,10 @@ import (
 // explain than a full disk.
 const MaxContentBytes = 4 << 20
 
-// PathCheck says whether the tool may write a path and returns it with its links
-// followed. The registry hands one in, so that the rule about where the agent
-// may write lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Settings is what the write tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be written.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Log is the event log the prior contents are recorded in.
 	Log contract.Store
 	// TaskID is the task or job the change belongs to.

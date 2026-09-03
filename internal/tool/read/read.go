@@ -34,11 +34,6 @@ const (
 	binarySampleBytes = 8000
 )
 
-// PathCheck says whether the tool may read a path and returns it with its links
-// followed. The registry hands one in, so that the rule about where the agent
-// may read lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Stored is where the whole text of a past result or a finished task's report is
 // kept, which is what the record keeper does through the event log.
 type Stored interface {
@@ -49,7 +44,7 @@ type Stored interface {
 // Settings is what the read tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be read.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Results is the record of the task running now, which is where a label such
 	// as r7 is read from.
 	Results Stored

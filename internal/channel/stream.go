@@ -68,6 +68,9 @@ func (stream *Stream) Publish(envelope contract.SocketEnvelope) error {
 	if !envelope.Type.FromProgram() {
 		return fmt.Errorf("the event stream carries only what the program sends, and %q is not one of those, so publish a delta, a reply, a preview, a question, a handoff, a status, or an error", envelope.Type)
 	}
+	if err := checkStatusWords(envelope); err != nil {
+		return err
+	}
 
 	stream.guard.Lock()
 	defer stream.guard.Unlock()
@@ -83,6 +86,24 @@ func (stream *Stream) Publish(envelope contract.SocketEnvelope) error {
 		}
 	}
 	return nil
+}
+
+// checkStatusWords holds the one thing the stream knows about what a status
+// says: its state field carries one of the five words contract.State names, so
+// that the program and every screen read the same spelling. The fields
+// themselves are the contract.StatusField names, and a field a screen does not
+// know is a field it ignores, so a status may carry as many as the program has.
+func checkStatusWords(envelope contract.SocketEnvelope) error {
+	if envelope.Type != contract.SocketStatus {
+		return nil
+	}
+	state, given := envelope.Fields[contract.StatusFieldState]
+	if !given || contract.KnownScreenState(state) {
+		return nil
+	}
+	return fmt.Errorf("a status says the agent is %q, which is not one of the words a screen knows, so use one of %s, %s, %s, %s, or %s",
+		state, contract.StateIdle, contract.StateThinking, contract.StateUsingTool,
+		contract.StateWaitingForYou, contract.StatePaused)
 }
 
 // Subscribers is how many readers the stream carries, which is what the socket

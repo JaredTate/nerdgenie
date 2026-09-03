@@ -1,6 +1,7 @@
 package shell_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -178,6 +179,36 @@ func TestAnUnattendedEscalationStopsRatherThanWaiting(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "nobody") {
 		t.Errorf("the refusal reads %q and does not say why nothing happened", err)
+	}
+}
+
+// TestOnlyAnExplicitAllowRunsACommandWithAdministratorPowers is finding 37 of
+// the wave 6 gate review. The tool refused a ruling of deny and previewed a
+// ruling of ask, and ran the command for anything else, so the empty string a
+// permission function returns when it has no answer, and any word a later
+// rulebook might add, both ran sudo. Only the word allow may run a command
+// outside the fence.
+func TestOnlyAnExplicitAllowRunsACommandWithAdministratorPowers(t *testing.T) {
+	for _, ruling := range []contract.PermissionRuling{"", "allow-once", "unknown"} {
+		t.Run("the ruling "+string(ruling), func(t *testing.T) {
+			written := fakeSudo(t)
+			permission := testkit.NewFakePermission(contract.RulingAllow)
+			permission.Rule(contract.ToolShell, contract.PermissionDecision{Ruling: ruling})
+			tool := escalatingTool(t, permission)
+
+			_, err := run(t, tool, map[string]any{
+				"command": "apt install nginx", "escalate": true, "reason": "the web server package is missing",
+			})
+			if err == nil {
+				t.Fatalf("a command ran with administrator powers on the ruling %q", ruling)
+			}
+			if !strings.Contains(err.Error(), fmt.Sprintf("%q", ruling)) {
+				t.Errorf("the refusal reads %q and does not say which ruling came back", err)
+			}
+			if _, err := os.Stat(written); !os.IsNotExist(err) {
+				t.Errorf("sudo was run on the ruling %q, which is not the word allow", ruling)
+			}
+		})
 	}
 }
 

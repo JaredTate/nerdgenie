@@ -21,12 +21,12 @@ type aPagedLog struct {
 	// perRead is how many events one list read hands back before it is cut
 	// short, which is what internal/log calls its cap.
 	perRead int
-	// listFailure, when it is set, is the error every list read fails with, so
+	// listFailure is the error every list read fails with when it is set, so
 	// that a read that really went wrong can be told apart from one that was cut
 	// short.
 	listFailure error
-	// rangeFailure, when it is set, is the error every read of a span fails
-	// with, which is what a log that breaks part way through a task looks like.
+	// rangeFailure is the error every read of a span fails with when it is set,
+	// which is what a log that breaks part way through a task looks like.
 	rangeFailure error
 }
 

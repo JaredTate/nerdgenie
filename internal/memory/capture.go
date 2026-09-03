@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,6 +27,12 @@ import (
 // that a task with a thousand tool calls cannot fill the memory files on its
 // own.
 const MaxCapturedFacts = 200
+
+// maxCapturePages is how many reads of the event log one capture may make. A
+// list read of the log returns at most log.MaxEventsPerRead events, so this is
+// far more of a task than any task ever writes, and it is here so that a log
+// that keeps saying there is more can never hold a capture open for ever.
+const maxCapturePages = 100
 
 // correctionWords are the words that turn a message from the user into a
 // correction, which is kept word for word. They are the five from design
@@ -82,11 +89,11 @@ func (memory *Memory) Capture(ctx context.Context, taskID string) error {
 	if taskID == "" {
 		return errors.New("cannot capture a task with no id, so pass the id of the task that finished")
 	}
-	events, err := memory.eventLog.ByTask(ctx, taskID)
-	if err != nil && len(events) == 0 {
-		return fmt.Errorf("cannot read the events of task %q to capture what it did: %w", taskID, err)
+	captured, err := memory.capturedFactsOfTask(ctx, taskID)
+	if err != nil {
+		return err
 	}
-	fresh, err := memory.factsNotSavedYet(ctx, capturedFacts(taskID, events))
+	fresh, err := memory.factsNotSavedYet(ctx, captured)
 	if err != nil {
 		return err
 	}
@@ -96,14 +103,49 @@ func (memory *Memory) Capture(ctx context.Context, taskID string) error {
 	return memory.Save(ctx, fresh)
 }
 
-// capturedFacts turns the events of one finished task into the facts worth
-// keeping, in the order they happened.
-func capturedFacts(taskID string, events []contract.Event) []contract.Fact {
-	source := "task " + taskID
+// capturedFactsOfTask reads the whole of a finished task out of the event log
+// and turns it into the facts worth keeping. A task with more events than one
+// read of the log returns comes back cut short, and the rest of it is read in
+// pages with ByRange, because a capture that took the first page for the whole
+// task would quietly forget everything a long task did after it. It stops at the
+// end of the log, at the cap on captured facts, or at the cap on pages.
+func (memory *Memory) capturedFactsOfTask(ctx context.Context, taskID string) ([]contract.Fact, error) {
 	facts := []contract.Fact{}
+	events, err := memory.eventLog.ByTask(ctx, taskID)
+	for page := 1; ; page++ {
+		if err != nil && !readWasCutShort(events, err) {
+			return nil, fmt.Errorf("cannot read the events of task %q to capture what it did: %w", taskID, err)
+		}
+		facts = appendCapturedFacts(facts, taskID, events)
+		if err == nil || len(facts) >= MaxCapturedFacts || page >= maxCapturePages {
+			return facts, nil
+		}
+		after := events[len(events)-1].Sequence
+		events, err = memory.eventLog.ByRange(ctx, contract.EventRange{From: after + 1, To: math.MaxInt64})
+	}
+}
+
+// readWasCutShort says whether a read of the event log stopped at the log's own
+// cap rather than failing. internal/log hands back the events it read together
+// with an error telling the caller to read the rest in pages with ByRange, and
+// the name in that message is what tells the two apart, because contract.Store
+// has no other way of saying it. A read that really failed hands back nothing.
+func readWasCutShort(events []contract.Event, err error) bool {
+	return err != nil && len(events) > 0 && strings.Contains(err.Error(), "ByRange")
+}
+
+// appendCapturedFacts adds the facts worth keeping from one page of the event
+// log, in the order they happened, and stops at the cap on captured facts. A
+// page read by ByRange holds every task's events, so the ones belonging to some
+// other task are passed over here.
+func appendCapturedFacts(facts []contract.Fact, taskID string, events []contract.Event) []contract.Fact {
+	source := "task " + taskID
 	for _, event := range events {
 		if len(facts) >= MaxCapturedFacts {
-			break
+			return facts
+		}
+		if event.TaskID != taskID {
+			continue
 		}
 		text, aboutTheUser, worthKeeping := capturedFrom(event)
 		if !worthKeeping {

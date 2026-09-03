@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
 	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
@@ -77,10 +78,10 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolRead,
-		Description: "Reads a file with line numbers, a folder listing, or a past result by its label such as r7 or j4.2. " +
+		Description: "Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. " +
 			"Give a whole path. Use search when you do not know which file to open.",
 		Fields: []contract.ToolField{
-			{Name: "path", Type: "string", Description: "The whole path of a file or folder, or a result label such as r7.", Required: true},
+			{Name: "path", Type: "string", Description: "A file, a folder, a past result by its id such as r7, or ask for the whole of the user's original ask.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
 		},
@@ -140,7 +141,7 @@ func readInput(written json.RawMessage) (input, error) {
 		return input{}, err
 	}
 	if !wrotePath {
-		return input{}, fields.Missing("path", "the whole path of a file or folder, or a result label such as r7,")
+		return input{}, fields.Missing("path", "the whole path of a file or folder, a result label such as r7, or ask for the whole of the ask,")
 	}
 	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names nothing to read, so give a path or a result label such as r7")
@@ -152,8 +153,13 @@ func readInput(written json.RawMessage) (input, error) {
 }
 
 // resultLabel says whether what the model wrote is the label of a past result
-// rather than a path, and which record it belongs to.
+// rather than a path, and which record it belongs to. The label "ask" is one of
+// them: the record shows the model the start of a very long ask and a line
+// saying to read this label for the whole of it, and the record answers it.
 func resultLabel(path string) (string, contract.RecordKind, bool) {
+	if path == record.AskLabel {
+		return path, contract.RecordTask, true
+	}
 	if _, isResult := contract.ParseResultID(path); isResult {
 		return path, contract.RecordTask, true
 	}

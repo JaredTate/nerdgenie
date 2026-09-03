@@ -1,4 +1,4 @@
-read               36 words  Reads a file with line numbers, a folder listing, or a past result by its label such as r7 or j4.2. Give a whole path. Use search when you do not know which file to open.
+read               36 words  Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. Give a whole path. Use search when you do not know which file to open.
 write              28 words  Creates a file or replaces everything in one, inside the folders the agent may work in. Use edit instead to change part of a file that already exists.
 edit               32 words  Replaces one span of text in a file with another, inside the folders the agent may work in. Quote enough lines to name one place. Use write to replace a whole file.
 search             37 words  Finds the files whose names match a pattern and the lines that match it, under a folder. Give a regular expression, or a name pattern such as *.md. Use read for a file you can already name.

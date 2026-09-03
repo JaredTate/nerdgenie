@@ -60,3 +60,35 @@ func TestTheShippedConfigurationSaysTheSandboxIsOffAndWhatTheFenceWouldDo(t *tes
 		}
 	}
 }
+
+// TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt pins the
+// think setting in the file "coeus init" writes: every model block carries it,
+// empty, with a comment above it naming the levels, so that a person can turn
+// one model up and another down in one edit.
+func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing.T) {
+	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+
+	lines := strings.Split(written, "\n")
+	at := -1
+	for offset, line := range lines {
+		if strings.HasPrefix(line, "think = ") {
+			at = offset
+		}
+	}
+	if at < 0 {
+		t.Fatalf("the shipped configuration has no think line at all:\n%s", written)
+	}
+	if lines[at] != `think = ""` {
+		t.Errorf("the shipped configuration writes %q, want the empty level %q, which leaves the provider's own default alone", lines[at], `think = ""`)
+	}
+	if at < 1 || !strings.HasPrefix(lines[at-1], "#") {
+		t.Fatalf("the think line has no comment above it:\n%s", strings.Join(lines[max(at-2, 0):at+1], "\n"))
+	}
+	comment := lines[max(at-3, 0)] + " " + lines[max(at-2, 0)] + " " + lines[at-1]
+	for _, level := range contract.ThinkLevels() {
+		if !strings.Contains(comment, string(level)) {
+			t.Errorf("the comment above the think line is %q and does not name the level %q", comment, level)
+		}
+	}
+}

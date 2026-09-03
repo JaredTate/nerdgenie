@@ -185,3 +185,34 @@ func TestModelSaysWhenNothingCanSetIt(t *testing.T) {
 		t.Fatalf("the model command claimed to set the model with nothing wired up to set it")
 	}
 }
+
+// TestStatusSaysHowHardTheModelInUseThinks holds the half of the think setting
+// a person sees without asking for it: the status line names the model and,
+// when a level has been set for it, how hard it is thinking. A model left at
+// the provider's own default says nothing extra, which is what the golden
+// files above hold.
+func TestStatusSaysHowHardTheModelInUseThinks(t *testing.T) {
+	settings := threeAliases()
+	for at := range settings.Models {
+		if settings.Models[at].Name == "claude" {
+			settings.Models[at].Think = contract.ThinkHigh
+		}
+	}
+
+	answer := runOne(t, command.Deps{
+		Settings:     settings,
+		CurrentModel: func() string { return "claude" },
+	}, "/status")
+
+	if !strings.Contains(answer, "model: claude, thinking at high") {
+		t.Errorf("the status report does not say how hard the model is thinking:\n%s", answer)
+	}
+
+	plain := runOne(t, command.Deps{
+		Settings:     settings,
+		CurrentModel: func() string { return "codex" },
+	}, "/status")
+	if !strings.Contains(plain, "model: codex\n") {
+		t.Errorf("the status report says something about thinking for a model left at its provider's own default:\n%s", plain)
+	}
+}

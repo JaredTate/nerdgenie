@@ -25,6 +25,10 @@ type RestoreSettings struct {
 	KeyFile string
 	// Force writes over a home that is not empty, which is what --force means.
 	Force bool
+	// OnlyTheDatabase puts back the database and nothing else, which is what a
+	// recovery from a damaged database wants: the vault and the browser profile
+	// in the home are newer than the ones in the archive.
+	OnlyTheDatabase bool
 }
 
 // Restore puts the database, the vault, and the browser profile back from an
@@ -47,7 +51,7 @@ func Restore(ctx context.Context, settings RestoreSettings) error {
 		return err
 	}
 	if !settings.Force {
-		if err := refuseAHomeThatIsNotEmpty(settings.Home); err != nil {
+		if err := refuseAHomeThatIsNotEmpty(settings.Home, settings.OnlyTheDatabase); err != nil {
 			return err
 		}
 	}
@@ -57,13 +61,14 @@ func Restore(ctx context.Context, settings RestoreSettings) error {
 		return fmt.Errorf("the archive %s could not be opened with the key %s, so check that it is the key of the home the backup came from: %w",
 			settings.Archive, keyFile, err)
 	}
-	return unpack(ctx, tar.NewReader(opened), settings.Home, settings.Archive)
+	return unpack(ctx, tar.NewReader(opened), settings)
 }
 
 // unpack writes every entry of the archive into the home folder, under a cap on
 // how many entries and how many bytes it will write, and refuses any name that
 // is not one of the three things a backup holds.
-func unpack(ctx context.Context, archive *tar.Reader, home contract.Home, name string) error {
+func unpack(ctx context.Context, archive *tar.Reader, settings RestoreSettings) error {
+	name := settings.Archive
 	written := int64(0)
 	for entries := 0; entries < MaxArchiveEntries; entries++ {
 		if err := ctx.Err(); err != nil {
@@ -76,9 +81,12 @@ func unpack(ctx context.Context, archive *tar.Reader, home contract.Home, name s
 		if err != nil {
 			return fmt.Errorf("the archive %s could not be read to the end, so it is damaged: %w", name, err)
 		}
-		path, wanted := pathInHome(home, header.Name)
+		path, wanted := pathInHome(settings.Home, header.Name)
 		if !wanted {
 			return fmt.Errorf("the archive %s holds %q, which is not part of a Coeus backup, so nothing more was put back", name, header.Name)
+		}
+		if settings.OnlyTheDatabase && path != settings.Home.DatabaseFile() {
+			continue
 		}
 		if written, err = writeEntry(archive, header, path, written); err != nil {
 			return fmt.Errorf("the archive %s could not be put back: %w", name, err)
@@ -134,12 +142,20 @@ func writeRestoredFile(archive *tar.Reader, path string, size int64) error {
 }
 
 // refuseAHomeThatIsNotEmpty stops a restore that would write over a database, a
-// vault, or a browser profile that is already there.
-func refuseAHomeThatIsNotEmpty(home contract.Home) error {
-	for _, path := range []string{home.DatabaseFile(), home.VaultFile()} {
+// vault, or a browser profile that is already there. A restore of the database
+// alone only looks at the database, because it is the only thing it writes.
+func refuseAHomeThatIsNotEmpty(home contract.Home, onlyTheDatabase bool) error {
+	wanted := []string{home.DatabaseFile(), home.VaultFile()}
+	if onlyTheDatabase {
+		wanted = wanted[:1]
+	}
+	for _, path := range wanted {
 		if _, err := os.Stat(path); err == nil {
 			return fmt.Errorf("%s is already there, and a restore writes over it, so move the home folder aside first or run the restore again with --force", path)
 		}
+	}
+	if onlyTheDatabase {
+		return nil
 	}
 	entries, err := os.ReadDir(home.BrowserFolder())
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {

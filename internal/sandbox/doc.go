@@ -3,8 +3,13 @@
 //
 // The fence has two halves. Outside, this package builds a bwrap command line
 // that gives the command a new user, process, message-queue, and hostname
-// namespace, a fresh /proc, /dev, and /tmp, the system folders bound read-only,
-// and the configured sandbox roots bound read-write at their own paths. The
+// namespace, a fresh /proc, /dev, and a /tmp of a fixed size, the system folders
+// bound read-only, the file the machine's resolver settings really live in bound
+// read-only when /etc/resolv.conf is a link out of /etc, as it is on a machine
+// running systemd-resolved, and the configured sandbox roots bound read-write at
+// their own paths. The command itself runs under a bound on how many processes
+// it may start and how much address space it may map, so that one line of shell
+// cannot take the machine down. The
 // network is left alone, because the agent's tools need it. Nothing else is
 // bound, so the agent's own home folder, the vault, the browser profile, and the
 // user's SSH keys are not there to be read.

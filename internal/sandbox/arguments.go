@@ -55,6 +55,7 @@ var freshFolders = []string{"/tmp", "/dev"}
 // that the command line and the helper's options cannot disagree.
 type fencePlan struct {
 	systemFolders    []string
+	resolverFile     string
 	roots            []string
 	helperProgram    string
 	workingDirectory string
@@ -79,6 +80,7 @@ func (fence *Fence) planFor(command contract.SandboxCommand) (fencePlan, error) 
 	scratchHome := filepath.Join(fence.roots[0], scratchHomeName)
 	return fencePlan{
 		systemFolders:    fence.systemFolders,
+		resolverFile:     fence.resolverFile,
 		roots:            fence.roots,
 		helperProgram:    fence.helperProgram,
 		workingDirectory: workingDirectory,
@@ -100,6 +102,9 @@ func buildArguments(plan fencePlan) []string {
 	}
 	for _, folder := range plan.systemFolders {
 		arguments = append(arguments, "--ro-bind", folder, folder)
+	}
+	if plan.resolverFile != "" {
+		arguments = append(arguments, "--ro-bind", plan.resolverFile, plan.resolverFile)
 	}
 	for _, root := range plan.roots {
 		arguments = append(arguments, "--bind", root, root)
@@ -125,6 +130,9 @@ func helperOptions(plan fencePlan) []string {
 	options := []string{}
 	for _, folder := range plan.systemFolders {
 		options = append(options, readableOption, folder)
+	}
+	if plan.resolverFile != "" {
+		options = append(options, readableOption, plan.resolverFile)
 	}
 	options = append(options, readableOption, plan.helperProgram)
 	for _, root := range plan.roots {

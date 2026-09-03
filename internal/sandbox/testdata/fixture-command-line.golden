@@ -29,6 +29,9 @@ bwrap
 --ro-bind
 /etc
 /etc
+--ro-bind
+/run/systemd/resolve/stub-resolv.conf
+/run/systemd/resolve/stub-resolv.conf
 --bind
 /home/example/work
 /home/example/work
@@ -71,6 +74,8 @@ sandbox-entry
 /lib64
 --read
 /etc
+--read
+/run/systemd/resolve/stub-resolv.conf
 --read
 /home/example/.coeus/releases/1.0.0/coeus
 --write

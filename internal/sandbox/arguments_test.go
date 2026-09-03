@@ -16,6 +16,7 @@ import (
 func theFixturePlan() fencePlan {
 	return fencePlan{
 		systemFolders:    []string{"/usr", "/bin", "/lib", "/lib64", "/etc"},
+		resolverFile:     "/run/systemd/resolve/stub-resolv.conf",
 		roots:            []string{"/home/example/work", "/home/example/projects"},
 		helperProgram:    "/home/example/.coeus/releases/1.0.0/coeus",
 		workingDirectory: "/home/example/work",

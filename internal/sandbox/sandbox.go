@@ -57,6 +57,7 @@ type Settings struct {
 type Fence struct {
 	roots         []string
 	systemFolders []string
+	resolverFile  string
 	userHome      string
 	outputCap     int
 	helperProgram string
@@ -92,9 +93,11 @@ func New(settings Settings) (*Fence, error) {
 		outputCap = contract.DefaultConfig().Caps.ToolOutputBytes
 	}
 
+	systemFolders := foldersThatExist(defaultSystemFolders)
 	return &Fence{
 		roots:         roots,
-		systemFolders: foldersThatExist(defaultSystemFolders),
+		systemFolders: systemFolders,
+		resolverFile:  resolverFileToBind(resolverFilePath, systemFolders),
 		userHome:      settings.UserHome,
 		outputCap:     outputCap,
 		helperProgram: helperProgram,

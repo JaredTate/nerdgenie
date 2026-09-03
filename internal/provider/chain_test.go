@@ -61,6 +61,34 @@ func TestTheChainMovesOnWhenTheFirstModelIsOutOfTries(t *testing.T) {
 	}
 }
 
+func TestTheChainNeverReplaysTheTextTheModelItGaveUpOnStreamed(t *testing.T) {
+	breaking := serverThatBreaksOffAfterSaying("Hello ", "never reached")
+	defer breaking.Close()
+	working := testkit.NewFakeProviderServer(scriptSayingOneThing("Hello world"))
+	defer working.Close()
+	options, _ := testOptions(t, newTestClock())
+	chain, err := provider.NewChain([]contract.Model{
+		modelOn(t, "first", breaking.URL, options),
+		modelOn(t, "second", working.Address(), options),
+	}, options)
+	if err != nil {
+		t.Fatalf("building the chain failed: %v", err)
+	}
+
+	reply, streamed, err := sendAndCollect(context.Background(), chain, requestWithEverything())
+
+	if err != nil {
+		t.Fatalf("the chain gave up although its second model works: %v", err)
+	}
+	if reply.Text != "Hello world" {
+		t.Fatalf("the reply is %q, want the second model's whole answer", reply.Text)
+	}
+	if streamed != reply.Text {
+		t.Errorf("the caller was streamed %q while the reply is %q, and a caller must never be handed the text of a model the chain gave up on",
+			streamed, reply.Text)
+	}
+}
+
 func TestTheChainStopsAtAnOverflowRatherThanMovingOn(t *testing.T) {
 	first := testkit.NewFakeProviderServer(scriptSayingOneThing("never reached"))
 	defer first.Close()

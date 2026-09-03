@@ -41,7 +41,11 @@ func (model *anthropicModel) ContextLength() int { return model.alias.ContextLen
 // Send makes one call and streams the reply back.
 func (model *anthropicModel) Send(ctx context.Context, request contract.Request,
 	onDelta func(delta string)) (contract.Reply, error) {
-	body, err := json.Marshal(model.buildBody(request))
+	shaped, err := model.buildBody(request)
+	if err != nil {
+		return contract.Reply{}, err
+	}
+	body, err := json.Marshal(shaped)
 	if err != nil {
 		return contract.Reply{}, fmt.Errorf("the request to the model %q could not be written as JSON: %w", model.alias.Name, err)
 	}
@@ -70,18 +74,24 @@ func (model *anthropicModel) address() string {
 	return strings.TrimSuffix(base, "/") + "/v1/messages"
 }
 
-// buildBody turns one harness request into the body the Messages API reads.
-func (model *anthropicModel) buildBody(request contract.Request) anthropicBody {
+// buildBody turns one harness request into the body the Messages API reads. The
+// cap on the reply is worked out first, because this API refuses a request that
+// does not carry one.
+func (model *anthropicModel) buildBody(request contract.Request) (anthropicBody, error) {
+	outputTokens, err := outputTokensFor(request, model.alias.Name)
+	if err != nil {
+		return anthropicBody{}, err
+	}
 	tools := anthropicTools(request)
 	markers := 0
 	return anthropicBody{
 		Model:     model.alias.ModelName,
-		MaxTokens: request.MaxOutputTokens,
+		MaxTokens: outputTokens,
 		Stream:    true,
 		System:    anthropicSystem(request, len(tools) > 0, &markers),
 		Messages:  anthropicMessages(request.Messages),
 		Tools:     markLastTool(tools, request, &markers),
-	}
+	}, nil
 }
 
 // anthropicSystem turns the system blocks into text blocks, putting a cache

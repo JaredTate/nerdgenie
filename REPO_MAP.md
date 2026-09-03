@@ -239,6 +239,8 @@ internal/provider/cli_test.go
 internal/provider/cliarguments.go
 internal/provider/clioutput.go
 internal/provider/cliprompt.go
+internal/provider/clisystemprompt_test.go
+internal/provider/deltas.go
 internal/provider/doc.go
 internal/provider/errors.go
 internal/provider/fuzz_test.go
@@ -250,6 +252,7 @@ internal/provider/openai_test.go
 internal/provider/openaistream.go
 internal/provider/openaiwire.go
 internal/provider/options.go
+internal/provider/outputcap_test.go
 internal/provider/parts_test.go
 internal/provider/props.go
 internal/provider/props_test.go

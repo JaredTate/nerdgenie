@@ -83,6 +83,23 @@ func callTimeout() time.Duration {
 	return contract.DefaultConfig().Caps.TimePerTurn
 }
 
+// outputTokensFor is how many tokens the model may write on one call: what the
+// request asked for, or the configuration's own cap when the request asked for
+// nothing. A cap that is not a positive number is refused here, naming the
+// model, because on the wire it comes back as a plain refusal that names nothing
+// and is neither of the two sentinels the harness knows how to act on.
+func outputTokensFor(request contract.Request, modelName string) (int, error) {
+	allowed := request.MaxOutputTokens
+	if allowed == 0 {
+		allowed = contract.DefaultConfig().Caps.OutputTokensPerCall
+	}
+	if allowed <= 0 {
+		return 0, fmt.Errorf("the request to the model %q caps the reply at %d tokens, and a call needs a positive cap, so put output_tokens_per_call right in config.toml",
+			modelName, request.MaxOutputTokens)
+	}
+	return allowed, nil
+}
+
 // New returns the model one configuration alias names, ready to call. An alias
 // for a local server on a loopback address is probed once here, which is the
 // only work New does over the network.

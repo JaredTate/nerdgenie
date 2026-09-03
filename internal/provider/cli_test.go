@@ -55,10 +55,28 @@ func (record programRecord) arguments() []string {
 	return strings.Split(strings.TrimSuffix(written, argumentSeparator), argumentSeparator)
 }
 
+// scratchFile returns what one file of the folder the program was run in held
+// when it ran, together with what the filesystem said about it. The folder
+// itself is gone by the time a test looks, so the stand-in keeps a copy.
+func (record programRecord) scratchFile(t *testing.T, name string) (string, os.FileInfo) {
+	t.Helper()
+	path := filepath.Join(record.folder, "scratch", name)
+	about, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("the folder the program ran in held no file called %q: %v", name, err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("the copy of %s the stand-in kept could not be read: %v", name, err)
+	}
+	return string(body), about
+}
+
 // installFakeProgram writes a stand-in for one of the vendor programs onto a
 // folder at the front of the PATH. It writes down its arguments, its working
-// folder, what that folder held, and everything it was given on standard input,
-// then prints the output and exits with the code.
+// folder, what that folder held, a copy of that folder with the file modes kept,
+// and everything it was given on standard input, then prints the output and
+// exits with the code.
 func installFakeProgram(t *testing.T, name, output string, exitCode int) programRecord {
 	t.Helper()
 	binFolder := t.TempDir()
@@ -70,11 +88,14 @@ func installFakeProgram(t *testing.T, name, output string, exitCode int) program
 printf '%%s%s' "$@" > %q/args.txt
 pwd > %q/cwd.txt
 ls -A > %q/folder.txt
+mkdir -p %q/scratch
+cp -a . %q/scratch/
 cat > %q/stdin.txt
 cat %q/stdout.txt
 exit %d
 `, strings.ReplaceAll(argumentSeparator, "\n", "\\n"),
-		recordFolder, recordFolder, recordFolder, recordFolder, recordFolder, exitCode)
+		recordFolder, recordFolder, recordFolder, recordFolder, recordFolder,
+		recordFolder, recordFolder, exitCode)
 	if err := os.WriteFile(filepath.Join(binFolder, name), []byte(script), 0o700); err != nil {
 		t.Fatalf("writing the stand-in program failed: %v", err)
 	}
@@ -144,13 +165,13 @@ func TestTheClaudeProgramIsGivenTheSystemPromptAndThePromptOnStandardInput(t *te
 
 	arguments := record.arguments()
 	joined := strings.Join(arguments, " ")
-	for _, wanted := range []string{"-p", "--model", "a-model", "--tools", "--no-session-persistence", "--system-prompt"} {
+	for _, wanted := range []string{"-p", "--model", "a-model", "--tools", "--no-session-persistence", systemPromptFileFlag} {
 		if !strings.Contains(joined, wanted) {
 			t.Errorf("the program was not given %q:\n%s", wanted, joined)
 		}
 	}
-	systemPrompt := argumentAfter(t, arguments, "--system-prompt")
-	if !strings.Contains(systemPrompt, "You are the reasoning engine inside Coeus.") {
+	systemPrompt, _ := record.scratchFile(t, filepath.Base(argumentAfter(t, arguments, systemPromptFileFlag)))
+	if !strings.Contains(systemPrompt, firstLineOfTheSystemPrompt) {
 		t.Errorf("the system prompt was not passed to the program:\n%s", systemPrompt)
 	}
 	if !strings.Contains(systemPrompt, contract.ToolCallOpenTag) {
@@ -163,7 +184,7 @@ func TestTheClaudeProgramIsGivenTheSystemPromptAndThePromptOnStandardInput(t *te
 	if strings.Contains(joined, "Post the tweet about the launch.") {
 		t.Error("the prompt was put on the command line, and it belongs on standard input")
 	}
-	assertRanInAnEmptyFolderUnder(t, record, options)
+	assertRanInAFolderHoldingOnlyTheSystemPrompt(t, record, options)
 }
 
 func TestTheToolSpecsAndTheirFieldsReachTheProgram(t *testing.T) {
@@ -174,7 +195,7 @@ func TestTheToolSpecsAndTheirFieldsReachTheProgram(t *testing.T) {
 		t.Fatalf("one call through the claude program failed: %v", err)
 	}
 
-	written := argumentAfter(t, record.arguments(), "--system-prompt")
+	written, _ := record.scratchFile(t, filepath.Base(argumentAfter(t, record.arguments(), systemPromptFileFlag)))
 	for _, wanted := range []string{contract.ToolRead, contract.ToolWrite, "path", "string", "The file to read."} {
 		if !strings.Contains(written, wanted) {
 			t.Errorf("the tool block does not mention %q:\n%s", wanted, written)
@@ -386,16 +407,23 @@ func argumentAfter(t *testing.T, arguments []string, flag string) string {
 	return ""
 }
 
-// assertRanInAnEmptyFolderUnder checks that the program was run somewhere with
-// nothing in it, under the home's run folder, so that no project settings, no
-// CLAUDE.md, and no hooks could reach the prompt.
-func assertRanInAnEmptyFolderUnder(t *testing.T, record programRecord, options provider.Options) {
+// assertRanInAFolderHoldingOnlyTheSystemPrompt checks that the program was run
+// under the home's run folder in a folder of its own holding that call's system
+// prompt and nothing else, so that no project settings, no CLAUDE.md, and no
+// hooks could reach the prompt.
+func assertRanInAFolderHoldingOnlyTheSystemPrompt(t *testing.T, record programRecord, options provider.Options) {
 	t.Helper()
 	assertFolderIsUnderTheRunFolder(t, record, options)
-	if held := strings.TrimSpace(record.read("folder.txt")); held != "" {
-		t.Errorf("the program was run in a folder holding %q, and it must be empty", held)
+	held := strings.Fields(record.read("folder.txt"))
+	if len(held) != 1 || held[0] != systemPromptFileName {
+		t.Errorf("the program was run in a folder holding %v, and it must hold nothing but %q", held, systemPromptFileName)
 	}
 }
+
+// systemPromptFileName is what the provider calls the file it writes the claude
+// program's system prompt into. The test names it rather than the package,
+// because a test asserts on what a reader of the folder would see.
+const systemPromptFileName = "system-prompt.txt"
 
 // assertFolderIsUnderTheRunFolder checks where the program was run.
 func assertFolderIsUnderTheRunFolder(t *testing.T, record programRecord, options provider.Options) {

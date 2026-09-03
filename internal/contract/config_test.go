@@ -249,3 +249,21 @@ func TestAPathTheCallerNamesIsKeptOutsideTheFence(t *testing.T) {
 		t.Errorf("the same root with nothing named was refused: %v", err)
 	}
 }
+
+// TestTheSandboxSettingHasTwoValuesAndOffIsTheDefault pins the one setting
+// that says whether commands run straight on the machine, as they do by
+// default and as Hermes and OpenClaw do on the host, or inside the sandbox.
+func TestTheSandboxSettingHasTwoValuesAndOffIsTheDefault(t *testing.T) {
+	if contract.SandboxFence != "fence" || contract.SandboxOff != "off" {
+		t.Errorf("the sandbox setting's values are %q and %q, want fence and off", contract.SandboxFence, contract.SandboxOff)
+	}
+	for value, known := range map[string]bool{"fence": true, "off": true, "": true, "docker": false, "OFF": false} {
+		if contract.KnownSandboxMode(value) != known {
+			t.Errorf("the sandbox value %q is known=%v, want %v", value, !known, known)
+		}
+	}
+	settings := contract.Config{}
+	if settings.SandboxMode() != contract.SandboxOff {
+		t.Errorf("an empty sandbox setting means %q, want off: the agent runs straight on the machine unless asked to box itself in", settings.SandboxMode())
+	}
+}

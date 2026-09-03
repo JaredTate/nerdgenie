@@ -128,7 +128,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}
 	switch asked.Action {
 	case ActionPoll:
-		return tool.running.poll(asked.ID)
+		return tool.running.poll(asked.ID, tool.now())
 	case ActionTail:
 		return tool.running.tail(asked.ID)
 	case ActionKill:

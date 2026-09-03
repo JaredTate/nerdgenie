@@ -10,15 +10,14 @@ import (
 )
 
 func TestTheBoundsOnOneSandboxedCommandAreTheNumbersPinnedHere(t *testing.T) {
-	// These three numbers are what stands between one line of shell and a wedged
+	// These numbers are what stands between one line of shell and a wedged
 	// machine, so a change to any of them is a change to this test as well.
 	for _, bound := range []struct {
 		name  string
 		found int
 		want  int
 	}{
-		{"how many processes one command may start", MostProcesses, 512},
-		{"how much address space one command may map", MostAddressSpaceBytes, 4 << 30},
+		{"how many processes one command may start", MostProcesses, 4096},
 		{"how large the fence's own temporary folder is", TemporaryFolderBytes, 100 << 20},
 	} {
 		if bound.found != bound.want {
@@ -37,7 +36,7 @@ func TestEveryBoundIsAskedOfTheKernelWithTheSameSoftAndHardLimit(t *testing.T) {
 		t.Fatalf("setting the bounds failed: %v", err)
 	}
 
-	want := map[int]uint64{processCountResource: MostProcesses, addressSpaceResource: MostAddressSpaceBytes}
+	want := map[int]uint64{processCountResource: MostProcesses}
 	for resource, value := range want {
 		limit, found := asked[resource]
 		if !found {
@@ -76,5 +75,17 @@ func TestTheCommandLineGivesTheTemporaryFolderASizeItCannotGrowPast(t *testing.T
 	}
 	if arguments[temporaryFolder-1] != strconv.Itoa(TemporaryFolderBytes) {
 		t.Errorf("the temporary folder is asked for at %s bytes, want %d", arguments[temporaryFolder-1], TemporaryFolderBytes)
+	}
+}
+
+// TestTheFenceLeavesAddressSpaceAloneBecauseNodeAndGoReserveIt pins the one
+// bound that is deliberately not set: a four-gigabyte address-space bound made
+// Node's test runner abort inside the fence on the first live run, because its
+// engine reserves far more virtual space than it uses.
+func TestTheFenceLeavesAddressSpaceAloneBecauseNodeAndGoReserveIt(t *testing.T) {
+	for _, bound := range theBoundsOnOneCommand {
+		if bound.resource == syscall.RLIMIT_AS {
+			t.Errorf("the fence bounds address space at %d, and Node and Go reserve more than any sane bound allows", bound.value)
+		}
 	}
 }

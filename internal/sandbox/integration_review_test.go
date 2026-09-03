@@ -48,8 +48,13 @@ var theLimitsACommandMustHave = []struct {
 	line string
 }{
 	{"how many processes it may start", "process"},
-	{"how much memory it may map", "vmemory"},
 }
+
+// The bound on memory is deliberately not in the list above: Node's engine and
+// Go's runtime reserve tens of gigabytes of virtual space they never touch, and
+// a four-gigabyte address-space bound made a test runner abort inside the fence
+// on the first live run. The process count and the two folder sizes bound what
+// one command can take; memory itself is bounded by the machine.
 
 func TestASandboxedCommandCannotExhaustTheMachine(t *testing.T) {
 	fence, _, _ := aRealFence(t, theToolOutputCap)
@@ -161,5 +166,17 @@ func TestTheFilterRefusesANewUserNamespaceHoweverItIsAskedFor(t *testing.T) {
 			t.Errorf("the filter refuses unshare with a new user namespace and says nothing at all about %s, "+
 				"which makes the same namespace; a rule the caller can walk round by naming another system call is not a rule", call.name)
 		}
+	}
+}
+
+// TestAProgramInsideTheFenceCanReadTheKernelsOwnFolders holds what the fourth
+// Tetris run found: /proc was mounted but every read of it was refused, so
+// Node counted zero processors and vitest waited forever for workers it never
+// started. The kernel's own folders are readable inside the fence.
+func TestAProgramInsideTheFenceCanReadTheKernelsOwnFolders(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+	said := insideTheFence(t, fence, "head -c 40 /proc/cpuinfo >/dev/null && ls /proc/self >/dev/null && cat /proc/self/status | head -1 && echo READABLE")
+	if !strings.Contains(said, "READABLE") {
+		t.Errorf("a program inside the fence cannot read /proc: %q", said)
 	}
 }

@@ -245,6 +245,7 @@ internal/command/initmenu_test.go
 internal/command/initmodels.go
 internal/command/initsteps.go
 internal/command/inittemplate.go
+internal/command/inittemplate_test.go
 internal/command/integration_test.go
 internal/command/registry.go
 internal/command/registry_test.go

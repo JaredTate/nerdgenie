@@ -156,16 +156,25 @@ func (turn *firstTurn) StartTask(ctx context.Context, message contract.Inbound) 
 	return where.Send(ctx, reply.Text)
 }
 
-// ask makes the one model call, inside the turn's own time budget, and sends
-// every piece of text to the screens as it is written.
+// ask makes the one model call, inside the turn's own time budget.
+//
+// It asks for no deltas, and that is a decision rather than an omission. Both
+// provider.WithRetries and provider.NewChain hold every piece of text back until
+// the attempt has succeeded, so a delta today is not live text: the whole answer
+// arrives in one lump a moment before the reply. Worse, the two travel to a
+// screen by different paths, deltas on the event stream and the reply straight
+// out of the channel, and nothing orders those two paths against each other. On
+// this machine the reply wins every time, and the terminal screen, which draws a
+// delta that arrives after a reply as the start of a new answer, then shows the
+// same answer twice. Live text is worth having, and it becomes possible the day
+// a channel's reply rides the same event stream its deltas do; until then a
+// delta envelope costs the reader a duplicated answer and buys nothing.
 func (turn *firstTurn) ask(ctx context.Context) (contract.Reply, error) {
 	bounded, giveUp := context.WithTimeout(ctx, turn.settings.Caps.TimePerTurn)
 	defer giveUp()
 
 	turn.report(contract.StateThinking, nil)
-	return turn.model.Send(bounded, turn.request(), func(delta string) {
-		turn.publish(contract.SocketEnvelope{Type: contract.SocketDelta, Text: delta})
-	})
+	return turn.model.Send(bounded, turn.request(), nil)
 }
 
 // request builds the one call: the harness rules, the persona, the tool

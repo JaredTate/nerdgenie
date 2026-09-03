@@ -105,7 +105,7 @@ func TestTheConversationKeepsTheNewestMessagesAndStaysUnderItsCap(t *testing.T) 
 	}
 }
 
-func TestTheFirstTurnStreamsDeltasSendsTheReplyAndLogsBoth(t *testing.T) {
+func TestTheFirstTurnSendsTheReplyOnceAndLogsBothSides(t *testing.T) {
 	turn, where, eventLog, stream := aTurnWithOneScriptedReply(t,
 		oneScriptedReply("DigiByte launched in 2014.", "when did DigiByte launch"))
 	listening, err := stream.Subscribe()
@@ -131,8 +131,12 @@ func TestTheFirstTurnStreamsDeltasSendsTheReplyAndLogsBoth(t *testing.T) {
 	if len(sent) != 1 || sent[0] != "DigiByte launched in 2014." {
 		t.Errorf("the channel carried %v, want the one reply the script wrote", sent)
 	}
-	if deltas := textOfDeltas(listening); !strings.Contains(deltas, "DigiByte") {
-		t.Errorf("the deltas that reached the stream were %q, want the reply as it was written", deltas)
+	// The answer must reach a screen once and once only. A delta carrying the
+	// same words as the reply arrives on the event stream, which is not ordered
+	// against the channel the reply goes out on, and the terminal draws the
+	// answer a second time when it lands after the reply.
+	if deltas := textOfDeltas(listening); deltas != "" {
+		t.Errorf("deltas carrying %q went out beside the reply, so the screen would draw the answer twice", deltas)
 	}
 	kinds := loggedKinds(t, eventLog)
 	if !strings.Contains(kinds, string(contract.EventMessage)) || !strings.Contains(kinds, string(contract.EventReply)) {

@@ -38,6 +38,15 @@ libraries are `playwright-core` for the browser worker, `@trycua/cua-driver` for
 the desktop worker, and `vitest` with `fast-check` for the tests of both. The same
 rule applies: anything else needs the orchestrator's yes and a row here.
 
+**The two workers pin the same build tools.** Where both need a library, both name
+the same version: `typescript` 7.0.2, `@types/node` 24.13.3, `vitest` 4.1.11,
+`@vitest/coverage-v8` 4.1.11, and `fast-check` 4.9.0. Two versions of a compiler
+in one repository means a file that builds in one folder and not in the other, and
+nobody finds out until the wave gate. `@types/node` follows the Node the workers
+are actually run with, which is Node 24 on the development machine and the
+`>=22` floor in `worker/browser/package.json`; typing against a newer Node's
+declarations would let a call that does not exist at run time compile clean.
+
 ### `worker/browser`, built
 
 Pinned to exact versions, with no ranges, so that a build a year from now is the
@@ -50,7 +59,7 @@ build we tested.
 | `vitest` | 4.1.11 | Runs the tests, including the ones that drive a real Chrome |
 | `fast-check` | 4.9.0 | The property tests: any bytes on standard input, any string as an expectation, any sequence of refs |
 | `@vitest/coverage-v8` | 4.1.11 | Approved by the orchestrator. Vitest cannot measure coverage without a coverage provider, and brief 5.1 requires `npm test` to fail under seventy percent. Test-time only; nothing it does reaches `dist/` |
-| `@types/node` | 24.10.1 | Approved by the orchestrator. TypeScript cannot compile a Node program without Node's type declarations; `process`, `Buffer`, and `setTimeout` have no types otherwise. Types only, erased at build time; nothing it does reaches `dist/` |
+| `@types/node` | 24.13.3 | Approved by the orchestrator. TypeScript cannot compile a Node program without Node's type declarations; `process`, `Buffer`, and `setTimeout` have no types otherwise. Types only, erased at build time; nothing it does reaches `dist/` |
 
 ### `worker/desktop`, built
 
@@ -60,11 +69,11 @@ Pinned to exact versions for the same reason, and
 | Library | Version | Why the standard library will not do |
 |---|---|---|
 | `@trycua/cua-driver` | 0.23.2 | Driving the machine's own screen, mouse, and keyboard means talking to the display server and reading the accessibility tree the desktop publishes for screen readers, and Node has none of that; this is the driver the brief names, and it is loaded only when a desktop is really going to be driven |
-| `typescript` | 5.9.3 | The worker is written in TypeScript and this compiles it, with every strict setting on |
+| `typescript` | 7.0.2 | The worker is written in TypeScript and this compiles it, with every strict setting on. The same version the browser worker uses |
 | `vitest` | 4.1.11 | The test runner for the unit, property, and fixture-window tests |
 | `@vitest/coverage-v8` | 4.1.11 | Measures the line coverage the seventy percent floor in `docs/WORK_PLAN.md` Part 1 is checked against, and fails `npm test` under it |
 | `fast-check` | 4.9.0 | The property tests throw any expectation, any key combination, any accessibility tree, and any bytes on standard input at the worker, and Vitest has no property testing of its own |
-| `@types/node` | 26.4.1 | The worker reads standard input, writes standard output, and starts processes, and those types are not in TypeScript itself |
+| `@types/node` | 24.13.3 | The worker reads standard input, writes standard output, and starts processes, and those types are not in TypeScript itself. The same version the browser worker uses |
 
 ## The Node runtime a release carries (wave 6, brief 6.2)
 

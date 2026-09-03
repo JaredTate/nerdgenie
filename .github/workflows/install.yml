@@ -44,10 +44,13 @@ jobs:
           path: ${{ github.workspace }}/.node-runtime-cache
           key: node-runtimes-${{ hashFiles('scripts/release/node.sh') }}
 
-      # Only amd64, because that is the architecture the containers run. The
-      # release workflow is where both are built.
+      # make build compiles the two worker bundles, which a release packs but does
+      # not build. Only amd64 is packed, because that is the architecture the
+      # containers run; the release workflow is where both are built.
       - name: Build a release to install
-        run: scripts/release/build.sh --version install-test --arch amd64
+        run: |
+          make build
+          scripts/release/build.sh --version install-test --arch amd64
 
       # A skip is a pass to the Go tool, and a skip here would mean the whole
       # workflow proved nothing, so the output is read back and a skip is turned

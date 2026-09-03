@@ -57,10 +57,11 @@ node_version=$(sed -n 's/^node_version=//p' "$repository_root/scripts/release/no
 command -v npm >/dev/null 2>&1 ||
 	die "npm is not on the PATH, and a release bundles each worker with the dependencies it needs at run time, so install Node 22 or later and run make release again"
 
-sh "$repository_root/scripts/release/workers.sh"
+# Compiling the workers is the build target's job, so a release only checks that
+# it was done rather than doing it a second way.
 for worker in browser desktop; do
 	[ -f "$repository_root/worker/$worker/dist/main.js" ] ||
-		die "worker/$worker/dist/main.js is not there, so there is no $worker worker to bundle; run \"npm ci && npm run build\" in worker/$worker and try again"
+		die "worker/$worker/dist/main.js is not there, so there is no $worker worker to bundle; run \"make build\", which compiles both, and try again"
 done
 
 mkdir -p "$output"

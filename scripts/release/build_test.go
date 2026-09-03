@@ -51,7 +51,7 @@ func fixtureCheckout(t *testing.T) string {
 		writeFile(t, filepath.Join(folder, "node_modules", "a-dependency", "index.js"), "module.exports = 1;\n")
 	}
 
-	for _, script := range []string{"build.sh", "workers.sh", "node.sh"} {
+	for _, script := range []string{"build.sh", "node.sh"} {
 		copyScript(t, filepath.Join(root, "scripts", "release"), "scripts/release/"+script)
 	}
 	return root

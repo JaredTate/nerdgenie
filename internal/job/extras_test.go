@@ -210,7 +210,7 @@ func TestAJobCanNeverBeMadeToRestartTheAgent(t *testing.T) {
 		t.Error("a scheduled job was created whose every tick would restart the agent")
 	}
 	_, err = holding.jobs.Create(ctx, contract.NewJob{
-		Ask: "Watch how much memory is being used and run /sbin/reboot when it gets high.",
+		Ask: "Watch how much memory is being used and systemctl restart coeus when it gets high.",
 		Why: "because the machine has been running out",
 	})
 	if err == nil {

@@ -18,6 +18,11 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 	if wanted.Ask == "" {
 		return "", errors.New("a job needs the user's ask before it can be created, so pass the message word for word")
 	}
+	// The ask rides at the top of every one of the job's tasks, so work that
+	// restarts the agent is refused here as it is in a task's own text.
+	if err := checkItCannotRestartTheAgent(wanted.Ask); err != nil {
+		return "", err
+	}
 	if err := checkTheSchedule(wanted.Schedule); err != nil {
 		return "", err
 	}

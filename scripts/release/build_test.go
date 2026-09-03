@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/JaredTate/coeus/internal/update"
 )
 
 // The version the fixture release is built as. It is passed on the command line
@@ -131,12 +134,12 @@ func TestTheReleaseWritesAnArchiveForEachArchitecture(t *testing.T) {
 		}
 		names := namesInArchive(t, archive)
 		for _, wanted := range []string{
-			"/coeus", "/VERSION", "/node/bin/node",
-			"/workers/browser/main.js", "/workers/desktop/main.js",
-			"/workers/browser/node_modules/a-dependency/index.js",
+			"coeus", "VERSION", "node/bin/node",
+			"workers/browser/main.js", "workers/desktop/main.js",
+			"workers/browser/node_modules/a-dependency/index.js",
 		} {
-			if !containsPathEnding(names, wanted) {
-				t.Errorf("the %s archive holds no path ending %q; it holds %d paths, the first of which is %q",
+			if !slices.Contains(names, wanted) {
+				t.Errorf("the %s archive holds no entry %q; it holds %d entries, the first of which is %q",
 					architecture, wanted, len(names), firstName(names))
 			}
 		}
@@ -169,6 +172,29 @@ func firstName(names []string) string {
 	return names[0]
 }
 
+func TestTheArchiveIsShapedTheWayTheUpdaterUnpacksOne(t *testing.T) {
+	root := fixtureCheckout(t)
+
+	buildTheFixtureRelease(t, root)
+
+	for _, architecture := range []string{"amd64", "arm64"} {
+		archive := filepath.Join(root, "dist", update.ArchiveName(builtVersion, architecture))
+
+		// internal/update unpacks into a folder it made and then looks for the
+		// program at the top of it, so the archive carries no folder of its own.
+		if !slices.Contains(namesInArchive(t, archive), update.BinaryName) {
+			t.Errorf("the %s archive has no %q at its top, so internal/update would say it is not a Coeus release",
+				architecture, update.BinaryName)
+		}
+		// And it refuses any entry that is not a plain file or a folder, because a
+		// link is a way to write outside the folder being unpacked.
+		if links := linksInArchive(t, archive); len(links) > 0 {
+			t.Errorf("the %s archive holds %d links, which internal/update refuses; the first is %q",
+				architecture, len(links), links[0])
+		}
+	}
+}
+
 func TestTheReleaseWritesAChecksumForEveryArchive(t *testing.T) {
 	root := fixtureCheckout(t)
 
@@ -192,20 +218,14 @@ func TestTheReleaseWritesAManifestTheUpdaterCanRead(t *testing.T) {
 
 	buildTheFixtureRelease(t, root)
 
-	var manifest struct {
-		Version       string   `json:"version"`
-		Date          string   `json:"date"`
-		NodeVersion   string   `json:"node_version"`
-		Architectures []string `json:"architectures"`
-		Artifacts     []struct {
-			Architecture string `json:"architecture"`
-			File         string `json:"file"`
-			Sha256       string `json:"sha256"`
-		} `json:"artifacts"`
-	}
+	// The manifest is read back with the updater's own parser rather than with a
+	// struct written out again here, because the whole point of the file is that
+	// "coeus update" can read it: a test with its own idea of the shape would go
+	// on passing while the two drifted apart.
 	content := readFile(t, filepath.Join(root, "dist", "manifest.json"))
-	if err := json.Unmarshal([]byte(content), &manifest); err != nil {
-		t.Fatalf("manifest.json is not readable JSON: %v\nIt says:\n%s", err, content)
+	manifest, err := update.ParseManifest([]byte(content))
+	if err != nil {
+		t.Fatalf("internal/update refuses the manifest make release wrote: %v\nIt says:\n%s", err, content)
 	}
 
 	if manifest.Version != builtVersion {
@@ -214,18 +234,36 @@ func TestTheReleaseWritesAManifestTheUpdaterCanRead(t *testing.T) {
 	if !strings.HasSuffix(manifest.Date, "Z") || len(manifest.Date) != len("2026-01-02T15:04:05Z") {
 		t.Errorf("the manifest date is %q, want a UTC time such as 2026-01-02T15:04:05Z", manifest.Date)
 	}
-	if manifest.NodeVersion != pinnedNodeVersion(t) {
-		t.Errorf("the manifest says Node %q, want the pinned %q", manifest.NodeVersion, pinnedNodeVersion(t))
+	if len(manifest.Architectures) != 2 {
+		t.Fatalf("the manifest names %d architectures, want amd64 and arm64: %s", len(manifest.Architectures), content)
 	}
-	if len(manifest.Architectures) != 2 || len(manifest.Artifacts) != 2 {
-		t.Fatalf("the manifest names %d architectures and %d archives, want two of each: %s",
-			len(manifest.Architectures), len(manifest.Artifacts), content)
-	}
-	for _, artifact := range manifest.Artifacts {
-		want := fileChecksum(t, filepath.Join(root, "dist", artifact.File))
-		if artifact.Sha256 != want {
-			t.Errorf("the manifest says %s has checksum %q, want %q", artifact.File, artifact.Sha256, want)
+	for _, architecture := range manifest.Architectures {
+		said, err := manifest.ChecksumFor(architecture)
+		if err != nil {
+			t.Errorf("the updater cannot find the %s checksum in the manifest: %v", architecture, err)
+			continue
 		}
+		want := fileChecksum(t, filepath.Join(root, "dist", update.ArchiveName(builtVersion, architecture)))
+		if said != want {
+			t.Errorf("the manifest says the %s archive hashes to %q, want %q", architecture, said, want)
+		}
+	}
+}
+
+func TestTheManifestSaysWhichNodeRuntimeTheArchivesCarry(t *testing.T) {
+	root := fixtureCheckout(t)
+
+	buildTheFixtureRelease(t, root)
+
+	var extra struct {
+		NodeVersion string `json:"node_version"`
+	}
+	content := readFile(t, filepath.Join(root, "dist", "manifest.json"))
+	if err := json.Unmarshal([]byte(content), &extra); err != nil {
+		t.Fatalf("manifest.json is not readable JSON: %v\nIt says:\n%s", err, content)
+	}
+	if extra.NodeVersion != pinnedNodeVersion(t) {
+		t.Errorf("the manifest says Node %q, want the pinned %q", extra.NodeVersion, pinnedNodeVersion(t))
 	}
 }
 

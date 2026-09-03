@@ -154,6 +154,39 @@ func namesInArchive(t *testing.T, path string) []string {
 	return names
 }
 
+// linksInArchive lists every entry that is not a plain file or a folder, which
+// is what internal/update refuses when it unpacks a release.
+func linksInArchive(t *testing.T, path string) []string {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("cannot open the archive %s: %v", path, err)
+	}
+	defer func() { _ = file.Close() }()
+
+	unzipped, err := gzip.NewReader(file)
+	if err != nil {
+		t.Fatalf("the archive %s is not gzipped: %v", path, err)
+	}
+	defer func() { _ = unzipped.Close() }()
+
+	links := []string{}
+	reader := tar.NewReader(unzipped)
+	for read := 0; read < maxArchiveEntries; read++ {
+		header, err := reader.Next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("cannot read the archive %s: %v", path, err)
+		}
+		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeDir {
+			links = append(links, header.Name)
+		}
+	}
+	return links
+}
+
 // maxArchiveEntries caps how much of an archive a test will read, because every
 // loop has a limit. A release archive holds a few tens of thousands of files at
 // most, nearly all of them the two workers' dependencies.

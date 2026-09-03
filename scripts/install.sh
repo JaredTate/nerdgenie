@@ -178,7 +178,7 @@ say "the work folder $work_folder is ready, and Coeus may read and write there a
 staging=$coeus_home/releases/.unpacking
 rm -rf "$staging"
 mkdir -p "$staging"
-tar -xzf "$archive" -C "$staging" --strip-components=1
+tar -xzf "$archive" -C "$staging"
 version=$(cat "$staging/VERSION" 2>/dev/null || true)
 [ -n "$version" ] || die "$archive holds no VERSION file, so it is not an archive \"make release\" wrote, and nothing was installed"
 release=$coeus_home/releases/$version

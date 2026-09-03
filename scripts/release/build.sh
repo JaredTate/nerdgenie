@@ -87,6 +87,11 @@ stage_worker() {
 	cp "$repository_root/worker/$worker/package.json" "$into/package.json"
 	cp "$repository_root/worker/$worker/package-lock.json" "$into/package-lock.json"
 	(cd "$into" && npm ci --omit=dev --os=linux --cpu="$processor" --no-audit --no-fund >/dev/null)
+	# npm leaves node_modules/.bin full of links to the programs a package ships,
+	# and a release runs none of them: it starts a worker as "node main.js". The
+	# folder goes, because internal/update refuses an archive holding any link at
+	# all, and a link is a way to write outside the folder being unpacked.
+	rm -rf "$into/node_modules/.bin"
 }
 
 built=""
@@ -113,7 +118,15 @@ for architecture in $architectures; do
 		stage_worker "$worker" "$tree/workers/$worker" "$processor"
 	done
 
-	tar -czf "$output/$name.tar.gz" -C "$staging" "$name"
+	# Any link left in the tree is a release internal/update would refuse on the
+	# user's machine, so it is found here instead, where there is somebody to fix it.
+	links=$(find "$tree" -type l)
+	[ -z "$links" ] || die "the release tree still holds links, and a release archive may hold none, so take these out of scripts/release/build.sh's staging step: $links"
+
+	# The archive has no folder of its own at the top: internal/update unpacks it
+	# into a folder it has already made and then looks for coeus in it, and the
+	# installer does the same, so a wrapper folder would only be stripped twice.
+	tar -czf "$output/$name.tar.gz" -C "$tree" coeus VERSION node workers
 	rm -rf "$tree"
 	built="$built $architecture"
 	say "wrote dist/$name.tar.gz"
@@ -138,16 +151,18 @@ say "wrote dist/SHA256SUMS"
 		printf '"%s"' "$architecture"
 	done
 	printf '],\n'
-	printf '  "artifacts": [\n'
+	# The sums are keyed by the archive's own name, which is the shape
+	# internal/update's ParseManifest reads: it looks one up by the name it works
+	# out for this machine, so a map says what a list would only imply.
+	printf '  "checksums": {\n'
 	first=yes
 	for architecture in $built; do
 		[ "$first" = yes ] || printf ',\n'
 		first=no
 		name="coeus-$version-$architecture.tar.gz"
 		sum=$(sha256sum "$output/$name" | cut -d ' ' -f 1)
-		printf '    { "architecture": "%s", "file": "%s", "sha256": "%s" }' \
-			"$architecture" "$name" "$sum"
+		printf '    "%s": "%s"' "$name" "$sum"
 	done
-	printf '\n  ]\n}\n'
+	printf '\n  }\n}\n'
 } >"$output/manifest.json"
 say "wrote dist/manifest.json for coeus $version on$built"

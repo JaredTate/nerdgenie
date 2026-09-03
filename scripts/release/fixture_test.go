@@ -115,7 +115,8 @@ func writeFixtureArchive(t *testing.T, into string, architecture string) string 
 		t.Fatalf("cannot make the folder the fixture archive goes in: %v", err)
 	}
 	archive := filepath.Join(into, folder+".tar.gz")
-	packing := exec.Command("tar", "czf", archive, "-C", filepath.Dir(staging), folder)
+	packing := exec.Command("tar", "czf", archive, "-C", staging,
+		"coeus", "VERSION", "node", "workers")
 	if printed, err := packing.CombinedOutput(); err != nil {
 		t.Fatalf("cannot pack the fixture archive: %v\n%s", err, printed)
 	}

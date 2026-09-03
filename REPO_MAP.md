@@ -36,12 +36,12 @@ cmd/coeus/backup.go
 cmd/coeus/backup_test.go
 cmd/coeus/doc.go
 cmd/coeus/doctor.go
-cmd/coeus/firstturn.go
-cmd/coeus/firstturn_test.go
 cmd/coeus/init.go
 cmd/coeus/install.go
 cmd/coeus/main.go
 cmd/coeus/main_test.go
+cmd/coeus/model.go
+cmd/coeus/previews.go
 cmd/coeus/runlock.go
 cmd/coeus/sandbox_entry.go
 cmd/coeus/sandbox_entry_test.go
@@ -49,6 +49,7 @@ cmd/coeus/serve.go
 cmd/coeus/serve_test.go
 cmd/coeus/signal.go
 cmd/coeus/signal_test.go
+cmd/coeus/skillsbox.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/tui.go
 cmd/coeus/tui_test.go
@@ -56,6 +57,7 @@ cmd/coeus/uninstall.go
 cmd/coeus/update.go
 cmd/coeus/update_test.go
 cmd/coeus/version.go
+cmd/coeus/wiring.go
 docs/COEUS_PLAN.md
 docs/DEPENDENCIES.md
 docs/EXTENDING.md
@@ -1034,6 +1036,7 @@ test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/loop_test.go
 test/functional/permission_test.go
+test/functional/readfile_test.go
 test/functional/sample_test.go
 test/functional/serve_test.go
 test/functional/site_test.go

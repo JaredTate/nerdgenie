@@ -76,23 +76,34 @@ func TestASecondServeOnTheSameHomeRefusesToStart(t *testing.T) {
 	}
 }
 
-// runningAgent is one child process of "coeus serve" with the home folder and
-// the scripted model server behind it.
+// runningAgent is one child process of "coeus serve" with the home folder, the
+// folder it may work in, and the scripted model server behind it.
 type runningAgent struct {
 	program string
 	home    contract.Home
+	work    string
 }
 
-// startTheAgent builds the binary, writes a home folder pointing at a scripted
-// model server, starts "coeus serve" as its own process, and waits until it
-// answers on its socket. Everything it made is cleaned up when the test ends.
+// startTheAgent starts the agent against a script that needs to know nothing
+// about the folder the agent may work in.
 func startTheAgent(t *testing.T, script testkit.Script) runningAgent {
 	t.Helper()
-	model := testkit.NewFakeProviderServer(script)
+	return startTheAgentWorkingIn(t, func(string) testkit.Script { return script })
+}
+
+// startTheAgentWorkingIn builds the binary, writes a home folder pointing at a
+// scripted model server, starts "coeus serve" as its own process, and waits
+// until it answers on its socket. The script is made from the folder the agent
+// may work in, so that a step can name a file inside it. Everything it made is
+// cleaned up when the test ends.
+func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.Script) runningAgent {
+	t.Helper()
+	work := aWorkFolder(t)
+	model := testkit.NewFakeProviderServer(makeScript(work))
 	t.Cleanup(model.Close)
 
 	program := buildTheBinary(t)
-	home := aHomePointingAt(t, model.Address()+"/v1")
+	home := aHomePointingAt(t, model.Address()+"/v1", work)
 
 	saidPath := filepath.Join(t.TempDir(), "coeus-serve.log")
 	said, err := os.Create(saidPath)
@@ -125,7 +136,7 @@ func startTheAgent(t *testing.T, script testkit.Script) runningAgent {
 	})
 
 	waitForTheSocket(t, home, saidPath)
-	return runningAgent{program: program, home: home}
+	return runningAgent{program: program, home: home, work: work}
 }
 
 // buildTheBinary compiles cmd/coeus into a folder of this test's own, so that
@@ -155,17 +166,24 @@ func repositoryRoot(t *testing.T) string {
 	return root
 }
 
+// aWorkFolder makes the one folder the agent may read and write in, which the
+// configuration names as its sandbox root.
+func aWorkFolder(t *testing.T) string {
+	t.Helper()
+	work := filepath.Join(t.TempDir(), "work")
+	if err := os.MkdirAll(work, contract.HomeFolderMode); err != nil {
+		t.Fatalf("making the work folder failed: %v", err)
+	}
+	return work
+}
+
 // aHomePointingAt makes a home folder whose one model alias is the scripted
 // server, so that nothing in this test reaches the real machine's model.
-func aHomePointingAt(t *testing.T, baseAddress string) contract.Home {
+func aHomePointingAt(t *testing.T, baseAddress string, work string) contract.Home {
 	t.Helper()
 	home := contract.NewHome(filepath.Join(t.TempDir(), ".coeus"))
 	if err := os.MkdirAll(home.Root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the home folder failed: %v", err)
-	}
-	work := filepath.Join(t.TempDir(), "work")
-	if err := os.MkdirAll(work, contract.HomeFolderMode); err != nil {
-		t.Fatalf("making the work folder failed: %v", err)
 	}
 
 	settings := fmt.Sprintf(`default_model = "local"

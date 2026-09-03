@@ -443,13 +443,21 @@ card arriving above a preview cannot take the preview's three answers with it.
 
 `cmd/coeus` is the binary. Every subcommand is one file holding one `subcommand` value, and `main.go` holds the table those values go in. The table is `version`, `help`, `init`, `doctor`, `serve`, `tui`, `install`, `uninstall`, `signal`, `askpass`, and the sandbox helper, which is marked hidden because the fence starts it and nobody types it. A hidden subcommand runs like any other and is only left out of the listing. Typing `coeus` with nothing after it runs `tui`, because a person who types the program's name wants to talk to the agent rather than read a list. `run` gives back whatever exit code the subcommand returned, unchanged, because the service unit reads them.
 
-**`cmd/coeus/serve.go` is the one place every package meets.** It makes any folder of the home layout that is missing, reads `config.Load`, and then opens, in this order: the run lock, the event log, the queue, the vault, the memory, and the permission function; then the model, the event stream, the local socket, the command registry, and the router. The event log is opened before the queue because the log owns the database file's identity. Everything is built on `clock.System()`. The model is the configuration's default alias and then its fallback chain, each one through `provider.New` with the key resolved out of the vault, each wrapped in `provider.WithRetries`, and all of them behind `provider.NewChain`. The registry holds the ten core commands from `command.New(...).All()`, `vault.NewCommand`, `(*memory.Memory).Command()`, `signal.PairCommand` when `config.toml` names a Signal account, and `/readyz`, which answers the one word "ready" and is a slash command rather than anything of its own, so that a health check travels the whole way a person's message travels: in on the socket, into the queue, out through the router.
+**`cmd/coeus` is where every package meets, in five files the orchestrator owns.** `main.go` holds the subcommand table: version, help, init, doctor, serve, tui, install, uninstall, signal, backup, restore, askpass, and the sandbox helper, which is hidden because the fence starts it and nobody types it. Typing `coeus` with nothing after it runs `tui`. `serve.go` opens the stores and runs the serving loops; `wiring.go` builds everything a message meets on its way in and out; `model.go` builds the model chain; `previews.go` remembers the questions waiting for an answer; `skillsbox.go` unties one knot; `runlock.go` stops a second copy.
 
-**The run lock** is `run/coeus.lock`, held with an advisory lock on the open file, so a copy that is killed outright still lets the next one start. A second `coeus serve` on one home folder is refused with a line naming the lock file. **The drain loop** takes messages off the queue in passes of at most sixty-four, hands each to `channel.Router`, marks it done, and waits on the queue's own nudge in between. `serve` returns when the terminal interrupt or the service manager's `SIGTERM` cancels the context.
+**The order things open in.** The run lock, then SQLite's own quick check on the database, then the event log, the queue, the vault, the memory, the jobs, the permission function, and the reliability guard; then the model, the event stream, the local socket, the working-context builder, the sandbox fence, the browser, the tool registry, the skill store, the turn loop, the command registry, and the router. The event log is opened before the queue, the memory and the jobs, because the log owns the database file's identity. Everything is built on `clock.System()`. The model is the configuration's default alias and then its fallback chain, each through `provider.New` with the key resolved out of the vault, each wrapped in `provider.WithRetries`, all behind `provider.NewChain`.
 
-**`cmd/coeus/firstturn.go` is a stand-in and is meant to be deleted.** Until `internal/loop` lands, `firstTurn.StartTask` is what the router calls for a message that is not a command: it writes the message to the event log, asks `internal/context` to build the working context, makes one model call inside the turn's time budget, writes the reply to the log, and sends it back through the channel the message came from. The prompt is the real one — `context.New` on the home folder, the memory caps, and the output cap, then `Build` with the model's window and the conversation so far — so the person talking to the agent today reads the same instruction text, the same persona, and the same layer order the turn loop will send tomorrow. What is left out is everything that needs the loop: no task record, no job, no pinned evidence, no memory hint, and `ToolsOff` set, because nothing runs a tool yet. The only state this file holds between turns is the conversation, capped at twenty messages and thirty-two kilobytes, which the task record replaces. The swap is one line in `openTheFront`: `loop.New(...).StartTask` in place of `running.turn.StartTask`. `noSkillsYet` in `serve.go` is the same kind of stand-in for `internal/skill`, and goes the same way in wave 4.
+**The turn loop.** `loop.New` gets the model chain, the shared tool registry, `ToolsForTask` (which builds a registry per task, so the task tool writes that task's record and a label such as `r7` reads that task's results), the permission function, the event log, the clock, `loop.TheWorkingContext(builder)`, the jobs, the memory, the skills, the fence, and the caps. The router's `StartTask` hands a message to `Loop.Run`, or to `Loop.Deliver` when a task is already running; the agent keeps its own busy flag for that rather than reading `Loop.Running`, because `Running` is the record's number and a task has none until its first tool call, so a question answered with no tools would look like an idle agent. `StopTask` is `Loop.Stop`. A goroutine beside the drainer waits on `Jobs.Wait` and calls `RunNextJobTask` whenever nothing is running, resting a second when nothing is due so that work already past its moment cannot turn the wait into a spin.
 
-**One thing that stand-in does not do, on purpose: it publishes no deltas.** `provider.WithRetries` and `provider.NewChain` both hold an attempt's text back until that attempt has succeeded, so a delta today is not live text; the whole answer arrives in one lump a moment before the reply. The two then travel to a screen by different paths — deltas on the event stream, the reply straight out of `Socket.Send` — and nothing orders those paths against each other, so the reply arrives first and the terminal, which reads a delta after a reply as the start of a new answer, draws the same answer twice. That was measured against the real Qwen on this machine. Live text becomes possible when a channel's reply rides the same event stream its deltas do, and until then a delta envelope costs the reader a duplicated answer and buys nothing.
+**The registry** holds the ten core commands from `command.New(...).All()`, then `/tasks` and `/stop` from the loop, `/jobs` and `/cron` from the job store, `/skills`, `/vault`, `/memory`, `/pair` when `config.toml` names a Signal account, and `/readyz`, which answers the one word "ready" and is a slash command rather than anything of its own, so that a health check travels the whole way a person's message travels: in on the socket, into the queue, out through the router.
+
+**Two knots and how they are untied.** The skills replay through the tools and the skill tool offers the skills, so `skillsbox.go` is an empty box the registry is built with and the store is dropped into a moment later; nothing asks the box anything until the agent is serving. And `Deps.PendingPreviews` and `Deps.Answer` cannot be filled from the channel, because whoever asked is waiting inside `ShowPreview` and its waiting list is private; so `previews.go` wraps the user's channel, writes each question down while it waits, and waits on both answers at once, the one a screen sends back and the one somebody typed as `/approve 3`, giving the other up as soon as one lands.
+
+**The reliability guard.** `reliability.New` is built over the home, the clock, the event log, the caps, `backup_path`, and a send function that reaches the user on the terminal channel. `Start` runs at the top of `serve` and its findings are printed: an unclean exit, a database moved aside, an archive put back, a tripped breaker, replies sent again. `Ready` is called as soon as the socket is listening, `FeedWatchdog` runs beside the drainer for the life of the program, and `Stop` is the clean exit. One part of its startup cannot wait for it: the database check has to run before anything opens the file, and the guard needs the event log, so `serve.go` calls `reliability.CheckDatabase` itself before `log.Open` and the guard's own move-aside and restore follow.
+
+**The browser is optional.** `browser.ProcessStart` points at `workers/browser/main.js` beside the binary, with `config.BrowserProfilePath` as the profile and human pacing; `browser.New` takes that start, the user's channel, the vault as both `Secrets` and `Codes`, the clock, and `handoff_timeout`; the browser and its `Credentials`, `TwoFactorCode` and `AskUser` go into the tool settings, and `browser.ScreenCommand` into the registry. When the bundle is not there, or Node is not on the PATH, the agent comes up without it and says so in the doctor's own manner, and the seven browser tools refuse.
+
+**One thing is left off on purpose: no deltas.** `provider.WithRetries` and `provider.NewChain` both hold an attempt's text back until that attempt has succeeded, so a delta today is not live text; the whole answer arrives in one lump a moment before the reply. The two then travel to a screen by different paths, deltas on the event stream and the reply straight out of `Socket.Send`, and nothing orders those paths against each other. Measured against the real local model on this machine, the reply won every time, and the terminal, which reads a delta arriving after a reply as the start of a new answer, drew the same answer twice. Live text becomes possible the day a channel's reply rides the same event stream its deltas do.
 
 ## The commands and the four subcommands (built, wave 3, brief 3.3)
 
@@ -857,24 +865,31 @@ only on the socket envelope, the home's socket path, `contract.Command`,
 tested before `internal/channel` existed, against a fake dialer of its own and a
 real Unix socket in a temporary home.
 
-### Wave 3, the orchestrator's two files: the table and `coeus serve`
+### Wave 3 and 4, the orchestrator's files: the table and `coeus serve`
 
 `cmd/coeus/main.go` holds every subcommand this folder wrote, the bare `coeus`
 command opens the terminal screen, and the wave-0 stub registry in `commands.go`
-is gone in favour of `command.NewRegistry`. `cmd/coeus/serve.go` opens everything
-one running agent owns and is described above; `cmd/coeus/firstturn.go` answers a
-message with one model call and no tools until `internal/loop` lands.
-`test/functional/serve_test.go` builds the binary, starts `coeus serve` against a
-temporary home and the scripted provider server, attaches over the socket, and
-reads the reply back, which is the first test that drives the whole program
-rather than its parts.
+is gone in favour of `command.NewRegistry`. The wiring is described above and
+lives in `serve.go`, `wiring.go`, `model.go`, `previews.go`, `skillsbox.go`, and
+`runlock.go`; the stand-in that answered a message with one model call before
+`internal/loop` landed is deleted. `test/functional/serve_test.go` builds the
+binary, starts `coeus serve` against a temporary home and the scripted provider
+server, attaches over the socket, and reads the reply back;
+`test/functional/readfile_test.go` drives the same program through a whole task
+with the real `read` tool and asserts that what the file says comes back in the
+reply. They are the first tests that drive the whole program rather than its
+parts.
 
-Two things were found by running it against the real local model. A home folder
+Four things were found by running it against the real local model. A home folder
 whose path is long cannot open its socket at all, because a Unix socket path may
 be at most 107 bytes and nothing checks that before `net.Listen` refuses it with
 `bind: invalid argument`; `contract.Home` or `channel.Listen` should say so in
-plain words. And the deltas and the reply reach a screen by two unordered paths,
-which is why the stand-in publishes no deltas.
+plain words. The deltas and the reply reach a screen by two unordered paths,
+which is why the loop is given no delta function. `Loop.Running` is the record's
+number and so is empty until the first tool call, which is why the agent keeps
+its own busy flag. And the shipped `output_tokens_per_call` of 8192 is the whole
+window of a small model, so `context.Build` refuses with "no room for the
+record"; a doctor warning would catch that before a person meets it.
 
 The screen was first written against three shapes the contract did not yet name,
 and those are now named in it: `SocketEnvelope.MaskInput`, the twelve

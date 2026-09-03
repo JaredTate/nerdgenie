@@ -66,6 +66,7 @@ func TestTheTableHoldsEverySubcommandThisFolderWrote(t *testing.T) {
 	wanted := []string{
 		"version", helpName, "init", "doctor", "serve", tuiName,
 		"install", "uninstall", "signal", "askpass", "sandbox-entry",
+		"backup", "restore",
 	}
 	inTheTable := map[string]bool{}
 	for _, command := range theRealTable() {

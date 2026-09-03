@@ -47,6 +47,8 @@ func subcommands() []subcommand {
 		installSubcommand,
 		uninstallSubcommand,
 		signalSubcommand,
+		backupSubcommand,
+		restoreSubcommand,
 		askpassSubcommand,
 		hiddenFrom(sandboxEntrySubcommand),
 	}

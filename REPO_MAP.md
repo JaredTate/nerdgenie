@@ -928,6 +928,7 @@ internal/tui/testdata/themed-conversation-120x40.txt
 internal/tui/testdata/themed-conversation-80x24.txt
 internal/tui/theme_test.go
 internal/tui/transcript.go
+internal/tui/typing_test.go
 internal/tui/unixsocket.go
 internal/tui/unixsocket_test.go
 internal/vault/command.go

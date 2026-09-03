@@ -250,7 +250,10 @@ func TestWalkRecordOfAPageWithNoSiteToNameNamesNone(t *testing.T) {
 
 func TestWalkRecordOfAPageOnAVeryLongSiteStillFitsTheOneLineInThePrompt(t *testing.T) {
 	built := newBench(t)
-	long := "https://" + strings.Repeat("a", 200) + ".test/shop"
+	// The host is as long as a host name may be: four labels of sixty letters,
+	// each inside the sixty-three a label allows, under the two hundred and
+	// fifty-three a whole name allows.
+	long := "https://" + strings.Repeat("a", 60) + "." + strings.Repeat("b", 60) + "." + strings.Repeat("c", 60) + "." + strings.Repeat("d", 60) + ".test/shop"
 	built.worker.AddPage(contract.Snapshot{URL: long, Title: "A long way from home", TabID: "t1"})
 	if _, err := built.worker.Open(context.Background(), long); err != nil {
 		t.Fatalf("cannot open the page on the long site: %v", err)

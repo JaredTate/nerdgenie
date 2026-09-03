@@ -91,6 +91,7 @@ func (running *agent) openTheWorkbench(ctx context.Context) error {
 	running.builder = newPerTaskContext(running.home, running.settings)
 	running.fence = running.openTheFence()
 	running.browser = running.openTheBrowser()
+	running.desktop = running.openTheDesktop()
 	running.skillsBox = &skillsBox{}
 
 	walking, stopWalking := withinTheToolWalkLimit(ctx)
@@ -254,6 +255,9 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 		settings.Credentials = running.browser.Credentials
 		settings.TwoFactorCode = running.browser.TwoFactorCode
 		settings.AskUser = running.browser.AskUser
+	}
+	if running.desktop != nil {
+		settings.Desktop = running.desktop
 	}
 	if records != nil {
 		settings.Records = records

@@ -18,6 +18,7 @@ import (
 	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/config"
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/desktop"
 	"github.com/JaredTate/coeus/internal/job"
 	"github.com/JaredTate/coeus/internal/log"
 	"github.com/JaredTate/coeus/internal/loop"
@@ -190,6 +191,7 @@ type agent struct {
 	builder   *perTaskContext
 	fence     contract.Sandbox
 	browser   *browser.Browser
+	desktop   *desktop.Desktop
 	tools     *tool.Registry
 	skills    *skill.Store
 	skillsBox *skillsBox
@@ -382,6 +384,9 @@ func (running *agent) close() error {
 	}
 	if running.browser != nil {
 		problems = append(problems, running.browser.Close())
+	}
+	if running.desktop != nil {
+		problems = append(problems, running.desktop.Close())
 	}
 	if running.socket != nil {
 		problems = append(problems, running.socket.Close())

@@ -1217,6 +1217,7 @@ test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
 test/functional/command_test.go
 test/functional/context_test.go
+test/functional/desktop_test.go
 test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go

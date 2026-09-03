@@ -40,10 +40,10 @@ func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFl
 	fallback := contract.DefaultSandboxRoots(userHome)
 
 	if len(chosen.workFolders) > 0 {
-		return makeWorkFolders(expandFolders(chosen.workFolders, userHome), userHome)
+		return makeWorkFolders(expandFolders(chosen.workFolders, userHome), userHome, setup.Home.Root)
 	}
 	if !ask.canAsk() {
-		return makeWorkFolders(fallback, userHome)
+		return makeWorkFolders(fallback, userHome, setup.Home.Root)
 	}
 
 	question := "Which folders may Coeus work in? Nothing outside them can be read or written.\nSeparate several with commas."
@@ -52,7 +52,7 @@ func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFl
 		if err != nil {
 			return nil, err
 		}
-		roots, err := makeWorkFolders(expandFolders(splitFolders(answer), userHome), userHome)
+		roots, err := makeWorkFolders(expandFolders(splitFolders(answer), userHome), userHome, setup.Home.Root)
 		if err == nil {
 			return roots, nil
 		}
@@ -72,13 +72,14 @@ func expandFolders(written []string, userHome string) []string {
 
 // makeWorkFolders checks each folder against the sandbox-root rule and makes
 // the ones that are not there yet, which is how the work folder ~/coeus comes
-// into being on a fresh machine.
-func makeWorkFolders(roots []string, userHome string) ([]string, error) {
+// into being on a fresh machine. The agent's own home folder is passed in
+// rather than worked out, because a test puts it somewhere else.
+func makeWorkFolders(roots []string, userHome string, agentHome string) ([]string, error) {
 	if len(roots) == 0 {
 		return nil, fmt.Errorf("no folder was named, so Coeus could reach nothing; name one such as %s", contract.DefaultSandboxRoots(userHome)[0])
 	}
 	for _, root := range roots {
-		if err := contract.CheckSandboxRoot(root, userHome); err != nil {
+		if err := contract.CheckSandboxRoot(root, userHome, agentHome); err != nil {
 			return nil, err
 		}
 		if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {

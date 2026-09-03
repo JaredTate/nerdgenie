@@ -674,6 +674,7 @@ internal/signal/split_test.go
 internal/signal/stream.go
 internal/signal/stream_test.go
 internal/signal/streamclose_test.go
+internal/skill/approval_test.go
 internal/skill/bounds_test.go
 internal/skill/browser/bounds.go
 internal/skill/browser/doc.go
@@ -714,6 +715,9 @@ internal/skill/run.go
 internal/skill/run_test.go
 internal/skill/save.go
 internal/skill/save_test.go
+internal/skill/site.go
+internal/skill/site_internal_test.go
+internal/skill/site_test.go
 internal/skill/steps.go
 internal/skill/store.go
 internal/skill/testdata/broken/no-procedure/CHANGELOG.md

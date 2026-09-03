@@ -24,6 +24,18 @@ var theTestDay = time.Date(2026, 9, 2, 14, 0, 0, 0, time.UTC)
 // facts is enough to push a file past its cap.
 var smallCaps = contract.MemoryCaps{WorldFactsBytes: 400, UserFactsBytes: 300}
 
+// The bounds these tests hold the package to, written out as the numbers they
+// are rather than read back off the constants that hold them. A test that reads
+// the constant moves whenever the constant moves and so pins nothing.
+const (
+	// theHintLineCap is the longest one line of the hint may be.
+	theHintLineCap = 120
+	// theSearchResultCap is the most results one search hands back.
+	theSearchResultCap = 50
+	// theFactTextCap is the longest one fact may be.
+	theFactTextCap = 4000
+)
+
 // openedMemory is one memory opened on a real database file in a temporary home,
 // with the event log behind it and a clock the test moves.
 type openedMemory struct {
@@ -232,7 +244,7 @@ func TestASaveIsRefusedWhenAFactSaysNothingOrCannotBeWrittenDown(t *testing.T) {
 		"a fact whose text is spaces":        {{Text: "   ", Source: "task 17"}},
 		"a fact with an id no line can hold": {{ID: "note:x", Text: "something", Source: "task 17"}},
 		"a fact far past the text cap": {{
-			Text:   strings.Repeat("a", memory.MaxFactTextBytes+1),
+			Text:   strings.Repeat("a", theFactTextCap+1),
 			Source: "task 17",
 		}},
 		"two facts with the same id": {

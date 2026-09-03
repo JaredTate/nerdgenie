@@ -130,8 +130,8 @@ func TestTheHintIsThreeLinesOfOneHundredAndTwentyCharactersAtMost(t *testing.T) 
 		t.Fatalf("the hint is %d lines, want %d", len(hint), contract.MemoryHintLines)
 	}
 	for _, line := range hint {
-		if len([]rune(line)) > memory.MaxHintRunes {
-			t.Errorf("the hint line is %d characters, and the cap is %d", len([]rune(line)), memory.MaxHintRunes)
+		if len([]rune(line)) > theHintLineCap {
+			t.Errorf("the hint line is %d characters, and the cap is %d", len([]rune(line)), theHintLineCap)
 		}
 		if strings.ContainsAny(line, "\n\r") {
 			t.Errorf("the hint line %q carries a line break, and each hint is one line", line)
@@ -151,8 +151,8 @@ func TestASearchIsCappedHoweverManyResultsAreAskedFor(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot search with the limit %d: %v", limit, err)
 		}
-		if len(found) > memory.MaxSearchResults {
-			t.Errorf("a search with the limit %d gave %d results, and the cap is %d", limit, len(found), memory.MaxSearchResults)
+		if len(found) > theSearchResultCap {
+			t.Errorf("a search with the limit %d gave %d results, and the cap is %d", limit, len(found), theSearchResultCap)
 		}
 	}
 	found, err := opened.memory.Search(ctx, "anniversary", 4)

@@ -149,8 +149,8 @@ func TestAVeryLongCorrectionIsCutAndSaysWhereTheRestIs(t *testing.T) {
 	if !strings.Contains(found[0].Text, "the whole of it is in the event log") {
 		t.Errorf("the long correction came back as %q, and it must say where the rest of it is", found[0].Text)
 	}
-	if len(found[0].Text) > memory.MaxFactTextBytes {
-		t.Errorf("the long correction is %d bytes, and one fact may be at most %d", len(found[0].Text), memory.MaxFactTextBytes)
+	if len(found[0].Text) > theFactTextCap {
+		t.Errorf("the long correction is %d bytes, and one fact may be at most %d", len(found[0].Text), theFactTextCap)
 	}
 }
 

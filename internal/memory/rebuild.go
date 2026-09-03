@@ -38,13 +38,24 @@ func (budget *runBudget) spend() bool {
 	return true
 }
 
+// newRunBudget is the budget one run of the indexer starts with, which is the
+// most pieces of work any run may do.
+func newRunBudget() *runBudget {
+	return &runBudget{left: MaxIndexedPerRun}
+}
+
 // rebuild brings the index up to date with what is on disk and in the event
 // log, inside one run's budget. It runs once when the memory is opened.
 func (memory *Memory) rebuild(ctx context.Context) error {
 	memory.writing.Lock()
 	defer memory.writing.Unlock()
+	return memory.rebuildInside(ctx, newRunBudget())
+}
 
-	budget := &runBudget{left: MaxIndexedPerRun}
+// rebuildInside does the work of a rebuild with the write lock already held and
+// with a budget a test can make small, so that what a run does when its budget
+// runs out can be proved without writing two thousand rows first.
+func (memory *Memory) rebuildInside(ctx context.Context, budget *runBudget) error {
 	if err := memory.indexTheFactFiles(ctx, budget); err != nil {
 		return err
 	}

@@ -6,10 +6,14 @@ package signal_test
 // gets a pairing code.
 
 import (
+	"context"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/testkit"
 	"github.com/JaredTate/coeus/internal/vault"
@@ -19,9 +23,16 @@ import (
 // enough that a split can fall in the middle of it.
 const theSecret = "correct-horse-battery-staple-9137"
 
+// theAccount is the number the agent is linked as here, which is also where a
+// reply goes while nobody has written in.
+const theAccount = "+15125550100"
+
 func TestASecretSplitAcrossTwoMessagesIsStillBlackedOut(t *testing.T) {
+	daemon := testkit.NewFakeSignalCLI()
+	defer daemon.Close()
 	home := testkit.NewTempHome(t)
-	held, err := vault.Open(home, testkit.NewFakeClock(time.Unix(0, 0).UTC()))
+	clock := testkit.NewFakeClock(time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC))
+	held, err := vault.Open(home, clock)
 	if err != nil {
 		t.Fatalf("opening the vault failed: %v", err)
 	}
@@ -30,21 +41,44 @@ func TestASecretSplitAcrossTwoMessagesIsStillBlackedOut(t *testing.T) {
 		t.Fatalf("adding the secret failed: %v", err)
 	}
 
+	host, port := hostAndPortOf(t, strings.TrimSuffix(daemon.HealthAddress(), testkit.SignalHealthPath))
+	channel, err := signal.NewChannel(signal.ChannelOptions{
+		Account: theAccount,
+		Host:    host,
+		Port:    port,
+		Home:    home,
+		Clock:   clock,
+		Secrets: held,
+	})
+	if err != nil {
+		t.Fatalf("building the Signal channel failed: %v", err)
+	}
+	t.Cleanup(func() { _ = channel.Close() })
+
 	// A reply long enough that Signal's own length limit falls in the middle of
-	// the secret. The channel splits the reply and then redacts each piece on
-	// its own, so neither piece holds the whole secret and neither is changed.
+	// the secret, so that a channel which redacts each piece after the split
+	// sends the secret out in two halves a reader joins back up.
 	padding := strings.Repeat("a", signal.MessageLimit-len(theSecret)/2)
 	reply := padding + theSecret + " and that is the end of it."
+	if err := channel.Send(context.Background(), reply); err != nil {
+		t.Fatalf("sending the reply failed: %v", err)
+	}
 
+	sent := daemon.Sends()
+	if len(sent) < 2 {
+		t.Fatalf("the reply went out in %d messages, and this test needs one long enough to be split in two", len(sent))
+	}
 	joined := &strings.Builder{}
-	for _, piece := range signal.SplitReply(reply) {
-		joined.WriteString(held.Redact(piece))
+	for _, one := range sent {
+		joined.WriteString(one.Message)
 	}
 	if strings.Contains(joined.String(), theSecret) {
-		t.Errorf("the secret came back whole once the pieces were put together again; the redactor runs on one message at a time,"+
+		t.Errorf("the secret came back whole once the %d messages were put together again; the redactor runs on one message at a time,"+
 			" so a value that falls across a split leaves the program in two halves that a reader joins back up."+
-			" Redact the whole reply before it is split, or split on a boundary the redactor has already passed. The pieces were %d.",
-			len(signal.SplitReply(reply)))
+			" Redact the whole reply before it is split.", len(sent))
+	}
+	if !strings.Contains(joined.String(), contract.RedactedMarker) {
+		t.Errorf("nothing in the reply was blacked out at all, and the reply held a password the vault knows")
 	}
 }
 
@@ -70,4 +104,19 @@ func TestThreeStrangersCannotStopTheOwnerFromPairing(t *testing.T) {
 		t.Errorf("the owner's own phone was offered no pairing code because three unknown senders hold the three waiting slots,"+
 			" and it was told nothing at all, so three strangers can shut a user out of their own assistant: offered=%v err=%v", offered, err)
 	}
+}
+
+// hostAndPortOf pulls the host and the port out of an address such as
+// "http://127.0.0.1:41234", which is how the fake daemon says where it is.
+func hostAndPortOf(t *testing.T, address string) (string, int) {
+	t.Helper()
+	parsed, err := url.Parse(address)
+	if err != nil {
+		t.Fatalf("cannot read the daemon address %q: %v", address, err)
+	}
+	port, err := strconv.Atoi(parsed.Port())
+	if err != nil {
+		t.Fatalf("cannot read the port out of %q: %v", address, err)
+	}
+	return parsed.Hostname(), port
 }

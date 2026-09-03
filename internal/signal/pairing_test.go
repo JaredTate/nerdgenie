@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -75,18 +76,52 @@ func TestPairingForgetsACodeAfterAnHour(t *testing.T) {
 	}
 }
 
-func TestPairingHoldsOnlyThreeCodesAtOnce(t *testing.T) {
-	pairing, _, _ := newTestPairing(t)
+func TestPairingHoldsOnlyTheCapAndANewSenderMakesRoom(t *testing.T) {
+	pairing, clock, _ := newTestPairing(t)
 
-	for _, sender := range []string{"+15125550001", "+15125550002", "+15125550003"} {
-		offerTo(t, pairing, sender)
+	// The waiting list is filled to the cap, one sender every second, so that
+	// which code has waited longest is known and none has run out of its hour.
+	oldest := offerTo(t, pairing, "+15125550000")
+	for number := 1; number < MaxPendingCodes; number++ {
+		clock.Advance(time.Second)
+		offerTo(t, pairing, fmt.Sprintf("+1512555%04d", number))
 	}
-	code, offered, err := pairing.Offer("+15125550004")
+
+	clock.Advance(time.Second)
+	newest := offerTo(t, pairing, "+15125559999")
+	if len(pairing.state.Pending) > MaxPendingCodes {
+		t.Errorf("%d codes are waiting, and the cap is %d", len(pairing.state.Pending), MaxPendingCodes)
+	}
+	if _, err := pairing.Approve(oldest); err == nil {
+		t.Errorf("the code that had waited longest still works, so nothing made room for the new sender")
+	}
+	sender, err := pairing.Approve(newest)
 	if err != nil {
-		t.Fatalf("offering a fourth code failed: %v", err)
+		t.Fatalf("the newest sender's code was refused: %v", err)
 	}
-	if offered {
-		t.Errorf("a fourth code %q was offered while three are already waiting, and three is the cap", code)
+	if sender != "+15125559999" {
+		t.Errorf("the approved sender is %q, want the newest one", sender)
+	}
+}
+
+func TestAWrongCodeLockoutStillOffersAnotherSenderACode(t *testing.T) {
+	pairing, _, _ := newTestPairing(t)
+	code := offerTo(t, pairing, "+15125550001")
+
+	for try := range MaxWrongTries {
+		if _, err := pairing.Approve("ZZZZ9999"); err == nil {
+			t.Fatalf("wrong try %d was accepted", try+1)
+		}
+	}
+	if _, err := pairing.Approve(code); err == nil {
+		t.Fatalf("the right code was accepted after five wrong tries, and five wrong tries locks the door")
+	}
+
+	// The lockout is on typing codes, not on being handed one. The owner's own
+	// phone must still be told how to pair, or one person's wrong codes shut
+	// everybody out for an hour.
+	if _, offered, err := pairing.Offer("+15125550123"); err != nil || !offered {
+		t.Errorf("a sender was told nothing at all while the door was shut on somebody else's wrong codes: offered=%v err=%v", offered, err)
 	}
 }
 

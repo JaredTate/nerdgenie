@@ -18,6 +18,22 @@ func aGuard(t *testing.T, home contract.Home, store *testkit.FakeStore) (*reliab
 	return aGuardWithClock(t, home, store, testkit.NewFakeClock(startOfTime))
 }
 
+// aNewLife is what every start of the program does before anything opens the
+// database: the recovery runs, and it hands back the path to open. Calling it a
+// second time on the same home is what a restart looks like, because the
+// sentinel of the life before it is still there.
+func aNewLife(t *testing.T, home contract.Home) string {
+	t.Helper()
+	databaseFile, err := reliability.PrepareDatabase(context.Background(), reliability.RecoverySettings{
+		Home:  home,
+		Clock: testkit.NewFakeClock(startOfTime),
+	})
+	if err != nil {
+		t.Fatalf("preparing the database failed: %v", err)
+	}
+	return databaseFile
+}
+
 // aGuardWithClock is the same thing over a clock the test keeps hold of, for the
 // tests that move time while a turn is running.
 func aGuardWithClock(t *testing.T, home contract.Home, store *testkit.FakeStore, clock *testkit.FakeClock) (*reliability.Guard, *sender) {
@@ -61,6 +77,22 @@ func TestAGuardNeedsAHomeAClockALogAndAWayOfSending(t *testing.T) {
 	}
 	if _, err := reliability.New(whole); err != nil {
 		t.Errorf("building a guard with everything it needs failed: %v", err)
+	}
+}
+
+func TestTheGuardRefusesToStartWhenTheDatabaseWasNotCheckedFirst(t *testing.T) {
+	guard, _ := aGuard(t, testkit.NewTempHome(t), testkit.NewFakeStore())
+
+	// PrepareDatabase has not been called, which is the order that let the
+	// agent open the database before the check and then write every event into
+	// the file the check moved aside.
+	_, err := guard.Start(context.Background())
+
+	if err == nil {
+		t.Fatalf("the guard started although nothing had checked the database first")
+	}
+	if !strings.Contains(err.Error(), "PrepareDatabase") {
+		t.Errorf("the refusal reads %q, want it to name the call that has to come first", err)
 	}
 }
 

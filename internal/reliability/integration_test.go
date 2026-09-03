@@ -358,3 +358,57 @@ func overwriteTheMiddle(t *testing.T, path string) {
 		t.Fatalf("writing over the middle of %s failed: %v", path, err)
 	}
 }
+
+func TestTheEventsWrittenAfterARecoveryGoIntoTheDatabaseTheAgentIsUsing(t *testing.T) {
+	home := aHomeWorthBackingUp(t)
+	writeSomeEvents(t, home.DatabaseFile(), 200)
+	if _, err := reliability.Backup(context.Background(), reliability.BackupSettings{
+		Home:  home,
+		Clock: testkit.NewFakeClock(startOfTime),
+	}); err != nil {
+		t.Fatalf("writing the backup failed: %v", err)
+	}
+
+	// The life before this one was killed, so its sentinel is still there, and
+	// the database went bad while it was running.
+	aNewLife(t, home)
+	overwriteTheMiddle(t, home.DatabaseFile())
+
+	// This is the order the program opens things in: the recovery first, and
+	// then the event log on the path the recovery hands back.
+	databaseFile := aNewLife(t, home)
+	opened := aRealLog(t, databaseFile)
+	told := &sender{}
+	guard, err := reliability.New(reliability.Settings{
+		Home:  home,
+		Clock: testkit.NewFakeClock(startOfTime),
+		Store: opened,
+		Caps:  contract.DefaultConfig().Caps,
+		Send:  told.send,
+	})
+	if err != nil {
+		t.Fatalf("building the guard failed: %v", err)
+	}
+	found, err := guard.Start(context.Background())
+	if err != nil {
+		t.Fatalf("starting after the damage failed: %v", err)
+	}
+	if _, err := opened.Append(context.Background(), contract.Event{
+		Occurred: startOfTime.Add(time.Hour),
+		TaskID:   "17",
+		Kind:     contract.EventMessage,
+		Body:     []byte(`{"text":"the first thing the agent did after the recovery"}`),
+	}); err != nil {
+		t.Fatalf("writing the first event after the recovery failed: %v", err)
+	}
+
+	if found.DatabaseMovedTo == "" {
+		t.Fatalf("the damaged database was left where the agent would open it: %+v", found)
+	}
+	if !strings.Contains(readSomeEvents(t, home.DatabaseFile()), "after the recovery") {
+		t.Errorf("the database the agent is using does not hold the event written after the recovery, so the event went into the file that was moved aside and the user has been told to ignore it")
+	}
+	if _, err := os.Stat(found.DatabaseMovedTo); err != nil {
+		t.Errorf("the damaged database was thrown away rather than kept: %v", err)
+	}
+}

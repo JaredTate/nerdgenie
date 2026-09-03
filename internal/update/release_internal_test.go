@@ -63,11 +63,11 @@ func aPlainRelease(t *testing.T) []byte {
 	t.Helper()
 	return aPackedRelease(t,
 		[]tar.Header{
-			{Name: BinaryName, Mode: 0o755, Size: 20, Typeflag: tar.TypeReg},
+			{Name: BinaryName, Mode: 0o755, Size: 17, Typeflag: tar.TypeReg},
 			{Name: "workers/", Mode: 0o755, Typeflag: tar.TypeDir},
 			{Name: "workers/worker.js", Mode: 0o644, Size: 9, Typeflag: tar.TypeReg},
 		},
-		[]string{"#!/bin/sh\nexit 0\n     ", "", "a bundle\n"})
+		[]string{"#!/bin/sh\nexit 0\n", "", "a bundle\n"})
 }
 
 func TestAReleaseIsUnpackedIntoItsOwnFolder(t *testing.T) {

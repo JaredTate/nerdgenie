@@ -33,8 +33,9 @@ const DrainExpiry = 30 * time.Minute
 const bootIDFile = "/proc/sys/kernel/random/boot_id"
 
 // plainDrainReason is what a drain is called when the marker gives no reason of
-// its own, which is the one thing every drain has in common.
-const plainDrainReason = "Coeus is being stopped"
+// its own, which is the one thing every drain has in common. It reads as the
+// second half of a sentence, as every reason written into the marker does.
+const plainDrainReason = "it is being stopped"
 
 // Drain is the marker that tells the loop to finish the running task and take
 // no new one, which is how the updater stops the agent without cutting a task

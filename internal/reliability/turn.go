@@ -23,7 +23,7 @@ func (guard *Guard) WhyNoNewTask() string {
 			QuietPeriod)
 	}
 	if why := guard.drain.Why(); why != "" {
-		return why + ", so it is finishing the task it has and starting no new one. Ask again in a few minutes."
+		return "Coeus is finishing the task it has and starting no new one, because " + why + ". Ask again in a few minutes."
 	}
 	return ""
 }

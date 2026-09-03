@@ -31,7 +31,7 @@ const theReplyTheModelIsScriptedToGive = "Hello there, five words exactly."
 func TestAMessageSentOverTheSocketComesBackAsTheModelsReply(t *testing.T) {
 	agent := startTheAgent(t, testkit.Script{
 		Name:          "local",
-		ContextLength: 8192,
+		ContextLength: 32768,
 		Steps: []testkit.Step{{
 			Expect: []string{"Say hello in five words.", "You are the reasoning engine inside Coeus"},
 			Text:   theReplyTheModelIsScriptedToGive,
@@ -50,7 +50,7 @@ func TestAMessageSentOverTheSocketComesBackAsTheModelsReply(t *testing.T) {
 }
 
 func TestTheAgentAnswersReadyzOnTheSocketWithinASecond(t *testing.T) {
-	agent := startTheAgent(t, testkit.Script{Name: "local", ContextLength: 8192})
+	agent := startTheAgent(t, testkit.Script{Name: "local", ContextLength: 32768})
 
 	screen := agent.attach(t)
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "/readyz"})
@@ -62,7 +62,7 @@ func TestTheAgentAnswersReadyzOnTheSocketWithinASecond(t *testing.T) {
 }
 
 func TestASecondServeOnTheSameHomeRefusesToStart(t *testing.T) {
-	agent := startTheAgent(t, testkit.Script{Name: "local", ContextLength: 8192})
+	agent := startTheAgent(t, testkit.Script{Name: "local", ContextLength: 32768})
 
 	second := exec.Command(agent.program, "serve")
 	second.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root)
@@ -176,7 +176,7 @@ name = "local"
 provider = "openai"
 base_address = %q
 model_name = "local-coder"
-context_length = 8192
+context_length = 32768
 `, work, baseAddress)
 	if err := os.WriteFile(home.ConfigFile(), []byte(settings), contract.DataFileMode); err != nil {
 		t.Fatalf("writing the configuration failed: %v", err)

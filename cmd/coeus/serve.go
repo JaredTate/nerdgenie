@@ -15,6 +15,7 @@ import (
 	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/config"
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/log"
 	"github.com/JaredTate/coeus/internal/memory"
@@ -204,9 +205,17 @@ func (running *agent) openTheFront(ctx context.Context) error {
 		return err
 	}
 
+	builder, err := workingcontext.New(workingcontext.Options{
+		Home:            running.home,
+		MemoryCaps:      running.settings.MemoryCaps,
+		MaxOutputTokens: running.settings.Caps.OutputTokensPerCall,
+	})
+	if err != nil {
+		return err
+	}
 	running.turn = &firstTurn{
-		home:     running.home,
 		settings: running.settings,
+		builder:  builder,
 		model:    running.model,
 		stream:   running.stream,
 		eventLog: running.eventLog,

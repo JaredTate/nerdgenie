@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/channel"
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
@@ -35,9 +36,19 @@ func aTurnWithOneScriptedReply(t *testing.T, script testkit.Script) (*firstTurn,
 	stream := channel.NewStream()
 	t.Cleanup(stream.Close)
 
+	settings := contract.DefaultConfig()
+	builder, err := workingcontext.New(workingcontext.Options{
+		Home:            home,
+		MemoryCaps:      settings.MemoryCaps,
+		MaxOutputTokens: settings.Caps.OutputTokensPerCall,
+	})
+	if err != nil {
+		t.Fatalf("building the working context builder failed: %v", err)
+	}
+
 	turn := &firstTurn{
-		home:     home,
-		settings: contract.DefaultConfig(),
+		settings: settings,
+		builder:  builder,
 		model:    testkit.NewFakeModel(script),
 		stream:   stream,
 		eventLog: eventLog,
@@ -66,25 +77,35 @@ func oneScriptedReply(text string, expect ...string) testkit.Script {
 	}
 }
 
-func TestTheFirstBlockIsTheHarnessRulesAndTheSecondIsThePersona(t *testing.T) {
+func TestTheRequestIsTheOneInternalContextBuilds(t *testing.T) {
 	turn, _, _, _ := aTurnWithOneScriptedReply(t, oneScriptedReply("done"))
+	turn.talk.add(contract.Message{Role: contract.RoleUser, Text: "when did DigiByte launch?"})
 
-	request := turn.request()
-
-	if len(request.SystemBlocks) < 3 {
-		t.Fatalf("the request carries %d system blocks, want the rules, the persona, and the tool instruction", len(request.SystemBlocks))
+	request, err := turn.request(context.Background())
+	if err != nil {
+		t.Fatalf("building the request failed: %v", err)
 	}
-	if !strings.Contains(request.SystemBlocks[0].Text, "You are the reasoning engine inside Coeus") {
-		t.Errorf("the first block is not the harness rules:\n%s", request.SystemBlocks[0].Text)
+
+	if len(request.SystemBlocks) < 2 {
+		t.Fatalf("the request carries %d system blocks, want at least the instructions and the persona", len(request.SystemBlocks))
+	}
+	if request.SystemBlocks[0].Name != workingcontext.BlockInstructions {
+		t.Errorf("the first block is %q, want %q", request.SystemBlocks[0].Name, workingcontext.BlockInstructions)
+	}
+	if request.SystemBlocks[0].Text != workingcontext.InstructionText {
+		t.Error("the first block is not the instruction text internal/context holds, so the person is not reading the real prompt")
+	}
+	if request.SystemBlocks[1].Name != workingcontext.BlockPersona {
+		t.Errorf("the second block is %q, want %q", request.SystemBlocks[1].Name, workingcontext.BlockPersona)
 	}
 	if !strings.Contains(request.SystemBlocks[1].Text, "I am Coeus, and I answer plainly.") {
-		t.Errorf("the second block does not hold the persona files:\n%s", request.SystemBlocks[1].Text)
+		t.Errorf("the persona block does not hold the persona files:\n%s", request.SystemBlocks[1].Text)
 	}
-	if request.SystemBlocks[1].Boundary != contract.CacheBoundaryA {
-		t.Errorf("the persona block ends the boundary %q, want %q", request.SystemBlocks[1].Boundary, contract.CacheBoundaryA)
+	if !request.ToolsOff || len(request.Tools) != 0 {
+		t.Error("the request offers tools, and nothing runs a tool until the turn loop lands")
 	}
-	if !strings.Contains(request.SystemBlocks[2].Text, contract.ToolCallTextInstruction) {
-		t.Errorf("no block carries the one text form of a tool call:\n%s", request.SystemBlocks[2].Text)
+	if len(request.Messages) == 0 {
+		t.Error("the request carries no messages, so the model would be asked nothing")
 	}
 }
 

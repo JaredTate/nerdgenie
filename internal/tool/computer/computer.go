@@ -111,17 +111,17 @@ func (tool *Tool) doIt(ctx context.Context, asked input) (contract.ToolOutput, e
 	desktop := tool.settings.Desktop
 	switch asked.Action {
 	case ActionLaunch:
-		return said(asked, desktop.Launch(ctx, asked.Application))
+		return said(asked, desktop.Launch(ctx, asked.Application, asked.Expectation))
 	case ActionScreenshot:
 		return tool.screenshot(ctx)
 	case ActionClick:
-		return said(asked, desktop.Click(ctx, asked.Element))
+		return said(asked, desktop.Click(ctx, asked.Element, asked.Expectation))
 	case ActionType:
-		return said(asked, desktop.Type(ctx, asked.Text))
+		return said(asked, desktop.Type(ctx, asked.Text, asked.Expectation))
 	case ActionKey:
-		return said(asked, desktop.Press(ctx, asked.Keys))
+		return said(asked, desktop.Press(ctx, asked.Keys, asked.Expectation))
 	case ActionDrag:
-		return said(asked, desktop.Drag(ctx, asked.Element, asked.To))
+		return said(asked, desktop.Drag(ctx, asked.Element, asked.To, asked.Expectation))
 	case ActionSetClipboard:
 		return said(asked, desktop.SetClipboard(ctx, asked.Text))
 	default:

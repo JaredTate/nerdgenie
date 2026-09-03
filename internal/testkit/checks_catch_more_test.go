@@ -177,7 +177,7 @@ func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 type permissiveDesktop struct{ *testkit.FakeDesktop }
 
 // Launch opens whatever it is given, granted or not.
-func (permissiveDesktop) Launch(context.Context, string) error { return nil }
+func (permissiveDesktop) Launch(context.Context, string, string) error { return nil }
 
 func TestTheDesktopCheckCatchesADesktopThatOpensAnythingAtAll(t *testing.T) {
 	if err := testkit.CheckDesktop(context.Background(), permissiveDesktop{testkit.NewFakeDesktop()}); err == nil {

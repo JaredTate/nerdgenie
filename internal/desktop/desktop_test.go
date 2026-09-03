@@ -458,7 +458,7 @@ func TestTheRealDesktopKeepsTheDesktopContract(t *testing.T) {
 	desk := newDesk(t)
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	if err := testkit.CheckDesktop(context.Background(), withNoExpectation{desk.desktop}); err != nil {
+	if err := testkit.CheckDesktop(context.Background(), desk.desktop); err != nil {
 		t.Fatalf("the desktop does not keep the desktop contract: %v", err)
 	}
 }

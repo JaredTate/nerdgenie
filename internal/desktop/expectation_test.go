@@ -1,11 +1,8 @@
 package desktop
 
 import (
-	"context"
 	"reflect"
 	"testing"
-
-	"github.com/JaredTate/coeus/internal/contract"
 )
 
 // The act-and-assert rule says every action states what the model expected to
@@ -45,72 +42,4 @@ func TestEveryActionCarriesWhatTheModelExpectedAndHasNoTwin(t *testing.T) {
 				name, name)
 		}
 	}
-}
-
-// desktopAsTheContractShouldRead is the shape contract.Desktop takes when the
-// lines finding 46 of brief 6.7 asks for are added to it: the same eight
-// methods, with each of the five actions carrying what the model expected to
-// happen. When those lines land, this declaration goes and the line below names
-// contract.Desktop instead.
-type desktopAsTheContractShouldRead interface {
-	Launch(ctx context.Context, application string, expectation string) error
-	Screenshot(ctx context.Context) (contract.DesktopScreenshot, error)
-	Click(ctx context.Context, mark int, expectation string) error
-	Type(ctx context.Context, text string, expectation string) error
-	Press(ctx context.Context, keys string, expectation string) error
-	Drag(ctx context.Context, fromMark int, toMark int, expectation string) error
-	Clipboard(ctx context.Context) (string, error)
-	SetClipboard(ctx context.Context, text string) error
-}
-
-// The desktop keeps the shape the contract is to take. This line fails to build
-// the moment one of the eight drifts from it.
-var _ desktopAsTheContractShouldRead = (*Desktop)(nil)
-
-// withNoExpectation is the desktop seen through contract.Desktop as it reads
-// today, which carries no expectation on any action. It is here so that the
-// contract check in internal/testkit still runs against the real desktop while
-// the contract waits for its five lines, and it goes when they land.
-type withNoExpectation struct {
-	desktop *Desktop
-}
-
-// Launch opens an application with nothing said about what should happen.
-func (seen withNoExpectation) Launch(ctx context.Context, application string) error {
-	return seen.desktop.Launch(ctx, application, "")
-}
-
-// Screenshot returns the granted window with its controls numbered.
-func (seen withNoExpectation) Screenshot(ctx context.Context) (contract.DesktopScreenshot, error) {
-	return seen.desktop.Screenshot(ctx)
-}
-
-// Click clicks the control with that number.
-func (seen withNoExpectation) Click(ctx context.Context, mark int) error {
-	return seen.desktop.Click(ctx, mark, "")
-}
-
-// Type types text at human pacing.
-func (seen withNoExpectation) Type(ctx context.Context, text string) error {
-	return seen.desktop.Type(ctx, text, "")
-}
-
-// Press presses a key combination.
-func (seen withNoExpectation) Press(ctx context.Context, keys string) error {
-	return seen.desktop.Press(ctx, keys, "")
-}
-
-// Drag drags from one numbered control to another.
-func (seen withNoExpectation) Drag(ctx context.Context, fromMark int, toMark int) error {
-	return seen.desktop.Drag(ctx, fromMark, toMark, "")
-}
-
-// Clipboard reads what is on the machine's clipboard.
-func (seen withNoExpectation) Clipboard(ctx context.Context) (string, error) {
-	return seen.desktop.Clipboard(ctx)
-}
-
-// SetClipboard puts text on the machine's clipboard.
-func (seen withNoExpectation) SetClipboard(ctx context.Context, text string) error {
-	return seen.desktop.SetClipboard(ctx, text)
 }

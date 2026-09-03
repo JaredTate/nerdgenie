@@ -70,7 +70,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 
 	page, err := tool.settings.Browser.Open(ctx, asked.URL)
 	if err != nil {
-		return contract.ToolOutput{}, fmt.Errorf("cannot open %s: %w", asked.URL, err)
+		return contract.ToolOutput{}, fmt.Errorf("cannot open the page %s: %w", asked.URL, err)
 	}
 	return contract.ToolOutput{Text: browserread.PageText(page)}, nil
 }

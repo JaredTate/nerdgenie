@@ -78,7 +78,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 
 	change, err := tool.settings.Browser.Click(ctx, asked.Element, asked.Expectation)
 	if err != nil {
-		return contract.ToolOutput{}, fmt.Errorf("cannot click %s: %w", asked.Element, err)
+		return contract.ToolOutput{}, fmt.Errorf("cannot click the element %s: %w", asked.Element, err)
 	}
 	return contract.ToolOutput{Text: browserread.ChangeText(change)}, nil
 }

@@ -94,7 +94,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}
 	after, how, err := Replace(before, asked.Old, asked.New)
 	if err != nil {
-		return contract.ToolOutput{}, fmt.Errorf("cannot edit %s: %w", path, err)
+		return contract.ToolOutput{}, fmt.Errorf("cannot edit the file %s: %w", path, err)
 	}
 
 	mode, err := tool.change.Before(ctx, path)

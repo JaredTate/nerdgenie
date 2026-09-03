@@ -93,9 +93,9 @@ func Replace(content string, wanted string, replacement string) (string, string,
 		}
 	}
 	if !found {
-		return "", "", fmt.Errorf("looked for %q: %w", cutForMessage(wanted), ErrSpanNotFound)
+		return "", "", fmt.Errorf("the edit looked for %q: %w", cutForMessage(wanted), ErrSpanNotFound)
 	}
-	return "", "", fmt.Errorf("looked for %q: %w", cutForMessage(wanted), ErrSpanNotUnique)
+	return "", "", fmt.Errorf("the edit looked for %q: %w", cutForMessage(wanted), ErrSpanNotUnique)
 }
 
 // cutForMessage shortens a piece of text for an error message, because an error

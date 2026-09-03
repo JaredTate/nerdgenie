@@ -79,7 +79,7 @@ func (tool *Tool) askFor(ctx context.Context, address string, pinned string) (*h
 	}
 	answer, err := client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("cannot reach %s: %w", address, err)
+		return nil, fmt.Errorf("cannot reach the address %s: %w", address, err)
 	}
 	return answer, nil
 }

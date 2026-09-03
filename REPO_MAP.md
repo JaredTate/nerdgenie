@@ -725,6 +725,8 @@ internal/skill/browser/replay.go
 internal/skill/browser/replay_test.go
 internal/skill/browser/step.go
 internal/skill/browser/step_test.go
+internal/skill/browser/walk.go
+internal/skill/browser/walk_test.go
 internal/skill/browser/writeqa_test.go
 internal/skill/command.go
 internal/skill/command_test.go

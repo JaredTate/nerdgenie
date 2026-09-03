@@ -195,10 +195,10 @@ func TestAWalkCommandBuiltWithoutItsPartsRefusesAndSaysWhichIsMissing(t *testing
 			says:      "save",
 		},
 		{
-			name:      "with nowhere to put the pictures",
+			name:      "with no home folder to read a walk from or put pictures in",
 			options:   browser.WalkOptions{Browser: built.worker, Skills: built.store},
 			arguments: "check fixture-walk",
-			says:      "pictures",
+			says:      "nowhere to put the pictures",
 		},
 	} {
 		t.Run(one.name, func(t *testing.T) {
@@ -210,6 +210,103 @@ func TestAWalkCommandBuiltWithoutItsPartsRefusesAndSaysWhichIsMissing(t *testing
 				t.Errorf("the refusal is %q, and it should say %q", err, one.says)
 			}
 		})
+	}
+}
+
+func TestWalkAsksOnTheScreenTheCommandWasTypedOn(t *testing.T) {
+	built, _, model := benchWithARebuiltPage(t, "e9")
+	typedOn := testkit.NewFakeChannel("the-other-screen")
+	typedOn.AnswerPreviewsWith(contract.AnswerReject)
+	walk := theWalkCommand(built, model)
+
+	if _, err := walk.Run(context.Background(), "replay fixture-walk", contract.CommandContext{Channel: typedOn}); err != nil {
+		t.Fatalf("/walk replay was refused: %v", err)
+	}
+	if shown := len(typedOn.Previews()); shown != 1 {
+		t.Errorf("the screen the command was typed on was shown %d previews, want the one about the healed step", shown)
+	}
+	if shown := len(built.channel.Previews()); shown != 0 {
+		t.Errorf("the screen nobody typed on was shown %d previews", shown)
+	}
+}
+
+func TestWalkRecordOfAPageWithNoSiteToNameNamesNone(t *testing.T) {
+	built := newBench(t)
+	built.worker.AddPage(contract.Snapshot{URL: "about:blank", Title: "Nothing yet", TabID: "t1"})
+	if _, err := built.worker.Open(context.Background(), "about:blank"); err != nil {
+		t.Fatalf("cannot open a page with no site: %v", err)
+	}
+	walk := theWalkCommand(built, nil)
+
+	runTheWalkCommand(t, walk, "record blank-walk")
+	definition := built.load(t, "blank-walk").Definition
+	if len(definition.Permissions.Sites) != 0 {
+		t.Errorf("the walk may visit %v, and the page it recorded is on no site to name", definition.Permissions.Sites)
+	}
+	if !strings.Contains(definition.Description, "about:blank") {
+		t.Errorf("the walk describes itself as %q, and it should say where it starts", definition.Description)
+	}
+}
+
+func TestWalkRecordOfAPageOnAVeryLongSiteStillFitsTheOneLineInThePrompt(t *testing.T) {
+	built := newBench(t)
+	long := "https://" + strings.Repeat("a", 200) + ".test/shop"
+	built.worker.AddPage(contract.Snapshot{URL: long, Title: "A long way from home", TabID: "t1"})
+	if _, err := built.worker.Open(context.Background(), long); err != nil {
+		t.Fatalf("cannot open the page on the long site: %v", err)
+	}
+	walk := theWalkCommand(built, nil)
+
+	runTheWalkCommand(t, walk, "record long-walk")
+	description := built.load(t, "long-walk").Definition.Description
+	if said := len([]rune(description)); said > 200 {
+		t.Errorf("the walk describes itself in %d characters, and the one line in the prompt holds two hundred", said)
+	}
+}
+
+func TestWalkRecordUnderANameNoFolderCanHaveIsRefused(t *testing.T) {
+	built := newBench(t)
+	if _, err := built.worker.Open(context.Background(), testkit.FixtureSimplePage); err != nil {
+		t.Fatalf("cannot open the fixture page: %v", err)
+	}
+	walk := theWalkCommand(built, nil)
+
+	if said, err := walk.Run(context.Background(), "record Shop Walk", contract.CommandContext{}); err == nil {
+		t.Fatalf("a walk was saved under a name no folder can have and said %q", said)
+	}
+}
+
+func TestWalkReplayOfABrowserThatIsGoneIsRefused(t *testing.T) {
+	built := newBench(t)
+	built.save(t, "click-walk", []browser.Step{{
+		Number: 1, Intent: "Follow the link.", Tool: contract.ToolBrowserClick,
+		Element: browser.Descriptor{Ref: "e1", Role: "link", Name: "Change the page"}, Expectation: "the page changed",
+	}})
+	walk := theWalkCommand(built, nil)
+	if err := built.worker.Close(); err != nil {
+		t.Fatalf("cannot close the fixture browser: %v", err)
+	}
+
+	if said, err := walk.Run(context.Background(), "replay click-walk", contract.CommandContext{}); err == nil {
+		t.Fatalf("a walk was replayed in a browser that is gone and said %q", said)
+	}
+}
+
+func TestWalkCheckSaysWhenThePicturesHaveNowhereToGo(t *testing.T) {
+	built := newBench(t)
+	built.save(t, "fixture-walk", theThreeStepFlow())
+	inTheWay := filepath.Join(built.home.Root, "checks")
+	if err := os.WriteFile(inTheWay, []byte("not a folder\n"), contract.DataFileMode); err != nil {
+		t.Fatalf("cannot put something in the way of the checks folder: %v", err)
+	}
+	walk := theWalkCommand(built, nil)
+
+	said, err := walk.Run(context.Background(), "check fixture-walk", contract.CommandContext{})
+	if err == nil {
+		t.Fatalf("a check wrote its pictures into a file and said %q", said)
+	}
+	if !strings.Contains(err.Error(), "checks") {
+		t.Errorf("the refusal is %q, and it should name the folder it could not make", err)
 	}
 }
 

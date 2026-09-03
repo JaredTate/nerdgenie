@@ -737,6 +737,7 @@ internal/signal/streamclose_test.go
 internal/skill/approval_test.go
 internal/skill/bounds_test.go
 internal/skill/browser/bounds.go
+internal/skill/browser/bounds_test.go
 internal/skill/browser/doc.go
 internal/skill/browser/edges_test.go
 internal/skill/browser/expect.go
@@ -744,6 +745,7 @@ internal/skill/browser/expect_test.go
 internal/skill/browser/fuzz_test.go
 internal/skill/browser/heal.go
 internal/skill/browser/heal_test.go
+internal/skill/browser/healguard_test.go
 internal/skill/browser/helpers_test.go
 internal/skill/browser/integration_test.go
 internal/skill/browser/qa.go

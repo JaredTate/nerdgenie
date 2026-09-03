@@ -165,8 +165,12 @@ func (checker *Checker) Check(ctx context.Context, request Request) (Result, err
 }
 
 // prepare checks the request, makes the folder for the pictures, and returns the
-// walk with the address the caller asked for written into its first opening
-// step.
+// walk numbered by position with the address the caller asked for written into
+// its first opening step. The numbers are put on here rather than taken as they
+// come, because the numbers of the steps a check must not take are matched
+// against them and the pictures are named after them: a caller who built the
+// request in code and left every number at nought would otherwise get a guard
+// that matches nothing and two pictures under one name.
 func (checker *Checker) prepare(request *Request) ([]Step, error) {
 	if len(request.Steps) == 0 {
 		return nil, errors.New("this check has no steps to walk, so write the walk before running it")
@@ -184,6 +188,9 @@ func (checker *Checker) prepare(request *Request) ([]Step, error) {
 
 	steps := make([]Step, len(request.Steps))
 	copy(steps, request.Steps)
+	for at := range steps {
+		steps[at].Number = at + 1
+	}
 	for at, step := range steps {
 		if step.Tool == contract.ToolBrowserOpen && request.Address != "" {
 			steps[at].Address = request.Address

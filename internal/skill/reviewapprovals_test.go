@@ -40,20 +40,6 @@ func theSkillAPageAskedFor() map[string][]byte {
 }
 
 // the ask-me-first list ships with. Not one of them may run without a yes.
-var theThreeThingsTheListShipsWith = []struct {
-	name    string
-	request func() contract.PermissionRequest
-}{
-	{"deleting many files at once", func() contract.PermissionRequest {
-		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/jared/coeus"}`)}
-	}},
-	{"a command with administrator powers", func() contract.PermissionRequest {
-		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "apt-get install anything", "escalate": true, "reason": "it needs them"}`)}
-	}},
-	{"spending money", func() contract.PermissionRequest {
-		return contract.PermissionRequest{ToolName: contract.ToolWeb, Input: []byte(`{"url": "https://shop.example.com/checkout"}`)}
-	}},
-}
 
 func TestASkillCannotWriteItselfAPermissionSlipForEverything(t *testing.T) {
 	fetched := scriptedWebTool(t)

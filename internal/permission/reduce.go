@@ -112,50 +112,84 @@ var mainFieldsByTool = map[string][]string{
 // log records, and what the preview shows, so it always fits on one line and is
 // never longer than MaxReducedRunes.
 func Reduce(request contract.PermissionRequest) string {
+	form, _ := reduceCall(request)
+	return form
+}
+
+// reduceCall returns the readable form of one tool call and, when that form is
+// not the whole story, the note saying what it leaves out. The permission
+// function puts such a call to the user rather than running it, because a bound
+// that hides the end of a command is a bound that turns the rule off.
+func reduceCall(request contract.PermissionRequest) (string, string) {
 	if request.ToolName == contract.ToolShell {
-		return oneLine(reduceShellCall(request))
+		line, note := reduceShellCall(request)
+		return oneLine(line, note)
 	}
-	return oneLine(reduceOtherCall(request))
+	return oneLine(reduceOtherCall(request), "")
 }
 
 // reduceShellCall reduces a shell call to the commands it runs, in order, with
-// the arguments that change every time left out.
-func reduceShellCall(request contract.PermissionRequest) string {
+// the arguments that change every time left out, and passes on the note when the
+// call does not say everything it will do.
+func reduceShellCall(request contract.PermissionRequest) (string, string) {
 	fields := readFields(request.Input)
 	command, written := stringField(fields, "command")
 	if !written {
 		if prefix := strings.TrimSpace(request.CommandPrefix); prefix != "" {
-			return prefix
+			return prefix, ""
 		}
-		return contract.ToolShell
+		return contract.ToolShell, ""
 	}
 
-	reduced := []string{}
-	for _, words := range commandWords(command) {
-		if part := reduceOneCommand(words); part != "" {
-			reduced = append(reduced, part)
-		}
-	}
-	line := strings.Join(reduced, " | ")
+	line, note := reduceCommandLine(command, 0)
 	if boolField(fields, "escalate") {
 		line = strings.TrimSpace(sudoProgram + " " + line)
 	}
-	return line
+	return line, note
+}
+
+// reduceCommandLine reduces every command on one line, joins them the way a
+// shell chains them, and passes on the note when the line does not say
+// everything it will do. The depth counts the shells this line is already
+// wrapped inside.
+func reduceCommandLine(command string, depth int) (string, string) {
+	segments, note := commandWords(command)
+	reduced := []string{}
+	for _, words := range segments {
+		part, partNote := reduceOneCommand(words, depth)
+		if part != "" {
+			reduced = append(reduced, part)
+		}
+		if note == "" {
+			note = partNote
+		}
+	}
+	return strings.Join(reduced, " | "), note
 }
 
 // reduceOneCommand reduces the words of one command to its program, the
-// subcommand words the table says define it, and the flags that matter.
-func reduceOneCommand(words []string) string {
+// subcommand words the table says define it, and the flags that matter. A shell
+// handed a script reduces that script as a command line of its own.
+func reduceOneCommand(words []string, depth int) (string, string) {
 	words = withoutEnvironmentAssignments(words)
 	prefix := ""
-	if len(words) > 0 && words[0] == sudoProgram {
+	if len(words) > 0 && programName(words[0]) == sudoProgram {
 		prefix = sudoProgram + " "
 		words = withoutSudoFlags(words[1:])
 	}
 	if len(words) == 0 {
-		return strings.TrimSpace(prefix)
+		return strings.TrimSpace(prefix), ""
 	}
+	if flag, script, handed := scriptHandedToAShell(words); handed {
+		return reduceNestedShell(prefix+words[0]+" "+flag, script, depth)
+	}
+	return prefix + wordsThatDefineTheCommand(words), ""
+}
 
+// wordsThatDefineTheCommand keeps the program, the subcommand words the shape
+// says define it, and the flags the shape says matter, and leaves out the
+// arguments that change every time.
+func wordsThatDefineTheCommand(words []string) string {
 	shape := shapeOf(words)
 	kept := []string{}
 	taken := 0
@@ -169,14 +203,15 @@ func reduceOneCommand(words []string) string {
 			kept = append(kept, word)
 			taken++
 		case !shape.keepFlags:
-			return prefix + strings.Join(kept, " ")
+			return strings.Join(kept, " ")
 		}
 	}
-	return prefix + strings.Join(kept, " ")
+	return strings.Join(kept, " ")
 }
 
 // shapeOf finds the shape of a command by its longest named prefix, counting
-// only the words that are not flags, and falls back to the default shape.
+// only the words that are not flags, and falls back to the default shape. The
+// program is looked up by its own name, so that "/usr/bin/git" is git.
 func shapeOf(words []string) commandShape {
 	leading := []string{}
 	for _, word := range words {
@@ -187,6 +222,9 @@ func shapeOf(words []string) commandShape {
 		if len(leading) == 3 {
 			break
 		}
+	}
+	if len(leading) > 0 {
+		leading[0] = programName(leading[0])
 	}
 	for length := len(leading); length > 0; length-- {
 		if shape, named := commandShapes[strings.Join(leading[:length], " ")]; named {
@@ -353,8 +391,10 @@ func boolField(fields map[string]json.RawMessage, name string) bool {
 }
 
 // oneLine puts text on a single line, collapses the runs of spaces that leaves
-// behind, and cuts it to the cap, so that a readable form is always readable.
-func oneLine(text string) string {
+// behind, and cuts it to the cap, so that a readable form is always readable. It
+// ends the form with the note when the form is not the whole story, and the cap
+// itself is one of the reasons it may not be.
+func oneLine(text string, note string) (string, string) {
 	flattened := strings.Map(func(letter rune) rune {
 		if letter == '\t' || unicode.IsControl(letter) {
 			return ' '
@@ -363,8 +403,15 @@ func oneLine(text string) string {
 	}, text)
 	tidied := strings.Join(strings.Fields(flattened), " ")
 	letters := []rune(tidied)
-	if len(letters) > MaxReducedRunes {
-		return string(letters[:MaxReducedRunes])
+	if note == "" && len(letters) <= MaxReducedRunes {
+		return tidied, ""
 	}
-	return tidied
+	if note == "" {
+		note = cutShortNote
+	}
+	room := max(MaxReducedRunes-len([]rune(note))-1, 0)
+	if len(letters) > room {
+		tidied = strings.TrimSpace(string(letters[:room]))
+	}
+	return strings.TrimSpace(tidied + " " + note), note
 }

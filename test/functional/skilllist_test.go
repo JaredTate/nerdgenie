@@ -16,7 +16,7 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// theSkillAPersonWrote is one skill in the home's skills folder, named and
+// The skill a person wrote is one skill in the home's skills folder, named and
 // described in words no other part of the prompt uses.
 const (
 	theSkillAPersonWroteName        = "tidy-notes"
@@ -38,11 +38,7 @@ func TestAHomeWithASkillTellsTheModelAboutItOnTheFirstCall(t *testing.T) {
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: "Say hello in five words."})
 	screen.waitFor(t, contract.SocketReply, 30*time.Second)
 
-	requests := agent.model.Requests()
-	if len(requests) == 0 {
-		t.Fatal("the model was never called, so there is no first call to look at")
-	}
-	first := testkit.WholeRequestBodyText(requests[0].Body)
+	first := theFirstModelCall(t, agent)
 	wanted := theSkillAPersonWroteName + ": " + theSkillAPersonWroteDescription
 	if !strings.Contains(first, wanted) {
 		t.Errorf("the model's first call does not carry the line %q, so the model cannot know the skill is there:\n%s", wanted, first)
@@ -50,6 +46,21 @@ func TestAHomeWithASkillTellsTheModelAboutItOnTheFirstCall(t *testing.T) {
 	if !strings.Contains(first, "`skill` tool") {
 		t.Error("the model's first call names the skill and never says how to load it")
 	}
+}
+
+// theFirstModelCall is everything the model read on the first call the agent
+// made to it. The agent asks the server about itself before it ever sends a
+// prompt, and that probe is recorded too, so the first call is the first request
+// to a path that speaks a wire protocol.
+func theFirstModelCall(t *testing.T, agent runningAgent) string {
+	t.Helper()
+	for _, asked := range agent.model.Requests() {
+		if asked.Path == testkit.OpenAIPath || asked.Path == testkit.AnthropicPath {
+			return testkit.WholeRequestBodyText(asked.Body)
+		}
+	}
+	t.Fatal("the model was never called, so there is no first call to look at")
+	return ""
 }
 
 // writeASkillWithOnlyItsDescription puts the smallest folder the store will list

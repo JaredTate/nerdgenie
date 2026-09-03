@@ -75,6 +75,7 @@ cmd/coeus/status.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/taskcontext.go
+cmd/coeus/taskcontext_test.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
 cmd/coeus/timedstore.go
 cmd/coeus/tui.go
@@ -309,6 +310,8 @@ internal/context/persona_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
 internal/context/reviewmarker_test.go
+internal/context/skills.go
+internal/context/skills_test.go
 internal/context/testdata/prompt-200k.txt
 internal/context/testdata/prompt-24k.txt
 internal/context/window.go
@@ -1285,6 +1288,7 @@ test/functional/schema_test.go
 test/functional/serve_test.go
 test/functional/signal_test.go
 test/functional/site_test.go
+test/functional/skilllist_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go

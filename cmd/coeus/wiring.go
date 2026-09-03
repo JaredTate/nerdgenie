@@ -84,11 +84,14 @@ func (running *agent) openTheModelAndTheScreens() error {
 // registry, and the box is then filled with the store. Nothing asks the box a
 // question until the agent is serving, which is long after it is filled.
 func (running *agent) openTheWorkbench(ctx context.Context) error {
-	running.builder = newPerTaskContext(running.home, running.settings)
+	// The box is made before the builder because the builder reads the skill
+	// list through it at the start of every task, which is how the model is
+	// told what skills it may load.
+	running.skillsBox = &skillsBox{}
+	running.builder = newPerTaskContext(running.home, running.settings, running.skillsBox, running.note)
 	running.fence = running.openTheFence()
 	running.browser = running.openTheBrowser()
 	running.desktop = running.openTheDesktop()
-	running.skillsBox = &skillsBox{}
 
 	walking, stopWalking := withinTheToolWalkLimit(ctx)
 	defer stopWalking()

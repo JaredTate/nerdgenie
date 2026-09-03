@@ -24,7 +24,7 @@ func newTool(t *testing.T) (*edit.Tool, string, *testkit.FakeStore) {
 		t.Fatalf("cannot make the folder the agent may work in: %v", err)
 	}
 	store := testkit.NewFakeStore()
-	allowed := tool.NewPathCheck(tool.WorkArea{Roots: []string{root}, WorkingFolder: root, UserHome: filepath.Dir(root)})
+	allowed := tool.MadeWhole(tool.NewPathCheck([]string{root}, filepath.Dir(root), ""), root, filepath.Dir(root))
 	tool := edit.New(edit.Settings{
 		Allowed: allowed,
 		Log:     store,

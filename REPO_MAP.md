@@ -980,8 +980,10 @@ internal/tool/edit/match.go
 internal/tool/edit/match_test.go
 internal/tool/edit/matchers.go
 internal/tool/edit/pinnedbounds_test.go
+internal/tool/edit/relativepath_test.go
 internal/tool/edit/testdata/one_span.txt
 internal/tool/foldercap_test.go
+internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go
 internal/tool/job/bounds_test.go
 internal/tool/job/doc.go
@@ -1012,11 +1014,13 @@ internal/tool/read/file.go
 internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go
 internal/tool/read/read_test.go
+internal/tool/read/relativepath_test.go
 internal/tool/read/testdata/a_file.txt
 internal/tool/read/testdata/a_folder.txt
 internal/tool/read/wholefile_test.go
 internal/tool/registry.go
 internal/tool/registry_test.go
+internal/tool/relativepath_test.go
 internal/tool/reviewpaths_test.go
 internal/tool/roots.go
 internal/tool/roots_test.go
@@ -1027,6 +1031,7 @@ internal/tool/search/fence_test.go
 internal/tool/search/fieldnames_test.go
 internal/tool/search/find.go
 internal/tool/search/pinnedbounds_test.go
+internal/tool/search/relativepath_test.go
 internal/tool/search/search.go
 internal/tool/search/search_test.go
 internal/tool/search/testdata/alpha.txt
@@ -1070,9 +1075,12 @@ internal/tool/web/doc.go
 internal/tool/web/fetch.go
 internal/tool/web/fuzz_test.go
 internal/tool/web/results.go
+internal/tool/web/resultspage_test.go
 internal/tool/web/search.go
 internal/tool/web/testdata/a_fetched_page.txt
+internal/tool/web/testdata/a_human_check_page_from_duckduckgo.html
 internal/tool/web/testdata/a_page_as_text.txt
+internal/tool/web/testdata/a_results_page_from_duckduckgo.html
 internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/7f72ed17f01b6f36
@@ -1088,6 +1096,7 @@ internal/tool/write/doc.go
 internal/tool/write/fence_test.go
 internal/tool/write/fieldnames_test.go
 internal/tool/write/pinnedbounds_test.go
+internal/tool/write/relativepath_test.go
 internal/tool/write/testdata/a_new_file.txt
 internal/tool/write/write.go
 internal/tool/write/write_test.go

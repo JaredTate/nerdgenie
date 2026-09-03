@@ -10,27 +10,24 @@ import (
 	"github.com/JaredTate/coeus/internal/tool"
 )
 
-// aWorkArea makes a folder the file tools may work in, under a user home of its
-// own, and returns the check over it with that same folder named as the one the
-// agent works in, because that is how the program wires it. It hands back the
-// check, the folder, and the user home.
-func aWorkArea(t *testing.T) (tool.PathCheck, string, string) {
+// aCheckOverAWorkFolder makes a folder the file tools may work in, under a user
+// home of its own, and returns the fence over it wrapped so that a path is made
+// whole first, with that same folder named as the one the agent works in,
+// because that is how the program wires it. It hands back the check, the
+// folder, and the user home.
+func aCheckOverAWorkFolder(t *testing.T) (tool.PathCheck, string, string) {
 	t.Helper()
 	userHome := t.TempDir()
 	root := filepath.Join(userHome, contract.WorkFolderName)
 	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the work folder %s: %v", root, err)
 	}
-	check := tool.NewPathCheck(tool.WorkArea{
-		Roots:         []string{root},
-		WorkingFolder: root,
-		UserHome:      userHome,
-	})
+	check := tool.MadeWhole(tool.NewPathCheck([]string{root}, userHome, ""), root, userHome)
 	return check, root, userHome
 }
 
 func TestAPathThatDoesNotStartAtTheRootIsTakenFromTheFolderTheAgentWorksIn(t *testing.T) {
-	check, root, _ := aWorkArea(t)
+	check, root, _ := aCheckOverAWorkFolder(t)
 
 	// This is the path the local model wrote on the first human trial.
 	allowed, err := check("haiku.txt")
@@ -43,7 +40,7 @@ func TestAPathThatDoesNotStartAtTheRootIsTakenFromTheFolderTheAgentWorksIn(t *te
 }
 
 func TestAPathThatClimbsOutOfTheFolderTheAgentWorksInIsStillRefused(t *testing.T) {
-	check, _, _ := aWorkArea(t)
+	check, _, _ := aCheckOverAWorkFolder(t)
 
 	allowed, err := check(filepath.Join("..", "secrets.txt"))
 	if err == nil {
@@ -52,7 +49,7 @@ func TestAPathThatClimbsOutOfTheFolderTheAgentWorksInIsStillRefused(t *testing.T
 }
 
 func TestTheRefusalOfAShortPathSaysWhatFolderItWasTakenFrom(t *testing.T) {
-	check, root, _ := aWorkArea(t)
+	check, root, _ := aCheckOverAWorkFolder(t)
 
 	_, err := check(filepath.Join("..", "secrets.txt"))
 	if err == nil {
@@ -64,7 +61,7 @@ func TestTheRefusalOfAShortPathSaysWhatFolderItWasTakenFrom(t *testing.T) {
 }
 
 func TestARefusedWholePathIsNotToldItWasTakenFromAnyFolder(t *testing.T) {
-	check, _, userHome := aWorkArea(t)
+	check, _, userHome := aCheckOverAWorkFolder(t)
 
 	_, err := check(filepath.Join(userHome, "secrets.txt"))
 	if err == nil {
@@ -76,7 +73,7 @@ func TestARefusedWholePathIsNotToldItWasTakenFromAnyFolder(t *testing.T) {
 }
 
 func TestAPathThatBeginsWithTheHomeMarkIsReadAsTheUsersHomeFolder(t *testing.T) {
-	check, root, _ := aWorkArea(t)
+	check, root, _ := aCheckOverAWorkFolder(t)
 	work := filepath.Base(root)
 
 	for _, written := range []string{
@@ -95,7 +92,7 @@ func TestAPathThatBeginsWithTheHomeMarkIsReadAsTheUsersHomeFolder(t *testing.T) 
 }
 
 func TestTheRefusalOfAPathUnderTheHomeSaysTheMarkIsReadAsTheHomeFolder(t *testing.T) {
-	check, _, userHome := aWorkArea(t)
+	check, _, userHome := aCheckOverAWorkFolder(t)
 
 	// This is the path the local model wrote on the first human trial: a folder
 	// under the home that is in none of the folders the agent may work in.
@@ -109,7 +106,7 @@ func TestTheRefusalOfAPathUnderTheHomeSaysTheMarkIsReadAsTheHomeFolder(t *testin
 }
 
 func TestAPathWithTheHomeMarkInTheMiddleIsLeftAlone(t *testing.T) {
-	check, root, _ := aWorkArea(t)
+	check, root, _ := aCheckOverAWorkFolder(t)
 
 	allowed, err := check("notes/~backup/haiku.txt")
 	if err != nil {
@@ -123,7 +120,7 @@ func TestAPathWithTheHomeMarkInTheMiddleIsLeftAlone(t *testing.T) {
 func TestAShortPathWithNoFolderToTakeItFromSaysWhatIsMissing(t *testing.T) {
 	userHome := t.TempDir()
 	root := filepath.Join(userHome, contract.WorkFolderName)
-	check := tool.NewPathCheck(tool.WorkArea{Roots: []string{root}, UserHome: userHome})
+	check := tool.MadeWhole(tool.NewPathCheck([]string{root}, userHome, ""), "", userHome)
 
 	_, err := check("haiku.txt")
 	if err == nil {
@@ -131,5 +128,18 @@ func TestAShortPathWithNoFolderToTakeItFromSaysWhatIsMissing(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "folder") {
 		t.Errorf("the refusal reads %q and does not say a folder is what is missing", err)
+	}
+}
+
+func TestAPathThatNamesNothingIsStillRefusedOnceItCouldBeTakenFromAFolder(t *testing.T) {
+	check, root, _ := aCheckOverAWorkFolder(t)
+
+	// A path of nothing joined to the folder the agent works in is that folder,
+	// and a call that named no file must not be read as naming the folder.
+	for _, written := range []string{"", "   "} {
+		allowed, err := check(written)
+		if err == nil {
+			t.Errorf("the path %q was allowed as %q, and a call that names no file at all must be refused, not read as %s", written, allowed, root)
+		}
 	}
 }

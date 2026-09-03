@@ -31,6 +31,12 @@ func (tool *Tool) start(ctx context.Context, asked Call) (contract.ToolOutput, e
 		if decision.Ruling == contract.RulingAsk {
 			return contract.ToolOutput{Text: previewText(decision, asked)}, nil
 		}
+		if decision.Ruling != contract.RulingAllow {
+			return contract.ToolOutput{}, fmt.Errorf(
+				"this command did not run with administrator powers, because the permission function ruled %q "+
+					"and only the ruling %q runs a command outside the fence; run it without escalate, or ask the user again",
+				decision.Ruling, contract.RulingAllow)
+		}
 	}
 
 	work := tool.workOf(asked)

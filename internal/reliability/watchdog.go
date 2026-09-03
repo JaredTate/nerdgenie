@@ -2,7 +2,6 @@ package reliability
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -50,15 +49,13 @@ func (watchdog *Watchdog) Ready() error {
 	return nil
 }
 
-// Feed tells the service manager that the program is alive, at half the interval
-// it announced, until the context ends or the program says it is not healthy.
-// Stopping the feed is deliberate: a program whose crash-loop breaker has
-// tripped is left to systemd to restart, because nothing inside it is going to
-// put it right.
-func (watchdog *Watchdog) Feed(ctx context.Context, healthy func() bool) error {
-	if healthy == nil {
-		return errors.New("the watchdog feed needs a way of asking whether the program is healthy, so pass the function that answers it")
-	}
+// Feed tells the service manager that the program is alive, at half the
+// interval it announced, until the context ends. It feeds for as long as the
+// program is running, a tripped crash-loop breaker included: the breaker's
+// answer to a crash loop is to serve the user and start no task, and a program
+// systemd kills instead is a program that comes back up unclean and picks the
+// same task up again.
+func (watchdog *Watchdog) Feed(ctx context.Context) error {
 	if watchdog.interval <= 0 {
 		return nil
 	}
@@ -71,9 +68,6 @@ func (watchdog *Watchdog) Feed(ctx context.Context, healthy func() bool) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.Ticks():
-			if !healthy() {
-				return nil
-			}
 			if _, err := watchdog.notify(daemon.SdNotifyWatchdog); err != nil {
 				return fmt.Errorf("the service manager could not be told that Coeus is alive, so it will start the program again: %w", err)
 			}

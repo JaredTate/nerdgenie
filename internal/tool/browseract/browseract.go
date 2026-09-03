@@ -163,7 +163,7 @@ func checkStep(at int, step writtenStep) error {
 		}
 	case MethodScroll:
 		if err := checkScroll(step); err != nil {
-			return fmt.Errorf("step %d cannot be scrolled as it is written, so fix it: %w", at+1, err)
+			return fmt.Errorf("step %d cannot scroll the page: %w", at+1, err)
 		}
 	default:
 		return fmt.Errorf("step %d asks for %q, which is not a method this tool knows, so use click, type, press, or scroll",

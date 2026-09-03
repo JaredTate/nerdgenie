@@ -1,0 +1,94 @@
+# Build one release and publish it. A tag that looks like a version publishes; a
+# run started by hand builds the same thing and leaves it as a workflow artifact,
+# so that a release can be looked at before anyone downloads it.
+#
+# The archives, SHA256SUMS, and manifest.json all come from "make release", which
+# is the same command the development machine runs, so nothing about a published
+# release is built only here.
+name: release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to build, written the way a tag is, such as v0.1.0
+        required: true
+
+jobs:
+  release:
+    name: build and publish
+    runs-on: ubuntu-latest
+    # Both architectures, two worker bundles, and a Node runtime to download the
+    # first time. Forty-five minutes is well past that, and a run that hangs is
+    # stopped rather than holding a runner.
+    timeout-minutes: 45
+    permissions:
+      # Writing the release is the only thing this workflow needs beyond reading.
+      contents: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          # The whole history, because the version comes from git describe when
+          # VERSION does not say otherwise.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          check-latest: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The pinned runtimes are the same files every run, so they are kept between
+      # runs rather than fetched from nodejs.org each time. COEUS_NODE_CACHE puts
+      # them under the workspace, which is the only place this action can save.
+      - name: Reuse the pinned Node runtimes
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.node-runtime-cache
+          key: node-runtimes-${{ hashFiles('scripts/release/node.sh') }}
+
+      - name: Work out which version this is
+        id: version
+        run: echo "version=${{ inputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Run make release
+        run: make release VERSION=${{ steps.version.outputs.version }}
+
+      - name: Show what was built
+        run: |
+          ls -l dist
+          cat dist/SHA256SUMS
+          cat dist/manifest.json
+
+      - name: Keep the archives whether or not this is a tag
+        uses: actions/upload-artifact@v4
+        with:
+          name: coeus-${{ steps.version.outputs.version }}
+          path: |
+            dist/coeus-*.tar.gz
+            dist/SHA256SUMS
+            dist/manifest.json
+          if-no-files-found: error
+
+      # Only a tag publishes. The archives, the checksum file, and the manifest go
+      # up together, because the installer reads SHA256SUMS and the updater reads
+      # manifest.json, and a release missing either is a release nobody can use.
+      - name: Publish the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            dist/coeus-*.tar.gz dist/SHA256SUMS dist/manifest.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            --latest

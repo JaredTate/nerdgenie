@@ -51,6 +51,8 @@ cmd/coeus/model.go
 cmd/coeus/previews.go
 cmd/coeus/replay.go
 cmd/coeus/replay_test.go
+cmd/coeus/resuming.go
+cmd/coeus/resuming_test.go
 cmd/coeus/reviewaskpass_test.go
 cmd/coeus/run.go
 cmd/coeus/run_test.go
@@ -66,6 +68,7 @@ cmd/coeus/signal_test.go
 cmd/coeus/signalchannel.go
 cmd/coeus/skillsbox.go
 cmd/coeus/skillsbox_test.go
+cmd/coeus/starting.go
 cmd/coeus/status.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
@@ -1254,6 +1257,7 @@ test/functional/readfile_test.go
 test/functional/recordline_test.go
 test/functional/reliability_test.go
 test/functional/replyproof_test.go
+test/functional/resume_test.go
 test/functional/sample_test.go
 test/functional/schema_test.go
 test/functional/serve_test.go

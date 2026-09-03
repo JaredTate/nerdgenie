@@ -38,13 +38,31 @@ func NewBoundary() (string, error) {
 	return hex.EncodeToString(raw), nil
 }
 
-// WrapAsData puts a tool result between the two marker lines. A result that
-// already carries a line looking like the closing marker cannot escape, because
-// it does not know the boundary.
+// EscapedBoundary is what the boundary is replaced with wherever the wrapped
+// text carries it. Neither marker line can be written without the boundary, so
+// text that cannot spell the boundary cannot write either line.
+const EscapedBoundary = "(boundary removed by the harness)"
+
+// WrapAsData puts a piece of text between the two marker lines. Text that
+// carries a line looking like the closing marker cannot escape twice over:
+// guessing the boundary is beyond anything the agent reads, and any copy of the
+// boundary the text does carry is taken out before the text is wrapped, so the
+// only two marker lines in the result are the harness's own.
 func WrapAsData(boundary string, text string) string {
 	return strings.Join([]string{
 		fmt.Sprintf(DataMarkerOpen, boundary),
-		text,
+		withoutTheBoundary(boundary, text),
 		fmt.Sprintf(DataMarkerClose, boundary),
 	}, "\n")
+}
+
+// withoutTheBoundary takes every copy of the boundary out of the text. An empty
+// boundary is left alone, because replacing the empty string would put the
+// escape between every letter and leave text the model cannot read; the builder
+// never passes one, since it makes a boundary when the options hold none.
+func withoutTheBoundary(boundary string, text string) string {
+	if boundary == "" {
+		return text
+	}
+	return strings.ReplaceAll(text, boundary, EscapedBoundary)
 }

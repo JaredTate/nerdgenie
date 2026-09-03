@@ -260,20 +260,27 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	}
 	running.lock = lock
 
-	// SQLite's own quick check runs before anything opens the file, which is
-	// the one part of the reliability guard's startup that cannot wait for the
-	// guard, because the guard needs the event log the check is guarding.
-	if err := reliability.CheckDatabase(ctx, running.home.DatabaseFile()); err != nil {
-		running.note("the database did not pass its check, and the guard will move it aside: " + err.Error())
+	// The whole recovery runs before anything opens the file: the check, the
+	// moving aside of a database that failed it, and putting the newest archive
+	// back. It hands back the path to open, and the guard will not start until
+	// it has run, because a log opened on a damaged file is a program that
+	// cannot say what happened to it.
+	databaseFile, err := reliability.PrepareDatabase(ctx, reliability.RecoverySettings{
+		Home:         running.home,
+		Clock:        now,
+		BackupFolder: running.settings.BackupPath,
+	})
+	if err != nil {
+		return err
 	}
-	if running.eventLog, err = log.Open(ctx, running.home.DatabaseFile()); err != nil {
+	if running.eventLog, err = log.Open(ctx, databaseFile); err != nil {
 		return err
 	}
 	// Everything downstream writes through this rather than through the log
 	// itself, so that an event written by something with no clock of its own
 	// still carries the moment it happened.
 	running.events = timedEvents(running.eventLog, now)
-	running.queue, err = channel.OpenQueue(ctx, running.home.DatabaseFile(), running.settings.Caps.QueuedMessages)
+	running.queue, err = channel.OpenQueue(ctx, databaseFile, running.settings.Caps.QueuedMessages)
 	if err != nil {
 		return err
 	}

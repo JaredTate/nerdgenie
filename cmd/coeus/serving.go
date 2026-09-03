@@ -140,7 +140,7 @@ func (running *agent) runDueJobs(ctx context.Context) {
 		// the end of the round is taken either way: the job store's own wait
 		// comes back at once for a moment already past, so a round that skipped
 		// the rest would spin a whole core for as long as the task ran.
-		if !running.loopIsBusy() {
+		if !running.loopIsBusy() && running.guard.WhyNoNewTask() == "" {
 			started, err := running.runWhatIsDue(ctx)
 			if err != nil {
 				running.note("a scheduled task did not finish: " + err.Error())
@@ -167,14 +167,11 @@ func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
 	if !there {
 		return false, nil
 	}
-	if !running.guard.MayStartTask() {
-		return false, nil
-	}
 	if running.nightly.Handles(due) {
 		if _, err := running.nightly.Run(ctx, due); err != nil {
 			return true, fmt.Errorf("the nightly self-check did not finish: %w", err)
 		}
 		return true, nil
 	}
-	return running.loop.RunNextJobTask(ctx, running.userChannel())
+	return running.loop.RunNextJobTask(ctx, throughTheLedger(running.userChannel(), running.guard))
 }

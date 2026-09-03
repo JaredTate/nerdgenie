@@ -14,6 +14,7 @@ import (
 	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/contract"
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
+	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
@@ -40,6 +41,7 @@ func (running *agent) registerCommands() error {
 		running.jobs.JobsCommand(),
 		running.jobs.CronCommand(),
 		running.skills.Command(),
+		browserskill.WalkCommand(running.walkOptions()),
 		browser.ScreenCommand(running.browser),
 		vault.NewCommand(running.secrets),
 		running.memories.Command(),
@@ -135,6 +137,23 @@ func (running *agent) pairingStore() *signalchannel.Pairing {
 		return nil
 	}
 	return made
+}
+
+// walkOptions is what the /walk command works with. The browser is only put in
+// when there really is one: a nil pointer stored in an interface is not nil, and
+// the command would then try to drive a browser that is not there instead of
+// saying plainly that the browser tools are switched off.
+func (running *agent) walkOptions() browserskill.WalkOptions {
+	walk := browserskill.WalkOptions{
+		Model:  running.model,
+		Ask:    running.userChannel().ShowPreview,
+		Skills: running.skills,
+		Home:   running.home,
+	}
+	if running.browser != nil {
+		walk.Browser = running.browser
+	}
+	return walk
 }
 
 // readyCommand answers a health check. It is a slash command rather than

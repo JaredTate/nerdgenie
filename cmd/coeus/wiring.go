@@ -384,10 +384,9 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	}
 	// Nothing new is started while the guard says no, which is what the
 	// crash-loop breaker and the updater's drain marker both work through. The
-	// program said it would take no new work; it has to mean it.
-	if !running.guard.MayStartTask() {
-		return where.Send(ctx, "I am not starting new work just now: either I have crashed several times in a row and am"+
-			" waiting to settle, or an update has asked me to finish what I have and take nothing new.")
+	// guard says why in its own words, because the reason is the user's to hear.
+	if why := running.guard.WhyNoNewTask(); why != "" {
+		return where.Send(ctx, why)
 	}
 	if !running.takeTheLoopWithinAMoment() {
 		return running.loop.Deliver(message)
@@ -399,10 +398,21 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	// would happen until the model had answered, which is exactly what the
 	// first human trial found.
 	finished := running.tookTheMessage()
+	// One session runs one turn at a time, and a turn that outlives the turn cap
+	// is stopped: both are the guard's, and both hold whether the work came from
+	// a person or from a job. The channel the task answers on writes every reply
+	// into the log before it sends it, so a crash between the two cannot lose
+	// the answer and the next start sends again what never arrived.
+	session := message.Channel + ":" + message.Sender
+	answering := throughTheLedger(where, running.guard)
 	go func() {
 		defer running.freeTheLoop()
 		defer finished()
-		if _, err := running.loop.Run(context.WithoutCancel(ctx), loop.Task{Message: message, Channel: where}); err != nil {
+		err := running.guard.RunTurn(context.WithoutCancel(ctx), session, func(turn context.Context) error {
+			_, err := running.loop.Run(turn, loop.Task{Message: message, Channel: answering})
+			return err
+		})
+		if err != nil {
 			running.note("a task did not finish: " + err.Error())
 		}
 	}()

@@ -18,10 +18,11 @@ import (
 )
 
 // Options is what a replayer is built from. Only the browser is needed. Without
-// a model no failed step is ever healed; without a screen a patch is never
-// proposed; without a skill store an approved patch cannot be written down. Each
-// of the three says so in the report rather than failing, so an unattended
-// replay is a replay and not an error.
+// a model no failed step is ever healed; without a screen a heal is proposed in
+// the report and never acted on, because the user is asked before the step is
+// taken on an element the recording never named; without a skill store an
+// approved patch cannot be written down. Each of the three says so in the report
+// rather than failing, so an unattended replay is a replay and not an error.
 type Options struct {
 	// Browser is the worker driving the agent's own Chrome.
 	Browser contract.BrowserWorker

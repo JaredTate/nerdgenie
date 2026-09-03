@@ -386,7 +386,10 @@ down to none. The codes are written here rather than by `lipgloss.Style.Render`
 because a lipgloss renderer reports no colour at all when its writer is not a
 terminal, which every test process is. `View` paints every row out to the
 right-hand edge so the ground has no gaps. `banner.go` draws the `COEUS AGENT`
-wordmark in a five-row block font while the transcript is empty; `bubble.go`
+wordmark in a five-row block font while the transcript is empty, with the tagline,
+a small filled tag naming the model and what the program is doing, and one line
+saying `type / to see the commands`, which is the only thing on a first frame
+that says where the tasks and the jobs are to be found; `bubble.go`
 draws the person's filled bubble leaning right, the agent's outlined bubble
 leaning left, and a tool call as a small filled pill.
 
@@ -417,9 +420,12 @@ header, the status strip, the tool lines, the health dot, the budget bar and the
 command palette from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
 `StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
 `StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
-`StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
-holding one command per line with `contract.StatusCommandSeparator` between its
-name and its help. The state field carries one of `contract.StateIdle`,
+`StatusFieldToolLine`, `StatusFieldHealthy`, `StatusFieldCommands`,
+`StatusFieldContextTokens`, `StatusFieldContextWindow`, `StatusFieldCallStarted`,
+`StatusFieldStreamed`, and `StatusFieldRecordLine`. The commands field holds one
+command per line with `contract.StatusCommandSeparator` between its name and its
+help, and the name is held without the slash the program writes it with, because
+the palette draws a slash of its own and matches on what is typed after one. The state field carries one of `contract.StateIdle`,
 `StateThinking`, `StateUsingTool`, `StateWaitingForYou`, and `StatePaused`; the
 words the strip draws are the design's, so `StateUsingTool` reads as "using read"
 and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
@@ -429,6 +435,25 @@ as the program answering for itself. The budget line is read for its first
 number, and the fullest report seen since this task started is what the bar in
 the status strip is measured against. A `reply` that carries `Attachments` names
 each file as a pill.
+
+The first human trial added four things the program tells the screen and the
+screen draws. The header measures the last call's context against the model's
+window from `StatusFieldContextTokens` and `StatusFieldContextWindow`, reading
+`ctx 12.4k / 262k · 5%` after the model alias and before the session cost, quiet
+below eighty percent, gold from eighty, and red from ninety-five, and drawn only
+when the program sent both numbers. While the state is thinking, the status strip
+counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
+`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count begins
+the moment the program reports the call rather than when the spinner is due, so
+it never blinks with the spinner's own delay and hold, and it goes the moment the
+state stops being thinking. A start time the screen cannot read is not counted
+from at all. `StatusFieldRecordLine` is one line about the newest change to the
+record, drawn as a pill exactly as a tool call is; the program sends the same
+line on every heartbeat until something else changes, so only a line that differs
+from the last one shown gets a pill. And Escape now stops whatever is running —
+the model thinking, a tool running, or a task working through — rather than only
+a busy state, because a plain reply is not a task and the person who wants a
+rambling answer to stop must not wait for it to finish.
 
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text

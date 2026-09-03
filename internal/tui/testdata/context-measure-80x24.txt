@@ -1,4 +1,4 @@
- coeus · connecting                                                   ○ offline 
+ coeus · local · ctx 12.4k / 262k · 5% · 6.1k in 0.4k out · $0.04     ● healthy 
  ────────────────────────────────────────────────────────────────────────────── 
                                                                                 
                                                                                 
@@ -12,7 +12,7 @@
          █████ █████ █████ █████ █████   █   █ █████ █████ █   █   █            
                                                                                 
                 the agent that does not forget what it is doing                 
-                                   connecting                                   
+                                  local · idle                                  
                            type / to see the commands                           
                                                                                 
                                                                                 
@@ -21,4 +21,4 @@
                                                                                 
  ────────────────────────────────────────────────────────────────────────────── 
  › _                                                                            
- connecting                           Enter send · Ctrl+J newline · Ctrl+C quit 
+ idle                                 Enter send · Ctrl+J newline · Ctrl+C quit 

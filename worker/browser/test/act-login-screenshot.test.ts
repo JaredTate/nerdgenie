@@ -76,6 +76,35 @@ describe("running a short batch of steps", () => {
     expect(diffs[0]?.expectationMet).toBe(true);
     expect(diffs[1]?.urlChanged).toBe(true);
   });
+
+  it("carries a scroll step, so a scroll rides in the batch beside the other actions", async () => {
+    await worker.result("open", { url: site.page("more-on-scroll.html") });
+    const result = await worker.result("act", {
+      steps: [
+        { method: "scroll", direction: "down", amount: 6, expectation: "another post" },
+        { method: "scroll", direction: "down", amount: 6, expectation: "another post" },
+      ],
+    });
+    const diffs = result["diffs"] as Diff[];
+    expect(diffs).toHaveLength(2);
+    for (const diff of diffs) {
+      expect(diff.expectationMet).toBe(true);
+      // The feed puts more posts up as it is scrolled, so a step that really
+      // scrolled is a step that brought new articles with it.
+      expect(diff.newElements.length).toBeGreaterThan(0);
+      expect(diff.newElements.every((element) => element.role === "article")).toBe(true);
+    }
+  });
+
+  it("refuses a scroll step whose direction is neither up nor down, and says which step", async () => {
+    const refused = await worker.fails("act", {
+      steps: [{ method: "scroll", direction: "sideways", expectation: "anything at all" }],
+    });
+
+    expect(refused.code).toBe(-32602);
+    expect(refused.message).toContain("Step 1");
+    expect(refused.message).toContain("sideways");
+  });
 });
 
 describe("filling in a login from the vault", () => {

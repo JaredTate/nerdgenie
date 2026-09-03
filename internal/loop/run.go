@@ -254,6 +254,13 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	}
 	reply, err := running.callTheModel(ctx)
 	if err != nil {
+		// A call that was cancelled because somebody asked the task to stop is
+		// a stop, not a failure: the person pressed Escape and is owed the
+		// stopped report rather than an error about a cancelled context.
+		if running.theLoop.stopAsked() {
+			outcome, stopped := running.stopHere(ctx, "the user asked the task to stop")
+			return outcome, false, stopped
+		}
 		outcome, failed := running.failHere(ctx, err)
 		return outcome, false, failed
 	}
@@ -283,7 +290,14 @@ func (running *run) callTheModel(ctx context.Context) (contract.Reply, error) {
 	if err != nil {
 		return contract.Reply{}, err
 	}
-	return running.theLoop.options.Model.Send(ctx, request, running.theLoop.options.Deltas)
+
+	// The call gets a context of its own so that a stop can cancel it without
+	// cancelling the task, which still has a stopped report to write and send.
+	calling, stopTheCall := context.WithCancel(ctx)
+	defer stopTheCall()
+	running.theLoop.holdTheCall(stopTheCall)
+	defer running.theLoop.releaseTheCall()
+	return running.theLoop.options.Model.Send(calling, request, running.theLoop.options.Deltas)
 }
 
 // buildRequest asks the working-context builder for one call's prompt.

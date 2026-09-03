@@ -73,6 +73,8 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 		return contract.ExitBadConfiguration
 	}
 
+	fmt.Fprintln(output, whichBinaryIsServing())
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -125,6 +127,18 @@ func writeWhatTheGuardFound(output io.Writer, found reliability.Startup) {
 	}
 }
 
+// whichBinaryIsServing is the first line the log carries: the whole path of the
+// program that is running and the commit it was built from. A person reading a
+// log has to know which build they are looking at, and a worktree's binary and
+// the installed one look the same from the outside.
+func whichBinaryIsServing() string {
+	program, err := os.Executable()
+	if err != nil {
+		program = "a program whose path could not be read"
+	}
+	return fmt.Sprintf("coeus %s (commit %s) serving from %s", version, commit, program)
+}
+
 // exitCodeFor turns what went wrong at startup into the code the service unit
 // reads: a configuration a restart cannot fix stops the service and waits for a
 // person, and everything else may be tried again.
@@ -166,8 +180,13 @@ type agent struct {
 	registry  *command.Registry
 	router    *channel.Router
 
-	busyGuard sync.Mutex
-	busy      bool
+	watched *watchedModel
+
+	busyGuard  sync.Mutex
+	busy       bool
+	recordLine string
+	holding    int64
+	handedOver bool
 }
 
 // openAgent makes the home folder if it is not there, reads the configuration,
@@ -320,14 +339,52 @@ func (running *agent) takeWhatIsWaiting(ctx context.Context) bool {
 		if !held {
 			return false
 		}
+		running.holdTheMessage(queued.Sequence)
 		if _, err := running.router.Route(ctx, queued.Message); err != nil {
 			running.note("a message was not answered: " + err.Error())
 		}
-		if err := running.queue.Done(ctx, queued.Sequence); err != nil {
-			running.note("a finished message could not be marked done: " + err.Error())
+		// A message that started a task is finished by the task, whenever that
+		// ends; everything else is finished here and now.
+		if running.stillHolding() {
+			running.finishTheMessage(queued.Sequence)
 		}
 	}
 	return true
+}
+
+// holdTheMessage says which message the drainer is working on, so that a task
+// started from it can take it over and finish it when the task ends.
+func (running *agent) holdTheMessage(sequence int64) {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	running.holding = sequence
+	running.handedOver = false
+}
+
+// tookTheMessage hands the message the drainer is holding to the task that is
+// about to run, and gives back the function that finishes it.
+func (running *agent) tookTheMessage() func() {
+	running.busyGuard.Lock()
+	sequence := running.holding
+	running.handedOver = true
+	running.busyGuard.Unlock()
+	return func() { running.finishTheMessage(sequence) }
+}
+
+// stillHolding says the drainer still owns the message it took, which is true
+// for everything but a message that started a task.
+func (running *agent) stillHolding() bool {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	return !running.handedOver
+}
+
+// finishTheMessage marks one message done, so that a restart does not hand it
+// out again.
+func (running *agent) finishTheMessage(sequence int64) {
+	if err := running.queue.Done(context.Background(), sequence); err != nil {
+		running.note("a finished message could not be marked done: " + err.Error())
+	}
 }
 
 // runDueJobs runs the task a job has due whenever nothing else is running. The

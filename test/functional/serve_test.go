@@ -327,3 +327,13 @@ func (screen *attachedScreen) waitUntil(t *testing.T, bound time.Duration, what 
 	t.Fatalf("no %s arrived within %s; the agent sent %v (%v)", what, bound, seen, screen.lines.Err())
 	return contract.SocketEnvelope{}
 }
+
+// waitForStatusWhere reads envelopes until a status arrives whose fields are the
+// ones being waited for.
+func (screen *attachedScreen) waitForStatusWhere(t *testing.T, bound time.Duration,
+	itIsThis func(fields map[string]string) bool) contract.SocketEnvelope {
+	t.Helper()
+	return screen.waitUntil(t, bound, "a status with the fields wanted", func(envelope contract.SocketEnvelope) bool {
+		return envelope.Type == contract.SocketStatus && itIsThis(envelope.Fields)
+	})
+}

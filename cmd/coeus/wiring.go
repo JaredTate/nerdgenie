@@ -53,7 +53,8 @@ func (running *agent) openTheModelAndTheScreens() error {
 	if err != nil {
 		return err
 	}
-	running.model = model
+	running.watched = newWatchedModel(model, clock.System(), running.tellTheScreens)
+	running.model = running.watched
 	running.stream = channel.NewStream(channel.StreamOptions{
 		Clock:  clock.System(),
 		Status: running.statusForAScreen,
@@ -287,6 +288,7 @@ func (running *agent) openTheLoop() error {
 		Skills:       running.skillsBox,
 		Sandbox:      running.fence,
 		Caps:         running.settings.Caps,
+		RecordLine:   running.noteRecordLine,
 	})
 	if err != nil {
 		return err
@@ -323,9 +325,21 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	if !running.takeTheLoop() {
 		return running.loop.Deliver(message)
 	}
-	defer running.freeTheLoop()
-	_, err := running.loop.Run(ctx, loop.Task{Message: message, Channel: where})
-	return err
+
+	// The task runs beside the drainer rather than inside it. The drainer is
+	// the one path a command travels, so a task run inside it would hold every
+	// later message behind itself: the person would press Escape and nothing
+	// would happen until the model had answered, which is exactly what the
+	// first human trial found.
+	finished := running.tookTheMessage()
+	go func() {
+		defer running.freeTheLoop()
+		defer finished()
+		if _, err := running.loop.Run(context.WithoutCancel(ctx), loop.Task{Message: message, Channel: where}); err != nil {
+			running.note("a task did not finish: " + err.Error())
+		}
+	}()
+	return nil
 }
 
 // takeTheLoop says this caller may run a task, and says no when one is already
@@ -349,11 +363,14 @@ func (running *agent) freeTheLoop() {
 	running.busy = false
 }
 
-// loopIsBusy says whether a task is running, for the status a screen is sent.
+// loopIsBusy says whether a task is running, for the status a screen is sent. A
+// model call in flight counts too, because a plain reply is not a task and the
+// person still wants to see that the agent is thinking.
 func (running *agent) loopIsBusy() bool {
 	running.busyGuard.Lock()
-	defer running.busyGuard.Unlock()
-	return running.busy
+	busy := running.busy
+	running.busyGuard.Unlock()
+	return busy || running.watched.calling()
 }
 
 // stopTask asks the running task to stop, which is what Escape at the terminal
@@ -438,11 +455,65 @@ func (running *agent) statusForAScreen() map[string]string {
 	if running.loopIsBusy() {
 		state = contract.StateThinking
 	}
-	return map[string]string{
+	fields := map[string]string{
 		contract.StatusFieldModel:    running.model.Name(),
 		contract.StatusFieldTask:     running.loop.Running(),
 		contract.StatusFieldState:    state,
+		contract.StatusFieldBudget:   running.budgetLine(),
 		contract.StatusFieldHealthy:  "true",
 		contract.StatusFieldCommands: strings.TrimRight(listed.String(), "\n"),
 	}
+	running.watched.fillStatus(fields)
+	if line := running.lastRecordLine(); line != "" {
+		fields[contract.StatusFieldRecordLine] = line
+	}
+	return fields
+}
+
+// budgetLine says in plain words what one task may spend, which is the caps the
+// configuration set.
+func (running *agent) budgetLine() string {
+	caps := running.settings.Caps
+	return fmt.Sprintf("%d rounds, %s per task", caps.RoundsPerTask, plainDuration(caps.TimePerTask))
+}
+
+// plainDuration writes a length of time the way a person says it.
+func plainDuration(long time.Duration) string {
+	switch {
+	case long >= time.Hour && long%time.Hour == 0:
+		return fmt.Sprintf("%dh", int(long/time.Hour))
+	case long >= time.Minute:
+		return fmt.Sprintf("%dm", int(long/time.Minute))
+	default:
+		return long.String()
+	}
+}
+
+// tellTheScreens sends the status to every attached screen at once, rather than
+// leaving it until the next heartbeat, which is what makes a call that has just
+// begun or just ended show up straight away.
+func (running *agent) tellTheScreens() {
+	if running.stream == nil || running.registry == nil {
+		return
+	}
+	_ = running.stream.Publish(contract.SocketEnvelope{
+		Type:   contract.SocketStatus,
+		Fields: running.statusForAScreen(),
+	})
+}
+
+// noteRecordLine remembers the newest line about a task or a job and tells the
+// screens at once, so that a person sees work start and finish as it happens.
+func (running *agent) noteRecordLine(line string) {
+	running.busyGuard.Lock()
+	running.recordLine = line
+	running.busyGuard.Unlock()
+	running.tellTheScreens()
+}
+
+// lastRecordLine is the newest line about a task or a job.
+func (running *agent) lastRecordLine() string {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	return running.recordLine
 }

@@ -10,7 +10,8 @@ export PATH := $(PATH):/usr/local/go/bin:$(HOME)/go/bin
 # The version string the `version` subcommand prints. A release sets it from the
 # tag; a development build says "dev".
 VERSION ?= dev
-LDFLAGS := -X main.version=$(VERSION)
+COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
+LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
 .PHONY: all build test fuzz check live release install repo-map clean
 

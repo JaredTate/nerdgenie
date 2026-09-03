@@ -42,6 +42,8 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/replay.go
+cmd/coeus/replay_test.go
 cmd/coeus/reviewaskpass_test.go
 cmd/coeus/runlock.go
 cmd/coeus/sandbox_entry.go
@@ -86,6 +88,7 @@ docs/briefs/wave-3/3.3-commands-init-install.md
 docs/briefs/wave-3/3.4-terminal-screen.md
 docs/briefs/wave-3/3.5-signal.md
 docs/briefs/wave-3/3.6-fix-the-wave-3-gate.md
+docs/briefs/wave-3/3.7-fix-the-first-trial.md
 docs/briefs/wave-4/4.1-reliability-backups.md
 docs/briefs/wave-4/4.2-memory.md
 docs/briefs/wave-4/4.3-skills.md
@@ -245,6 +248,7 @@ internal/config/internals_test.go
 internal/config/lines.go
 internal/config/load.go
 internal/config/load_test.go
+internal/config/outsidethefence_test.go
 internal/config/report.go
 internal/context/builder.go
 internal/context/builder_test.go
@@ -279,6 +283,7 @@ internal/contract/command.go
 internal/contract/command_test.go
 internal/contract/config.go
 internal/contract/config_test.go
+internal/contract/contextstatus_test.go
 internal/contract/contract_test.go
 internal/contract/desktop.go
 internal/contract/doc.go
@@ -612,6 +617,27 @@ internal/repair/testdata/two-calls.txt
 internal/repair/testdata/unknown-name.txt
 internal/repair/thinking.go
 internal/repair/thinking_test.go
+internal/replay/astest.go
+internal/replay/astest_test.go
+internal/replay/channel.go
+internal/replay/compare.go
+internal/replay/doc.go
+internal/replay/failures_test.go
+internal/replay/fixture_test.go
+internal/replay/fuzz_test.go
+internal/replay/helpers_test.go
+internal/replay/integration_test.go
+internal/replay/internals_test.go
+internal/replay/model.go
+internal/replay/nightly.go
+internal/replay/nightly_test.go
+internal/replay/nightlychecks.go
+internal/replay/recording.go
+internal/replay/recording_test.go
+internal/replay/replay.go
+internal/replay/replay_test.go
+internal/replay/testdata/budget-task.json
+internal/replay/tools.go
 internal/sandbox/arguments.go
 internal/sandbox/arguments_test.go
 internal/sandbox/available.go
@@ -672,7 +698,6 @@ internal/signal/split_test.go
 internal/signal/stream.go
 internal/signal/stream_test.go
 internal/signal/streamclose_test.go
-internal/skill/approval_test.go
 internal/skill/bounds_test.go
 internal/skill/browser/bounds.go
 internal/skill/browser/doc.go
@@ -713,9 +738,6 @@ internal/skill/run.go
 internal/skill/run_test.go
 internal/skill/save.go
 internal/skill/save_test.go
-internal/skill/site.go
-internal/skill/site_internal_test.go
-internal/skill/site_test.go
 internal/skill/steps.go
 internal/skill/store.go
 internal/skill/testdata/broken/no-procedure/CHANGELOG.md
@@ -907,6 +929,7 @@ internal/tool/web/testdata/a_fetched_page.txt
 internal/tool/web/testdata/a_page_as_text.txt
 internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
+internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/7f72ed17f01b6f36
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/ec7528631b9ef93e
 internal/tool/web/testdata/fuzz/FuzzTheTurnIntoText/5227ce2ede044796
 internal/tool/web/text.go
@@ -1057,6 +1080,8 @@ test/functional/sample_test.go
 test/functional/serve_test.go
 test/functional/site_test.go
 test/functional/vault_test.go
+test/replays/task_1_test.go
+test/replays/testdata/task-1.json
 worker/browser/.gitignore
 worker/browser/PROTOCOL.md
 worker/browser/package-lock.json
@@ -1095,6 +1120,7 @@ worker/browser/test/chrome.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
+worker/browser/test/headless.test.ts
 worker/browser/test/pacing.test.ts
 worker/browser/test/page-events.test.ts
 worker/browser/test/pages/busy-attributes.html

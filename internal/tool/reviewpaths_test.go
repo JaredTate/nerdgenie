@@ -59,9 +59,11 @@ func TestTheCheckHandsBackThePathWithItsLinksFollowed(t *testing.T) {
 
 // TestTheConfiguredBrowserProfileStaysOutsideTheFence holds the rule from design
 // section 11 that the browser profile is always outside the sandbox. The paths
-// that must stay outside are worked out from the default browser folder alone,
-// so a browser_profile_path the user moved into a sandbox root is inside the
-// fence, and its cookies are the agent's logins.
+// that must stay outside used to be worked out from the default browser folder
+// alone, so a browser_profile_path the user had moved into a sandbox root was
+// inside the fence, and its cookies are the agent's logins. Both the sandbox
+// check and the file tools' check are now told where the configured profile is,
+// and both refuse a root that holds it.
 func TestTheConfiguredBrowserProfileStaysOutsideTheFence(t *testing.T) {
 	userHome, agentHome, work := aHomeWithAWorkFolder(t)
 	profile := filepath.Join(work, "chrome-profile")
@@ -73,11 +75,11 @@ func TestTheConfiguredBrowserProfileStaysOutsideTheFence(t *testing.T) {
 		t.Fatalf("cannot write the fixture cookies: %v", err)
 	}
 
-	if err := contract.CheckSandboxRoot(work, userHome, agentHome); err == nil {
+	if err := contract.CheckSandboxRoot(work, userHome, agentHome, profile); err == nil {
 		t.Errorf("the sandbox root %s holds the configured browser profile %s and was allowed, so a sandboxed command can read the cookies"+
 			" that are the agent's logins; the configured profile has to join the paths that must stay outside the fence", work, profile)
 	}
-	if _, err := tool.NewPathCheck([]string{work}, userHome, agentHome)(cookies); err == nil {
+	if _, err := tool.NewPathCheck([]string{work}, userHome, agentHome, profile)(cookies); err == nil {
 		t.Errorf("the file tools may read %s, and the model never reads the cookies that are the agent's logins", cookies)
 	}
 }

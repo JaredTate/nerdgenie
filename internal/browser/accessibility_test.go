@@ -12,14 +12,17 @@ import (
 	"time"
 )
 
-// This package starts a real Google Chrome and hands it the session message bus,
-// through the DBUS_SESSION_BUS_ADDRESS entry in environmentPassedOn. Chrome, once
-// its accessibility support is activated, brings the desktop's accessibility
-// bridge up with it, and on this machine that started the screen reader and it
-// spoke aloud through the user's speakers while this package's integration tests
-// were running. Nothing in Coeus writes the setting, so the guard cannot be a
-// check of Coeus's own code: it has to be a check of the machine, taken before
-// and after this package's tests run. The same guard is in
+// This package starts a real Google Chrome, and it used to hand it the session
+// message bus, through a DBUS_SESSION_BUS_ADDRESS entry in environmentPassedOn.
+// Chrome, once its accessibility support is activated, brings the desktop's
+// accessibility bridge up with it, and on this machine that started the screen
+// reader and it spoke aloud through the user's speakers while this package's
+// integration tests were running. That entry is gone now and the worker is handed
+// NO_AT_BRIDGE=1 instead, which is what
+// TestTheBrowserWorkerIsHandedTheBridgeSwitchedOffAndNoSessionBus below holds.
+// Nothing in Coeus writes the setting, so the guard cannot be a check of Coeus's
+// own code: it has to be a check of the machine, taken before and after this
+// package's tests run. The same guard is in
 // internal/desktop/accessibility_test.go, and it belongs in internal/testkit so
 // that both packages share one copy rather than two.
 
@@ -197,5 +200,44 @@ var accessibilityVariables = []string{
 	"QT_LINUX_ACCESSIBILITY_ALWAYS_ON",
 	"AT_SPI_BUS_ADDRESS",
 	"ACCESSIBILITY_ENABLED",
-	"NO_AT_BRIDGE",
+}
+
+// TestTheBrowserWorkerIsHandedTheBridgeSwitchedOffAndNoSessionBus is the guard on
+// the fix for the finding above. Chrome reaches the desktop's accessibility bus
+// over the session message bus, and reaching that bus is what wrote
+// org.gnome.desktop.interface toolkit-accessibility and started the screen reader
+// on this machine. So the environment the process starter builds carries
+// NO_AT_BRIDGE=1, which is how a toolkit is told to load no accessibility bridge
+// at all, and carries none of the three names that tell a program where the
+// session message bus and the accessibility bus are. That has to hold whatever
+// the caller's own environment holds, so the test sets all four names first.
+func TestTheBrowserWorkerIsHandedTheBridgeSwitchedOffAndNoSessionBus(t *testing.T) {
+	t.Setenv("DISPLAY", ":0")
+	t.Setenv("NO_AT_BRIDGE", "0")
+	for _, name := range busVariablesNeverPassedOn {
+		t.Setenv(name, "unix:path=/run/user/1000/bus")
+	}
+
+	handed := workerEnvironment()
+
+	if !slices.Contains(handed, "NO_AT_BRIDGE=1") {
+		t.Errorf("the browser worker was handed %v, and it must be handed NO_AT_BRIDGE=1 so that Chrome loads no accessibility bridge,"+
+			" because bringing the bridge up turns the screen reader on and it speaks aloud through the user's speakers", handed)
+	}
+	for _, line := range handed {
+		name, _, _ := strings.Cut(line, "=")
+		if slices.Contains(busVariablesNeverPassedOn, name) {
+			t.Errorf("the browser worker was handed %s, and a name that tells Chrome where the session message bus or the accessibility"+
+				" bus is must stay out of its environment, because a program that reaches that bus can switch the accessibility bridge"+
+				" on for the whole desktop", name)
+		}
+	}
+}
+
+// busVariablesNeverPassedOn are the names that tell a program where the session
+// message bus and the accessibility bus are. Chrome is handed none of them.
+var busVariablesNeverPassedOn = []string{
+	"DBUS_SESSION_BUS_ADDRESS",
+	"DBUS_SESSION_BUS_PID",
+	"AT_SPI_BUS_ADDRESS",
 }

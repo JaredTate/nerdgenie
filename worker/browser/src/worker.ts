@@ -23,6 +23,8 @@ export interface WorkerOptions {
   chromePath?: string | undefined;
   /** How fast to act. `fast` is only for the tests. */
   pacing: Pacing;
+  /** Run Chrome with no window at all. Only the tests ask for this. */
+  headless?: boolean | undefined;
   /** Where chance comes from, so a test can hand in a fixed sequence. */
   chance?: Chance | undefined;
   /** Where the worker's own logging goes. */
@@ -64,6 +66,7 @@ export async function startWorker(options: WorkerOptions): Promise<BrowserWorker
   const chrome: RunningChrome = await launchChrome({
     profile: options.profile,
     chromePath: options.chromePath,
+    headless: options.headless ?? false,
     log,
   });
   const session = new Session({

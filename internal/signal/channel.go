@@ -54,6 +54,7 @@ type Channel struct {
 	pairing *Pairing
 	daemon  *Daemon
 	clock   contract.Clock
+	secrets contract.Secrets
 	account string
 	inbox   string
 
@@ -133,6 +134,7 @@ func NewChannel(options ChannelOptions) (*Channel, error) {
 		stream:  NewStream(client, options.Clock),
 		pairing: pairing,
 		clock:   options.Clock,
+		secrets: options.Secrets,
 		account: options.Account,
 		inbox:   options.Home.InboxFolder(),
 		inbound: make(chan contract.Inbound, InboundBacklog),
@@ -239,8 +241,14 @@ func (channel *Channel) streamFor(ctx context.Context) <-chan contract.Inbound {
 
 // Send delivers one reply, split into as few messages as Signal's length allows,
 // with a typing indicator while it is being written.
+//
+// The whole reply goes through the redactor before it is split, never each piece
+// after: the redactor looks for whole values, so a secret that falls across a
+// split matches neither half and would leave in two messages a reader joins back
+// up. The client redacts every message again on its way out, which costs nothing
+// and covers the messages that are not replies.
 func (channel *Channel) Send(ctx context.Context, text string) error {
-	pieces := SplitReply(text)
+	pieces := SplitReply(channel.secrets.Redact(text))
 	if len(pieces) == 0 {
 		return nil
 	}

@@ -10,12 +10,14 @@
 // belongs to one; and the record's goal and rules, ending boundary C. Everything
 // above boundary C goes into the system prompt and is byte-identical from one
 // turn to the next, so the provider can reuse it. Everything below it goes into
-// the messages, in the order of how often each part changes, because a prompt
-// cache keeps what two calls share from the first byte and stops at the first
-// byte that differs: the record's work and lessons, any pinned evidence, the
-// recent messages and tool results, three lines of memory hint, and last of all
-// the record's header, whose budget line and cost line are written anew on every
-// single call.
+// the messages in the design's own order — the record's work and lessons, any
+// pinned evidence, the recent messages and tool results, three lines of memory
+// hint — followed by a tail holding the two parts that change on every call: the
+// record's list of results, which grows by a line every round, and the record's
+// header, whose budget line and cost line are written anew every time. The tail
+// exists because a prompt cache keeps what two calls share from the first byte
+// and stops at the first byte that differs, so anything that changes drags
+// everything under it along with it.
 //
 // One rule sizes the whole thing. The window left for results is the model's
 // context length, less the output cap, less everything above the cache line,

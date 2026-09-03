@@ -359,6 +359,39 @@ func TestEverythingSentOutIsRedactedFirst(t *testing.T) {
 	if !strings.Contains(got.Text, contract.RedactedMarker) {
 		t.Errorf("the screen was sent %q, want the secret replaced by %q", got.Text, contract.RedactedMarker)
 	}
+
+	// A secret does not travel only in the body. The line above a preview, the
+	// reason beside a refusal, and every value of a status all leave the program
+	// too, so each one is put through the redactor and each one is pinned here.
+	carried := map[string]func(contract.SocketEnvelope) string{
+		"the title": func(sent contract.SocketEnvelope) string { return sent.Title },
+		"the reason": func(sent contract.SocketEnvelope) string {
+			return sent.Reason
+		},
+		"the status field": func(sent contract.SocketEnvelope) string {
+			return sent.Fields[contract.StatusFieldToolLine]
+		},
+	}
+	if err := harness.stream.Publish(contract.SocketEnvelope{
+		Type:   contract.SocketPreview,
+		ID:     "9",
+		Title:  "sign in with hunter2the-real-one",
+		Text:   "the body says nothing",
+		Reason: "the last try refused hunter2the-real-one",
+		Fields: map[string]string{contract.StatusFieldToolLine: "curl -u jared:hunter2the-real-one"},
+	}); err != nil {
+		t.Fatalf("publishing the preview failed: %v", err)
+	}
+
+	sent := client.next()
+	for what, read := range carried {
+		if strings.Contains(read(sent), "hunter2the-real-one") {
+			t.Errorf("%s reached the screen as %q, and no secret may leave the program", what, read(sent))
+		}
+		if !strings.Contains(read(sent), contract.RedactedMarker) {
+			t.Errorf("%s reached the screen as %q, want the secret replaced by %q", what, read(sent), contract.RedactedMarker)
+		}
+	}
 }
 
 func TestReceiveCarriesEveryMessageTheSocketTookAndClosesWithItsContext(t *testing.T) {

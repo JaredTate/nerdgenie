@@ -74,6 +74,43 @@ func FuzzMatchExpression(f *testing.F) {
 	})
 }
 
+func FuzzHintWords(f *testing.F) {
+	f.Add("what do we know about the anniversary campaign")
+	f.Add("and then the one of them is on it for a while")
+	f.Add("")
+	f.Add("   ")
+	f.Add(`"quoted" AND NOT NEAR(a b) OR *`)
+	f.Add(strings.Repeat("word ", 200))
+	f.Add("\x00�")
+
+	f.Fuzz(func(t *testing.T, step string) {
+		words := distinctWords(step, wordWorthHinting)
+		if len(words) > maxQueryTokens {
+			t.Fatalf("the step %q gave %d words, and the cap is %d", step, len(words), maxQueryTokens)
+		}
+		seen := map[string]bool{}
+		for _, word := range words {
+			if seen[word] {
+				t.Fatalf("the step %q gave the word %q twice", step, word)
+			}
+			seen[word] = true
+			if len([]rune(word)) < minimumHintWordRunes {
+				t.Fatalf("the step %q gave the word %q, which is shorter than %d runes", step, word, minimumHintWordRunes)
+			}
+			if len([]rune(word)) > maxTokenRunes {
+				t.Fatalf("the step %q gave the word %q, which is longer than %d runes", step, word, maxTokenRunes)
+			}
+			if hintStopWords[word] {
+				t.Fatalf("the step %q gave the stop word %q", step, word)
+			}
+		}
+		if score := wordsHeldBy(step, words); score > len(words) {
+			t.Fatalf("the step %q scored %d against its own %d words, and a line cannot hold more of "+
+				"the step's words than the step has", step, score, len(words))
+		}
+	})
+}
+
 func FuzzOneLine(f *testing.F) {
 	f.Add("first line\nsecond line\ttabbed")
 	f.Add("")

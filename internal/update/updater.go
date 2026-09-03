@@ -186,6 +186,13 @@ func (updater *Updater) undo(ctx context.Context, outcome Outcome, version strin
 // readiness check did not catch.
 func (updater *Updater) Rollback(ctx context.Context) (Outcome, error) {
 	outcome := Outcome{From: updater.settings.Version, To: updater.settings.Version}
+	// The database is asked about before anything moves. A rollback is the one
+	// command that deliberately puts an older program in front of the one
+	// database, and a program that cannot read the file itself knows that no
+	// older one will read it either.
+	if err := CheckSchema(ctx, updater.settings.Home.DatabaseFile()); err != nil {
+		return outcome, fmt.Errorf("nothing was rolled back, because %w; going back would put an even older version in front of this database, so update rather than go back", err)
+	}
 	live := versionOf(currentBinary(updater.settings.Home))
 	versions, err := installedVersions(updater.settings.Home)
 	if err != nil {

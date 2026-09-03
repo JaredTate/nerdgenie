@@ -62,6 +62,15 @@ type Options struct {
 	// Deltas is where a streamed reply goes as it arrives, and is nil when
 	// nobody is watching.
 	Deltas func(delta string)
+	// ToolLine takes the one dim line the strip draws for the tool call in
+	// flight, such as "▸ read note.txt", and again with what came back once it
+	// has, and is nil when nobody is watching.
+	ToolLine func(line string)
+	// RecordLine takes one line whenever a task or a job is created, started,
+	// finished, or failed, such as "task 3 started · build the game". It is
+	// what a screen draws so that a person can see what the agent is working
+	// on, and is nil when nobody is watching.
+	RecordLine func(line string)
 }
 
 // Budget is how much one task may spend. A zero budget means the caps.
@@ -108,14 +117,15 @@ type Outcome struct {
 // Loop runs one task at a time. Everything it needs is an interface, so the
 // whole of it is driven by fakes in tests.
 type Loop struct {
-	options    Options
-	oneAtATime sync.Mutex
-	guard      sync.Mutex
-	queued     []contract.Inbound
-	stopWanted bool
-	running    string
-	highest    int
-	counted    bool
+	options     Options
+	oneAtATime  sync.Mutex
+	guard       sync.Mutex
+	queued      []contract.Inbound
+	stopWanted  bool
+	stopTheCall context.CancelFunc
+	running     string
+	highest     int
+	counted     bool
 }
 
 // New builds a loop and says which dependency is missing when one is.
@@ -220,7 +230,13 @@ func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, error) {
 	}
 	theLoop.nowRunning(running.taskID())
 	defer theLoop.nowRunning("")
-	return running.play(ctx)
+
+	theLoop.noteRecordLine(RecordLineOf(running.number, task.FromJob, "started", task.Message.Text))
+	outcome, err := running.play(ctx)
+	if err == nil {
+		theLoop.noteRecordLine(RecordLineOf(running.number, task.FromJob, string(outcome.Status), task.Message.Text))
+	}
+	return outcome, err
 }
 
 // Deliver hands the loop a message that arrived while a task was running. The
@@ -249,8 +265,40 @@ func (theLoop *Loop) takeDelivered() []contract.Inbound {
 // finished.
 func (theLoop *Loop) Stop() {
 	theLoop.guard.Lock()
-	defer theLoop.guard.Unlock()
+	stopTheCall := theLoop.stopTheCall
 	theLoop.stopWanted = true
+	theLoop.guard.Unlock()
+
+	// The call in flight is cancelled outside the lock, because a model that is
+	// waiting on the network can take a moment to notice, and nothing else
+	// should have to wait behind it. A task waiting on a model that has gone
+	// quiet is the whole reason the person pressed Escape.
+	if stopTheCall != nil {
+		stopTheCall()
+	}
+}
+
+// holdTheCall remembers how to cancel the model call that is about to be made,
+// so that a stop reaches it rather than waiting for it to answer.
+func (theLoop *Loop) holdTheCall(stopTheCall context.CancelFunc) {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	theLoop.stopTheCall = stopTheCall
+}
+
+// releaseTheCall forgets the call that has just finished.
+func (theLoop *Loop) releaseTheCall() {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	theLoop.stopTheCall = nil
+}
+
+// noteRecordLine sends one line about a task or a job to whoever is watching.
+func (theLoop *Loop) noteRecordLine(line string) {
+	if theLoop.options.RecordLine == nil {
+		return
+	}
+	theLoop.options.RecordLine(line)
 }
 
 // stopAsked says whether somebody asked the running task to stop.

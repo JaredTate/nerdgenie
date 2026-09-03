@@ -1,0 +1,311 @@
+[
+  {
+    "Sequence": 1,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "",
+    "Kind": "message",
+    "Body": {
+      "ID": "in-1",
+      "Sender": "",
+      "Text": "count the files in the notes folder",
+      "Attachments": null,
+      "Received": "0001-01-01T00:00:00Z",
+      "Channel": "terminal"
+    }
+  },
+  {
+    "Sequence": 2,
+    "Occurred": "1970-01-01T00:00:02Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 1,
+      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\n\n## Rules\n\n## Work\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 3,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "tool call",
+    "Body": {
+      "ID": "c1",
+      "Name": "search",
+      "Input": {
+        "pattern": "*"
+      }
+    }
+  },
+  {
+    "Sequence": 4,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "permission decision",
+    "Body": {
+      "tool": "search",
+      "call": "c1",
+      "ruling": "allow",
+      "reason": "no rule covers \"search\", so the default ruling applies"
+    }
+  },
+  {
+    "Sequence": 5,
+    "Occurred": "1970-01-01T00:00:05Z",
+    "TaskID": "1",
+    "Kind": "tool result",
+    "Body": {
+      "id": "r1",
+      "summary": "search: three files",
+      "text": "three files"
+    }
+  },
+  {
+    "Sequence": 6,
+    "Occurred": "1970-01-01T00:00:06Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 2,
+      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\n\n## Rules\n\n## Work\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 7,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "tool call",
+    "Body": {
+      "ID": "c2",
+      "Name": "task",
+      "Input": {
+        "why": "the user wants a count",
+        "plan": [
+          "read the folder",
+          "name the files"
+        ],
+        "done_when": [
+          "the files are counted"
+        ]
+      }
+    }
+  },
+  {
+    "Sequence": 8,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "permission decision",
+    "Body": {
+      "tool": "task",
+      "call": "c2",
+      "ruling": "allow",
+      "reason": "no rule covers \"task\", so the default ruling applies"
+    }
+  },
+  {
+    "Sequence": 9,
+    "Occurred": "1970-01-01T00:00:09Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 3,
+      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 10,
+    "Occurred": "1970-01-01T00:00:10Z",
+    "TaskID": "1",
+    "Kind": "tool result",
+    "Body": {
+      "id": "r2",
+      "summary": "updated the record: done_when, plan, why",
+      "text": "{\"why\":\"the user wants a count\",\"plan\":[\"read the folder\",\"name the files\"],\"done_when\":[\"the files are counted\"]}"
+    }
+  },
+  {
+    "Sequence": 11,
+    "Occurred": "1970-01-01T00:00:11Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 4,
+      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 12,
+    "Occurred": "1970-01-01T00:00:12Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 5,
+      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 13,
+    "Occurred": "1970-01-01T00:00:13Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 6,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 14,
+    "Occurred": "1970-01-01T00:00:14Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 7,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 15,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "tool call",
+    "Body": {
+      "ID": "c3",
+      "Name": "search",
+      "Input": {
+        "pattern": "*.md"
+      }
+    }
+  },
+  {
+    "Sequence": 16,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "permission decision",
+    "Body": {
+      "tool": "search",
+      "call": "c3",
+      "ruling": "allow",
+      "reason": "no rule covers \"search\", so the default ruling applies"
+    }
+  },
+  {
+    "Sequence": 17,
+    "Occurred": "1970-01-01T00:00:17Z",
+    "TaskID": "1",
+    "Kind": "tool result",
+    "Body": {
+      "id": "r3",
+      "summary": "search: notes.md, list.md, plan.md",
+      "text": "notes.md, list.md, plan.md"
+    }
+  },
+  {
+    "Sequence": 18,
+    "Occurred": "1970-01-01T00:00:18Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 8,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 19,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "tool call",
+    "Body": {
+      "ID": "c4",
+      "Name": "task",
+      "Input": {
+        "done_when": [
+          {
+            "text": "the files are counted",
+            "done": true,
+            "resultId": "r3"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "Sequence": 20,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "permission decision",
+    "Body": {
+      "tool": "task",
+      "call": "c4",
+      "ruling": "allow",
+      "reason": "no rule covers \"task\", so the default ruling applies"
+    }
+  },
+  {
+    "Sequence": 21,
+    "Occurred": "1970-01-01T00:00:21Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 9,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 22,
+    "Occurred": "1970-01-01T00:00:22Z",
+    "TaskID": "1",
+    "Kind": "tool result",
+    "Body": {
+      "id": "r4",
+      "summary": "updated the record: done_when",
+      "text": "{\"done_when\":[{\"text\":\"the files are counted\",\"done\":true,\"resultId\":\"r3\"}]}"
+    }
+  },
+  {
+    "Sequence": 23,
+    "Occurred": "1970-01-01T00:00:23Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 10,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 24,
+    "Occurred": "1970-01-01T00:00:24Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 11,
+      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I have the count and now want the names.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 25,
+    "Occurred": "1970-01-01T00:00:25Z",
+    "TaskID": "1",
+    "Kind": "checkpoint",
+    "Body": {
+      "number": 12,
+      "text": "# task 1   stopped   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I have the count and now want the names.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n"
+    }
+  },
+  {
+    "Sequence": 26,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "reply",
+    "Body": {
+      "text": "I stopped this task, because the budget of 2 rounds is used up.\nWhere it stands: I have the count and now want the names.\nTell me how to carry on and I will pick it up from here."
+    }
+  },
+  {
+    "Sequence": 27,
+    "Occurred": "2026-01-10T09:00:00Z",
+    "TaskID": "1",
+    "Kind": "reply",
+    "Body": {
+      "text": "I read the folder twice and the budget ran out before I could report."
+    }
+  }
+]

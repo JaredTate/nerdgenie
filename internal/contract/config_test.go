@@ -228,3 +228,24 @@ func TestTheDefaultSandboxRootIsAWorkFolderAndARootMayNotHoldAnExcludedPath(t *t
 		}
 	}
 }
+
+// TestAPathTheCallerNamesIsKeptOutsideTheFence covers the configured browser
+// profile and the backup folder, which the fixed exclusions cannot know about:
+// a caller names them, and a root that holds one is refused like any other.
+func TestAPathTheCallerNamesIsKeptOutsideTheFence(t *testing.T) {
+	userHome := t.TempDir()
+	profile := filepath.Join(userHome, "work", "profile")
+	excluded := contract.ExcludedFromSandbox(userHome, "", profile, "")
+	if !slices.Contains(excluded, profile) {
+		t.Errorf("the named path is not in the exclusions: %v", excluded)
+	}
+	if slices.Contains(excluded, "") {
+		t.Errorf("an empty name was kept as an exclusion: %v", excluded)
+	}
+	if err := contract.CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, "", profile); err == nil {
+		t.Errorf("a root that holds the named path was accepted")
+	}
+	if err := contract.CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, ""); err != nil {
+		t.Errorf("the same root with nothing named was refused: %v", err)
+	}
+}

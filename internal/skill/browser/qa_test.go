@@ -146,6 +146,69 @@ func TestAVisualCheckNeverTakesAStepThatCannotBeUndone(t *testing.T) {
 	}
 }
 
+// aWalkNobodyNumbered is the same walk as it comes from a caller who built the
+// request in code rather than reading it out of a skill folder: every step is
+// left at nought, because nothing made the caller fill the numbers in.
+func aWalkNobodyNumbered() []browser.Step {
+	steps := aWalkWithOneStateThatHoldsAndOneThatDoesNot()
+	for at := range steps {
+		steps[at].Number = 0
+	}
+	return steps
+}
+
+func TestAWalkNobodyNumberedStillStopsBeforeTheStepThatCannotBeUndone(t *testing.T) {
+	built := newBench(t)
+	checker, err := browser.NewChecker(built.worker)
+	if err != nil {
+		t.Fatalf("cannot build the checker: %v", err)
+	}
+
+	result, err := checker.Check(context.Background(), browser.Request{
+		Steps: aWalkNobodyNumbered(), Into: t.TempDir(), CannotBeUndone: []int{2},
+	})
+	if err != nil {
+		t.Fatalf("cannot check the fixture app: %v", err)
+	}
+	if len(result.Findings) != 1 {
+		t.Fatalf("the check walked %d steps, and it should stop before the second:\n%s", len(result.Findings), result.Markdown())
+	}
+	if !strings.Contains(result.StoppedBecause, "cannot be undone") {
+		t.Errorf("the check stopped because %q, and it should say the step cannot be undone", result.StoppedBecause)
+	}
+	if number := result.Findings[0].Number; number != 1 {
+		t.Errorf("the first step is reported as step %d, and a walk is numbered by position", number)
+	}
+	page, err := built.worker.Read(context.Background(), contract.ReadOptions{})
+	if err != nil {
+		t.Fatalf("cannot read the page the browser is on: %v", err)
+	}
+	if page.URL == testkit.FixtureChangedPage {
+		t.Error("the check took the step the caller marked as one that cannot be undone")
+	}
+}
+
+func TestEveryStepOfAWalkNobodyNumberedGetsAPictureOfItsOwn(t *testing.T) {
+	built := newBench(t)
+	into := t.TempDir()
+	checker, err := browser.NewChecker(built.worker)
+	if err != nil {
+		t.Fatalf("cannot build the checker: %v", err)
+	}
+
+	result, err := checker.Check(context.Background(), browser.Request{Steps: aWalkNobodyNumbered(), Into: into})
+	if err != nil {
+		t.Fatalf("cannot check the fixture app: %v", err)
+	}
+	if len(result.Findings) != 2 {
+		t.Fatalf("the check walked %d steps, want the two of the walk:\n%s", len(result.Findings), result.Markdown())
+	}
+	first, second := filepath.Base(result.Findings[0].Picture), filepath.Base(result.Findings[1].Picture)
+	if first != "01-open-the-app.png" || second != "02-follow-the-link.png" {
+		t.Errorf("the two pictures are called %q and %q, and each step is photographed under its own name", first, second)
+	}
+}
+
 func TestACheckOfAFolderStartsAtTheAddressItIsGiven(t *testing.T) {
 	built := newBench(t)
 	into := t.TempDir()

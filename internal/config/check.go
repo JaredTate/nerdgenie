@@ -194,15 +194,20 @@ func (checker settingsChecker) checkSandboxRoots() error {
 
 // checkCaps holds the rule that every cap counted in whole things is above zero,
 // because a cap of zero stops the agent before it starts and a cap below zero
-// means nothing at all.
+// means nothing at all. The round budget is the one exception: it is off at
+// zero, which is the default, and only a count below zero is refused.
 func (checker settingsChecker) checkCaps() error {
 	caps := checker.settings.Caps
 	memory := checker.settings.MemoryCaps
+	if caps.RoundsPerTask < 0 {
+		return checker.complain("caps.rounds_per_task", fmt.Sprintf(
+			"this budget is %d, and a count below zero means nothing, so write a number above zero to give every task a round budget, or write 0 or leave the key out for no limit",
+			caps.RoundsPerTask))
+	}
 	for _, limit := range []struct {
 		key    string
 		amount int
 	}{
-		{"caps.rounds_per_task", caps.RoundsPerTask},
 		{"caps.queued_messages", caps.QueuedMessages},
 		{"caps.tool_output_bytes", caps.ToolOutputBytes},
 		{"caps.identical_call_window", caps.IdenticalCallWindow},
@@ -218,9 +223,11 @@ func (checker settingsChecker) checkCaps() error {
 	return nil
 }
 
-// checkLengthsOfTime holds the rule that every budget of time is above zero,
-// including the handoff timeout, which is how long a browser handoff waits for
-// the person before giving up.
+// checkLengthsOfTime holds two rules about lengths of time. The two budgets of
+// time, on a task and on a turn, are off at zero, which is the default, and only
+// a length below zero is refused. The tool limit and the handoff timeout are
+// always on, because a hung command has to be killed and a handoff nobody
+// finishes has to end, so those two must be above zero.
 func (checker settingsChecker) checkLengthsOfTime() error {
 	caps := checker.settings.Caps
 	for _, budget := range []struct {
@@ -228,14 +235,25 @@ func (checker settingsChecker) checkLengthsOfTime() error {
 		amount time.Duration
 	}{
 		{"caps.time_per_task", caps.TimePerTask},
-		{"caps.time_per_tool", caps.TimePerTool},
 		{"caps.time_per_turn", caps.TimePerTurn},
+	} {
+		if budget.amount < 0 {
+			return checker.complain(budget.key, fmt.Sprintf(
+				"this budget is %s, and a length of time below zero means nothing, so write one such as \"30m\" to set a budget, or write \"0s\" or leave the key out for no limit",
+				budget.amount))
+		}
+	}
+	for _, limit := range []struct {
+		key    string
+		amount time.Duration
+	}{
+		{"caps.time_per_tool", caps.TimePerTool},
 		{"handoff_timeout", checker.settings.HandoffTimeout},
 	} {
-		if budget.amount <= 0 {
-			return checker.complain(budget.key, fmt.Sprintf(
+		if limit.amount <= 0 {
+			return checker.complain(limit.key, fmt.Sprintf(
 				"this is %s, and a length of time that is zero or less leaves no time to work, so write one such as \"30m\" or leave the key out to use the default",
-				budget.amount))
+				limit.amount))
 		}
 	}
 	return nil

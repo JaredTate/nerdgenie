@@ -51,7 +51,10 @@ func FuzzTheLoaderNeverPanics(f *testing.F) {
 		if !named {
 			t.Errorf("this configuration was accepted with a default model no alias is called:\n%q", document)
 		}
-		if settings.Caps.RoundsPerTask <= 0 || settings.HandoffTimeout <= 0 {
+		if settings.Caps.RoundsPerTask < 0 || settings.Caps.TimePerTask < 0 || settings.Caps.TimePerTurn < 0 {
+			t.Errorf("this configuration was accepted with a budget below zero, and a budget is off at zero and never below it:\n%q", document)
+		}
+		if settings.Caps.TimePerTool <= 0 || settings.HandoffTimeout <= 0 {
 			t.Errorf("this configuration was accepted with a cap of zero or less:\n%q", document)
 		}
 		if len(settings.SandboxRoots) == 0 {

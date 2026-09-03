@@ -162,6 +162,32 @@ rounds_per_task = 12
 	}
 }
 
+// TestABudgetOfZeroIsAcceptedAndMeansNoLimit is the user's rule at the file:
+// the three budgets may be written as zero, which is what they are when left
+// out, and a budget the user does set still loads as what they wrote.
+func TestABudgetOfZeroIsAcceptedAndMeansNoLimit(t *testing.T) {
+	off, err := config.Load(writeConfig(t, "\n[caps]\nrounds_per_task = 0\ntime_per_task = \"0s\"\ntime_per_turn = 0\n"))
+	if err != nil {
+		t.Fatalf("a file that writes the three budgets as zero was refused, and zero means no limit: %v", err)
+	}
+	if off.Caps.RoundsPerTask != 0 || off.Caps.TimePerTask != 0 || off.Caps.TimePerTurn != 0 {
+		t.Errorf("the budgets loaded as %d rounds, %s per task, and %s per turn, want all three at zero",
+			off.Caps.RoundsPerTask, off.Caps.TimePerTask, off.Caps.TimePerTurn)
+	}
+	if off.Caps.TimePerTool != contract.DefaultConfig().Caps.TimePerTool {
+		t.Errorf("the time per tool is %s, want the default the file did not touch", off.Caps.TimePerTool)
+	}
+
+	set, err := config.Load(writeConfig(t, "\n[caps]\nrounds_per_task = 40\ntime_per_task = \"30m\"\ntime_per_turn = \"5m\"\n"))
+	if err != nil {
+		t.Fatalf("a file that sets the three budgets was refused: %v", err)
+	}
+	if set.Caps.RoundsPerTask != 40 || set.Caps.TimePerTask != 30*time.Minute || set.Caps.TimePerTurn != 5*time.Minute {
+		t.Errorf("the budgets loaded as %d rounds, %s per task, and %s per turn, want 40, 30m, and 5m",
+			set.Caps.RoundsPerTask, set.Caps.TimePerTask, set.Caps.TimePerTurn)
+	}
+}
+
 func TestALengthOfTimeMayBeWrittenAsAStringOrAsNanoseconds(t *testing.T) {
 	forEachWay := map[string]string{
 		"a string":     `handoff_timeout = "90s"`,

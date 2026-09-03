@@ -144,7 +144,7 @@ func TestTheDoctorReportsAVaultKeyAnyoneCanRead(t *testing.T) {
 }
 
 func TestTheDoctorReportsAConfigurationThatWillNotLoad(t *testing.T) {
-	home := writeConfig(t, "\n[caps]\nrounds_per_task = 0\n")
+	home := writeConfig(t, "\n[caps]\nrounds_per_task = -1\n")
 
 	finding := findingAbout(t, config.Doctor(context.Background(), home), "config.toml")
 	if finding.Result != config.Trouble {

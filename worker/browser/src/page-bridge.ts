@@ -8,6 +8,7 @@
 import type { Frame, Page } from "playwright-core";
 import { PAGE_CALL_DEADLINE_MS } from "./limits.js";
 import { pageCall } from "./page-script.js";
+import type { FrameText } from "./text.js";
 
 /** One element as the page reported it, before the worker decides what to keep. */
 export interface FoundElement {
@@ -26,6 +27,8 @@ export interface FrameScan {
   /** What the document says it is, such as "text/html" or "application/pdf". */
   contentType: string;
   elements: FoundElement[];
+  /** What the frame says, as a person reads it. */
+  text: FrameText;
 }
 
 /** How to scan one frame. */
@@ -34,6 +37,7 @@ export interface ScanSettings {
   roles: readonly string[];
   mostNodes: number;
   mostNameCharacters: number;
+  mostTextCharacters: number;
 }
 
 /** How to look for an element whose ref went stale. */

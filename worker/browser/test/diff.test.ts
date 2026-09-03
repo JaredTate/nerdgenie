@@ -12,6 +12,7 @@ function snapshot(part: Partial<Snapshot>): Snapshot {
     title: "Start",
     tabId: "t1",
     elements: [],
+    text: "",
     belowFold: 0,
     dialog: null,
     download: null,

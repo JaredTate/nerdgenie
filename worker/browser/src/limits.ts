@@ -27,6 +27,9 @@ export const REF_NUMBERS_PER_FRAME = 10_000;
 /** The longest accessible name kept for one element. Longer names are cut and end in an ellipsis. */
 export const MAX_ELEMENT_NAME_CHARS = 120;
 
+/** The most characters of the page's text one snapshot carries. Its last line says how much was cut. */
+export const MAX_PAGE_TEXT_CHARS = 8_000;
+
 /** The most characters the type method will type in one call. */
 export const MAX_TYPE_CHARS = 10_000;
 

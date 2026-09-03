@@ -334,6 +334,7 @@ internal/sandbox/entry.go
 internal/sandbox/entry_test.go
 internal/sandbox/fuzz_test.go
 internal/sandbox/integration_restrict_test.go
+internal/sandbox/integration_roots_test.go
 internal/sandbox/integration_run_test.go
 internal/sandbox/integration_test.go
 internal/sandbox/landlock.go

@@ -50,18 +50,6 @@ func (unit service) start(ctx context.Context) error {
 	return err
 }
 
-// active says whether the unit is up and answering.
-//
-// The unit is a notify unit, and internal/reliability sends READY=1 only when
-// the readiness check first answers, so systemd calls the unit active at exactly
-// the moment /readyz would. That is why the updater asks the service manager
-// rather than opening a port of its own. A manager that says anything else,
-// including a refusal, means the unit is not up yet.
-func (unit service) active(ctx context.Context) bool {
-	said, err := unit.run(ctx, serviceWait, "is-active", unit.unit)
-	return err == nil && strings.TrimSpace(said) == "active"
-}
-
 // run calls systemctl for the user's own units and hands back what it said.
 func (unit service) run(ctx context.Context, wait time.Duration, arguments ...string) (string, error) {
 	within, stop := context.WithTimeout(ctx, wait)

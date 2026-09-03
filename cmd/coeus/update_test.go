@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -62,22 +63,59 @@ func aReleaseToInstall(t *testing.T, folder string, version string) {
 	}
 }
 
-// aServiceThatAnswers gives the test its own home folder and a systemctl of its
-// own that says the service is up, so that no test here waits on the real
-// service manager or on the readiness deadline.
+// aServiceThatAnswers gives the test its own home folder under a short path, a
+// systemctl of its own that does nothing, and an agent on the local socket that
+// answers the readiness check, so that no test here touches the real service
+// manager or waits out the readiness deadline.
 func aServiceThatAnswers(t *testing.T) contract.Home {
 	t.Helper()
-	home := testkit.NewTempHome(t)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), ".config"))
+	folder, err := os.MkdirTemp("", "coeus-cmd")
+	if err != nil {
+		t.Fatalf("making a folder for the home failed: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(folder) })
+	t.Setenv("HOME", folder)
 
-	folder := t.TempDir()
-	script := "#!/bin/sh\necho \"$*\" >> " + filepath.Join(folder, "told.txt") + "\n" +
-		"case \"$*\" in *is-active*) echo active ;; esac\nexit 0\n"
-	if err := os.WriteFile(filepath.Join(folder, "systemctl"), []byte(script), 0o755); err != nil {
+	home := contract.NewHome(filepath.Join(folder, contract.HomeFolderName))
+	for _, one := range home.Folders() {
+		if err := os.MkdirAll(one, contract.HomeFolderMode); err != nil {
+			t.Fatalf("making the folder %s failed: %v", one, err)
+		}
+	}
+
+	onThePath := t.TempDir()
+	script := "#!/bin/sh\necho \"$*\" >> " + filepath.Join(onThePath, "told.txt") + "\nexit 0\n"
+	if err := os.WriteFile(filepath.Join(onThePath, "systemctl"), []byte(script), 0o755); err != nil {
 		t.Fatalf("writing the fake systemctl failed: %v", err)
 	}
-	t.Setenv("PATH", folder)
+	t.Setenv("PATH", onThePath)
+	answerTheReadinessCheck(t, home)
 	return home
+}
+
+// answerTheReadinessCheck stands in for a running agent: it answers anything
+// asked on the local socket, which is what "coeus update" waits for after it has
+// started the service.
+func answerTheReadinessCheck(t *testing.T, home contract.Home) {
+	t.Helper()
+	listener, err := net.Listen("unix", home.SocketFile())
+	if err != nil {
+		t.Fatalf("listening on the agent's socket at %s failed: %v", home.SocketFile(), err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			connection, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			_ = contract.EncodeSocketEnvelope(connection, contract.SocketEnvelope{
+				Type: contract.SocketReply, Text: "ready",
+			})
+			_ = connection.Close()
+		}
+	}()
 }
 
 // aMachineReadyToUpdate gives the test a home with one version installed, a

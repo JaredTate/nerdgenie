@@ -942,6 +942,8 @@ internal/update/manifest.go
 internal/update/manifest_test.go
 internal/update/migrate.go
 internal/update/migrate_test.go
+internal/update/readiness.go
+internal/update/readiness_internal_test.go
 internal/update/refusals_test.go
 internal/update/release.go
 internal/update/release_internal_test.go

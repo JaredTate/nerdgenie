@@ -79,6 +79,28 @@ func TestAnAddressThatIsNotAnAddressAtAllIsRefused(t *testing.T) {
 	}
 }
 
+func TestALinkThatCannotBeMadeIsRefused(t *testing.T) {
+	home := contract.NewHome(t.TempDir())
+	if err := os.MkdirAll(home.ReleasesFolder(), contract.HomeFolderMode); err != nil {
+		t.Fatalf("making the releases folder failed: %v", err)
+	}
+	binary := filepath.Join(t.TempDir(), BinaryName)
+	if err := os.WriteFile(binary, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("writing the program failed: %v", err)
+	}
+	if err := os.Chmod(home.ReleasesFolder(), 0o500); err != nil {
+		t.Fatalf("making the releases folder read only failed: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(home.ReleasesFolder(), contract.HomeFolderMode) })
+
+	if err := linkRelease(home, binary); err == nil {
+		t.Errorf("a link was made in a folder that cannot be written to")
+	}
+	if err := linkRelease(home, filepath.Join(t.TempDir(), "not-there")); err == nil {
+		t.Errorf("the link was pointed at a program that is not there")
+	}
+}
+
 func TestAProgramOutsideAReleaseFolderHasNoVersion(t *testing.T) {
 	if version := versionOf(""); version != "" {
 		t.Errorf("a program that is not there has the version %q", version)

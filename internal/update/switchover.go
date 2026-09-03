@@ -57,13 +57,14 @@ func (updater *Updater) switchTo(ctx context.Context, binary string) error {
 	return updater.waitUntilReady(ctx)
 }
 
-// waitUntilReady gives the version now linked sixty seconds to come up, asking
-// the service manager every couple of seconds on the agent's own clock.
+// waitUntilReady gives the version now linked sixty seconds to answer the
+// readiness check, asking every couple of seconds on the agent's own clock.
 func (updater *Updater) waitUntilReady(ctx context.Context) error {
 	clock := updater.settings.Clock
 	deadline := clock.Now().Add(ReadyDeadline)
+	var why error
 	for range maxReadyAsks {
-		if updater.service.active(ctx) {
+		if why = askIfReady(ctx, updater.settings.Home); why == nil {
 			return nil
 		}
 		if !clock.Now().Before(deadline) {
@@ -73,7 +74,8 @@ func (updater *Updater) waitUntilReady(ctx context.Context) error {
 			return fmt.Errorf("the wait for the new version to come up was cut short: %w", err)
 		}
 	}
-	return fmt.Errorf("the new version did not answer within %s of being started, so it is not running properly", ReadyDeadline)
+	return fmt.Errorf("the new version did not answer %s within %s of being started, so it is not running properly: %w",
+		ReadyCommand, ReadyDeadline, why)
 }
 
 // linkRelease points the current link at a binary, by making the new link beside

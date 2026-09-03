@@ -1,6 +1,9 @@
 package contract
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // CommandContext is the little the harness tells a slash command about where it
 // was typed.
@@ -30,3 +33,7 @@ type Command struct {
 	// Run does the work and returns the reply text.
 	Run func(ctx context.Context, arguments string, where CommandContext) (string, error)
 }
+
+// ErrNoSuchCommand means the line named a slash command nobody registered, so
+// the router can tell a mistyped command from one that ran and failed.
+var ErrNoSuchCommand = errors.New("there is no such command, so type /help to see the ones there are")

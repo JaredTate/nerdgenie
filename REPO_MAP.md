@@ -233,6 +233,7 @@ internal/contract/browser.go
 internal/contract/channel.go
 internal/contract/clock.go
 internal/contract/command.go
+internal/contract/command_test.go
 internal/contract/config.go
 internal/contract/config_test.go
 internal/contract/contract_test.go

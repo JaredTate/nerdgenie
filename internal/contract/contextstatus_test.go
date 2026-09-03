@@ -29,3 +29,13 @@ func TestTheRecordLineStatusFieldIsNamed(t *testing.T) {
 		t.Errorf("status field is %q, want %q", StatusFieldRecordLine, "recordLine")
 	}
 }
+
+// TestADeltaCanWithdrawThePartialReply pins the field a delta carries when the
+// call behind it is being tried again: the screen throws away what it has
+// shown of the reply so far, so a retry never draws the answer twice.
+func TestADeltaCanWithdrawThePartialReply(t *testing.T) {
+	envelope := SocketEnvelope{Type: SocketDelta, Reset: true}
+	if !envelope.Reset {
+		t.Errorf("the reset field was not kept")
+	}
+}

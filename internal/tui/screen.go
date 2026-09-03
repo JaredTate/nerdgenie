@@ -258,6 +258,8 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		screen.resize(typed.Width, typed.Height)
 	case tea.KeyPressMsg:
 		return screen, screen.pressed(typed)
+	case tea.PasteMsg:
+		screen.pasted(typed.Content)
 	case tea.MouseWheelMsg:
 		screen.wheeled(typed)
 	case tickMessage:

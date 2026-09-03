@@ -241,3 +241,14 @@ func (screen *Screen) recallBy(places int) {
 	}
 	screen.input.setText(screen.history[screen.historyAt])
 }
+
+// pasted puts text the terminal handed over all at once into the input box, the
+// way typing it would have, with Windows and old Mac line ends made into plain
+// ones so that a line break is always one character. A paste is activity, so
+// it disarms a half-pressed quit like any key does.
+func (screen *Screen) pasted(text string) {
+	screen.quitArmed = false
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	screen.input.insert(text)
+}

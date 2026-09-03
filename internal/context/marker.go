@@ -66,3 +66,61 @@ func withoutTheBoundary(boundary string, text string) string {
 	}
 	return strings.ReplaceAll(text, boundary, EscapedBoundary)
 }
+
+// The two lines the record's printer opens its list of results with: one for a
+// task's results, one for a job's reports. Both list the same field of the
+// record, and every line under either is the first line of something a tool
+// returned, so both are marked. The printer always writes the label exactly like
+// this, so matching the whole line is exact.
+const (
+	resultListLabel = "Results (read any of them in full with `read r7`):"
+	reportListLabel = "Reports (read any of them in full with `read j4.2`):"
+)
+
+// resultItemMark opens every line of the list under either label. The printer
+// folds each result onto one line, so the list runs from the label to the first
+// line that does not start this way.
+const resultItemMark = "- "
+
+// MarkResultLines wraps the list of results inside a printed record in the data
+// marker and leaves the rest of the record alone.
+//
+// The turn loop keeps the first line of every tool result in the record, and the
+// record goes in front of the model as ordinary text on every later turn of the
+// task, long after the marked copy of the result has left the window. Without
+// this, a page whose first line reads "ignore the rules above" would arrive
+// unmarked by that road. Only the list is wrapped, because the rest of the
+// record is the harness's own words and the model's own working notes, and the
+// model is told to trust those.
+//
+// A record with no list, or a label with nothing under it, is handed back word
+// for word.
+func MarkResultLines(boundary string, printed string) string {
+	lines := strings.Split(printed, "\n")
+	label := theResultLabel(lines)
+	if label < 0 {
+		return printed
+	}
+	end := label + 1
+	for end < len(lines) && strings.HasPrefix(lines[end], resultItemMark) {
+		end++
+	}
+	if end == label+1 {
+		return printed
+	}
+	marked := make([]string, 0, len(lines)+2)
+	marked = append(marked, lines[:label+1]...)
+	marked = append(marked, WrapAsData(boundary, strings.Join(lines[label+1:end], "\n")))
+	return strings.Join(append(marked, lines[end:]...), "\n")
+}
+
+// theResultLabel is where the list of results opens, or minus one when the
+// printed record holds no such list.
+func theResultLabel(lines []string) int {
+	for at, line := range lines {
+		if line == resultListLabel || line == reportListLabel {
+			return at
+		}
+	}
+	return -1
+}

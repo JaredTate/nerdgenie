@@ -2,6 +2,7 @@ package channel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -59,7 +60,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 // error tells the caller to do something about.
 func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, error) {
 	id := socket.nextAskID()
-	waiting := make(chan string, 1)
+	waiting := make(chan promptAnswer, 1)
 	socket.waitOnPrompt(id, waiting)
 	defer socket.stopWaitingOnPrompt(id)
 
@@ -76,15 +77,29 @@ func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, err
 		return "", fmt.Errorf("no screen is attached to type the secret into: %w", contract.ErrNoMaskedPrompt)
 	}
 
-	secret, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
-	if !answered {
+	typed, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
+	switch {
+	case !answered:
 		return "", fmt.Errorf("nobody typed the secret within %s, so ask again when you are at the terminal", socket.options.AnswerDeadline)
+	case typed.cancelled:
+		return "", errors.New("the masked prompt was cancelled at the terminal, so nothing was typed; ask again when the person is ready")
 	}
-	return secret, nil
+	return typed.secret, nil
+}
+
+// promptAnswer is what a screen sent back to a masked prompt: what the person
+// typed, or word that they cancelled the prompt instead of answering it. The
+// two are kept apart so that a caller is never handed an empty secret as though
+// it were the real one.
+type promptAnswer struct {
+	// secret is what the person typed, and is empty when they cancelled.
+	secret string
+	// cancelled says the person withdrew from the prompt.
+	cancelled bool
 }
 
 // waitOnPrompt writes down that someone is waiting for a secret.
-func (socket *Socket) waitOnPrompt(id string, waiting chan string) {
+func (socket *Socket) waitOnPrompt(id string, waiting chan promptAnswer) {
 	socket.guard.Lock()
 	defer socket.guard.Unlock()
 	socket.prompts[id] = waiting

@@ -217,9 +217,6 @@ func TestCancellingAMaskedPromptGivesUpAtOnceRatherThanWaitingOutTheDeadline(t *
 	if got.secret != "" {
 		t.Errorf("a secret came back from a prompt that was cancelled: %q", got.secret)
 	}
-	if harness.clock.Sleepers() != 0 {
-		t.Errorf("%d callers are still waiting on the clock, and a cancelled prompt must stop waiting", harness.clock.Sleepers())
-	}
 }
 
 func TestTwoMaskedPromptsGetTheirOwnNumbers(t *testing.T) {

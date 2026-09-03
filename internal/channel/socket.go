@@ -75,7 +75,7 @@ type Socket struct {
 	clients  map[*client]struct{}
 	watchers map[*watcher]struct{}
 	previews map[string]chan contract.PreviewAnswerWithReason
-	prompts  map[string]chan string
+	prompts  map[string]chan promptAnswer
 	asked    int64
 	closed   bool
 }
@@ -110,7 +110,7 @@ func Listen(options Options) (*Socket, error) {
 		clients:  map[*client]struct{}{},
 		watchers: map[*watcher]struct{}{},
 		previews: map[string]chan contract.PreviewAnswerWithReason{},
-		prompts:  map[string]chan string{},
+		prompts:  map[string]chan promptAnswer{},
 	}, nil
 }
 

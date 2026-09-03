@@ -23,7 +23,7 @@ type waitingClock struct {
 // newTestClock returns a fake clock reading a fixed moment, so that a retry-after
 // header given as an HTTP date lands on a time the test knows.
 func newTestClock() *waitingClock {
-	return &waitingClock{FakeClock: testkit.NewFakeClock(testClockNow())}
+	return &waitingClock{FakeClock: testkit.NewFakeClock(time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC))}
 }
 
 // waitForSleeper moves nothing until the number of callers waiting inside Sleep

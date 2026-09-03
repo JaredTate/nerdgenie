@@ -113,7 +113,7 @@ func FuzzCodexStreamParser(f *testing.F) {
 	f.Fuzz(func(t *testing.T, stream string) {
 		checkPromptly(t, "the Codex stream parser", func() {
 			written := strings.Builder{}
-			reply, err := parseCodexStream(strings.NewReader(stream), "a model", Options{}, func(delta string) {
+			reply, err := readCodexStream(strings.NewReader(stream), func(delta string) {
 				written.WriteString(delta)
 			})
 			if err == nil && reply.Text != written.String() {

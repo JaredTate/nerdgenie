@@ -354,7 +354,7 @@ func looksLikeAPhoneNumber(account string) bool {
 	return true
 }
 
-// listOfProviderKinds writes the four provider kinds out for an error message.
+// listOfProviderKinds writes the three provider kinds out for an error message.
 func listOfProviderKinds() string {
 	names := []string{}
 	for _, kind := range contract.ProviderKinds() {

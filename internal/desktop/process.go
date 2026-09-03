@@ -71,7 +71,15 @@ func ProcessStart(command []string, note func(format string, arguments ...any)) 
 
 // startProcess starts one worker and wires its three streams.
 func startProcess(ctx context.Context, command []string, note func(format string, arguments ...any)) (*Connection, error) {
-	running := exec.CommandContext(ctx, command[0], command[1:]...)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("the %s worker was not started because the call that wanted it had already ended: %w", "desktop", err)
+	}
+	// The worker lives across tool calls, so it is deliberately not tied to the
+	// context of the call that happened to start it: exec.CommandContext would
+	// kill the worker the moment that first call ended or was stopped with
+	// Escape, leaving Chrome running on its own and every later call talking to
+	// a dead pipe. Stop ends it, by its exact process id.
+	running := exec.Command(command[0], command[1:]...)
 	running.Env = workerEnvironment()
 	running.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 

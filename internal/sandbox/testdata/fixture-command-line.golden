@@ -82,6 +82,10 @@ sandbox-entry
 --read
 /run/systemd/resolve/stub-resolv.conf
 --read
+/proc
+--read
+/dev
+--read
 /home/example/.coeus/releases/1.0.0/coeus
 --write
 /home/example/work

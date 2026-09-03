@@ -411,3 +411,38 @@ func TestASandboxThatRefusesTheCommandSaysWhy(t *testing.T) {
 	}
 	_ = os.Getenv("PATH")
 }
+
+// TestAPollSaysHowLongTheCommandHasBeenRunning holds what the fourth Tetris run
+// found: every poll of a quiet command answered with the same words, the loop
+// read four identical answers as the model asking the same thing over and
+// over, and stopped a task that was waiting on a slow test run. A poll names
+// the time the command has been running, so no two polls read the same.
+func TestAPollSaysHowLongTheCommandHasBeenRunning(t *testing.T) {
+	sandbox := newSlowSandbox()
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{})
+	clock := testkit.NewFakeClock(theMoment)
+	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), clock)
+	handed := make(chan contract.ToolOutput, 1)
+	go func() {
+		output, _ := run(t, tool, map[string]any{"command": "sleep 1000"})
+		handed <- output
+	}()
+	waitForSleepers(t, clock, 1)
+	clock.Advance(shell.YieldAfter)
+	select {
+	case <-handed:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("the tool did not hand back an id ten seconds after the command started")
+	}
+
+	first, _ := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
+	clock.Advance(10 * time.Second)
+	second, _ := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
+	sandbox.Release()
+	if first.Text == second.Text {
+		t.Errorf("two polls ten seconds apart read the same: %q", first.Text)
+	}
+	if !strings.Contains(second.Text, "after") {
+		t.Errorf("the poll does not say how long the command has run: %q", second.Text)
+	}
+}

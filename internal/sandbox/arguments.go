@@ -30,6 +30,10 @@ const (
 // bound read-only inside the fence, because nothing else is there to run.
 const sandboxPath = "/usr/local/bin:/usr/bin:/bin"
 
+// kernelFolders are the pseudo filesystems bwrap mounts fresh inside the fence,
+// which the helper's rules must let a command read.
+var kernelFolders = []string{"/proc", "/dev"}
+
 // scratchHomeName is the folder inside the first sandbox root that the fence
 // keeps for its own temporary files. It is not the command's home directory:
 // the first human trial found the model reading $HOME/Desktop, believing the
@@ -148,6 +152,13 @@ func helperOptions(plan fencePlan) []string {
 	}
 	if plan.resolverFile != "" {
 		options = append(options, readableOption, plan.resolverFile)
+	}
+	// The kernel's own folders are mounted fresh by bwrap above and must be
+	// readable through the filesystem rules too: a program that cannot read
+	// /proc counts zero processors, and a test runner that counts zero
+	// processors waits forever for workers it never starts.
+	for _, folder := range kernelFolders {
+		options = append(options, readableOption, folder)
 	}
 	options = append(options, readableOption, plan.helperProgram)
 	for _, root := range plan.roots {

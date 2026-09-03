@@ -94,3 +94,18 @@ func TestAFailingCommandPipedIntoAnotherReportsTheFailingCode(t *testing.T) {
 		t.Errorf("a command that quit with 7 into a pipe said %q, and the model would read that as a run that passed", output.Text)
 	}
 }
+
+// TestAPipeClosedEarlyByHeadIsSaidToBeNormal covers what pipefail brought with
+// it: "find . | head -5" ends with code 141 because head closed the pipe while
+// find was still writing, and a model that reads 141 as a failure retries a
+// command that worked. The result says so in plain words.
+func TestAPipeClosedEarlyByHeadIsSaidToBeNormal(t *testing.T) {
+	tool := newTool(t, runningSandbox{}, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
+	output, err := run(t, tool, map[string]any{"command": "yes | head -1"})
+	if err != nil {
+		t.Fatalf("running the pipe failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "141") || !strings.Contains(output.Text, "normal") {
+		t.Errorf("the result does not say a pipe closed early is normal: %q", output.Text)
+	}
+}

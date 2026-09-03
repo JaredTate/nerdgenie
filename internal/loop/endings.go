@@ -6,10 +6,37 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/record"
 )
+
+// WrapUpTime is how long the ending of a task may take to write its checkpoint,
+// mark the record, and tell the user, measured on the harness's clock. It is a
+// short span of the ending's own rather than the turn's, because a turn cut off
+// by a limit, a stop, or a shutdown has a cancelled context, and an ending
+// written under that context failed at its first write and left the task
+// standing at running for ever as far as the program could see.
+const WrapUpTime = 10 * time.Second
+
+// errWrapUpTimeUp is why the ending's own context is cancelled when the log will
+// not answer inside WrapUpTime.
+var errWrapUpTimeUp = errors.New("the ending of the task was given ten seconds to write its checkpoint and its report, and used all of it")
+
+// timeToWrapUp is the context the ending of a task writes under: the turn's own
+// with its cancellation taken off, and WrapUpTime of its own on the harness's
+// clock, so that a task cut off for any reason is still marked and reported,
+// and a log that will not answer cannot hold the ending forever.
+func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.CancelFunc) {
+	fresh, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
+	go func() {
+		if err := running.theLoop.options.Clock.Sleep(fresh, WrapUpTime); err == nil {
+			cancel(errWrapUpTimeUp)
+		}
+	}()
+	return fresh, func() { cancel(context.Canceled) }
+}
 
 // endOfTurn is what happens when the model replies with no tool calls. The
 // harness tells a question from an answer by the finish state and by what the
@@ -184,6 +211,8 @@ func lastLine(text string) string {
 // finish closes a task whose done list is proven: the record says done, the
 // review runs if the task was worth reviewing, and the user gets the report.
 func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	if err := running.setStatus(ctx, contract.StatusDone); err != nil {
 		return Outcome{}, err
 	}
@@ -204,6 +233,8 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 // waitHere puts the task into waiting, which is where a question leaves it.
 // Nothing is held in any model's memory until the user answers.
 func (running *run) waitHere(ctx context.Context, text string) (Outcome, error) {
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	if err := running.setStatus(ctx, contract.StatusWaiting); err != nil {
 		return Outcome{}, err
 	}
@@ -216,6 +247,8 @@ func (running *run) waitHere(ctx context.Context, text string) (Outcome, error) 
 // answerWithNoRecord ends a task that never needed a tool, which is the one
 // kind of task that makes no record at all.
 func (running *run) answerWithNoRecord(ctx context.Context, text string) (Outcome, error) {
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	if err := running.send(ctx, text); err != nil {
 		return Outcome{}, err
 	}
@@ -243,6 +276,8 @@ func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome,
 // review questions are asked unless the caller has already spent the ending's
 // model call on the words in the middle of that report.
 func (running *run) stopAndSay(ctx context.Context, line string, standing string, askTheQuestions bool) (Outcome, error) {
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	running.hadStop, running.stopLine = true, line
 	running.forgetTheCalls()
 	if err := running.setStatus(ctx, contract.StatusStopped); err != nil {
@@ -262,14 +297,22 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 	return Outcome{TaskID: running.taskID(), Status: contract.StatusStopped, Report: report, StopLine: line}, nil
 }
 
-// failHere ends a task that could not be finished, and says what went wrong.
+// failHere ends a task that could not be finished, and says what went wrong. A
+// task whose turn was cut off under it, which is what a cancelled context
+// means, is marked and reported and asked nothing more: the review is a model
+// call, and the turn it would run in is over.
 func (running *run) failHere(ctx context.Context, reason error) (Outcome, error) {
+	cutOff := ctx.Err() != nil
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	running.hadFailure = true
 	if err := running.setStatus(ctx, contract.StatusFailed); err != nil {
 		return Outcome{}, err
 	}
-	if err := running.review(ctx); err != nil {
-		return Outcome{}, err
+	if !cutOff {
+		if err := running.review(ctx); err != nil {
+			return Outcome{}, err
+		}
 	}
 	report := running.withTheLesson(
 		fmt.Sprintf("I could not finish this task: %s\nWhere it stands: %s", reason, running.whereItStands()))

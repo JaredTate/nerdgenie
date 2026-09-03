@@ -2,6 +2,7 @@ package loop
 
 import (
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -43,6 +44,7 @@ func TestEveryBoundOfThisPackageIsTheNumberItSays(t *testing.T) {
 		{"RoundsThatDeserveAReview", RoundsThatDeserveAReview, 5},
 		{"MaxRecordLineRunes", MaxRecordLineRunes, 90},
 		{"MaxToolLineRunes", MaxToolLineRunes, 90},
+		{"WrapUpTime in seconds", int(WrapUpTime / time.Second), 10},
 	} {
 		if bound.held != bound.wants {
 			t.Errorf("%s is %d and the number this package was built and tested against is %d, "+

@@ -300,13 +300,33 @@ func (running *run) taskID() string {
 	return running.keeper.ID()
 }
 
-// play runs round after round until the task reaches an end state. A task with
-// a round budget is also held to that many rounds and the two spare ones here,
-// as a second wall behind the check at the top of every round. A task with no
-// round budget, which is the default, has no wall: what ends it is its own
-// answer, a stop line, the person's stop, the detector, a failure, or the
-// context it runs under being cancelled, and nothing else.
+// play runs the rounds, and ends the task as failed when a round could not be
+// finished and the record still stands at running: a write that failed because
+// the turn was cut off under it used to come straight back out of the loop,
+// leaving the record at running with nobody working on it, which is a task the
+// program has lost. The ending is written under a context of its own, so it
+// lands even when the turn's is cancelled.
 func (running *run) play(ctx context.Context) (Outcome, error) {
+	outcome, err := running.playTheRounds(ctx)
+	if err != nil && running.standsAtRunning() {
+		return running.failHere(ctx, err)
+	}
+	return outcome, err
+}
+
+// standsAtRunning says whether the task has a record and that record still
+// says it is running, which is the state nothing may leave a task in.
+func (running *run) standsAtRunning() bool {
+	return running.keeper != nil && running.keeper.Record().Header.Status == contract.StatusRunning
+}
+
+// playTheRounds runs round after round until the task reaches an end state. A
+// task with a round budget is also held to that many rounds and the two spare
+// ones here, as a second wall behind the check at the top of every round. A
+// task with no round budget, which is the default, has no wall: what ends it is
+// its own answer, a stop line, the person's stop, the detector, a failure, or
+// the context it runs under being cancelled, and nothing else.
+func (running *run) playTheRounds(ctx context.Context) (Outcome, error) {
 	for round := 0; running.mayPlayRound(round); round++ {
 		outcome, more, err := running.oneRound(ctx)
 		if err != nil {

@@ -61,8 +61,8 @@ func readAll(t *testing.T, answer *http.Response) string {
 	built := strings.Builder{}
 	buffer := make([]byte, 4096)
 	for {
-		n, err := answer.Body.Read(buffer)
-		built.Write(buffer[:n])
+		count, err := answer.Body.Read(buffer)
+		built.Write(buffer[:count])
 		if err != nil {
 			break
 		}

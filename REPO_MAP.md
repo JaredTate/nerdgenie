@@ -855,6 +855,7 @@ internal/testkit/clock_test.go
 internal/testkit/desktop.go
 internal/testkit/desktop_test.go
 internal/testkit/doc.go
+internal/testkit/fixturesite_test.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
 internal/testkit/fortystepchecks.go

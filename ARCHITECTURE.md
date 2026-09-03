@@ -566,7 +566,8 @@ command palette from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
 `StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
 `StatusFieldToolLine`, `StatusFieldHealthy`, `StatusFieldCommands`,
 `StatusFieldContextTokens`, `StatusFieldContextWindow`, `StatusFieldCallStarted`,
-`StatusFieldStreamed`, and `StatusFieldRecordLine`. The commands field holds one
+`StatusFieldStreamed`, and `StatusFieldRecordLine`. A `reply` carrying `Clear`
+empties the transcript first. The commands field holds one
 command per line with `contract.StatusCommandSeparator` between its name and its
 help, and the name is held without the slash the program writes it with, because
 the palette draws a slash of its own and matches on what is typed after one. The state field carries one of `contract.StateIdle`,
@@ -599,6 +600,58 @@ the model thinking, a tool running, or a task working through — rather than on
 a busy state, because a plain reply is not a task and the person who wants a
 rambling answer to stop must not wait for it to finish.
 
+The second trial ran the real screen on a pseudo-terminal at a hundred and
+twenty columns by thirty-six against a running serve and found four more things,
+all fixed here. The transcript draws whole blocks only: a block that would fit in
+a transcript of its own but not in the room left at the top of the view is left
+out rather than cut, because the frame was showing a bubble with its lid and none
+of its words. A block taller than the whole transcript is the one exception, and
+is drawn and cut, because there is nowhere it fits whole and its newest rows are
+the ones being read.
+`StatusFieldToolLine` now draws one pill per call however many heartbeats carry
+it: a line the screen has already drawn changes nothing, and the same line with
+its result added is written into the pill that call already has, which is what
+`readToolLine` and `replacePill` in `report.go` do. `pillRows` takes a leading
+arrow off the line before drawing its own, because the program writes its tool
+lines beginning with `loop.ToolLineMark` and the frame was reading `▸ ▸`. And the
+header writes the task in words, `task 24 running` when the program said the
+state and `task 24` when it did not, because the program sends the number on its
+own and the header was reading `· 24 ·`; a program that already writes the word
+is not made to write it twice.
+
+**The same call again, and `/clear`.** The trial also saw one shell command fill
+the screen thirteen times over, which is what a model that has got stuck does.
+`countTheCallAgain` in `report.go` reads a new tool line for the same call as the
+newest pill, the same tool with the same argument before the program's ` · `
+separator, made again after the last one came back, and writes it into that pill
+with a count that `toolLines` draws on the end as `× 13`; a heartbeat carrying
+the same line is one call and never counted, and a different call between two of
+the same keeps them apart. And `/clear` is the one command the screen acts on:
+a reply carrying `contract.SocketEnvelope.Clear` makes `emptyTheTranscript` in
+`envelope.go` drop every block, the reply still streaming and the card waiting
+for an answer, and then the reply's own line is shown. The header, the status
+strip and the side panel are untouched, because they are drawn from the status,
+and the last tool line and record line the screen drew are kept, because the
+program sends them again on every heartbeat and a screen that forgot them would
+draw them straight back into the empty transcript.
+
+**The side panel.** `panel.go` draws the column the same trial asked for: at a
+hundred columns and wider, the last twenty-eight columns between the two rules
+are a panel, and everything in the transcript is drawn in what is left, which is
+`transcriptColumns` rather than the terminal's own width. Below a hundred columns
+`showsPanel` is false, `transcriptColumns` is the width, and every frame is what
+it was before, which is why the eighty-column golden files did not move. The
+drawing is opencode's sidebar, read at
+`~/Code/opencode/packages/tui/src/routes/session/sidebar.tsx`: a fixed-width
+column of short quiet lines in groups with a blank line between them. The three
+groups are the model with its context measure and the session's cost, the running
+task with a check beside every step of its plan that is done, and how many jobs
+are waiting; a group the program has said nothing about is left out altogether.
+The plan and the job count are the two things on the panel that the status
+envelope does not carry yet, so `panel.go` names the two fields it reads and
+writes out the `internal/contract` lines it wants for them; everything else in
+the panel is what the header already reads.
+
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text
 means this one call; a deny carries the person's reason in `Reason`; and
@@ -612,13 +665,15 @@ card arriving above a preview cannot take the preview's three answers with it.
 
 `cmd/coeus` is the binary. Every subcommand is one file holding one `subcommand` value, and `main.go` holds the table those values go in. The table is `version`, `help`, `init`, `doctor`, `serve`, `tui`, `install`, `uninstall`, `signal`, `askpass`, and the sandbox helper, which is marked hidden because the fence starts it and nobody types it. A hidden subcommand runs like any other and is only left out of the listing. Typing `coeus` with nothing after it runs `tui`, because a person who types the program's name wants to talk to the agent rather than read a list. `run` gives back whatever exit code the subcommand returned, unchanged, because the service unit reads them.
 
-**`cmd/coeus` is where every package meets.** `main.go` holds the subcommand table: version, help, init, doctor, serve, run, tui, install, uninstall, signal, backup, restore, replay, update, askpass, and the sandbox helper, which is hidden because the fence starts it and nobody types it. Typing `coeus` with nothing after it runs `tui`. The wiring is `serve.go` for the lifecycle, `serving.go` for the loops one running agent turns, `wiring.go` for what a message meets on its way in and out, `starting.go` for what happens to one message on its way to the turn loop, `commands.go` for the one registry, `model.go` for the model chain, `status.go` for what a screen is told, `previews.go` for the questions waiting to be answered, `skillsbox.go` and `signalchannel.go` for two knots the order of building ties, `watchedmodel.go` for what each call cost, `resuming.go` for the newest task each screen put down, `timedstore.go` so every event carries a time, and `runlock.go` so only one copy runs on one home folder.
+**`cmd/coeus` is where every package meets.** `main.go` holds the subcommand table: version, help, init, doctor, serve, run, tui, install, uninstall, signal, backup, restore, replay, update, askpass, and the sandbox helper, which is hidden because the fence starts it and nobody types it. Typing `coeus` with nothing after it runs `tui`. The wiring is `serve.go` for the lifecycle, `serving.go` for the loops one running agent turns, `wiring.go` for what a message meets on its way in and out, `starting.go` for what happens to one message on its way to the turn loop, `commands.go` for the one registry, `model.go` for the model chain, `status.go` for what a screen is told, `previews.go` for the questions waiting to be answered, `skillsbox.go` and `signalchannel.go` for two knots the order of building ties, `watchedmodel.go` for what each call cost, `resuming.go` for the newest task each screen put down, `clear.go` for the one command that empties the screen, `timedstore.go` so every event carries a time, and `runlock.go` so only one copy runs on one home folder.
 
 **The order things open in.** The run lock, then SQLite's own quick check on the database, then the event log, the queue, the vault, the memory, the jobs, the permission function, and the reliability guard; then the model, the event stream, the local socket, the working-context builder, the sandbox fence, the browser, the tool registry, the skill store, the turn loop, the command registry, and the router. The event log is opened before the queue, the memory and the jobs, because the log owns the database file's identity. Everything is built on `clock.System()`. The model is the configuration's default alias and then its fallback chain, each through `provider.New` with the key resolved out of the vault, each wrapped in `provider.WithRetries`, all behind `provider.NewChain`.
 
 **The turn loop.** `loop.New` gets the model chain, the shared tool registry, `ToolsForTask` (which builds a registry per task, so the task tool writes that task's record and a label such as `r7` reads that task's results), the permission function, the event log, the clock, `loop.TheWorkingContext(builder)`, the jobs, the memory, the skills, the fence, and the caps. The router's `StartTask` hands a message to `Loop.Run`, filling `loop.Task.ResumeID` when the message carries a task on, or to `Loop.Deliver` when a task is already running; the agent keeps its own busy flag for that rather than reading `Loop.Running`, because `Running` is the record's number and a task has none until its first tool call, so a question answered with no tools would look like an idle agent. `StopTask` is `Loop.Stop`. A goroutine beside the drainer waits on `Jobs.Wait` and calls `RunNextJobTask` whenever nothing is running, resting a second when nothing is due so that work already past its moment cannot turn the wait into a spin.
 
-**The registry** holds the ten core commands from `command.New(...).All()`, then `/tasks` and `/stop` from the loop, `/jobs` and `/cron` from the job store, `/skills`, `/vault`, `/memory`, `/pair` when `config.toml` names a Signal account, and `/readyz`, which answers the one word "ready" and is a slash command rather than anything of its own, so that a health check travels the whole way a person's message travels: in on the socket, into the queue, out through the router.
+**The registry** holds the ten core commands from `command.New(...).All()`, then `/tasks` and `/stop` from the loop, `/jobs` and `/cron` from the job store, `/skills`, `/vault`, `/memory`, `/pair` when `config.toml` names a Signal account, `/clear`, and `/readyz`, which answers the one word "ready" and is a slash command rather than anything of its own, so that a health check travels the whole way a person's message travels: in on the socket, into the queue, out through the router.
+
+**`/clear`** is the wiring's own command, in `clear.go`, and it is kept to the terminal because only the terminal has a transcript. It stops the loop, waits the same short bounded moment a new message waits for a task that is closing, so that the task writes down where it ended before the command forgets it, forgets the terminal's newest task from the memory in `resuming.go`, so that the next message starts a fresh task rather than answering a question the person can no longer see, and publishes its reply itself through the event stream with `contract.SocketEnvelope.Clear` set, because the router sends words alone and the screen has to be told to clear by the envelope. It hands the router nothing, so the person is told once. A task that was still in a long tool call ends when that call does and is then remembered as stopped, which only the word "continue" picks up.
 
 **Two knots and how they are untied.** The skills replay through the tools and the skill tool offers the skills, so `skillsbox.go` is an empty box the registry is built with and the store is dropped into a moment later; nothing asks the box anything until the agent is serving. And `Deps.PendingPreviews` and `Deps.Answer` cannot be filled from the channel, because whoever asked is waiting inside `ShowPreview` and its waiting list is private; so `previews.go` wraps the user's channel, writes each question down while it waits, and waits on both answers at once, the one a screen sends back and the one somebody typed as `/approve 3`, giving the other up as soon as one lands.
 
@@ -628,7 +683,7 @@ card arriving above a preview cannot take the preview's three answers with it.
 
 **What a screen is told.** The status a screen reads on every heartbeat, and at once whenever anything moves, carries the model, the running task, the state, the budget line, the health mark, and the command list, and beside them everything the header and the strip draw: `StatusFieldContextWindow` from the model's own window and `StatusFieldContextTokens` from the last call's input tokens, the session's tokens in and out and its money, `StatusFieldCallStarted` and `StatusFieldStreamed` while a call is in flight, `StatusFieldRecordLine` for the newest change to a task or a job, and `StatusFieldToolLine` for the tool call in flight and its result. The numbers come from `cmd/coeus/watchedmodel.go`, a `contract.Model` wrapped around the provider chain that counts what each call began, wrote, held and cost; it sits between the loop and the provider because the loop must not know about screens and the provider must not know about sessions. The two lines come from the loop, which calls `Options.ToolLine` and `Options.RecordLine`.
 
-**A message can carry on the task the screen put down.** `resuming.go` remembers, for each screen, the newest task that screen started and where it ended, and `startTask` reads it before it builds the task: a task that is waiting is carried on by whatever the person types next, because the model asked a question and that is the answer to it; a task that stopped at its budget or on Escape is carried on only by "continue", "go on", "carry on" or "keep going", because a stopped task takes no answer and the next thing a person types is usually a new ask. The number of that task goes into `loop.Task.ResumeID`, so the loop reloads the record and the work goes on under the number it already had. Anything else starts a fresh task. The look-back is one task per screen and never further, a screen is a channel and a sender, and the memory holds sixty-four of them, forgetting the one that has been quiet longest. Where a task ended is written down whatever came back, so a task that could not be picked up again is not picked up again by every message that follows it. Before this, `coeus serve` never filled `ResumeID` at all, and a question the model asked could never be answered.
+**A message can carry on the task the screen put down.** `resuming.go` remembers, for each screen, the newest task that screen started and where it ended, and `startTask` reads it before it builds the task: a task that is waiting is carried on by whatever the person types next, because the model asked a question and that is the answer to it; a task that stopped at its budget or on Escape is carried on only by "continue", "go on", "carry on" or "keep going", because a stopped task takes no answer and the next thing a person types is usually a new ask. The number of that task goes into `loop.Task.ResumeID`, so the loop reloads the record and the work goes on under the number it already had. Anything else starts a fresh task. The look-back is one task per screen and never further, a screen is a channel and a sender, and the memory holds sixty-four of them, forgetting the one that has been quiet longest. The memory is made in `openTheFront` and handed to both the router and the commands, because `/clear` forgets a screen's task from it. Where a task ended is written down whatever came back, so a task that could not be picked up again is not picked up again by every message that follows it. Before this, `coeus serve` never filled `ResumeID` at all, and a question the model asked could never be answered.
 
 **A task runs beside the drainer, not inside it.** The drainer is the one path a command travels, so a task run inside it would hold every later message behind itself: the person would press Escape, or ask `/status` from a second screen, and nothing would happen until the model had answered. That is what the first human trial found. The task goroutine takes the queue's message with it and marks it done when it ends, so a crash mid-task still hands the message out again.
 

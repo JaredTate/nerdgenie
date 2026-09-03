@@ -83,7 +83,7 @@ func (screen *Screen) paletteRows() []string {
 		line.blanks(marginColumns + gutterColumns)
 		line.add(styleAccent, commandGlyph+one.Name)
 		line.blanks(widest - displayWidth(one.Name))
-		line.add(styleDim, cutTo(one.Help, screen.width-marginColumns-gutterColumns-widest-2))
+		line.add(styleDim, cutTo(one.Help, screen.transcriptColumns()-marginColumns-gutterColumns-widest-2))
 		drawn = append(drawn, line.render(screen.colors))
 	}
 	return drawn

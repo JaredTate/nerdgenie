@@ -1126,6 +1126,7 @@ internal/tui/panel_test.go
 internal/tui/pictures.go
 internal/tui/pseudoterminal_test.go
 internal/tui/record_test.go
+internal/tui/repeat_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go

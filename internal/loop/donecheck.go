@@ -1,0 +1,146 @@
+// The idea that a finish is a gate with checks the harness runs for itself,
+// rather than something the model may declare, is Prime Agent's, from the
+// verifier gates in
+// ~/Code/prime-agent/packages/coding-agent/src/core/autonomous.ts. The Go here
+// is written fresh.
+
+package loop
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
+)
+
+// The bounds on what one done line is checked for.
+const (
+	// MaxCommandsCheckedPerLine is how many backticked commands one done line
+	// may be checked by.
+	MaxCommandsCheckedPerLine = 3
+	// MaxPathsCheckedPerLine is how many file paths one done line may name.
+	MaxPathsCheckedPerLine = 3
+)
+
+// doneCheck says what is wrong with the done list, in one line the model can
+// act on, and is empty when the task may close. Every line must point at a
+// result or at a reply from the user, and where a line names something the
+// harness can check for itself, the harness checks it.
+func (running *run) doneCheck(ctx context.Context) (string, error) {
+	held := running.keeper.Record()
+	if err := record.DoneCheck(held); err != nil {
+		return "This task cannot close yet. " + err.Error(), nil
+	}
+	for _, line := range held.Goal.DoneWhen {
+		problem, err := running.checkOneDoneLine(ctx, line)
+		if err != nil || problem != "" {
+			return problem, err
+		}
+	}
+	return "", nil
+}
+
+// checkOneDoneLine runs the mechanical checks on one line: a command in
+// backticks has to exit zero, and a file path has to be there.
+func (running *run) checkOneDoneLine(ctx context.Context, line contract.DoneLine) (string, error) {
+	for _, command := range commandsIn(line.Text) {
+		wrong, err := running.commandFails(ctx, command)
+		if err != nil {
+			return "", err
+		}
+		if wrong != "" {
+			return fmt.Sprintf("The done line %q names the command `%s`, and %s, so this line is not true yet.",
+				line.Text, command, wrong), nil
+		}
+	}
+	for _, path := range pathsIn(line.Text) {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Sprintf("The done line %q names the file %s, and it is not there, so this line is not true yet.",
+				line.Text, path), nil
+		}
+	}
+	return "", nil
+}
+
+// commandFails runs one command inside the sandbox and says what was wrong with
+// it, or nothing when it exited zero. A machine with no sandbox cannot check a
+// command at all, and the line stands on the result behind it instead.
+func (running *run) commandFails(ctx context.Context, command string) (string, error) {
+	if running.theLoop.options.Sandbox == nil {
+		return "", nil
+	}
+	result, err := running.theLoop.options.Sandbox.Run(ctx, contract.SandboxCommand{
+		Program:   "sh",
+		Arguments: []string{"-c", command},
+		Timeout:   running.theLoop.options.Caps.TimePerTool,
+	})
+	if err != nil {
+		return "it could not be run: " + err.Error(), nil
+	}
+	if result.TimedOut {
+		return "its time was up before it finished", nil
+	}
+	if result.ExitCode != 0 {
+		return fmt.Sprintf("it exited %d", result.ExitCode), nil
+	}
+	return "", nil
+}
+
+// commandsIn is every command a done line wrote between backticks, which is how
+// a line says "the harness can check this by running it".
+func commandsIn(text string) []string {
+	pieces := strings.Split(text, "`")
+	commands := []string{}
+	for at := 1; at < len(pieces); at += 2 {
+		if written := strings.TrimSpace(pieces[at]); written != "" && len(commands) < MaxCommandsCheckedPerLine {
+			commands = append(commands, written)
+		}
+	}
+	return commands
+}
+
+// pathsIn is every file path a done line names. A path is a word that begins
+// the way a path begins, so that an ordinary sentence with a slash in it is
+// never mistaken for one.
+func pathsIn(text string) []string {
+	paths := []string{}
+	for _, word := range strings.Fields(strings.ReplaceAll(text, "`", " ")) {
+		word = strings.Trim(word, ".,;:\"'()")
+		if !looksLikeAPath(word) || len(paths) >= MaxPathsCheckedPerLine {
+			continue
+		}
+		paths = append(paths, expandHome(word))
+	}
+	return paths
+}
+
+// looksLikeAPath says whether a word is written the way a full or an explicitly
+// relative path is written.
+func looksLikeAPath(word string) bool {
+	if strings.Contains(word, "://") {
+		return false
+	}
+	for _, opening := range []string{"/", "./", "../", "~/"} {
+		if strings.HasPrefix(word, opening) {
+			return true
+		}
+	}
+	return false
+}
+
+// expandHome turns a path written with a tilde into one the filesystem knows.
+func expandHome(path string) string {
+	rest, found := strings.CutPrefix(path, "~/")
+	if !found {
+		return path
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	return filepath.Join(home, rest)
+}

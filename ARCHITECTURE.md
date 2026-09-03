@@ -35,7 +35,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/provider` | Turn a prompt into a streamed reply through the Anthropic API, the OpenAI-compatible API, or a vendor's command-line program on a subscription, with retries and the fallback chain | 1, built |
 | `internal/repair` | Find the tool calls in a model reply, however the model wrote them | 1, built |
 | `internal/context` | Build the working context from the layers, sized to the model | 2, built |
-| `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat; the done-check and the after-action review | 3 |
+| `internal/loop` | Run one turn: orient, call, guard, permit, run, update, repeat; the done-check and the after-action review | 3, built |
 | `internal/tool` | The tool registry and the eighteen built-in tools, one folder each | 2, built |
 | `internal/permission` | Decide allow, ask, or deny for a tool call | 2, built |
 | `internal/sandbox` | Run a command inside bwrap and Landlock | 2, built |
@@ -143,6 +143,108 @@ The tool input field names this package reduces by are the ones fixed in `docs/b
 **The three imports outside `contract`.** `internal/tool/read` and `internal/tool/task` import `internal/record`, for a past result and for `record.Update`. `internal/tool/edit` imports `internal/tool/write` for the file-change door, and the browser tools import `internal/tool/browserread` for the words a page reads in. Inside `internal/tool`, the order is: `browserread`, then the other browser tools; `write`, then `edit`; then the registry itself, which imports all eighteen.
 
 **What the tests prove.** A golden file per tool holds the exact text the model reads back, and one golden file holds all eighteen descriptions with their word counts. Fuzz tests cover the edit matcher, the shell call reader, the turn from a web page into text, and the address check. The shell tool's `integration` test drives it against a sandbox that really starts a process, in its own process group, with the fake clock advanced past the yield, because `internal/sandbox` is a wave-2 neighbour this package may not import. No test in the web package reaches the real internet: the fake search server, its fixture pages, and local servers a test starts itself are the only addresses used, and one test proves that a loopback address the settings do not name is refused.
+## The turn loop (built, wave 3)
+
+`internal/loop` is the core. It runs one task at a time to one of four ends —
+done, waiting on the user, stopped, or failed — and every dependency it has is
+an interface in `internal/contract`, so the whole of it is driven by the fakes in
+`internal/testkit`. It imports `contract`, `record`, `repair`, `context`, and the
+standard library, and nothing else. `loop.New(loop.Options{...})` is what `serve.go`
+calls; the six it refuses to be built without are the model, the tool registry,
+the permission function, the store, the clock, and a working-context builder,
+and the five it will run without are the jobs, the memory, the skills, the
+sandbox, and the delta function, each of which simply switches off the part of
+the loop that uses it.
+
+**One turn.** `Run` takes a `loop.Task` — a message with the channel it came in
+on, or a `contract.TaskToRun` from a job — and holds a lock for as long as the
+task lasts, so a second call waits its turn. Each round builds the working
+context, calls the model with the deltas forwarded, and reads the reply through
+`repair.Find`, so a `cli` model's text calls and a small model's loose calls
+become calls the same way. The reply's first line is the model's orient line and
+goes into the record's situation. A reply with no calls ends the turn: a
+question, told by the finish state and a question mark on the last non-empty
+line, puts the record into waiting, and anything else goes to the done-check. A
+reply `repair` could not read goes back as the problem it wrote, and after two
+such replies in a row `repair` hands the text back as the answer instead.
+
+**The guard, in order.** The budget is checked at the top of every round, and the
+record's stop list after every tool result. A stop line written in plain English
+is matched by its notable phrases — every pair of neighbouring words of four
+letters or more — so "the account shows a login page or a captcha" fires on a
+result holding "login page"; the harness adds its own two lines, the budget
+running out and a browser result showing a login form, a two-factor prompt, or a
+captcha. A record write is never checked against the stop list, because a stop
+list written into the record would otherwise fire on itself. The
+identical-call detector keeps the last `IdenticalCallWindow` calls and counts the
+run of consecutive identical ones: the first two run, the third is refused with a
+line telling the model to do something different or answer, and the fourth ends
+the turn. **This is a deliberate reading of design section 3, rule 4**, which
+says the same call is not run twice: the forty-step fixture, which is the
+design's own example task, reads the same page twice in a row on purpose at
+rounds twenty-nine and thirty, and a browser agent that cannot re-read a page is
+useless, so the rule is applied to a run rather than to any repeat. A message
+from the user, a stop, and a resume all clear the run, because the world has
+changed. Every call then goes to `contract.Permission`; a ruling of ask shows the
+preview through the channel and remembers the answer, a ruling of stop ends an
+unattended task with a report of what needed an answer, and every ruling is
+written into the log as a permission-decision event.
+
+**The record.** The record is created on the first tool call, which is where the
+design puts it, so a question answered with no tools leaves nothing behind. Each
+tool runs under the tool time limit, measured on `contract.Clock` so no test
+waits on a real one, and its result gets one line in the record and its whole
+text in the log. A tool that fails hands its error back with the three options of
+rule 6 on the end. The harness writes the header, the budget, the cost line, the
+corrections, the results, and the situation, with no model call: the situation
+holds the page the browser is on, the files changed in this task from the
+file-change events and from the writes the loop saw, the last command and its
+exit code, and the last orient line. **The model's half of the record goes
+through the loop too**, because the `task` tool of brief 2.5 needs the keeper of
+the task that is running and only the loop holds one: a call named `task` is not
+dispatched to the registry at all, its arguments are read into a `record.Update`
+and applied through `record`'s rules, and the whole update comes back as the
+result so that `read r2` fetches it. The registry still advertises the tool, and
+that is the seam `serve.go` will close when `internal/tool` lands.
+
+**The end.** The done-check refuses to close while `record` says any line has
+nothing behind it, and adds the two checks ordinary code can make: a command a
+line wrote in backticks is run through `contract.Sandbox` and has to exit zero,
+and a path a line names has to be there. A line that fails sends the model back
+with one line naming the rule, three times, and then the task is given up on. A
+task that had a correction, a failure, a stop, or more than five rounds is
+reviewed in one call with the tools off: the four questions of the after-action
+review, of which only the fourth answer is kept, as a fact through
+`contract.Memory` with the task as its source, and, when it begins the way a
+procedure begins, as a skill offered to the user through the channel. A finished
+task sends its report; a stopped or failed one says what happened and which line
+fired. A task that belongs to a job has its report written into the job through
+`FinishTask`, sent to the user with the job's progress line on it, and the job's
+next due task started; when the last task finishes, the job's own done list is
+checked and reviewed the same way and the user gets the final report.
+
+**The two seams onto wave 2.** `loop.ContextBuilder` is the one-method interface
+the loop is written against, and `loop.TheWorkingContext(builder)` wraps the real
+builder from `internal/context` behind it, putting in the two things the loop
+knows and that builder does not: how big the window of the model being called is,
+and whether this is the call that asks for a report with the tools off. Every
+test in the package drives the real builder. `Options.ToolsForTask`, when
+`serve.go` sets it, is asked for the registry of each task before its first call,
+and is handed the task's number and a `loop.TaskRecord` that finds the keeper
+when there is one; that is how `internal/tool`'s `task` and `read` tools, which
+need the record of the task running now, are built with it. With no such
+function the shared registry in `Options.Tools` serves every task and the loop
+applies a `task` call itself, which is what the tests that drive the fakes do.
+The two commands the orchestrator registers are `loop.TasksCommand()` (`/tasks`,
+`/tasks 17`, and `/tasks 17 back 3` through `record.Back`) and
+`loop.StopCommand()` (`/stop`).
+
+One note for the wave gate. The forty-step fixture writes its record updates in
+the names wave 0 gave them (`doneWhen`, `stopWhen`, `resultId`) and brief 2.5
+fixed the task tool's own (`operation`, `done_when`, `stop_when`, `result`). The
+loop's own reader takes both, so the fixture runs whichever way the record is
+written, but the real task tool takes only the second, so the fixture cannot be
+driven through it until one of the two is changed.
 
 ## Signal (built, wave 3)
 

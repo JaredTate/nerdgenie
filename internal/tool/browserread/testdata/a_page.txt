@@ -1,0 +1,7 @@
+A simple page
+https://fixture.test/simple
+tab t1
+e1 link "Change the page"
+e2 textbox "Name"
+e3 textbox "Note"
+4 more elements below the fold

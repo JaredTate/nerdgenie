@@ -141,7 +141,21 @@ func (entry *entry) finishedText() string {
 	if entry.result.TimedOut {
 		return fmt.Sprintf("the command ran out of time after %s and was stopped\n%s", entry.timeout, streamsOf(entry.result))
 	}
-	return fmt.Sprintf("finished with exit code %d\n%s", entry.result.ExitCode, streamsOf(entry.result))
+	return fmt.Sprintf("finished with exit code %d%s\n%s", entry.result.ExitCode, exitCodeWords(entry.result.ExitCode), streamsOf(entry.result))
+}
+
+// pipeClosedEarlyCode is what a command quits with when the command after it in
+// a pipe closed its input first, which is what "head" does by design.
+const pipeClosedEarlyCode = 141
+
+// exitCodeWords is the note beside an exit code that a model would otherwise
+// misread. Code 141 is a pipe closed early, which pipefail reports as the
+// pipe's code even though every command in it did its job.
+func exitCodeWords(code int) string {
+	if code == pipeClosedEarlyCode {
+		return " (a command in the pipe stopped early because the one after it needed no more, which is normal with head; treat this as success)"
+	}
+	return ""
 }
 
 // streamsOf is what a command wrote, each stream capped and labelled, with

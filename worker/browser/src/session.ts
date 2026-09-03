@@ -49,6 +49,10 @@ export class Session {
   private tabOpenedDuringAction = "";
   /** Where the mouse was left, so the next move starts from there and not from a corner. */
   private mousePlace: Point = { x: 0, y: 0 };
+  /** How many requests of the worker's own are running, which is none or one. */
+  private requestsRunning = 0;
+  /** When the last request of its own finished, so that what that request set off is known to be its doing. */
+  private lastFinishedWorkingAt = Date.now();
 
   constructor(parts: SessionParts) {
     this.chrome = parts.chrome;
@@ -204,6 +208,35 @@ export class Session {
       return;
     }
     this.previous = snapshot;
+  }
+
+  /**
+   * Say that the worker itself is now doing something. Everything that happens on
+   * the page between here and finishedWorking is the worker's own doing, so none
+   * of it is reported as something the person did.
+   */
+  startedWorking(): void {
+    this.requestsRunning += 1;
+  }
+
+  /** Say that the worker has finished what it was doing. */
+  finishedWorking(): void {
+    if (this.requestsRunning > 0) {
+      this.requestsRunning -= 1;
+    }
+    if (this.requestsRunning === 0) {
+      this.lastFinishedWorkingAt = Date.now();
+    }
+  }
+
+  /**
+   * Was the worker doing something of its own at that moment? It is asked of the
+   * moment something started on the page rather than the moment it was reported,
+   * because a burst of typing is reported once the keyboard has gone quiet, which
+   * is after the request that typed it has already answered.
+   */
+  wasWorkingAt(moment: number): boolean {
+    return this.requestsRunning > 0 || moment <= this.lastFinishedWorkingAt;
   }
 
   /** Start an action: forget any tab that opened before it. */

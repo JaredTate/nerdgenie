@@ -6,6 +6,7 @@
  * whole worker in one process and still exercise the same code the Go side does.
  */
 import { asWorkerError, chromeDied } from "./errors.js";
+import { watchWhatThePersonDoes, type ReportEvent } from "./events.js";
 import { launchChrome, type RunningChrome } from "./chrome.js";
 import { METHOD_DEADLINE_MS } from "./limits.js";
 import { prefixed, toNowhere, type Logger } from "./log.js";
@@ -29,12 +30,23 @@ export interface WorkerOptions {
   chance?: Chance | undefined;
   /** Where the worker's own logging goes. */
   log?: Logger | undefined;
+  /**
+   * Where an event saying what the person did in the window goes. The process
+   * shell writes it to standard output as a notification; a test collects it.
+   */
+  onEvent?: ReportEvent | undefined;
 }
 
 /** A running worker. */
 export interface BrowserWorker {
   handle(request: WorkerRequest): Promise<JsonRpcResponse>;
   stop(): Promise<void>;
+  /**
+   * The session it is driving. A test acts on this page the way a person would,
+   * which is the only way to prove that what a person does is reported; the
+   * process shell never touches it.
+   */
+  session: Session;
 }
 
 /** Run something, but give up after the deadline for its method. */
@@ -76,6 +88,9 @@ export async function startWorker(options: WorkerOptions): Promise<BrowserWorker
     log,
   });
   await session.watchForNewTabs();
+  if (options.onEvent !== undefined) {
+    watchWhatThePersonDoes(session, options.onEvent);
+  }
 
   // The Go side sends one request at a time, but a chain of promises makes that
   // true here as well, so two requests can never share a page halfway through.
@@ -85,6 +100,9 @@ export async function startWorker(options: WorkerOptions): Promise<BrowserWorker
     if (!chrome.isAlive()) {
       return responseForError(request.id, chromeDied("the browser window is gone."));
     }
+    // Everything that happens on the page from here until the answer is the
+    // worker's own doing, and none of it is reported as something the person did.
+    session.startedWorking();
     try {
       const result = await withDeadline(request.method, runMethod(session, request));
       return successResponse(request.id, result);
@@ -92,10 +110,13 @@ export async function startWorker(options: WorkerOptions): Promise<BrowserWorker
       const failure = asWorkerError(problem);
       log(`the ${request.method} method failed with ${failure.code}: ${failure.message}`);
       return responseForError(request.id, failure);
+    } finally {
+      session.finishedWorking();
     }
   }
 
   return {
+    session,
     handle(request) {
       const mine = inLine.then(() => answer(request));
       inLine = mine.catch(() => {});

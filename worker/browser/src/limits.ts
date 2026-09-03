@@ -69,6 +69,15 @@ export const CHROME_STOP_LIMIT_MS = 3_000;
 /** The most bytes of Chrome's own logging kept for an error message. */
 export const CHROME_STDERR_TAIL_BYTES = 64 * 1024;
 
+/**
+ * Watching what the person does. A burst of typing is reported once, after the
+ * keyboard has been quiet this long, and one worker sends no more than this many
+ * events in a minute, so that a page calling the watcher itself cannot flood the
+ * pipe to the Go side.
+ */
+export const PERSON_TYPING_QUIET_MS = 400;
+export const MAX_PERSON_EVENTS_PER_MINUTE = 240;
+
 /** The deadline for each method, in milliseconds. The Go side has its own, longer, deadline. */
 export const METHOD_DEADLINE_MS: Readonly<Record<string, number>> = {
   open: 45_000,

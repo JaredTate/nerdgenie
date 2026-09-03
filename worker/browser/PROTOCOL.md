@@ -23,6 +23,13 @@ The Go side sends one request at a time and waits for its response. Every reques
 has a deadline; when it passes, the Go side kills the worker and starts a new
 one, and tells the model that the browser was restarted.
 
+The worker also sends lines nobody asked for, and they are only ever one thing: a
+notification saying what the person did in the window themselves. A notification
+is `{"jsonrpc":"2.0","method":"event","params":<object>}` and carries **no id at
+all**, which is what tells it from a response. It may arrive at any moment,
+between two requests or in the middle of one, so the Go side reads every line as
+it comes rather than only while it is waiting for an answer.
+
 ## The shapes
 
 ### Snapshot
@@ -106,6 +113,30 @@ user: a login form, a prompt for a second code, or a captcha.
 
 A method that runs into a wall still returns a diff, with `wall` filled in and
 `expectationMet` false. The worker never tries to get past a wall.
+
+### Event
+
+An event is one thing the person did in the window themselves, which is what
+`/walk record` writes a procedure down from.
+
+```json
+{ "kind": "click", "ref": "e7", "text": "Post", "at": "2026-09-03T10:00:00.000Z" }
+{ "kind": "type", "ref": "e3", "length": 23, "at": "2026-09-03T10:00:01.000Z" }
+{ "kind": "navigate", "address": "https://example.com/", "at": "2026-09-03T10:00:02.000Z" }
+```
+
+- `kind` is `click`, `type`, or `navigate`, and nothing else.
+- `ref` is the element clicked or typed into, the same short label a snapshot
+  gives it. An element the model has never seen is given a ref there and then, so
+  the ref in an event is always one the page will answer to.
+- `text` is what the clicked element says, which is what a recorded step expects
+  the page to answer. It is on a click and on nothing else.
+- `length` is how many characters the box holds after the person typed. **What
+  they typed is never sent**, so a recording of somebody signing in cannot become
+  a copy of their password. A burst of typing is one event, sent once the
+  keyboard has been quiet for four hundred milliseconds or the box has been left.
+- `address` is where the window went, and is on a navigation and on nothing else.
+- `at` is when it happened, as an ISO 8601 moment.
 
 ### Settling
 
@@ -269,3 +300,11 @@ Response: `{"jsonrpc":"2.0","id":11,"result":{"healthy":true,"chromeVersion":"15
    program; the worker fetches the file through the browser's own session, saves
    it under the profile's `downloads/` folder, and reports it as a download with
    one snapshot line naming it.
+7. It watches every page for what the person does in the window themselves and
+   sends each one as an `event` notification: a click, a burst of typing, and a
+   move to another address. It reports nothing it did itself, so an event set off
+   while one of its own requests was running is dropped, because the model
+   already sees its own actions in the diffs. It watches the top document only,
+   not the pages inside frames. And it sends no more than two hundred and forty
+   events a minute, so that a page calling the watcher's own name cannot flood
+   the pipe; the rest of that minute is dropped with one line in the log.

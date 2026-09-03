@@ -17,7 +17,7 @@ import { MAX_LINE_BYTES } from "./limits.js";
 import { toStandardError } from "./log.js";
 import type { Pacing } from "./pacing.js";
 import { startWorker, type BrowserWorker } from "./worker.js";
-import { errorResponse, formatResponse, parseLine } from "./wire.js";
+import { errorResponse, formatEvent, formatResponse, parseLine } from "./wire.js";
 
 /** What the command line asked for. */
 interface Settings {
@@ -117,7 +117,11 @@ async function run(): Promise<void> {
   }
   let worker: BrowserWorker;
   try {
-    worker = await startWorker({ ...settings, log: toStandardError });
+    worker = await startWorker({
+      ...settings,
+      log: toStandardError,
+      onEvent: (event) => process.stdout.write(formatEvent(event)),
+    });
   } catch (problem) {
     const why = problem instanceof Error ? problem.message : String(problem);
     toStandardError(`browser worker: the browser would not start: ${why}`);

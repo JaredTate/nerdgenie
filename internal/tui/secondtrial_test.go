@@ -92,6 +92,22 @@ func TestThePersonsBubbleIsDrawnWholeOrNotAtAll(t *testing.T) {
 	}
 }
 
+func TestAReplyTallerThanTheWholeTranscriptIsStillShown(t *testing.T) {
+	screen := aTrialScreen()
+	typeAndSend(screen, theHaikuMessage)
+	send(screen, contract.SocketEnvelope{Type: contract.SocketReply,
+		Text: strings.Repeat("Salt on the wind, and the tide comes in again. ", 100)})
+	send(screen, aToolLine("▸ task 1 done · Write a haiku about the sea"))
+
+	frame := plainText(screen.frame())
+	if !strings.Contains(frame, "Salt on the wind") {
+		t.Errorf("a reply taller than the transcript is not on the frame at all, and its newest rows are what is being read:\n%s", frame)
+	}
+	if !strings.Contains(frame, "task 1 done") {
+		t.Errorf("the pill after the long reply is not on the frame, and the newest thing is always at the bottom:\n%s", frame)
+	}
+}
+
 func TestThePersonsBubbleLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
 	screen := aTrialScreen()
 	typeAndSend(screen, theHaikuMessage)

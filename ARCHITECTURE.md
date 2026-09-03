@@ -601,10 +601,12 @@ rambling answer to stop must not wait for it to finish.
 
 The second trial ran the real screen on a pseudo-terminal at a hundred and
 twenty columns by thirty-six against a running serve and found four more things,
-all fixed here. The transcript draws whole blocks only: a block that will not fit
-in the room left at the top of the view is left out rather than cut, because the
-frame was showing a bubble with its lid and none of its words; only the newest
-block is ever cut, and only when it is taller than the whole transcript.
+all fixed here. The transcript draws whole blocks only: a block that would fit in
+a transcript of its own but not in the room left at the top of the view is left
+out rather than cut, because the frame was showing a bubble with its lid and none
+of its words. A block taller than the whole transcript is the one exception, and
+is drawn and cut, because there is nowhere it fits whole and its newest rows are
+the ones being read.
 `StatusFieldToolLine` now draws one pill per call however many heartbeats carry
 it: a line the screen has already drawn changes nothing, and the same line with
 its result added is written into the pill that call already has, which is what

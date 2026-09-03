@@ -74,13 +74,14 @@ func keepTail(text string) string {
 }
 
 // transcriptRows draws the newest blocks, with one blank line between blocks,
-// and stops as soon as it has as many rows as were asked for. A block that will
-// not fit whole in what is left is not drawn at all, because a bubble cut in two
-// is worse than a bubble not shown: the frame is left holding a lid with no box
-// under it, which is what the second trial saw. Only the newest block may be cut,
-// and only when it is taller than the whole transcript, because the newest words
-// have to be on the screen whatever else is. Drawing from the bottom up is what
-// makes a frame cost the same on the thousandth block as on the first.
+// and stops as soon as it has as many rows as were asked for. A block that would
+// fit in a transcript of its own but not in the room left at the top is not
+// drawn at all, because a bubble cut in two is worse than a bubble not shown:
+// the frame is left holding a lid with no box under it, which is what the second
+// trial saw. A block taller than the whole transcript is drawn anyway and cut,
+// because there is no room for it whole anywhere and its newest rows are the
+// ones being read. Drawing from the bottom up is what makes a frame cost the
+// same on the thousandth block as on the first.
 func (screen *Screen) transcriptRows(wanted int) []string {
 	gathered := []string{}
 	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
@@ -88,7 +89,7 @@ func (screen *Screen) transcriptRows(wanted int) []string {
 		if at > 0 && blankBetween(screen.blocks[at-1].kind, screen.blocks[at].kind) {
 			lines = append([]string{""}, lines...)
 		}
-		if len(gathered) > 0 && len(gathered)+len(lines) > wanted {
+		if len(gathered)+len(lines) > wanted && len(lines) <= wanted {
 			break
 		}
 		gathered = append(lines, gathered...)

@@ -1,12 +1,12 @@
-// The events this reader answers, and the way a function call is put back
-// together from the item that opens it, the argument pieces keyed by that
-// item's identifier, and the finished item that closes it, were read from the
-// Responses stream as Hermes handles it at
-// ~/.hermes/hermes-agent/agent/codex_responses_adapter.py, which is the
-// installed Hermes; the reference clone at ~/Code/hermes-agent is older than
-// that transport and has no copy of it. Hermes reads the stream through the
-// vendor's software development kit; this is Go over net/http, so that the
-// harness owns the parser it fuzzes.
+// The event names, the fields read from each, and the rule that a tool call is
+// put together from the item events rather than from the closing event's output
+// list were read from Hermes Agent's Codex stream reader at
+// ~/Code/hermes-agent/agent/codex_runtime.py, which is the path that
+// ~/Code/hermes-agent/agent/transports/codex.py and
+// ~/Code/hermes-agent/agent/codex_responses_adapter.py run their streams
+// through. The two places an error frame keeps its message, flat or inside an
+// "error" envelope, come from the same file, and the usage field names from
+// ~/Code/hermes-agent/agent/usage_pricing.py.
 
 package provider
 
@@ -21,82 +21,89 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// codexResult is what one whole stream from the backend came to.
+// codexResult is what one streamed call to the Codex backend came to.
 type codexResult struct {
-	// Text is the model's plain text, already handed out in deltas.
+	// Text is the model's plain text, already handed to the caller in deltas.
 	Text string
-	// ToolCalls are the tools it asked for, in the order it asked.
+	// ToolCalls are the tools it asked for, in the order they appeared.
 	ToolCalls []contract.ToolCall
-	// Usage is the token count the backend reported at the end.
+	// Usage is the token count the closing event reported.
 	Usage contract.Usage
 	// Finish says why the model stopped.
 	Finish contract.FinishReason
-	// Model is what the backend said answered, when it said.
+	// Model is the name of the model that answered.
 	Model string
 }
 
-// codexCount is the token count the backend reports on the event that ends
-// the response.
-type codexCount struct {
-	// InputTokens is the whole prompt, including whatever came from the cache.
-	InputTokens int `json:"input_tokens"`
-	// OutputTokens is what the model wrote.
-	OutputTokens int `json:"output_tokens"`
-	// InputTokensDetails holds the part of the prompt that came from the cache.
-	InputTokensDetails struct {
-		CachedTokens int `json:"cached_tokens"`
-	} `json:"input_tokens_details"`
-}
-
-// codexItem is one output item as the stream describes it when it opens and
-// when it is done. Only a function call's fields are read.
+// codexItem is one output item of a Responses API reply, as the added and done
+// events carry it. Only a function call is read from it; a message's text has
+// already arrived in deltas.
 type codexItem struct {
-	// ID is the item's own identifier, which the argument pieces are keyed by.
-	ID string `json:"id"`
-	// Type is "message", "function_call", or "reasoning".
+	// Type says what the item is, and "function_call" is the one kind read.
 	Type string `json:"type"`
-	// CallID is the call's identifier, which the result goes back under.
+	// ID is the item's own identifier, which the argument events point at.
+	ID string `json:"id"`
+	// CallID is the identifier the harness echoes back on the tool result.
 	CallID string `json:"call_id"`
-	// Name is the tool the model asked for.
+	// Name is the tool's name.
 	Name string `json:"name"`
-	// Arguments is the whole JSON object, on the finished item.
+	// Arguments is the whole of the arguments as one JSON string, on the done
+	// event and sometimes already on the added event.
 	Arguments string `json:"arguments"`
 }
 
-// codexEvent is one event of the Responses stream, wide enough to hold every
-// event the reader answers.
+// codexError is the message a failing stream carries, in either of its shapes.
+type codexError struct {
+	// Message says what went wrong, in the backend's words.
+	Message string `json:"message"`
+}
+
+// codexEvent is one data line of a Responses API stream, wide enough to hold
+// every event the reader answers.
 type codexEvent struct {
-	// Type is the event's name, which the stream repeats inside the payload.
+	// Type is the event's name.
 	Type string `json:"type"`
-	// Delta is one piece of text or one piece of a call's arguments.
-	Delta string `json:"delta"`
-	// ItemID says which item a piece belongs to.
+	// OutputIndex says which output item the event belongs to, when it has one.
+	OutputIndex *int `json:"output_index"`
+	// ItemID names the item an argument event belongs to.
 	ItemID string `json:"item_id"`
-	// Item is the output item an item event describes.
+	// Item is the output item an added or done event carries.
 	Item codexItem `json:"item"`
-	// Response carries the model, the usage, and the reason on the event that
-	// ends it.
+	// Delta is one piece of text, or one piece of a tool call's arguments.
+	Delta string `json:"delta"`
+	// Arguments is the whole of a call's arguments on the argument done event.
+	// It is a pointer so that a missing field leaves the streamed pieces alone
+	// while an empty string counts as the backend's final word.
+	Arguments *string `json:"arguments"`
+	// Response is the reply's closing summary, on the three ending events.
 	Response struct {
-		Model             string      `json:"model"`
-		Usage             *codexCount `json:"usage"`
+		// Model is the name of the model that answered.
+		Model string `json:"model"`
+		// Usage is the token count for the call.
+		Usage struct {
+			// InputTokens is everything the model read, including the cached part.
+			InputTokens int `json:"input_tokens"`
+			// InputTokensDetails holds the part of the input that came from the cache.
+			InputTokensDetails struct {
+				CachedTokens int `json:"cached_tokens"`
+			} `json:"input_tokens_details"`
+			// OutputTokens is everything the model wrote. It already counts the
+			// reasoning tokens that output_tokens_details.reasoning_tokens sets
+			// apart, so that detail is not read: adding it would count them twice.
+			OutputTokens int `json:"output_tokens"`
+		} `json:"usage"`
+		// IncompleteDetails says why an incomplete reply stopped short.
 		IncompleteDetails struct {
 			Reason string `json:"reason"`
 		} `json:"incomplete_details"`
-		Error struct {
-			Message string `json:"message"`
-		} `json:"error"`
+		// Error is what a failed reply says went wrong.
+		Error codexError `json:"error"`
 	} `json:"response"`
-	// Message is what an error event says at its top level.
+	// Message is an error frame's message when the frame keeps it flat.
 	Message string `json:"message"`
-	// Error is what an error event says when it wraps the message instead.
-	Error struct {
-		Message string `json:"message"`
-	} `json:"error"`
+	// Error is an error frame's message when the frame wraps it in an envelope.
+	Error codexError `json:"error"`
 }
-
-// errCodexStreamIncomplete means the stream ended before the backend said the
-// response was complete, which a later attempt could get past.
-var errCodexStreamIncomplete = errors.New("the stream ended before the backend said the response was complete, so the reply is incomplete")
 
 // codexReply is the reply as it is being built from the stream.
 type codexReply struct {
@@ -106,20 +113,20 @@ type codexReply struct {
 	order   []string
 	usage   contract.Usage
 	model   string
-	// incompleteReason is why the backend stopped early, or empty when it
-	// finished.
-	incompleteReason string
-	sawEnd           bool
+	finish  contract.FinishReason
+	// sawEnd says the stream reached a completed or an incomplete event, which
+	// are the two endings that leave a reply behind.
+	sawEnd bool
 }
 
-// readCodexStream turns the bytes of a Responses stream into one result,
-// handing every piece of text to the delta function as it arrives.
+// readCodexStream reads one streamed reply, handing each piece of text to
+// onDelta as it arrives.
 func readCodexStream(reader io.Reader, onDelta func(delta string)) (codexResult, error) {
 	building := &codexReply{onDelta: onDelta, calls: map[string]*toolCallBuild{}}
 	err := forEachDataLine(reader, func(payload []byte) (bool, error) {
 		event := codexEvent{}
 		if err := json.Unmarshal(payload, &event); err != nil {
-			return false, nil
+			return true, fmt.Errorf("the codex stream sent a data line that is not JSON, so the reply was given up on: %w", err)
 		}
 		return building.take(event)
 	})
@@ -127,7 +134,7 @@ func readCodexStream(reader io.Reader, onDelta func(delta string)) (codexResult,
 		return codexResult{}, err
 	}
 	if !building.sawEnd {
-		return codexResult{}, errCodexStreamIncomplete
+		return codexResult{}, errors.New("the codex stream ended before the response.completed event, so the reply is incomplete and the call should be made again")
 	}
 	return building.finished(), nil
 }
@@ -139,149 +146,137 @@ func (building *codexReply) take(event codexEvent) (bool, error) {
 		if kept := addText(&building.text, event.Delta); kept != "" && building.onDelta != nil {
 			building.onDelta(kept)
 		}
-	case "response.output_item.added":
-		return false, building.openItem(event.Item)
+	case "response.output_item.added", "response.output_item.done":
+		if event.Item.Type == "function_call" {
+			return false, building.takeItem(event)
+		}
 	case "response.function_call_arguments.delta":
-		return false, building.addArguments(event.ItemID, event.Delta)
-	case "response.output_item.done":
-		return false, building.closeItem(event.Item)
-	case "response.completed", "response.incomplete":
-		building.countTokens(event.Response.Usage)
-		building.model = event.Response.Model
-		building.incompleteReason = event.Response.IncompleteDetails.Reason
-		building.sawEnd = true
+		if block, known := building.calls[building.keyFor(event.ItemID, event.OutputIndex)]; known {
+			return false, addArguments(block, event.Delta)
+		}
+	case "response.function_call_arguments.done":
+		if block, known := building.calls[building.keyFor(event.ItemID, event.OutputIndex)]; known && event.Arguments != nil {
+			block.arguments.Reset()
+			return false, addArguments(block, *event.Arguments)
+		}
+	case "response.completed":
+		building.end(event, contract.FinishEnd)
+		return true, nil
+	case "response.incomplete":
+		building.end(event, incompleteFinish(event.Response.IncompleteDetails.Reason))
 		return true, nil
 	case "response.failed":
-		return true, fmt.Errorf("the backend stopped with an error: %s", event.Response.Error.Message)
+		return true, fmt.Errorf("the codex backend failed the call and said: %s", orNoReason(event.Response.Error.Message))
 	case "error":
-		said := event.Message
-		if said == "" {
-			said = event.Error.Message
-		}
-		return true, fmt.Errorf("the backend stopped with an error: %s", said)
+		return true, fmt.Errorf("the codex backend stopped the call with an error: %s", orNoReason(firstOf(event.Message, event.Error.Message)))
 	}
 	return false, nil
 }
 
-// countTokens keeps the usage from the event that ended the response. The
-// cached count is kept inside the input count, because the contract says it is
-// a part of it, and a backend that said otherwise would put nonsense on the
-// cost line.
-func (building *codexReply) countTokens(count *codexCount) {
-	if count == nil {
-		return
+// takeItem opens a function call on its added event, or fills it in on its
+// done event, whichever arrives first. The done event's fields win where they
+// are set, and the streamed pieces stay where it leaves a field empty.
+func (building *codexReply) takeItem(event codexEvent) error {
+	key := building.keyFor(event.Item.ID, event.OutputIndex)
+	if key == "" {
+		key = fmt.Sprintf("unnamed call %d", len(building.order))
 	}
-	building.usage = contract.Usage{
-		InputTokens:       count.InputTokens,
-		CachedInputTokens: min(count.InputTokensDetails.CachedTokens, count.InputTokens),
-		OutputTokens:      count.OutputTokens,
+	block, known := building.calls[key]
+	if !known {
+		if len(building.order) >= maxToolCallsPerReply {
+			return fmt.Errorf("the model asked for more than %d tools in one reply, so the reply was given up on", maxToolCallsPerReply)
+		}
+		block = &toolCallBuild{}
+		building.calls[key] = block
+		building.order = append(building.order, key)
 	}
-}
-
-// openItem starts a tool call when the item that opened is one, and ignores
-// every other kind of item.
-func (building *codexReply) openItem(item codexItem) error {
-	if item.Type != "function_call" {
-		return nil
-	}
-	block, err := building.callFor(item.ID)
-	if err != nil {
-		return err
-	}
-	block.id = item.CallID
-	block.name = item.Name
-	return building.addArguments(item.ID, item.Arguments)
-}
-
-// addArguments adds one piece of a call's arguments.
-func (building *codexReply) addArguments(itemID, piece string) error {
-	block, err := building.callFor(itemID)
-	if err != nil {
-		return err
-	}
-	if block.arguments.Len()+len(piece) > maxToolCallJSONBytes {
-		return fmt.Errorf("the backend sent more than %d bytes of arguments for one tool call, so the call was given up on",
-			maxToolCallJSONBytes)
-	}
-	block.arguments.WriteString(piece)
-	return nil
-}
-
-// closeItem takes the finished item's own fields as the truth about a call,
-// because the backend writes the whole arguments there whether or not it sent
-// them in pieces first.
-func (building *codexReply) closeItem(item codexItem) error {
-	if item.Type != "function_call" {
-		return nil
-	}
-	block, err := building.callFor(item.ID)
-	if err != nil {
-		return err
-	}
-	if item.CallID != "" {
-		block.id = item.CallID
-	}
-	if item.Name != "" {
-		block.name = item.Name
-	}
-	if item.Arguments == "" {
+	block.id = firstOf(event.Item.CallID, block.id)
+	block.name = firstOf(event.Item.Name, block.name)
+	if event.Item.Arguments == "" {
 		return nil
 	}
 	block.arguments.Reset()
-	return building.addArguments(item.ID, item.Arguments)
+	return addArguments(block, event.Item.Arguments)
 }
 
-// callFor finds the call an item identifier belongs to, starting one when it
-// is new and refusing to start more than the cap.
-func (building *codexReply) callFor(itemID string) (*toolCallBuild, error) {
-	block, known := building.calls[itemID]
-	if known {
-		return block, nil
+// keyFor names the call an event belongs to: by the item's identifier when the
+// backend sends one, and by its place in the output when it does not. An event
+// with neither has no call, and the caller decides what that means.
+func (building *codexReply) keyFor(itemID string, outputIndex *int) string {
+	if itemID != "" {
+		return "item " + itemID
 	}
-	if len(building.order) >= maxToolCallsPerReply {
-		return nil, fmt.Errorf("the backend asked for more than %d tools in one reply, so the reply was given up on",
-			maxToolCallsPerReply)
+	if outputIndex != nil {
+		return fmt.Sprintf("index %d", *outputIndex)
 	}
-	block = &toolCallBuild{}
-	building.calls[itemID] = block
-	building.order = append(building.order, itemID)
-	return block, nil
+	return ""
 }
 
-// finished turns the built-up state into the result the provider reads.
+// end takes what the closing event reports and marks the stream as ended.
+func (building *codexReply) end(event codexEvent, finish contract.FinishReason) {
+	building.usage = contract.Usage{
+		InputTokens:       event.Response.Usage.InputTokens,
+		CachedInputTokens: event.Response.Usage.InputTokensDetails.CachedTokens,
+		OutputTokens:      event.Response.Usage.OutputTokens,
+	}
+	building.model = event.Response.Model
+	building.finish = finish
+	building.sawEnd = true
+}
+
+// finished turns the built-up state into the result the caller reads.
 func (building *codexReply) finished() codexResult {
 	calls := []contract.ToolCall{}
-	for _, itemID := range building.order {
-		block := building.calls[itemID]
+	for _, key := range building.order {
+		block := building.calls[key]
 		arguments := block.arguments.String()
 		if strings.TrimSpace(arguments) == "" {
 			arguments = "{}"
 		}
 		calls = append(calls, contract.ToolCall{ID: block.id, Name: block.name, Input: json.RawMessage(arguments)})
 	}
+	finish := building.finish
+	if finish == contract.FinishEnd && len(calls) > 0 {
+		finish = contract.FinishToolCalls
+	}
 	return codexResult{
 		Text:      building.text.String(),
 		ToolCalls: calls,
 		Usage:     building.usage,
-		Finish:    codexFinish(building.incompleteReason, len(calls) > 0),
+		Finish:    finish,
 		Model:     building.model,
 	}
 }
 
-// codexFinish maps the way the response ended onto the four reasons the
-// contract names. A completed response has no reason at all, a response cut
-// at the output cap says so, and anything else the backend stopped for is
-// read as stopped.
-func codexFinish(incompleteReason string, hasCalls bool) contract.FinishReason {
-	switch incompleteReason {
-	case "":
-		if hasCalls {
-			return contract.FinishToolCalls
-		}
-		return contract.FinishEnd
-	case "max_output_tokens":
-		return contract.FinishLength
-	default:
-		return contract.FinishStopped
+// addArguments appends a piece of a tool call's arguments, keeping the whole
+// inside the cap.
+func addArguments(block *toolCallBuild, piece string) error {
+	if block.arguments.Len()+len(piece) > maxToolCallJSONBytes {
+		return fmt.Errorf("the model sent more than %d bytes of arguments for one tool call, so the call was given up on", maxToolCallJSONBytes)
 	}
+	block.arguments.WriteString(piece)
+	return nil
+}
+
+// incompleteFinish maps the reason an incomplete reply gives onto the contract:
+// the output cap is a length finish, and anything else is a reply the backend
+// cut short.
+func incompleteFinish(reason string) contract.FinishReason {
+	if reason == "max_output_tokens" {
+		return contract.FinishLength
+	}
+	return contract.FinishStopped
+}
+
+// firstOf returns the first of the two strings that is not empty.
+func firstOf(first string, second string) string {
+	if first != "" {
+		return first
+	}
+	return second
+}
+
+// orNoReason fills in for a backend that failed without saying why.
+func orNoReason(said string) string {
+	return firstOf(said, "no reason was given")
 }

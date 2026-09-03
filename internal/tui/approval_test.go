@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -34,23 +34,26 @@ func screenWithLink() (*Screen, *recordingLink) {
 	return screen, link
 }
 
-// press gives the screen one ordinary key press.
+// press gives the screen one ordinary key press, which carries both the key's
+// code and the characters it stands for, as a terminal reports one.
 func press(screen *Screen, letter rune) {
-	screen.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{letter}})
+	screen.Update(tea.KeyPressMsg{Code: letter, Text: string(letter)})
 }
 
-// pressKey gives the screen one named key, such as Enter or Escape.
-func pressKey(screen *Screen, which tea.KeyType) {
-	screen.Update(tea.KeyMsg{Type: which})
+// pressKey gives the screen one named key, such as Enter or Escape. A named key
+// stands for no printable character, so it carries a code and no text.
+func pressKey(screen *Screen, which rune) {
+	screen.Update(tea.KeyPressMsg{Code: which})
+}
+
+// pressWithControl gives the screen one letter with the control key held.
+func pressWithControl(screen *Screen, letter rune) (tea.Model, tea.Cmd) {
+	return screen.Update(tea.KeyPressMsg{Code: letter, Mod: tea.ModCtrl})
 }
 
 // typeWord types a whole phrase into the input box, one key press at a time.
 func typeWord(screen *Screen, text string) {
 	for _, letter := range text {
-		if letter == ' ' {
-			pressKey(screen, tea.KeySpace)
-			continue
-		}
 		press(screen, letter)
 	}
 }
@@ -69,7 +72,7 @@ func TestAPreviewDrawsTheCardAndWaitsForThePerson(t *testing.T) {
 	screen, _ := screenWithLink()
 	send(screen, aPreview())
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, wanted := range []string{previewTitle, "browser_click e7", "[ a ] approve once", "[ A ] always this session", "[ r ] reject with a reason"} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the frame does not hold %q, and the preview card shows the call and its three answers", wanted)
@@ -92,7 +95,7 @@ func TestApprovingOnceSendsTheOnceAnswerAndRecordsIt(t *testing.T) {
 	if sent.Type != contract.SocketApprove || sent.ID != "3" || sent.Text != "" {
 		t.Errorf("pressing a sent %+v, and an approve carrying no text approves preview 3 for this one call", sent)
 	}
-	if !strings.Contains(screen.View(), "approved once") {
+	if !strings.Contains(screen.frame(), "approved once") {
 		t.Error("the transcript does not record the answer, and every answer is written down in one dim line")
 	}
 }
@@ -105,7 +108,7 @@ func TestApprovingAlwaysSendsTheAlwaysAnswer(t *testing.T) {
 	if len(link.sent) != 1 || link.sent[0].Text != contract.ApproveAlwaysText {
 		t.Fatalf("pressing A sent %+v, and it approves calls like this one for the rest of the session", link.sent)
 	}
-	if !strings.Contains(screen.View(), "approved for this session") {
+	if !strings.Contains(screen.frame(), "approved for this session") {
 		t.Error("the transcript does not record that the answer was for the whole session")
 	}
 }
@@ -115,7 +118,7 @@ func TestRejectingAsksWhyAndThenSendsTheReason(t *testing.T) {
 	send(screen, aPreview())
 	press(screen, 'r')
 
-	if !strings.Contains(screen.View(), "Why not?") {
+	if !strings.Contains(screen.frame(), "Why not?") {
 		t.Error("pressing r did not ask for a reason, and the answer is to reject with a reason")
 	}
 	if len(link.sent) != 0 {
@@ -132,7 +135,7 @@ func TestRejectingAsksWhyAndThenSendsTheReason(t *testing.T) {
 	if sent.Type != contract.SocketDeny || sent.ID != "3" || sent.Reason != "not the right account" {
 		t.Errorf("rejecting sent %+v, and it denies preview 3 with the reason that was typed", sent)
 	}
-	if !strings.Contains(screen.View(), "rejected: not the right account") {
+	if !strings.Contains(screen.frame(), "rejected: not the right account") {
 		t.Error("the transcript does not record the rejection and its reason")
 	}
 }
@@ -154,7 +157,7 @@ func TestAnErrorFromTheLinkBecomesAnErrorCard(t *testing.T) {
 	typeWord(screen, "hello")
 	pressKey(screen, tea.KeyEnter)
 
-	if !strings.Contains(screen.View(), errorTitle) {
+	if !strings.Contains(screen.frame(), errorTitle) {
 		t.Error("a message that could not be delivered was lost quietly, and it must become an error card")
 	}
 }

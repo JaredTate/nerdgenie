@@ -1,7 +1,7 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -34,8 +34,8 @@ func secretWords(envelope contract.SocketEnvelope) string {
 
 // pressedAtTheMaskedPrompt holds the two keys that end secret mode. Every other
 // key goes to the input box, where it is drawn as a bullet.
-func (screen *Screen) pressedAtTheMaskedPrompt(key tea.KeyMsg) bool {
-	switch key.Type {
+func (screen *Screen) pressedAtTheMaskedPrompt(key tea.KeyPressMsg) bool {
+	switch key.Code {
 	case tea.KeyEnter:
 		screen.sendSecret()
 		return true

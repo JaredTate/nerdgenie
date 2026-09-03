@@ -40,7 +40,7 @@ func TestTheExampleFrameIsDrawnAsTheDesignDrawsIt(t *testing.T) {
 	screen.link = &recordingLink{}
 	theExampleTask(screen)
 
-	frame := screen.View()
+	frame := screen.frame()
 	testkit.Golden(t, "example-frame.txt", []byte(frame))
 
 	for number, line := range strings.Split(frame, "\n") {

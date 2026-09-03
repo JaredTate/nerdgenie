@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -54,7 +54,7 @@ func TestTheScreenTalksToAProgramOverTheRealSocket(t *testing.T) {
 	})
 	defer screen.Close()
 
-	if strings.Contains(screen.View(), "Ask me first") {
+	if strings.Contains(screen.frame(), "Ask me first") {
 		t.Fatal("the first frame already holds a card, and it is drawn before anything is connected")
 	}
 	screen.Init()
@@ -65,7 +65,7 @@ func TestTheScreenTalksToAProgramOverTheRealSocket(t *testing.T) {
 		t.Fatalf("the screen said %+v first, and it attaches first", first)
 	}
 	pump(t, screen)
-	if !strings.Contains(screen.View(), "idle") {
+	if !strings.Contains(screen.frame(), "idle") {
 		t.Errorf("the status strip is %q after attaching, and the screen is idle", statusStrip(screen))
 	}
 
@@ -76,8 +76,8 @@ func TestTheScreenTalksToAProgramOverTheRealSocket(t *testing.T) {
 		pump(t, screen)
 	}
 	advance(screen, clock, heartbeatInterval)
-	if !strings.Contains(screen.View(), "Nine years ago today.") {
-		t.Errorf("the streamed reply is not on the frame:\n%s", screen.View())
+	if !strings.Contains(screen.frame(), "Nine years ago today.") {
+		t.Errorf("the streamed reply is not on the frame:\n%s", screen.frame())
 	}
 
 	preview := contract.SocketEnvelope{Type: contract.SocketPreview, ID: "3", Text: "browser_click e7 \"Post\""}
@@ -85,8 +85,8 @@ func TestTheScreenTalksToAProgramOverTheRealSocket(t *testing.T) {
 		t.Fatalf("the program could not send a preview: %v", err)
 	}
 	pump(t, screen)
-	if !strings.Contains(screen.View(), previewTitle) {
-		t.Fatalf("the preview card is not on the frame:\n%s", screen.View())
+	if !strings.Contains(screen.frame(), previewTitle) {
+		t.Fatalf("the preview card is not on the frame:\n%s", screen.frame())
 	}
 
 	press(screen, 'a')

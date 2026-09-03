@@ -30,7 +30,7 @@ func TestStreamedDeltasCoalesceIntoOneReplyBlock(t *testing.T) {
 		send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Text: piece})
 	}
 
-	if strings.Contains(screen.View(), "Nine years") {
+	if strings.Contains(screen.frame(), "Nine years") {
 		t.Error("a delta reached the frame before the thirty milliseconds were up, and deltas are coalesced so the terminal is not repainted per word")
 	}
 
@@ -42,7 +42,7 @@ func TestStreamedDeltasCoalesceIntoOneReplyBlock(t *testing.T) {
 	if wanted := strings.Join(pieces, ""); texts[0] != wanted {
 		t.Errorf("the reply reads %q, and the deltas joined together read %q", texts[0], wanted)
 	}
-	if !strings.Contains(screen.View(), "DigiByte was born.") {
+	if !strings.Contains(screen.frame(), "DigiByte was born.") {
 		t.Error("the reply is not on the frame after the deltas were flushed")
 	}
 }
@@ -83,7 +83,7 @@ func TestMarkdownInAReplyIsRenderedLightly(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 	screen.remember(block{kind: blockReply, text: "# A heading\nplain **bold** and `code`\n* an item"})
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, wanted := range []string{"A heading", "plain bold and code", "- an item"} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the frame does not hold %q, and markdown is rendered lightly rather than shown as written", wanted)
@@ -104,13 +104,13 @@ func TestAResetTakesThePartialReplyOffTheScreen(t *testing.T) {
 	screen, clock := newTestScreen(80, 24)
 	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Text: "the wrong start "})
 	advance(screen, clock, heartbeatInterval)
-	if !strings.Contains(screen.View(), "the wrong start") {
+	if !strings.Contains(screen.frame(), "the wrong start") {
 		t.Fatalf("the partial reply was not drawn before the reset")
 	}
 	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Reset: true})
 	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Text: "the right start "})
 	advance(screen, clock, heartbeatInterval)
-	frame := screen.View()
+	frame := screen.frame()
 	if strings.Contains(frame, "the wrong start") {
 		t.Errorf("the withdrawn words are still on the screen:\n%s", frame)
 	}

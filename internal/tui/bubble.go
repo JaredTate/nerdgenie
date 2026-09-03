@@ -2,13 +2,33 @@ package tui
 
 import (
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 // bubblePadding is the one blank column inside a bubble on each side, so that
 // the letters never touch the border.
 const bubblePadding = 1
+
+// border is the eight characters a box is drawn out of: the four corners, the
+// two horizontal runs, and the two upright sides.
+type border struct {
+	// Top and Bottom are the characters the horizontal runs repeat.
+	Top, Bottom string
+	// Left and Right are the two upright sides.
+	Left, Right string
+	// TopLeft, TopRight, BottomLeft and BottomRight are the four corners.
+	TopLeft, TopRight, BottomLeft, BottomRight string
+}
+
+// roundedBorder is the box with rounded corners docs/TUI_DESIGN.md draws every
+// bubble with.
+func roundedBorder() border {
+	return border{
+		Top: "─", Bottom: "─",
+		Left: "│", Right: "│",
+		TopLeft: "╭", TopRight: "╮",
+		BottomLeft: "╰", BottomRight: "╯",
+	}
+}
 
 // bubbleFrame is the two columns a bubble's border and padding take on each
 // side, which is what a wrapped line has to fit inside.
@@ -16,9 +36,9 @@ const bubbleFrame = 2 * (1 + bubblePadding)
 
 // bubble is one box of talk in the transcript.
 type bubble struct {
-	// edges are the border glyphs, which are lipgloss's rounded border with the
+	// edges are the border glyphs, which are the rounded border with the
 	// person's thick left edge where the design asked for one.
-	edges lipgloss.Border
+	edges border
 	// frame is how the border itself is drawn.
 	frame style
 	// fill is how the blanks inside the box are drawn, which is what makes the
@@ -33,7 +53,7 @@ type bubble struct {
 // accent-filled shape against the right-hand edge, with the thick left edge that
 // docs/TUI_DESIGN.md drew as a bar beside the message kept as the bubble's own.
 func personBubble() bubble {
-	edges := lipgloss.RoundedBorder()
+	edges := roundedBorder()
 	edges.Left = string(personBarGlyph)
 	return bubble{edges: edges, frame: styleChip, fill: styleChip, leaningRight: true}
 }
@@ -41,7 +61,7 @@ func personBubble() bubble {
 // agentBubble is the box the agent's reply is drawn in: an outline against the
 // left-hand edge, so that the reply itself is the loudest thing on the row.
 func agentBubble() bubble {
-	return bubble{edges: lipgloss.RoundedBorder(), frame: styleDim, fill: styleNormal}
+	return bubble{edges: roundedBorder(), frame: styleDim, fill: styleNormal}
 }
 
 // bubbleWidth is the widest box the transcript will draw: the frame less its

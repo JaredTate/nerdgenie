@@ -115,7 +115,27 @@ func openPseudoTerminal(t *testing.T) *pseudoTerminal {
 	if err := turnEchoOff(far); err != nil {
 		t.Fatalf("turning the terminal's own echo off failed, and it would have made this test lie: %v", err)
 	}
+	if err := sayHowBigTheTerminalIs(far); err != nil {
+		t.Fatalf("telling the pseudo-terminal how big it is failed, and a terminal of no size draws nothing: %v", err)
+	}
 	return &pseudoTerminal{near: near, far: far}
+}
+
+// sayHowBigTheTerminalIs gives the pair the eighty by twenty-four every
+// terminal has had since the nineteen seventies, because a pair the kernel has
+// just made is no columns wide and no rows tall.
+func sayHowBigTheTerminalIs(far *os.File) error {
+	size := windowSize{rows: fallbackHeight, columns: fallbackWidth}
+	_, _, failed := syscall.Syscall(
+		syscall.SYS_IOCTL,
+		far.Fd(),
+		syscall.TIOCSWINSZ,
+		uintptr(unsafe.Pointer(&size)),
+	)
+	if failed != 0 {
+		return failed
+	}
+	return nil
 }
 
 // unlockTheFarSide tells the kernel the far side of a fresh pseudo-terminal may

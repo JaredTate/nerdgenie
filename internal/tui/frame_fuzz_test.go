@@ -12,7 +12,7 @@ import (
 // program sends.
 func drawsInsideTheTerminal(t *testing.T, screen *Screen, width int) {
 	t.Helper()
-	for number, line := range strings.Split(screen.View(), "\n") {
+	for number, line := range strings.Split(screen.frame(), "\n") {
 		if drawn := displayWidth(plainText(line)); drawn > width {
 			t.Fatalf("row %d is %d columns wide and the terminal is %d: %q", number+1, drawn, width, line)
 		}

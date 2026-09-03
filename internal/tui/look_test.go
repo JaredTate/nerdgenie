@@ -38,7 +38,7 @@ func theWholeConversation(screen *Screen) {
 
 func TestTheBannerIsDrawnWhileThereIsNothingToShowAndScrollsAwayOnceThereIs(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
-	frame := screen.View()
+	frame := screen.frame()
 
 	for _, wanted := range []string{"the agent that does not forget what it is doing", "connecting"} {
 		if !strings.Contains(frame, wanted) {
@@ -53,7 +53,7 @@ func TestTheBannerIsDrawnWhileThereIsNothingToShowAndScrollsAwayOnceThereIs(t *t
 	}
 
 	screen.remember(block{kind: blockPerson, text: "hello"})
-	if after := screen.View(); strings.Contains(after, string(blockGlyph)) {
+	if after := screen.frame(); strings.Contains(after, string(blockGlyph)) {
 		t.Errorf("the banner is still on the frame once the conversation started:\n%s", after)
 	}
 }
@@ -66,7 +66,7 @@ func TestTheBannerNamesTheModelAndWhatTheProgramIsDoing(t *testing.T) {
 		contract.StatusFieldState: contract.StateIdle,
 	}})
 
-	frame := screen.View()
+	frame := screen.frame()
 	if !strings.Contains(frame, "opus · idle") {
 		t.Errorf("the banner does not name the model and what the program is doing:\n%s", frame)
 	}
@@ -74,7 +74,7 @@ func TestTheBannerNamesTheModelAndWhatTheProgramIsDoing(t *testing.T) {
 
 func TestANarrowTerminalGetsTheWordmarkInPlainLettersRatherThanBlocks(t *testing.T) {
 	screen, _ := newTestScreen(40, 24)
-	frame := screen.View()
+	frame := screen.frame()
 
 	if strings.Contains(frame, string(blockGlyph)) {
 		t.Errorf("a forty-column terminal drew the block letters, which do not fit:\n%s", frame)
@@ -156,7 +156,7 @@ func TestTheThreeAnswersOnAPreviewAreDrawnAsButtons(t *testing.T) {
 	screen := newThemedScreen(80, 24)
 	send(screen, aPreview())
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, wanted := range []string{"[ a ] approve once", "[ A ] always this session", "[ r ] reject with a reason"} {
 		if !strings.Contains(plainText(frame), wanted) {
 			t.Errorf("the preview card does not draw %q as a button:\n%s", wanted, plainText(frame))
@@ -225,17 +225,17 @@ func TestTheThemedAndThePlainFramesAreDrawnAsTheGoldenFilesHaveThem(t *testing.T
 		name := strconv.Itoa(size[0]) + "x" + strconv.Itoa(size[1])
 
 		plainBanner, _ := newTestScreen(size[0], size[1])
-		testkit.Golden(t, "banner-"+name+".txt", []byte(plainBanner.View()))
-		testkit.Golden(t, "themed-banner-"+name+".txt", []byte(newThemedScreen(size[0], size[1]).View()))
+		testkit.Golden(t, "banner-"+name+".txt", []byte(plainBanner.frame()))
+		testkit.Golden(t, "themed-banner-"+name+".txt", []byte(newThemedScreen(size[0], size[1]).frame()))
 
 		plainTalk, _ := newTestScreen(size[0], size[1])
 		plainTalk.link = &recordingLink{}
 		theWholeConversation(plainTalk)
-		testkit.Golden(t, "conversation-"+name+".txt", []byte(plainTalk.View()))
+		testkit.Golden(t, "conversation-"+name+".txt", []byte(plainTalk.frame()))
 
 		themedTalk := newThemedScreen(size[0], size[1])
 		theWholeConversation(themedTalk)
-		testkit.Golden(t, "themed-conversation-"+name+".txt", []byte(themedTalk.View()))
+		testkit.Golden(t, "themed-conversation-"+name+".txt", []byte(themedTalk.frame()))
 	}
 }
 
@@ -243,7 +243,7 @@ func TestEveryRowOfAThemedFrameIsPaintedRightToTheEdge(t *testing.T) {
 	screen := newThemedScreen(80, 24)
 	theWholeConversation(screen)
 
-	for number, line := range strings.Split(screen.View(), "\n") {
+	for number, line := range strings.Split(screen.frame(), "\n") {
 		if width := displayWidth(plainText(line)); width != 80 {
 			t.Errorf("row %d is %d columns of paint and the terminal is 80: %q", number+1, width, plainText(line))
 		}
@@ -260,7 +260,7 @@ func TestAnEscapeCharacterFromEitherSideNeverReachesTheTerminal(t *testing.T) {
 	send(screen, contract.SocketEnvelope{Type: contract.SocketReply, Text: "a reply\x07with a bell"})
 	screen.input.setText("typed\x1b]0;a new title\x07")
 
-	frame := screen.View()
+	frame := screen.frame()
 	if strings.Contains(plainText(frame), "\x1b") || strings.Contains(frame, "\x07") {
 		t.Errorf("a control character the screen was handed reached the frame:\n%q", frame)
 	}

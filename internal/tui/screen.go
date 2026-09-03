@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/contract"
@@ -64,7 +64,11 @@ func Run(options Options) error {
 	screen := New(options)
 	defer screen.Close()
 
-	settings := []tea.ProgramOption{tea.WithAltScreen()}
+	// The frame asks for the alternate screen itself, in View below, because
+	// that is where Bubble Tea reads it from now. The size is handed over as
+	// well, because a screen drawn to something that is not a terminal has no
+	// size to ask for and would otherwise be drawn no columns wide.
+	settings := []tea.ProgramOption{tea.WithWindowSize(options.Width, options.Height)}
 	if options.Output != nil {
 		settings = append(settings, tea.WithOutput(options.Output))
 	}
@@ -249,7 +253,7 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch typed := message.(type) {
 	case tea.WindowSizeMsg:
 		screen.resize(typed.Width, typed.Height)
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return screen, screen.pressed(typed)
 	case tickMessage:
 		screen.beat(typed.at)
@@ -264,10 +268,18 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return screen, nil
 }
 
-// View draws the whole frame: the header, a rule, the transcript, a rule, the
+// View is what Bubble Tea puts on the terminal: the frame below, on the
+// alternate screen, so that the person's shell is still there when they quit.
+func (screen *Screen) View() tea.View {
+	shown := tea.NewView(screen.frame())
+	shown.AltScreen = true
+	return shown
+}
+
+// frame draws the whole frame: the header, a rule, the transcript, a rule, the
 // input box, and the status strip, in exactly the number of rows the terminal
 // has.
-func (screen *Screen) View() string {
+func (screen *Screen) frame() string {
 	input := screen.inputRows()
 	spare := screen.height - 4 - len(input)
 	for spare < 0 && len(input) > 1 {

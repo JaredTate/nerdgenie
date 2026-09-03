@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -41,7 +41,7 @@ func attachedScreen(t *testing.T) (*Screen, *recordingLink) {
 	if len(screen.blocks) != 0 {
 		t.Fatalf("the transcript holds %d blocks after attaching, and the banner shows while it is empty", len(screen.blocks))
 	}
-	if !strings.Contains(screen.View(), "the agent that does not forget") {
+	if !strings.Contains(screen.frame(), "the agent that does not forget") {
 		t.Fatal("the banner is not on the frame after attaching")
 	}
 	return screen, link
@@ -54,7 +54,7 @@ func TestTypingReachesTheInputBoxAfterTheProgramHasReportedItself(t *testing.T) 
 	if screen.input.text() != "Say hello in five words." {
 		t.Fatalf("the input box holds %q after typing, and it should hold what was typed", screen.input.text())
 	}
-	if !strings.Contains(screen.View(), "Say hello in five words.") {
+	if !strings.Contains(screen.frame(), "Say hello in five words.") {
 		t.Error("the typed words are not on the frame, and the input box draws what is typed")
 	}
 
@@ -65,7 +65,7 @@ func TestTypingReachesTheInputBoxAfterTheProgramHasReportedItself(t *testing.T) 
 	if len(link.sent) != 1 || link.sent[0].Type != contract.SocketMessage || link.sent[0].Text != "Say hello in five words." {
 		t.Fatalf("Enter sent %+v, and it sends what was typed as a message", link.sent)
 	}
-	if !strings.Contains(screen.View(), "Say hello in five words.") {
+	if !strings.Contains(screen.frame(), "Say hello in five words.") {
 		t.Error("what was sent is not in the transcript, and the person's own words go there at once")
 	}
 }

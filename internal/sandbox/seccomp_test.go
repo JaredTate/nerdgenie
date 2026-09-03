@@ -45,17 +45,67 @@ func TestTheFilterForASmallListIsLaidOutInstructionByInstruction(t *testing.T) {
 		{code: jumpIfEqual, jumpIfTrue: 1, value: 0xc000003e},
 		{code: returnAnswer, value: killAnswer},
 		{code: loadWord, value: systemCallNumberOffset},
-		{code: jumpIfEqual, jumpIfTrue: 6, value: 165},
-		{code: jumpIfEqual, jumpIfTrue: 5, value: 169},
-		{code: jumpIfEqual, jumpIfTrue: 1, value: 272},
+		{code: jumpIfEqual, jumpIfTrue: 9, value: 165},
+		{code: jumpIfEqual, jumpIfTrue: 8, value: 169},
+		{code: jumpIfEqual, jumpIfTrue: 6, value: clone3SystemCall},
+		{code: jumpIfEqual, jumpIfTrue: 2, value: 272},
+		{code: jumpIfEqual, jumpIfTrue: 1, value: cloneSystemCall},
 		{code: jumpAlways, value: 2},
 		{code: loadWord, value: firstArgumentOffset},
-		{code: jumpIfBitsSet, jumpIfTrue: 1, value: newUserNamespaceFlag},
+		{code: jumpIfBitsSet, jumpIfTrue: 2, value: newUserNamespaceFlag},
 		{code: returnAnswer, value: allowAnswer},
+		{code: returnAnswer, value: noSuchCallAnswer},
 		{code: returnAnswer, value: notPermittedAnswer},
 	}
 	if !slices.Equal(program, want) {
 		t.Errorf("the filter program is\n%+v\nwant\n%+v", program, want)
+	}
+}
+
+func TestBothWaysOfMakingANamespaceAreTestedAgainstTheSameFlag(t *testing.T) {
+	program := buildSeccompProgram(seccompArchitecture, deniedSystemCalls, unshareSystemCall)
+
+	flagTest := -1
+	for index, word := range program {
+		if word.code == jumpIfBitsSet && word.value == newUserNamespaceFlag {
+			flagTest = index
+		}
+	}
+	if flagTest < 1 || program[flagTest-1].code != loadWord || program[flagTest-1].value != firstArgumentOffset {
+		t.Fatalf("the filter tests the new-user-namespace flag at instruction %d without loading the first argument first", flagTest)
+	}
+
+	for _, call := range []struct {
+		name   string
+		number uint32
+	}{{"unshare", unshareSystemCall}, {"clone", cloneSystemCall}} {
+		landsOnTheFlagTest := false
+		for index, word := range program {
+			if word.code == jumpIfEqual && word.value == call.number && index+1+int(word.jumpIfTrue) == flagTest-1 {
+				landsOnTheFlagTest = true
+			}
+		}
+		if !landsOnTheFlagTest {
+			t.Errorf("%s does not lead to the test of the new-user-namespace flag, so it can make the namespace the filter refuses unshare", call.name)
+		}
+	}
+}
+
+func TestCloneThreeIsAnsweredAsACallThisKernelDoesNotHave(t *testing.T) {
+	program := buildSeccompProgram(seccompArchitecture, deniedSystemCalls, unshareSystemCall)
+
+	// The flags of clone3 are in a structure the filter cannot read, so the call
+	// is refused whole. It has to be refused as a call that is not there, because
+	// that is the one answer the C library falls back from to the older clone; an
+	// "operation not permitted" would stop every fork inside the fence.
+	answered := false
+	for index, word := range program {
+		if word.code == jumpIfEqual && word.value == clone3SystemCall {
+			answered = program[index+1+int(word.jumpIfTrue)].value == noSuchCallAnswer
+		}
+	}
+	if !answered {
+		t.Errorf("clone3 is not answered with %#x, the number for a call this kernel does not have", noSuchCallAnswer)
 	}
 }
 

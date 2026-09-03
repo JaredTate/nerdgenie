@@ -72,6 +72,12 @@ const (
 	// is not the one these numbers belong to, because there the numbers would
 	// deny the wrong calls.
 	killAnswer = 0x80000000
+	// noSuchCallAnswer turns the system call into a "function not implemented"
+	// error, which is what the kernel itself says about a call it does not have.
+	// It is the answer clone3 gets, because the C library asks for clone3 first
+	// and falls back to the older clone only on this one error; any other refusal
+	// would stop every fork inside the fence.
+	noSuchCallAnswer = 0x00050000 | 38
 )
 
 // newUserNamespaceFlag is the bit in the first argument of unshare that asks for
@@ -80,8 +86,18 @@ const newUserNamespaceFlag = 0x10000000
 
 // buildSeccompProgram writes out the whole filter. It checks the architecture
 // first, because a system call number means something different on another one;
-// then answers each denied number with "operation not permitted"; then lets an
-// unshare through unless it asks for a new user namespace; then allows the rest.
+// then answers each denied number with "operation not permitted"; then answers
+// clone3 as a call this kernel does not have; then lets an unshare or a clone
+// through unless it asks for a new user namespace; then allows the rest.
+//
+// The three ways to make a new user namespace are all covered, because a rule
+// the caller walks round by naming another system call is not a rule. unshare
+// and clone both carry their flags in their first argument, which the filter can
+// read, so only the flag that asks for a new user namespace is refused; clone3
+// carries its flags in a structure in the caller's own memory, which no filter
+// can read, so it is refused whole. The number of unshare is a parameter because
+// a test builds a small filter with numbers of its own; clone and clone3 come
+// from this architecture's own file.
 func buildSeccompProgram(architecture uint32, denied []systemCall, unshareNumber uint32) []filterWord {
 	program := []filterWord{
 		{code: loadWord, value: architectureOffset},
@@ -95,16 +111,19 @@ func buildSeccompProgram(architecture uint32, denied []systemCall, unshareNumber
 	// caps the deny list at about two hundred and fifty; a test holds it to the
 	// fifteen the brief names.
 	for index, call := range denied {
-		toTheRefusal := uint8(len(denied) - index + 4)
+		toTheRefusal := uint8(len(denied) - index + 7)
 		program = append(program, filterWord{code: jumpIfEqual, jumpIfTrue: toTheRefusal, value: call.number})
 	}
 
 	return append(program,
-		filterWord{code: jumpIfEqual, jumpIfTrue: 1, value: unshareNumber},
+		filterWord{code: jumpIfEqual, jumpIfTrue: 6, value: clone3SystemCall},
+		filterWord{code: jumpIfEqual, jumpIfTrue: 2, value: unshareNumber},
+		filterWord{code: jumpIfEqual, jumpIfTrue: 1, value: cloneSystemCall},
 		filterWord{code: jumpAlways, value: 2},
 		filterWord{code: loadWord, value: firstArgumentOffset},
-		filterWord{code: jumpIfBitsSet, jumpIfTrue: 1, value: newUserNamespaceFlag},
+		filterWord{code: jumpIfBitsSet, jumpIfTrue: 2, value: newUserNamespaceFlag},
 		filterWord{code: returnAnswer, value: allowAnswer},
+		filterWord{code: returnAnswer, value: noSuchCallAnswer},
 		filterWord{code: returnAnswer, value: notPermittedAnswer},
 	)
 }

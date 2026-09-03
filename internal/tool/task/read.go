@@ -160,17 +160,24 @@ func inferredOperation(asked input) string {
 }
 
 // fillIn takes the shapes that mean the same thing and makes them one: a why
-// written under "text", and a decision or a failure written as two loose fields
-// rather than as an object.
+// written under "text", a decision or a failure written as two loose fields
+// rather than as an object, and the reason or the cause written beside the
+// object rather than inside it.
 func fillIn(asked *input) {
 	if asked.Operation == OperationWhy && strings.TrimSpace(asked.Why) == "" {
 		asked.Why = asked.Text
 	}
 	if asked.Operation == OperationDecision && asked.Decision == nil {
-		asked.Decision = &writtenPair{Text: asked.Text, Reason: asked.Reason}
+		asked.Decision = &writtenPair{Text: asked.Text}
 	}
 	if asked.Operation == OperationFailure && asked.Failure == nil {
-		asked.Failure = &writtenPair{Text: asked.Text, Cause: asked.Cause}
+		asked.Failure = &writtenPair{Text: asked.Text}
+	}
+	if asked.Decision != nil {
+		asked.Decision.Reason = eitherName(asked.Decision.Reason, asked.Reason)
+	}
+	if asked.Failure != nil {
+		asked.Failure.Cause = eitherName(asked.Failure.Cause, asked.Cause)
 	}
 }
 
@@ -196,11 +203,11 @@ func needsText(text string, advice string) error {
 	return nil
 }
 
-// checkList refuses a list that is empty or longer than one task's worth.
-func checkList(held int, what string, advice string) error {
-	if held == 0 {
-		return fmt.Errorf("this call writes an empty %s, so write %s", what, advice)
-	}
+// checkList refuses a list longer than one task's worth. A list with nothing in
+// it is not refused here, because a call that carries no line at all writes no
+// section, and the refusal for that names every section the model could write
+// instead.
+func checkList(held int, what string) error {
 	if held > MaxLines {
 		return fmt.Errorf("this %s has %d lines and the cap is %d, so make a job of the work instead", what, held, MaxLines)
 	}
@@ -229,19 +236,18 @@ func checkSections(asked input) error {
 		sections++
 	}
 	for _, list := range []struct {
-		held   int
-		what   string
-		advice string
+		held int
+		what string
 	}{
-		{len(asked.DoneWhen), "done list", "one line each saying what must be true"},
-		{len(asked.StopWhen), "stop list", "one line each saying what stops the work at once"},
-		{len(asked.Plan), "plan", "one line per step, in the order they are done"},
+		{len(asked.DoneWhen), "done list"},
+		{len(asked.StopWhen), "stop list"},
+		{len(asked.Plan), "plan"},
 	} {
 		if list.held == 0 {
 			continue
 		}
 		sections++
-		if err := checkList(list.held, list.what, list.advice); err != nil {
+		if err := checkList(list.held, list.what); err != nil {
 			return err
 		}
 	}

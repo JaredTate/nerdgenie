@@ -415,6 +415,69 @@ func TestARecordWriteMayCarrySeveralSectionsAtOnce(t *testing.T) {
 	}
 }
 
+// TestACallWithNoOperationIsReadFromTheFieldsItCarries covers the rest of
+// finding 25's inference, which the forty-step fixture only half exercises: a
+// text with a cause is a failure, a line with a result is a pin, a decision
+// written beside a section is written with it rather than dropped, and a
+// decision whose reason is written outside the object still carries it.
+func TestACallWithNoOperationIsReadFromTheFieldsItCarries(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"text": "the tag list was empty", "cause": "the repository was not fetched",
+	}); err != nil {
+		t.Fatalf("a failure with no operation named was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{
+		"why":      "the release is on Friday",
+		"decision": "write the notes from the tags",
+		"reason":   "the tags are the only complete list",
+	}); err != nil {
+		t.Fatalf("a why written beside a decision was refused: %v", err)
+	}
+	held := keeper.Record()
+	if len(held.Lessons.Failures) != 1 || len(held.Lessons.Decisions) != 1 || held.Goal.Why == "" {
+		t.Fatalf("the record holds %d failures, %d decisions, and the why %q",
+			len(held.Lessons.Failures), len(held.Lessons.Decisions), held.Goal.Why)
+	}
+
+	if _, err := run(t, tool, map[string]any{"done_when": []any{"every version has a page"}}); err != nil {
+		t.Fatalf("a done list with no operation named was refused: %v", err)
+	}
+	id, err := keeper.AddResult(context.Background(), "the notes, 800 words", "the whole of the notes")
+	if err != nil {
+		t.Fatalf("cannot add a result to the record: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"line": 1, "resultId": id}); err != nil {
+		t.Fatalf("a pin with no operation named and the result under resultId was refused: %v", err)
+	}
+	if line := keeper.Record().Goal.DoneWhen[0]; !line.Done || line.ResultID != id {
+		t.Errorf("the done line reads %+v after the pin, want it marked done by %s", line, id)
+	}
+}
+
+// TestADoneLineCarriesItsProofUnderEitherName covers the two names a model
+// gives the result and the user's reply on a done line, which the loop's own
+// reader has always taken and this tool did not.
+func TestADoneLineCarriesItsProofUnderEitherName(t *testing.T) {
+	tool, keeper := newTool(t)
+	id, err := keeper.AddResult(context.Background(), "the notes, 800 words", "the whole of the notes")
+	if err != nil {
+		t.Fatalf("cannot add a result to the record: %v", err)
+	}
+
+	if _, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": []any{
+		map[string]any{"text": "every version has a page", "done": true, "resultId": id},
+		map[string]any{"text": "the user is happy with it", "done": true, "userReply": "that will do"},
+	}}); err != nil {
+		t.Fatalf("a done list whose proof is under resultId and userReply was refused: %v", err)
+	}
+	lines := keeper.Record().Goal.DoneWhen
+	if len(lines) != 2 || lines[0].ResultID != id || lines[1].UserReply != "that will do" {
+		t.Errorf("the done list came out as %+v", lines)
+	}
+}
+
 // TestTheShapesTheTaskToolRefusesAreNamed covers the edges of the lenient
 // reader: a null list is an empty one, a list that is neither a string nor a
 // list is refused with the shape named, and so is a line number that is not a
@@ -428,8 +491,13 @@ func TestTheShapesTheTaskToolRefusesAreNamed(t *testing.T) {
 		{map[string]any{"operation": "plan", "plan": nil}, "writes nothing"},
 		{map[string]any{"operation": "plan", "plan": 7}, "list"},
 		{map[string]any{"operation": "done_when", "done_when": nil}, "writes nothing"},
+		{map[string]any{"operation": "done_when", "done_when": 7}, `"text"`},
 		{map[string]any{"operation": "pin_result", "line": "one", "result": "r1"}, "whole number"},
 		{map[string]any{"operation": "pin_result", "line": nil, "result": "r1"}, "no done line"},
+		{map[string]any{"operation": "pin_result", "line": "", "result": "r1"}, "no done line"},
+		{map[string]any{"operation": "why", "why": []any{}}, "writes nothing"},
+		{map[string]any{"operation": "decision", "decision": 7}, `"decision"`},
+		{map[string]any{"operation": "failure", "failure": []any{7}}, `"failure"`},
 	} {
 		_, err := run(t, tool, broken.fields)
 		if err == nil || !strings.Contains(err.Error(), broken.named) {

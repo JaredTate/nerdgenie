@@ -166,41 +166,6 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	return running, nil
 }
 
-// budgetRounds is how many rounds this task may take: its own budget when a
-// skill set one, and the cap otherwise. Zero, which is what the caps ship
-// with, means no limit.
-func budgetRounds(task Task, caps contract.Caps) int {
-	if task.Budget.Rounds > 0 {
-		return task.Budget.Rounds
-	}
-	return caps.RoundsPerTask
-}
-
-// budgetTime is how long this task may take, the same way.
-func budgetTime(task Task, caps contract.Caps) time.Duration {
-	if task.Budget.Time > 0 {
-		return task.Budget.Time
-	}
-	return caps.TimePerTask
-}
-
-// describeBudget says in plain words what a task may spend, for the situation
-// line a continued task carries: "no budget", or the rounds, the minutes, or
-// both.
-func describeBudget(rounds int, allowed time.Duration) string {
-	parts := []string{}
-	if rounds > 0 {
-		parts = append(parts, fmt.Sprintf("%d rounds", rounds))
-	}
-	if allowed > 0 {
-		parts = append(parts, fmt.Sprintf("%d minutes", int(allowed/time.Minute)))
-	}
-	if len(parts) == 0 {
-		return "no budget"
-	}
-	return strings.Join(parts, " and ")
-}
-
 // resume picks a waiting or stopped task up again from its last checkpoint,
 // which is what the user's next message does even days later.
 //
@@ -337,12 +302,6 @@ func (running *run) playTheRounds(ctx context.Context) (Outcome, error) {
 		}
 	}
 	return running.finalReport(ctx, "the task used every round it was allowed")
-}
-
-// mayPlayRound says whether this round of the loop may run: always, on a task
-// with no round budget, and up to the budget and the spare rounds otherwise.
-func (running *run) mayPlayRound(round int) bool {
-	return running.roundsAllowed <= 0 || round < running.roundsAllowed+extraRounds
 }
 
 // oneRound is one turn of the loop: orient, call, guard, permit, run, update.

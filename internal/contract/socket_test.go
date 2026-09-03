@@ -131,3 +131,30 @@ func FuzzDecodeSocketEnvelope(f *testing.F) {
 		}
 	})
 }
+
+func TestTheStatusMessageFieldsAndStateWordsAreNamedOnce(t *testing.T) {
+	fields := []string{
+		contract.StatusFieldModel, contract.StatusFieldTask, contract.StatusFieldTaskState,
+		contract.StatusFieldTokensIn, contract.StatusFieldTokensOut, contract.StatusFieldCost,
+		contract.StatusFieldBudget, contract.StatusFieldState, contract.StatusFieldTool,
+		contract.StatusFieldToolLine, contract.StatusFieldCommands, contract.StatusFieldHealthy,
+	}
+	seen := map[string]bool{}
+	for _, field := range fields {
+		if field == "" || seen[field] {
+			t.Errorf("the status field %q is empty or repeated", field)
+		}
+		seen[field] = true
+	}
+	for _, state := range []string{contract.StateIdle, contract.StateThinking, contract.StateUsingTool, contract.StateWaitingForYou, contract.StatePaused} {
+		if !contract.KnownScreenState(state) {
+			t.Errorf("the state word %q is not known", state)
+		}
+	}
+	if contract.KnownScreenState("dancing") {
+		t.Error("an unknown state word was accepted")
+	}
+	if contract.StatusCommandSeparator != "\t" {
+		t.Errorf("the command list separates a name from its help with %q, want a tab", contract.StatusCommandSeparator)
+	}
+}

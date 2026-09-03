@@ -79,10 +79,11 @@ func TestASecondServeOnTheSameHomeRefusesToStart(t *testing.T) {
 // runningAgent is one child process of "coeus serve" with the home folder, the
 // folder it may work in, and the scripted model server behind it.
 type runningAgent struct {
-	program string
-	home    contract.Home
-	work    string
-	model   *testkit.FakeProviderServer
+	program  string
+	home     contract.Home
+	work     string
+	model    *testkit.FakeProviderServer
+	saidPath string
 }
 
 // startTheAgent starts the agent against a script that needs to know nothing
@@ -97,7 +98,8 @@ func startTheAgent(t *testing.T, script testkit.Script) runningAgent {
 // until it answers on its socket. The script is made from the folder the agent
 // may work in, so that a step can name a file inside it. Everything it made is
 // cleaned up when the test ends.
-func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.Script) runningAgent {
+func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.Script,
+	andAlso ...func(home contract.Home, work string)) runningAgent {
 	t.Helper()
 	work := aWorkFolder(t)
 	model := testkit.NewFakeProviderServer(makeScript(work))
@@ -105,6 +107,9 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 
 	program := buildTheBinary(t)
 	home := aHomePointingAt(t, model.Address()+"/v1", work)
+	for _, change := range andAlso {
+		change(home, work)
+	}
 
 	saidPath := filepath.Join(t.TempDir(), "coeus-serve.log")
 	said, err := os.Create(saidPath)
@@ -137,7 +142,7 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 	})
 
 	waitForTheSocket(t, home, saidPath)
-	return runningAgent{program: program, home: home, work: work, model: model}
+	return runningAgent{program: program, home: home, work: work, model: model, saidPath: saidPath}
 }
 
 // buildTheBinary compiles cmd/coeus into a folder of this test's own, so that
@@ -336,4 +341,20 @@ func (screen *attachedScreen) waitForStatusWhere(t *testing.T, bound time.Durati
 	return screen.waitUntil(t, bound, "a status with the fields wanted", func(envelope contract.SocketEnvelope) bool {
 		return envelope.Type == contract.SocketStatus && itIsThis(envelope.Fields)
 	})
+}
+
+// addSettingToTheHome writes one more line into the home folder's configuration,
+// for a test that needs a setting the ordinary one does not carry.
+func addSettingToTheHome(t *testing.T, home contract.Home, line string) {
+	t.Helper()
+	held, err := os.ReadFile(home.ConfigFile())
+	if err != nil {
+		t.Fatalf("reading the configuration to add a line failed: %v", err)
+	}
+	// The line goes above the first model block, because a key written after
+	// one belongs to that block rather than to the file as a whole.
+	written := strings.Replace(string(held), "\n[[models]]", "\n"+line+"\n\n[[models]]", 1)
+	if err := os.WriteFile(home.ConfigFile(), []byte(written), contract.DataFileMode); err != nil {
+		t.Fatalf("writing the configuration back failed: %v", err)
+	}
 }

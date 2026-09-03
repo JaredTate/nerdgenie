@@ -243,6 +243,7 @@ internal/command/initialize.go
 internal/command/initialize_test.go
 internal/command/initmenu_test.go
 internal/command/initmodels.go
+internal/command/initskill_test.go
 internal/command/initsteps.go
 internal/command/inittemplate.go
 internal/command/inittemplate_test.go
@@ -458,6 +459,7 @@ internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
+internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go

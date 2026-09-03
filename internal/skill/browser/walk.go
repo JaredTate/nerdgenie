@@ -67,15 +67,13 @@ func (options WalkOptions) run(ctx context.Context, arguments string, where cont
 	case "":
 		return theFourForms, nil
 	case "stop":
+		return options.stopAndSave(ctx)
 	case "record", "replay", "check":
 		if name == "" {
 			return "", fmt.Errorf("/walk %s needs the name of a walk, such as /walk %s shop-checkout", word, word)
 		}
 	default:
 		return "", fmt.Errorf("walk does not know the word %q, so use /walk record, /walk stop, /walk replay, or /walk check", word)
-	}
-	if word == "stop" {
-		return options.stopAndSave(ctx)
 	}
 	if options.Browser == nil {
 		return "", errors.New("the browser tools are switched off, so there is no browser to walk in; install Node and the browser worker bundle and start the agent again")

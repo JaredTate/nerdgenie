@@ -12,31 +12,42 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// theSkillThatReadsPrices is a skill written the way a permissions block is
-// meant to be written: one host name, and one step that visits it. Every
-// address on that host holds the word "buy", so the shipped spending rule
-// covers each of these calls and the skill's standing approval is what decides
-// them.
-func theSkillThatReadsPrices() map[string][]byte {
+// theSkillThatReadsTheNews is a skill written the way a permissions block is
+// meant to be written: one host name, and one step that visits it.
+func theSkillThatReadsTheNews() map[string][]byte {
 	return map[string][]byte{
-		skill.DescriptionFile: []byte("# read-prices\n\nReads the prices off the shop its block names.\n\n" +
-			"## Permissions\n\n- site: buy.example.com\n- daily limit: 50\n"),
-		skill.StepsFile: []byte("1. Read the prices, which is a call the spending rule puts to the user.\n" +
-			"   tool: web\n   input: {\"url\": \"https://buy.example.com/prices\"}\n"),
+		skill.DescriptionFile: []byte("# read-the-story\n\nReads today's story off the site its block names.\n\n" +
+			"## Permissions\n\n- site: news.example.com\n- daily limit: 50\n"),
+		skill.StepsFile: []byte("1. Read today's story.\n" +
+			"   tool: web\n   input: {\"url\": \"https://news.example.com/story\"}\n"),
 	}
 }
 
-// storeHoldingTheApproval saves the price-reading skill and runs it once, which
+// configurationWhereEveryFetchAsks is the shipped ask-me-first list plus one
+// rule the user wrote: show me every page this agent fetches. Every fetch in
+// the tables below therefore needs a yes, so a fetch that comes back allowed
+// came back allowed because the skill holds a standing approval covering it,
+// and a fetch that comes back asked is one no approval covers.
+func configurationWhereEveryFetchAsks() contract.Config {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWeb, Pattern: "*", Action: contract.RulingAsk},
+	}
+	return configuration
+}
+
+// storeHoldingTheApproval saves the news-reading skill and runs it once, which
 // is what puts its standing approval into the permission function, and hands
 // back the permission function to ask about other calls.
 func storeHoldingTheApproval(t *testing.T) *permission.Decider {
 	t.Helper()
-	store, _, decider := realPermissionHarness(t, testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "the prices are here"))
+	store, _, decider := realPermissionHarnessWith(t, configurationWhereEveryFetchAsks(),
+		testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "today's story"))
 	ctx := context.Background()
-	if err := store.Save(ctx, "read-prices", theSkillThatReadsPrices()); err != nil {
+	if err := store.Save(ctx, "read-the-story", theSkillThatReadsTheNews()); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
-	if _, err := store.Run(ctx, "read-prices", ""); err != nil {
+	if _, err := store.Run(ctx, "read-the-story", ""); err != nil {
 		t.Fatalf("running the skill failed: %v", err)
 	}
 	return decider
@@ -47,32 +58,32 @@ func TestAStandingApprovalOnlyCoversTheHostTheBlockNames(t *testing.T) {
 	ctx := context.Background()
 
 	for _, address := range []string{
-		"https://buy.example.com/prices",
-		"https://buy.example.com",
-		"http://buy.example.com/prices",
+		"https://news.example.com/story",
+		"https://news.example.com",
+		"http://news.example.com/story",
 	} {
 		decision, err := decider.Decide(ctx, webCallTo(address))
 		if err != nil {
 			t.Fatalf("ruling on %s failed: %v", address, err)
 		}
-		if decision.Ruling != contract.RulingAllow || !strings.Contains(decision.Reason, "read-prices") {
+		if decision.Ruling != contract.RulingAllow || !strings.Contains(decision.Reason, "read-the-story") {
 			t.Errorf("the ruling on %s is %+v, want it allowed by the skill's standing approval", address, decision)
 		}
 	}
 
 	for _, address := range []string{
-		"https://buy.example.com.evil.net/prices",
-		"https://notbuy.example.com/prices",
-		"https://buyxexample.com/prices",
-		"https://buy.example.com@evil.net/prices",
-		"https://evil.net/buy?go=https://buy.example.com/prices",
+		"https://news.example.com.evil.net/story",
+		"https://notnews.example.com/story",
+		"https://newsxexample.com/story",
+		"https://news.example.com@evil.net/story",
+		"https://evil.net/story?go=https://news.example.com/story",
 	} {
 		decision, err := decider.Decide(ctx, webCallTo(address))
 		if err != nil {
 			t.Fatalf("ruling on %s failed: %v", address, err)
 		}
 		if decision.Ruling == contract.RulingAllow {
-			t.Errorf("the call to %s was ruled allow because %q; the approval names buy.example.com and this is a different website,"+
+			t.Errorf("the call to %s was ruled allow because %q; the approval names news.example.com and this is a different website,"+
 				" so the pattern has to hold the host between the scheme in front of it and the end or the path behind it", address, decision.Reason)
 		}
 	}
@@ -113,7 +124,7 @@ func callsWearingTheWebsitesName(t *testing.T) []struct {
 } {
 	t.Helper()
 	emptying, err := json.Marshal(map[string]string{
-		"path": "/home/jared/buy.example.com/notes.md",
+		"path": "/home/jared/news.example.com/notes.md",
 		"old":  strings.Repeat("a line of the notes this change would take out\n", 200),
 		"new":  "",
 	})
@@ -126,7 +137,7 @@ func callsWearingTheWebsitesName(t *testing.T) []struct {
 	}{
 		{"a shell command whose first word is the name of the web tool", contract.PermissionRequest{
 			ToolName: contract.ToolShell,
-			Input:    []byte(`{"command": "web --url=https://buy.example.com/prices ; rm -rf /home/jared/coeus"}`),
+			Input:    []byte(`{"command": "web --url=https://news.example.com/story ; rm -rf /home/jared/coeus"}`),
 		}},
 		{"emptying a file in a folder named after the website", contract.PermissionRequest{
 			ToolName: contract.ToolEdit,

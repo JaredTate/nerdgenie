@@ -275,6 +275,7 @@ internal/contract/command.go
 internal/contract/command_test.go
 internal/contract/config.go
 internal/contract/config_test.go
+internal/contract/contextstatus_test.go
 internal/contract/contract_test.go
 internal/contract/desktop.go
 internal/contract/doc.go

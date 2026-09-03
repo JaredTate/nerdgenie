@@ -73,7 +73,7 @@ func (tool *Tool) start(ctx context.Context, asked Call) (contract.ToolOutput, e
 	}
 
 	work := tool.workOf(asked)
-	entry, err := tool.running.add(asked.Command, tool.settings.Timeout, work)
+	entry, err := tool.running.add(asked.Command, tool.settings.Timeout, tool.now(), work)
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
@@ -191,4 +191,13 @@ func timeoutOr(asked time.Duration) time.Duration {
 		return asked
 	}
 	return time.Hour
+}
+
+// now is the clock's time, or the zero time when no clock was given, which only
+// a test does.
+func (tool *Tool) now() time.Time {
+	if tool.settings.Clock == nil {
+		return time.Time{}
+	}
+	return tool.settings.Clock.Now()
 }

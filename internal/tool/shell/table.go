@@ -21,6 +21,7 @@ type entry struct {
 	id      string
 	command string
 	timeout time.Duration
+	started time.Time
 	done    chan struct{}
 	stop    context.CancelFunc
 
@@ -46,7 +47,7 @@ func newTable() *table {
 
 // add starts one command in the background and returns the entry standing for
 // it, refusing when as many commands are already running as the table holds.
-func (running *table) add(command string, timeout time.Duration, work func(ctx context.Context) (contract.SandboxResult, error)) (*entry, error) {
+func (running *table) add(command string, timeout time.Duration, now time.Time, work func(ctx context.Context) (contract.SandboxResult, error)) (*entry, error) {
 	running.guard.Lock()
 	running.forgetFinished()
 	if len(running.entries) >= MaxRunning {
@@ -59,6 +60,7 @@ func (running *table) add(command string, timeout time.Duration, work func(ctx c
 		id:      fmt.Sprintf("p%d", running.counted),
 		command: command,
 		timeout: timeoutOr(timeout),
+		started: now,
 		done:    make(chan struct{}),
 	}
 	running.order = append(running.order, started.id)
@@ -109,14 +111,17 @@ func (running *table) find(id string) (*entry, error) {
 	return found, nil
 }
 
-// poll says whether a command has finished, and what it did when it has.
-func (running *table) poll(id string) (contract.ToolOutput, error) {
+// poll says whether a command has finished, and what it did when it has. A
+// command still running is reported with how long it has run, so that two
+// polls never read the same and the loop's guard against a model asking the
+// same thing over and over is not tripped by a slow build.
+func (running *table) poll(id string, now time.Time) (contract.ToolOutput, error) {
 	found, err := running.find(id)
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if !found.hasFinished() {
-		return contract.ToolOutput{Text: fmt.Sprintf("%s is still running: %s\n", id, oneLine(found.command))}, nil
+		return contract.ToolOutput{Text: fmt.Sprintf("%s is still running after %s: %s\n", id, now.Sub(found.started).Round(time.Second), oneLine(found.command))}, nil
 	}
 	return contract.ToolOutput{Text: found.finishedText()}, nil
 }

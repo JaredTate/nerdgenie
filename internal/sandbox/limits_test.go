@@ -17,7 +17,7 @@ func TestTheBoundsOnOneSandboxedCommandAreTheNumbersPinnedHere(t *testing.T) {
 		found int
 		want  int
 	}{
-		{"how many processes one command may start", MostProcesses, 512},
+		{"how many processes one command may start", MostProcesses, 4096},
 		{"how large the fence's own temporary folder is", TemporaryFolderBytes, 100 << 20},
 	} {
 		if bound.found != bound.want {

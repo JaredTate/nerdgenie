@@ -10,12 +10,14 @@ import (
 // asked to change them; a test pins every number, so moving one is a deliberate
 // act.
 const (
-	// MostProcesses is how many processes one sandboxed command may have at
-	// once. The count is kept inside the fence's own user namespace, which
-	// starts with nothing in it, so five hundred and twelve is room for a
-	// parallel build and far short of the hundred and seventy thousand the
-	// machine itself allows, which is what a fork bomb needs.
-	MostProcesses = 512
+	// MostProcesses is how many processes and threads one sandboxed command may
+	// have at once, counted inside the fence's own user namespace, which starts
+	// with nothing in it. The kernel counts threads here as well as processes,
+	// and a test runner on a machine with thirty-two cores spawns hundreds of
+	// threads before it has run a test, so the bound is four thousand: room for
+	// that and for a parallel build, and far short of the hundred and seventy
+	// thousand the machine itself allows, which is what a fork bomb needs.
+	MostProcesses = 4096
 	// TemporaryFolderBytes is the size of the fresh /tmp the fence makes. A
 	// tmpfs asked for with no size is half the machine's memory, and a command
 	// can fill it a byte at a time, so it is always asked for with one.

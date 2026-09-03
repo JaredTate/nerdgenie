@@ -97,6 +97,7 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 	if strings.TrimSpace(report) == "" {
 		report = "The task is done. Every line of the done list points at the result that proves it."
 	}
+	report = running.withTheLesson(report)
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
@@ -135,8 +136,9 @@ func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) 
 	if err := running.review(ctx); err != nil {
 		return Outcome{}, err
 	}
-	report := fmt.Sprintf("I stopped this task, because %s.\nWhere it stands: %s\nTell me how to carry on and I will pick it up from here.",
-		line, running.whereItStands())
+	report := running.withTheLesson(fmt.Sprintf(
+		"I stopped this task, because %s.\nWhere it stands: %s\nTell me how to carry on and I will pick it up from here.",
+		line, running.whereItStands()))
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
@@ -152,7 +154,8 @@ func (running *run) failHere(ctx context.Context, reason error) (Outcome, error)
 	if err := running.review(ctx); err != nil {
 		return Outcome{}, err
 	}
-	report := fmt.Sprintf("I could not finish this task: %s\nWhere it stands: %s", reason, running.whereItStands())
+	report := running.withTheLesson(
+		fmt.Sprintf("I could not finish this task: %s\nWhere it stands: %s", reason, running.whereItStands()))
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}

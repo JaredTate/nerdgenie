@@ -38,7 +38,27 @@ func (running *run) review(ctx context.Context) error {
 	if answer == "" {
 		return nil
 	}
-	return running.theLoop.keepTheLesson(ctx, running.channel, "task "+running.keeper.ID(), answer)
+	where := running.channel
+	if running.task.Unattended {
+		// Nobody is there to answer a preview, so an unattended run keeps the
+		// lesson as a fact and does not offer it as a skill. Offering it would
+		// show a preview to nobody and wait out the whole answer deadline at the
+		// end of every scheduled job that learned a procedure.
+		where = nil
+		running.lessonUnoffered = looksLikeAProcedure(answer)
+	}
+	return running.theLoop.keepTheLesson(ctx, where, "task "+running.keeper.ID(), answer)
+}
+
+// withTheLesson adds the one line an unattended run owes the user: the review
+// found a way of doing something, and nobody was there to be asked whether to
+// keep it as a skill, so it was kept as a fact instead.
+func (running *run) withTheLesson(report string) string {
+	if !running.lessonUnoffered {
+		return report
+	}
+	return report + "\nThis run learned a way of doing this and kept it as a fact, " +
+		"because nobody was there to be asked whether to save it as a skill."
 }
 
 // worthReviewing says whether this task earned its review.

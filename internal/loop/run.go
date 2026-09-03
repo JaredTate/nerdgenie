@@ -50,6 +50,7 @@ type run struct {
 	hadCorrection    bool
 	hadFailure       bool
 	hadStop          bool
+	lessonUnoffered  bool
 	stopLine         string
 	stopNow          string
 	pinned           []workingcontext.Pin

@@ -31,7 +31,7 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, outcome Outco
 		return Task{}, false, err
 	}
 	if everyTaskIsDone(held) {
-		return Task{}, false, theLoop.closeTheJob(ctx, task.Channel, jobID, held)
+		return Task{}, false, theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
 	}
 	return theLoop.nextTaskOfAJob(ctx, task.Channel)
 }
@@ -71,13 +71,21 @@ func (theLoop *Loop) nextTaskOfAJob(ctx context.Context, where contract.Channel)
 
 // closeTheJob runs the job's own done-check and review when its last task has
 // finished, and sends the final report.
-func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jobID string, held contract.Record) error {
+func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jobID string,
+	held contract.Record, unattended bool) error {
 	report := fmt.Sprintf("Job %s is finished: every one of its %d tasks is done.", jobID, held.Header.TasksTotal)
 	if err := record.DoneCheck(held); err != nil {
 		report = fmt.Sprintf("Job %s has run every task, and its done list is not proven yet. %s", jobID, err.Error())
 	}
+	// An unattended job has nobody to show a skill offer to, so its lesson is
+	// kept as a fact and nothing is offered. The report below still goes
+	// wherever the job's reports go.
+	offerTo := where
+	if unattended {
+		offerTo = nil
+	}
 	if answer := theLoop.askTheFourQuestions(ctx, string(record.Print(held))); answer != "" {
-		if err := theLoop.keepTheLesson(ctx, where, "job "+jobID, answer); err != nil {
+		if err := theLoop.keepTheLesson(ctx, offerTo, "job "+jobID, answer); err != nil {
 			return err
 		}
 	}

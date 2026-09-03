@@ -67,7 +67,7 @@ func (generated GeneratedTest) WriteInto(root string) error {
 			return fmt.Errorf("cannot make the folder for %s: %w", where, err)
 		}
 		if err := os.WriteFile(where, one.what, contract.DataFileMode); err != nil {
-			return fmt.Errorf("cannot write %s: %w", where, err)
+			return fmt.Errorf("cannot write the generated file %s, so check that the folder can be written to: %w", where, err)
 		}
 	}
 	return nil

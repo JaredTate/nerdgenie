@@ -11,9 +11,9 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// theBudgetTaskFixture is the recorded failing task kept in testdata, and
-// theFixtureTaskID is the number it carries, which is the first number a fresh
-// log hands out.
+// The recorded failing task kept in testdata: the name of the fixture file, and
+// the number the task in it carries, which is the first number a fresh log
+// hands out.
 const (
 	theBudgetTaskFixture = "budget-task.json"
 	theFixtureTaskID     = "1"

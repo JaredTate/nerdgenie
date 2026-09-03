@@ -37,21 +37,27 @@ func doneCheckSays(held contract.Record) string {
 }
 
 // differenceBetween names the first line where the recorded record and the
-// replayed one part company, and is empty when they read the same.
+// replayed one part company, and is empty when they read the same. A record
+// with more lines than the other differs on the line where the shorter one
+// stopped, because a line that is not there reads as nothing.
 func differenceBetween(was contract.Record, now contract.Record) string {
 	recorded := strings.Split(string(record.Print(comparable(was))), "\n")
 	replayed := strings.Split(string(record.Print(comparable(now))), "\n")
-	for at := range min(len(recorded), len(replayed)) {
-		if recorded[at] != replayed[at] {
+	for at := range max(len(recorded), len(replayed)) {
+		if lineAt(recorded, at) != lineAt(replayed, at) {
 			return fmt.Sprintf("line %d of the record: the replay wrote %q and the recording has %q",
-				at+1, replayed[at], recorded[at])
+				at+1, lineAt(replayed, at), lineAt(recorded, at))
 		}
 	}
-	if len(recorded) == len(replayed) {
+	return ""
+}
+
+// lineAt is one line of a printed record, and is empty past the end of it.
+func lineAt(lines []string, at int) string {
+	if at >= len(lines) {
 		return ""
 	}
-	return fmt.Sprintf("the replay wrote a record of %d lines and the recording has %d",
-		len(replayed), len(recorded))
+	return lines[at]
 }
 
 // writeReport says in plain words what the replay found, which is what the

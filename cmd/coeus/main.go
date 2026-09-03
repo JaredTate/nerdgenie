@@ -49,6 +49,8 @@ func subcommands() []subcommand {
 		signalSubcommand,
 		backupSubcommand,
 		restoreSubcommand,
+		replaySubcommand,
+		updateSubcommand,
 		askpassSubcommand,
 		hiddenFrom(sandboxEntrySubcommand),
 	}

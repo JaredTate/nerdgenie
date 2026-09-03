@@ -84,20 +84,54 @@ func saveSignalAccount(home contract.Home, account string) error {
 }
 
 // replaceOrAddSetting puts one setting line into a configuration file, in place
-// of the line that set the same key, or at the end when nothing set it.
+// of the line that set the same key, and above the first table header when
+// nothing set it.
+//
+// The two rules are what the file's own format needs. A key written after a
+// "[[models]]" header belongs to that table rather than to the file, so a line
+// appended to the end of a configuration "coeus init" wrote becomes
+// "models.signal_account" and the whole file stops loading, which takes every
+// subcommand down with it. And the line to replace is found by its key and not
+// by its first letters, so a setting whose name merely begins the same way is
+// left alone.
 func replaceOrAddSetting(existing string, key string, line string) string {
 	lines := strings.Split(existing, "\n")
-	replaced := false
 	for at, one := range lines {
-		if strings.HasPrefix(strings.TrimSpace(one), key) {
+		if keyOfSettingLine(one) == key {
 			lines[at] = line
-			replaced = true
-			break
+			return strings.TrimLeft(strings.Join(lines, "\n"), "\n") + "\n"
 		}
 	}
-	if !replaced {
-		lines = append(lines, line)
+
+	at := firstTableHeaderIn(lines)
+	written := append([]string{}, lines[:at]...)
+	written = append(written, line, "")
+	written = append(written, lines[at:]...)
+	return strings.TrimLeft(strings.Join(written, "\n"), "\n") + "\n"
+}
+
+// keyOfSettingLine is the key one line of the configuration sets, and is empty
+// for a comment, a blank line, and a table header.
+func keyOfSettingLine(line string) string {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "[") {
+		return ""
 	}
-	joined := strings.Join(lines, "\n")
-	return strings.TrimLeft(joined, "\n") + "\n"
+	name, _, found := strings.Cut(trimmed, "=")
+	if !found {
+		return ""
+	}
+	return strings.TrimSpace(name)
+}
+
+// firstTableHeaderIn is the line the first "[table]" or "[[table]]" header is
+// on, and the end of the file when there is none. A setting written above it
+// belongs to the file rather than to a table.
+func firstTableHeaderIn(lines []string) int {
+	for at, one := range lines {
+		if strings.HasPrefix(strings.TrimSpace(one), "[") {
+			return at
+		}
+	}
+	return len(lines)
 }

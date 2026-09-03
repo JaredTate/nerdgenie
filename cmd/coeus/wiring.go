@@ -11,16 +11,13 @@ import (
 	"github.com/JaredTate/coeus/internal/browser"
 	"github.com/JaredTate/coeus/internal/channel"
 	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/command"
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
 	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/sandbox"
-	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
-	"github.com/JaredTate/coeus/internal/vault"
 )
 
 // buildingToolsTakes is how long one task's tool registry may take to build. It
@@ -94,7 +91,9 @@ func (running *agent) openTheWorkbench(ctx context.Context) error {
 	running.browser = running.openTheBrowser()
 	running.skillsBox = &skillsBox{}
 
-	if running.tools, err = tool.New(ctx, running.toolSettings("", nil)); err != nil {
+	walking, stopWalking := withinTheToolWalkLimit(ctx)
+	defer stopWalking()
+	if running.tools, err = tool.New(walking, running.toolSettings("", nil)); err != nil {
 		return err
 	}
 	store, err := skill.New(skill.Options{
@@ -248,9 +247,17 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 // toolsForTask builds the registry one task calls through, so that the task tool
 // writes that task's record and a label such as r7 reads that task's results.
 func (running *agent) toolsForTask(taskID string, records loop.TaskRecord) (contract.ToolRegistry, error) {
-	ctx, giveUp := context.WithTimeout(context.Background(), buildingToolsTakes)
+	ctx, giveUp := withinTheToolWalkLimit(context.Background())
 	defer giveUp()
 	return tool.New(ctx, running.toolSettings(taskID, records))
+}
+
+// withinTheToolWalkLimit bounds one walk of the user's tools folder. Every
+// program in it is asked what it is, under a timeout of the tool package's own,
+// so a folder of slow programs would otherwise hold startup open for as long as
+// it liked.
+func withinTheToolWalkLimit(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, buildingToolsTakes)
 }
 
 // userHomeOrEmpty is the user's own home directory, or nothing when it cannot be
@@ -357,6 +364,13 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	if !found {
 		return fmt.Errorf("the message came through the channel %q, which is not one this agent is running, so the reply would have nowhere to go", message.Channel)
 	}
+	// Nothing new is started while the guard says no, which is what the
+	// crash-loop breaker and the updater's drain marker both work through. The
+	// program said it would take no new work; it has to mean it.
+	if !running.guard.MayStartTask() {
+		return where.Send(ctx, "I am not starting new work just now: either I have crashed several times in a row and am"+
+			" waiting to settle, or an update has asked me to finish what I have and take nothing new.")
+	}
 	if !running.takeTheLoop() {
 		return running.loop.Deliver(message)
 	}
@@ -405,7 +419,7 @@ func (running *agent) loopIsBusy() bool {
 	running.busyGuard.Lock()
 	busy := running.busy
 	running.busyGuard.Unlock()
-	return busy || running.watched.calling()
+	return busy || (running.watched != nil && running.watched.calling())
 }
 
 // stopTask asks the running task to stop, which is what Escape at the terminal
@@ -415,64 +429,14 @@ func (running *agent) stopTask(_ context.Context) error {
 	return nil
 }
 
-// registerCommands fills the one registry with every slash command each package
-// owns, in the order the help listing prints them.
-func (running *agent) registerCommands() error {
-	running.registry = command.NewRegistry()
-	core := command.New(running.registry, command.Deps{
-		Settings:        running.settings,
-		Store:           running.events,
-		Jobs:            running.jobs,
-		ResumeJob:       running.jobs.Resume,
-		CurrentModel:    running.model.Name,
-		PendingPreviews: running.previews.list,
-		Answer:          running.previews.answer,
-		Channels:        func() []contract.Channel { return []contract.Channel{running.userChannel()} },
-	})
-
-	all := append(core.All(),
-		running.loop.TasksCommand(),
-		running.loop.StopCommand(),
-		running.jobs.JobsCommand(),
-		running.jobs.CronCommand(),
-		running.skills.Command(),
-		vault.NewCommand(running.secrets),
-		running.memories.Command(),
-		readyCommand())
-	if running.settings.SignalAccount != "" {
-		pairing, err := signalchannel.NewPairing(running.home, clock.System())
-		if err != nil {
-			return err
-		}
-		all = append(all, signalchannel.PairCommand(pairing))
-	}
-
-	for _, one := range all {
-		if err := running.registry.Register(one); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// readyCommand answers a health check. It is a slash command rather than
-// anything of its own, because then the answer travels the whole way a person's
-// message travels: in on the socket, through the queue, out through the router.
-func readyCommand() contract.Command {
-	return contract.Command{
-		Name: readyName,
-		Help: "Answers while the agent is running, which is how a health check knows it is up.",
-		Run: func(_ context.Context, _ string, _ contract.CommandContext) (string, error) {
-			return "ready", nil
-		},
-	}
-}
-
 // channelNamed finds the channel a message came through. The local socket is the
 // terminal channel; Signal joins this list when its daemon is wired in.
 func (running *agent) channelNamed(name string) (contract.Channel, bool) {
 	if name == contract.TerminalChannelName {
 		return running.userChannel(), true
+	}
+	if talking := running.signalChannel(); talking != nil && name == talking.Name() {
+		return talking, true
 	}
 	return nil, false
 }

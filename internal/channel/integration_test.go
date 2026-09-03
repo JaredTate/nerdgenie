@@ -124,11 +124,12 @@ func TestTheWholeSocketRunsInARealHomeFolder(t *testing.T) {
 	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 	socket, err := Listen(Options{
-		Path:    home.SocketFile(),
-		Stream:  stream,
-		Queue:   queue,
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           home.SocketFile(),
+		Stream:         stream,
+		Queue:          queue,
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("opening the socket in the home folder's run folder failed: %v", err)

@@ -49,6 +49,28 @@ func TestAFieldWrittenUnderAKeyOfADifferentCaseIsStillFound(t *testing.T) {
 	}
 }
 
+func TestAListIsReadItemByItemAndOneObjectIsAListOfOne(t *testing.T) {
+	fields := read(t, `{"steps":[{"method":"click"},{"method":"type"}]}`)
+	items, found := fields.List("steps")
+	if !found || len(items) != 2 {
+		t.Errorf("a list of two steps read as %d items, found %v", len(items), found)
+	}
+
+	fields = read(t, `{"steps":{"method":"click"}}`)
+	items, found = fields.List("steps")
+	if !found || len(items) != 1 {
+		t.Errorf("one step written on its own read as %d items, found %v", len(items), found)
+	}
+
+	fields = read(t, `{"steps":"click the button"}`)
+	if _, found := fields.List("steps"); found {
+		t.Errorf("a list written as one string was read as a list")
+	}
+	if fields.Wrong() == nil {
+		t.Errorf("a list written as one string was passed over in silence")
+	}
+}
+
 func TestAMarkAndAFlagThatAreNeitherAreRefusedByName(t *testing.T) {
 	fields := read(t, `{"element":{"role":"button"},"visible_only":"perhaps"}`)
 	if _, found := fields.Mark("element"); found {

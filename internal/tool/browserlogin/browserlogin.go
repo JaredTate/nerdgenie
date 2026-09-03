@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/browserclick"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // Credentials is where the harness gets the login to type for one site. Wave
@@ -35,16 +35,16 @@ type Settings struct {
 // for a username or a password, and there never will be.
 type input struct {
 	// Intent says what this step is for.
-	Intent string `json:"intent"`
+	Intent string
 	// Site is the name the user knows the login by, such as "x-account".
-	Site string `json:"site"`
+	Site string
 	// UsernameElement is the reference of the box the login name goes in.
-	UsernameElement string `json:"username_element"`
+	UsernameElement string
 	// PasswordElement is the reference of the box the secret goes in.
-	PasswordElement string `json:"password_element"`
+	PasswordElement string
 	// CodeElement is the reference of the box the second code goes in, and is
 	// empty when the page asked for no second code.
-	CodeElement string `json:"code_element"`
+	CodeElement string
 }
 
 // Tool is the browser login tool.
@@ -77,13 +77,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 // Run fills the login form and hands back what changed on the page, which never
 // carries anything that was typed.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent, a site, and the two boxes in it: %w", err)
-		}
-	}
-	if err := checkCall(asked); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.Browser == nil {
@@ -132,19 +127,44 @@ func (tool *Tool) fieldsFor(ctx context.Context, asked input) (contract.LoginFie
 	return fields, nil
 }
 
-// checkCall holds the rules one call must satisfy before anything is typed.
-func checkCall(asked input) error {
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return err
+// The names a model writes for the fields of one login call.
+var (
+	siteNames     = []string{"site", "account", "login", "saved_as"}
+	usernameNames = []string{"username_element", "username_ref", "user_element", "login_element", "name_element"}
+	passwordNames = []string{"password_element", "password_ref", "secret_element"}
+	codeNames     = []string{"code_element", "code_ref", "second_code_element", "otp_element"}
+)
+
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on. There is no field here for a username or a password, and there never
+// will be.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent, a site, and the two boxes")
+	if err != nil {
+		return input{}, err
+	}
+	asked := input{}
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	asked.Intent = intent
+	asked.Site, _ = fields.Text(siteNames...)
+	username, wroteUsername := fields.Text(usernameNames...)
+	password, wrotePassword := fields.Text(passwordNames...)
+	asked.UsernameElement, asked.PasswordElement = username, password
+	asked.CodeElement, _ = fields.Text(codeNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
 	}
 	if strings.TrimSpace(asked.Site) == "" {
-		return errors.New("this call names no site, so give the name the user saved the login under")
+		return input{}, fields.Missing("site", "the name the user saved the login under,")
 	}
-	if err := browserclick.CheckElement(asked.UsernameElement); err != nil {
-		return fmt.Errorf("the box for the login name is missing: %w", err)
+	if !wroteUsername || strings.TrimSpace(username) == "" {
+		return input{}, fields.Missing("username_element", "the reference of the box for the login name,")
 	}
-	if err := browserclick.CheckElement(asked.PasswordElement); err != nil {
-		return fmt.Errorf("the box the site keeps hidden is missing: %w", err)
+	if !wrotePassword || strings.TrimSpace(password) == "" {
+		return input{}, fields.Missing("password_element", "the reference of the box the site keeps hidden,")
 	}
-	return nil
+	return asked, nil
 }

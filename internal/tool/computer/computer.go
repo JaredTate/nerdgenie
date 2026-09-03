@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // The eight things one call can ask the desktop for.
@@ -42,21 +43,28 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for.
-	Intent string `json:"intent"`
-	// Action is which of the eight this call is.
-	Action string `json:"action"`
+	Intent string
+	// WroteIntent says the call said what the step is for at all.
+	WroteIntent bool
+	// Action is which of the eight this call is, folded to the one it means.
+	Action string
 	// Application is the program to open, when the action is launch.
-	Application string `json:"application"`
+	Application string
 	// Element is the number of the control to act on, from the last screenshot.
-	Element int `json:"element"`
+	Element int
 	// Text is what to type or to put on the clipboard.
-	Text string `json:"text"`
+	Text string
 	// Keys is the key combination to press, such as ctrl+s.
-	Keys string `json:"keys"`
+	Keys string
 	// To is the number of the control to drag to.
-	To int `json:"to"`
+	To int
 	// Expectation says what should happen because of the step.
-	Expectation string `json:"expectation"`
+	Expectation string
+	// WroteExpectation says the call said what should happen at all.
+	WroteExpectation bool
+	// Fields is the call as the model wrote it, for a refusal that names the
+	// field it did not write.
+	Fields *loose.Fields
 }
 
 // Tool is the desktop tool.
@@ -91,11 +99,9 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run does what the call asks the desktop for.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent, an action, and an expectation in it: %w", err)
-		}
+	asked, err := readInput(written)
+	if err != nil {
+		return contract.ToolOutput{}, err
 	}
 	if err := checkCall(asked); err != nil {
 		return contract.ToolOutput{}, err
@@ -129,7 +135,7 @@ func (tool *Tool) doIt(ctx context.Context, asked input) (contract.ToolOutput, e
 		if err != nil {
 			return contract.ToolOutput{}, fmt.Errorf("cannot read the clipboard: %w", err)
 		}
-		return contract.ToolOutput{Text: "the clipboard holds: " + held + "\n"}, nil
+		return contract.ToolOutput{Text: "the clipboard holds: " + oneLine(held) + "\n"}, nil
 	}
 }
 
@@ -154,6 +160,9 @@ func (tool *Tool) screenshot(ctx context.Context) (contract.ToolOutput, error) {
 func said(asked input, err error) (contract.ToolOutput, error) {
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot %s on the desktop: %w", asked.Action, err)
+	}
+	if strings.TrimSpace(asked.Expectation) == "" {
+		return contract.ToolOutput{Text: asked.Action + " done; take a screenshot to see what happened\n"}, nil
 	}
 	return contract.ToolOutput{Text: fmt.Sprintf("%s done; take a screenshot to see whether %s\n",
 		asked.Action, oneLine(asked.Expectation))}, nil

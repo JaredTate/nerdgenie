@@ -10,6 +10,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // Settings is what the browser open tool needs to do its work.
@@ -21,9 +22,9 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for, in the model's own words.
-	Intent string `json:"intent"`
+	Intent string
 	// URL is the address to go to.
-	URL string `json:"url"`
+	URL string
 }
 
 // Tool is the browser open tool.
@@ -52,16 +53,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run takes the browser to the address and hands back the page.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent and a url in it: %w", err)
-		}
-	}
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return contract.ToolOutput{}, err
-	}
-	if err := checkAddress(asked.URL); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.Browser == nil {
@@ -73,6 +66,33 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return contract.ToolOutput{}, fmt.Errorf("cannot open the page %s: %w", asked.URL, err)
 	}
 	return contract.ToolOutput{Text: browserread.PageText(page)}, nil
+}
+
+// addressNames are the names a model writes for the page to go to.
+var addressNames = []string{"url", "address", "link", "page", "web_address", "href"}
+
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent and a url")
+	if err != nil {
+		return input{}, err
+	}
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	address, wroteAddress := fields.Text(addressNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
+	}
+	if !wroteAddress {
+		return input{}, fields.Missing("url", "the whole web address to go to, beginning with https://,")
+	}
+	if err := checkAddress(address); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, URL: address}, nil
 }
 
 // checkAddress refuses anything that is not an ordinary web address, so that the

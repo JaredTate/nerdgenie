@@ -9,10 +9,19 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxExpectationRunes is how long the line saying what should happen may be.
 const MaxExpectationRunes = 300
+
+// ElementNames are the names a model writes for the element a step acts on, and
+// ExpectationNames the names it writes for what should happen because of it.
+// Every browser tool and the desktop tool read the two under all of them.
+var (
+	ElementNames     = []string{"element", "ref", "element_ref", "target", "on"}
+	ExpectationNames = []string{"expectation", "expected", "expect", "expected_result", "should_happen"}
+)
 
 // Settings is what the browser click tool needs to do its work.
 type Settings struct {
@@ -23,11 +32,11 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for.
-	Intent string `json:"intent"`
+	Intent string
 	// Element is the reference of the element to click, such as e12.
-	Element string `json:"element"`
+	Element string
 	// Expectation says what should happen because of the click.
-	Expectation string `json:"expectation"`
+	Expectation string
 }
 
 // Tool is the browser click tool.
@@ -57,19 +66,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run clicks the element and hands back what changed.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent, an element, and an expectation in it: %w", err)
-		}
-	}
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return contract.ToolOutput{}, err
-	}
-	if err := CheckElement(asked.Element); err != nil {
-		return contract.ToolOutput{}, err
-	}
-	if err := CheckExpectation(asked.Expectation); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.Browser == nil {
@@ -83,13 +81,57 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: browserread.ChangeText(change)}, nil
 }
 
-// CheckElement holds the rule that every action names the element it acts on,
-// by the reference the last reading of the page gave it.
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent, an element, and an expectation")
+	if err != nil {
+		return input{}, err
+	}
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	element, wroteElement := fields.Text(ElementNames...)
+	expectation, wroteExpectation := fields.Text(ExpectationNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
+	}
+	if err := NeedElement(fields, element, wroteElement); err != nil {
+		return input{}, err
+	}
+	if err := NeedExpectation(fields, expectation, wroteExpectation); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, Element: element, Expectation: expectation}, nil
+}
+
+// NeedElement holds the rule that every action names the element it acts on, by
+// the reference the last reading of the page gave it, and refuses a call that
+// names none with the field's own name.
+func NeedElement(fields *loose.Fields, element string, wrote bool) error {
+	if !wrote {
+		return fields.Missing("element", "the reference of the element to act on, such as e12,")
+	}
+	return CheckElement(element)
+}
+
+// CheckElement holds the rule that an element written as nothing at all is no
+// element.
 func CheckElement(element string) error {
 	if strings.TrimSpace(element) == "" {
 		return errors.New("this call names no element, so read the page and give the reference of the one to act on, such as e12")
 	}
 	return nil
+}
+
+// NeedExpectation holds the rule that every action says what it thinks will
+// happen, and refuses a call that says nothing with the field's own name.
+func NeedExpectation(fields *loose.Fields, expectation string, wrote bool) error {
+	if !wrote {
+		return fields.Missing("expectation", "what you expect to happen because of this step,")
+	}
+	return CheckExpectation(expectation)
 }
 
 // CheckExpectation holds the rule that every action says what it thinks will

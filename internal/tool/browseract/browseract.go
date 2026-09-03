@@ -10,6 +10,7 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/tool/browserclick"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxSteps is how many steps one batch may hold. A batch longer than this is a
@@ -40,28 +41,35 @@ type Settings struct {
 // writtenStep is one step of a batch as the model writes it.
 type writtenStep struct {
 	// Method is click, type, press, or scroll.
-	Method string `json:"method"`
+	Method string
 	// Element is the reference to act on, for a click or typing.
-	Element string `json:"element"`
+	Element string
+	// WroteElement says the step named an element at all.
+	WroteElement bool
 	// Text is what to type, when the method is type.
-	Text string `json:"text"`
+	Text string
 	// Key is the key to press, when the method is press.
-	Key string `json:"key"`
+	Key string
 	// Direction is up or down, when the method is scroll.
-	Direction string `json:"direction"`
+	Direction string
 	// Amount is how many steps to scroll, when the method is scroll; one
 	// when it is left out.
-	Amount int `json:"amount"`
+	Amount int
 	// Expectation says what should happen because of this step.
-	Expectation string `json:"expectation"`
+	Expectation string
+	// WroteExpectation says the step said what should happen at all.
+	WroteExpectation bool
+	// Fields is the step as the model wrote it, for a refusal that names the
+	// field it did not write.
+	Fields *loose.Fields
 }
 
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what the whole batch is for.
-	Intent string `json:"intent"`
+	Intent string
 	// Steps are the steps to run, in order.
-	Steps []writtenStep `json:"steps"`
+	Steps []writtenStep
 }
 
 // Tool is the browser act tool.
@@ -90,11 +98,9 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run runs the batch and hands back what each step did.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent and steps in it: %w", err)
-		}
+	asked, err := readInput(written)
+	if err != nil {
+		return contract.ToolOutput{}, err
 	}
 	steps, err := readSteps(asked)
 	if err != nil {
@@ -123,12 +129,71 @@ func batchText(changes []contract.Diff) string {
 	return written.String()
 }
 
-// readSteps reads the batch the model wrote and refuses anything the worker
-// could not run.
-func readSteps(asked input) ([]contract.ActStep, error) {
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return nil, err
+// stepNames are the names a model writes for the list of steps, and keyNames the
+// names it writes for the key one of them presses.
+var (
+	stepNames      = []string{"steps", "actions", "batch"}
+	keyNames       = []string{"key", "keys", "key_name"}
+	directionNames = []string{"direction", "way", "towards"}
+	amountNames    = []string{"amount", "steps_to_scroll", "how_far", "count"}
+	textNames      = []string{"text", "value", "content", "input", "to_type"}
+	methodNames    = []string{"method", "action", "kind", "do"}
+)
+
+// readInput reads the batch the model wrote, each step as loosely as one call to
+// a tool of its own, so that a step written in capitals or with the element
+// under another name is still the step it plainly means.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent and steps")
+	if err != nil {
+		return input{}, err
 	}
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	items, wroteSteps := fields.List(stepNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
+	}
+	if !wroteSteps {
+		return input{}, fields.Missing("steps", "the steps to run, in the order they happen,")
+	}
+	steps, err := readWrittenSteps(items)
+	if err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, Steps: steps}, nil
+}
+
+// readWrittenSteps reads every step of the batch as the model wrote it.
+func readWrittenSteps(items []json.RawMessage) ([]writtenStep, error) {
+	steps := make([]writtenStep, 0, len(items))
+	for at, item := range items {
+		fields, err := loose.Read(item, "a method, what it acts on, and an expectation")
+		if err != nil {
+			return nil, fmt.Errorf("cannot read step %d: %w", at+1, err)
+		}
+		step := writtenStep{Fields: fields}
+		method, _ := fields.Text(methodNames...)
+		step.Method = loose.Action(method)
+		step.Element, step.WroteElement = fields.Text(browserclick.ElementNames...)
+		step.Text, _ = fields.Text(textNames...)
+		step.Key, _ = fields.Text(keyNames...)
+		step.Direction, _ = fields.Text(directionNames...)
+		step.Amount, _ = fields.Number(amountNames...)
+		step.Expectation, step.WroteExpectation = fields.Text(browserclick.ExpectationNames...)
+		if err := fields.Wrong(); err != nil {
+			return nil, fmt.Errorf("cannot read step %d: %w", at+1, err)
+		}
+		steps = append(steps, step)
+	}
+	return steps, nil
+}
+
+// readSteps turns the batch the model wrote into the steps the worker runs, and
+// refuses anything the worker could not run.
+func readSteps(asked input) ([]contract.ActStep, error) {
 	if len(asked.Steps) == 0 {
 		return nil, errors.New("this batch has no steps in it, so write the steps to run in the order they happen")
 	}
@@ -143,7 +208,7 @@ func readSteps(asked input) ([]contract.ActStep, error) {
 		}
 		steps = append(steps, contract.ActStep{
 			Method: step.Method, Ref: step.Element, Text: step.Text, Key: step.Key,
-			Direction: contract.ScrollDirection(step.Direction), Amount: max(step.Amount, 1),
+			Direction: contract.ScrollDirection(loose.Action(step.Direction)), Amount: max(step.Amount, 1),
 			Expectation: step.Expectation,
 		})
 	}
@@ -154,7 +219,7 @@ func readSteps(asked input) ([]contract.ActStep, error) {
 func checkStep(at int, step writtenStep) error {
 	switch step.Method {
 	case MethodClick, MethodType:
-		if err := browserclick.CheckElement(step.Element); err != nil {
+		if err := browserclick.NeedElement(step.Fields, step.Element, step.WroteElement); err != nil {
 			return fmt.Errorf("the batch cannot run step %d: %w", at+1, err)
 		}
 	case MethodPress:
@@ -169,7 +234,7 @@ func checkStep(at int, step writtenStep) error {
 		return fmt.Errorf("step %d asks for %q, which is not a method this tool knows, so use click, type, press, or scroll",
 			at+1, step.Method)
 	}
-	if err := browserclick.CheckExpectation(step.Expectation); err != nil {
+	if err := browserclick.NeedExpectation(step.Fields, step.Expectation, step.WroteExpectation); err != nil {
 		return fmt.Errorf("the batch cannot run step %d: %w", at+1, err)
 	}
 	return nil
@@ -178,7 +243,7 @@ func checkStep(at int, step writtenStep) error {
 // checkScroll holds the rules a scroll step must satisfy: a direction the
 // browser knows and an amount inside the cap.
 func checkScroll(step writtenStep) error {
-	direction := contract.ScrollDirection(step.Direction)
+	direction := contract.ScrollDirection(loose.Action(step.Direction))
 	if direction != contract.ScrollUp && direction != contract.ScrollDown {
 		return fmt.Errorf("the scroll direction %q is not one the browser knows, so use up or down", step.Direction)
 	}

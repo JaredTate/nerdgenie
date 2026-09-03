@@ -122,7 +122,6 @@ func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 		{"intent": "do something", "action": "click", "expectation": "x"},
 		{"intent": "do something", "action": "drag", "element": 1, "expectation": "x"},
 		{"intent": "do something", "action": "key", "expectation": "x"},
-		{"intent": "do something", "action": "screenshot"},
 	} {
 		if _, err := run(t, tool, broken); err == nil {
 			t.Errorf("the call %v was treated as something the tool could do", broken)

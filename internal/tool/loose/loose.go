@@ -120,6 +120,27 @@ func (fields *Fields) Flag(names ...string) (bool, bool) {
 	return false, false
 }
 
+// List is the items the model wrote under the first of these names the call
+// carries, each still as it was written, so that the caller can read every one
+// of them loosely in its turn. One object written where a list belongs is read
+// as a list of one, because a model asked for steps often writes a single step.
+func (fields *Fields) List(names ...string) ([]json.RawMessage, bool) {
+	raw, name, found := fields.value(names)
+	if !found {
+		return nil, false
+	}
+	trimmed := strings.TrimSpace(string(raw))
+	if strings.HasPrefix(trimmed, "{") {
+		return []json.RawMessage{raw}, true
+	}
+	items := []json.RawMessage{}
+	if err := json.Unmarshal(raw, &items); err != nil {
+		fields.complain(name, "a list", raw)
+		return nil, false
+	}
+	return items, true
+}
+
 // Wrong is the refusal for every field this call wrote as something the tool
 // cannot use, named one by one, or nothing when every field read cleanly. A tool
 // asks it once, after reading its fields and before refusing a missing one.

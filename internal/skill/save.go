@@ -42,7 +42,7 @@ func (store *Store) Save(_ context.Context, name string, files map[string][]byte
 		return err
 	}
 
-	whole := completeFolder(name, files)
+	whole := completeFolder(name, files, store.changelogOnDisk(name))
 	folder, err := ParseFolder(whole)
 	if err != nil {
 		return err
@@ -73,8 +73,10 @@ func savedEntry(kept int) string {
 }
 
 // completeFolder fills in the files a skill folder cannot do without, so that a
-// caller who wrote only a SKILL.md still ends up with a folder that loads.
-func completeFolder(name string, files map[string][]byte) map[string][]byte {
+// caller who wrote only a SKILL.md still ends up with a folder that loads. The
+// changelog a save does not carry is the one already on disk, because a save
+// adds to the record of a skill rather than starting it again.
+func completeFolder(name string, files map[string][]byte, changelog []byte) map[string][]byte {
 	whole := map[string][]byte{}
 	for key, content := range files {
 		whole[key] = content
@@ -88,9 +90,22 @@ func completeFolder(name string, files map[string][]byte) map[string][]byte {
 		whole[TestFile] = RenderTestFile(name, DryRunPlan{})
 	}
 	if _, held := whole[ChangelogFile]; !held {
+		whole[ChangelogFile] = changelog
+	}
+	if len(whole[ChangelogFile]) == 0 {
 		whole[ChangelogFile] = []byte("# changelog for " + name + "\n\n")
 	}
 	return whole
+}
+
+// changelogOnDisk is what a skill's changelog already says, or nothing at all
+// when the skill is new.
+func (store *Store) changelogOnDisk(name string) []byte {
+	content, err := os.ReadFile(filepath.Join(store.home.SkillFolder(name), ChangelogFile))
+	if err != nil {
+		return nil
+	}
+	return content
 }
 
 // roomForAnotherSkill refuses a new skill once the machine holds as many as it

@@ -221,3 +221,4 @@ Two findings came with it. GPT failed the one-tool task about half the time beca
 
 The browser worker now reports a person's own clicks, typing lengths, and navigations over the protocol, and `/walk record` writes them down until `/walk stop`.
 
+A message now carries on the task that is waiting for it: an answer to the model's question resumes the same task, and "continue" picks up one stopped at its budget or by Escape, one task back per screen and never further (three functional tests and eight unit tests, `cmd/coeus/resuming.go`).

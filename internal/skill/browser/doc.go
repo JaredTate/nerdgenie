@@ -33,6 +33,11 @@
 // the store adds. A step the skill marks as one that cannot be undone is never
 // healed at all, because healing a step is taking it.
 //
+// The /walk command is the one door into this package from outside it. Its
+// three forms record the page the browser is on as the start of a walk, replay a
+// saved walk, and check one with a picture at every step. Nothing else here is
+// built by anybody but this package's own tests.
+//
 // The visual check walks an app the same way, takes a labeled screenshot at
 // every step, and judges each expected state against the page by the word rule
 // in worker/browser/PROTOCOL.md rather than by what changed, because a state is

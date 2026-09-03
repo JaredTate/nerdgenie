@@ -25,6 +25,12 @@ const (
 	// tmpfs asked for with no size is half the machine's memory, and a command
 	// can fill it a byte at a time, so it is always asked for with one.
 	TemporaryFolderBytes = 100 << 20
+	// HomeFolderBytes is the size of the fresh home directory the fence makes at
+	// the user's own home path, with the sandbox roots bound inside it. It is
+	// larger than the temporary folder because a build writes its package cache
+	// there, in ~/.npm and ~/.cache, and small enough beside this machine's
+	// memory that filling it cannot take the machine down.
+	HomeFolderBytes = 1 << 30
 )
 
 // The numbers the kernel knows these two bounds by. The process count is

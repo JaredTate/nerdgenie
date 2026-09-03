@@ -15,6 +15,10 @@ bwrap
 --tmpfs
 /tmp
 --unshare-net
+--size
+1073741824
+--tmpfs
+/home/example
 --ro-bind
 /usr
 /usr
@@ -47,7 +51,7 @@ PATH
 /usr/local/bin:/usr/bin:/bin
 --setenv
 HOME
-/home/example/work/.coeus-sandbox-home
+/home/example
 --setenv
 LANG
 en_US.UTF-8
@@ -87,6 +91,8 @@ sandbox-entry
 /tmp
 --write
 /dev
+--write
+/home/example
 --
 /bin/sh
 -c

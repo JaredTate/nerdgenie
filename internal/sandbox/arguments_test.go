@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,10 +19,11 @@ func theFixturePlan() fencePlan {
 		systemFolders:    []string{"/usr", "/bin", "/lib", "/lib64", "/etc"},
 		resolverFile:     "/run/systemd/resolve/stub-resolv.conf",
 		roots:            []string{"/home/example/work", "/home/example/projects"},
+		userHome:         "/home/example",
 		helperProgram:    "/home/example/.coeus/releases/1.0.0/coeus",
 		workingDirectory: "/home/example/work",
 		environment: allowedEnvironment(
-			"/home/example/work/"+scratchHomeName, "en_US.UTF-8", "xterm-256color",
+			"/home/example", "en_US.UTF-8", "xterm-256color",
 			[]string{"GIT_AUTHOR_NAME=Example"}),
 		program:   "/bin/sh",
 		arguments: []string{"-c", "echo hello"},
@@ -84,6 +86,43 @@ func TestTheCommandLineLeavesTheNetworkAloneWhenTheCallerAsksForIt(t *testing.T)
 
 	if slices.Contains(buildArguments(plan), "--unshare-net") {
 		t.Error("the caller asked for the network and the command line unshares it anyway, so a build that fetches its dependencies cannot run")
+	}
+}
+
+func TestTheCommandLineMakesTheHomeFreshAndEmptyBeforeItBindsAnyRootInsideIt(t *testing.T) {
+	plan := theFixturePlan()
+	arguments := buildArguments(plan)
+
+	home := -1
+	for index := 0; index+1 < len(arguments); index++ {
+		if arguments[index] == "--tmpfs" && arguments[index+1] == plan.userHome {
+			home = index
+		}
+	}
+	if home < 1 {
+		t.Fatalf("the command line never makes a fresh home directory at %q, so the user's own home is either missing or all there: %v", plan.userHome, arguments)
+	}
+	if arguments[home-2] != "--size" || arguments[home-1] != strconv.Itoa(HomeFolderBytes) {
+		t.Errorf("the home directory is asked for as %v, want a size of %d in front of it", arguments[home-2:home+2], HomeFolderBytes)
+	}
+
+	firstRoot := slices.Index(arguments, "--bind")
+	if firstRoot < home {
+		t.Errorf("the command line binds a root at instruction %d and makes the home directory at %d; bwrap carries each one out as it "+
+			"reads it, so a home made afterwards would hide every root inside it", firstRoot, home)
+	}
+}
+
+func TestTheHelperMayWriteTheHomeDirectoryTheFenceMade(t *testing.T) {
+	plan := theFixturePlan()
+	arguments := buildArguments(plan)
+
+	entry := slices.Index(arguments, EntrySubcommandName)
+	if entry < 0 {
+		t.Fatalf("the command line never starts the helper subcommand %q", EntrySubcommandName)
+	}
+	if !hasOptionFor(arguments[entry+1:], writableOption, plan.userHome) {
+		t.Errorf("the helper is not told it may write %q, and a build writes to its home in ~/.npm and ~/.cache", plan.userHome)
 	}
 }
 
@@ -192,7 +231,7 @@ func TestTheFencesOwnPathAndHomeAreTheFirstTwoEntriesAndTheOnlyOnes(t *testing.T
 		t.Fatalf("planning a command failed: %v", err)
 	}
 
-	wantPath, wantHome := "PATH="+sandboxPath, "HOME="+filepath.Join(work, scratchHomeName)
+	wantPath, wantHome := "PATH="+sandboxPath, "HOME="+filepath.Dir(work)
 	if plan.environment[0] != wantPath || plan.environment[1] != wantHome {
 		t.Fatalf("the environment starts %v, want %q then %q", plan.environment[:2], wantPath, wantHome)
 	}

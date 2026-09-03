@@ -35,6 +35,20 @@ func (harness *socketHarness) showPreview(ctx context.Context) chan previewResul
 	return answers
 }
 
+// waitForPreviewAnswer reads one preview's answer and fails the test rather
+// than hanging when none arrives, because a wait with no timeout in a test is
+// a test that never says what went wrong.
+func waitForPreviewAnswer(t *testing.T, answers chan previewResult) previewResult {
+	t.Helper()
+	select {
+	case got := <-answers:
+		return got
+	case <-time.After(aReadWait):
+		t.Fatalf("the preview was not answered within %s", aReadWait)
+		return previewResult{}
+	}
+}
+
 // waitForSleepers waits until the wanted number of callers are waiting on the
 // fake clock, so that a test can move the clock knowing the waiter is there.
 func (harness *socketHarness) waitForSleepers(t *testing.T, wanted int) {
@@ -155,6 +169,31 @@ func TestTheReasonTypedWithARefusalReachesTheCallerAndAnApprovalCarriesNone(t *t
 	}
 }
 
+func TestCancellingAPreviewRefusesItAtOnce(t *testing.T) {
+	harness := newSocketHarness(t)
+	client := harness.attach(t)
+	answers := harness.showPreview(context.Background())
+
+	shown := client.next()
+	if shown.Type != contract.SocketPreview {
+		t.Fatalf("the screen saw a %s, want a preview", shown.Type)
+	}
+	// The clock is never moved on, so an answer arriving at all is proof that
+	// the preview was refused at once rather than waiting the deadline out.
+	client.send(contract.SocketEnvelope{Type: contract.SocketCancel, ID: shown.ID})
+
+	got := waitForPreviewAnswer(t, answers)
+	if got.err != nil {
+		t.Fatalf("a cancelled preview came back with an error rather than a no: %v", got.err)
+	}
+	if got.answer != contract.AnswerReject {
+		t.Errorf("a cancelled preview came back as %q, want %q, because nothing happens without a yes", got.answer, contract.AnswerReject)
+	}
+	if !strings.Contains(got.reason, "cancel") {
+		t.Errorf("a cancelled preview came back with the reason %q, and the model has to be told it was cancelled", got.reason)
+	}
+}
+
 func TestAPreviewNobodyAnswersInTimeIsRefused(t *testing.T) {
 	harness := newSocketHarness(t)
 	client := harness.attach(t)
@@ -256,7 +295,7 @@ func TestAnAnswerToANumberNothingIsWaitingOnIsRefusedAndTheClientStays(t *testin
 	client := harness.attach(t)
 
 	for _, answer := range []contract.SocketMessageType{
-		contract.SocketApprove, contract.SocketDeny, contract.SocketSecret,
+		contract.SocketApprove, contract.SocketDeny, contract.SocketSecret, contract.SocketCancel,
 	} {
 		client.send(contract.SocketEnvelope{Type: answer, ID: "404"})
 		got := client.next()

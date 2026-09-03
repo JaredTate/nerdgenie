@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One clean round of all four harnesses on GPT-5.6 Sol at thinking medium, on
 # the user's ChatGPT/Codex subscription, no API key, each harness driving the
-# model with its own loop: Coeus through `codex exec` as a bare model, opencode
+# model with its own loop: Coeus through its "codex" provider, which borrows
+# the codex program's login and drives the model itself, opencode
 # through its ChatGPT login, Hermes and OpenClaw through the codex login, OpenClaw pinned to its own
 # loop rather than its codex runtime. One
 # at a time, every run from a brand-new empty work folder and a brand-new home,
@@ -29,23 +30,21 @@ fresh_work() { # $1 = run folder
 run_coeus() {
   R="$BASE/coeus-$1"; fresh_work "$R"; H="$R/home"
   COEUS_HOME="$H" bin/coeus init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
+  # The model is reached through Coeus's "codex" provider: a fresh, uncommented
+  # [[models]] block named "gpt" is appended, whatever the init template wrote
+  # (its own codex example is commented out), and made the default.
   python3 - "$H/config.toml" "$R/work" "$MODEL" <<'PY'
 import sys, re
 cfg, work, model = sys.argv[1], sys.argv[2], sys.argv[3]; t = open(cfg).read()
-t = re.sub(r'^default_model = .*$', 'default_model = "codex"', t, count=1, flags=re.M)
+t = re.sub(r'^default_model = .*$', 'default_model = "gpt"', t, count=1, flags=re.M)
 t = re.sub(r'^fallback_chain = .*$', 'fallback_chain = []', t, count=1, flags=re.M)
 t = re.sub(r'^sandbox_roots = .*$', 'sandbox_roots = ["%s"]' % work, t, count=1, flags=re.M)
-parts = t.split('[[models]]')
-for i, part in enumerate(parts):
-    if 'program = "codex"' in part:
-        part = re.sub(r'^model_name = .*$', 'model_name = "%s"' % model, part, count=1, flags=re.M)
-        part = re.sub(r'^think = .*$', 'think = "medium"', part, count=1, flags=re.M)
-        parts[i] = part
-t = '[[models]]'.join(parts)
+t += '\n[[models]]\nname = "gpt"\nprovider = "codex"\nmodel_name = "%s"\ncontext_length = 400000\nthink = "medium"\n' % model
 t += '\n[caps]\nrounds_per_task = 1000000\ntime_per_task = "1000h"\ntime_per_turn = "100h"\ntime_per_tool = "100h"\n'
 open(cfg, 'w').write(t)
 PY
-  grep -q "model_name = \"$MODEL\"" "$H/config.toml" && grep -q 'think = "medium"' "$H/config.toml" || { echo "config edit failed"; return 1; }
+  grep -q '^default_model = "gpt"$' "$H/config.toml" && grep -q '^name = "gpt"$' "$H/config.toml" && grep -q '^provider = "codex"$' "$H/config.toml" \
+    && grep -q "^model_name = \"$MODEL\"$" "$H/config.toml" && grep -q '^think = "medium"$' "$H/config.toml" || { echo "config edit failed"; return 1; }
   COEUS_HOME="$H" bin/coeus doctor > "$R/doctor.txt" 2>&1 || { cat "$R/doctor.txt"; return 1; }
   s=$(date +%s)
   bash scripts/bench/run-coeus.sh "$REPO/bin/coeus" "$H" "$R/work/task.txt" 100000 > "$R/run.log" 2>&1 < /dev/null

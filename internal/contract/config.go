@@ -17,15 +17,17 @@ const LocalModelAlias = "local"
 type ModelAlias struct {
 	// Name is what the user and the record call it, such as "local".
 	Name string `toml:"name"`
-	// Provider is how the model is reached: one of the two wire protocols, or
-	// the vendor's own command-line program.
+	// Provider is how the model is reached: one of the two wire protocols, the
+	// vendor's own command-line program, or OpenAI's Codex backend through that
+	// program's login.
 	Provider ProviderKind `toml:"provider"`
 	// BaseAddress is the address of the server, for an OpenAI-compatible
 	// provider. It is empty for the Anthropic provider, which has one address,
-	// and for a command-line provider, which has none.
+	// for a command-line provider, which has none, and for the codex provider,
+	// whose backend is fixed.
 	BaseAddress string `toml:"base_address"`
 	// Program is the command-line program to run, for a "cli" provider: either
-	// ClaudeProgram or CodexProgram. It is empty for the other two.
+	// ClaudeProgram or CodexProgram. It is empty for the other three.
 	Program string `toml:"program"`
 	// ModelName is what the server or the program calls the model, such as
 	// "local-coder".

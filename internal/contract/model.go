@@ -8,8 +8,9 @@ import (
 	"time"
 )
 
-// ProviderKind names how a model is reached. There are three: two wire
-// protocols, and the vendor's own command-line program.
+// ProviderKind names how a model is reached. There are four: two wire
+// protocols, the vendor's own command-line program, and OpenAI's Codex backend
+// reached with that program's login.
 type ProviderKind string
 
 const (
@@ -24,6 +25,12 @@ const (
 	// machine with no API keys. The program returns text and nothing else, so a
 	// model reached this way writes its tool calls in the text form below.
 	ProviderCommandLine ProviderKind = "cli"
+	// ProviderCodex is OpenAI's Codex backend on the user's ChatGPT
+	// subscription, reached with the login the codex program keeps on this
+	// machine, so there is no API key. Unlike ProviderCommandLine, only the
+	// login is borrowed: Coeus's own loop drives the model, the backend is
+	// fixed, so an alias names neither an address nor a program.
+	ProviderCodex ProviderKind = "codex"
 )
 
 // The two command-line programs a "cli" alias may name. Each one is the vendor's
@@ -36,15 +43,15 @@ const (
 	CodexProgram = "codex"
 )
 
-// ProviderKinds returns the three ways a model can be reached.
+// ProviderKinds returns the four ways a model can be reached.
 func ProviderKinds() []ProviderKind {
-	return []ProviderKind{ProviderAnthropic, ProviderOpenAI, ProviderCommandLine}
+	return []ProviderKind{ProviderAnthropic, ProviderOpenAI, ProviderCommandLine, ProviderCodex}
 }
 
-// KnownProviderKind says whether the kind is one of the three.
+// KnownProviderKind says whether the kind is one of the four.
 func KnownProviderKind(kind ProviderKind) bool {
 	switch kind {
-	case ProviderAnthropic, ProviderOpenAI, ProviderCommandLine:
+	case ProviderAnthropic, ProviderOpenAI, ProviderCommandLine, ProviderCodex:
 		return true
 	default:
 		return false

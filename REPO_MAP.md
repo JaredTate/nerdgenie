@@ -898,6 +898,7 @@ internal/tool/shell/escalate.go
 internal/tool/shell/escalate_test.go
 internal/tool/shell/fuzz_test.go
 internal/tool/shell/integration_test.go
+internal/tool/shell/internals_test.go
 internal/tool/shell/shell.go
 internal/tool/shell/shell_test.go
 internal/tool/shell/start.go
@@ -911,8 +912,11 @@ internal/tool/skill/skill_test.go
 internal/tool/skill/testdata/a_viewed_skill.txt
 internal/tool/spill.go
 internal/tool/spill_test.go
+internal/tool/task/bounds_test.go
 internal/tool/task/doc.go
+internal/tool/task/fortystep_test.go
 internal/tool/task/read.go
+internal/tool/task/shapes.go
 internal/tool/task/task.go
 internal/tool/task/task_test.go
 internal/tool/task/testdata/a_pinned_result.txt

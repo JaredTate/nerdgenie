@@ -3,6 +3,7 @@ package loop
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -142,7 +143,7 @@ func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (str
 // one.
 func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, call contract.ToolCall) (contract.ToolOutput, error) {
 	limit := running.theLoop.options.Caps.TimePerTool
-	working, giveUp := context.WithCancel(ctx)
+	working, giveUp := running.timeToRunOneTool(ctx)
 	defer giveUp()
 
 	type answer struct {
@@ -163,11 +164,48 @@ func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, c
 
 	select {
 	case got := <-answers:
+		if got.err != nil && theDeadlineHasPassed(working) {
+			return contract.ToolOutput{}, theDeadlineStoppedIt(call)
+		}
 		return got.output, got.err
 	case <-tooLong:
 		return contract.ToolOutput{}, fmt.Errorf("the tool %s ran for %s and its time was up, so run less at once or raise the limit",
 			call.Name, limit)
+	case <-working.Done():
+		if theDeadlineHasPassed(working) {
+			return contract.ToolOutput{}, theDeadlineStoppedIt(call)
+		}
+		return contract.ToolOutput{}, fmt.Errorf("the tool %s was stopped before it came back, so ask for it again when the task carries on",
+			call.Name)
 	}
+}
+
+// timeToRunOneTool is the context one tool call runs under: the task's own, with
+// the deadline the reliability guard gives this call on top of it when there is
+// one. Both are let go when the call is over.
+func (running *run) timeToRunOneTool(ctx context.Context) (context.Context, context.CancelFunc) {
+	if running.theLoop.options.ToolDeadline == nil {
+		return context.WithCancel(ctx)
+	}
+	byThen, deadlineDone := running.theLoop.options.ToolDeadline(ctx)
+	working, giveUp := context.WithCancel(byThen)
+	return working, func() {
+		giveUp()
+		deadlineDone()
+	}
+}
+
+// theDeadlineHasPassed says whether this call was stopped because the deadline
+// it was given ran out, rather than because the task itself was stopped.
+func theDeadlineHasPassed(working context.Context) bool {
+	return errors.Is(working.Err(), context.DeadlineExceeded)
+}
+
+// theDeadlineStoppedIt is what the model is told about a call the deadline cut
+// short, in words it can act on rather than the Go error.
+func theDeadlineStoppedIt(call contract.ToolCall) error {
+	return fmt.Errorf("the tool %s did not finish before the deadline this call was given, so ask for less at once or try it again",
+		call.Name)
 }
 
 // applyRecordWrite is the model's half of the record. The task tool of wave 2

@@ -214,8 +214,10 @@ internal/permission/askmefirst_test.go
 internal/permission/decider.go
 internal/permission/decider_test.go
 internal/permission/doc.go
+internal/permission/evasion_test.go
 internal/permission/fuzz_test.go
 internal/permission/integration_test.go
+internal/permission/nestedshell.go
 internal/permission/preview.go
 internal/permission/preview_test.go
 internal/permission/reduce.go

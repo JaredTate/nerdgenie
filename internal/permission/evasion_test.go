@@ -52,6 +52,9 @@ var nestedShells = []struct {
 	{`/bin/bash -c "git reset --hard origin/main"`, "/bin/bash -c git reset --hard"},
 	{`zsh -c 'echo hello | rm -r /tmp/x'`, "zsh -c echo | rm -r"},
 	{`dash -c 'ls -la'`, "dash -c ls -la"},
+	{`bash --norc -c 'rm -rf /tmp/x'`, "bash -c rm -rf"},
+	{`sh - -c 'rm -rf /tmp/x'`, "sh -c rm -rf"},
+	{`sh -c ""`, "sh -c"},
 	{"sh -c", "sh -c"},
 	{"sh script.sh", "sh"},
 }

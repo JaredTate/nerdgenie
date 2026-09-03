@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Compose a post</title>
+  </head>
+  <body>
+    <h1>Compose a post</h1>
+    <form aria-label="Compose a post" method="post" action="/compose">
+      <p>
+        <label for="message">Post text</label>
+        <textarea id="message" name="message" rows="3" cols="40"></textarea>
+      </p>
+      <p><button type="submit">Post</button></p>
+    </form>
+    <h2>Posted so far</h2>
+    <ul>
+      {{range .Posts}}<li><article>{{.}}</article></li>{{end}}
+    </ul>
+  </body>
+</html>

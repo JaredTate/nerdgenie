@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -147,6 +148,28 @@ func TestTheRestartGuardReadsAProgramByItsNameHoweverTheCommandIsWritten(t *test
 		if err := checkItCannotRestartTheAgent(allowed); err != nil {
 			t.Errorf("ordinary work was refused as work that restarts the agent: %q: %v", allowed, err)
 		}
+	}
+}
+
+func TestATitleAndANotepadAreShortenedOnLettersAndNotOnBytes(t *testing.T) {
+	accented := strings.Repeat("é", titleWidth-20)
+
+	shortened := cutTo(accented, titleWidth)
+
+	if !utf8.ValidString(shortened) {
+		t.Errorf("a title of %d accented letters came back as %d bytes that are not text at all", titleWidth-20, len(shortened))
+	}
+	if letters := utf8.RuneCountInString(shortened); letters > titleWidth {
+		t.Errorf("a title was shortened to %d letters, and the column holds %d", letters, titleWidth)
+	}
+
+	kept := appendToNotepad("", strings.Repeat("é", NotepadBytes))
+
+	if !utf8.ValidString(kept) {
+		t.Error("a note longer than the whole notepad was cut in the middle of a letter")
+	}
+	if len(kept) > NotepadBytes {
+		t.Errorf("one very long note left %d bytes on the notepad, and the cap is %d", len(kept), NotepadBytes)
 	}
 }
 

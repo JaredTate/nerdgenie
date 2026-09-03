@@ -84,8 +84,8 @@ func TestSavingASkillWritesItsFolder(t *testing.T) {
 		"action": "save",
 		"name":   "water-the-plants",
 		"files": map[string]any{
-			"SKILL.md":  "# water-the-plants\n",
-			"STEPS.md":  "Open the tap.\n",
+			"SKILL.md":   "# water-the-plants\n",
+			"STEPS.md":   "Open the tap.\n",
 			"CHANGES.md": "First written today.\n",
 		},
 	}); err != nil {

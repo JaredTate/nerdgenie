@@ -187,7 +187,7 @@ func (memory *Memory) getNote(ctx context.Context, id string, reference string) 
 	if err != nil {
 		return contract.Fact{}, err
 	}
-	fact.Text = cutToRunes(string(held), MaxNoteBytes)
+	fact.Text = cutToBytes(string(held), MaxNoteBytes, "the whole of it is in the file itself")
 	return fact, nil
 }
 

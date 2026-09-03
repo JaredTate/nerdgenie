@@ -34,6 +34,9 @@ type storedFact struct {
 // and the file the fact belongs in. It refuses the whole batch rather than part
 // of it, so that a save either happens or does not.
 func (memory *Memory) prepareFacts(ctx context.Context, transaction runner, facts []contract.Fact) ([]storedFact, error) {
+	if len(facts) > maxFactsPerBatch {
+		return nil, fmt.Errorf("this save carries %d facts and memory writes at most %d at a time, so write them in smaller batches", len(facts), maxFactsPerBatch)
+	}
 	prepared := make([]storedFact, 0, len(facts))
 	seen := map[string]bool{}
 	for _, fact := range facts {

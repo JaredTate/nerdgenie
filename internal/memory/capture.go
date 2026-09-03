@@ -153,7 +153,7 @@ func appendCapturedFacts(facts []contract.Fact, taskID string, events []contract
 		}
 		facts = append(facts, contract.Fact{
 			ID:       capturedFactID(taskID, event.Sequence, aboutTheUser),
-			Text:     cutToBytes(text, MaxFactTextBytes),
+			Text:     cutToBytes(text, MaxFactTextBytes, "the whole of it is in the event log"),
 			Source:   source,
 			Recorded: event.Occurred,
 		})
@@ -289,13 +289,13 @@ func (memory *Memory) factsNotSavedYet(ctx context.Context, facts []contract.Fac
 	return fresh, nil
 }
 
-// cutToBytes shortens text to a number of bytes on a rune boundary, saying that
-// the rest is in the event log, because the log keeps every message in full.
-func cutToBytes(text string, limit int) string {
+// cutToBytes shortens text to a number of bytes on a rune boundary, saying at
+// the end of it where the whole of it can still be read.
+func cutToBytes(text string, limit int, whereTheRestIs string) string {
 	if len(text) <= limit {
 		return text
 	}
-	note := " (cut here; the whole of it is in the event log)"
+	note := " (cut here; " + whereTheRestIs + ")"
 	room := limit - len(note)
 	if room < 0 {
 		room = 0

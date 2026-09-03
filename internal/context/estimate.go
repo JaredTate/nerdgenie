@@ -16,6 +16,13 @@ import "github.com/JaredTate/coeus/internal/contract"
 // per cent high. High is the safe side: an estimate that ran low would build a
 // prompt the model refuses, and one that runs high only leaves a little of the
 // window unused. The live test measures it again on every wave gate.
+//
+// The measurement is taken against a model reached over a wire protocol,
+// because that is the only kind where what the harness sends is all the model
+// reads. A model reached by running the vendor's own command-line program on a
+// subscription reads the program's own scaffolding as well: on the same prompt
+// the claude program reported 10,517 tokens and the codex program 15,626, and
+// neither number is this package's to size a window by.
 const (
 	// TokensPerHundredCharacters is the ratio the text itself is counted at.
 	// Three characters to a token is denser than the four a token of plain

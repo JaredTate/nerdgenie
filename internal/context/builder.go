@@ -46,6 +46,7 @@ const (
 	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.**"
 	recordResultsHeading    = "**The task record, part three: every result so far.**"
 	recordHeaderHeading     = "**The task record, last of all: where the work stands.**"
+	whatIsKnownHeading      = "**What you know, from USER.md and MEMORY.md.** These are yours to add to with the `memory` tool."
 	pinnedHeading           = "**Pinned evidence, kept word for word.** It stays in front of you until it is unpinned."
 	memoryHintHeading       = "**Memory hint.** Up to three lines from a search of what you know."
 )
@@ -146,7 +147,11 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	if err := ctx.Err(); err != nil {
 		return contract.Request{}, fmt.Errorf("the turn was given up on before its working context was built: %w", err)
 	}
-	persona, err := readPersona(builder.home, builder.memoryCaps)
+	persona, err := readPersona(builder.home)
+	if err != nil {
+		return contract.Request{}, err
+	}
+	known, err := readWhatIsKnown(builder.home, builder.memoryCaps)
 	if err != nil {
 		return contract.Request{}, err
 	}
@@ -158,7 +163,7 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 		Tools:           input.Tools,
 		MaxOutputTokens: builder.maxOutputTokens,
 	}
-	messages, err := builder.messagesFor(input, parts, request)
+	messages, err := builder.messagesFor(input, parts, known, request)
 	if err != nil {
 		return contract.Request{}, err
 	}

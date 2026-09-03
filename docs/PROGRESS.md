@@ -177,3 +177,10 @@ Twenty-three findings in `docs/SECURITY_REVIEW.md`, with a failing test for each
 ### Live results
 
 Not yet run for waves 2 to 6 beyond the provider contract test and the context builder's live test, both green on all three models at the wave 1 gate. The whole `make live` runs at the wave 6 gate.
+
+### The fix waves after the review, 2026-09-03
+
+All twenty-three security findings are fixed and merged, one worker per package, each with the review's failing test first: the skill permission slip, the permission ordering and the shell disguises, the sandbox (DNS inside the fence, the network off by default with one setting the shell tool turns on, process and memory limits, the user-namespace filter, the fence's home as the person's real home path), the web guard's ranges and redirects, the browser profile outside the fence, results marked as data in the working context, Signal's redaction and pairing, and the askpass helper under sudo. The fresh-eyes review of the wave 4 to 6 packages (brief 6.7, eighty-nine findings) followed: the loop, the file tools, the shell and task tools, the desktop, the browser skill, reliability, jobs, the updater and replay, the context builder and the record, and the wiring each had a worker; all but the loop, the file tools, and the wiring have merged as this is written. Two contract changes were made for them, tests first: every desktop action carries what the model expected, and the skill store is told who saved a skill.
+
+Two numbers from the context builder after the layout change: consecutive rounds of the forty-step fixture share 84, 86, and 87 percent of the prompt at rounds 10, 20, and 30, where the reviewer had measured 48, 38, and 33; a memory save mid-task now leaves 90 percent in place instead of 21.
+

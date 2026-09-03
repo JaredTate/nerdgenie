@@ -459,6 +459,7 @@ internal/loop/realtools_test.go
 internal/loop/recordline.go
 internal/loop/recordshapes_test.go
 internal/loop/recordwrite.go
+internal/loop/recordwrite_test.go
 internal/loop/refused_test.go
 internal/loop/resume_test.go
 internal/loop/review.go
@@ -469,6 +470,7 @@ internal/loop/stopcancels_test.go
 internal/loop/stopline_test.go
 internal/loop/summary_test.go
 internal/loop/taskcall.go
+internal/loop/taskcall_test.go
 internal/loop/tooldeadline_test.go
 internal/loop/toolline.go
 internal/loop/toolline_test.go

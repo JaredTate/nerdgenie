@@ -1,0 +1,23 @@
+{
+  "name": "coeus-desktop-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Coeus desktop worker: it drives one granted application on this machine's screen and speaks PROTOCOL.md over its standard input and output.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.test.json",
+    "test": "npm run build && npm run typecheck && vitest run --coverage"
+  },
+  "dependencies": {
+    "@trycua/cua-driver": "0.23.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "@vitest/coverage-v8": "4.1.11",
+    "fast-check": "4.9.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

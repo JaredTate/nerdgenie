@@ -51,3 +51,17 @@ build we tested.
 | `fast-check` | 4.9.0 | The property tests: any bytes on standard input, any string as an expectation, any sequence of refs |
 | `@vitest/coverage-v8` | 4.1.11 | Approved by the orchestrator. Vitest cannot measure coverage without a coverage provider, and brief 5.1 requires `npm test` to fail under seventy percent. Test-time only; nothing it does reaches `dist/` |
 | `@types/node` | 24.10.1 | Approved by the orchestrator. TypeScript cannot compile a Node program without Node's type declarations; `process`, `Buffer`, and `setTimeout` have no types otherwise. Types only, erased at build time; nothing it does reaches `dist/` |
+
+### `worker/desktop`, built
+
+Pinned to exact versions for the same reason, and
+`worker/desktop/package-lock.json` pins what these libraries depend on in turn.
+
+| Library | Version | Why the standard library will not do |
+|---|---|---|
+| `@trycua/cua-driver` | 0.23.2 | Driving the machine's own screen, mouse, and keyboard means talking to the display server and reading the accessibility tree the desktop publishes for screen readers, and Node has none of that; this is the driver the brief names, and it is loaded only when a desktop is really going to be driven |
+| `typescript` | 5.9.3 | The worker is written in TypeScript and this compiles it, with every strict setting on |
+| `vitest` | 4.1.11 | The test runner for the unit, property, and fixture-window tests |
+| `@vitest/coverage-v8` | 4.1.11 | Measures the line coverage the seventy percent floor in `docs/WORK_PLAN.md` Part 1 is checked against, and fails `npm test` under it |
+| `fast-check` | 4.9.0 | The property tests throw any expectation, any key combination, any accessibility tree, and any bytes on standard input at the worker, and Vitest has no property testing of its own |
+| `@types/node` | 26.4.1 | The worker reads standard input, writes standard output, and starts processes, and those types are not in TypeScript itself |

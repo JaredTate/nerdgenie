@@ -1,0 +1,25 @@
+// Package desktop is the Go side of the desktop worker: it drives one granted
+// application on this machine's screen through worker/desktop.
+//
+// The desktop is the last resort. If the browser can do the job, the browser
+// does it, which is what design section 10 says. This package starts the
+// TypeScript worker as a child process the first time the desktop is used,
+// keeps that one worker alive, and starts a new one by killing the old one's
+// exact process identifier when it dies or says it cannot drive the machine.
+// It speaks the JSON-RPC protocol in worker/desktop/PROTOCOL.md over the
+// worker's standard input and output, one request at a time with a deadline on
+// each, because a desktop has one mouse.
+//
+// Two rules from the design are enforced here rather than in the worker. The
+// user grants an application once per session, through a preview on the
+// channel, and nothing at all can be done until one is granted. Every action
+// inside it that cannot be undone, which is typing into a field, a drag, and a
+// paste, goes through contract.Permission and gets its own preview of exactly
+// what is about to happen. A click and a key press do not, because they can be
+// undone.
+//
+// Every action states what the model expected to happen and the worker checks
+// it, which is the act-and-assert rule the browser uses. An expectation that
+// was not met comes back as an error carrying what the worker saw instead, so
+// that the model is told rather than left to guess.
+package desktop

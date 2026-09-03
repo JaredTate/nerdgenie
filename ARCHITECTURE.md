@@ -56,12 +56,12 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/skill` | The skill folder format, loading, learning, replay | 4 |
 | `internal/browser` | The Go side of the browser: worker lifecycle, login, handoff | 5 |
 | `internal/job` | Job records, the task list, and the scheduler | 4 |
-| `internal/desktop` | The Go side of the desktop worker | 6 |
+| `internal/desktop` | The Go side of the desktop worker | 6, built |
 | `internal/update` | Update, rollback, migrations | 6 |
 | `internal/replay` | Re-run any logged task as a test | 6 |
 | `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, 3 onward |
 | `worker/browser` | The TypeScript browser worker | 5, built early |
-| `worker/desktop` | The TypeScript desktop worker | 6 |
+| `worker/desktop` | The TypeScript desktop worker | 6, built |
 
 ## The contracts (built, wave 0)
 
@@ -328,6 +328,24 @@ Its dependencies are in `docs/DEPENDENCIES.md`. `npm test` builds and then runs
 unit tests, property tests with `fast-check`, and tests that drive a real Chrome
 against recorded fixture pages served on a loopback port, and fails under seventy
 percent coverage.
+
+## The desktop: `worker/desktop` and `internal/desktop` (built, wave 6, brief 6.1)
+
+The desktop is the last resort, and design section 10 says so: if the browser can do the job, the browser does it. It is two halves written against one document, `worker/desktop/PROTOCOL.md`, which is JSON-RPC 2.0 over standard input and output, one object per line, in the same shape as the browser's.
+
+**The protocol.** Nine methods: `launch`, `screenshot`, `click`, `type`, `press`, `drag`, `clipboardGet`, `clipboardSet`, and `health`. A **mark** is one numbered control, `{number, role, name}`, which is `contract.DesktopMark` exactly. A **screenshot** is the granted window's picture as base64 text with its marks, the application, the title, and how many controls the cap left out. Every action returns a **diff**: what the title did, which controls are new, how many went away, the controls now, whether what the model expected actually happened, one sentence saying what happened instead, and whether the window settled. The error table is the browser's, with the desktop's own five: no such mark, an unreadable window, no application open, a driver that is not there, and a launch that failed; the first four codes decide whether the Go side restarts the worker or simply tells the model.
+
+**The worker** is TypeScript on Node over `@trycua/cua-driver`, and it acts only inside the one application `launch` granted. It never photographs the whole desktop and never reads another window's accessibility tree, so no window the user opened can reach the model's context. It brings the granted window to the front before every action, because on this display server a key combination cannot be delivered to a window in the background. It moves at human pacing: text goes in short runs with small varying gaps, a click is followed by a human pause, a drag runs in steps, and there is a pause between actions; `--pacing fast` shortens every one of those waits, including the settle waits, and only the tests pass it. After each action it settles, which is the browser's rule with the page's parts swapped for the window's: the accessibility tree must hold still for three hundred milliseconds, with a limit of three seconds, after which the window is read as it stands and reported with `settled: false`. Then it compares the controls before and after and judges the expectation by the browser's fixed word rule. The pieces are one file each: the wire, the marks, the expectation rule, the key chords, the pacing, the session, the nine methods, the process, the bounds, and the one file that touches the driver, so that everything above it is tested against a driver nobody can see.
+
+Two things about this machine are written into the worker rather than assumed. The desktop is Wayland with XWayland, and the driver reaches windows through X11 and the AT-SPI accessibility bus, so applications the worker starts are started with `GDK_BACKEND=x11` and `QT_QPA_PLATFORM=xcb`, which changes nothing about the windows the user opened. And a control's handle belongs to the reading it came from: a handle kept from an earlier reading is refused by the driver, so the worker looks a control up again by its number before every action.
+
+**The Go side**, `internal/desktop`, implements `contract.Desktop`. It starts the worker as a child process on first use, keeps that one alive, and when it dies or answers with one of the three codes the protocol's table says to restart on, stops it by its **exact process identifier** and starts a new one on the next call, telling the model the desktop was interrupted; the application then has to be opened again. One request goes at a time, each with a deadline of its own, and a response line longer than eight megabytes is refused rather than held. The worker is handed an environment with the display in it and nothing secret, which is protocol rule seven.
+
+Two rules of the design live here rather than in the worker. An application is **granted once per session** through a preview on `contract.Channel`, and nothing at all can be done until one is granted. Every action inside it that **cannot be undone**, which is typing into a field, a drag, and a paste, goes through `contract.Permission` as the tool `computer` with an `intent`, an `element`, and the `text`, and a ruling of ask becomes a preview of exactly what is about to happen. A click and a key press do not, because they can be undone.
+
+`contract.Desktop` has no place for the expectation the model states, so this package also exports `LaunchExpecting`, `ClickExpecting`, `TypeExpecting`, `PressExpecting`, and `DragExpecting`, and the interface's own methods are those with an empty expectation. An expectation that was not met comes back as an **error** carrying what the worker saw instead, because the interface returns only an error and the model has to be told rather than left to guess.
+
+**What the tests prove.** On the TypeScript side, the wire, the marks, the expectation rule, the key chords, the pacing, the session, the nine methods, and the process all have unit tests against a fake driver; property tests throw any expectation, any key combination, any accessibility tree, and any bytes on standard input at it and get a well-formed answer or nothing, never a crash; and a fixture-window suite drives a real `zenity` entry box on this machine's display, one test per action, including an expectation that is not met, and ends by clicking OK and reading back exactly what was typed. On the Go side, the client, the grant, the previews, the restart, and the contract check all run against a scripted worker on a pair of pipes; two fuzz targets throw any bytes at the reading of the worker's answers; and under `integration` the real worker drives the same fixture window end to end. `internal/desktop` needs no new Go dependency; the worker's six pinned TypeScript libraries are in `docs/DEPENDENCIES.md`.
 
 ## The sandbox (built, wave 2, brief 2.3)
 

@@ -151,18 +151,26 @@ func DefaultConfig() Config {
 // ExcludedFromSandbox returns the paths that must never be reachable from inside
 // the sandbox, given the user's home directory and the agent's own home folder,
 // which COEUS_HOME may have moved anywhere. They are the agent's home, the
-// vault, the browser profiles, and the user's SSH keys.
-func ExcludedFromSandbox(userHome string, agentHome string) []string {
+// vault, the browser profiles, and the user's SSH keys, followed by any path
+// the caller names, such as a configured browser profile or the backup folder,
+// with empty names skipped.
+func ExcludedFromSandbox(userHome string, agentHome string, alsoOutside ...string) []string {
 	if agentHome == "" {
 		agentHome = filepath.Join(userHome, HomeFolderName)
 	}
 	home := NewHome(agentHome)
-	return []string{
+	excluded := []string{
 		home.Root,
 		home.VaultFile(),
 		home.BrowserFolder(),
 		filepath.Join(userHome, ".ssh"),
 	}
+	for _, named := range alsoOutside {
+		if named != "" {
+			excluded = append(excluded, filepath.Clean(named))
+		}
+	}
+	return excluded
 }
 
 // resolvedPath follows symbolic links when the path exists, so that a link to
@@ -194,7 +202,7 @@ func DefaultSandboxRoots(userHome string) []string {
 // put the vault, the browser profile, or the SSH keys inside the fence. Links
 // are followed on both sides, so a root that is a link to the home directory
 // is judged as the home directory.
-func CheckSandboxRoot(root string, userHome string, agentHome string) error {
+func CheckSandboxRoot(root string, userHome string, agentHome string, alsoOutside ...string) error {
 	if root == "" {
 		return fmt.Errorf("a sandbox root is empty, so give it a full path such as %q", filepath.Join(userHome, WorkFolderName))
 	}
@@ -202,7 +210,7 @@ func CheckSandboxRoot(root string, userHome string, agentHome string) error {
 		return fmt.Errorf("the sandbox root %q is not a full path, so write it starting from the root of the filesystem", root)
 	}
 	clean := resolvedPath(root)
-	for _, excluded := range ExcludedFromSandbox(userHome, agentHome) {
+	for _, excluded := range ExcludedFromSandbox(userHome, agentHome, alsoOutside...) {
 		excluded = resolvedPath(excluded)
 		if clean == excluded || strings.HasPrefix(clean, excluded+string(filepath.Separator)) {
 			return fmt.Errorf("the sandbox root %q is inside %q, which must stay outside the sandbox, so choose a root that does not contain it", root, excluded)

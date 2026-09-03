@@ -20,29 +20,9 @@ import (
 // them still reads back in full from the log.
 func TestTheFortyStepFixtureAgainstTheRealLog(t *testing.T) {
 	home := roomyHome(t)
-	eventLog, err := log.Open(t.Context(), home.DatabaseFile())
-	if err != nil {
-		t.Fatalf("cannot open the event log at %s: %v", home.DatabaseFile(), err)
-	}
-	t.Cleanup(func() {
-		if err := eventLog.Close(); err != nil {
-			t.Errorf("cannot close the event log: %v", err)
-		}
-	})
-
-	fixture, err := testkit.LoadFortyStepTask()
-	if err != nil {
-		t.Fatalf("cannot load the forty-step fixture: %v", err)
-	}
-	keeper, err := record.New(t.Context(), eventLog, record.Start{
-		Kind: contract.RecordTask, ID: fixture.TaskID, Origin: fixture.Origin,
-		Ask: fixture.Ask, RoundsLeft: 100, MinutesLeft: 60,
-	})
-	if err != nil {
-		t.Fatalf("cannot open the fixture's task record on the real log: %v", err)
-	}
-	run := &fixtureRun{fixture: fixture, keeper: keeper}
-
+	run := runOnTheRealLog(t, home)
+	keeper := run.keeper
+	fixture := run.fixture
 	builder := newTestBuilder(t, Options{Home: home, MaxOutputTokens: 512, Boundary: goldenBoundary})
 	run.playTo(t, 10)
 	atRoundTen, err := builder.Build(t.Context(), run.input(3000))
@@ -80,4 +60,32 @@ func TestTheFortyStepFixtureAgainstTheRealLog(t *testing.T) {
 	if err := fixture.CheckAskAndCorrections(keeper.Record()); err != nil {
 		t.Errorf("the user's own words did not survive forty rounds: %v", err)
 	}
+}
+
+// runOnTheRealLog opens the fixture's task record over a real SQLite file inside
+// a temporary home, which is the arrangement the running program has.
+func runOnTheRealLog(t *testing.T, home contract.Home) *fixtureRun {
+	t.Helper()
+	eventLog, err := log.Open(t.Context(), home.DatabaseFile())
+	if err != nil {
+		t.Fatalf("cannot open the event log at %s: %v", home.DatabaseFile(), err)
+	}
+	t.Cleanup(func() {
+		if err := eventLog.Close(); err != nil {
+			t.Errorf("cannot close the event log: %v", err)
+		}
+	})
+
+	fixture, err := testkit.LoadFortyStepTask()
+	if err != nil {
+		t.Fatalf("cannot load the forty-step fixture: %v", err)
+	}
+	keeper, err := record.New(t.Context(), eventLog, record.Start{
+		Kind: contract.RecordTask, ID: fixture.TaskID, Origin: fixture.Origin,
+		Ask: fixture.Ask, RoundsLeft: 100, MinutesLeft: 60,
+	})
+	if err != nil {
+		t.Fatalf("cannot open the fixture's task record on the real log: %v", err)
+	}
+	return &fixtureRun{fixture: fixture, keeper: keeper}
 }

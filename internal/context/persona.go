@@ -32,8 +32,9 @@ const SoulBytes = 4000
 // the file to shorten.
 const cutNoteMark = "[cut here:"
 
-// personaHeadings name each persona file in the prompt, so that the model knows
-// which of the three it is reading and the user knows which file to edit.
+// The three headings that name each persona file in the prompt, so that the
+// model knows which of the three it is reading and the user knows which file to
+// edit.
 const (
 	soulHeading  = "**Who you are, from SOUL.md.**"
 	userHeading  = "**What is true about the user, from USER.md.**"

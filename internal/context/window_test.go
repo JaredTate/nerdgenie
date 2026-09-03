@@ -137,6 +137,23 @@ func TestAWindowWithNoRoomLeftIsRefused(t *testing.T) {
 	}
 }
 
+// TestAMemoryHintTooBigForTheWindowIsRefused proves the build says so when what
+// must be in every prompt no longer fits, rather than sending the model a prompt
+// it will refuse. Nothing is pinned here, so the refusal is about the room and
+// not about a pin.
+func TestAMemoryHintTooBigForTheWindowIsRefused(t *testing.T) {
+	builder := newTestBuilder(t, Options{MaxOutputTokens: 100})
+	input := sampleInput()
+	input.ContextLength = 1600
+	input.Messages = nil
+	input.MemoryHint = []string{strings.Repeat("a remembered line. ", 200)}
+
+	_, err := builder.Build(t.Context(), input)
+	if !errors.Is(err, ErrNoRoomForTheRecord) {
+		t.Fatalf("a memory hint too big for the window gave back %v, want the no-room error", err)
+	}
+}
+
 // TestTheMemoryHintIsCappedAtThreeLines proves the hint stays the three lines
 // the design promises, whatever the caller passes.
 func TestTheMemoryHintIsCappedAtThreeLines(t *testing.T) {

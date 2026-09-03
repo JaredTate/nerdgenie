@@ -192,11 +192,7 @@ func (turn *contextTurn) say(text string) {
 // doneLinesOf is the done list at the end, every line pointing at the result
 // that proves it.
 func doneLinesOf(fixture testkit.FortyStepTask) record.Update {
-	update := record.Update{}
-	for _, line := range fixture.DoneLinesAtTheEnd() {
-		update.DoneWhen = append(update.DoneWhen, line)
-	}
-	return update
+	return record.Update{DoneWhen: fixture.DoneLinesAtTheEnd()}
 }
 
 // builtInToolSpecs is one specification per built-in tool, which is what the

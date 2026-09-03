@@ -1,0 +1,21 @@
+# Written by "coeus install". Run "coeus install" again to replace it, or
+# "coeus uninstall" to take it away.
+
+[Unit]
+Description=Coeus, an assistant that runs on your own computer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/home/tester/.coeus/releases/current serve
+Environment=COEUS_HOME=/home/tester/.coeus
+WatchdogSec=60
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=75
+RestartForceExitStatus=75
+RestartPreventExitStatus=78
+
+[Install]
+WantedBy=default.target

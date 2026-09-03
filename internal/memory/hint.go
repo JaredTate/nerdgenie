@@ -8,9 +8,9 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxHintRunes is the longest one line of the memory hint may be. Three lines of
+// maxHintRunes is the longest one line of the memory hint may be. Three lines of
 // this length is what rides below the cache line on every turn.
-const MaxHintRunes = 120
+const maxHintRunes = 120
 
 // minimumHintWordRunes is the shortest word of a step the hint will search for.
 // Every word below it is a joining word rather than a subject, so searching for
@@ -90,7 +90,7 @@ func hintLines(hits []searchHit, words []string) []string {
 		line := oneLine(hit.asFact().Text)
 		score := wordsHeldBy(line, words)
 		if score >= needed {
-			kept = append(kept, scoredHint{line: cutToRunes(line, MaxHintRunes), score: score})
+			kept = append(kept, scoredHint{line: cutToRunes(line, maxHintRunes), score: score})
 		}
 	}
 	slices.SortStableFunc(kept, func(first scoredHint, second scoredHint) int {

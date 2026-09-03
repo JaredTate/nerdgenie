@@ -23,10 +23,10 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxCapturedFacts is how many facts one finished task may leave behind, so
+// maxCapturedFacts is how many facts one finished task may leave behind, so
 // that a task with a thousand tool calls cannot fill the memory files on its
 // own.
-const MaxCapturedFacts = 200
+const maxCapturedFacts = 200
 
 // maxCapturePages is how many reads of the event log one capture may make. A
 // list read of the log returns at most log.MaxEventsPerRead events, so this is
@@ -117,7 +117,7 @@ func (memory *Memory) capturedFactsOfTask(ctx context.Context, taskID string) ([
 			return nil, fmt.Errorf("cannot read the events of task %q to capture what it did: %w", taskID, err)
 		}
 		facts = appendCapturedFacts(facts, taskID, events)
-		if err == nil || len(facts) >= MaxCapturedFacts || page >= maxCapturePages {
+		if err == nil || len(facts) >= maxCapturedFacts || page >= maxCapturePages {
 			return facts, nil
 		}
 		after := events[len(events)-1].Sequence
@@ -141,7 +141,7 @@ func readWasCutShort(events []contract.Event, err error) bool {
 func appendCapturedFacts(facts []contract.Fact, taskID string, events []contract.Event) []contract.Fact {
 	source := "task " + taskID
 	for _, event := range events {
-		if len(facts) >= MaxCapturedFacts {
+		if len(facts) >= maxCapturedFacts {
 			return facts
 		}
 		if event.TaskID != taskID {
@@ -153,7 +153,7 @@ func appendCapturedFacts(facts []contract.Fact, taskID string, events []contract
 		}
 		facts = append(facts, contract.Fact{
 			ID:       capturedFactID(taskID, event.Sequence, aboutTheUser),
-			Text:     cutToBytes(text, MaxFactTextBytes, "the whole of it is in the event log"),
+			Text:     cutToBytes(text, maxFactTextBytes, "the whole of it is in the event log"),
 			Source:   source,
 			Recorded: event.Occurred,
 		})
@@ -249,7 +249,7 @@ func firstWord(text string) string {
 func capturedFactID(taskID string, sequence int64, aboutTheUser bool) string {
 	prefix := "c"
 	if aboutTheUser {
-		prefix = UserFactPrefix + "c"
+		prefix = userFactPrefix + "c"
 	}
 	tail := "-" + strconv.FormatInt(sequence, 10)
 	name := onlyIDLetters(taskID)

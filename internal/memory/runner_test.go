@@ -173,7 +173,7 @@ func TestACapturedIDFitsOnAFactLineHoweverLongTheTaskIs(t *testing.T) {
 	if !validFactID(long) {
 		t.Errorf("the captured id %q could not be written on a fact line", long)
 	}
-	if !strings.HasPrefix(long, UserFactPrefix+"c") {
+	if !strings.HasPrefix(long, userFactPrefix+"c") {
 		t.Errorf("the captured id %q does not say it is a fact about the user", long)
 	}
 	huge := capturedFactID("17", 1234567890123456789, false)

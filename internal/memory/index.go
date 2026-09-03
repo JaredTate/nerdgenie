@@ -36,12 +36,12 @@ const (
 // The prefixes that say what a search result is when it is not a fact, so that
 // one id space covers the facts, the notes, and the past messages.
 const (
-	// NoteIDPrefix begins the id of a search result that is a note, and the
+	// noteIDPrefix begins the id of a search result that is a note, and the
 	// rest of the id is the note's path inside the home folder.
-	NoteIDPrefix = "note:"
-	// MessageIDPrefix begins the id of a search result that is a past message,
+	noteIDPrefix = "note:"
+	// messageIDPrefix begins the id of a search result that is a past message,
 	// and the rest of the id is that message's number in the event log.
-	MessageIDPrefix = "msg:"
+	messageIDPrefix = "msg:"
 )
 
 // The four tables this package owns inside the one SQLite file. internal/log

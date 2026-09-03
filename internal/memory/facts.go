@@ -16,9 +16,9 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxFactTextBytes is the longest one fact may be. Anything longer is not a
+// maxFactTextBytes is the longest one fact may be. Anything longer is not a
 // fact but a document, and a document belongs in a note in the memory folder.
-const MaxFactTextBytes = 4000
+const maxFactTextBytes = 4000
 
 // maxFactIDRunes is the longest a fact's id may be, so that the front of a fact
 // line can never crowd out the fact itself.

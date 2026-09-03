@@ -129,12 +129,12 @@ func TestANoteReadBackByItsIDIsCutToTheBytesANoteMayBe(t *testing.T) {
 		t.Fatalf("cannot index the note: %v", err)
 	}
 
-	found, err := remembering.Get(ctx, NoteIDPrefix+"memory/product.md")
+	found, err := remembering.Get(ctx, noteIDPrefix+"memory/product.md")
 	if err != nil {
 		t.Fatalf("cannot read the note back by its id: %v", err)
 	}
-	if len(found.Text) > MaxNoteBytes {
+	if len(found.Text) > maxNoteBytes {
 		t.Errorf("the note came back as %d bytes, and a note may be at most %d; the cap counts bytes "+
-			"and cutting it by runes lets a note of many-byte characters through", len(found.Text), MaxNoteBytes)
+			"and cutting it by runes lets a note of many-byte characters through", len(found.Text), maxNoteBytes)
 	}
 }

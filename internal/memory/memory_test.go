@@ -34,6 +34,10 @@ const (
 	theSearchResultCap = 50
 	// theFactTextCap is the longest one fact may be.
 	theFactTextCap = 4000
+	// theNotePrefix begins the id of a search result that is a note.
+	theNotePrefix = "note:"
+	// theMessagePrefix begins the id of a search result that is a past message.
+	theMessagePrefix = "msg:"
 )
 
 // openedMemory is one memory opened on a real database file in a temporary home,

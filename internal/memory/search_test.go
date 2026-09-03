@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/memory"
 )
 
 // shippedCaps are the limits a fresh install ships with, which is what the
@@ -202,7 +201,7 @@ func TestANoteInTheMemoryFolderIsSearchableAndReadableInFull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the note: %v", err)
 	}
-	if len(found) == 0 || !strings.HasPrefix(found[0].ID, memory.NoteIDPrefix) {
+	if len(found) == 0 || !strings.HasPrefix(found[0].ID, theNotePrefix) {
 		t.Fatalf("the note is not searchable, and the search found %v", found)
 	}
 	whole, err := reopened.Get(ctx, found[0].ID)
@@ -261,7 +260,7 @@ func TestAPastMessageIsSearchableAndReadableByItsID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the message: %v", err)
 	}
-	if len(found) == 0 || !strings.HasPrefix(found[0].ID, memory.MessageIDPrefix) {
+	if len(found) == 0 || !strings.HasPrefix(found[0].ID, theMessagePrefix) {
 		t.Fatalf("the past message is not searchable, and the search found %+v", found)
 	}
 	if found[0].Source != "a message in task 17" {
@@ -303,8 +302,8 @@ func TestReadingSomethingThatIsNotThereSaysSo(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	ctx := context.Background()
 
-	missing := []string{"m404", memory.NoteIDPrefix + "memory/nothing.md", memory.MessageIDPrefix + "9999",
-		memory.MessageIDPrefix + "not a number", memory.NoteIDPrefix + "../../outside.md"}
+	missing := []string{"m404", theNotePrefix + "memory/nothing.md", theMessagePrefix + "9999",
+		theMessagePrefix + "not a number", theNotePrefix + "../../outside.md"}
 	for _, id := range missing {
 		if _, err := opened.memory.Get(ctx, id); err == nil {
 			t.Errorf("reading %q returned no error, and it must name the id", id)

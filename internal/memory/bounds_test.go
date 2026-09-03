@@ -20,11 +20,11 @@ func TestEveryBoundIsTheNumberItIsMeantToBe(t *testing.T) {
 		held int
 		want int
 	}{
-		{"the longest line of the hint", MaxHintRunes, 120},
-		{"the most results one search returns", MaxSearchResults, 50},
+		{"the longest line of the hint", maxHintRunes, 120},
+		{"the most results one search returns", maxSearchResults, 50},
 		{"how much of a note or a message a result shows", maxSnippetRunes, 300},
-		{"the most facts one finished task leaves behind", MaxCapturedFacts, 200},
-		{"the most work one run of the indexer does", MaxIndexedPerRun, 2000},
+		{"the most facts one finished task leaves behind", maxCapturedFacts, 200},
+		{"the most work one run of the indexer does", maxIndexedPerRun, 2000},
 		{"the budget a rebuild starts with", newRunBudget().left, 2000},
 		{"the shortest word of a step the hint searches for", minimumHintWordRunes, 4},
 		{"the words of the step a hint line has to hold", hintWordsThatMustMatch, 2},
@@ -32,8 +32,8 @@ func TestEveryBoundIsTheNumberItIsMeantToBe(t *testing.T) {
 		{"the reads of the log one capture may make", maxCapturePages, 100},
 		{"the words one query may carry", maxQueryTokens, 32},
 		{"the longest one word of a query may be", maxTokenRunes, 64},
-		{"the longest one fact may be", MaxFactTextBytes, 4000},
-		{"the biggest one note may be", MaxNoteBytes, 64 * 1024},
+		{"the longest one fact may be", maxFactTextBytes, 4000},
+		{"the biggest one note may be", maxNoteBytes, 64 * 1024},
 	}
 	for _, bound := range bounds {
 		if bound.held != bound.want {

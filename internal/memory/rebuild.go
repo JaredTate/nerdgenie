@@ -15,10 +15,10 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxIndexedPerRun is how many files and messages one run of the indexer takes
+// maxIndexedPerRun is how many files and messages one run of the indexer takes
 // in. A very large log or a very full memory folder is caught up over several
 // runs rather than in one that never ends.
-const MaxIndexedPerRun = 2000
+const maxIndexedPerRun = 2000
 
 // indexedThroughCounter names the state row holding the number of the last
 // event the indexer has read, so that a later run carries on from there.
@@ -26,7 +26,7 @@ const indexedThroughCounter = "indexed through event"
 
 // maxIndexPagesPerRun is how many reads of the event log one run of the indexer
 // may make. A list read of the log returns at most log.MaxEventsPerRead events,
-// and a run indexes at most MaxIndexedPerRun of them, so this is far more pages
+// and a run indexes at most maxIndexedPerRun of them, so this is far more pages
 // than a run can ever want, and it is here so that a log which keeps saying
 // there is more can never hold a run open for ever.
 const maxIndexPagesPerRun = 100
@@ -49,7 +49,7 @@ func (budget *runBudget) spend() bool {
 // newRunBudget is the budget one run of the indexer starts with, which is the
 // most pieces of work any run may do.
 func newRunBudget() *runBudget {
-	return &runBudget{left: MaxIndexedPerRun}
+	return &runBudget{left: maxIndexedPerRun}
 }
 
 // rebuild brings the index up to date with what is on disk and in the event

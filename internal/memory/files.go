@@ -12,10 +12,10 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxNoteBytes is the biggest one note in the memory folder may be. A dated
+// maxNoteBytes is the biggest one note in the memory folder may be. A dated
 // note that reaches it is left alone and the next one for that day is started,
 // so that no single file grows without end.
-const MaxNoteBytes = 64 * 1024
+const maxNoteBytes = 64 * 1024
 
 // maxFileBytes is the biggest memory file this package will read. Anything
 // larger is not a memory file somebody meant to write, and reading it would
@@ -36,10 +36,10 @@ const (
 	userFacts factFamily = "user"
 )
 
-// UserFactPrefix is what marks an id as belonging to a fact about the user,
+// userFactPrefix is what marks an id as belonging to a fact about the user,
 // which is what puts the fact in USER.md rather than MEMORY.md. A fact that
 // supersedes another goes wherever that one went, whatever its id says.
-const UserFactPrefix = "u"
+const userFactPrefix = "u"
 
 // factFile is one of the two memory files: where it is, how big it may get, and
 // the name the dated notes its overflow moves into are built from.
@@ -200,7 +200,7 @@ func (memory *Memory) datedNote(family factFamily) (string, error) {
 			return path, nil
 		case err != nil:
 			return "", fmt.Errorf("cannot look at the note %s the oldest facts would move into: %w", path, err)
-		case info.Size() < MaxNoteBytes:
+		case info.Size() < maxNoteBytes:
 			return path, nil
 		}
 	}

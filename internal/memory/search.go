@@ -24,9 +24,9 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxSearchResults is the most results one search hands back, whatever limit it
+// maxSearchResults is the most results one search hands back, whatever limit it
 // was asked for, because a search result rides in the model's context.
-const MaxSearchResults = 50
+const maxSearchResults = 50
 
 // maxSnippetRunes is how much of a note or a past message a search result
 // shows. The whole of it comes back from Get.
@@ -57,8 +57,8 @@ const (
 // notes, and past messages all come back as facts, and a fact something later
 // replaced is marked as superseded in its own text.
 func (memory *Memory) Search(ctx context.Context, query string, limit int) ([]contract.Fact, error) {
-	if limit <= 0 || limit > MaxSearchResults {
-		limit = MaxSearchResults
+	if limit <= 0 || limit > maxSearchResults {
+		limit = maxSearchResults
 	}
 	expression := matchExpression(query)
 	statement := searchColumns + searchTables +
@@ -134,10 +134,10 @@ func (hit searchHit) asFact() contract.Fact {
 		fact.Text = markIfSuperseded(hit.text, hit.supersededBy)
 		fact.Supersedes = hit.supersedes
 	case noteEntry:
-		fact.ID = NoteIDPrefix + hit.reference
+		fact.ID = noteIDPrefix + hit.reference
 		fact.Text = cutToRunes(oneLine(hit.body), maxSnippetRunes)
 	default:
-		fact.ID = MessageIDPrefix + hit.reference
+		fact.ID = messageIDPrefix + hit.reference
 		fact.Text = cutToRunes(oneLine(hit.body), maxSnippetRunes)
 	}
 	return fact
@@ -158,10 +158,10 @@ func markIfSuperseded(text string, supersededBy string) string {
 // by "note:" and its path inside the home folder, or a past message by "msg:"
 // and its number in the event log.
 func (memory *Memory) Get(ctx context.Context, id string) (contract.Fact, error) {
-	if reference, isNote := strings.CutPrefix(id, NoteIDPrefix); isNote {
+	if reference, isNote := strings.CutPrefix(id, noteIDPrefix); isNote {
 		return memory.getNote(ctx, id, reference)
 	}
-	if reference, isMessage := strings.CutPrefix(id, MessageIDPrefix); isMessage {
+	if reference, isMessage := strings.CutPrefix(id, messageIDPrefix); isMessage {
 		return memory.getMessage(ctx, id, reference)
 	}
 	fact, supersededBy, err := factRow(ctx, memory.database, id)
@@ -187,7 +187,7 @@ func (memory *Memory) getNote(ctx context.Context, id string, reference string) 
 	if err != nil {
 		return contract.Fact{}, err
 	}
-	fact.Text = cutToBytes(string(held), MaxNoteBytes, "the whole of it is in the file itself")
+	fact.Text = cutToBytes(string(held), maxNoteBytes, "the whole of it is in the file itself")
 	return fact, nil
 }
 

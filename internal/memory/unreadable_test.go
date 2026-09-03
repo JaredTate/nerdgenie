@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/memory"
 )
 
 func TestASaveIntoAFolderThatCannotBeWrittenSaysSo(t *testing.T) {
@@ -95,7 +94,7 @@ func TestAMessageTheLogCannotReadBackSaysSoRatherThanGuessing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot index the message: %v", err)
 	}
-	if _, err := opened.memory.Get(ctx, memory.MessageIDPrefix+"1"); err == nil {
+	if _, err := opened.memory.Get(ctx, theMessagePrefix+"1"); err == nil {
 		t.Error("reading back a message the log cannot make sense of returned no error")
 	}
 }
@@ -136,7 +135,7 @@ func TestANoteTooBigToReadIsRefusedRatherThanLoaded(t *testing.T) {
 	if err := os.WriteFile(notePath, []byte(huge), contract.DataFileMode); err != nil {
 		t.Fatalf("cannot make the note too big to read: %v", err)
 	}
-	if _, err := remembering.Get(ctx, memory.NoteIDPrefix+"memory/product.md"); err == nil {
+	if _, err := remembering.Get(ctx, theNotePrefix+"memory/product.md"); err == nil {
 		t.Error("reading a note too big to read returned no error")
 	}
 }
@@ -174,7 +173,7 @@ func TestANoteInAFolderInsideTheMemoryFolderIsIndexedToo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the note in the folder: %v", err)
 	}
-	if len(found) == 0 || found[0].ID != memory.NoteIDPrefix+"memory/projects/kayaks.md" {
+	if len(found) == 0 || found[0].ID != theNotePrefix+"memory/projects/kayaks.md" {
 		t.Errorf("the note in the folder came back as %+v", found)
 	}
 	plain, err := remembering.Search(ctx, "this file is not markdown", 5)

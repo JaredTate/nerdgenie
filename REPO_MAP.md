@@ -38,6 +38,7 @@ cmd/coeus/askpass_test.go
 cmd/coeus/backup.go
 cmd/coeus/backup_test.go
 cmd/coeus/commands.go
+cmd/coeus/desktop.go
 cmd/coeus/doc.go
 cmd/coeus/doctor.go
 cmd/coeus/fuzz_test.go

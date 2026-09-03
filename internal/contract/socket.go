@@ -104,6 +104,66 @@ type SocketEnvelope struct {
 // chose "always for the session" rather than this once.
 const ApproveAlwaysText = "always"
 
+// The names of the fields a status envelope carries, which the program fills
+// and the screen reads, so that the two agree on one spelling. A screen ignores
+// a field it does not know.
+const (
+	// StatusFieldModel is the alias of the model in use.
+	StatusFieldModel = "model"
+	// StatusFieldTask is the running task's number, or empty.
+	StatusFieldTask = "task"
+	// StatusFieldTaskState is the running task's record status.
+	StatusFieldTaskState = "taskState"
+	// StatusFieldTokensIn is the session's input tokens so far.
+	StatusFieldTokensIn = "tokensIn"
+	// StatusFieldTokensOut is the session's output tokens so far.
+	StatusFieldTokensOut = "tokensOut"
+	// StatusFieldCost is the session's cost in dollars when known.
+	StatusFieldCost = "cost"
+	// StatusFieldBudget is the task's budget line in plain words.
+	StatusFieldBudget = "budget"
+	// StatusFieldState is one of the screen state words below.
+	StatusFieldState = "state"
+	// StatusFieldTool is the tool in use when the state is using a tool.
+	StatusFieldTool = "tool"
+	// StatusFieldToolLine is the one dim line for the tool call in progress.
+	StatusFieldToolLine = "toolLine"
+	// StatusFieldCommands is the command list for the palette: one command per
+	// line, its name and its help separated by StatusCommandSeparator.
+	StatusFieldCommands = "commands"
+	// StatusFieldHealthy is "true" when the program answered its health check.
+	StatusFieldHealthy = "healthy"
+)
+
+// StatusCommandSeparator separates a command's name from its help line inside
+// the commands field.
+const StatusCommandSeparator = "\t"
+
+// The words a status envelope's state field may carry, which the screen turns
+// into what it says in its status strip.
+const (
+	// StateIdle means nothing is running.
+	StateIdle = "idle"
+	// StateThinking means a model call is in flight.
+	StateThinking = "thinking"
+	// StateUsingTool means a tool is running.
+	StateUsingTool = "using"
+	// StateWaitingForYou means a preview or a question is waiting.
+	StateWaitingForYou = "waiting"
+	// StatePaused means scheduled work is paused.
+	StatePaused = "paused"
+)
+
+// KnownScreenState says whether the word is one of the five.
+func KnownScreenState(state string) bool {
+	switch state {
+	case StateIdle, StateThinking, StateUsingTool, StateWaitingForYou, StatePaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // ErrEmptySocketLine means the caller handed the decoder a blank line.
 var ErrEmptySocketLine = errors.New("the socket line was empty, so there is no message to read")
 

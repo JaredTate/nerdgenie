@@ -147,3 +147,21 @@ func whatTheSandboxSays(t *testing.T, home contract.Home) error {
 	}
 	return fence.Available()
 }
+
+// TestDoctorDoesNotSayCommandsRunInsideTheFenceWhenTheSandboxIsOff holds the
+// fence line honest on a fresh install, which runs with the sandbox off: on a
+// machine that can build a fence, the line says the fence is ready for the
+// setting that turns it on, rather than that commands are running inside it.
+func TestDoctorDoesNotSayCommandsRunInsideTheFenceWhenTheSandboxIsOff(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	written := &strings.Builder{}
+
+	command.Doctor(context.Background(), home, written)
+
+	if strings.Contains(written.String(), "shell commands run inside the fence") {
+		t.Errorf("the sandbox is off, and the report says commands run inside the fence:\n%s", written)
+	}
+	if whatTheSandboxSays(t, home) == nil && !strings.Contains(written.String(), `"fence"`) {
+		t.Errorf("the fence can be built here, and the report does not name the setting that turns it on:\n%s", written)
+	}
+}

@@ -722,6 +722,8 @@ internal/sandbox/arguments.go
 internal/sandbox/arguments_test.go
 internal/sandbox/available.go
 internal/sandbox/available_test.go
+internal/sandbox/direct.go
+internal/sandbox/direct_test.go
 internal/sandbox/doc.go
 internal/sandbox/entry.go
 internal/sandbox/entry_test.go
@@ -1002,6 +1004,7 @@ internal/tool/memory/memory.go
 internal/tool/memory/memory_test.go
 internal/tool/memory/testdata/a_search.txt
 internal/tool/more_test.go
+internal/tool/openroots_test.go
 internal/tool/pinnedbounds_test.go
 internal/tool/read/asklabel_test.go
 internal/tool/read/bounds_test.go
@@ -1265,6 +1268,7 @@ test/functional/reliability_test.go
 test/functional/replyproof_test.go
 test/functional/resume_test.go
 test/functional/sample_test.go
+test/functional/sandboxoff_test.go
 test/functional/schema_test.go
 test/functional/serve_test.go
 test/functional/signal_test.go

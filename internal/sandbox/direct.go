@@ -1,3 +1,12 @@
+// Running the command straight on the machine, in its own process group, with
+// the group stopped by its own number when the run ends, is how Hermes runs a
+// command on the host in execute_code at
+// ~/Code/hermes-agent/tools/code_execution_tool.py, and how OpenClaw's exec tool
+// runs one at ~/Code/openclaw/src/agents/bash-tools.exec-runtime.ts, stopping
+// the tree through ~/Code/openclaw/src/process/kill-tree.ts. Neither boxes the
+// command in; the gate is the approval in front of it, and that is the shape
+// kept here.
+
 package sandbox
 
 import (

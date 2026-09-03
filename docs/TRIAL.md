@@ -21,6 +21,8 @@ export PATH="$HOME/.local/bin:$PATH" && coeus doctor
 
 Then, in one terminal, `coeus serve`; in another, `coeus`. Type a question. The first frame must be there at once, the reply must stream, and nothing should need a document. Put your `HOME` back afterwards.
 
+The sandbox is off on a fresh install, and the first line `coeus serve` prints says so: `the sandbox is off: commands run straight on this machine as you, and the ask-me-first list is the gate`. `coeus doctor` reports the same under `the sandbox setting`. To try the fence, change the `sandbox = "off"` line that `init` wrote in `config.toml` to `sandbox = "fence"` (the comment above it says what the fence does), start `serve` again, and ask the agent to read a file in `/tmp`: the command is refused with the fence on and reads the file with it off. Any other word on that line stops the agent at start with both values named.
+
 For the trials below, the repository build is enough: `make build`, then `COEUS_HOME=/tmp/coeus-trial/.coeus bin/coeus serve` in one window and `COEUS_HOME=/tmp/coeus-trial/.coeus bin/coeus` in another.
 
 ## 2. The terminal screen

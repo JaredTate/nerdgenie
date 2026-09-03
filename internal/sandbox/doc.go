@@ -4,7 +4,7 @@
 // There are two runners here and the configuration picks between them. NewDirect
 // is the one a fresh install uses, because the sandbox setting is off unless the
 // file asks for the fence: it runs the command on the machine as the user, the
-// way Hermes and OpenClaw run on the host, keeping the process group, the
+// way most agents run on the host, keeping the process group, the
 // timeout, the cancel, and the output cap that the fence keeps and losing only
 // the box. New builds the fence, which is what the setting "fence" asks for and
 // what the rest of this comment is about.

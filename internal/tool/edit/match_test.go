@@ -107,8 +107,8 @@ func TestAnEmptyOldTextIsRefused(t *testing.T) {
 }
 
 func TestAMatchMuchBiggerThanWhatWasAskedForIsRefused(t *testing.T) {
-	before := strings.Repeat("x", 400) + "\nalpha\n"
-	_, _, err := edit.Replace(before, "  \n  alpha  \n  ", "beta")
+	before := "let" + strings.Repeat(" ", 400) + "x = 1\n"
+	_, _, err := edit.Replace(before, "let x = 1", "let x = 2")
 	if err == nil {
 		t.Errorf("a span far bigger than the text asked for was replaced, and that is not the edit the model meant")
 	}

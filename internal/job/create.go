@@ -1,0 +1,161 @@
+package job
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
+)
+
+// Create starts a job, with or without a schedule, and returns its identifier.
+// The job's record is created in the log at once, so a job exists the moment it
+// is made and survives a restart before its first task has run.
+func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, error) {
+	if wanted.Ask == "" {
+		return "", errors.New("a job needs the user's ask before it can be created, so pass the message word for word")
+	}
+	if err := checkTheSchedule(wanted.Schedule); err != nil {
+		return "", err
+	}
+	if err := checkTheTemplate(wanted.Schedule, wanted.TaskTemplate); err != nil {
+		return "", err
+	}
+
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	if len(jobs.order) >= MaxJobs {
+		return "", fmt.Errorf("there are already %d jobs, which is as many as one agent keeps, so finish or switch some off before making another", MaxJobs)
+	}
+
+	jobID := strconv.Itoa(jobs.nextJob)
+	keeper, err := record.New(ctx, jobs.eventLog, record.Start{Kind: contract.RecordJob, ID: jobID, Ask: wanted.Ask})
+	if err != nil {
+		return "", fmt.Errorf("cannot create the record of job %s: %w", jobID, err)
+	}
+	if wanted.Why != "" {
+		if err := keeper.Apply(ctx, record.Update{Why: wanted.Why}); err != nil {
+			return "", fmt.Errorf("cannot write why job %s was asked for: %w", jobID, err)
+		}
+	}
+
+	held := &heldJob{keeper: keeper}
+	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate}
+	if wanted.Schedule != nil {
+		firstRun, err := nextRun(*wanted.Schedule, jobs.clock.Now())
+		if err != nil {
+			return "", err
+		}
+		starting.NextRun = firstRun
+	}
+	if err := jobs.saveState(ctx, jobID, held, starting); err != nil {
+		return "", err
+	}
+
+	jobs.nextJob++
+	jobs.order = append(jobs.order, jobID)
+	jobs.held[jobID] = held
+	return jobID, nil
+}
+
+// AddTask puts one more task on a job's list and returns its identifier. A
+// finished task is never removed, so the list only ever grows, up to the cap one
+// job holds.
+func (jobs *Jobs) AddTask(ctx context.Context, wanted contract.NewTask) (string, error) {
+	if wanted.Text == "" {
+		return "", errors.New("a task needs one line saying what it does, so pass the text of it")
+	}
+	if err := checkItCannotRestartTheAgent(wanted.Text); err != nil {
+		return "", err
+	}
+
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	held, err := jobs.find(wanted.JobID)
+	if err != nil {
+		return "", err
+	}
+	return jobs.addTask(ctx, wanted.JobID, held, wanted.Text, wanted.DueAt, false)
+}
+
+// addTask writes one task onto a job's list and remembers when it may start and
+// whether a schedule made it. The caller holds the lock.
+func (jobs *Jobs) addTask(ctx context.Context, jobID string, held *heldJob, text string, dueAt time.Time, unattended bool) (string, error) {
+	listed := held.keeper.Record().Work.Tasks
+	if len(listed) >= MaxTasksPerJob {
+		return "", fmt.Errorf("job %s already holds %d tasks, which is as many as one job holds, so start a fresh job for the rest of the work", jobID, MaxTasksPerJob)
+	}
+
+	taskID := contract.TaskID(highestTaskNumber(listed) + 1)
+	written := make([]record.NewJobTask, 0, len(listed)+1)
+	for _, task := range listed {
+		written = append(written, record.NewJobTask{TaskID: task.TaskID, Text: task.Text, DueAt: task.DueAt})
+	}
+	written = append(written, record.NewJobTask{TaskID: taskID, Text: text, DueAt: dueInPlainWords(dueAt)})
+	if err := held.keeper.Apply(ctx, record.Update{Tasks: written}); err != nil {
+		return "", fmt.Errorf("cannot put task %s on the list of job %s: %w", taskID, jobID, err)
+	}
+
+	changed := held.state.withTask(taskID, taskFacts{DueAt: dueAt, Unattended: unattended})
+	if err := jobs.saveState(ctx, jobID, held, changed); err != nil {
+		return "", err
+	}
+	if err := jobs.writeProgress(ctx, jobID, held); err != nil {
+		return "", err
+	}
+	return taskID, nil
+}
+
+// Update writes the model's half of a job's record: the why, the done list, the
+// stop list, the whole task list, a decision, or a failure. It is the same
+// update a task takes, because a job has the same four parts and the same rules.
+//
+// The contract has no method for this yet, so the job tool reaches it through
+// this type. Without it a job can never be closed, because closing one runs the
+// done-check and only the model writes a done list.
+func (jobs *Jobs) Update(ctx context.Context, jobID string, update record.Update) error {
+	for _, task := range update.Tasks {
+		if err := checkItCannotRestartTheAgent(task.Text); err != nil {
+			return err
+		}
+	}
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	held, err := jobs.find(jobID)
+	if err != nil {
+		return err
+	}
+	if err := held.keeper.Apply(ctx, update); err != nil {
+		return fmt.Errorf("cannot write the change to job %s: %w", jobID, err)
+	}
+	return jobs.writeProgress(ctx, jobID, held)
+}
+
+// highestTaskNumber is the largest number the task list has reached, which is
+// what the next task counts up from. A job lists its tasks in order, so a new
+// task always takes a number above every one before it.
+func highestTaskNumber(listed []contract.JobTask) int {
+	highest := 0
+	for _, task := range listed {
+		if number, valid := contract.ParseTaskID(task.TaskID); valid && number > highest {
+			highest = number
+		}
+	}
+	return highest
+}
+
+// checkTheTemplate holds the rule that a schedule needs a template to make its
+// tasks from, that a job without a schedule has no use for one, and that neither
+// may be work that restarts the agent.
+func checkTheTemplate(schedule *contract.Schedule, template string) error {
+	if schedule != nil && template == "" {
+		return errors.New("a job with a schedule makes one task from its template on every tick, so pass the text of the template")
+	}
+	if schedule == nil && template != "" {
+		return errors.New("a job with no schedule never makes a task from a template, so give it a schedule or leave the template out")
+	}
+	return checkItCannotRestartTheAgent(template)
+}

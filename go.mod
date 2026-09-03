@@ -9,6 +9,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/pquerna/otp v1.5.0
+	github.com/robfig/cron/v3 v3.0.1
 	modernc.org/sqlite v1.58.0
 )
 

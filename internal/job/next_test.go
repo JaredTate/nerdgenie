@@ -191,6 +191,25 @@ func waitForSleeper(t *testing.T, holding *opened) {
 	t.Fatal("the job store never went to sleep waiting for work")
 }
 
+func TestNoTaskIsHandedOutWhileWorkMayNotStart(t *testing.T) {
+	holding := newJobs(t)
+	jobID := holding.aJob(t, "Post the update every morning.")
+	taskID := holding.aTask(t, jobID, "write and post today's message", time.Time{})
+	mayStart := false
+	holding.jobs.OnlyStartWorkWhen(func() bool { return mayStart })
+
+	if next, due := holding.nextTask(t, theEpoch()); due {
+		t.Errorf("task %+v was handed out while an update was draining the agent or the crash-loop breaker was tripped", next)
+	}
+
+	mayStart = true
+
+	next, due := holding.nextTask(t, theEpoch())
+	if !due || next.TaskID != taskID {
+		t.Errorf("once work may start again the store handed out %+v (due %v), want task %s", next, due, taskID)
+	}
+}
+
 func TestWaitRestsBeforeItComesBackSoADriverCannotSpin(t *testing.T) {
 	holding := newJobs(t)
 	jobID := holding.aJob(t, "Do the thing that is already overdue.")

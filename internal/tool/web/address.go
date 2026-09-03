@@ -35,10 +35,10 @@ type refusedRange struct {
 
 // The reasons, written once because several ranges share one.
 const (
-	reasonPrivate              = "is on a private network, and the agent only fetches pages from the public web"
-	reasonThisMachine          = "is on this machine, and the agent only fetches pages from outside it"
-	reasonStandsForThisMachine = "stands for this machine rather than for a computer out on the public web"
-	reasonLinkLocal            = "is a link-local one, and the agent only fetches pages from the public web"
+	reasonPrivate              = "is on a private network"
+	reasonThisMachine          = "is on this machine, which is not outside it"
+	reasonStandsForThisMachine = "stands for this machine rather than for a computer on the web"
+	reasonLinkLocal            = "is a link-local one, which reaches no further than the wire it is on"
 	reasonMulticast            = "is a multicast one, and a page is fetched from one machine"
 	reasonProtocols            = "is kept aside for the internet protocols themselves, so no page is served there"
 	reasonDocuments            = "is kept aside for writing documentation, so no page is served there"
@@ -55,7 +55,7 @@ var refusedRanges = []refusedRange{
 	{netip.MustParsePrefix("169.254.169.254/32"), "is where a cloud machine keeps its own credentials, so the agent never reads it"},
 	{netip.MustParsePrefix("0.0.0.0/8"), reasonStandsForThisMachine},
 	{netip.MustParsePrefix("10.0.0.0/8"), reasonPrivate},
-	{netip.MustParsePrefix("100.64.0.0/10"), "is on the shared address space that carriers and private networks such as a tailnet use, and the agent only fetches pages from the public web"},
+	{netip.MustParsePrefix("100.64.0.0/10"), "is on the shared address space that carriers and private networks such as a tailnet use"},
 	{netip.MustParsePrefix("127.0.0.0/8"), reasonThisMachine},
 	{netip.MustParsePrefix("169.254.0.0/16"), reasonLinkLocal},
 	{netip.MustParsePrefix("172.16.0.0/12"), reasonPrivate},
@@ -278,7 +278,7 @@ func checkPublic(address netip.Addr) error {
 	plain := address.Unmap().WithZone("")
 	for _, refused := range refusedRanges {
 		if refused.prefix.Contains(plain) {
-			return fmt.Errorf("the address %s %s", address, refused.reason)
+			return fmt.Errorf("the agent only fetches pages from the public web, and the address %s %s", address, refused.reason)
 		}
 	}
 	return nil

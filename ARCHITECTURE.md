@@ -41,7 +41,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/sandbox` | Run a command inside bwrap and Landlock | 2, built |
 | `internal/channel` | The queue, the router, the event stream, and the local socket | 3, built |
 | `internal/command` | The command registry and the core slash commands | 3 |
-| `internal/tui` | The terminal screen | 3 |
+| `internal/tui` | The terminal screen | 3, built |
 | `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3 |
 | `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2, built |
 
@@ -202,6 +202,61 @@ the same codes.
 The socket is itself a `contract.Channel` named `terminal`, so the terminal is a channel exactly as Signal is. It sends a reply and a file to every attached screen, shows a preview and waits for the first approve or deny, and asks for a secret with `contract.SocketEnvelope.MaskInput` set, which is what tells a screen to hide what is typed and to answer with a `secret`. An approve whose text is `contract.ApproveAlwaysText` means always for the session, and any other approve means this once. A question nobody is attached for, and one nobody answers within `Options.AnswerDeadline`, both come back as `reject`, because nothing on the ask-me-first list happens without a yes; the deadline defaults to the shipped `Caps.TimePerTurn`, since a question asked inside a turn cannot usefully outlive it. Every piece of text on its way to a screen goes through `contract.Secrets.Redact` first, and the field a secret rides in is always emptied. `Receive` is the live copy of what the socket took in, for anything that wants to watch; the queue, not that stream, is the path work travels on.
 
 `serve.go` supplies the router's four things — `FindCommand`, `FindChannel`, `StartTask`, and the skill store — and the socket's five: the path, the stream, the queue, the vault, and the clock. Nothing crossing the socket is named in this package any more: the masked-prompt flag, the word for "always", the status field names, the state words, and the command separator are all `contract`'s, so the terminal screen reads them without importing anything of this package's.
+
+## The terminal screen (built, wave 3)
+
+`internal/tui` is the terminal screen, and `cmd/coeus/tui.go` is the `tui`
+subcommand that opens it, which is also what the bare `coeus` command runs. The
+screen is a thin client: it holds only what is on the frame, it draws what the
+running program sends over the local socket, and it sends back what the person
+types. It is built on Bubble Tea, and it imports nothing of Coeus but
+`internal/contract`, `internal/clock`, `internal/config` (in the subcommand, to
+find the home folder), and `internal/testkit` in its tests.
+
+The drawing is `docs/TUI_DESIGN.md`, line for line: a header, a rule, the
+transcript with its four block kinds, a rule, the input box, and the status
+strip. `View` builds the frame as rows of plain text and adds the colour codes at
+the very last step, which is why `NO_COLOR` renders exactly the same structure
+and why a golden file is readable. Nothing is drawn wider than the terminal: the
+transcript wraps, and the header and the status strip are cut. The transcript is
+drawn from the newest block backwards and stops as soon as it has the rows that
+fit, so a long session costs no more to draw than a short one.
+
+Time comes from `contract.Clock` and reaches the screen as one heartbeat every
+thirty milliseconds. That heartbeat does three things: it moves the screen's idea
+of the time on, it flushes the deltas that have arrived since the last one into
+the reply block, and it lets the spinner decide whether it is still due. The
+spinner appears only after five hundred milliseconds of waiting and stays at
+least three seconds once it has appeared.
+
+`Client` is the link. It dials through a `Dialer`, sends `attach`, reads
+envelopes into Bubble Tea messages, and dials again on a wait that doubles from a
+quarter of a second to ten seconds, saying so in the status strip the whole time.
+`UnixDialer` is the real one, on `contract.Home.SocketFile`. A socket line past
+one megabyte is thrown away and shown as an error card, and so is a line that is
+not a message the two sides agree on; neither closes the link.
+
+**What the screen reads on the socket.** Every name on the wire comes from
+`internal/contract`, so that the screen and `internal/channel` cannot disagree
+about a spelling. A masked prompt is an `ask` with `MaskInput` set, the title of
+the request in `Title`; there is no message type for asking a secret, because
+`secret` travels only from the screen to the program. A `status` message fills the
+header, the status strip, the tool lines, the health dot, and the command palette
+from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
+`StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
+`StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
+`StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
+holding one command per line with `contract.StatusCommandSeparator` between its
+name and its help. The state field carries one of `contract.StateIdle`,
+`StateThinking`, `StateUsingTool`, `StateWaitingForYou`, and `StatePaused`; the
+words the strip draws are the design's, so `StateUsingTool` reads as "using read"
+and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
+does not know changes nothing on the frame, a field that is not sent leaves what
+is on the screen alone, and a status message with no `StatusFieldHealthy` counts
+as the program answering for itself. Going the other way, an approve carrying
+`contract.ApproveAlwaysText` means every call like this one for the rest of the
+session and an approve carrying no text means this one call, and a deny carries
+the person's reason in `Reason`.
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
@@ -417,3 +472,19 @@ Each wave gate adds a section here: what was built, what changed in the interfac
 ### Wave 0 (planned)
 
 The development machine readied, the skeleton, the contracts, the browser protocol document, the repo-map generator, and the first versions of the three living documents.
+
+### Wave 3, brief 3.4: the terminal screen
+
+`internal/tui` and `cmd/coeus/tui.go` are built, as described above. Nothing in
+`internal/contract` or `internal/testkit` changed for them. The screen depends
+only on the socket envelope, the home's socket path, `contract.Command`,
+`contract.Clock`, and `internal/clock` for the real one, so it was written and
+tested before `internal/channel` existed, against a fake dialer of its own and a
+real Unix socket in a temporary home.
+
+The screen was first written against three shapes the contract did not yet name,
+and those are now named in it: `SocketEnvelope.MaskInput`, the twelve
+`StatusField` names with `StatusCommandSeparator` and the five state words, and
+`ApproveAlwaysText`. The screen reads and writes those names and no strings of
+its own. The orchestrator has one thing left to wire: add `tuiSubcommand` to the
+table in `cmd/coeus/main.go` and map the bare `coeus` command to it.

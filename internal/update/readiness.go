@@ -55,6 +55,22 @@ func askIfReady(ctx context.Context, home contract.Home) error {
 	if err := connection.SetDeadline(time.Now().Add(answerWait)); err != nil {
 		return fmt.Errorf("the socket %s would not take a deadline: %w", home.SocketFile(), err)
 	}
+
+	// A write that failed is not reported until the reading has been tried,
+	// because an agent that answers and hangs up straight away breaks the second
+	// write, and what it said is the better answer. The write is only the story
+	// when the agent said nothing at all.
+	sent := askTheQuestion(connection, home)
+	heard, answered := readTheAnswer(bufio.NewReader(io.LimitReader(connection, maxReadyBytes)))
+	if !heard && sent != nil {
+		return sent
+	}
+	return answered
+}
+
+// askTheQuestion attaches to the agent as a screen does and sends the readiness
+// command, and hands back the first trouble it met.
+func askTheQuestion(connection net.Conn, home contract.Home) error {
 	if err := contract.EncodeSocketEnvelope(connection, contract.SocketEnvelope{Type: contract.SocketAttach}); err != nil {
 		return fmt.Errorf("the readiness check could not attach to %s: %w", home.SocketFile(), err)
 	}
@@ -63,31 +79,35 @@ func askIfReady(ctx context.Context, home contract.Home) error {
 	}); err != nil {
 		return fmt.Errorf("the readiness check could not be sent to %s: %w", home.SocketFile(), err)
 	}
-	return readTheAnswer(bufio.NewReader(io.LimitReader(connection, maxReadyBytes)))
+	return nil
 }
 
 // readTheAnswer reads what the agent sent back until it finds a reply, and gives
 // up after a bounded number of lines so that a talkative agent cannot hold the
-// update open.
-func readTheAnswer(lines *bufio.Reader) error {
+// update open. It also says whether the agent sent anything at all, because an
+// agent that said nothing is one the caller should report the sending trouble
+// for instead.
+func readTheAnswer(lines *bufio.Reader) (bool, error) {
+	heard := false
 	for range maxReadyLines {
 		line, err := lines.ReadBytes('\n')
 		if err != nil && len(line) == 0 {
-			return fmt.Errorf("the agent stopped answering the readiness check part way through: %w", err)
+			return heard, fmt.Errorf("the agent stopped answering the readiness check part way through: %w", err)
 		}
 		envelope, err := contract.DecodeSocketEnvelope(line)
 		if err != nil {
 			if errors.Is(err, contract.ErrEmptySocketLine) {
 				continue
 			}
-			return fmt.Errorf("the agent answered the readiness check with something that is not a socket message: %w", err)
+			return true, fmt.Errorf("the agent answered the readiness check with something that is not a socket message: %w", err)
 		}
+		heard = true
 		switch envelope.Type {
 		case contract.SocketReply, contract.SocketStatus:
-			return nil
+			return true, nil
 		case contract.SocketError:
-			return fmt.Errorf("the agent answered the readiness check with an error: %s", envelope.Text)
+			return true, fmt.Errorf("the agent answered the readiness check with an error: %s", envelope.Text)
 		}
 	}
-	return fmt.Errorf("the agent sent %d messages without answering the readiness check, so it is not serving properly", maxReadyLines)
+	return heard, fmt.Errorf("the agent sent %d messages without answering the readiness check, so it is not serving properly", maxReadyLines)
 }

@@ -223,6 +223,7 @@ internal/permission/preview_test.go
 internal/permission/reduce.go
 internal/permission/reduce_test.go
 internal/permission/remembered_test.go
+internal/permission/rememberedwins_test.go
 internal/permission/rules.go
 internal/permission/rules_test.go
 internal/permission/shellwords.go
@@ -453,7 +454,6 @@ internal/tui/behaviour_test.go
 internal/tui/card.go
 internal/tui/client.go
 internal/tui/client_test.go
-internal/tui/clock.go
 internal/tui/doc.go
 internal/tui/envelope.go
 internal/tui/example_test.go

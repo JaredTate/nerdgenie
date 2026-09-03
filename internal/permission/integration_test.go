@@ -86,7 +86,7 @@ func TestTheWholeRoundThroughAChannelFromAskToAlwaysToNotAskingAgain(t *testing.
 	if err != nil {
 		t.Fatalf("showing the preview on the channel failed: %v", err)
 	}
-	if err := decider.Remember(request, answer, ""); err != nil {
+	if err := decider.Remember(request, answer.Answer, ""); err != nil {
 		t.Fatalf("remembering the user's answer failed: %v", err)
 	}
 

@@ -6,6 +6,14 @@
 // These tests need a display and the cua driver's native library. When either
 // is missing they say so and are skipped, rather than failing a build on a
 // machine that has no screen.
+//
+// They also need to be asked for by name. Driving the screen means talking to
+// the accessibility bus the desktop publishes for screen readers, and on a
+// machine where somebody is logged in that wakes the screen reader, which then
+// speaks every window it is shown through the speakers. So these are live
+// tests in the sense docs/WORK_PLAN.md gives the word, and they are gated the
+// way the Go side gates `//go:build live`: they run only when
+// COEUS_LIVE_DESKTOP is set to 1, and `npm test` on its own never runs them.
 
 import { spawn, spawnSync, type ChildProcessByStdio } from "node:child_process"
 import type { Readable } from "node:stream"
@@ -23,7 +31,21 @@ function haveZenity(): boolean {
   return spawnSync("sh", ["-c", "command -v zenity"], { encoding: "utf8" }).status === 0
 }
 
-const missing = !process.env["DISPLAY"] ? "there is no display to drive" : !haveZenity() ? "zenity is not installed" : ""
+/** Why these tests are not being run this time, or "" when they are. */
+function whyNotRunning(): string {
+  if (process.env["COEUS_LIVE_DESKTOP"] !== "1") {
+    return "they drive this machine's real screen, which wakes the screen reader, so they run only when COEUS_LIVE_DESKTOP=1 asks for them"
+  }
+  if (!process.env["DISPLAY"]) {
+    return "there is no display to drive"
+  }
+  if (!haveZenity()) {
+    return "zenity is not installed"
+  }
+  return ""
+}
+
+const missing = whyNotRunning()
 if (missing !== "") {
   console.warn(`the fixture-window tests are skipped because ${missing}`)
 }

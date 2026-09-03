@@ -201,14 +201,33 @@ func TestBracketsThatBuildNothingStillRunOnTheirOwn(t *testing.T) {
 	}
 }
 
-// disguises are the four wrappings the gate review hid a command inside: a
-// nested shell, a pipe, a subshell, and a long prefix. Wrapping a command may
-// never make it easier to run than the command on its own.
+// disguises are the wrappings a command has been hidden inside: the four the
+// wave 1 gate review used, which are a nested shell, a pipe, a subshell and a
+// long prefix, and then one for each program the wave 6 security review found
+// that runs another program. Wrapping a command may never make it easier to run
+// than the command on its own.
 var disguises = []func(string) string{
-	func(command string) string { return "sh -c '" + strings.ReplaceAll(command, "'", `'\''`) + "'" },
+	func(command string) string { return "sh -c '" + insideSingleQuotes(command) + "'" },
 	func(command string) string { return "echo hello | " + command },
 	func(command string) string { return "( " + command + " )" },
 	func(command string) string { return strings.Repeat("echo hello; ", 40) + command },
+	func(command string) string { return "nohup " + command },
+	func(command string) string { return "timeout 60 " + command },
+	func(command string) string { return "nice -n 10 " + command },
+	func(command string) string { return "setsid " + command },
+	func(command string) string { return "stdbuf -oL " + command },
+	func(command string) string { return "busybox " + command },
+	func(command string) string { return "env -i " + command },
+	func(command string) string { return "doas " + command },
+	func(command string) string { return "sudo -u nobody " + command },
+	func(command string) string { return "su -c '" + insideSingleQuotes(command) + "'" },
+	func(command string) string { return "echo /home/jared/coeus | xargs " + command },
+}
+
+// insideSingleQuotes writes a command so that a shell handed it between single
+// quotes runs the command that went in, quotes and all.
+func insideSingleQuotes(command string) string {
+	return strings.ReplaceAll(command, "'", `'\''`)
 }
 
 func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
@@ -224,8 +243,13 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 			}
 		}
 	}
+	for _, wrapped := range commandsRunThroughAWrapper {
+		f.Add(wrapped.command, 0)
+	}
 	f.Add("sudo apt install ripgrep", 0)
 	f.Add("find /tmp -name '*.log' -delete", 0)
+	f.Add("rm --force --recursive /home/jared/coeus", 4)
+	f.Add("git -C /tmp reset --hard", 5)
 
 	decider, err := permission.New(contract.DefaultConfig(), testkit.NewFakeClock(theTestTime))
 	if err != nil {

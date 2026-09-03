@@ -165,19 +165,18 @@ func reduceCommandLine(command string, depth int) (string, string) {
 // subcommand words the table says define it, and the flags that matter. A shell
 // handed a script reduces that script as a command line of its own.
 func reduceOneCommand(words []string, depth int) (string, string) {
-	words = withoutEnvironmentAssignments(words)
-	prefix := ""
-	if len(words) > 0 && programName(words[0]) == sudoProgram {
-		prefix = sudoProgram + " "
-		words = withoutSudoFlags(words[1:])
-	}
+	prefix, words, note := pastTheWrappers(withoutEnvironmentAssignments(words))
 	if len(words) == 0 {
-		return strings.TrimSpace(prefix), ""
+		return strings.TrimSpace(prefix), note
 	}
 	if flag, script, handed := scriptHandedToAShell(words); handed {
-		return reduceNestedShell(prefix+words[0]+" "+flag, script, depth)
+		inside, insideNote := reduceNestedShell(prefix+words[0]+" "+flag, script, depth)
+		if insideNote == "" {
+			insideNote = note
+		}
+		return inside, insideNote
 	}
-	return prefix + wordsThatDefineTheCommand(withoutTheValuesOfFlags(words)), ""
+	return prefix + wordsThatDefineTheCommand(withoutTheValuesOfFlags(words)), note
 }
 
 // wordsThatDefineTheCommand keeps the program, the subcommand words the shape
@@ -229,17 +228,11 @@ func shapeOf(words []string) commandShape {
 }
 
 // withoutEnvironmentAssignments drops the "NAME=value" words a shell sets before
-// the program, and the "env" that sometimes carries them, so that the program is
-// the first word left.
+// the program, so that the program is the first word left. The "env" that
+// sometimes carries them is one of the programs that run another program, and
+// pastTheWrappers reads through it and its own flags.
 func withoutEnvironmentAssignments(words []string) []string {
-	for len(words) > 0 {
-		if words[0] == "env" && len(words) > 1 {
-			words = words[1:]
-			continue
-		}
-		if !isEnvironmentAssignment(words[0]) {
-			break
-		}
+	for len(words) > 0 && isEnvironmentAssignment(words[0]) {
 		words = words[1:]
 	}
 	return words

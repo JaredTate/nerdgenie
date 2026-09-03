@@ -151,16 +151,30 @@ func nothingWritten(raw json.RawMessage) bool {
 	return len(trimmed) == 0 || string(trimmed) == "null"
 }
 
-// readText reads one piece of text the model wrote.
+// readText reads one piece of text the model wrote: a string, the first line of
+// a list of them, or the text inside an object. A model writes all three, and
+// the line it meant is plainly there in each, so refusing any of them costs a
+// round for nothing.
 func readText(raw json.RawMessage, field string) (string, error) {
 	if nothingWritten(raw) {
 		return "", nil
 	}
-	var held string
-	if err := json.Unmarshal(raw, &held); err != nil {
-		return "", aboutTheField(field, "one line of text")
+	var one string
+	if err := json.Unmarshal(raw, &one); err == nil {
+		return one, nil
 	}
-	return held, nil
+	var many []string
+	if err := json.Unmarshal(raw, &many); err == nil {
+		if len(many) == 0 {
+			return "", nil
+		}
+		return many[0], nil
+	}
+	held := writtenPair{}
+	if err := json.Unmarshal(raw, &held); err == nil && held.Text != "" {
+		return held.Text, nil
+	}
+	return "", aboutTheField(field, `one line of text, a list whose first line is it, or an object with "text" in it`)
 }
 
 // readLines reads a list the model wrote as a JSON list of strings or as one

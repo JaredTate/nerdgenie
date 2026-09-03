@@ -186,6 +186,18 @@ func TestOutputPastTheCapIsDroppedWithTheNote(t *testing.T) {
 	}
 }
 
+func TestAvailableSaysThisMachineCanRunAFence(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+
+	// The unit tests ask checkAvailability about machines they are not running
+	// on. This is the one that runs on the development machine, where bwrap is
+	// installed, the kernel reports Landlock, and AppArmor lets bwrap make a
+	// user namespace, so the only right answer is no error at all.
+	if err := fence.Available(); err != nil {
+		t.Fatalf("the sandbox says this machine cannot run a fence: %v", err)
+	}
+}
+
 func TestACommandNamedWithoutAFullPathIsFoundOnTheFencesPath(t *testing.T) {
 	fence, _, _ := aRealFence(t, theToolOutputCap)
 

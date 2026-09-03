@@ -52,16 +52,6 @@ func TestAvailabilityIsNotFooledByAModuleNameThatMerelyContainsLandlock(t *testi
 	}
 }
 
-func TestAvailableOnThisMachineReadsTheRealPathAndTheRealKernel(t *testing.T) {
-	fence, _ := aFenceForTesting(t)
-
-	// The result depends on the machine, so the test asserts only that the
-	// answer is one of the two shapes the caller has to handle.
-	if err := fence.Available(); err != nil && !strings.Contains(err.Error(), "sandbox") {
-		t.Errorf("the reason the sandbox cannot run says %q, and it must say what is missing and what to do", err)
-	}
-}
-
 func TestTheReasonANamespaceWasRefusedNamesTheFixAPersonHasToApply(t *testing.T) {
 	err := namespaceRefusedError("bwrap: setting up uid map: Permission denied", errors.New("bwrap quit with exit status 1"))
 

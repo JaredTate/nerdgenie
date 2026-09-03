@@ -20,3 +20,12 @@ func TestTheStatusFieldsForTheContextAndTheCallInProgressAreNamed(t *testing.T) 
 		}
 	}
 }
+
+// TestTheRecordLineStatusFieldIsNamed pins the status field that carries one
+// line for the latest change to the record, so the screen can show a task or a
+// job being created, started, finished, or failed as it happens.
+func TestTheRecordLineStatusFieldIsNamed(t *testing.T) {
+	if StatusFieldRecordLine != "recordLine" {
+		t.Errorf("status field is %q, want %q", StatusFieldRecordLine, "recordLine")
+	}
+}

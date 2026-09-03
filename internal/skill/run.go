@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -274,18 +273,18 @@ func hostOf(address string) string {
 }
 
 // registerApprovals turns a skill's permissions block into standing approvals
-// in the permission function: for every website the block names, the forms of a
-// visit to that website with the tools the skill's own steps use, each good for
-// the daily limit and running out at midnight. They are registered once a day
-// per skill, so that running a skill twice does not hand it twice its budget.
+// in the permission function: one for each website the block names, covering the
+// tools that visit a website, good for the daily limit and running out at
+// midnight. They are registered once a day per skill, so that running a skill
+// twice does not hand it twice its budget, and a skill the model wrote gets none
+// of them until a person has run it and said yes.
 //
 // The site is checked here as well as where SKILL.md was read, because this is
 // the place a site line turns into permission to act, and a folder can reach it
 // from anywhere a Definition is built.
 func (store *Store) registerApprovals(folder Folder) error {
 	permissions := folder.Definition.Permissions
-	tools := toolsTheStepsVisitWith(folder)
-	if store.standing == nil || len(permissions.Sites) == 0 || len(tools) == 0 {
+	if store.standing == nil || len(permissions.Sites) == 0 {
 		return nil
 	}
 	if store.waitingForAPersonToRunIt(folder) {
@@ -300,7 +299,7 @@ func (store *Store) registerApprovals(folder Folder) error {
 		return nil
 	}
 	for _, site := range permissions.Sites {
-		if err := store.registerOneSite(folder, site, tools, now); err != nil {
+		if err := store.registerOneSite(folder, site, now); err != nil {
 			return err
 		}
 	}
@@ -308,40 +307,26 @@ func (store *Store) registerApprovals(folder Folder) error {
 	return nil
 }
 
-// registerOneSite gives the permission function every form of a visit to one
-// website that the skill's steps could make.
-func (store *Store) registerOneSite(folder Folder, site string, tools []string, now time.Time) error {
+// registerOneSite gives the permission function the standing approval for one
+// website: the host as the person typed it, and the tools whose call names the
+// website it goes to, so that the permission function decides by comparing hosts
+// and an approval for a website can never cover a command run on this machine.
+func (store *Store) registerOneSite(folder Folder, site string, now time.Time) error {
 	name := folder.Definition.Name
 	if err := checkSite(site); err != nil {
 		return fmt.Errorf("the skill %q names the website %q in its permissions block, and a standing approval is built from one bare host name, because %w", name, site, err)
 	}
-	for _, form := range approvalFormsFor(site, tools) {
-		approval := permission.StandingApproval{
-			Skill:       name,
-			ReducedForm: form,
-			Limit:       folder.Definition.Permissions.DailyLimit,
-			Expires:     nextMidnight(now),
-		}
-		if err := store.standing.RegisterStandingApproval(approval); err != nil {
-			return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", name, site, err)
-		}
+	approval := permission.StandingApproval{
+		Skill:   name,
+		Host:    site,
+		Tools:   permission.ToolsThatVisitAWebsite(),
+		Limit:   folder.Definition.Permissions.DailyLimit,
+		Expires: nextMidnight(now),
+	}
+	if err := store.standing.RegisterStandingApproval(approval); err != nil {
+		return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", name, site, err)
 	}
 	return nil
-}
-
-// toolsTheStepsVisitWith returns the website-visiting tools a skill's steps
-// name, in the order the steps name them and without repeats. A skill's
-// standing approvals cover only these, because a replay makes no call its steps
-// do not name, and an approval for a tool the skill never uses is authority
-// nobody asked for.
-func toolsTheStepsVisitWith(folder Folder) []string {
-	tools := []string{}
-	for _, step := range folder.Steps {
-		if visitsAWebsite(step.Tool) && !slices.Contains(tools, step.Tool) {
-			tools = append(tools, step.Tool)
-		}
-	}
-	return tools
 }
 
 // nextMidnight is the start of the next day where the machine is, which is when

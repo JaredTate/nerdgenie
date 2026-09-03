@@ -57,6 +57,7 @@ cmd/coeus/serve_test.go
 cmd/coeus/signal.go
 cmd/coeus/signal_test.go
 cmd/coeus/skillsbox.go
+cmd/coeus/skillsbox_test.go
 cmd/coeus/status.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/timedstore.go
@@ -750,6 +751,8 @@ internal/skill/save_test.go
 internal/skill/site.go
 internal/skill/site_internal_test.go
 internal/skill/site_test.go
+internal/skill/source.go
+internal/skill/source_test.go
 internal/skill/steps.go
 internal/skill/store.go
 internal/skill/testdata/broken/no-procedure/CHANGELOG.md

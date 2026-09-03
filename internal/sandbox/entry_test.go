@@ -3,6 +3,7 @@ package sandbox
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -113,6 +114,44 @@ func TestTheHelperRefusesBadArgumentsBeforeItLooksAtAnythingElse(t *testing.T) {
 
 	if err := Entry([]string{"--read"}, &bytes.Buffer{}); err == nil {
 		t.Fatal("the helper accepted an option with no folder after it")
+	}
+}
+
+func TestTheHelperFindsAProgramOnTheFencesOwnPath(t *testing.T) {
+	// The fence sets this PATH for the command, and syscall.Exec searches no
+	// path of its own, so the helper is the one that has to look the name up.
+	t.Setenv("PATH", sandboxPath)
+
+	found, err := programToBecome("sh")
+	if err != nil {
+		t.Fatalf("the helper could not find sh on the fence's PATH of %s: %v", sandboxPath, err)
+	}
+	if !filepath.IsAbs(found) || filepath.Base(found) != "sh" {
+		t.Errorf("the helper found %q, want the full path of the sh on the fence's PATH", found)
+	}
+}
+
+func TestTheHelperKeepsAProgramThatIsAlreadyAFullPath(t *testing.T) {
+	found, err := programToBecome("/bin/sh")
+	if err != nil {
+		t.Fatalf("a program named by its full path was refused: %v", err)
+	}
+	if found != "/bin/sh" {
+		t.Errorf("the helper found %q, want the full path it was handed", found)
+	}
+}
+
+func TestTheHelperSaysWhereToLookWhenTheProgramIsOnNoPath(t *testing.T) {
+	t.Setenv("PATH", sandboxPath)
+
+	_, err := programToBecome("no-such-program-inside-the-fence")
+	if err == nil {
+		t.Fatal("the helper found a program that is on no machine")
+	}
+	for _, wanted := range []string{"no-such-program-inside-the-fence", "full path", "PATH"} {
+		if !strings.Contains(err.Error(), wanted) {
+			t.Errorf("the refusal says %q, and it must name %q so that the reason is not blamed on the wrong thing", err, wanted)
+		}
 	}
 }
 

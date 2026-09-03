@@ -186,6 +186,47 @@ func TestOutputPastTheCapIsDroppedWithTheNote(t *testing.T) {
 	}
 }
 
+func TestACommandNamedWithoutAFullPathIsFoundOnTheFencesPath(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+
+	// This is how the shell tool names its program, and syscall.Exec searches no
+	// path of its own, so the helper has to look the name up on the PATH the
+	// fence set.
+	result, err := fence.Run(context.Background(), contract.SandboxCommand{
+		Program:   "sh",
+		Arguments: []string{"-c", "echo found me"},
+		Timeout:   20 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("running the command failed: %v", err)
+	}
+	if result.ExitCode != 0 {
+		t.Fatalf("a command named the way the shell tool names it reported %d and said %q", result.ExitCode, result.StandardError)
+	}
+	if !strings.Contains(string(result.StandardOutput), "found me") {
+		t.Errorf("the output is %q, want what the command printed", result.StandardOutput)
+	}
+}
+
+func TestACommandThatIsNowhereInsideTheFenceSaysWhereToLook(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+
+	result, err := fence.Run(context.Background(), contract.SandboxCommand{
+		Program: "no-such-program-inside-the-fence",
+		Timeout: 20 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("running the command failed: %v", err)
+	}
+	if result.ExitCode == 0 {
+		t.Fatal("the fence reported success for a program that is on no machine")
+	}
+	said := string(result.StandardError)
+	if !strings.Contains(said, "full path") || !strings.Contains(said, "PATH") {
+		t.Errorf("the fence said %q, and it must say to name a full path or a program on the fence's PATH", said)
+	}
+}
+
 func TestTheExitCodeAndTheInputAndOutputComeBackAsTheyWere(t *testing.T) {
 	fence, _, _ := aRealFence(t, theToolOutputCap)
 

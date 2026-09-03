@@ -128,17 +128,27 @@ func (running *run) answerWithNoRecord(ctx context.Context, text string) (Outcom
 // stopHere stops the task because a line of the stop list fired, and tells the
 // user which line it was.
 func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) {
+	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), true)
+}
+
+// stopAndSay ends the task as stopped and sends the one report the user gets:
+// which line stopped it, where the work stands, and how to carry it on. The four
+// review questions are asked unless the caller has already spent the ending's
+// model call on the words in the middle of that report.
+func (running *run) stopAndSay(ctx context.Context, line string, standing string, askTheQuestions bool) (Outcome, error) {
 	running.hadStop, running.stopLine = true, line
 	running.forgetTheCalls()
 	if err := running.setStatus(ctx, contract.StatusStopped); err != nil {
 		return Outcome{}, err
 	}
-	if err := running.review(ctx); err != nil {
-		return Outcome{}, err
+	if askTheQuestions {
+		if err := running.review(ctx); err != nil {
+			return Outcome{}, err
+		}
 	}
 	report := running.withTheLesson(fmt.Sprintf(
-		"I stopped this task, because %s.\nWhere it stands: %s\nTell me how to carry on and I will pick it up from here.",
-		line, running.whereItStands()))
+		"I stopped this task, because %s.\n%s\nTell me how to carry on and I will pick it up from here.",
+		line, standing))
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
@@ -163,7 +173,10 @@ func (running *run) failHere(ctx context.Context, reason error) (Outcome, error)
 }
 
 // finalReport is the one call with the tools turned off that the budget buys:
-// the model says what it did and what is left, and the user gets that.
+// the model says what it did and what is left, and the user gets that, once, in
+// the middle of the one report this ending sends. The four review questions are
+// not asked on top of it, because this ending's one call has been spent on the
+// words the user actually reads.
 func (running *run) finalReport(ctx context.Context, why string) (Outcome, error) {
 	running.remember(contract.Message{
 		Role: contract.RoleUser,
@@ -176,15 +189,7 @@ func (running *run) finalReport(ctx context.Context, why string) (Outcome, error
 			said = reply.Text
 		}
 	}
-	outcome, err := running.stopHere(ctx, why)
-	if err != nil {
-		return outcome, err
-	}
-	if err := running.sendUnlessAJob(ctx, said); err != nil {
-		return outcome, err
-	}
-	outcome.Report = said
-	return outcome, nil
+	return running.stopAndSay(ctx, why, said, false)
 }
 
 // whereItStands is the one line the harness can always write about a task: the

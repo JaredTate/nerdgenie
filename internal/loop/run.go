@@ -15,8 +15,10 @@ import (
 
 // The bounds one task runs inside, beyond the budget itself.
 const (
-	// extraRounds is how many calls past the budget the loop may make: the one
-	// with the tools off that asks for the final report, and the review.
+	// extraRounds is how many turns of the loop are left past the budget: the
+	// one in which the loop notices the budget is spent and asks for the final
+	// report with the tools off, and one of slack behind it. The report is one
+	// model call, and it is the only one that ending makes.
 	extraRounds = 2
 	// MaxMessagesKept is how many recent messages the loop carries from one
 	// call to the next. The record is what a task remembers; this is only the

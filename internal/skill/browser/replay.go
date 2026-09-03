@@ -139,11 +139,11 @@ func (replayer *Replayer) Replay(ctx context.Context, folder skill.Folder) (Repo
 	report := Report{Skill: folder.Definition.Name}
 	healsLeft := replayer.healsAllowed()
 	for at, step := range steps {
-		outcome, err := replayer.takeStep(ctx, folder, step)
+		outcome, mustNotRun, err := replayer.takeStep(ctx, folder, step)
 		if err != nil {
 			return report, err
 		}
-		if !outcome.Met && healsLeft > 0 {
+		if !outcome.Met && !mustNotRun && healsLeft > 0 {
 			healsLeft--
 			outcome, report.Patch, report.Applied = replayer.heal(ctx, folder, steps, at, outcome)
 		}
@@ -164,32 +164,36 @@ func (replayer *Replayer) healsAllowed() int {
 	return HealAttempts
 }
 
-// takeStep runs one recorded step. A step that could not be carried out is an
-// outcome saying so rather than an error, because the replay's answer to a page
-// that changed is a report, not a crash. Only a browser that cannot be reached
-// at all is an error.
-func (replayer *Replayer) takeStep(ctx context.Context, folder skill.Folder, step Step) (Outcome, error) {
+// takeStep runs one recorded step. Its second answer says the step must not be
+// run at all, which is what a refusal of a step that cannot be undone means: such
+// a step is never healed either, because healing a step is taking it. A step that
+// could not be carried out is an outcome saying so rather than an error, because
+// the replay's answer to a page that changed is a report, not a crash. Only a
+// browser that cannot be reached at all is an error.
+func (replayer *Replayer) takeStep(ctx context.Context, folder skill.Folder, step Step) (Outcome, bool, error) {
 	outcome := Outcome{Number: step.Number, Intent: step.Intent}
 	if refused := replayer.askAboutAStepThatCannotBeUndone(ctx, folder, step); refused != "" {
 		outcome.Seen = refused
-		return outcome, nil
+		return outcome, true, nil
 	}
 	if step.Tool == contract.ToolBrowserOpen {
-		return replayer.openStep(ctx, step, outcome)
+		opened, err := replayer.openStep(ctx, step, outcome)
+		return opened, false, err
 	}
 
 	page, err := replayer.options.Browser.Read(ctx, contract.ReadOptions{})
 	if err != nil {
-		return Outcome{}, fmt.Errorf("cannot read the page before step %d of the skill %q: %w", step.Number, folder.Definition.Name, err)
+		return Outcome{}, false, fmt.Errorf("cannot read the page before step %d of the skill %q: %w", step.Number, folder.Definition.Name, err)
 	}
 	ref, foundBy, found := FindElement(page, step.Element)
 	if !found {
 		outcome.Seen = fmt.Sprintf("expected %q, and there is no element on the page matching %s, on %s",
 			step.Expectation, step.Element, WhatIsShown(page))
-		return outcome, nil
+		return outcome, false, nil
 	}
 	outcome.FoundBy = foundBy
-	return replayer.actOnStep(ctx, step, ref, outcome)
+	acted, err := replayer.actOnStep(ctx, step, ref, outcome)
+	return acted, false, err
 }
 
 // openStep goes to the address a step recorded and judges the page it landed on

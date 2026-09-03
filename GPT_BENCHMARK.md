@@ -7,17 +7,21 @@ comparison the Opus phase could not give: every harness here drives the model
 with its own loop and its own tools, because OpenAI lets its Codex login be
 used by outside tools and Anthropic does not.
 
-**The short version.** opencode, Hermes and OpenClaw all finished green on
-GPT-5.6 Sol, each driving the model with its own loop on the subscription:
-opencode in 44 seconds and 5 model calls for about nine cents, Hermes in 1 min
-39 s and 7 calls for about twenty cents, OpenClaw in 66 to 71 seconds three
-times over (its own report does not count its tokens, so its cost is unknown).
-**Coeus could not be measured on this path**, and the reason is a defect in
-Coeus, proved below: the `codex` program it runs describes its own tools to
-the model inside a developer message that no switch removes, the model used
-those tools inside a read-only sandbox, and Coeus's own tools were never
-called. The fix, a provider that talks to OpenAI's Codex backend directly the
-way the other three do, is being built; its row goes in when it lands.
+**The short version.** All four harnesses finished green on GPT-5.6 Sol, each
+driving the model with its own loop on the subscription, no API key: opencode
+in 76 seconds and 5 calls for about eight cents, OpenClaw's own loop in 88
+seconds and 5 turns for about fourteen cents, Hermes in 2 min 2 s and 10
+calls for about twenty-four cents, Coeus in 2 min 28 s and 10 calls for about
+twenty-eight cents, through a provider built this afternoon after its first
+route proved unusable.
+**Coeus's first attempt could not be measured**, for a defect in Coeus proved
+below: the `codex` program it ran describes its own tools to the model inside
+a developer message that no switch removes, so the model used those tools in
+a read-only sandbox and Coeus's own tools were never called. The fix was a
+new provider, `provider = "codex"`, that talks to OpenAI's Codex backend
+directly with the codex login, the way the other three do, built and gated
+the same afternoon; round 2 above is the result: Coeus green in ten calls,
+2 min 28 s, about 28 cents.
 
 
 ## The task
@@ -34,9 +38,9 @@ tests, make them pass, install nothing, stop when they pass.
 | | Coeus | opencode | Hermes | OpenClaw |
 |---|---|---|---|---|
 | Login | the `codex` program, logged in to the subscription | opencode's own "ChatGPT Plus/Pro" login | the codex login, which Hermes's `openai-codex` provider reads | the codex login, through OpenClaw's `openai` provider |
-| How the model is called | `codex exec` once per model call, its own tools switched off, Coeus's system prompt in place, tool calls in text; Coeus's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | **by default, the codex program** (OpenClaw's "codex" runtime, a wrapper like claude-cli); its own embedded loop only when `agentRuntime.id = "openclaw"` is pinned on the model in its config |
+| How the model is called | round 1: `codex exec` as a bare model (unusable, see below); round 2: its `codex` provider, straight to OpenAI's Codex backend with the codex login; Coeus's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | **by default, the codex program** (OpenClaw's "codex" runtime, a wrapper like claude-cli); its own embedded loop only when `agentRuntime.id = "openclaw"` is pinned on the model in its config |
 | Whose loop | Coeus | opencode | Hermes | codex by default; OpenClaw when pinned |
-| Thinking | `think = "medium"` in its config, passed as codex's reasoning effort | `--variant medium` | `--reasoning medium` | `--thinking medium` |
+| Thinking | `think = "medium"` in its config, sent as the request's reasoning effort | `--variant medium` | `--reasoning medium` | `--thinking medium` |
 | Command | `coeus serve` on a fresh home, driven over its socket by `scripts/bench/drive.py` | `opencode run -m openai/gpt-5.6-sol --variant medium --format json "<task>"` | `hermes chat -q "<task>" --provider openai-codex -m gpt-5.6-sol --reasoning medium --yolo --in <work>` | `openclaw agent exec --message-file task.txt --model openai/gpt-5.6-sol --thinking medium --cwd <work> --timeout 0 --json` |
 
 Each was proved with a one-word test call before the round. Then the kept
@@ -103,18 +107,52 @@ run total and no per-call rows; Hermes reports a run total too. Coeus's cached
 count comes from its record's per-turn line, which rounds to the hundred.
 Reasoning tokens are inside the output count wherever the harness reports
 them, and shown apart where it does.
-## Results: every run
+## Results: the round that counts (round 2, all four driving the model themselves)
+
+Run at 15:15 to 15:23 on 2026-09-03, one harness at a time from blank folders
+and blank homes, Coeus through its new `codex` provider, OpenClaw pinned to its
+own loop, thinking medium everywhere.
 
 | Harness | Run | Green | Task in to answer out | Model calls | Tool calls | Tokens in | of which cached | Tokens out | of which reasoning | Cost | Logic | Plays | Tests | game.js |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| coeus | 1 | **NO, see below** | 1 min 25 s | 1 (codex looped inside it) | 0 of Coeus's | 146,933 | 84,480 | 2,171 | not counted | $0.30 | 0/6 | 0/4 | 0/0 | 0 |
+| coeus | 2 | yes | 2 min 28 s | 10 | 21 | 69,085 | 16,000 | 3,167 | not counted | $0.28 | 6/6 | 4/4 | 6/6 | 28 |
+| opencode | 2 | yes | 1 min 16 s | 5 | 5 | 35,633 | 27,520 | 1,710 | 84 | $0.08 | 6/6 | 4/4 | 6/6 | 32 |
+| hermes | 2 | yes | 2 min 2 s | 10 | 20 | 233,087 | 206,080 | 2,327 | 385 | $0.24 | 6/6 | 4/4 | 6/6 | 26 |
+| openclaw, its own loop | 2 | yes | 1 min 28 s | 5 | 5 | 88,313 | 69,120 | 1,805 | 106 | $0.14 | 6/6 | 4/4 | 6/6 | 28 |
+
+Cost is OpenAI's list price for GPT-5.6 Sol on 2026-09-03: input $4, cached
+input $0.40, output $20, per million tokens, applied to each harness's own
+token counts. Coeus's cached count comes from its record's per-turn line,
+rounded to the hundred; Coeus's provider does not count reasoning tokens
+apart from output.
+
+**Reading it.** All four finished green with their own loop and their own
+tools, the same correct game, the same six tests. opencode was the fastest and
+cheapest (five calls, 76 seconds, about eight cents). OpenClaw's own loop took
+five turns and about fourteen cents. Coeus took ten calls: it writes its record
+first (the why, the done list, the stop list, the plan) before touching a file,
+reads the folder, writes the three files, runs the tests, and checks the done
+list, and on this run it also read its browser skill; the record costs calls
+on a three-file task and pays for itself on a forty-round one. Hermes took ten
+calls and twenty tool calls and re-sent a large prompt each time (206,000 of
+its 233,000 tokens were cache reads). Time is task in to answer out for Coeus
+and launch to exit for the others.
+
+## Results: round 1, kept for what it taught
+
+| Harness | Run | Green | Task in to answer out | Model calls | Tool calls | Tokens in | of which cached | Tokens out | of which reasoning | Cost | Logic | Plays | Tests | game.js |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| coeus | 1 | NO | 1 min 25 s | 1 | 0 | 146,933 | 0 | 2,171 | not counted | $0.63 | 0/6 | 0/4 | 0/0 | 0 |
 | opencode | 1 | yes | 44 s | 5 | 5 | 35,620 | 23,936 | 1,721 | 101 | $0.09 | 6/6 | 4/4 | 6/6 | 29 |
-| hermes | 1 | NO, never started | 0 s | 0 | 0 | 0 | 0 | 0 | 0 | $0.00 | 0/6 | 0/4 | 0/0 | 0 |
-| openclaw, codex runtime | 1 | yes | 1 min 11 s | not kept | 3 | not kept | not kept | not kept | not kept | not kept | 6/6 | 4/4 | 6/6 | 27 |
-| hermes | 2 | yes | 1 min 39 s | 7 | 13 | 156,659 | 131,072 | 2,052 | 407 | $0.20 | 6/6 | 4/4 | 6/6 | 28 |
-| openclaw, codex runtime | 2 | yes | 1 min 6 s | 4 | 3 | 69,576 | 50,816 | 1,561 | 9 | $0.13 | 6/6 | 4/4 | 6/6 | 25 |
-| openclaw, codex runtime | 3 | yes | 1 min 10 s | not kept | 3 | not kept | not kept | not kept | not kept | not kept | 6/6 | 4/4 | 6/6 | 25 |
-| **openclaw, its own loop** | own-1 | yes | 1 min 33 s | 6 | 5 | 105,945 | 86,144 | 2,022 | 200 | $0.15 | 6/6 | 4/4 | 6/6 | 30 |
+| hermes | 1 | NO | 0 s | 0 | 0 | 0 | 0 | 0 | 0 | $0.00 | 0/6 | 0/4 | 0/0 | 0 |
+| openclaw | 1 | yes | 1 min 11 s | None | 3 | 18,370 | 17,920 | 22 | not counted | $0.01 | 6/6 | 4/4 | 6/6 | 27 |
+| coeus | 2 | yes | 2 min 28 s | 10 | 21 | 69,085 | 16,000 | 3,167 | not counted | $0.28 | 6/6 | 4/4 | 6/6 | 28 |
+| opencode | 2 | yes | 1 min 16 s | 5 | 5 | 35,633 | 27,520 | 1,710 | 84 | $0.08 | 6/6 | 4/4 | 6/6 | 32 |
+| hermes | 2 | yes | 2 min 2 s | 10 | 20 | 233,087 | 206,080 | 2,327 | 385 | $0.24 | 6/6 | 4/4 | 6/6 | 26 |
+| openclaw | 2 | yes | 1 min 28 s | 5 | 5 | 88,313 | 69,120 | 1,805 | 106 | $0.14 | 6/6 | 4/4 | 6/6 | 28 |
+| openclaw | 3 | yes | 1 min 10 s | None | 3 | 18,316 | 17,920 | 22 | not counted | $0.01 | 6/6 | 4/4 | 6/6 | 25 |
+| openclaw | own-1 | yes | 1 min 33 s | 6 | 5 | 105,945 | 86,144 | 2,022 | 200 | $0.15 | 6/6 | 4/4 | 6/6 | 30 |
+
 
 ## What the numbers say
 

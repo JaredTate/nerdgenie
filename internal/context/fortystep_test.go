@@ -1,8 +1,6 @@
 package context
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -116,28 +114,15 @@ func (run *fixtureRun) resultsOfRound(t *testing.T, round testkit.FortyStepRound
 }
 
 // callsOfRound is what the model asked for in one round: the round's own tool,
-// and the task tool when the round writes to the record, in the same reply.
+// any further tool it asked for beside it, and the task tool when the round
+// writes to the record, all in the same reply.
 func callsOfRound(t *testing.T, round testkit.FortyStepRound) []contract.ToolCall {
 	t.Helper()
-	calls := []contract.ToolCall{{
-		ID: fmt.Sprintf("call_%d", round.Number), Name: round.ToolName, Input: asFixtureJSON(t, round.ToolInput),
-	}}
-	if round.TaskUpdate != nil {
-		calls = append(calls, contract.ToolCall{
-			ID: fmt.Sprintf("call_%d_task", round.Number), Name: contract.ToolTask, Input: asFixtureJSON(t, round.TaskUpdate),
-		})
+	calls := round.Calls()
+	if len(calls) == 0 {
+		t.Fatalf("round %d asked for no tools, and only the last round of the fixture does", round.Number)
 	}
 	return calls
-}
-
-// asFixtureJSON writes a tool call's arguments the way the fixture holds them.
-func asFixtureJSON(t *testing.T, value map[string]any) json.RawMessage {
-	t.Helper()
-	written, err := json.Marshal(value)
-	if err != nil {
-		t.Fatalf("cannot write the fixture's tool arguments as JSON: %v", err)
-	}
-	return written
 }
 
 // input is one turn's worth of build input from where the run has got to.

@@ -34,12 +34,29 @@ type FortyStepRound struct {
 	ToolName string `json:"toolName"`
 	// ToolInput is the arguments the model writes.
 	ToolInput map[string]any `json:"toolInput"`
+	// AlsoCalls are the further tools the model asks for in the same reply,
+	// which a round has when its calls do not depend on each other. They run
+	// after this round's own call and in the order they are written.
+	AlsoCalls []FortyStepCall `json:"alsoCalls,omitempty"`
 	// TaskUpdate is what the model writes into the record this round, through
 	// the task tool, or nil when it writes nothing.
 	TaskUpdate map[string]any `json:"taskUpdate"`
 	// ResultSummary is the one line the record keeps.
 	ResultSummary string `json:"resultSummary"`
 	// ResultText is the full text the log keeps, which "read r7" brings back.
+	ResultText string `json:"resultText"`
+}
+
+// FortyStepCall is one further tool call a round makes in the same reply as its
+// own, with the result that comes back from it.
+type FortyStepCall struct {
+	// ToolName is the tool the model asks for.
+	ToolName string `json:"toolName"`
+	// ToolInput is the arguments the model writes.
+	ToolInput map[string]any `json:"toolInput"`
+	// ResultSummary is the one line the record keeps.
+	ResultSummary string `json:"resultSummary"`
+	// ResultText is the full text the log keeps.
 	ResultText string `json:"resultText"`
 }
 
@@ -176,19 +193,33 @@ func (task FortyStepTask) stepFor(round FortyStepRound) Step {
 		step.Finish = contract.FinishEnd
 		return step
 	}
-	input, err := json.Marshal(round.ToolInput)
-	if err != nil {
-		input = []byte("{}")
+	step.ToolCalls = round.Calls()
+	return step
+}
+
+// Calls is everything one round asks for in its one reply, in order: the
+// round's own tool, the further tools it asks for beside it when they do not
+// depend on each other, and the task tool when the round writes the record.
+func (round FortyStepRound) Calls() []contract.ToolCall {
+	if round.ToolName == "" {
+		return nil
 	}
-	step.ToolCalls = []contract.ToolCall{{
+	calls := []contract.ToolCall{{
 		ID:    fmt.Sprintf("call_%d", round.Number),
 		Name:  round.ToolName,
-		Input: input,
+		Input: asJSON(round.ToolInput),
 	}}
-	if round.TaskUpdate != nil {
-		step.ToolCalls = append(step.ToolCalls, taskCallFor(round))
+	for at, also := range round.AlsoCalls {
+		calls = append(calls, contract.ToolCall{
+			ID:    fmt.Sprintf("call_%d_also_%d", round.Number, at+1),
+			Name:  also.ToolName,
+			Input: asJSON(also.ToolInput),
+		})
 	}
-	return step
+	if round.TaskUpdate != nil {
+		calls = append(calls, taskCallFor(round))
+	}
+	return calls
 }
 
 // taskCallFor is the record write one round makes, as a call to the task tool.
@@ -208,19 +239,33 @@ func taskCallFor(round FortyStepRound) contract.ToolCall {
 func (task FortyStepTask) ToolResults() []FortyStepResult {
 	results := []FortyStepResult{}
 	for _, round := range task.Rounds {
-		if round.ToolName == "" {
-			continue
-		}
-		results = append(results, FortyStepResult{
-			ID:      contract.ResultID(len(results) + 1),
-			Summary: round.ResultSummary,
-			Text:    round.ResultText,
-		})
-		if round.TaskUpdate != nil {
-			results = append(results, taskUpdateResult(round, contract.ResultID(len(results)+1)))
-		}
+		results = append(results, round.results(len(results))...)
 	}
 	return results
+}
+
+// results is what one round's calls give back, in the same order as Calls, with
+// the labels they carry once the rounds before it have had theirs.
+func (round FortyStepRound) results(before int) []FortyStepResult {
+	if round.ToolName == "" {
+		return nil
+	}
+	produced := []FortyStepResult{{
+		ID:      contract.ResultID(before + 1),
+		Summary: round.ResultSummary,
+		Text:    round.ResultText,
+	}}
+	for _, also := range round.AlsoCalls {
+		produced = append(produced, FortyStepResult{
+			ID:      contract.ResultID(before + len(produced) + 1),
+			Summary: also.ResultSummary,
+			Text:    also.ResultText,
+		})
+	}
+	if round.TaskUpdate != nil {
+		produced = append(produced, taskUpdateResult(round, contract.ResultID(before+len(produced)+1)))
+	}
+	return produced
 }
 
 // ResultsOfRound is what one round's tool calls produced, in order and with the
@@ -228,28 +273,15 @@ func (task FortyStepTask) ToolResults() []FortyStepResult {
 // record write when the round made one. A harness driving the fixture adds these
 // as it goes, and ends with exactly the list ToolResults returns.
 func (task FortyStepTask) ResultsOfRound(number int) []FortyStepResult {
-	produced := []FortyStepResult{}
-	at := 0
+	before := 0
 	for _, round := range task.Rounds {
-		if round.ToolName == "" {
-			continue
-		}
-		mine := round.Number == number
-		if mine {
-			produced = append(produced, task.ToolResults()[at])
-		}
-		at++
-		if round.TaskUpdate != nil {
-			if mine {
-				produced = append(produced, task.ToolResults()[at])
-			}
-			at++
-		}
-		if mine {
+		produced := round.results(before)
+		if round.Number == number {
 			return produced
 		}
+		before += len(produced)
 	}
-	return produced
+	return []FortyStepResult{}
 }
 
 // taskUpdateResult is what the task tool gives back for one record write: a one

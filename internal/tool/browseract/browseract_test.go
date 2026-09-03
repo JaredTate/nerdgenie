@@ -129,3 +129,35 @@ func TestAToolWithNoBrowserWiredInSaysSo(t *testing.T) {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
 	}
 }
+
+// TestAScrollStepRidesInABatch covers the one method the worker and the fake
+// already run that the model could not ask for: a scroll, with its direction
+// and how far, runs inside a batch; a direction the browser does not know, or
+// an amount past the cap, is refused with the rule named.
+func TestAScrollStepRidesInABatch(t *testing.T) {
+	tool, _ := newTool(t)
+
+	output, err := run(t, tool, map[string]any{
+		"intent": "read further down the page",
+		"steps": []any{
+			map[string]any{"method": "scroll", "direction": "down", "amount": 3, "expectation": "more of the page shows"},
+			map[string]any{"method": "scroll", "direction": "up", "expectation": "the top of the page shows"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("a batch with a scroll in it failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "scroll") {
+		t.Errorf("the output says nothing about the scroll: %q", output.Text)
+	}
+
+	for _, broken := range []map[string]any{
+		{"method": "scroll", "direction": "sideways", "expectation": "the page moves"},
+		{"method": "scroll", "direction": "down", "amount": browseract.MaxScrollAmount + 1, "expectation": "the page moves"},
+	} {
+		_, err := run(t, tool, map[string]any{"intent": "read further", "steps": []any{broken}})
+		if err == nil || !strings.Contains(err.Error(), "scroll") {
+			t.Errorf("the scroll step %v was not refused with the rule named: %v", broken, err)
+		}
+	}
+}

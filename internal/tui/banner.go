@@ -97,7 +97,7 @@ func (screen *Screen) bannerRows(height int) []string {
 // they fit, and the plain word where they do not, because a wordmark cut in half
 // is worse than a wordmark written small.
 func (screen *Screen) wordmarkLines() []string {
-	shape, fits := wordmarkRows(screen.width - 2*marginColumns)
+	shape, fits := wordmarkRows(screen.transcriptColumns() - 2*marginColumns)
 	if !fits {
 		return []string{screen.centredRow(styleBold, wordmarkText)}
 	}
@@ -121,9 +121,9 @@ func (screen *Screen) bannerWords() string {
 // centredRow draws one piece of text in the middle of the frame, cut to fit
 // rather than wrapped, because everything the banner draws is one line long.
 func (screen *Screen) centredRow(chosen style, text string) string {
-	text = cutTo(text, screen.width-2*marginColumns)
+	text = cutTo(text, screen.transcriptColumns()-2*marginColumns)
 	line := row{}
-	line.blanks(max((screen.width-displayWidth(text))/2, marginColumns))
+	line.blanks(max((screen.transcriptColumns()-displayWidth(text))/2, marginColumns))
 	line.add(chosen, text)
 	return line.render(screen.colors)
 }

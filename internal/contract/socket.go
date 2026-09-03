@@ -105,6 +105,11 @@ type SocketEnvelope struct {
 	// because the call behind it failed and is being tried again; the screen
 	// clears what it drew and the deltas that follow start the reply over.
 	Reset bool `json:"reset,omitempty"`
+	// Clear, on a reply, tells the screen to empty its transcript before it
+	// shows the reply, because the person asked for a clean screen with the
+	// clear command. What the program knows about itself stays where it was:
+	// the header, the status strip and the side panel are drawn from the status.
+	Clear bool `json:"clear,omitempty"`
 }
 
 // ApproveAlwaysText is the text an approve envelope carries when the person

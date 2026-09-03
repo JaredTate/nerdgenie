@@ -1,6 +1,9 @@
 package tui
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // maxTranscriptBlocks is how many blocks the transcript keeps. The oldest is
 // dropped when a new one arrives past the cap, because a screen that keeps every
@@ -35,6 +38,9 @@ type block struct {
 	text string
 	// shown is the card, when the kind is a card.
 	shown card
+	// repeats is how many times in a row the same call was made, when the kind
+	// is a tool line. Zero and one both mean once.
+	repeats int
 }
 
 // remember puts one block on the end of the transcript and drops the oldest when
@@ -52,7 +58,7 @@ func (screen *Screen) remember(added block) {
 // less its margins and the two-column gutter, and never more than the widest a
 // line is comfortable to read.
 func (screen *Screen) transcriptWidth() int {
-	width := screen.width - 2*marginColumns - gutterColumns
+	width := screen.transcriptColumns() - 2*marginColumns - gutterColumns
 	if width > widestTranscript {
 		width = widestTranscript
 	}
@@ -74,15 +80,23 @@ func keepTail(text string) string {
 }
 
 // transcriptRows draws the newest blocks, with one blank line between blocks,
-// and stops as soon as it has as many rows as were asked for. Drawing from the
-// bottom up is what makes a frame cost the same on the thousandth block as on
-// the first.
+// and stops as soon as it has as many rows as were asked for. A block that would
+// fit in a transcript of its own but not in the room left at the top is not
+// drawn at all, because a bubble cut in two is worse than a bubble not shown:
+// the frame is left holding a lid with no box under it, which is what the second
+// trial saw. A block taller than the whole transcript is drawn anyway and cut,
+// because there is no room for it whole anywhere and its newest rows are the
+// ones being read. Drawing from the bottom up is what makes a frame cost the
+// same on the thousandth block as on the first.
 func (screen *Screen) transcriptRows(wanted int) []string {
 	gathered := []string{}
 	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
 		lines := screen.blockLines(screen.blocks[at])
 		if at > 0 && blankBetween(screen.blocks[at-1].kind, screen.blocks[at].kind) {
 			lines = append([]string{""}, lines...)
+		}
+		if len(gathered)+len(lines) > wanted && len(lines) <= wanted {
+			break
 		}
 		gathered = append(lines, gathered...)
 	}
@@ -107,7 +121,7 @@ func (screen *Screen) blockLines(item block) []string {
 	case blockPerson:
 		return screen.personLines(item.text)
 	case blockTool:
-		return screen.toolLines(item.text)
+		return screen.toolLines(item)
 	case blockCard:
 		return screen.cardLines(item.shown)
 	case blockReply:
@@ -137,8 +151,15 @@ func (screen *Screen) replyLines(text string) []string {
 
 // toolLines draws one tool call as a small filled pill holding the tool, its
 // main argument, and a short summary, and never the result text, which
-// "/tasks 17" and "read r3" show on purpose.
-func (screen *Screen) toolLines(text string) []string {
+// "/tasks 17" and "read r3" show on purpose. A call that was made again and
+// again in a row is one pill with a count on the end, such as "× 13", because
+// thirteen rows saying one thing tell the person less than one row that says
+// how many times.
+func (screen *Screen) toolLines(item block) []string {
+	text := item.text
+	if item.repeats > 1 {
+		text += " " + string(repeatGlyph) + " " + strconv.Itoa(item.repeats)
+	}
 	return screen.pillRows(text)
 }
 

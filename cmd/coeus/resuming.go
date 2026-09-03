@@ -28,12 +28,6 @@ const maxScreensRemembered = 64
 // long log of abandoned tasks cannot make the start slow.
 const maxTasksLookedBackAt = maxScreensRemembered
 
-// screenOf is the name a message's screen goes by: its channel and its sender,
-// which is what tells the terminal from each person who writes over Signal.
-func screenOf(message contract.Inbound) string {
-	return message.Channel + ":" + message.Sender
-}
-
 // theWordsForCarryingOn are the whole messages that mean "pick up the task you
 // put down". A person who wants the stopped task back says one of these and
 // nothing else; anything longer is a new ask, even when it begins with one of
@@ -68,6 +62,25 @@ type screenTasks struct {
 // newScreenTasks returns an empty memory of what each screen was last doing.
 func newScreenTasks() *screenTasks {
 	return &screenTasks{newest: map[string]endedTask{}}
+}
+
+// screenNamed is the name one screen goes by in this memory: the channel and
+// the sender, joined, so that the terminal is one screen and every person
+// writing over Signal is another.
+func screenNamed(channel string, sender string) string {
+	return channel + ":" + sender
+}
+
+// forget drops what this screen's newest task was doing, so that the next
+// message from that screen starts a fresh task whatever the old one was waiting
+// for. It is what the clear command does, because a person who has emptied the
+// screen does not want their next words read as the answer to a question they
+// can no longer see.
+func (tasks *screenTasks) forget(screen string) {
+	tasks.guard.Lock()
+	defer tasks.guard.Unlock()
+	delete(tasks.newest, screen)
+	tasks.spokenLast = slices.DeleteFunc(tasks.spokenLast, func(named string) bool { return named == screen })
 }
 
 // remember writes down where this screen's newest task ended. It is called with
@@ -224,7 +237,7 @@ func screenOfTheTask(ctx context.Context, store contract.Store, number string) (
 		if err := json.Unmarshal(event.Body, &message); err != nil || message.Channel == "" {
 			continue
 		}
-		return screenOf(message), true
+		return screenNamed(message.Channel, message.Sender), true
 	}
 	return "", false
 }

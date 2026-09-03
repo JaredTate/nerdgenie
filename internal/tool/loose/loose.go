@@ -155,9 +155,20 @@ func Action(written string) string {
 	return strings.ReplaceAll(folded, " ", "_")
 }
 
+// nameKey is what two field names are compared by: the letters of the name in
+// lower case, with the dashes, spaces and underscores between its words left
+// out, so that old_string, oldString and Old-String are one name.
+func nameKey(name string) string {
+	folded := strings.ToLower(strings.TrimSpace(name))
+	for _, between := range []string{"_", "-", " ", "."} {
+		folded = strings.ReplaceAll(folded, between, "")
+	}
+	return folded
+}
+
 // value is what the call wrote under the first of these names it carries, and
-// the name it was written under. A name is matched exactly first and then
-// folded, so that Path and file-path find the field as well.
+// the name it was written under. A name is matched exactly first and then by its
+// letters alone, so that Path, file-path and filePath find the field as well.
 func (fields *Fields) value(names []string) (json.RawMessage, string, bool) {
 	for _, name := range names {
 		if raw, held := fields.written[name]; held && !isNothing(raw) {
@@ -167,7 +178,7 @@ func (fields *Fields) value(names []string) (json.RawMessage, string, bool) {
 	for _, name := range names {
 		for _, key := range fields.keys() {
 			raw := fields.written[key]
-			if Action(key) == Action(name) && !isNothing(raw) {
+			if nameKey(key) == nameKey(name) && !isNothing(raw) {
 				return raw, key, true
 			}
 		}
@@ -196,9 +207,9 @@ func (fields *Fields) complain(name string, wanted string, raw json.RawMessage) 
 // nearest is the key the call wrote that looks like a wrong guess at the name,
 // which is one that holds the name or is held by it once both are folded.
 func (fields *Fields) nearest(name string) (string, bool) {
-	wanted := Action(name)
+	wanted := nameKey(name)
 	for _, key := range fields.keys() {
-		folded := Action(key)
+		folded := nameKey(key)
 		if folded == wanted {
 			continue
 		}

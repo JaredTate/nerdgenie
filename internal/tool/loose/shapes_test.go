@@ -40,9 +40,12 @@ func TestAListNestedDeeperThanTheReaderLooksIsRefusedRatherThanFollowed(t *testi
 }
 
 func TestAFieldWrittenUnderAKeyOfADifferentCaseIsStillFound(t *testing.T) {
-	fields := read(t, `{"File-Path":"/tmp/x"}`)
-	if path, found := fields.Text("file_path"); !found || path != "/tmp/x" {
-		t.Errorf("the field written as File-Path read as %q, found %v", path, found)
+	spellings := []string{"File-Path", "filePath", "FILE_PATH", "file path"}
+	for _, spelling := range spellings {
+		fields := read(t, `{"`+spelling+`":"/tmp/x"}`)
+		if path, found := fields.Text("file_path"); !found || path != "/tmp/x" {
+			t.Errorf("the field written as %s read as %q, found %v", spelling, path, found)
+		}
 	}
 }
 

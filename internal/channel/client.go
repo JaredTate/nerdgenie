@@ -203,11 +203,11 @@ func (socket *Socket) enqueue(attached *client, envelope contract.SocketEnvelope
 	}
 	message := contract.Inbound{
 		ID:          envelope.ID,
-		Sender:      TerminalChannelName,
+		Sender:      contract.TerminalChannelName,
 		Text:        text,
 		Attachments: envelope.Attachments,
 		Received:    socket.options.Clock.Now(),
-		Channel:     TerminalChannelName,
+		Channel:     contract.TerminalChannelName,
 	}
 
 	if _, err := socket.options.Queue.Add(attached.ctx, message); err != nil {

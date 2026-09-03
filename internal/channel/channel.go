@@ -16,11 +16,6 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// TerminalChannelName is the name the local socket answers to. It is the name
-// the terminal and every other screen attached to the socket send under, and the
-// name a command that may only run in the terminal is checked against.
-const TerminalChannelName = "terminal"
-
 // The socket is the first real channel, so the compiler is asked to say at once
 // if it ever stops matching the contract every other package writes against.
 var _ contract.Channel = (*Socket)(nil)
@@ -37,8 +32,11 @@ type watcher struct {
 }
 
 // Name is the channel's name, which every message from a screen arrives under.
+// It is contract.TerminalChannelName and nothing of this package's own, because
+// a command that may only run in the terminal is checked against that one name
+// and two spellings of it would let such a command run over Signal.
 func (socket *Socket) Name() string {
-	return TerminalChannelName
+	return contract.TerminalChannelName
 }
 
 // Receive is the live copy of everything the socket takes in. Every message a

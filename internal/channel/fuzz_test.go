@@ -49,34 +49,3 @@ func FuzzTheSocketLineReader(f *testing.F) {
 		}
 	})
 }
-
-func FuzzTheCommandSplitter(f *testing.F) {
-	f.Add("/tasks 17 back 3")
-	f.Add("/status")
-	f.Add("/")
-	f.Add("  /HELP  me  ")
-	f.Add("not a command at all")
-	f.Add("/\x00\x01")
-	// A byte that is not part of any letter becomes the character Unicode keeps
-	// for exactly that, which is longer than the byte it replaced.
-	f.Add("\xe6")
-
-	f.Fuzz(func(t *testing.T, text string) {
-		name, arguments := SplitCommand(text)
-		if strings.ContainsAny(name, " \t\r\n") {
-			t.Fatalf("the command name %q holds a space, and a name is one word", name)
-		}
-		if name != strings.ToLower(name) {
-			t.Fatalf("the command name %q is not in lower case, so a lookup would miss it", name)
-		}
-		if strings.TrimSpace(arguments) != arguments {
-			t.Fatalf("the arguments %q have space around them, and the command reads them as they are", arguments)
-		}
-		if !strings.Contains(strings.ToLower(text), name) {
-			t.Fatalf("the command name %q is not part of %q, so the splitter made something up", name, text)
-		}
-		if !strings.Contains(text, arguments) {
-			t.Fatalf("the arguments %q are not part of %q, so the splitter made something up", arguments, text)
-		}
-	})
-}

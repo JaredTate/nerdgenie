@@ -29,7 +29,9 @@ type Fact struct {
 // a folder for anything larger, and a full-text index over all of it plus every
 // past message.
 type Memory interface {
-	// Search finds facts matching a query, newest first, up to a limit.
+	// Search finds what matches a query, the best match first and, among matches
+	// that score the same, the newest first, up to a limit; a query with no words
+	// in it returns the newest.
 	Search(ctx context.Context, query string, limit int) ([]Fact, error)
 	// Get returns one fact by its id.
 	Get(ctx context.Context, id string) (Fact, error)

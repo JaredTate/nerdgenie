@@ -552,6 +552,29 @@ can move the cursor, repaint the frame, or make a row wider than it measures;
 the only escape codes in a frame are the screen's own colours and the picture
 protocols on a screenshot.
 
+**Scrolling.** `scroll.go` is how the transcript scrolls. `View` asks Bubble Tea
+for cell-motion mouse reporting, which is what makes a terminal send the wheel,
+and Bubble Tea turns it off again when the screen quits; one notch of the wheel,
+Shift+Up or Shift+Down moves the view three rows, Page Up or Page Down ten, and
+the four keys are taken before a card, the palette or the masked prompt sees
+them, so a person can read back whoever holds the other keys. The view is
+measured in rows up from the newest row, so a view left alone rests on the
+newest content, and the frame clamps it at the oldest row, because the frame is
+the one place that knows how many rows there are. While the view is scrolled up
+the status strip carries `↑ older`, and new output does not pull the view down:
+`remember` adds the rows of every new block to the distance from the newest
+row, and `setText`, which every in-place change to a block goes through — a
+streamed reply growing, a pill taking its result or its repeat count — adds the
+rows the change added or took away, so the rows being read stay exactly where
+they are. The person's own message, a card that takes the keys, and a scroll
+back to the bottom bring the view to the newest row. The rule that a block is
+drawn whole or not at all holds only while the view rests on the newest row; a
+view scrolled up is a window moved by rows, and the blocks at its edges are cut.
+`TestTheWheelScrollsTheWholeProgramAndMouseReportingIsOffWhenItQuits` in
+`scroll_test.go` runs the whole program through `Run` on a pipe with a fake
+link, feeds it the bytes a terminal sends for the wheel, and checks that the
+mark appears and that the reporting is off by the time it quits.
+
 **The look.** `style.go` holds the DigiByte palette as six hex digits each —
 a light blue ground behind every row, white letters, a pale blue for the quiet
 parts, DigiByte's own blue for the filled shapes, gold for the card that must be

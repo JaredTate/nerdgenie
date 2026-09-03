@@ -90,9 +90,8 @@ func (screen *Screen) countTheCallAgain(line string) bool {
 	if newest.kind != blockTool || callOf(newest.text) != callOf(line) {
 		return false
 	}
-	newest.text = keepTail(line)
 	newest.repeats = max(newest.repeats, 1) + 1
-	screen.scrollBack = 0
+	screen.setText(newest, line)
 	return true
 }
 
@@ -119,7 +118,7 @@ func (screen *Screen) replacePill(older string, newer string) bool {
 	}
 	for at := len(screen.blocks) - 1; at >= 0; at-- {
 		if screen.blocks[at].kind == blockTool && screen.blocks[at].text == older {
-			screen.blocks[at].text = keepTail(newer)
+			screen.setText(&screen.blocks[at], newer)
 			return true
 		}
 	}

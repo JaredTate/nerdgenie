@@ -1142,6 +1142,8 @@ internal/tui/repeat_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go
+internal/tui/scroll.go
+internal/tui/scroll_test.go
 internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go
@@ -1166,6 +1168,7 @@ internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
 internal/tui/testdata/panel-idle-120x36.txt
 internal/tui/testdata/panel-task-120x36.txt
+internal/tui/testdata/scrolled-up-80x24.txt
 internal/tui/testdata/themed-banner-120x40.txt
 internal/tui/testdata/themed-banner-80x24.txt
 internal/tui/testdata/themed-conversation-120x40.txt

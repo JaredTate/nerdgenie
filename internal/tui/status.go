@@ -63,8 +63,9 @@ func (screen *Screen) busy() bool {
 }
 
 // statusRow draws the one row at the bottom: the spinner when one is due, the
-// state in plain words, the budget while a task runs, and the key hints on the
-// right.
+// state in plain words, the budget while a task runs, the older mark while the
+// person is scrolled up, so that they know why new text is not appearing, and
+// the key hints on the right.
 func (screen *Screen) statusRow() string {
 	line := row{}
 	line.blanks(marginColumns)
@@ -82,7 +83,7 @@ func (screen *Screen) statusRow() string {
 		line.add(styleDim, empty)
 	}
 	if screen.scrolledUp() {
-		line.add(styleDim, " · "+string(moreGlyph)+" more")
+		line.add(styleDim, " · "+string(olderGlyph)+" older")
 	}
 	hints := screen.keyHints()
 	if hints != "" && screen.width >= narrowWidth {

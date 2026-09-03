@@ -258,6 +258,8 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		screen.resize(typed.Width, typed.Height)
 	case tea.KeyPressMsg:
 		return screen, screen.pressed(typed)
+	case tea.MouseWheelMsg:
+		screen.wheeled(typed)
 	case tickMessage:
 		screen.beat(typed.at)
 		return screen, screen.nextTick()
@@ -272,10 +274,14 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View is what Bubble Tea puts on the terminal: the frame below, on the
-// alternate screen, so that the person's shell is still there when they quit.
+// alternate screen, so that the person's shell is still there when they quit,
+// with the mouse reported cell by cell, so that the terminal sends the wheel.
+// Bubble Tea turns both off again when the screen quits, which leaves the
+// shell as it was found.
 func (screen *Screen) View() tea.View {
 	shown := tea.NewView(screen.frame())
 	shown.AltScreen = true
+	shown.MouseMode = tea.MouseModeCellMotion
 	return shown
 }
 

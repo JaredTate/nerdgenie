@@ -13,9 +13,6 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// scrollRows is how far one page-up or page-down moves the transcript.
-const scrollRows = 10
-
 // heldWithControl says whether one letter was pressed with the control key held
 // and nothing else, which is how Ctrl+C and Ctrl+J are told apart from the
 // letters themselves.
@@ -30,6 +27,9 @@ func (screen *Screen) pressed(key tea.KeyPressMsg) tea.Cmd {
 		return screen.pressedQuit()
 	}
 	screen.quitArmed = false
+	if screen.scrolledWithTheKey(key) {
+		return nil
+	}
 	if screen.input.secret {
 		if screen.pressedAtTheMaskedPrompt(key) {
 			return nil
@@ -45,7 +45,8 @@ func (screen *Screen) pressed(key tea.KeyPressMsg) tea.Cmd {
 	if screen.paletteOpen && screen.pressedWhileThePaletteIsOpen(key) {
 		return nil
 	}
-	if screen.focusedCard() != nil && screen.pressedWhileACardWaits(key) {
+	if screen.focusedCard() != nil {
+		screen.pressedWhileACardWaits(key)
 		return nil
 	}
 	return screen.pressedInTheInputBox(key)
@@ -65,22 +66,16 @@ func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyPressMsg) bool {
 	return false
 }
 
-// pressedWhileACardWaits holds the single-key answers a card takes. It says
-// false only for the keys that still belong to the screen as a whole, such as
-// scrolling, so that stray typing never lands in a box the person cannot use.
-func (screen *Screen) pressedWhileACardWaits(key tea.KeyPressMsg) bool {
-	switch key.Code {
-	case tea.KeyPgUp, tea.KeyPgDown:
-		return false
-	case tea.KeyEsc:
+// pressedWhileACardWaits holds the single-key answers a card takes. Every other
+// key is swallowed, so that stray typing never lands in a box the person cannot
+// use; the keys that scroll the transcript were taken before the card saw them.
+func (screen *Screen) pressedWhileACardWaits(key tea.KeyPressMsg) {
+	if key.Code == tea.KeyEsc {
 		screen.withdrawFromCard()
-		return true
+		return
 	}
 	// A key that stands for no printable character at all, such as an arrow or
-	// a control combination, is none of the three answers and is swallowed.
-	if key.Text == "" {
-		return true
-	}
+	// a control combination, is none of the three answers.
 	switch key.Text {
 	case "a":
 		screen.answerCard(contract.AnswerOnce, "")
@@ -89,7 +84,6 @@ func (screen *Screen) pressedWhileACardWaits(key tea.KeyPressMsg) bool {
 	case "r":
 		screen.askWhyNot()
 	}
-	return true
 }
 
 // pressedWhileGivingAReason holds the two keys that end the reason prompt, and
@@ -140,10 +134,6 @@ func (screen *Screen) editWithTheKey(key tea.KeyPressMsg) {
 		screen.recallBy(-1)
 	case tea.KeyDown:
 		screen.recallBy(1)
-	case tea.KeyPgUp:
-		screen.scrollBy(scrollRows)
-	case tea.KeyPgDown:
-		screen.scrollBy(-scrollRows)
 	case tea.KeyEsc:
 		screen.pressedStop()
 	default:
@@ -189,7 +179,8 @@ func (screen *Screen) pressedQuit() tea.Cmd {
 
 // sendWhatWasTyped sends the input box to the program: as a slash command when
 // it starts with a slash, and as a message otherwise. The person's own words go
-// into the transcript at once, because they are what the person just did.
+// into the transcript at once, because they are what the person just did, and
+// the view comes back to the newest row to show them.
 func (screen *Screen) sendWhatWasTyped() {
 	text := screen.input.text()
 	if strings.TrimSpace(text) == "" {
@@ -197,6 +188,7 @@ func (screen *Screen) sendWhatWasTyped() {
 	}
 	screen.input.clear()
 	screen.rememberTyped(text)
+	screen.showTheNewest()
 	screen.remember(block{kind: blockPerson, text: text})
 	screen.answerTheQuestion()
 

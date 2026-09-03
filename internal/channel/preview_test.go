@@ -204,8 +204,8 @@ func TestTwoPreviewsUnderTheSameNumberAreRefusedRatherThanLeftHanging(t *testing
 	if err == nil {
 		t.Fatal("a second preview took the number the first is waiting on, and one of them could never be answered")
 	}
-	if answer != contract.AnswerReject {
-		t.Errorf("the second preview came back as %q, want %q", answer, contract.AnswerReject)
+	if answer.Answer != contract.AnswerReject {
+		t.Errorf("the second preview came back as %q, want %q", answer.Answer, contract.AnswerReject)
 	}
 
 	// The first is still waiting and is still the one that number answers.

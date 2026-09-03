@@ -95,3 +95,26 @@ func TestMarkdownInAReplyIsRenderedLightly(t *testing.T) {
 		}
 	}
 }
+
+// TestAResetTakesThePartialReplyOffTheScreen covers the retry: the program has
+// streamed part of an answer, gives the attempt up, and sends a delta that
+// withdraws it; the frame must show none of the withdrawn words, and the pieces
+// that follow start the reply over.
+func TestAResetTakesThePartialReplyOffTheScreen(t *testing.T) {
+	screen, clock := newTestScreen(80, 24)
+	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Text: "the wrong start "})
+	advance(screen, clock, heartbeatInterval)
+	if !strings.Contains(screen.View(), "the wrong start") {
+		t.Fatalf("the partial reply was not drawn before the reset")
+	}
+	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Reset: true})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketDelta, Text: "the right start "})
+	advance(screen, clock, heartbeatInterval)
+	frame := screen.View()
+	if strings.Contains(frame, "the wrong start") {
+		t.Errorf("the withdrawn words are still on the screen:\n%s", frame)
+	}
+	if !strings.Contains(frame, "the right start") {
+		t.Errorf("the reply started over is not on the screen:\n%s", frame)
+	}
+}

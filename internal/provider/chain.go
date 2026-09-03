@@ -35,17 +35,16 @@ func (chain *Chain) Name() string { return chain.models[0].Name() }
 // the working context is sized against.
 func (chain *Chain) ContextLength() int { return chain.models[0].ContextLength() }
 
-// Send tries each model in turn until one answers. Each model streams into a
-// gate of its own, so that the caller is only ever handed the words of the model
-// that answered.
+// Send tries each model in turn until one answers. The caller sees each
+// model's words as they arrive, and a reset before the next model's first word
+// when the last one had streamed text, so a screen can withdraw what it drew.
 func (chain *Chain) Send(ctx context.Context, request contract.Request,
 	onDelta func(delta string)) (contract.Reply, error) {
-	gate := newDeltaGate(onDelta)
+	gate := newDeltaGate(onDelta, chain.options.OnReset)
 	lastError := error(nil)
 	for at, model := range chain.models {
 		reply, err := model.Send(ctx, request, gate.forAttempt())
 		if err == nil {
-			gate.deliver()
 			// The reply names the model that answered, which is the whole point
 			// of a chain: the caller asked for the first one and may have been
 			// answered by the third.

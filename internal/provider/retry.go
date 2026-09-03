@@ -57,17 +57,16 @@ func (model *retryingModel) Name() string { return model.inner.Name() }
 func (model *retryingModel) ContextLength() int { return model.inner.ContextLength() }
 
 // Send makes the call, and makes it again while there are attempts left and the
-// failure is one another attempt could get past. Each attempt streams into a
-// gate of its own, so that the caller is only ever handed the words of the
-// attempt that worked.
+// failure is one another attempt could get past. The caller sees each attempt's
+// words as they arrive, and a reset before the next attempt's first word when
+// the last one had streamed text, so a screen can withdraw what it drew.
 func (model *retryingModel) Send(ctx context.Context, request contract.Request,
 	onDelta func(delta string)) (contract.Reply, error) {
-	gate := newDeltaGate(onDelta)
+	gate := newDeltaGate(onDelta, model.options.OnReset)
 	lastError := error(nil)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		reply, err := model.inner.Send(ctx, request, gate.forAttempt())
 		if err == nil {
-			gate.deliver()
 			return reply, nil
 		}
 		lastError = err

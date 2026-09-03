@@ -267,11 +267,9 @@ func TestARetryNeverReplaysTheTextTheFailedAttemptStreamed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("building the provider failed: %v", err)
 	}
-	model := provider.WithRetries(base, options)
-
 	streamed := &strings.Builder{}
 	options.OnReset = streamed.Reset
-	model = provider.WithRetries(base, options)
+	model := provider.WithRetries(base, options)
 	done := sendInBackgroundCollecting(model, requestWithEverything(), streamed)
 	waitForNotes(t, recorder, 1)
 	waitForSleeper(t, clock, 1)

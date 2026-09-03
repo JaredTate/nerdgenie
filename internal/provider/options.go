@@ -40,6 +40,12 @@ const anthropicVersion = "2023-06-01"
 // are the same for all three kinds, so that the fallback chain can build a list
 // of models from one set of them.
 type Options struct {
+	// OnReset is called by the retry wrapper and the fallback chain before a
+	// new attempt's first word when the attempt before it had streamed text,
+	// so that whoever shows the reply as it arrives can withdraw the part that
+	// belonged to an attempt that was given up on. It is nil when nobody shows
+	// deltas as they arrive.
+	OnReset func()
 	// Clock is where every wait in this package is measured, so that a test can
 	// control it. There is no default, because a provider that read the real
 	// clock would make its tests wait.

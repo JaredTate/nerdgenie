@@ -1,63 +1,50 @@
 package provider
 
-import "strings"
-
-// maxHeldDeltaPieces is how many pieces of one attempt's text are kept apart
-// from one another. Past that they are joined into one piece, so that the memory
-// a gate uses follows the size of the text rather than the number of pieces a
-// server chose to send it in.
-const maxHeldDeltaPieces = 4096
-
-// deltaGate hands the caller the pieces of text one attempt streamed, and hands
-// them on only once that attempt has succeeded.
+// deltaGate hands the caller the pieces of text an attempt streams, as they
+// arrive, and tells the caller to withdraw them when that attempt is given up
+// on and another begins.
 //
 // The retry wrapper and the fallback chain both make more than one attempt at
 // the same request, and a stream can fail after it has already sent some of the
-// model's words. Passing those words straight on would leave a caller that had
-// seen "Hello " from an attempt which was thrown away and then "Hello world"
-// from the attempt that worked, while the reply itself says only "Hello world":
-// the deltas and the reply would no longer be the same text. So an attempt's
-// pieces wait here until that attempt is known to be the one whose reply is
-// going back to the caller. The cost is that the words arrive when the attempt
-// finishes rather than as they are written, and it is the price of never showing
-// anyone text that was discarded.
+// model's words. A screen showing those words as they arrive would otherwise
+// draw "Hello " from an attempt that was thrown away and then "Hello world"
+// from the one that worked. So the gate remembers whether the attempt in
+// progress has streamed anything, and before the next attempt's first word it
+// calls the reset, which is the caller's chance to take the partial reply off
+// the screen. The words still arrive as they are written, which is what the
+// design promises the person watching.
 type deltaGate struct {
 	// onDelta is the caller's own delta function, or nil when the caller asked
 	// for no deltas at all.
 	onDelta func(delta string)
-	// held is what the attempt in progress has streamed so far.
-	held []string
+	// onReset is called before a new attempt's first word when the last one
+	// streamed text, or nil when nobody shows the text as it arrives.
+	onReset func()
+	// streamed says whether the attempt in progress has sent any text on.
+	streamed bool
 }
 
 // newDeltaGate returns the gate that one call's attempts stream through.
-func newDeltaGate(onDelta func(delta string)) *deltaGate {
-	return &deltaGate{onDelta: onDelta}
+func newDeltaGate(onDelta func(delta string), onReset func()) *deltaGate {
+	return &deltaGate{onDelta: onDelta, onReset: onReset}
 }
 
-// forAttempt returns the delta function to hand to one attempt, forgetting
-// whatever an earlier attempt streamed. It is nil when the caller wants no
-// deltas, so that a provider gathers no text nobody asked for.
+// forAttempt returns the delta function to hand to one attempt, first
+// withdrawing whatever an earlier attempt streamed. It is nil when the caller
+// wants no deltas, so that a provider gathers no text nobody asked for.
 func (gate *deltaGate) forAttempt() func(delta string) {
-	gate.held = nil
+	if gate.streamed && gate.onReset != nil {
+		gate.onReset()
+	}
+	gate.streamed = false
 	if gate.onDelta == nil {
 		return nil
 	}
-	return gate.hold
+	return gate.pass
 }
 
-// hold keeps one piece of the text the attempt in progress is streaming.
-func (gate *deltaGate) hold(delta string) {
-	if len(gate.held) >= maxHeldDeltaPieces {
-		gate.held = []string{strings.Join(gate.held, "")}
-	}
-	gate.held = append(gate.held, delta)
-}
-
-// deliver hands the caller everything the attempt that has just succeeded
-// streamed, in the order it arrived.
-func (gate *deltaGate) deliver() {
-	for _, piece := range gate.held {
-		gate.onDelta(piece)
-	}
-	gate.held = nil
+// pass hands one piece of the attempt's text straight to the caller.
+func (gate *deltaGate) pass(delta string) {
+	gate.streamed = true
+	gate.onDelta(delta)
 }

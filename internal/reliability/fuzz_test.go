@@ -95,8 +95,8 @@ func FuzzTheMarkerFilesUnderTheRunFolder(f *testing.F) {
 			t.Fatalf("a breaker file that could not be read tripped the breaker anyway: %v", err)
 		}
 		reliability.NewDrain(home, clock).Requested()
-		if _, err := reliability.NewSentinel(home, clock).Start(); err != nil {
-			t.Fatalf("starting over these marker files failed: %v", err)
+		if _, err := reliability.PrepareDatabase(context.Background(), reliability.RecoverySettings{Home: home, Clock: clock}); err != nil {
+			t.Fatalf("preparing the database over these marker files failed: %v", err)
 		}
 	})
 }

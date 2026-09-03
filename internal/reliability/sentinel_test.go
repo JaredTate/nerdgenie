@@ -1,6 +1,7 @@
 package reliability_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,21 +13,25 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// aSentinel builds the lifecycle sentinel on a temporary home.
-func aSentinel(t *testing.T) (*reliability.Sentinel, contract.Home) {
+// whatANewLifeFound runs the recovery and starts the guard the way the program
+// does, and hands back what that start found.
+func whatANewLifeFound(t *testing.T, home contract.Home) reliability.Startup {
 	t.Helper()
-	home := testkit.NewTempHome(t)
-	return reliability.NewSentinel(home, testkit.NewFakeClock(startOfTime)), home
-}
-
-func TestAFirstStartOnAFreshHomeIsACleanOne(t *testing.T) {
-	sentinel, home := aSentinel(t)
-
-	unclean, err := sentinel.Start()
+	aNewLife(t, home)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
+	found, err := guard.Start(context.Background())
 	if err != nil {
 		t.Fatalf("starting failed: %v", err)
 	}
-	if unclean {
+	return found
+}
+
+func TestAFirstStartOnAFreshHomeIsACleanOne(t *testing.T) {
+	home := testkit.NewTempHome(t)
+
+	found := whatANewLifeFound(t, home)
+
+	if found.UncleanExit {
 		t.Errorf("the first start on a fresh home was called unclean")
 	}
 	if _, err := os.Stat(filepath.Join(home.RunFolder(), reliability.SentinelFileName)); err != nil {
@@ -35,77 +40,85 @@ func TestAFirstStartOnAFreshHomeIsACleanOne(t *testing.T) {
 }
 
 func TestAStartAfterACleanExitIsACleanOne(t *testing.T) {
-	sentinel, _ := aSentinel(t)
-	if _, err := sentinel.Start(); err != nil {
+	home := testkit.NewTempHome(t)
+	aNewLife(t, home)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
+	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("the first start failed: %v", err)
 	}
-	if err := sentinel.MarkExited(); err != nil {
-		t.Fatalf("marking the clean exit failed: %v", err)
+	if err := guard.Stop(); err != nil {
+		t.Fatalf("stopping cleanly failed: %v", err)
 	}
 
-	unclean, err := sentinel.Start()
-	if err != nil {
-		t.Fatalf("the second start failed: %v", err)
-	}
-	if unclean {
+	found := whatANewLifeFound(t, home)
+
+	if found.UncleanExit {
 		t.Errorf("a start after a clean exit was called unclean")
 	}
 }
 
 func TestAStartWithTheSentinelStillThereIsAnUncleanOne(t *testing.T) {
-	sentinel, _ := aSentinel(t)
-	if _, err := sentinel.Start(); err != nil {
-		t.Fatalf("the first start failed: %v", err)
-	}
+	home := testkit.NewTempHome(t)
+	aNewLife(t, home)
 
-	unclean, err := sentinel.Start()
-	if err != nil {
-		t.Fatalf("the second start failed: %v", err)
-	}
-	if !unclean {
+	// Nothing marked an exit, so the sentinel of that life is still there.
+	found := whatANewLifeFound(t, home)
+
+	if !found.UncleanExit {
 		t.Errorf("a start that found the sentinel of the last life was called clean")
 	}
 }
 
 func TestADamagedSentinelStillMeansTheLastExitWasUnclean(t *testing.T) {
-	sentinel, home := aSentinel(t)
+	home := testkit.NewTempHome(t)
 	path := filepath.Join(home.RunFolder(), reliability.SentinelFileName)
 	if err := os.WriteFile(path, []byte("half a sen"), contract.DataFileMode); err != nil {
 		t.Fatalf("writing the damaged sentinel failed: %v", err)
 	}
 
-	unclean, err := sentinel.Start()
-	if err != nil {
-		t.Fatalf("starting over a damaged sentinel failed: %v", err)
-	}
-	if !unclean {
+	found := whatANewLifeFound(t, home)
+
+	if !found.UncleanExit {
 		t.Errorf("a sentinel nobody can read was taken as a clean exit")
 	}
 }
 
-func TestMarkingTheExitTwiceIsNotAFailure(t *testing.T) {
-	sentinel, _ := aSentinel(t)
-	if _, err := sentinel.Start(); err != nil {
-		t.Fatalf("starting failed: %v", err)
-	}
+func TestStoppingTwiceIsNotAFailure(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	aNewLife(t, home)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
 
-	if err := sentinel.MarkExited(); err != nil {
-		t.Fatalf("marking the exit failed: %v", err)
+	if err := guard.Stop(); err != nil {
+		t.Fatalf("stopping failed: %v", err)
 	}
-	if err := sentinel.MarkExited(); err != nil {
-		t.Errorf("marking the exit a second time failed: %v", err)
+	if err := guard.Stop(); err != nil {
+		t.Errorf("stopping a second time failed: %v", err)
 	}
 }
 
-func TestTheSentinelSaysWhenItCannotBeWritten(t *testing.T) {
+func TestTheRecoverySaysWhenTheSentinelCannotBeWritten(t *testing.T) {
 	home := contract.NewHome(filepath.Join(t.TempDir(), "cannot-be-written-in"))
 	if err := os.Mkdir(home.Root, 0o500); err != nil {
 		t.Fatalf("making the read-only home failed: %v", err)
 	}
-	sentinel := reliability.NewSentinel(home, testkit.NewFakeClock(startOfTime))
 
-	if _, err := sentinel.Start(); err == nil {
-		t.Errorf("the sentinel said nothing when it could not be written")
+	_, err := reliability.PrepareDatabase(context.Background(), reliability.RecoverySettings{
+		Home:  home,
+		Clock: testkit.NewFakeClock(startOfTime),
+	})
+
+	if err == nil {
+		t.Errorf("the recovery said nothing when the sentinel could not be written")
+	}
+}
+
+func TestTheRecoveryNeedsAClockToNameTheFileItMovesAside(t *testing.T) {
+	_, err := reliability.PrepareDatabase(context.Background(), reliability.RecoverySettings{
+		Home: testkit.NewTempHome(t),
+	})
+
+	if err == nil {
+		t.Errorf("the recovery ran with no clock to read the time from")
 	}
 }
 

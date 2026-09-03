@@ -24,19 +24,24 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 // full, newest first.
 //
 // The order is the order of how often each part changes, so that a provider's
-// prompt cache can reuse as much as possible: the record's body, which only
-// grows; the pinned evidence; the recent messages, which are added to the end;
-// the memory hint; and last of all the two lines of the record's header, which
-// are written anew on every single call.
-func (builder *Builder) messagesFor(input BuildInput, body string, standing string, request contract.Request) ([]contract.Message, error) {
+// prompt cache can reuse as much as possible. The record's body, the pinned
+// evidence, the recent messages and the memory hint come first, in the design's
+// own order; then the tail, which is the only part re-read on every call: the
+// list of results, which grows by a line every round, and last of all the two
+// lines of the record's header, which are written anew every time.
+func (builder *Builder) messagesFor(input BuildInput, parts recordParts, request contract.Request) ([]contract.Message, error) {
 	above := EstimateRequestTokens(request)
 	recordBody := []contract.Message{}
-	if body != "" {
-		recordBody = append(recordBody, asUserMessage(recordSecondHalfHeading, body))
+	if parts.Body != "" {
+		recordBody = append(recordBody, asUserMessage(recordSecondHalfHeading, parts.Body))
+	}
+	recordResults := []contract.Message{}
+	if parts.Results != "" {
+		recordResults = append(recordResults, asUserMessage(recordResultsHeading, parts.Results))
 	}
 	recordHeader := []contract.Message{}
-	if standing != "" {
-		recordHeader = append(recordHeader, asUserMessage(recordHeaderHeading, standing))
+	if parts.Standing != "" {
+		recordHeader = append(recordHeader, asUserMessage(recordHeaderHeading, parts.Standing))
 	}
 	pinned := []contract.Message{}
 	if len(input.Pinned) > 0 {
@@ -47,7 +52,7 @@ func (builder *Builder) messagesFor(input BuildInput, body string, standing stri
 		hint = append(hint, asUserMessage(memoryHintHeading, memoryHintText(input.MemoryHint)))
 	}
 
-	fixed := above + totalTokens(recordBody) + totalTokens(recordHeader)
+	fixed := above + totalTokens(recordBody) + totalTokens(recordResults) + totalTokens(recordHeader)
 	room := input.ContextLength - builder.maxOutputTokens - fixed
 	if room <= 0 {
 		return nil, roomRanOut(fixed, input, builder.maxOutputTokens)
@@ -60,11 +65,12 @@ func (builder *Builder) messagesFor(input BuildInput, body string, standing stri
 		return nil, roomRanOut(fixed+totalTokens(hint), input, builder.maxOutputTokens)
 	}
 
-	below := make([]contract.Message, 0, len(recordBody)+len(pinned)+len(input.Messages)+len(hint)+len(recordHeader))
+	below := make([]contract.Message, 0, len(recordBody)+len(pinned)+len(input.Messages)+len(hint)+len(recordResults)+len(recordHeader))
 	below = append(below, recordBody...)
 	below = append(below, pinned...)
 	below = append(below, fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)...)
 	below = append(below, hint...)
+	below = append(below, recordResults...)
 	return append(below, recordHeader...), nil
 }
 

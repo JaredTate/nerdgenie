@@ -43,8 +43,9 @@ const (
 	toolsHeading            = "**Your tools.** The tools you may call are sent with this message, each with its name, what it does, and the fields it takes."
 	jobHeading              = "**The job this task belongs to.** It changes only when one of its tasks finishes."
 	recordFirstHalfHeading  = "**The task record, part one: the goal and the rules.** These change rarely."
-	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.** These only grow as the task runs."
-	recordHeaderHeading     = "**The task record, part three: where the task stands right now.** The budget left and what the last call cost. These two lines are written anew on every call, so they come last, after everything that can be read once and reused."
+	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.**"
+	recordResultsHeading    = "**The task record, part three: every result so far.**"
+	recordHeaderHeading     = "**The task record, last of all: where the work stands.**"
 	pinnedHeading           = "**Pinned evidence, kept word for word.** It stays in front of you until it is unpinned."
 	memoryHintHeading       = "**Memory hint.** Up to three lines from a search of what you know."
 )
@@ -149,15 +150,15 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	if err != nil {
 		return contract.Request{}, err
 	}
-	stable, body, standing := splitRecord(input.Record)
-	body = MarkResultLines(builder.boundary, body)
+	parts := splitRecord(input.Record)
+	parts.Results = MarkResultLines(builder.boundary, parts.Results)
 
 	request := contract.Request{
-		SystemBlocks:    builder.systemBlocks(persona, input, stable),
+		SystemBlocks:    builder.systemBlocks(persona, input, parts.Stable),
 		Tools:           input.Tools,
 		MaxOutputTokens: builder.maxOutputTokens,
 	}
-	messages, err := builder.messagesFor(input, body, standing, request)
+	messages, err := builder.messagesFor(input, parts, request)
 	if err != nil {
 		return contract.Request{}, err
 	}

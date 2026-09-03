@@ -259,6 +259,23 @@ func insideSingleQuotes(command string) string {
 	return strings.ReplaceAll(command, "'", `'\''`)
 }
 
+// commandsRunThroughAWrapper hand the real command to a program that runs it,
+// and they seed the fuzzer because a wrapper is the shape of disguise the
+// reducer has to read through. The wave 6 security review wrote this table, and
+// it lives here now because the review's own test file left the tree once every
+// finding it named had a fix and a test of its own.
+var commandsRunThroughAWrapper = []struct {
+	name    string
+	command string
+}{
+	{"a delete run under nohup", "nohup rm -rf /home/jared/coeus"},
+	{"a delete given a time limit", "timeout 60 rm -rf /home/jared/coeus"},
+	{"a delete run through xargs", "echo /home/jared/coeus | xargs rm -rf"},
+	{"a delete run through busybox", "busybox rm -rf /home/jared/coeus"},
+	{"a delete run through env with a flag", "env -i sh -c 'rm -rf /home/jared/coeus'"},
+	{"a delete handed to su", "su -c 'rm -rf /home/jared/coeus'"},
+}
+
 func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 	for _, evasion := range evasions {
 		for number := range disguises {

@@ -18,13 +18,28 @@ func TestTheEstimateCountsCharactersAtTheOneRatio(t *testing.T) {
 	}{
 		{"", 0},
 		{"a", 1},
-		{strings.Repeat("a", CharactersPerToken), 1},
-		{strings.Repeat("a", CharactersPerToken+1), 2},
-		{strings.Repeat("a", CharactersPerToken*250), 250},
+		{strings.Repeat("a", 100), TokensPerHundredCharacters},
+		{strings.Repeat("a", 101), TokensPerHundredCharacters + 1},
+		{strings.Repeat("a", 1000), TokensPerHundredCharacters * 10},
 	} {
 		if counted := EstimateTokens(check.text); counted != check.wanted {
 			t.Errorf("%d characters count as %d tokens, want %d", len(check.text), counted, check.wanted)
 		}
+	}
+}
+
+// TestAMessageCostsItsEnvelopeAsWellAsItsText proves the wire's own framing is
+// paid for, because a window sized only by the text runs out before the model
+// says so.
+func TestAMessageCostsItsEnvelopeAsWellAsItsText(t *testing.T) {
+	plain := contract.Message{Role: contract.RoleUser, Text: "hello"}
+	if counted := estimateMessage(plain); counted != TokensPerMessage+EstimateTokens("hello") {
+		t.Errorf("a plain message costs %d tokens, want its text plus %d for the envelope", counted, TokensPerMessage)
+	}
+	withCall := plain
+	withCall.ToolCalls = []contract.ToolCall{{ID: "call_1", Name: "read", Input: json.RawMessage(`{}`)}}
+	if estimateMessage(withCall)-estimateMessage(plain) < TokensPerToolPart {
+		t.Errorf("a tool call costs less than the %d tokens its envelope takes", TokensPerToolPart)
 	}
 }
 

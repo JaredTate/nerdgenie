@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
@@ -106,25 +105,33 @@ func TestEveryResultThatLeftTheWindowIsStillReadable(t *testing.T) {
 	}
 }
 
-// TestTheEstimateAgreesWithWhatTheModelReports proves the ratio this package
-// counts tokens with is close enough to be worth sizing a window by. The count
-// it is checked against is the record package's own estimate, which is made over
-// words rather than characters, so the two are arrived at in different ways;
-// the fake model reports it as the input count of the call.
+// TokensARealModelReadOfTheFixture is what the local Qwen, through the
+// llama-server daemon on this machine, said it read when it was sent the
+// forty-step fixture's prompt at round forty. It was measured by the live test
+// in this package on 2 September 2026, and it is written down here so that the
+// estimate can be checked against a real tokenizer on every run rather than only
+// at a wave gate. When the live test reports a different number, this one
+// changes with it.
+const TokensARealModelReadOfTheFixture = 8013
+
+// TestTheEstimateAgreesWithWhatTheModelReports proves the numbers this package
+// counts tokens with are close enough to be worth sizing a window by. The count
+// they are checked against was read off a real model, and the fake model here
+// reports it as the input count of the call, so that the check runs on every
+// commit and not only when the live suite does.
 func TestTheEstimateAgreesWithWhatTheModelReports(t *testing.T) {
 	run := newFixtureRun(t)
-	run.playTo(t, 20)
-	request, err := newGoldenBuilder(t).Build(t.Context(), run.input(24000))
+	run.playTo(t, 40)
+	request, err := newGoldenBuilder(t).Build(t.Context(), run.input(262144))
 	if err != nil {
 		t.Fatalf("cannot build the working context: %v", err)
 	}
 
-	counted := record.EstimateTokens(testkit.WholeRequestText(request))
 	model := testkit.NewFakeModel(testkit.Script{
-		Name: "forty-step", ContextLength: 24000,
+		Name: "forty-step", ContextLength: 262144,
 		Steps: []testkit.Step{{
 			Text: "Reading the notes.", Finish: contract.FinishEnd,
-			Usage: contract.Usage{InputTokens: counted, OutputTokens: 40},
+			Usage: contract.Usage{InputTokens: TokensARealModelReadOfTheFixture, OutputTokens: 40},
 		}},
 	})
 	reply, err := model.Send(t.Context(), request, nil)
@@ -137,10 +144,14 @@ func TestTheEstimateAgreesWithWhatTheModelReports(t *testing.T) {
 	if apart < 0 {
 		apart = -apart
 	}
-	t.Logf("the estimate is %d tokens and the reported input count is %d, which is %d apart",
+	t.Logf("the estimate is %d tokens and a real model read %d, which is %d apart",
 		estimated, reply.Usage.InputTokens, apart)
 	if apart*5 > reply.Usage.InputTokens {
-		t.Errorf("the estimate is %d and the model read %d, which is more than a fifth apart",
+		t.Errorf("the estimate is %d and a real model read %d, which is more than a fifth apart",
+			estimated, reply.Usage.InputTokens)
+	}
+	if estimated < reply.Usage.InputTokens {
+		t.Errorf("the estimate is %d and a real model read %d, so the estimate runs low, and a low estimate builds a prompt the model refuses",
 			estimated, reply.Usage.InputTokens)
 	}
 }

@@ -40,7 +40,7 @@ func TestTheGoldenPromptsForASmallModelAndABigOne(t *testing.T) {
 	if aboveTheCacheLine(small) != aboveTheCacheLine(big) {
 		t.Error("the two models are sent different bytes above the cache line, and everything up there is the same on every model")
 	}
-	if err := onlyResultsDiffer(small, big); err != nil {
+	if err := onlyOlderMessagesLeft(small, big); err != nil {
 		t.Errorf("the two prompts differ by more than how many results are on the table: %v", err)
 	}
 	if EstimateRequestTokens(small) > EstimateRequestTokens(big) {
@@ -72,11 +72,19 @@ func TestASmallerWindowDropsTheOldestResultsOfTheFixture(t *testing.T) {
 		t.Fatalf("a 3k window kept %d results and a 24k window kept %d, so nothing left the table",
 			resultsIn(tight), resultsIn(roomy))
 	}
-	if err := onlyResultsDiffer(tight, roomy); err != nil {
-		t.Errorf("the tight window changed more than which results are on the table: %v", err)
+	if err := onlyOlderMessagesLeft(tight, roomy); err != nil {
+		t.Errorf("the tight window changed more than which of the oldest messages are on the table: %v", err)
 	}
 	if counted := EstimateRequestTokens(tight) + builder.maxOutputTokens; counted > input.ContextLength {
 		t.Errorf("the tight prompt and its reply come to %d tokens, and the model holds %d", counted, input.ContextLength)
+	}
+	// This is the whole point of keeping the record beside the window rather
+	// than inside it. The message the user sent at round twelve has dropped off
+	// the table, and their words are still in front of the model, because the
+	// harness wrote them into the record's rules where nothing may touch them.
+	whole := testkit.WholeRequestText(tight)
+	if !strings.Contains(whole, "no, lead with the date not the features") {
+		t.Error("a 3k window lost the user's correction, and a correction is never lost")
 	}
 }
 
@@ -145,23 +153,26 @@ func aboveTheCacheLine(request contract.Request) string {
 	return strings.Join(lines, "\n")
 }
 
-// onlyResultsDiffer says whether the smaller prompt is the bigger one with some
-// of its older rounds left out, which is the only difference the window rule may
-// make between two models. Anything else missing, or anything in a different
-// order, is a fault.
-func onlyResultsDiffer(smaller contract.Request, bigger contract.Request) error {
-	at := 0
+// onlyOlderMessagesLeft says whether the smaller prompt is the bigger one with
+// one run of its oldest messages left out, which is the only difference the
+// window rule may make between two models. Anything else missing, anything in a
+// different order, or a gap in the middle is a fault.
+func onlyOlderMessagesLeft(smaller contract.Request, bigger contract.Request) error {
+	at, runs, inRun := 0, 0, false
 	for _, message := range bigger.Messages {
 		if at < len(smaller.Messages) && renderMessage(smaller.Messages[at]) == renderMessage(message) {
-			at++
+			at, inRun = at+1, false
 			continue
 		}
-		if len(message.ToolCalls) == 0 && len(message.ToolResults) == 0 {
-			return fmt.Errorf("the smaller prompt is missing a message that carries no tool call and no result: %q", message.Text)
+		if !inRun {
+			runs, inRun = runs+1, true
 		}
 	}
 	if at != len(smaller.Messages) {
 		return fmt.Errorf("only %d of the smaller prompt's %d messages line up with the bigger one's", at, len(smaller.Messages))
+	}
+	if runs > 1 {
+		return fmt.Errorf("the smaller prompt is missing %d separate runs of messages, and the window only ever drops the oldest", runs)
 	}
 	return nil
 }

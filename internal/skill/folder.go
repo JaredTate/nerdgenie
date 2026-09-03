@@ -199,6 +199,9 @@ func CheckFileNames(files map[string][]byte) error {
 		if name == "" || name != filepath.Base(name) || name == "." || name == ".." || strings.HasPrefix(name, ".") {
 			return fmt.Errorf("a skill folder cannot hold a file named %q, so use a plain file name such as %s", name, StepsFile)
 		}
+		if name == ApprovedByPersonFile {
+			return fmt.Errorf("a skill folder cannot hold a file named %q, because that is the store's own record that a person ran the skill and said yes, and only running it writes that", name)
+		}
 		if len(files[name]) > MaxFileBytes {
 			return fmt.Errorf("the file %q is %d bytes and the most allowed in a skill folder is %d, so shorten it", name, len(files[name]), MaxFileBytes)
 		}

@@ -3,11 +3,18 @@
 //
 // The fence has two halves. Outside, this package builds a bwrap command line
 // that gives the command a new user, process, message-queue, and hostname
-// namespace, a fresh /proc, /dev, and /tmp, the system folders bound read-only,
-// and the configured sandbox roots bound read-write at their own paths. The
-// network is left alone, because the agent's tools need it. Nothing else is
-// bound, so the agent's own home folder, the vault, the browser profile, and the
-// user's SSH keys are not there to be read.
+// namespace, a fresh /proc, /dev, and a /tmp of a fixed size, the system folders
+// bound read-only, the file the machine's resolver settings really live in bound
+// read-only when /etc/resolv.conf is a link out of /etc, as it is on a machine
+// running systemd-resolved, and the configured sandbox roots bound read-write at
+// their own paths. The command itself runs under a bound on how many processes
+// it may start and how much address space it may map, so that one line of shell
+// cannot take the machine down. The command also gets a network namespace of its own, empty, so that it reaches
+// neither the internet nor any service on this machine, unless the caller sets
+// Settings.Network, which the shell tool does because a build and a package
+// install both fetch what they need. Nothing else is bound, so the agent's own
+// home folder, the vault, the browser profile, and the user's SSH keys are not
+// there to be read.
 //
 // A root is held as the folder its links lead to. bwrap binds the folder a link
 // leads to, and Landlock hangs its rule on the same folder, so a fence built
@@ -27,8 +34,12 @@
 // survive that change of program, so the command starts already fenced in.
 //
 // Every run has bounds: the number of roots, the number of arguments, the number
-// of environment entries, the time the command may take, and the bytes kept from
-// each of its two output streams.
+// of environment entries, the processes the command may start, the address space
+// it may map, the size of its temporary folder, the time it may take, and the
+// bytes kept from each of its two output streams. An environment entry a caller
+// adds may not be named PATH, HOME, or anything beginning with LD_, because the
+// command is given whichever value was written last and those are the fence's
+// own.
 //
 // Two pieces here were not asked for by brief 2.3 and are kept on purpose. The
 // first is the user-namespace probe in Available: Ubuntu ships with AppArmor

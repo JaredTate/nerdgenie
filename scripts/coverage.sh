@@ -21,6 +21,12 @@ default_threshold=90
 tui_threshold=70
 roots=(./internal/... ./scripts/... ./cmd/...)
 
+# Nothing here starts a real Chrome any more, because the browser and desktop
+# packages are measured without the integration tag below. Should that ever
+# change, ask for the browser with no window, so that running the gate cannot put
+# a window on the screen of whoever is running it: internal/browser reads
+# COEUS_HEADLESS_TESTS and `make test-browser` sets it.
+
 # The packages that must be measured. Every one of them gets a row below, and a
 # package with no row fails the gate.
 packages="$(go list "${roots[@]}")"
@@ -28,15 +34,15 @@ packages="$(go list "${roots[@]}")"
 # Run every test once with coverage. A failing test still leaves a report worth
 # reading, so the failure is remembered and reported per package rather than
 # ending the script here.
-# The browser and desktop packages are measured without the integration tag,
-# because their integration tests start a real Chrome and drive the desktop,
-# which belongs to "make test-browser" and never to a coverage run.
+# The browser package is measured without the integration tag, because its
+# integration tests start a real Chrome, which belongs to "make test-browser"
+# and never to a coverage run; the desktop's live tests gate themselves.
 tests_failed=0
-measured="$(go list "${roots[@]}" | grep -v '/internal/browser$' | grep -v '/internal/desktop$')"
+measured="$(go list "${roots[@]}" | grep -v '/internal/browser$')"
 if ! report="$(go test -tags integration -cover $measured 2>&1)"; then
 	tests_failed=1
 fi
-windowed_packages="$(go list "${roots[@]}" | grep -E '/internal/(browser|desktop)$' || true)"
+windowed_packages="$(go list "${roots[@]}" | grep -E '/internal/browser$' || true)"
 if [ -n "$windowed_packages" ]; then
 	if ! windowed="$(go test -cover $windowed_packages 2>&1)"; then
 		tests_failed=1

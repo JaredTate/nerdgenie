@@ -141,10 +141,10 @@ func checkBrowserLogin(ctx context.Context, worker contract.BrowserWorker) error
 // CheckDesktop asserts what every desktop promises: an application the user has
 // not granted is refused, and nothing can be done before something is open.
 func CheckDesktop(ctx context.Context, desktop contract.Desktop) error {
-	if err := desktop.Launch(ctx, "an-application-nobody-granted"); err == nil {
+	if err := desktop.Launch(ctx, "an-application-nobody-granted", "the application opens"); err == nil {
 		return errors.New("an application nobody granted was launched, and the user grants an application once per session")
 	}
-	if err := desktop.Click(ctx, 1); err == nil {
+	if err := desktop.Click(ctx, 1, "the control is pressed"); err == nil {
 		return errors.New("a click landed with no application open, and there is nothing to click on")
 	}
 	if _, err := desktop.Screenshot(ctx); err == nil {

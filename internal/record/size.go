@@ -1,6 +1,11 @@
 package record
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
+)
 
 // The two numbers behind the size promise of the design: with a budget of a
 // hundred rounds a record can hold at most a hundred result lines, so it stays
@@ -38,4 +43,106 @@ func cutToOneLine(summary string) string {
 // point is a number that can be compared with MaxRecordTokens on every model.
 func EstimateTokens(text string) int {
 	return len(strings.Fields(text)) * TokensPerHundredWords / 100
+}
+
+// checkItStillFits holds the size promise above as a rule rather than a hope. It
+// runs beside the round-trip check on every change, so a write that would take
+// the record past the size it is promised to stay under is refused before it
+// lands, and the refusal names the longest part so that there is something to do
+// about it.
+func checkItStillFits(held contract.Record) error {
+	counted := EstimateTokens(string(Print(held)))
+	if counted <= MaxRecordTokens {
+		return nil
+	}
+	name, cost := longestPartOf(held)
+	return fmt.Errorf("%w: it would be about %d tokens and the limit is %d, and its longest part is the %s at about %d",
+		ErrRecordTooLarge, counted, MaxRecordTokens, name, cost)
+}
+
+// longestPartOf names the part of a record with the most words in it, and says
+// how many tokens that part costs. It is what turns "too long" into "shorten
+// this".
+func longestPartOf(held contract.Record) (string, int) {
+	name, cost := "record", 0
+	for _, part := range []struct {
+		name string
+		text string
+	}{
+		{"ask", held.Goal.Ask},
+		{"why", held.Goal.Why},
+		{"done list", linesOfDone(held.Goal.DoneWhen)},
+		{"stop list", strings.Join(held.Rules.StopWhen, "\n")},
+		{"corrections", linesOfCorrections(held.Rules.Corrections)},
+		{"situation", strings.Join(held.Work.Situation, "\n")},
+		{"plan", linesOfPlan(held.Work.Plan)},
+		{"task list", linesOfTasks(held.Work.Tasks)},
+		{"list of results", linesOfResults(held.Work.Results)},
+		{"decisions", linesOfDecisions(held.Lessons.Decisions)},
+		{"failures", linesOfFailures(held.Lessons.Failures)},
+	} {
+		if counted := EstimateTokens(part.text); counted > cost {
+			name, cost = part.name, counted
+		}
+	}
+	return name, cost
+}
+
+// The five list readers below join one list of a record into text, so that
+// longestPartOf can weigh every part of a record the same way.
+
+func linesOfDone(lines []contract.DoneLine) string {
+	joined := make([]string, 0, len(lines))
+	for _, line := range lines {
+		joined = append(joined, line.Text)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfCorrections(lines []contract.Correction) string {
+	joined := make([]string, 0, len(lines))
+	for _, line := range lines {
+		joined = append(joined, line.Text)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfPlan(steps []contract.PlanStep) string {
+	joined := make([]string, 0, len(steps))
+	for _, step := range steps {
+		joined = append(joined, step.Text)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfTasks(tasks []contract.JobTask) string {
+	joined := make([]string, 0, len(tasks))
+	for _, task := range tasks {
+		joined = append(joined, task.Text)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfResults(results []contract.ResultLine) string {
+	joined := make([]string, 0, len(results))
+	for _, result := range results {
+		joined = append(joined, result.Summary)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfDecisions(decisions []contract.Decision) string {
+	joined := make([]string, 0, len(decisions))
+	for _, decision := range decisions {
+		joined = append(joined, decision.Text+" "+decision.Reason)
+	}
+	return strings.Join(joined, "\n")
+}
+
+func linesOfFailures(failures []contract.Failure) string {
+	joined := make([]string, 0, len(failures))
+	for _, failure := range failures {
+		joined = append(joined, failure.Text+" "+failure.Cause)
+	}
+	return strings.Join(joined, "\n")
 }

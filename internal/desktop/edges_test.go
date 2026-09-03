@@ -3,6 +3,7 @@ package desktop
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"syscall"
 	"testing"
@@ -23,10 +24,26 @@ func (channel silentChannel) ShowPreview(context.Context, contract.Preview) (con
 	return contract.PreviewAnswerWithReason{}, errors.New("the terminal has gone, so nobody can be shown anything")
 }
 
+// silentAfterTheGrant answers the grant and then cannot reach the user at all,
+// which is what happens when the terminal goes away part way through a task.
+type silentAfterTheGrant struct {
+	*testkit.FakeChannel
+	shown int
+}
+
+// ShowPreview answers the first preview and none after it.
+func (channel *silentAfterTheGrant) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
+	channel.shown++
+	if channel.shown == 1 {
+		return channel.FakeChannel.ShowPreview(ctx, preview)
+	}
+	return contract.PreviewAnswerWithReason{}, errors.New("the terminal has gone, so nobody can be shown anything")
+}
+
 func TestAnApplicationWithNoNameIsRefusedBeforeAnybodyIsAsked(t *testing.T) {
 	desk := newDesk(t)
 
-	err := desk.desktop.Launch(context.Background(), "")
+	err := desk.desktop.Launch(context.Background(), "", "a window opens")
 
 	if err == nil || !strings.Contains(err.Error(), "no name") {
 		t.Fatalf("the error is %v, want one saying which application to open", err)
@@ -41,7 +58,7 @@ func TestAnActionThatChangedNothingSaysSoEvenWhenTheWorkerAddedNothing(t *testin
 	desk.launched(t)
 	desk.latestWorker(t).answer("click", aDiff(false, ""))
 
-	err := desk.desktop.Click(context.Background(), 1)
+	err := desk.desktop.Click(context.Background(), 1, "")
 
 	if err == nil || !strings.Contains(err.Error(), "changed nothing") {
 		t.Fatalf("the error is %v, want one saying the action changed nothing", err)
@@ -56,7 +73,7 @@ func TestAPermissionRulingNobodyShipsIsRefusedRatherThanGuessedAt(t *testing.T) 
 	desk.launched(t)
 	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.PermissionRuling("maybe")})
 
-	err := desk.desktop.Type(context.Background(), "nine years")
+	err := desk.desktop.Type(context.Background(), "nine years", "the text box holds the words")
 
 	if err == nil || !strings.Contains(err.Error(), "maybe") {
 		t.Fatalf("the error is %v, want one naming the ruling it did not understand", err)
@@ -93,10 +110,58 @@ func TestAnUnhealthyWorkerThatSaysNothingStillTellsTheUserWhatToRun(t *testing.T
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "cua-driver doctor") {
 		t.Fatalf("the error is %v, want one naming the command that says what is wrong", err)
+	}
+}
+
+func TestReadingTheClipboardGoesThroughThePermissionFunctionAndItsPreview(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{
+		Ruling:      contract.RulingAsk,
+		Reason:      "the clipboard holds whatever the user copied last, which is often a password",
+		PreviewText: "read what is on your clipboard",
+	})
+
+	held, err := desk.desktop.Clipboard(context.Background())
+
+	if err != nil {
+		t.Fatalf("reading the clipboard after the user said yes failed: %v", err)
+	}
+	if held != "nine years of DigiByte" {
+		t.Errorf("the clipboard holds %q, want what the worker said was on it", held)
+	}
+	requests := desk.permission.Requests()
+	if len(requests) != 1 || requests[0].ToolName != contract.ToolComputer {
+		t.Fatalf("the permission function was asked about %+v, want the one clipboard read", requests)
+	}
+	previews := desk.channel.Previews()
+	if len(previews) != 2 || !strings.Contains(previews[1].Body, "read what is on your clipboard") {
+		t.Errorf("the user was shown %+v, want the grant and a preview of the clipboard read", previews)
+	}
+}
+
+func TestAClipboardReadTheUserRefusesHandsBackNothing(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "read your clipboard"})
+	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
+
+	held, err := desk.desktop.Clipboard(context.Background())
+
+	if err == nil || !strings.Contains(err.Error(), "refused") {
+		t.Fatalf("the error is %v, want one saying the user refused the clipboard read", err)
+	}
+	if held != "" {
+		t.Errorf("the clipboard read handed back %q after the user refused it, and it must hand back nothing", held)
+	}
+	for _, asked := range desk.latestWorker(t).methodsAsked() {
+		if asked == "clipboardGet" {
+			t.Error("the worker was asked for the clipboard after the user refused, and it must not have been")
+		}
 	}
 }
 
@@ -142,18 +207,55 @@ func TestADragTheUserRefusesIsNotDone(t *testing.T) {
 	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "drag one control onto another"})
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	err := desk.desktop.Drag(context.Background(), 1, 2)
+	err := desk.desktop.Drag(context.Background(), 1, 2, "the file lands in the folder")
 
 	if err == nil || !strings.Contains(err.Error(), "refused") {
 		t.Fatalf("the error is %v, want one saying the user refused the drag", err)
 	}
 }
 
-func TestAProcessIDIsZeroWhenNoWorkerIsRunning(t *testing.T) {
+func TestAWorkerIsStoppedByTheExactProcessIDItWasStartedWith(t *testing.T) {
+	notes := []string{}
+	worker := workerAnsweringEverything()
+	worker.refuse("click", &workerFailure{Code: codeDriverUnavailable, Message: "the desktop driver went away"})
+	desktop, err := New(Options{
+		Start:      func(context.Context) (*Connection, error) { return worker.start(), nil },
+		Channel:    testkit.NewFakeChannel("terminal"),
+		Permission: testkit.NewFakePermission(contract.RulingAllow),
+		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
+		Note:       func(format string, arguments ...any) { notes = append(notes, fmt.Sprintf(format, arguments...)) },
+	})
+	if err != nil {
+		t.Fatalf("building the desktop failed: %v", err)
+	}
+	if err := desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
+		t.Fatalf("launching the fixture application failed: %v", err)
+	}
+
+	_ = desktop.Click(context.Background(), 1, "the dialog closes")
+
+	// The scripted worker hands back process id 4242, and the note has to name
+	// that one, because an exact process id is the only thing this package ever
+	// kills.
+	var named bool
+	for _, note := range notes {
+		if strings.Contains(note, "was stopped") && strings.Contains(note, "4242") {
+			named = true
+		}
+	}
+	if !named {
+		t.Errorf("the notes are %v, want one naming the exact process id of the worker that was stopped", notes)
+	}
+}
+
+func TestClosingADesktopThatNeverStartedAWorkerIsHarmless(t *testing.T) {
 	desk := newDesk(t)
 
-	if pid := desk.desktop.workerProcessID(); pid != 0 {
-		t.Errorf("the process id with no worker running is %d, want zero", pid)
+	if err := desk.desktop.Close(); err != nil {
+		t.Fatalf("closing a desktop that never started a worker failed: %v", err)
+	}
+	if *desk.starts != 0 {
+		t.Errorf("closing a desktop started %d workers, and it must start none", *desk.starts)
 	}
 }
 
@@ -221,7 +323,7 @@ func TestTheStartFunctionThatHandsBackNothingIsReported(t *testing.T) {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "wired") {
 		t.Fatalf("the error is %v, want one saying the worker was wired wrongly", err)
@@ -239,7 +341,7 @@ func TestAUserWhoCannotBeAskedIsReportedRatherThanTakenAsAYes(t *testing.T) {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "could not be asked") {
 		t.Fatalf("the error is %v, want one saying the user could not be asked", err)
@@ -249,13 +351,16 @@ func TestAUserWhoCannotBeAskedIsReportedRatherThanTakenAsAYes(t *testing.T) {
 func TestAnActionThePermissionFunctionAsksAboutWithNobodyToAskIsReported(t *testing.T) {
 	permission := testkit.NewFakePermission(contract.RulingAllow)
 	desktop, err := New(Options{
-		Start:      func(context.Context) (*Connection, error) { return newScriptedWorker().start(), nil },
-		Channel:    silentChannel{FakeChannel: testkit.NewFakeChannel("terminal")},
+		Start:      func(context.Context) (*Connection, error) { return workerAnsweringEverything().start(), nil },
+		Channel:    &silentAfterTheGrant{FakeChannel: testkit.NewFakeChannel("terminal")},
 		Permission: permission,
 		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
 	})
 	if err != nil {
 		t.Fatalf("building the desktop failed: %v", err)
+	}
+	if err := desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
+		t.Fatalf("opening the fixture application failed: %v", err)
 	}
 	permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "paste something"})
 

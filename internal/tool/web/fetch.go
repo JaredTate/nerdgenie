@@ -32,13 +32,16 @@ type fetched struct {
 
 // fetchPage asks for a page at an address the agent is allowed to reach, follows
 // the pages that point somewhere else while each of those is allowed too, and
-// returns what came back, inside the size cap.
+// returns what came back, inside the size cap. Every hop goes through the guard
+// before it is asked for, because a page that points somewhere else is choosing
+// where the agent goes next, and the first address being allowed says nothing
+// about the fifth.
 func (tool *Tool) fetchPage(ctx context.Context, address string) (fetched, error) {
-	at := address
+	at, cameFrom := address, ""
 	for hop := 0; hop <= MaxRedirects; hop++ {
 		pinned, err := PinnedAddress(at, tool.settings.AllowedHosts)
 		if err != nil {
-			return fetched{}, err
+			return fetched{}, refusedHop(cameFrom, at, err)
 		}
 		answer, err := tool.askFor(ctx, at, pinned)
 		if err != nil {
@@ -49,9 +52,20 @@ func (tool *Tool) fetchPage(ctx context.Context, address string) (fetched, error
 			return readAnswer(answer, at)
 		}
 		_ = answer.Body.Close()
-		at = next
+		cameFrom, at = at, next
 	}
 	return fetched{}, fmt.Errorf("the address %s went round more than %d redirects, so it never settled on a page", address, MaxRedirects)
+}
+
+// refusedHop says why a hop was refused, naming the page that sent the agent
+// there when it was a page rather than the person who asked. A refusal that gave
+// only the number would leave the person wondering how the agent came to be
+// asking for an address nobody typed.
+func refusedHop(cameFrom string, at string, err error) error {
+	if cameFrom == "" {
+		return err
+	}
+	return fmt.Errorf("%s redirected the agent to %s, which it may not reach: %w", cameFrom, at, err)
 }
 
 // askFor makes one request, connecting to the exact number the name resolved to

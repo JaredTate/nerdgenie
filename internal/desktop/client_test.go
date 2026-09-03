@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -39,8 +40,11 @@ func TestTheClientNumbersItsRequestsAndMatchesTheAnswers(t *testing.T) {
 		}
 	}
 
-	if client.lastID != 3 {
-		t.Errorf("the client used %d request numbers for three calls, want 3", client.lastID)
+	// The worker saw what went over the wire, which is the only thing the
+	// protocol promises: three requests, numbered one, two and three in order,
+	// so that no answer can ever be taken for another request's.
+	if numbers := worker.identifiersAsked(); !slices.Equal(numbers, []int64{1, 2, 3}) {
+		t.Errorf("the worker was asked under the request numbers %v, want 1, 2 and 3 in order", numbers)
 	}
 }
 
@@ -67,16 +71,32 @@ func TestTheClientTurnsTheWorkersRefusalIntoAnErrorThatCarriesItsCode(t *testing
 	}
 }
 
-func TestTheClientKnowsWhichFailuresMeanTheWorkerMustBeRestarted(t *testing.T) {
-	restarting := []int{codeParseError, codeInvalidRequest, codeDriverUnavailable}
-	for _, code := range restarting {
-		if !(&workerFailure{Code: code}).needsRestart() {
-			t.Errorf("the code %d does not ask for a restart, and the protocol's table says it must", code)
+func TestTheThreeCodesThatMeanTheWorkerIsBrokenStartItAgainAndTheRestDoNot(t *testing.T) {
+	for _, code := range []int{codeParseError, codeInvalidRequest, codeDriverUnavailable} {
+		desk := newDesk(t)
+		desk.launched(t)
+		first := desk.latestWorker(t)
+		first.refuse("click", &workerFailure{Code: code, Message: "the worker is broken"})
+
+		_ = desk.desktop.Click(context.Background(), 1, "the dialog closes")
+
+		if !first.wasStopped() {
+			t.Errorf("the code %d left the worker running, and the protocol's table says a worker that answers with it is started again", code)
 		}
 	}
 	for _, code := range []int{codeNoSuchMark, codeBadParameters, codeNoSuchMethod, codeUnreadableWindow, codeNoApplicationOpen, codeLaunchFailed} {
-		if (&workerFailure{Code: code}).needsRestart() {
-			t.Errorf("the code %d asks for a restart, and the protocol's table says the model just hears about it", code)
+		desk := newDesk(t)
+		desk.launched(t)
+		first := desk.latestWorker(t)
+		first.refuse("click", &workerFailure{Code: code, Message: "the model asked for something that is not there"})
+
+		err := desk.desktop.Click(context.Background(), 1, "the dialog closes")
+
+		if first.wasStopped() {
+			t.Errorf("the code %d stopped the worker, and the protocol's table says the model simply hears about it", code)
+		}
+		if err == nil || !strings.Contains(err.Error(), "not there") {
+			t.Errorf("the code %d gave the model %v, want the worker's own message", code, err)
 		}
 	}
 }
@@ -132,8 +152,11 @@ func TestTheClientGivesUpWhenTheWorkerNeverAnswers(t *testing.T) {
 }
 
 func TestTheClientRefusesALineLongerThanTheCap(t *testing.T) {
+	// Eight megabytes and one character, written out rather than measured
+	// against the cap, so that raising the cap does not carry the test with it.
+	const longerThanTheCap = 8<<20 + 1
 	worker := newScriptedWorker()
-	worker.sendRaw("health", `{"jsonrpc":"2.0","id":1,"result":{"detail":"`+strings.Repeat("x", maximumResponseBytes)+`"}}`)
+	worker.sendRaw("health", `{"jsonrpc":"2.0","id":1,"result":{"detail":"`+strings.Repeat("x", longerThanTheCap)+`"}}`)
 	client := newClient(worker.start())
 
 	err := client.call(context.Background(), "health", map[string]any{}, &healthAnswer{})
@@ -158,13 +181,16 @@ func TestTheClientReportsAWorkerThatDiedRatherThanHanging(t *testing.T) {
 	}
 }
 
-func TestEveryMethodHasADeadlineOfItsOwn(t *testing.T) {
-	for _, method := range []string{"launch", "screenshot", "click", "type", "press", "drag", "clipboardGet", "clipboardSet", "health"} {
-		if deadlineFor(method) <= 0 {
-			t.Errorf("the method %q has no deadline, and every wait in Coeus has one", method)
-		}
-	}
-	if deadlineFor("something nobody named") != defaultMethodDeadline {
-		t.Error("a method the table does not name gets no deadline, and it must get the default one")
+func TestTheClientGivesUpOnAWorkerThatSaysNothingWithinTheMethodsDeadline(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.latestWorker(t).staySilent("clipboardGet")
+	ctx, giveUp := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer giveUp()
+
+	_, err := desk.desktop.Clipboard(ctx)
+
+	if err == nil {
+		t.Fatal("a clipboard read from a worker that never answered was reported as a success")
 	}
 }

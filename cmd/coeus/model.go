@@ -12,11 +12,18 @@ import (
 // openModel builds the model the configuration's default alias names, wrapped in
 // retries, with the fallback chain behind it.
 func (running *agent) openModel(ctx context.Context) (contract.Model, error) {
+	return openTheChain(ctx, running, running.settings)
+}
+
+// openTheChain builds the model one configuration names, with its fallback chain
+// behind it. It takes the settings rather than reading the agent's own, so that
+// "/model" can build a chain for another alias without changing anything else.
+func openTheChain(ctx context.Context, running *agent, settings contract.Config) (contract.Model, error) {
 	options := provider.Options{Clock: clock.System(), Home: running.home, Log: running.note}
 	models := []contract.Model{}
 
-	for _, name := range append([]string{running.settings.DefaultModel}, running.settings.FallbackChain...) {
-		alias, found := aliasNamed(running.settings, name)
+	for _, name := range append([]string{settings.DefaultModel}, settings.FallbackChain...) {
+		alias, found := aliasNamed(settings, name)
 		if !found {
 			return nil, fmt.Errorf("config.toml names %q as a model to use, and no models block defines it, so add one or change the name", name)
 		}

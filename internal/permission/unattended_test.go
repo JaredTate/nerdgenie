@@ -3,10 +3,8 @@ package permission_test
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/permission"
 )
 
 func TestAnUnattendedRunThatHitsTheListStopsAndShowsWhatItWouldHaveAsked(t *testing.T) {
@@ -42,20 +40,14 @@ func TestAnUnattendedRunThatHitsNothingOnTheListJustRuns(t *testing.T) {
 	}
 }
 
-func TestAnUnattendedRunUsesTheAnswersAndApprovalsItAlreadyHas(t *testing.T) {
+// An unattended run still uses the answer the user gave in this session, because
+// that answer is the user's own word about this very call. A skill's standing
+// approval is not the user's word, and reviewstanding_test.go holds the rule that
+// an unattended run stops in spite of one.
+func TestAnUnattendedRunUsesTheAnswerTheUserAlreadyGave(t *testing.T) {
 	decider := newDecider(t, contract.DefaultConfig())
-	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
-		Limit:       1,
-		Expires:     theTestTime.Add(time.Hour),
-	})
 	request := shellRequest(t, "rm -rf /tmp/x")
 	request.Unattended = true
-
-	if decision := decide(t, decider, request); decision.Ruling != contract.RulingAllow {
-		t.Errorf("an unattended run with a standing approval was ruled %q, want %q", decision.Ruling, contract.RulingAllow)
-	}
 
 	if err := decider.Remember(request, contract.AnswerAlways, ""); err != nil {
 		t.Fatalf("remembering an answer of always failed: %v", err)

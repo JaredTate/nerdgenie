@@ -103,16 +103,16 @@ func TestTheDesktopRefusesMarkZeroAndRecordsNoDragItRefused(t *testing.T) {
 	ctx := context.Background()
 	desktop := testkit.NewFakeDesktop()
 	desktop.Grant("the-editor")
-	if err := desktop.Launch(ctx, "the-editor"); err != nil {
+	if err := desktop.Launch(ctx, "the-editor", "what the test expects happens"); err != nil {
 		t.Fatalf("launching failed: %v", err)
 	}
 	before := len(desktop.Actions())
 
-	if err := desktop.Click(ctx, 0); err == nil {
+	if err := desktop.Click(ctx, 0, "what the test expects happens"); err == nil {
 		t.Error("a click on the control numbered zero was accepted, and the numbers start at one")
 	}
 
-	if err := desktop.Drag(ctx, 1, 99); err == nil {
+	if err := desktop.Drag(ctx, 1, 99, "what the test expects happens"); err == nil {
 		t.Error("a drag onto a control that is not on the screen was accepted")
 	}
 	for _, action := range desktop.Actions()[before:] {

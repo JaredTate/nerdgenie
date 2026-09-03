@@ -148,6 +148,12 @@ func (checker settingsChecker) checkDefaultAndFallback() error {
 // because it holds the daily browser profile, cloud credentials, and keys, and
 // the fence can only grant, never subtract; the shipped default is the work
 // folder contract.DefaultSandboxRoots names, which "coeus init" creates.
+//
+// The configured browser profile and backup folder go in as well, because this
+// file can put either of them anywhere. A browser_profile_path inside a sandbox
+// root would put the cookies that are the agent's logins inside the fence, where
+// a sandboxed command reads them; the rule is that the profile is outside the
+// fence wherever the user has put it, not only where it lands by default.
 func (checker settingsChecker) checkSandboxRoots() error {
 	if len(checker.settings.SandboxRoots) == 0 {
 		return checker.complain("sandbox_roots", "there are no sandbox roots, so a sandboxed command could reach nothing; leave the key out to use the default")
@@ -158,7 +164,8 @@ func (checker settingsChecker) checkSandboxRoots() error {
 				"the sandbox root %q is above your home directory %q, so a sandboxed command could reach every account on the machine; use your home directory or a folder inside it",
 				root, checker.userHome))
 		}
-		if err := contract.CheckSandboxRoot(root, checker.userHome, checker.agentHome); err != nil {
+		if err := contract.CheckSandboxRoot(root, checker.userHome, checker.agentHome,
+			checker.settings.BrowserProfilePath, checker.settings.BackupPath); err != nil {
 			return checker.complain("sandbox_roots", err.Error())
 		}
 	}

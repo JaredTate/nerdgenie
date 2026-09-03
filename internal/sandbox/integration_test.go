@@ -107,11 +107,32 @@ func aRealFenceAround(t *testing.T, userHome string, root string, outputCap int)
 }
 
 // aRealFence makes a temporary home with one work folder as the sandbox root and
-// returns a fence around it, the home directory, and the work folder.
+// returns a fence around it, the home directory, and the work folder. It has no
+// network, which is what a fence is unless the caller asks for one.
 func aRealFence(t *testing.T, outputCap int) (*Fence, string, string) {
 	t.Helper()
 	userHome, work := aTemporaryUserHome(t)
 	return aRealFenceAround(t, userHome, work, outputCap), userHome, work
+}
+
+// aRealFenceWithTheNetwork is the same fence with the network setting on, which
+// is what the shell tool asks for, so that the tests about reaching things can
+// run against the fence the agent really uses.
+func aRealFenceWithTheNetwork(t *testing.T, outputCap int) (*Fence, string, string) {
+	t.Helper()
+	userHome, work := aTemporaryUserHome(t)
+	thisProgram, err := os.Executable()
+	if err != nil {
+		t.Fatalf("cannot find this test binary on disk: %v", err)
+	}
+	fence, err := New(Settings{Roots: []string{work}, UserHome: userHome, OutputCap: outputCap, HelperProgram: thisProgram, Network: true})
+	if err != nil {
+		t.Fatalf("cannot build a fence with the network around %s: %v", work, err)
+	}
+	if err := fence.Available(); err != nil {
+		t.Fatalf("this machine cannot make a fence, so none of these tests can run: %v", err)
+	}
+	return fence, userHome, work
 }
 
 // fixtureKey stands in for a private key. It is not one, and nothing anywhere

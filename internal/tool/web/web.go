@@ -44,7 +44,9 @@ type Settings struct {
 	ResultsPageAddress string
 	// AllowedHosts are the hosts the agent may reach whatever their number is,
 	// which is how a search server of the user's own on this machine stays
-	// reachable.
+	// reachable. Each one is a host and a port together, such as
+	// 127.0.0.1:8888, and only a host written as a number skips the address
+	// check, because a name is a choice whoever answers for it makes.
 	AllowedHosts []string
 	// Timeout is how long one request has.
 	Timeout time.Duration
@@ -65,13 +67,15 @@ type Tool struct {
 	settings Settings
 }
 
-// New returns the web tool, with the search server and the results page it is
-// allowed to reach added to the hosts it may reach whatever their number is,
-// because both come from the configuration rather than from the model.
+// New returns the web tool, with the host and port of the search server and of
+// the results page the settings name added to the hosts it may reach whatever
+// their number is, because both come from the configuration rather than from the
+// model. The shipped results page is not among them: it is an ordinary public
+// site, so it goes through the address check like any other.
 func New(settings Settings) *Tool {
 	for _, address := range []string{settings.SearchServerAddress, settings.ResultsPageAddress} {
-		if host := hostOf(address); host != "" {
-			settings.AllowedHosts = append(settings.AllowedHosts, host)
+		if hostAndPort := hostAndPortOf(address); hostAndPort != "" {
+			settings.AllowedHosts = append(settings.AllowedHosts, hostAndPort)
 		}
 	}
 	return &Tool{settings: settings}

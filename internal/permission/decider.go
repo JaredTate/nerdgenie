@@ -80,14 +80,16 @@ func rulesFromConfiguration(written []contract.PermissionRule) []Rule {
 // After those, a call no rule covers is allowed, because the agent runs on its
 // own by default, unless its readable form is not the whole story, and then it
 // is put to the user, because a form that leaves something out cannot be ruled
-// on.
+// on. The rules are matched against the readable form and, for a shell command,
+// against the same form with its flags spelled out, so that a rule about a flag
+// holds however the flag was written.
 func (decider *Decider) Decide(ctx context.Context, request contract.PermissionRequest) (contract.PermissionDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return contract.PermissionDecision{}, fmt.Errorf("the turn was stopped before the %s call could be ruled on: %w", request.ToolName, err)
 	}
 
 	reduced, note := reduceCall(request)
-	matched, covered := decider.book.Match(request.ToolName, reduced)
+	matched, covered := decider.book.Match(request.ToolName, formsToMatchOn(request.ToolName, reduced)...)
 	if covered && matched.Action == contract.RulingDeny {
 		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
 	}
@@ -99,15 +101,26 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 	case covered && matched.Action == contract.RulingAllow:
 		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
 	case covered:
-		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced)), nil
+		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced), matched.FromTheAskMeFirstList), nil
 	case note != "":
-		return decider.ruleOnSomethingToAskAbout(request, reduced, whyTheFormLeavesSomethingOut(note, reduced)), nil
+		return decider.ruleOnSomethingToAskAbout(request, reduced, whyTheFormLeavesSomethingOut(note, reduced), false), nil
 	default:
 		return contract.PermissionDecision{
 			Ruling: contract.RulingAllow,
 			Reason: fmt.Sprintf("no rule on your ask-me-first list covers %q, so it runs", reduced),
 		}, nil
 	}
+}
+
+// formsToMatchOn returns the forms the rules are matched against: the readable
+// form the user sees and, for a shell command, the same form with its flags
+// spelled out, so that a rule about a flag holds however the flag was written.
+// Nothing but a shell command has flags, so nothing else has a second form.
+func formsToMatchOn(toolName string, reduced string) []string {
+	if toolName != contract.ToolShell {
+		return []string{reduced}
+	}
+	return []string{reduced, flagsSpelledOut(reduced)}
 }
 
 // answerAlreadyGiven returns the answer the user gave earlier in this session
@@ -125,21 +138,30 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 	if note == buildsItselfNote {
 		return fmt.Sprintf("the command %q works out part of itself while it runs, so nothing here can say what it will really do", reduced)
 	}
+	if note == unclosedQuoteNote {
+		return fmt.Sprintf("the command %q opens a quote and never closes it, so nothing here can say where one word ends and the next begins", reduced)
+	}
 	return fmt.Sprintf("the call %q was too long to read to the end, so nothing here can say what the rest of it does", reduced)
 }
 
 // ruleOnSomethingToAskAbout takes a call that needs a yes, which the user has
-// not already answered about in this session, and sees whether a skill holds a
-// standing approval for it before putting it to the user.
-func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string) contract.PermissionDecision {
-	if approval, standing := decider.useStandingApproval(reduced); standing {
-		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
-	}
+// not already answered about in this session. A run with nobody there to answer
+// stops before anything else is read, because a call that needs a yes and can be
+// given none does not run whoever holds an approval for it. A call the user's
+// ask-me-first list caught goes straight to the user, because that list is what
+// the user asked to see first and a skill's standing approval is not the user's
+// word. Only what is left is offered to the standing approvals.
+func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string, onTheAskMeFirstList bool) contract.PermissionDecision {
 	if request.Unattended {
 		return contract.PermissionDecision{
 			Ruling:      contract.RulingStop,
 			Reason:      fmt.Sprintf("nobody is there to answer, and %q needs a yes first: %s. The task stops and reports instead of waiting.", reduced, why),
 			PreviewText: previewOf(request, reduced),
+		}
+	}
+	if !onTheAskMeFirstList {
+		if approval, standing := decider.useStandingApproval(request, reduced); standing {
+			return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 		}
 	}
 	return contract.PermissionDecision{

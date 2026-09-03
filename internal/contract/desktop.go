@@ -25,18 +25,22 @@ type DesktopScreenshot struct {
 // it. An application must be granted once per session before it can be used, and
 // anything that cannot be undone still gets a preview.
 type Desktop interface {
-	// Launch opens an application, or brings it forward if it is already open.
-	Launch(ctx context.Context, application string) error
+	// Launch opens an application, or brings it forward if it is already open,
+	// and checks what the model expected to happen.
+	Launch(ctx context.Context, application string, expectation string) error
 	// Screenshot returns the screen with its controls numbered.
 	Screenshot(ctx context.Context) (DesktopScreenshot, error)
-	// Click clicks the control with that number.
-	Click(ctx context.Context, mark int) error
+	// Click clicks the control with that number and checks what the model
+	// expected to happen.
+	Click(ctx context.Context, mark int, expectation string) error
 	// Type types text at human pacing.
-	Type(ctx context.Context, text string) error
-	// Press presses a key combination, such as "ctrl+s".
-	Press(ctx context.Context, keys string) error
-	// Drag drags from one numbered control to another.
-	Drag(ctx context.Context, fromMark int, toMark int) error
+	Type(ctx context.Context, text string, expectation string) error
+	// Press presses a key combination, such as "ctrl+s", and checks what the
+	// model expected to happen.
+	Press(ctx context.Context, keys string, expectation string) error
+	// Drag drags from one numbered control to another and checks what the model
+	// expected to happen.
+	Drag(ctx context.Context, fromMark int, toMark int, expectation string) error
 	// Clipboard reads what is on the clipboard.
 	Clipboard(ctx context.Context) (string, error)
 	// SetClipboard puts text on the clipboard.

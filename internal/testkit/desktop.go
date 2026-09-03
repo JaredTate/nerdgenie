@@ -2,7 +2,9 @@ package testkit
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -41,7 +43,10 @@ func (desktop *FakeDesktop) Actions() []string {
 }
 
 // Launch opens an application, or refuses one the user has not granted.
-func (desktop *FakeDesktop) Launch(_ context.Context, application string) error {
+func (desktop *FakeDesktop) Launch(_ context.Context, application string, expectation string) error {
+	if err := checkExpectation(expectation); err != nil {
+		return err
+	}
 	desktop.guard.Lock()
 	defer desktop.guard.Unlock()
 	if !desktop.granted[application] {
@@ -64,23 +69,35 @@ func (desktop *FakeDesktop) Screenshot(_ context.Context) (contract.DesktopScree
 
 // Click clicks the control with that number. The numbers on a screenshot start
 // at one, so zero is no control at all.
-func (desktop *FakeDesktop) Click(_ context.Context, mark int) error {
+func (desktop *FakeDesktop) Click(_ context.Context, mark int, expectation string) error {
+	if err := checkExpectation(expectation); err != nil {
+		return err
+	}
 	return desktop.act(fmt.Sprintf("click %d", mark), mark)
 }
 
 // Type types text at human pacing.
-func (desktop *FakeDesktop) Type(_ context.Context, text string) error {
+func (desktop *FakeDesktop) Type(_ context.Context, text string, expectation string) error {
+	if err := checkExpectation(expectation); err != nil {
+		return err
+	}
 	return desktop.act("type "+text, noMark)
 }
 
 // Press presses a key combination.
-func (desktop *FakeDesktop) Press(_ context.Context, keys string) error {
+func (desktop *FakeDesktop) Press(_ context.Context, keys string, expectation string) error {
+	if err := checkExpectation(expectation); err != nil {
+		return err
+	}
 	return desktop.act("press "+keys, noMark)
 }
 
 // Drag drags from one numbered control to another. Both ends are checked before
 // anything is recorded, so a test never sees a drag the desktop refused.
-func (desktop *FakeDesktop) Drag(_ context.Context, fromMark int, toMark int) error {
+func (desktop *FakeDesktop) Drag(_ context.Context, fromMark int, toMark int, expectation string) error {
+	if err := checkExpectation(expectation); err != nil {
+		return err
+	}
 	desktop.guard.Lock()
 	defer desktop.guard.Unlock()
 	if err := desktop.somethingRunning(); err != nil {
@@ -164,4 +181,14 @@ func fixtureDesktopMarks() []contract.DesktopMark {
 		{Number: 2, Role: "button", Name: "Save"},
 		{Number: 3, Role: "menu item", Name: "File"},
 	}
+}
+
+// checkExpectation refuses an action the model said nothing about, which is
+// the act-and-assert rule the real desktop keeps: an action whose outcome the
+// model cannot name is an action it should not take.
+func checkExpectation(expectation string) error {
+	if strings.TrimSpace(expectation) == "" {
+		return errors.New("this action says nothing about what should happen, so write the expectation in plain words")
+	}
+	return nil
 }

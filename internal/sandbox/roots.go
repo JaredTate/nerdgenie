@@ -23,7 +23,7 @@ const MaxRoots = 16
 // The configuration package refuses a bad root as well. This package refuses it
 // again, because it is the last thing standing between a bad root and a command
 // that can read the vault.
-func checkRoots(roots []string, userHome string, agentHome string) ([]string, error) {
+func checkRoots(roots []string, userHome string, agentHome string, alsoOutside ...string) ([]string, error) {
 	if userHome == "" {
 		return nil, errors.New("the sandbox was given no home directory to work the forbidden paths out from, so pass the user's home directory")
 	}
@@ -36,7 +36,7 @@ func checkRoots(roots []string, userHome string, agentHome string) ([]string, er
 
 	checked := make([]string, 0, len(roots))
 	for _, root := range roots {
-		clean, err := checkOneRoot(root, userHome, agentHome)
+		clean, err := checkOneRoot(root, userHome, agentHome, alsoOutside...)
 		if err != nil {
 			return nil, err
 		}
@@ -47,12 +47,15 @@ func checkRoots(roots []string, userHome string, agentHome string) ([]string, er
 
 // checkOneRoot holds the rules one root has to keep. The first three are the
 // contract's: it is a full path, it is not one of the paths that must stay
-// outside the fence, and it does not hold one of them. The last two are this
-// package's own, because only something about to run a command needs them: the
-// root is a folder that is really there, and what comes back is the folder its
-// links lead to rather than the name it was written under.
-func checkOneRoot(root string, userHome string, agentHome string) (string, error) {
-	if err := contract.CheckSandboxRoot(root, userHome, agentHome); err != nil {
+// outside the fence, and it does not hold one of them. The paths the caller
+// named are judged alongside the four the contract always knows, because the
+// configuration can put the browser profile and the backup folder anywhere. The
+// last two rules are this package's own, because only something about to run a
+// command needs them: the root is a folder that is really there, and what comes
+// back is the folder its links lead to rather than the name it was written
+// under.
+func checkOneRoot(root string, userHome string, agentHome string, alsoOutside ...string) (string, error) {
+	if err := contract.CheckSandboxRoot(root, userHome, agentHome, alsoOutside...); err != nil {
 		return "", err
 	}
 	clean := filepath.Clean(root)

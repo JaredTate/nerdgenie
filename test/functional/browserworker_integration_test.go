@@ -68,6 +68,25 @@ type jsonRPCError struct {
 	Message string `json:"message"`
 }
 
+// chromeEnvironment is what the worker this test starts is handed, and it keeps
+// the same rule internal/browser/process.go keeps for the real thing: nothing
+// that tells Chrome where the session message bus is, and the accessibility
+// bridge switched off. Handing Chrome the session bus is what let it turn the
+// desktop's accessibility bridge on during the wave 6 security review, and the
+// screen reader then read the screen aloud through the user's speakers.
+func chromeEnvironment() []string {
+	handed := []string{"NO_AT_BRIDGE=1"}
+	for _, line := range os.Environ() {
+		name, _, _ := strings.Cut(line, "=")
+		switch name {
+		case "DBUS_SESSION_BUS_ADDRESS", "DBUS_SESSION_BUS_PID", "AT_SPI_BUS_ADDRESS", "NO_AT_BRIDGE":
+			continue
+		}
+		handed = append(handed, line)
+	}
+	return handed
+}
+
 // startBrowserWorker builds the worker if it needs building, starts it with a
 // throwaway profile folder, and stops it at the end of the test.
 func startBrowserWorker(t *testing.T) *browserWorker {
@@ -78,7 +97,12 @@ func startBrowserWorker(t *testing.T) *browserWorker {
 
 	// The worker's pacing is human by default, which is right in front of a real
 	// site and far too slow for a test that types a password one key at a time.
-	command := exec.Command(node, entry, "--profile", profile, "--pacing", "fast")
+	arguments := []string{entry, "--profile", profile, "--pacing", "fast"}
+	if os.Getenv("COEUS_HEADLESS_TESTS") != "" {
+		arguments = append(arguments, "--headless")
+	}
+	command := exec.Command(node, arguments...)
+	command.Env = chromeEnvironment()
 	logFile := workerLogFile(t)
 	command.Stderr = logFile
 	toWorker, err := command.StdinPipe()

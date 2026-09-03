@@ -45,4 +45,10 @@ var (
 	ErrBeforeTheFirstCheckpoint = errors.New("that is before the record's first checkpoint, so wind back fewer steps")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
+	// ErrRecordTooLarge is the rule that a record stays small enough to sit in
+	// front of any model, which is what lets a task be put down and picked up on
+	// a smaller one days later. A record that grows past it is not a slow task
+	// but a task that cannot run at all, because the working-context builder
+	// refuses the whole prompt.
+	ErrRecordTooLarge = errors.New("this change would take the record past the size it is promised to stay under, so shorten it")
 )

@@ -120,7 +120,7 @@ func (brokenSkills) Run(context.Context, string, string) (string, error) {
 }
 
 // Save cannot answer.
-func (brokenSkills) Save(context.Context, string, map[string][]byte) error {
+func (brokenSkills) Save(context.Context, contract.SkillSource, string, map[string][]byte) error {
 	return errors.New("the skills folder cannot be written, so check that it is still there")
 }
 

@@ -10,8 +10,12 @@
 // belongs to one; and the record's goal and rules, ending boundary C. Everything
 // above boundary C goes into the system prompt and is byte-identical from one
 // turn to the next, so the provider can reuse it. Everything below it goes into
-// the messages: the record's work and lessons, any pinned evidence, the recent
-// messages and tool results, and three lines of memory hint.
+// the messages, in the order of how often each part changes, because a prompt
+// cache keeps what two calls share from the first byte and stops at the first
+// byte that differs: the record's work and lessons, any pinned evidence, the
+// recent messages and tool results, three lines of memory hint, and last of all
+// the record's header, whose budget line and cost line are written anew on every
+// single call.
 //
 // One rule sizes the whole thing. The window left for results is the model's
 // context length, less the output cap, less everything above the cache line,
@@ -22,7 +26,9 @@
 // evidence never leaves, and a set of pins too large for the window is an error
 // naming the pin to drop rather than a prompt the model cannot be sent.
 //
-// Every tool result placed in the messages is wrapped in a data marker carrying
-// a random identifier made once per task, because words inside a web page or a
-// file are never instructions.
+// Every piece of text that did not come from the user is wrapped in a data
+// marker carrying a random identifier made once per task, because words inside a
+// web page or a file are never instructions. That covers the tool results in the
+// messages, the pinned evidence, and the record's own list of results, which
+// holds the first line of every tool result the task has seen.
 package context

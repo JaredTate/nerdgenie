@@ -81,7 +81,6 @@ func TestAStepThatCannotBeReplayedIsRefusedBySayingWhy(t *testing.T) {
 		name    string
 		step    skill.Step
 		wanted  string
-		refused bool
 	}{
 		{
 			name:   "a tool this package does not drive",
@@ -134,7 +133,7 @@ func TestAStepThatCannotBeReplayedIsRefusedBySayingWhy(t *testing.T) {
 func TestTheExpectationIsTakenFromTheLineAPersonWouldEdit(t *testing.T) {
 	step, err := browser.ParseStep(skill.Step{
 		Number: 1, Intent: "Open it.", Tool: contract.ToolBrowserOpen,
-		Input: `{"url":"https://fixture.test/simple","expectation":"what the machine wrote"}`,
+		Input:  `{"url":"https://fixture.test/simple","expectation":"what the machine wrote"}`,
 		Expect: "what the person wrote",
 	})
 	if err != nil {

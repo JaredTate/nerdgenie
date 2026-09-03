@@ -2,6 +2,7 @@ package tui
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -38,6 +39,8 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldTokensOut, &screen.tokensOut)
 	setIfSent(fields, contract.StatusFieldCost, &screen.money)
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
+	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
+	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
 	screen.readBudget(fields)
 
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
@@ -122,4 +125,19 @@ func setIfSent(fields map[string]string, name string, into *string) {
 	if value, sent := fields[name]; sent {
 		*into = value
 	}
+}
+
+// setCountIfSent copies one field that counts something into the screen. A field
+// that is not a plain number counts as nothing at all, because a screen must
+// never measure one thing against another it could not read.
+func setCountIfSent(fields map[string]string, name string, into *int) {
+	value, sent := fields[name]
+	if !sent {
+		return
+	}
+	count, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || count < 0 {
+		count = 0
+	}
+	*into = count
 }

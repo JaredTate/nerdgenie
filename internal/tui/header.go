@@ -1,6 +1,10 @@
 package tui
 
-import "time"
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 // healthFreshFor is how recently the program must have answered its health check
 // for the dot on the right of the header to be filled.
@@ -37,6 +41,7 @@ func (screen *Screen) headerParts() []span {
 	if screen.modelAlias != "" {
 		parts = append(parts, span{style: styleDim, text: screen.modelAlias})
 	}
+	parts = append(parts, screen.contextParts()...)
 	if task := screen.taskWords(); task != "" {
 		parts = append(parts, span{style: screen.taskStyle(), text: task})
 	}
@@ -44,6 +49,59 @@ func (screen *Screen) headerParts() []span {
 		parts = append(parts, span{style: styleDim, text: cost})
 	}
 	return parts
+}
+
+// The two shares of the model's context at which the header stops being quiet
+// about how full it is, because a person who cannot see the context filling up
+// finds out when the model forgets something.
+const (
+	// contextShareWarn is the share at which the measure turns the warning gold.
+	contextShareWarn = 80
+	// contextShareTrouble is the share at which it turns the error colour.
+	contextShareTrouble = 95
+)
+
+// contextParts are the two pieces that say how much of the model's context the
+// last call used: the measure itself, always quiet, and the share, which is the
+// piece that turns gold and then red as the context fills. They are drawn only
+// when the program sent both numbers, because a share of a window nobody named
+// is not a fact the screen has.
+func (screen *Screen) contextParts() []span {
+	if screen.contextWindow <= 0 || screen.contextTokens <= 0 {
+		return nil
+	}
+	share := (screen.contextTokens*100 + screen.contextWindow/2) / screen.contextWindow
+	measure := "ctx " + tokenWords(screen.contextTokens) + " / " + tokenWords(screen.contextWindow)
+	return []span{
+		{style: styleDim, text: measure},
+		{style: shareStyle(share), text: strconv.Itoa(share) + "%"},
+	}
+}
+
+// shareStyle draws a context with room to spare quietly, one that is filling up
+// in the warning gold, and one that is nearly full in the error colour.
+func shareStyle(share int) style {
+	switch {
+	case share >= contextShareTrouble:
+		return styleError
+	case share >= contextShareWarn:
+		return styleWarn
+	default:
+		return styleDim
+	}
+}
+
+// tokenWords writes a count of tokens the short way a status line reads it:
+// plainly below a thousand, then in thousands with one decimal place, and in
+// whole thousands once the decimal place says nothing worth reading.
+func tokenWords(count int) string {
+	if count < 1000 {
+		return strconv.Itoa(count)
+	}
+	if count < 100000 {
+		return strings.TrimSuffix(strconv.FormatFloat(float64(count)/1000, 'f', 1, 64), ".0") + "k"
+	}
+	return strconv.Itoa((count + 500) / 1000) + "k"
 }
 
 // linkPiece is what the header says about a link that is not there. A screen

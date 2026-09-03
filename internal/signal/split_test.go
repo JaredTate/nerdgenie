@@ -176,3 +176,19 @@ func firstFew(piece string) string {
 	}
 	return string(letters[:40]) + "..."
 }
+
+// TestNoPieceOfASplitReplyIsEverEmpty is the fuzzer's finding: a reply made of
+// carriage returns with a control character at its end came out as one piece
+// holding nothing, which signal-cli refuses. Every piece holds a visible
+// character, and a reply with none in it is not sent at all.
+func TestNoPieceOfASplitReplyIsEverEmpty(t *testing.T) {
+	reply := "\xff\xfe" + strings.Repeat("\r", 1400) + "\x1f"
+	for at, piece := range SplitReply(reply) {
+		if strings.TrimSpace(piece) == "" {
+			t.Errorf("piece %d of the reply holds nothing", at+1)
+		}
+	}
+	if pieces := SplitReply(strings.Repeat("\r", 3000)); len(pieces) != 0 {
+		t.Errorf("a reply of nothing but carriage returns came out as %d pieces, want none", len(pieces))
+	}
+}

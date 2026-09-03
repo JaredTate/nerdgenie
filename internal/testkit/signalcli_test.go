@@ -3,6 +3,7 @@ package testkit_test
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -194,18 +195,54 @@ func TestAnAttachmentIsAnOpaqueIdTheDaemonServes(t *testing.T) {
 		t.Errorf("the event carries no readable filename:\n%s", line)
 	}
 
-	answer, err := http.Get(daemon.AttachmentAddress(identifier))
+	// signal-cli hands the bytes back through the getAttachment call on the same
+	// remote-procedure endpoint, as base64 under "data". There is no separate
+	// address to fetch, so a harness reads an attachment the one way it reads
+	// everything else.
+	answered := callSignal(t, daemon.RemoteProcedureAddress(),
+		`{"jsonrpc":"2.0","id":1,"method":"getAttachment","params":{"id":"`+identifier+`","recipient":"+15555550123"}}`)
+
+	result, isResult := answered["result"].(map[string]any)
+	if !isResult {
+		t.Fatalf("getAttachment came back with no result: %+v", answered)
+	}
+	encoded, isText := result["data"].(string)
+	if !isText {
+		t.Fatalf("getAttachment came back with no data: %+v", result)
+	}
+	content, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
-		t.Fatalf("downloading the attachment failed: %v", err)
+		t.Fatalf("the data getAttachment gave back is not base64: %v", err)
+	}
+	if string(content) != "the picture the user sent" {
+		t.Errorf("getAttachment gave back %q, want the bytes that were pushed", content)
+	}
+
+	missing := callSignal(t, daemon.RemoteProcedureAddress(),
+		`{"jsonrpc":"2.0","id":2,"method":"getAttachment","params":{"id":"attachment-nobody-pushed","recipient":"+15555550123"}}`)
+	if _, isFailure := missing["error"]; !isFailure {
+		t.Errorf("asking for an attachment nobody pushed came back as a success: %+v", missing)
+	}
+}
+
+// callSignal sends one remote-procedure call to the fake daemon and returns the
+// answer it gave.
+func callSignal(t *testing.T, address string, body string) map[string]any {
+	t.Helper()
+	answer, err := http.Post(address, "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("calling %s failed: %v", address, err)
 	}
 	defer answer.Body.Close()
-	content, err := io.ReadAll(answer.Body)
+	read, err := io.ReadAll(answer.Body)
 	if err != nil {
-		t.Fatalf("reading the attachment failed: %v", err)
+		t.Fatalf("reading the answer from %s failed: %v", address, err)
 	}
-	if answer.StatusCode != http.StatusOK || string(content) != "the picture the user sent" {
-		t.Errorf("the attachment endpoint answered %d with %q, want the bytes that were pushed", answer.StatusCode, content)
+	var given map[string]any
+	if err := json.Unmarshal(read, &given); err != nil {
+		t.Fatalf("the answer from %s is not JSON: %v\n%s", address, err, read)
 	}
+	return given
 }
 
 // attachmentIDIn reads the id of the first attachment out of one event line.

@@ -41,6 +41,8 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
 	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
 	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
+	setCountIfSent(fields, contract.StatusFieldStreamed, &screen.streamed)
+	setMomentIfSent(fields, contract.StatusFieldCallStarted, &screen.callStarted)
 	screen.readBudget(fields)
 
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
@@ -125,6 +127,23 @@ func setIfSent(fields map[string]string, name string, into *string) {
 	if value, sent := fields[name]; sent {
 		*into = value
 	}
+}
+
+// setMomentIfSent copies one field that names a moment into the screen. The
+// program writes it the RFC 3339 way, and a field written any other way counts
+// as no moment at all, because a screen that counted from a time it could not
+// read would draw a number that means nothing.
+func setMomentIfSent(fields map[string]string, name string, into *time.Time) {
+	value, sent := fields[name]
+	if !sent {
+		return
+	}
+	moment, err := time.Parse(time.RFC3339, strings.TrimSpace(value))
+	if err != nil {
+		*into = time.Time{}
+		return
+	}
+	*into = moment
 }
 
 // setCountIfSent copies one field that counts something into the screen. A field

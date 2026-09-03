@@ -16,6 +16,10 @@ import (
 // never swallows the transcript.
 const maxPaletteRows = 8
 
+// commandGlyph is the slash a command is typed with. The palette draws it in
+// front of every name it lists, so a name is held without one.
+const commandGlyph = "/"
+
 // openPalette shows the command palette, which happens when the person types a
 // slash as the first character in an empty box.
 func (screen *Screen) openPalette() {
@@ -77,7 +81,7 @@ func (screen *Screen) paletteRows() []string {
 	for _, one := range matched {
 		line := row{}
 		line.blanks(marginColumns + gutterColumns)
-		line.add(styleAccent, "/"+one.Name)
+		line.add(styleAccent, commandGlyph+one.Name)
 		line.blanks(widest - displayWidth(one.Name))
 		line.add(styleDim, cutTo(one.Help, screen.width-marginColumns-gutterColumns-widest-2))
 		drawn = append(drawn, line.render(screen.colors))
@@ -92,17 +96,22 @@ func (screen *Screen) completeCommand() bool {
 	if len(matched) == 0 {
 		return false
 	}
-	screen.input.setText("/" + matched[0].Name + " ")
+	screen.input.setText(commandGlyph + matched[0].Name + " ")
 	screen.closePalette()
 	return true
 }
 
 // learnCommands takes the command list the program reported and puts it in the
-// palette, sorted by name so that the list reads the same every time.
+// palette, sorted by name so that the list reads the same every time. The
+// program writes each name with the slash it is typed with, and the palette
+// draws a slash of its own and matches on what is typed after one, so the slash
+// is taken off here. Left on, every command was drawn as "//help" and nothing
+// matched the moment a letter was typed after the slash.
 func (screen *Screen) learnCommands(listed string) {
 	learned := []contract.Command{}
 	for _, line := range strings.Split(listed, "\n") {
 		name, help, _ := strings.Cut(strings.TrimSpace(line), contract.StatusCommandSeparator)
+		name = strings.TrimPrefix(name, commandGlyph)
 		if name == "" {
 			continue
 		}

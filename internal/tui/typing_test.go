@@ -70,16 +70,19 @@ func TestTypingReachesTheInputBoxAfterTheProgramHasReportedItself(t *testing.T) 
 	}
 }
 
-func TestASlashCommandTypedInFullStillSendsOnEnter(t *testing.T) {
+func TestASlashCommandTypedInFullReachesTheProgramTheProgramNamedIt(t *testing.T) {
 	screen, link := attachedScreen(t)
 
 	typeWord(screen, "/status")
 	if screen.input.text() != "/status" {
 		t.Fatalf("the input box holds %q, and the palette must not eat what is typed", screen.input.text())
 	}
+	// The palette is open on a slash command, so the first Enter completes what
+	// is typed and the next one sends it, which is what the palette tests pin.
+	pressKey(screen, tea.KeyEnter)
 	pressKey(screen, tea.KeyEnter)
 	if len(link.sent) != 1 || link.sent[0].Type != contract.SocketCommand || link.sent[0].Text != "status" {
-		t.Fatalf("Enter on a typed command sent %+v, and it sends the command", link.sent)
+		t.Fatalf("a typed command reached the program as %+v, and it goes as the command the program named", link.sent)
 	}
 }
 

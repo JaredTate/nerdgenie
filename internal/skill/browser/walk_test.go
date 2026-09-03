@@ -64,9 +64,10 @@ func TestWalkRecordWritesDownThePageTheBrowserIsOn(t *testing.T) {
 	walk := theWalkCommand(built, nil)
 
 	said := runTheWalkCommand(t, walk, "record shop-walk")
-	if !strings.Contains(said, "shop-walk") || !strings.Contains(said, "your own clicks") {
-		t.Errorf("the answer is %q, and it should name the walk and say that your own clicks are not seen", said)
+	if !strings.Contains(said, "shop-walk") || !strings.Contains(said, "watching") {
+		t.Errorf("the answer is %q, and it should name the walk and say that the browser is being watched", said)
 	}
+	runTheWalkCommand(t, walk, "stop")
 	steps, err := browser.StepsOf(built.load(t, "shop-walk"))
 	if err != nil {
 		t.Fatalf("what was recorded does not read back as a walk: %v", err)
@@ -239,6 +240,7 @@ func TestWalkRecordOfAPageWithNoSiteToNameNamesNone(t *testing.T) {
 	walk := theWalkCommand(built, nil)
 
 	runTheWalkCommand(t, walk, "record blank-walk")
+	runTheWalkCommand(t, walk, "stop")
 	definition := built.load(t, "blank-walk").Definition
 	if len(definition.Permissions.Sites) != 0 {
 		t.Errorf("the walk may visit %v, and the page it recorded is on no site to name", definition.Permissions.Sites)
@@ -261,6 +263,7 @@ func TestWalkRecordOfAPageOnAVeryLongSiteStillFitsTheOneLineInThePrompt(t *testi
 	walk := theWalkCommand(built, nil)
 
 	runTheWalkCommand(t, walk, "record long-walk")
+	runTheWalkCommand(t, walk, "stop")
 	description := built.load(t, "long-walk").Definition.Description
 	if said := len([]rune(description)); said > 200 {
 		t.Errorf("the walk describes itself in %d characters, and the one line in the prompt holds two hundred", said)

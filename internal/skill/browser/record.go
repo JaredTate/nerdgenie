@@ -128,6 +128,17 @@ func (recorder *Recorder) describe(ctx context.Context, ref string) (Descriptor,
 	return Descriptor{Ref: ref}, nil
 }
 
+// writeDown adds a step that has already happened, which is how a walk recorded
+// by watching the person is built: the browser has done the thing already, so
+// there is nothing to act out and nothing to check.
+func (recorder *Recorder) writeDown(step Step) error {
+	if err := recorder.roomForAnother(); err != nil {
+		return err
+	}
+	recorder.write(step)
+	return nil
+}
+
 // roomForAnother refuses a recording that has already grown past what a skill
 // folder holds, so that a run nobody stopped cannot fill the disk.
 func (recorder *Recorder) roomForAnother() error {

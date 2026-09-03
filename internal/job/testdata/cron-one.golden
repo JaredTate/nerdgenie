@@ -1,0 +1,18 @@
+  2  running  every weekday at 7 in the morning in America/New_York
+     Post the morning update every weekday.
+     last run 2026-09-02 09:00, next run 2026-09-03 07:00
+
+# job 2   running   1 of 1 tasks done
+
+## Goal
+Ask: "Post the morning update every weekday."
+
+## Rules
+
+## Work
+Tasks:
+- [x] t1 write and post today's message, on 2 September 2026 at 07:00 EDT -> j2.1
+Reports (read any of them in full with `read j4.2`):
+- j2.1 posted the morning update
+
+## Lessons

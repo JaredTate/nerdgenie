@@ -1,0 +1,4 @@
+Jobs with a schedule. Run /cron 3 to see one, /cron run 3 to run it now, /cron off 3 to switch it off.
+  2  running  every weekday at 7 in the morning in America/New_York
+     Post the morning update every weekday.
+     last run 2026-09-02 09:00, next run 2026-09-03 07:00

@@ -12,72 +12,90 @@ built-in test runner, run the tests, and stop the moment they pass.
 
 ## Opus 4.8: Coeus, OpenClaw, Hermes
 
+**Correction, 14:05.** An earlier version of this table overcounted OpenClaw and
+Hermes by about two and a half times: Claude Code writes one line per piece of a
+reply into its session file, and a reply with four tool calls was counted as
+four model calls. Every Claude Code session was recounted by unique model call.
+The numbers below are the corrected ones, and OpenClaw was run a second time to
+confirm them.
+
 Each harness reaches Opus 4.8 the way its own users do on a Claude subscription,
-with no API key, and all three end up running the same program: `claude -p`,
+with no API key, and all three end up running the same program, `claude -p`,
 which is Claude Code in one-shot mode. The difference is what the harness does
-around it. Coeus runs it as a bare model with Claude Code's tools switched off
-and does the work with its own tools. OpenClaw and Hermes hand it the whole job
-and let Claude Code's own tools write the files and run the tests. opencode has
-no subscription route and was left out of this phase.
+around it:
 
-All three runs were on 2026-09-03 between 13:12 and 13:35, from fresh folders
-and fresh homes, on the same task text, with no cap of any kind.
+- **Coeus** runs `claude -p` with Claude Code's tools switched off and its own
+  system prompt in place of Claude Code's. Claude Code is then a bare model. The
+  model's reply asks Coeus for tools in text; Coeus runs them, updates its
+  record, and calls again. Coeus's loop is what is being measured.
+- **OpenClaw** (claude-cli mode) sends the task to Claude Code once, with Claude
+  Code's own tools on. Claude Code's loop writes the files and runs the tests
+  and hands back the finished folder. OpenClaw's log shows exactly one turn.
+- **Hermes** (its Claude Code skill) runs on the local Qwen, types the command
+  `claude -p ... --model claude-opus-4-8 --dangerously-skip-permissions` into
+  its terminal tool, and waits. Same as OpenClaw: Claude Code's loop does the
+  work.
 
-| | Coeus | OpenClaw | Hermes |
-|---|---|---|---|
-| How it reaches Opus 4.8 | its own provider runs `claude -p` as a bare model; Coeus's tools do the work | its `claude-cli` mode runs Claude Code with Claude Code's own tools | its Claude Code skill: Hermes, on the local Qwen, hands the task to `claude -p` and waits |
-| Finished green | **yes** | **yes** | **yes** |
-| Wall clock | 2 min 55 s | 27 s | 1 min 57 s |
-| Opus model calls | 9 | 7 | 7, plus 6 Qwen calls by Hermes itself |
-| Tool calls | 25 by Coeus | 5 by Claude Code | 5 by Claude Code, plus Hermes's own terminal calls |
-| Tokens in, total | 82,748 | 298,994 | 120,141 |
-| of which read from cache, $0.50 per million | 18,800 | 244,444 | 85,356 |
-| of which written to cache or fresh, $5 to $10 per million | 63,948 | 54,550 | 34,785 |
-| Tokens out, $25 per million | 11,258 | 9,602 | 9,959 |
-| **Cost at Anthropic list prices** | **$0.97** | **$0.91** | **$0.64** (plus free local Qwen) |
-| Logic checks | 6/6 | 6/6 | 6/6 |
-| Play-through checks | 4/4 | 4/4 | 4/4 |
-| Tests written / passing | 6 / 6 | 6 / 6 | 6 / 6 |
-| `game.js` size | 27 lines | 27 lines | 26 lines |
-| Thinking setting | the program's default | the program's default | the program's default |
+The proof is in the Claude Code sessions each run left behind: the tools that
+ran were Claude Code's own `Write` and `Bash`, not OpenClaw's `write` and
+`exec` or Hermes's `write_file`. So on this path OpenClaw and Hermes measure
+Claude Code's loop with a wrapper around it, and Coeus measures Coeus's loop.
+opencode has no subscription route and was left out of this phase.
 
-What each row means:
+All runs on 2026-09-03, fresh folders and homes, the same task text, no cap.
 
-- **Coeus** drove the model itself, nine calls, and its own tools ran the writes
-  and the test command. Its record kept the context small: the last call read
-  under 3,000 tokens. The first call alone cost $0.22 because the model wrote all
-  three files in one reply (6,753 tokens out). The cost is Claude Code's own
-  per-call figure, summed.
-- **OpenClaw** handed the task to Claude Code through its claude-cli mode and had
-  the finished folder 27 seconds later. Its own report shows only the last turn,
-  so the tokens come from the Claude Code session left behind: seven calls, four
-  writes and one shell command, and a 44,000-token Claude Code prompt (its own
-  system prompt plus OpenClaw's tools) read from cache each call.
-- **Hermes** did what its Claude Code skill page says: Hermes itself ran on the
-  local Qwen (six calls, free), checked that `claude` was there, ran `claude -p`
-  with the task word for word and the flags the skill documents, and waited. The
-  Claude Code side was seven calls, four writes and one shell command, with a
-  smaller prompt than OpenClaw's because no extra tools were attached. Hermes's
-  own prompt carried one extra sentence telling it to use Claude Code, which is
-  recorded in `~/work/bench/opus2/hermes/prompt.txt`.
-- All three produced a correct, playable game with the same six tests.
+| | Coeus | OpenClaw, run 1 | OpenClaw, run 2 | Hermes |
+|---|---|---|---|---|
+| Whose loop drove Opus | Coeus | Claude Code | Claude Code | Claude Code (Hermes on Qwen typed the command) |
+| Finished green | **yes** | **yes** | **yes** | **yes** |
+| Wall clock | 2 min 55 s | 27 s | 25 s | 1 min 57 s |
+| Opus model calls | 9 | 3 | 3 | 3 (plus 6 free Qwen calls by Hermes) |
+| Tool calls | 25 | 5 | 4 | 5 |
+| Tokens in, total | 82,748 | 130,846 | 130,482 | 54,273 |
+| of which read from cache, $0.50 per million | 18,800 | 117,916 | 117,745 | 45,240 |
+| of which written to cache, $10 per million | 63,948 | 12,924 | 12,731 | 9,027 |
+| Tokens out, $25 per million | 11,258 | 2,062 | 1,898 | 2,135 |
+| **Cost at Anthropic list prices** | **$0.97** | **$0.24** | **$0.23** | **$0.17** |
+| Logic checks | 6/6 | 6/6 | 6/6 | 6/6 |
+| Play-through checks | 4/4 | 4/4 | 4/4 | 4/4 |
+| Tests written / passing | 6 / 6 | 6 / 6 | 6 / 6 | 6 / 6 |
+| `game.js` size | 27 lines | 27 lines | 27 lines | 26 lines |
+| Thinking setting | the program's default | the program's default | the program's default | the program's default |
 
-**Why tokens in is not the cost.** Anthropic has four prices: fresh input $5 per
-million, writing the prompt into the cache $10 per million (Claude Code uses the
-one-hour cache), reading it back $0.50 per million, and output $25 per million.
-OpenClaw's 299,000 tokens were mostly cheap cache reads of the same prompt;
-Coeus's 83,000 were mostly a fresh, growing conversation written to cache at the
-dear price. Output is the biggest single line for all three.
+Cost arithmetic, so the columns can be checked: OpenClaw run 1 is
+12,924 × $10 + 117,916 × $0.50 + 2,062 × $25, all per million, = $0.13 +
+$0.06 + $0.05 = $0.24. Coeus is Claude Code's own per-call figure, summed; its
+first call alone was $0.22 (4,916 tokens written to cache, 6,753 out).
 
-**What this says about the harnesses.** On a strong model and a small task, all
-three finish, and Claude Code's own loop is the fastest way through it. Coeus
-is the only one of the three that is actually driving the model: it decides
-every step, runs every tool through its own permission function and log, and
-keeps a record that a person can read. The other two, in their subscription
-modes, are wrappers around Claude Code; their harness logic is not what is being
-measured on this path. That is the honest comparison this run can give. The
-Qwen phase below, where all four harnesses drive the same local model directly,
-is the one that compares the harnesses themselves.
+### What this says about Coeus, honestly
+
+On this task, with this model, Claude Code's loop did the job in three calls
+and about a quarter dollar. Coeus's loop took nine calls and about a dollar,
+four times the cost and five times the time, for the same green result. Three
+reasons, all visible in the numbers, and all fixable:
+
+1. **Coeus's prompt is almost never cached.** Five of its nine calls read zero
+   tokens from cache, and the other four only 4,700. Every call is written to
+   the cache at $10 per million and then thrown away. The cause is in how the
+   provider runs the program: each call runs in a brand-new scratch folder, and
+   Claude Code adds the working folder to its system prompt, so no two calls
+   share a prefix. A fixed scratch folder per model, plus the program's
+   `--exclude-dynamic-system-prompt-sections` flag, would let the persona,
+   rules and tool list be read from cache at a twentieth of the price.
+2. **Coeus writes five times the output.** 11,258 tokens out against about
+   2,000. The model rewrites the record through the `task` tool (the why, the
+   done list, the plan), and the done-check and the after-action review each
+   cost a call and a reply. Output is the dearest token there is.
+3. **Coeus makes three times the calls.** Calls six to nine happened after the
+   tests were already green: the done-check, a refused record change, and the
+   review. Claude Code stopped when the tests passed.
+
+None of this touches what Coeus is for. Claude Code's loop keeps no record a
+person can read, has no done list with proof, no stop list, no corrections
+kept word for word, and grows its prompt every call. On a forty-round task on a
+small model that is where it falls over, and that is what the Qwen phase below
+is for. But on a three-call task on a strong model, the record is overhead, and
+these numbers say how much.
 
 ## Qwen 3.8 (local, thinking off), two at a time
 

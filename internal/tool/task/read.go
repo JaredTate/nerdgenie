@@ -17,15 +17,12 @@ func readInput(written json.RawMessage) (input, error) {
 			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an operation in it: %w", err)
 		}
 	}
+	if asked.Operation == OperationWhy && strings.TrimSpace(asked.Why) == "" {
+		asked.Why = asked.Text
+	}
 	switch asked.Operation {
-	case OperationWhy:
-		return asked, needsText(asked.Why, "the why is the one line on why the user wants this, so write it")
-	case OperationDoneWhen:
-		return asked, checkList(len(asked.DoneWhen), "done list", "one line each saying what must be true")
-	case OperationStopWhen:
-		return asked, checkList(len(asked.StopWhen), "stop list", "one line each saying what stops the work at once")
-	case OperationPlan:
-		return asked, checkList(len(asked.Plan), "plan", "one line per step, in the order they are done")
+	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan, "":
+		return asked, checkSections(asked)
 	case OperationDecision:
 		return asked, needsText(asked.Text, "a decision is a choice, so write the choice in one line")
 	case OperationFailure:
@@ -63,6 +60,36 @@ func checkPin(asked input) error {
 	}
 	if strings.TrimSpace(asked.Result) == "" {
 		return errors.New("this call names no result, so give the label of the result that proves the line, such as r7")
+	}
+	return nil
+}
+
+// checkSections refuses a call that writes no section at all, and checks the
+// length of every list it does carry.
+func checkSections(asked input) error {
+	written := 0
+	if strings.TrimSpace(asked.Why) != "" {
+		written++
+	}
+	for _, list := range []struct {
+		held   int
+		what   string
+		advice string
+	}{
+		{len(asked.DoneWhen), "done list", "one line each saying what must be true"},
+		{len(asked.StopWhen), "stop list", "one line each saying what stops the work at once"},
+		{len(asked.Plan), "plan", "one line per step, in the order they are done"},
+	} {
+		if list.held == 0 {
+			continue
+		}
+		written++
+		if err := checkList(list.held, list.what, list.advice); err != nil {
+			return err
+		}
+	}
+	if written == 0 {
+		return errors.New(`this call writes nothing, so give "why", "done_when", "stop_when", or "plan", one or several at once`)
 	}
 	return nil
 }

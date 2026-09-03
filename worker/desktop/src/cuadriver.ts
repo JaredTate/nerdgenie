@@ -2,8 +2,10 @@
 // @trycua/cua-driver. The lifecycle is OpenClaw's driver session at
 // ~/Code/openclaw/extensions/cua-computer/src/driver-client.ts: load the native
 // library only when a desktop is really going to be driven, keep one runtime for
-// the life of the worker, and shut it down in order. Written fresh for Coeus and
-// narrowed to the eleven calls DesktopDriver names.
+// the life of the worker, and shut it down in order. The whole-screen picture
+// is OpenClaw's reading of the driver's desktop state, at
+// ~/Code/openclaw/extensions/cua-computer/src/commands.ts. Written fresh for
+// Coeus and narrowed to the twelve calls DesktopDriver names.
 
 import type { DesktopDriver, DriverSnapshot, DriverWindow, Point, WindowTarget } from "./driver.js"
 import type { KeyChord } from "./keys.js"
@@ -64,6 +66,12 @@ export class CuaDesktopDriver implements DesktopDriver {
     })
     const elements = readElements(answer.structured["elements"])
     return { title: elements[0]?.label ?? "", elements, pictureBase64: answer.picture }
+  }
+
+  /** readScreen photographs the whole screen, which is the first image the desktop state carries. */
+  async readScreen(): Promise<string> {
+    const answer = await this.call("get_desktop_state", {})
+    return answer.picture
   }
 
   /** click presses and releases the mouse on one control. */

@@ -133,6 +133,27 @@ describe("taking a screenshot with nothing open", () => {
     expect((picture.windows[0] as string).length).toBeLessThanOrEqual(maximumNameLength)
   })
 
+  test("a screen the driver cannot photograph whole still names the windows, with no picture and a logged reason", async () => {
+    const logged: string[] = []
+    const quiet = new DesktopSession(driver, fast, (line) => logged.push(line))
+    driver.windows = [aWindow()]
+    driver.screenBrokenWith = "X11 error BadMatch from GetImage"
+
+    const picture = await quiet.screenshot()
+
+    expect(picture.pngBase64).toBe("")
+    expect(picture.windows).toEqual(["Coeus fixture window"])
+    expect(logged.some((line) => line.includes("BadMatch"))).toBe(true)
+  })
+
+  test("a driver that will not answer at all is still reported as unavailable", async () => {
+    driver.brokenWith = "the native library is missing"
+
+    const thrown = await failure(() => session.screenshot())
+
+    expect(thrown.code).toBe(DesktopErrorCode.DriverUnavailable)
+  })
+
   test("a picture of the whole screen bigger than the cap is refused rather than sent", async () => {
     driver.screen = "x".repeat(maximumPictureLength + 1)
 

@@ -8,6 +8,9 @@ export const maximumTypedCharacters = 10_000
 /** The most base64 characters a window's picture may come to, which is 4 MB. */
 export const maximumPictureLength = 4 * 1024 * 1024
 
+/** The most windows one screenshot names, because each title is a line of the model's context. */
+export const maximumWindowsListed = 50
+
 /** The longest an application name may be before it is refused. */
 export const maximumApplicationNameLength = 200
 

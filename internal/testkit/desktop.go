@@ -11,8 +11,9 @@ import (
 )
 
 // FakeDesktop is a desktop nobody can see: it refuses an application the user
-// has not granted, records every action, and shows one fixture window with three
-// numbered controls on it.
+// has not granted, records every action, shows one fixture window with three
+// numbered controls on it, and photographs the screen whether or not an
+// application is open.
 type FakeDesktop struct {
 	guard     sync.Mutex
 	granted   map[string]bool
@@ -57,14 +58,23 @@ func (desktop *FakeDesktop) Launch(_ context.Context, application string, expect
 	return nil
 }
 
-// Screenshot returns the fixture window with its controls numbered.
+// Screenshot returns a picture of the screen: the fixture window with its
+// controls numbered when an application is open, and the whole screen with no
+// control numbered when none is, because looking needs no application. Either
+// way it names the windows on the screen.
 func (desktop *FakeDesktop) Screenshot(_ context.Context) (contract.DesktopScreenshot, error) {
 	desktop.guard.Lock()
 	defer desktop.guard.Unlock()
-	if err := desktop.somethingRunning(); err != nil {
-		return contract.DesktopScreenshot{}, err
+	picture := contract.DesktopScreenshot{
+		PNGBase64: fixturePicture,
+		Marks:     []contract.DesktopMark{},
+		Windows:   []string{fixtureWindowTitle},
 	}
-	return contract.DesktopScreenshot{PNGBase64: fixturePicture, Marks: fixtureDesktopMarks()}, nil
+	if desktop.running != "" {
+		picture.Application = desktop.running
+		picture.Marks = fixtureDesktopMarks()
+	}
+	return picture, nil
 }
 
 // Click clicks the control with that number. The numbers on a screenshot start
@@ -173,6 +183,9 @@ func (desktop *FakeDesktop) knownMark(mark int) error {
 	}
 	return fmt.Errorf("there is no control numbered %d on the screen, so take a screenshot and use a number from it", mark)
 }
+
+// fixtureWindowTitle is what the one window the fake desktop shows is called.
+const fixtureWindowTitle = "Coeus fixture window"
 
 // fixtureDesktopMarks is the one window the fake desktop shows.
 func fixtureDesktopMarks() []contract.DesktopMark {

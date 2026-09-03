@@ -1,3 +1,5 @@
+windows on the screen: "Coeus fixture window"
+controls in a-text-editor:
 1 textbox "Document"
 2 button "Save"
 3 menu item "File"

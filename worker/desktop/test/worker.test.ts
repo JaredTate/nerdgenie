@@ -80,7 +80,8 @@ describe("the worker process", () => {
     const answered = JSON.parse(out[0] as string)
     expect(answered.error).toBeUndefined()
     expect(answered.result.pngBase64).toBe("iVBORw0KGgoWHOLE")
-    expect(answered.result.windows).toEqual(["Coeus fixture window"])
+    // The fake machine shows no window until something is launched on it.
+    expect(answered.result.windows).toEqual([])
   })
 
   test("a failure that is not the protocol's own is still answered rather than thrown", async () => {

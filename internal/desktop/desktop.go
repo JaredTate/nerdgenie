@@ -76,16 +76,22 @@ func (desktop *Desktop) Launch(ctx context.Context, application string, expectat
 	return unmet(diff, expectation)
 }
 
-// Screenshot returns the granted application's window with its controls numbered.
+// Screenshot returns a picture of the screen. With an application open it is
+// that application's window with its controls numbered; with none open it is
+// the whole screen with no control numbered, because looking at the screen is
+// not acting in an application and needs no grant. Either way it names the
+// windows on the screen, so that the model knows what it is looking at.
 func (desktop *Desktop) Screenshot(ctx context.Context) (contract.DesktopScreenshot, error) {
-	if err := desktop.requireOpen(); err != nil {
-		return contract.DesktopScreenshot{}, err
-	}
 	var picture screenshotAnswer
 	if err := desktop.call(ctx, "screenshot", map[string]any{}, &picture); err != nil {
 		return contract.DesktopScreenshot{}, err
 	}
-	return contract.DesktopScreenshot{PNGBase64: picture.PNGBase64, Marks: marksOf(picture.Marks)}, nil
+	return contract.DesktopScreenshot{
+		PNGBase64:   picture.PNGBase64,
+		Marks:       marksOf(picture.Marks),
+		Application: picture.Application,
+		Windows:     windowsOf(picture.Windows),
+	}, nil
 }
 
 // Click clicks the control with that number and checks what the model expected
@@ -243,7 +249,21 @@ func marksOf(sent []mark) []contract.DesktopMark {
 	return marks
 }
 
-// requireOpen refuses to act when no application has been opened yet.
+// MaxWindowsKept is how many window titles one screenshot hands back. Each one
+// is a line of the model's context, and a person has no more windows open than
+// this.
+const MaxWindowsKept = 50
+
+// windowsOf keeps no more window titles than the model can read.
+func windowsOf(sent []string) []string {
+	if len(sent) > MaxWindowsKept {
+		sent = sent[:MaxWindowsKept]
+	}
+	return append([]string{}, sent...)
+}
+
+// requireOpen refuses to act in an application when none has been opened yet.
+// A screenshot does not come through here, because looking is not acting.
 func (desktop *Desktop) requireOpen() error {
 	desktop.guard.Lock()
 	defer desktop.guard.Unlock()

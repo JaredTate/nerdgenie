@@ -45,6 +45,8 @@ export class FakeDriver implements DesktopDriver {
   driverVersion = "0.23.2"
   /** When set, every call fails with this message. */
   brokenWith: string | undefined
+  /** When set, only the whole-screen picture fails with this message, as it does through XWayland. */
+  screenBrokenWith: string | undefined
   /** When set, the tree changes on every reading, so nothing ever settles. */
   restless = false
   /** What launching an application does, by name. */
@@ -88,6 +90,9 @@ export class FakeDriver implements DesktopDriver {
 
   async readScreen(): Promise<string> {
     this.record("read the whole screen")
+    if (this.screenBrokenWith !== undefined) {
+      throw new Error(this.screenBrokenWith)
+    }
     return this.screen
   }
 

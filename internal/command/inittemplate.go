@@ -70,8 +70,8 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	written.WriteString("# your cloud credentials, and your keys.\n")
 	fmt.Fprintf(written, "sandbox_roots = %s\n", quotedList(roots))
 
-	for _, alias := range aliasesToWrite(chosen, found) {
-		written.WriteString(aliasBlock(alias))
+	for _, choice := range aliasesToWrite(chosen, found) {
+		written.WriteString(aliasBlock(choice))
 	}
 	return written.String()
 }
@@ -90,20 +90,29 @@ func fallbackNames(chosen modelChoice, found []modelChoice) []string {
 
 // aliasesToWrite are the model blocks the file gets: the one chosen and every
 // one found on this machine, so that the fallback chain names blocks that exist.
-func aliasesToWrite(chosen modelChoice, found []modelChoice) []contract.ModelAlias {
-	written := []contract.ModelAlias{}
+func aliasesToWrite(chosen modelChoice, found []modelChoice) []modelChoice {
+	written := []modelChoice{}
 	for _, choice := range found {
 		if choice.detected || choice.name == chosen.name {
-			written = append(written, choice.alias)
+			written = append(written, choice)
 		}
 	}
 	return written
 }
 
-// aliasBlock is one [[models]] block, with a comment above every line.
-func aliasBlock(alias contract.ModelAlias) string {
+// aliasBlock is one [[models]] block, with a comment above every line. A server
+// on this machine that was not answering when "coeus init" ran still gets its
+// block, with a comment saying so, because that is how a person who has not
+// started the daemon yet ends up with a configuration they can use.
+func aliasBlock(choice modelChoice) string {
+	alias := choice.alias
 	written := &strings.Builder{}
-	written.WriteString("\n# One model Coeus can talk to. Add a block like this for another.\n[[models]]\n")
+	written.WriteString("\n# One model Coeus can talk to. Add a block like this for another.\n")
+	if !choice.detected && !choice.needsKey {
+		written.WriteString("# This server was not answering when \"coeus init\" ran. Start it, then run\n")
+		written.WriteString("# \"coeus doctor\" to check that Coeus can reach it.\n")
+	}
+	written.WriteString("[[models]]\n")
 	written.WriteString("# The short name you call this model by.\n")
 	fmt.Fprintf(written, "name = %s\n", quoted(alias.Name))
 	written.WriteString("# How it is reached: \"anthropic\", \"openai\" for any OpenAI-compatible\n")

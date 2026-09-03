@@ -76,7 +76,7 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 }
 
 // run is the setup itself, in the order a person answers it: the folders to
-// work in, the model, the key when the model needs one, and Signal.
+// work in, the model with the key when the model needs one, and Signal.
 func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 	ask := newAsker(setup.Input, setup.Output, chosen.yes)
 	fmt.Fprintf(setup.Output, "Setting Coeus up in %s.\n", setup.Home.Root)
@@ -89,11 +89,8 @@ func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 		return err
 	}
 	found := detectModels(ctx, setup)
-	picked, err := setup.askModel(ctx, ask, chosen, found)
+	picked, err := setup.chooseModel(ctx, ask, chosen, found)
 	if err != nil {
-		return err
-	}
-	if err := setup.storeKey(ctx, chosen, picked); err != nil {
 		return err
 	}
 	signalWanted, err := setup.askSignal(ctx, ask, chosen)

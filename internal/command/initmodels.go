@@ -54,11 +54,13 @@ const (
 )
 
 // modelChoice is one model "coeus init" can set up: the name the user types,
-// the line the menu prints, whether it was found on this machine, whether it
-// needs an API key, and the alias written into config.toml for it.
+// the line the menu prints, the phrase that says where it was looked for when
+// it was not found, whether it was found on this machine, whether it needs an
+// API key, and the alias written into config.toml for it.
 type modelChoice struct {
 	name        string
 	description string
+	whenMissing string
 	detected    bool
 	needsKey    bool
 	alias       contract.ModelAlias
@@ -76,23 +78,27 @@ func detectModels(ctx context.Context, setup Setup) []modelChoice {
 	return []modelChoice{{
 		name:        contract.LocalModelAlias,
 		description: "the local model daemon on this machine, at " + local.BaseAddress + ", which costs nothing and sends nothing away",
+		whenMissing: "the local model daemon did not answer at " + local.BaseAddress,
 		detected:    serverAnswers(ctx, healthAddress(local.BaseAddress)),
 		alias:       local,
 	}, {
 		name:        LMStudioAlias,
 		description: "an LM Studio server on this machine, at " + lmStudio + ", serving " + lmStudioModel,
+		whenMissing: "no LM Studio server answered at " + lmStudio,
 		detected:    lmStudioAnswered,
 		alias: contract.ModelAlias{Name: LMStudioAlias, Provider: contract.ProviderOpenAI,
 			BaseAddress: lmStudio, ModelName: lmStudioModel, ContextLength: lmStudioContextLength},
 	}, {
 		name:        contract.ClaudeProgram,
 		description: "the Claude subscription you already pay for, through the claude program",
+		whenMissing: "the " + contract.ClaudeProgram + " program is not on your PATH",
 		detected:    onThePath(contract.ClaudeProgram),
 		alias: contract.ModelAlias{Name: contract.ClaudeProgram, Provider: contract.ProviderCommandLine,
 			Program: contract.ClaudeProgram, ModelName: "claude-opus-4-8", ContextLength: cloudContextLength},
 	}, {
 		name:        contract.CodexProgram,
 		description: "the ChatGPT subscription you already pay for, through the codex program",
+		whenMissing: "the " + contract.CodexProgram + " program is not on your PATH",
 		detected:    onThePath(contract.CodexProgram),
 		alias: contract.ModelAlias{Name: contract.CodexProgram, Provider: contract.ProviderCommandLine,
 			Program: contract.CodexProgram, ModelName: "gpt-5.5", ContextLength: cloudContextLength},
@@ -114,7 +120,10 @@ func detectModels(ctx context.Context, setup Setup) []modelChoice {
 }
 
 // offered returns the models the menu shows: the ones found on this machine,
-// and the two that need a key, which cannot be found by looking.
+// the two that need a key, which cannot be found by looking, and, when the local
+// daemon did not answer, the local model as a last line. That last line is what
+// gives a person who has nothing running and no API key a way through the menu,
+// because a menu nobody can answer is a dead end.
 func offered(choices []modelChoice) []modelChoice {
 	shown := []modelChoice{}
 	for _, choice := range choices {
@@ -122,7 +131,29 @@ func offered(choices []modelChoice) []modelChoice {
 			shown = append(shown, choice)
 		}
 	}
+	for _, choice := range choices {
+		if choice.name == contract.LocalModelAlias && !choice.detected {
+			choice.description = "the local model at " + choice.alias.BaseAddress + " (start it later)"
+			shown = append(shown, choice)
+		}
+	}
 	return shown
+}
+
+// notFoundLine is the line above the menu saying what was looked for and not
+// found, so that a person reading a short menu can see why it is short. It is
+// empty when everything that can be found by looking was found.
+func notFoundLine(choices []modelChoice) string {
+	missing := []string{}
+	for _, choice := range choices {
+		if !choice.detected && !choice.needsKey {
+			missing = append(missing, choice.whenMissing)
+		}
+	}
+	if len(missing) == 0 {
+		return ""
+	}
+	return "This was not found on this machine: " + inPlainList(missing) + "."
 }
 
 // firstDetected is the model "coeus init --yes" takes: the first one found on

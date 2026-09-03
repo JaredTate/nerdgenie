@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -109,6 +110,9 @@ func (setup Setup) askModel(ctx context.Context, ask *asker, chosen initFlags, f
 		return picked, nil
 	}
 
+	if missing := notFoundLine(found); missing != "" {
+		fmt.Fprintf(ask.output, "\n%s\n", missing)
+	}
 	lines := make([]string, 0, len(menu))
 	for _, choice := range menu {
 		lines = append(lines, choice.description)
@@ -118,6 +122,33 @@ func (setup Setup) askModel(ctx context.Context, ask *asker, chosen initFlags, f
 		return modelChoice{}, err
 	}
 	return menu[at], nil
+}
+
+// errNoKeyTyped means the person pressed Enter at the masked key prompt without
+// typing anything, which is how they say they picked the wrong model.
+var errNoKeyTyped = errors.New("no key was typed at the masked prompt")
+
+// chooseModel asks which model to use and puts its key in the vault when the
+// model needs one. Pressing Enter at the key prompt goes back to the menu, so
+// that a person who picked a model needing a key they do not have is never
+// stuck with it. A model named by --model, or a run with nobody to ask, has no
+// menu to go back to, so the missing key is a failure there as it always was.
+func (setup Setup) chooseModel(ctx context.Context, ask *asker, chosen initFlags, found []modelChoice) (modelChoice, error) {
+	for tries := 0; tries < maxTriesPerQuestion; tries++ {
+		picked, err := setup.askModel(ctx, ask, chosen, found)
+		if err != nil {
+			return modelChoice{}, err
+		}
+		err = setup.storeKey(ctx, chosen, picked)
+		if err == nil {
+			return picked, nil
+		}
+		if !errors.Is(err, errNoKeyTyped) || chosen.model != "" || !ask.canAsk() {
+			return modelChoice{}, err
+		}
+		fmt.Fprintf(ask.output, "\nNo %s key was typed, so here is the menu again.\n", picked.name)
+	}
+	return modelChoice{}, fmt.Errorf("no model was chosen in %d tries%s", maxTriesPerQuestion, pickUpThere)
 }
 
 // storeKey puts the API key of a model that needs one into the vault, so that
@@ -161,7 +192,7 @@ func (setup Setup) readKey(_ context.Context, chosen initFlags, picked modelChoi
 		return "", fmt.Errorf("the %s key was not entered, so nothing was kept: %w", picked.name, err)
 	}
 	if strings.TrimSpace(key) == "" {
-		return "", fmt.Errorf("no %s key was entered, so run coeus init again and type it, or use --api-key-from-env", picked.name)
+		return "", fmt.Errorf("no %s key was entered, so run coeus init again and type it, or use --api-key-from-env: %w", picked.name, errNoKeyTyped)
 	}
 	return strings.TrimSpace(key), nil
 }
@@ -178,7 +209,7 @@ func (setup Setup) askSignal(ctx context.Context, ask *asker, chosen initFlags) 
 	if !ask.canAsk() {
 		return true, nil
 	}
-	return ask.yesOrNo(ctx, "signal-cli is installed. Do you want to talk to Coeus over Signal too?", true)
+	return ask.yesOrNo(ctx, "signal-cli is installed. Should the closing lines say how to link Signal?\nThis only changes what is printed; nothing is switched on or off.", true)
 }
 
 // writeConfiguration writes config.toml from the template this package owns.

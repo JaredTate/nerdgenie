@@ -23,6 +23,12 @@ import (
 // with half a home folder.
 const AnswerWait = 2 * time.Minute
 
+// pickUpThere is the ending every giving-up message shares. By the time a
+// question is asked, the home folder, the folders inside it, the persona files,
+// and the work folder are all there, so saying that nothing was set up would be
+// untrue: what is missing is config.toml, and a second run writes it.
+const pickUpThere = "; the home folder was made, but no configuration was written, so run coeus init again and it picks up there"
+
 // The bounds on the conversation, so that a pipe full of rubbish cannot make
 // the setup read for ever.
 const (

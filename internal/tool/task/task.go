@@ -133,12 +133,83 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if err := tool.settings.Records.Apply(ctx, update); err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("the record refused this change: %w", err)
 	}
-	return contract.ToolOutput{Text: fmt.Sprintf("the record's %s is written\n", said(asked.Operation))}, nil
+	return contract.ToolOutput{Text: theResult(update)}, nil
 }
 
-// said is how one operation reads in the line the model gets back.
-func said(operation string) string {
-	return strings.ReplaceAll(operation, "_", " ")
+// theChangeMade is the update one call made, written in the model's own field
+// names. The whole update comes back as the result, so that "read r2" fetches
+// the change itself rather than a sentence about it.
+type theChangeMade struct {
+	// Why is the one line on why the user wants this.
+	Why string `json:"why,omitempty"`
+	// DoneWhen is the whole done list.
+	DoneWhen []theDoneLineMade `json:"done_when,omitempty"`
+	// StopWhen is the whole stop list.
+	StopWhen []string `json:"stop_when,omitempty"`
+	// Plan is the whole plan, one line per step.
+	Plan []string `json:"plan,omitempty"`
+	// Decision is the choice this call added, with its reason.
+	Decision *writtenPair `json:"decision,omitempty"`
+	// Failure is what went wrong, with its cause.
+	Failure *writtenPair `json:"failure,omitempty"`
+}
+
+// theDoneLineMade is one line of the done list as it comes back, under the
+// names the model writes it in.
+type theDoneLineMade struct {
+	// Text is the line itself.
+	Text string `json:"text"`
+	// Done says the line is satisfied.
+	Done bool `json:"done,omitempty"`
+	// Result is the result that proves it, such as r7.
+	Result string `json:"result,omitempty"`
+	// UserReply is the user's own words standing in for a result.
+	UserReply string `json:"user_reply,omitempty"`
+}
+
+// theResult is what the model reads back: one sentence naming every part of the
+// record the call wrote, and the whole update as JSON under it.
+func theResult(update record.Update) string {
+	made, names := theChangeIn(update)
+	written, err := json.Marshal(made)
+	if err != nil {
+		return fmt.Sprintf("the record's %s is written\n", strings.Join(names, ", "))
+	}
+	return fmt.Sprintf("the record's %s is written\n%s\n", strings.Join(names, ", "), written)
+}
+
+// theChangeIn turns the update into the shape that comes back and names the
+// parts of the record it touched, in the order the record holds them.
+func theChangeIn(update record.Update) (theChangeMade, []string) {
+	made := theChangeMade{Why: update.Why, StopWhen: update.StopWhen, Plan: update.Plan}
+	for _, line := range update.DoneWhen {
+		made.DoneWhen = append(made.DoneWhen, theDoneLineMade{
+			Text: line.Text, Done: line.Done, Result: line.ResultID, UserReply: line.UserReply,
+		})
+	}
+	names := []string{}
+	for _, part := range []struct {
+		wrote bool
+		name  string
+	}{
+		{update.Why != "", "why"},
+		{len(update.DoneWhen) > 0, "done_when"},
+		{len(update.StopWhen) > 0, "stop_when"},
+		{len(update.Plan) > 0, "plan"},
+		{update.Decision != nil, "decision"},
+		{update.Failure != nil, "failure"},
+	} {
+		if part.wrote {
+			names = append(names, part.name)
+		}
+	}
+	if update.Decision != nil {
+		made.Decision = &writtenPair{Text: update.Decision.Text, Reason: update.Decision.Reason}
+	}
+	if update.Failure != nil {
+		made.Failure = &writtenPair{Text: update.Failure.Text, Cause: update.Failure.Cause}
+	}
+	return made, names
 }
 
 // updateFor turns one call into the update the record takes, which is the only

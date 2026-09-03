@@ -132,8 +132,8 @@ func TestTheReleaseWritesAnArchiveForEachArchitecture(t *testing.T) {
 		names := namesInArchive(t, archive)
 		for _, wanted := range []string{
 			"/coeus", "/VERSION", "/node/bin/node",
-			"/worker/browser/dist/main.js", "/worker/desktop/dist/main.js",
-			"/worker/browser/node_modules/a-dependency/index.js",
+			"/workers/browser/main.js", "/workers/desktop/main.js",
+			"/workers/browser/node_modules/a-dependency/index.js",
 		} {
 			if !containsPathEnding(names, wanted) {
 				t.Errorf("the %s archive holds no path ending %q; it holds %d paths, the first of which is %q",
@@ -144,9 +144,18 @@ func TestTheReleaseWritesAnArchiveForEachArchitecture(t *testing.T) {
 
 	asked := npmWasAsked(t, root)
 	for _, worker := range []string{"browser", "desktop"} {
-		if !strings.Contains(asked, "ci --omit=dev") || !strings.Contains(asked, filepath.Join("worker", worker)) {
+		if !strings.Contains(asked, "ci --omit=dev") || !strings.Contains(asked, filepath.Join("workers", worker)) {
 			t.Errorf("nothing installed the %s worker's run-time dependencies into the release tree. npm was asked:\n%s",
 				worker, asked)
+		}
+	}
+	// The desktop worker's driver ships a compiled library for each machine, so
+	// the tree in the arm64 archive has to be installed for arm64 and not copied
+	// from the one built here.
+	for _, processor := range []string{"--cpu=x64", "--cpu=arm64"} {
+		if !strings.Contains(asked, processor) {
+			t.Errorf("no worker tree was installed with %s, so one archive carries the other machine's libraries. npm was asked:\n%s",
+				processor, asked)
 		}
 	}
 }

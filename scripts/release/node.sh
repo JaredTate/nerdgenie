@@ -26,8 +26,10 @@ amd64_sum="55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742"
 arm64_file="node-v${node_version}-linux-arm64.tar.xz"
 arm64_sum="58c9520501f6ae2b52d5b210444e24b9d0c029a58c5011b797bc1fe7105886f6"
 
-repository_root=$(cd "$(dirname "$0")/../.." && pwd)
-cache=${COEUS_NODE_CACHE:-$repository_root/.cache/release}
+# The cache sits where a machine keeps downloads rather than inside the checkout,
+# so that a release never makes the working tree dirty and "make clean" does not
+# throw away two hundred megabytes that would only be fetched again.
+cache=${COEUS_NODE_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/coeus-release}
 
 say() { printf '%s\n' "$*" >&2; }
 die() { printf '%s\n' "$*" >&2; exit 1; }

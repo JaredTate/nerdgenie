@@ -108,8 +108,8 @@ func writeFixtureArchive(t *testing.T, into string, architecture string) string 
 		"#!/bin/sh\nprintf 'coeus %s\\n' \"$*\" >> \"${COEUS_INIT_LOG:-/dev/null}\"\nexit 0\n")
 	writeFile(t, filepath.Join(staging, "VERSION"), fixtureVersion+"\n")
 	writeExecutable(t, filepath.Join(staging, "node", "bin", "node"), "#!/bin/sh\nexit 0\n")
-	writeFile(t, filepath.Join(staging, "worker", "browser", "dist", "main.js"), "// the browser worker\n")
-	writeFile(t, filepath.Join(staging, "worker", "desktop", "dist", "main.js"), "// the desktop worker\n")
+	writeFile(t, filepath.Join(staging, "workers", "browser", "main.js"), "// the browser worker\n")
+	writeFile(t, filepath.Join(staging, "workers", "desktop", "main.js"), "// the desktop worker\n")
 
 	if err := os.MkdirAll(into, 0o755); err != nil {
 		t.Fatalf("cannot make the folder the fixture archive goes in: %v", err)

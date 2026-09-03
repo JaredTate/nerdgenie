@@ -70,27 +70,38 @@ rm -rf "$staging"
 
 # stage_worker puts one worker's bundle and the dependencies it needs at run time
 # into the release tree. The dependencies are installed fresh from the lock file
-# rather than copied out of the checkout, so that the release carries what the
-# worker needs to run and none of the tools it was built and tested with.
+# rather than copied out of the checkout, for two reasons: the release then
+# carries what the worker needs to run and none of the tools it was built and
+# tested with, and npm is told which machine the release is for. That second one
+# matters because the desktop worker's driver ships a compiled library per
+# architecture, so a tree installed here and copied would put this machine's
+# x86_64 library in the arm64 archive, where nothing could load it.
 stage_worker() {
 	worker=$1
 	into=$2
-	mkdir -p "$into"
-	cp -R "$repository_root/worker/$worker/dist" "$into/dist"
+	processor=$3
+	# The bundle sits at workers/<name>/main.js, the same place bin/workers puts it
+	# in a checkout, so one path finds a worker in both.
+	cp -R "$repository_root/worker/$worker/dist" "$into"
 	cp "$repository_root/worker/$worker/package.json" "$into/package.json"
 	cp "$repository_root/worker/$worker/package-lock.json" "$into/package-lock.json"
-	(cd "$into" && npm ci --omit=dev --no-audit --no-fund >/dev/null)
+	(cd "$into" && npm ci --omit=dev --os=linux --cpu="$processor" --no-audit --no-fund >/dev/null)
 }
 
 built=""
 for architecture in $architectures; do
 	say "building coeus $version for $architecture"
 	runtime=$(sh "$repository_root/scripts/release/node.sh" "$architecture")
+	# Go and npm have different words for the same two machines.
+	case "$architecture" in
+	amd64) processor=x64 ;;
+	*) processor=$architecture ;;
+	esac
 
 	name="coeus-$version-$architecture"
 	tree="$staging/$name"
 	rm -rf "$tree"
-	mkdir -p "$tree/node/bin" "$tree/worker"
+	mkdir -p "$tree/node/bin" "$tree/workers"
 
 	CGO_ENABLED=0 GOOS=linux GOARCH="$architecture" \
 		go build -trimpath -ldflags "-X main.version=$version" -o "$tree/coeus" ./cmd/coeus
@@ -98,7 +109,7 @@ for architecture in $architectures; do
 	cp "$runtime/bin/node" "$tree/node/bin/node"
 	chmod 755 "$tree/node/bin/node"
 	for worker in browser desktop; do
-		stage_worker "$worker" "$tree/worker/$worker"
+		stage_worker "$worker" "$tree/workers/$worker" "$processor"
 	done
 
 	tar -czf "$output/$name.tar.gz" -C "$staging" "$name"

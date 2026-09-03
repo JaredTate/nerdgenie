@@ -1,0 +1,63 @@
+# Prove that the installer works on a machine nobody has touched. It builds a
+# release, then runs it inside a clean Ubuntu container and a clean Debian
+# container with every "coeus init" answer given as a flag, and ends with a
+# passing "coeus doctor". That is the first item of the human trial: install on a
+# clean account, run init, and get to the first reply without reading anything.
+#
+# The test itself is scripts/release/container_test.go, so the same run happens on
+# the development machine whenever Docker or Podman is up. Here Docker is always
+# there, so it never skips.
+name: install
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  install:
+    name: install on a clean Ubuntu and a clean Debian
+    runs-on: ubuntu-latest
+    # Building the release, pulling two base images, and installing packages in
+    # each of them. Forty-five minutes is well past that.
+    timeout-minutes: 45
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          check-latest: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The pinned runtimes are the same files every run, so they are kept between
+      # runs rather than fetched from nodejs.org each time. COEUS_NODE_CACHE puts
+      # them under the workspace, which is the only place this action can save.
+      - name: Reuse the pinned Node runtimes
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.node-runtime-cache
+          key: node-runtimes-${{ hashFiles('scripts/release/node.sh') }}
+
+      # Only amd64, because that is the architecture the containers run. The
+      # release workflow is where both are built.
+      - name: Build a release to install
+        run: scripts/release/build.sh --version install-test --arch amd64
+
+      # A skip is a pass to the Go tool, and a skip here would mean the whole
+      # workflow proved nothing, so the output is read back and a skip is turned
+      # into a failure that says what to look at.
+      - name: Install it on a clean Ubuntu and a clean Debian
+        run: |
+          set -euo pipefail
+          go test -tags integration -v -run TestTheInstallerWorksOnACleanUbuntuAndACleanDebian \
+            ./scripts/release/ 2>&1 | tee test-output.txt
+          if grep -q -- "--- SKIP" test-output.txt; then
+            echo "the container test skipped, so this workflow proved nothing; check that Docker is running on the runner and that dist/ holds an archive" >&2
+            exit 1
+          fi

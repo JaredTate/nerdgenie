@@ -100,8 +100,8 @@ func assertReleaseIsInPlace(t *testing.T, fakes installerFakes, printed string) 
 	for _, path := range []string{
 		filepath.Join(release, "coeus"),
 		filepath.Join(release, "node", "bin", "node"),
-		filepath.Join(release, "worker", "browser", "dist", "main.js"),
-		filepath.Join(release, "worker", "desktop", "dist", "main.js"),
+		filepath.Join(release, "workers", "browser", "main.js"),
+		filepath.Join(release, "workers", "desktop", "main.js"),
 	} {
 		if _, err := os.Stat(path); err != nil {
 			t.Errorf("%s is not there after the install: %v\nThe installer printed:\n%s", path, err, printed)

@@ -18,7 +18,7 @@ all: check
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/coeus ./cmd/coeus
-	@echo "worker bundles arrive in wave 5"
+	scripts/release/workers.sh
 
 test:
 	go test -tags integration ./...
@@ -50,9 +50,12 @@ check:
 live:
 	go test -tags live ./test/functional/... ./internal/...
 
+# One release: bin/coeus for linux/amd64 and linux/arm64, each packed with the two
+# worker bundles and a pinned Node runtime so that nobody has to install Node, and
+# beside them a SHA256SUMS the installer checks against and a manifest.json the
+# updater reads. The version comes from git describe unless VERSION says otherwise.
 release:
-	@echo "make release is built in wave 6, brief 6.2. It is not done yet."
-	@exit 1
+	scripts/release/build.sh $(if $(filter-out dev,$(VERSION)),--version $(VERSION))
 
 install:
 	@echo "make install is built in wave 3, brief 3.3. It is not done yet."

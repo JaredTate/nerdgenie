@@ -6,6 +6,7 @@ require (
 	filippo.io/age v1.3.2
 	github.com/BurntSushi/toml v1.6.0
 	github.com/charmbracelet/bubbletea v1.3.10
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/pquerna/otp v1.5.0
 	modernc.org/sqlite v1.58.0

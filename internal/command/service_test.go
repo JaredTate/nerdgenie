@@ -66,6 +66,17 @@ func TestTheUnitFileIsTheOneTheDesignAsksFor(t *testing.T) {
 	testkit.Golden(t, "coeus.service.golden", []byte(unit))
 }
 
+func TestTheThreeUnitFilesAreTheOnesTheDesignAsksFor(t *testing.T) {
+	units := command.Units(contract.NewHome("/home/tester/.coeus"))
+
+	if len(units) != 3 {
+		t.Fatalf("coeus install writes %d units, want the service and the two that run the nightly backup", len(units))
+	}
+	for _, unit := range units {
+		testkit.Golden(t, unit.Name+".golden", []byte(unit.Text))
+	}
+}
+
 func TestInstallWritesTheUnitLinksTheCurrentReleaseAndStartsTheService(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), ".config"))
@@ -98,13 +109,47 @@ func TestInstallWritesTheUnitLinksTheCurrentReleaseAndStartsTheService(t *testin
 	}
 
 	said := whatSystemctlWasTold(t, told)
-	for _, wanted := range []string{"--user daemon-reload", "--user enable " + command.ServiceName, "--user start " + command.ServiceName} {
+	for _, wanted := range []string{
+		"--user daemon-reload",
+		"--user enable " + command.ServiceName,
+		"--user start " + command.ServiceName,
+		"--user enable " + command.BackupTimerName,
+		"--user start " + command.BackupTimerName,
+	} {
 		if !strings.Contains(said, wanted) {
 			t.Errorf("coeus install never told systemctl %q, only:\n%s", wanted, said)
 		}
 	}
 	if !strings.Contains(written.String(), unitPath) {
 		t.Errorf("coeus install does not say where it wrote the unit:\n%s", written)
+	}
+}
+
+func TestInstallWritesTheNightlyBackupTimerBesideTheService(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), ".config"))
+	fakeSystemctl(t, 0)
+	written := &strings.Builder{}
+
+	if err := aServiceIn(t, home, "", written).Install(context.Background()); err != nil {
+		t.Fatalf("coeus install failed: %v", err)
+	}
+
+	for _, unit := range command.Units(home) {
+		path, err := command.UnitPathFor(unit.Name)
+		if err != nil {
+			t.Fatalf("working out where %s goes failed: %v", unit.Name, err)
+		}
+		onDisk, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("%s was not written: %v", unit.Name, err)
+		}
+		if string(onDisk) != unit.Text {
+			t.Errorf("%s on disk is not the one the package renders:\n%s", unit.Name, onDisk)
+		}
+	}
+	if !strings.Contains(written.String(), command.BackupTimerName) {
+		t.Errorf("coeus install does not say that it set up the nightly backup:\n%s", written)
 	}
 }
 
@@ -173,9 +218,23 @@ func TestUninstallStopsTheServiceRemovesTheUnitAndLeavesTheHome(t *testing.T) {
 	}
 
 	said := whatSystemctlWasTold(t, told)
-	for _, wanted := range []string{"--user stop " + command.ServiceName, "--user disable " + command.ServiceName} {
+	for _, wanted := range []string{
+		"--user stop " + command.ServiceName,
+		"--user disable " + command.ServiceName,
+		"--user stop " + command.BackupTimerName,
+		"--user disable " + command.BackupTimerName,
+	} {
 		if !strings.Contains(said, wanted) {
 			t.Errorf("coeus uninstall never told systemctl %q, only:\n%s", wanted, said)
+		}
+	}
+	for _, unit := range command.Units(home) {
+		path, err := command.UnitPathFor(unit.Name)
+		if err != nil {
+			t.Fatalf("working out where %s goes failed: %v", unit.Name, err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("%s is still there after coeus uninstall", unit.Name)
 		}
 	}
 }

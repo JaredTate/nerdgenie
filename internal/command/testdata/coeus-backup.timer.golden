@@ -1,0 +1,14 @@
+# Written by "coeus install". Run "coeus install" again to replace it, or
+# "coeus uninstall" to take it away.
+
+[Unit]
+Description=Coeus nightly backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=900
+Persistent=true
+Unit=coeus-backup.service
+
+[Install]
+WantedBy=timers.target

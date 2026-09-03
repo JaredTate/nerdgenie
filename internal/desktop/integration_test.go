@@ -1,0 +1,188 @@
+//go:build integration
+
+package desktop
+
+import (
+	"bytes"
+	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/testkit"
+)
+
+// fixtureTitle is what the fixture window is called. The worker finds the
+// window by this title, so nothing the user opened is ever touched.
+const fixtureTitle = "Coeus desktop integration fixture"
+
+// workerCommand is node and the built worker, or a reason it cannot be run here.
+func workerCommand(t *testing.T) []string {
+	t.Helper()
+	here, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("finding the working folder failed: %v", err)
+	}
+	script := filepath.Join(filepath.Dir(filepath.Dir(here)), "worker", "desktop", "dist", "main.js")
+	if _, err := os.Stat(script); err != nil {
+		t.Skipf("the desktop worker is not built at %s, so run: npm --prefix worker/desktop install && npm --prefix worker/desktop run build", script)
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not on the PATH, so the desktop worker cannot be started")
+	}
+	if os.Getenv("DISPLAY") == "" {
+		t.Skip("there is no display on this machine, so there is no desktop to drive")
+	}
+	if _, err := exec.LookPath("zenity"); err != nil {
+		t.Skip("zenity is not installed, so there is no fixture window to open")
+	}
+	return []string{node, script, "--pacing", "fast"}
+}
+
+// openFixtureWindow opens the one window these tests act in and closes it after.
+func openFixtureWindow(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	printed := &bytes.Buffer{}
+	window := exec.Command("zenity", "--entry", "--title="+fixtureTitle, "--text=Type here")
+	window.Env = append(os.Environ(), "GDK_BACKEND=x11")
+	window.Stdout = printed
+	if err := window.Start(); err != nil {
+		t.Fatalf("opening the fixture window failed: %v", err)
+	}
+	t.Cleanup(func() {
+		if window.Process != nil {
+			_ = window.Process.Kill()
+		}
+		_ = window.Wait()
+	})
+	time.Sleep(2500 * time.Millisecond)
+	return printed
+}
+
+func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
+	command := workerCommand(t)
+	printed := openFixtureWindow(t)
+
+	start, err := ProcessStart(command, func(format string, arguments ...any) { t.Logf(format, arguments...) })
+	if err != nil {
+		t.Fatalf("building the start function failed: %v", err)
+	}
+	desktop, err := New(Options{
+		Start:      start,
+		Channel:    testkit.NewFakeChannel("terminal"),
+		Permission: testkit.NewFakePermission(contract.RulingAllow),
+		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
+		Note:       func(format string, arguments ...any) { t.Logf(format, arguments...) },
+	})
+	if err != nil {
+		t.Fatalf("building the desktop failed: %v", err)
+	}
+	defer func() {
+		if err := desktop.Close(); err != nil {
+			t.Errorf("closing the desktop failed: %v", err)
+		}
+	}()
+	ctx, done := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer done()
+
+	health, err := desktop.Health(ctx)
+	if err != nil {
+		t.Fatalf("asking the real worker whether it is healthy failed: %v", err)
+	}
+	if !health.Healthy || health.DriverVersion == "" {
+		t.Fatalf("the worker reports %+v, want a healthy worker naming its driver", health)
+	}
+
+	if err := desktop.LaunchExpecting(ctx, fixtureTitle, "a window with a text box opens"); err != nil {
+		t.Fatalf("opening the fixture window through the worker failed: %v", err)
+	}
+
+	picture, err := desktop.Screenshot(ctx)
+	if err != nil {
+		t.Fatalf("taking a screenshot of the fixture window failed: %v", err)
+	}
+	if len(picture.PNGBase64) < 1000 {
+		t.Errorf("the picture is %d characters of base64, want a real one", len(picture.PNGBase64))
+	}
+	box, ok := numberOf(picture.Marks, "Type here")
+	confirm, alsoOK := numberOf(picture.Marks, "OK")
+	if !ok || !alsoOK {
+		t.Fatalf("the marks are %+v, want the text box and the OK button of the fixture window", picture.Marks)
+	}
+
+	if err := desktop.ClickExpecting(ctx, box, "the text box takes the typing"); err != nil {
+		t.Fatalf("clicking the text box failed: %v", err)
+	}
+	if err := desktop.TypeExpecting(ctx, "nine years of DigiByte", "the text box holds the post"); err != nil {
+		t.Fatalf("typing into the text box failed: %v", err)
+	}
+	if err := desktop.PressExpecting(ctx, "ctrl+a", "the text is selected"); err != nil && !strings.Contains(err.Error(), "did not happen") {
+		t.Fatalf("pressing a key combination failed: %v", err)
+	}
+
+	// Clicking OK closes the window, so zenity prints what was typed into it and
+	// the worker's next reading finds nothing. Either answer is fine; what the
+	// fixture printed is the proof.
+	_ = desktop.ClickExpecting(ctx, confirm, "the dialog closes")
+	time.Sleep(1500 * time.Millisecond)
+	if got := strings.TrimSpace(printed.String()); got != "nine years of DigiByte" {
+		t.Errorf("the fixture window reported %q, want exactly what the worker typed into it", got)
+	}
+}
+
+func TestTheRealWorkerPutsTextOnTheClipboardAndPutsTheUsersOwnBack(t *testing.T) {
+	command := workerCommand(t)
+
+	start, err := ProcessStart(command, nil)
+	if err != nil {
+		t.Fatalf("building the start function failed: %v", err)
+	}
+	desktop, err := New(Options{
+		Start:      start,
+		Channel:    testkit.NewFakeChannel("terminal"),
+		Permission: testkit.NewFakePermission(contract.RulingAllow),
+		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
+	})
+	if err != nil {
+		t.Fatalf("building the desktop failed: %v", err)
+	}
+	defer func() { _ = desktop.Close() }()
+	ctx, done := context.WithTimeout(context.Background(), time.Minute)
+	defer done()
+
+	theirs, err := desktop.Clipboard(ctx)
+	if err != nil {
+		t.Fatalf("reading the machine's clipboard failed: %v", err)
+	}
+	defer func() {
+		if err := desktop.SetClipboard(ctx, theirs); err != nil {
+			t.Errorf("putting the user's own clipboard back failed: %v", err)
+		}
+	}()
+
+	if err := desktop.SetClipboard(ctx, "nine years of DigiByte"); err != nil {
+		t.Fatalf("putting text on the clipboard failed: %v", err)
+	}
+	held, err := desktop.Clipboard(ctx)
+	if err != nil {
+		t.Fatalf("reading the clipboard back failed: %v", err)
+	}
+	if held != "nine years of DigiByte" {
+		t.Errorf("the clipboard holds %q, want what was put on it", held)
+	}
+}
+
+// numberOf is the number of the mark with that label, when there is one.
+func numberOf(marks []contract.DesktopMark, name string) (int, bool) {
+	for _, one := range marks {
+		if one.Name == name {
+			return one.Number, true
+		}
+	}
+	return 0, false
+}

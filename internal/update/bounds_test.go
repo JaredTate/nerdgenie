@@ -23,6 +23,7 @@ func TestEveryCountAndSizeOfAnUpdateIsTheNumberItIsMeantToBe(t *testing.T) {
 		{"the most one manifest may be, in bytes", MaxManifestBytes, 64 << 10},
 		{"the entries one release archive may hold", int64(archiveEntryCap), 20000},
 		{"the bytes one release may write to disk", unpackedByteCap, 512 << 20},
+		{"the hops a release address may be followed for", maxRedirects, 10},
 		{"the words of what the service manager said that are kept", maxServiceOutput, 4096},
 		{"the dotted numbers a version is read as", maxVersionParts, 3},
 	}

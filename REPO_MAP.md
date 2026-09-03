@@ -651,6 +651,9 @@ internal/sandbox/doc.go
 internal/sandbox/entry.go
 internal/sandbox/entry_test.go
 internal/sandbox/fuzz_test.go
+internal/sandbox/integration_home_test.go
+internal/sandbox/integration_namespace_test.go
+internal/sandbox/integration_resolver_test.go
 internal/sandbox/integration_restrict_test.go
 internal/sandbox/integration_review_test.go
 internal/sandbox/integration_roots_test.go
@@ -658,10 +661,14 @@ internal/sandbox/integration_run_test.go
 internal/sandbox/integration_test.go
 internal/sandbox/landlock.go
 internal/sandbox/landlock_test.go
+internal/sandbox/limits.go
+internal/sandbox/limits_test.go
 internal/sandbox/numbers_amd64.go
 internal/sandbox/numbers_arm64.go
 internal/sandbox/output.go
 internal/sandbox/output_test.go
+internal/sandbox/resolver.go
+internal/sandbox/resolver_test.go
 internal/sandbox/roots.go
 internal/sandbox/roots_test.go
 internal/sandbox/run.go

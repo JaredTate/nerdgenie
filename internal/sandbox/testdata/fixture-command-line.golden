@@ -10,8 +10,15 @@ bwrap
 /proc
 --dev
 /dev
+--size
+104857600
 --tmpfs
 /tmp
+--unshare-net
+--size
+1073741824
+--tmpfs
+/home/example
 --ro-bind
 /usr
 /usr
@@ -27,6 +34,9 @@ bwrap
 --ro-bind
 /etc
 /etc
+--ro-bind
+/run/systemd/resolve/stub-resolv.conf
+/run/systemd/resolve/stub-resolv.conf
 --bind
 /home/example/work
 /home/example/work
@@ -41,7 +51,7 @@ PATH
 /usr/local/bin:/usr/bin:/bin
 --setenv
 HOME
-/home/example/work/.coeus-sandbox-home
+/home/example
 --setenv
 LANG
 en_US.UTF-8
@@ -70,6 +80,8 @@ sandbox-entry
 --read
 /etc
 --read
+/run/systemd/resolve/stub-resolv.conf
+--read
 /home/example/.coeus/releases/1.0.0/coeus
 --write
 /home/example/work
@@ -79,6 +91,8 @@ sandbox-entry
 /tmp
 --write
 /dev
+--write
+/home/example
 --
 /bin/sh
 -c

@@ -11,6 +11,14 @@ const seccompArchitecture = 0xc00000b7
 // because a command may unshare anything but a new user namespace.
 const unshareSystemCall = 97
 
+// The numbers of the two calls that make a new namespace without unshare. clone
+// is checked for the same flag unshare is; clone3 keeps its flags in a structure
+// the filter cannot read, so it is refused whole.
+const (
+	cloneSystemCall  = 220
+	clone3SystemCall = 435
+)
+
 // deniedSystemCalls are the system calls no tool needs, with their numbers on
 // this architecture. The numbers are written out rather than taken from the
 // syscall package, because that package is missing several of them here and

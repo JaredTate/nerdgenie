@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -16,11 +17,13 @@ import (
 func theFixturePlan() fencePlan {
 	return fencePlan{
 		systemFolders:    []string{"/usr", "/bin", "/lib", "/lib64", "/etc"},
+		resolverFile:     "/run/systemd/resolve/stub-resolv.conf",
 		roots:            []string{"/home/example/work", "/home/example/projects"},
+		userHome:         "/home/example",
 		helperProgram:    "/home/example/.coeus/releases/1.0.0/coeus",
 		workingDirectory: "/home/example/work",
 		environment: allowedEnvironment(
-			"/home/example/work/"+scratchHomeName, "en_US.UTF-8", "xterm-256color",
+			"/home/example", "en_US.UTF-8", "xterm-256color",
 			[]string{"GIT_AUTHOR_NAME=Example"}),
 		program:   "/bin/sh",
 		arguments: []string{"-c", "echo hello"},
@@ -58,7 +61,7 @@ func TestTheCommandLineSetsTheMarkerThatTellsTheHelperTheFenceStartedIt(t *testi
 	t.Fatalf("the command line never sets %s, and the helper refuses to run without it", FenceMarkerVariable)
 }
 
-func TestTheCommandLineUnsharesEveryNamespaceButTheNetwork(t *testing.T) {
+func TestTheCommandLineUnsharesEveryNamespaceTheFenceKeepsToItself(t *testing.T) {
 	arguments := buildArguments(theFixturePlan())
 
 	for _, wanted := range []string{"--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--die-with-parent", "--new-session", "--clearenv"} {
@@ -66,8 +69,60 @@ func TestTheCommandLineUnsharesEveryNamespaceButTheNetwork(t *testing.T) {
 			t.Errorf("the command line is missing %s", wanted)
 		}
 	}
-	if slices.Contains(arguments, "--unshare-net") {
-		t.Error("the command line unshares the network, and the agent's tools need the network")
+}
+
+func TestTheCommandLineUnsharesTheNetworkUnlessTheCallerAsksForIt(t *testing.T) {
+	arguments := buildArguments(theFixturePlan())
+
+	if !slices.Contains(arguments, "--unshare-net") {
+		t.Error("the command line leaves the network alone, so a sandboxed command reaches every service on this machine; " +
+			"the fence gets a network namespace of its own unless the caller asks for the network")
+	}
+}
+
+func TestTheCommandLineLeavesTheNetworkAloneWhenTheCallerAsksForIt(t *testing.T) {
+	plan := theFixturePlan()
+	plan.network = true
+
+	if slices.Contains(buildArguments(plan), "--unshare-net") {
+		t.Error("the caller asked for the network and the command line unshares it anyway, so a build that fetches its dependencies cannot run")
+	}
+}
+
+func TestTheCommandLineMakesTheHomeFreshAndEmptyBeforeItBindsAnyRootInsideIt(t *testing.T) {
+	plan := theFixturePlan()
+	arguments := buildArguments(plan)
+
+	home := -1
+	for index := 0; index+1 < len(arguments); index++ {
+		if arguments[index] == "--tmpfs" && arguments[index+1] == plan.userHome {
+			home = index
+		}
+	}
+	if home < 1 {
+		t.Fatalf("the command line never makes a fresh home directory at %q, so the user's own home is either missing or all there: %v", plan.userHome, arguments)
+	}
+	if arguments[home-2] != "--size" || arguments[home-1] != strconv.Itoa(HomeFolderBytes) {
+		t.Errorf("the home directory is asked for as %v, want a size of %d in front of it", arguments[home-2:home+2], HomeFolderBytes)
+	}
+
+	firstRoot := slices.Index(arguments, "--bind")
+	if firstRoot < home {
+		t.Errorf("the command line binds a root at instruction %d and makes the home directory at %d; bwrap carries each one out as it "+
+			"reads it, so a home made afterwards would hide every root inside it", firstRoot, home)
+	}
+}
+
+func TestTheHelperMayWriteTheHomeDirectoryTheFenceMade(t *testing.T) {
+	plan := theFixturePlan()
+	arguments := buildArguments(plan)
+
+	entry := slices.Index(arguments, EntrySubcommandName)
+	if entry < 0 {
+		t.Fatalf("the command line never starts the helper subcommand %q", EntrySubcommandName)
+	}
+	if !hasOptionFor(arguments[entry+1:], writableOption, plan.userHome) {
+		t.Errorf("the helper is not told it may write %q, and a build writes to its home in ~/.npm and ~/.cache", plan.userHome)
 	}
 }
 
@@ -133,6 +188,57 @@ func TestTheEnvironmentLeavesOutTheInheritedNamesThatAreNotSet(t *testing.T) {
 	want := []string{"PATH=" + sandboxPath, "HOME=/home/example/work/scratch"}
 	if !slices.Equal(environment, want) {
 		t.Errorf("the environment is %v, want %v", environment, want)
+	}
+}
+
+func TestTheFenceRefusesACallerEntryThatWouldReplaceItsOwnPathOrHome(t *testing.T) {
+	fence, _ := aFenceForTesting(t)
+
+	for _, entry := range []string{
+		"PATH=/tmp/somewhere-else",
+		"HOME=/home/example",
+		"LD_PRELOAD=/tmp/mine.so",
+		"LD_LIBRARY_PATH=/tmp",
+	} {
+		_, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{entry}})
+		if err == nil {
+			t.Errorf("the caller passed %q and the fence took it; the last --setenv wins, so the caller's value would replace the fence's own", entry)
+			continue
+		}
+		if !strings.Contains(err.Error(), entry) {
+			t.Errorf("the refusal says %q, and it must name the entry it refused", err)
+		}
+	}
+}
+
+func TestTheFenceTakesACallerEntryThatIsNotOneOfItsOwn(t *testing.T) {
+	fence, _ := aFenceForTesting(t)
+
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{"GIT_AUTHOR_NAME=Example", "LDFLAGS=-s"}})
+	if err != nil {
+		t.Fatalf("an ordinary environment entry was refused: %v", err)
+	}
+	if !slices.Contains(plan.environment, "GIT_AUTHOR_NAME=Example") || !slices.Contains(plan.environment, "LDFLAGS=-s") {
+		t.Errorf("the environment is %v, want both of the caller's entries in it", plan.environment)
+	}
+}
+
+func TestTheFencesOwnPathAndHomeAreTheFirstTwoEntriesAndTheOnlyOnes(t *testing.T) {
+	fence, work := aFenceForTesting(t)
+
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{"NINJA_STATUS=go"}})
+	if err != nil {
+		t.Fatalf("planning a command failed: %v", err)
+	}
+
+	wantPath, wantHome := "PATH="+sandboxPath, "HOME="+filepath.Dir(work)
+	if plan.environment[0] != wantPath || plan.environment[1] != wantHome {
+		t.Fatalf("the environment starts %v, want %q then %q", plan.environment[:2], wantPath, wantHome)
+	}
+	for _, entry := range plan.environment[2:] {
+		if strings.HasPrefix(entry, "PATH=") || strings.HasPrefix(entry, "HOME=") {
+			t.Errorf("the environment holds a second %q after the fence's own, and bwrap gives the last one to the command", entry)
+		}
 	}
 }
 

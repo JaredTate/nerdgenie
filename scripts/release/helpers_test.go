@@ -192,18 +192,6 @@ func linksInArchive(t *testing.T, path string) []string {
 // most, nearly all of them the two workers' dependencies.
 const maxArchiveEntries = 200000
 
-// containsPathEnding says whether any listed path ends with the piece given,
-// which is how a test names one file inside an archive without writing the whole
-// version-stamped folder name in front of it.
-func containsPathEnding(names []string, ending string) bool {
-	for _, name := range names {
-		if strings.HasSuffix(name, ending) {
-			return true
-		}
-	}
-	return false
-}
-
 // requirePrinted fails the test unless the script printed the words given, and
 // shows everything it did print, because a message is part of what the installer
 // promises its user.

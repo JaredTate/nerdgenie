@@ -1293,12 +1293,14 @@ scripts/bench/gpt_runs.sh
 scripts/bench/opus_report.py
 scripts/bench/opus_runs.sh
 scripts/bench/qwen_pair.sh
+scripts/bench/qwen_round2.sh
 scripts/bench/run-coeus.sh
 scripts/bench/tater_cost.mjs
 scripts/bench/tater_result.py
 scripts/bench/tater_run.sh
 scripts/bench/tater_run2.sh
 scripts/bench/tater_run_test.sh
+scripts/bench/tater_run_tuned.sh
 scripts/bench/tater_table.mjs
 scripts/coverage.sh
 scripts/fixturesite/doc.go

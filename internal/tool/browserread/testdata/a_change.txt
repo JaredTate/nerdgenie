@@ -1,0 +1,11 @@
+what was expected happened
+the page moved to https://fixture.test/changed
+a new tab opened, t2
+new on the page:
+e4 heading "The page changed" (new)
+a confirm dialog is open, saying "Are you sure?"; the tab is blocked until it is answered
+the page downloaded notes.pdf, saved at /tmp/notes.pdf
+---
+The page changed
+https://fixture.test/changed
+tab t1

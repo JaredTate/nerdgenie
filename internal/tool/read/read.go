@@ -1,0 +1,164 @@
+// Reading a file back with one line number in front of each line, so that the
+// edit tool and the model are talking about the same lines, is OpenCode's, at
+// ~/Code/opencode/packages/opencode/src/tool/read.ts and read.txt. The Go here
+// is written fresh, and the past-result label is Coeus's own.
+
+package read
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
+)
+
+// The bounds on one read. A model that asks for a whole file gets the beginning
+// of it and a line saying how to ask for the rest, because a result that fills
+// the window leaves no room to think.
+const (
+	// MaxLines is the most lines one read returns.
+	MaxLines = 2000
+	// MaxBytes is the most bytes one read returns.
+	MaxBytes = 256 << 10
+	// MaxLineRunes is how much of one very long line is shown.
+	MaxLineRunes = 2000
+	// MaxEntries is the most entries one folder listing shows.
+	MaxEntries = 1000
+	// binarySampleBytes is how much of a file is looked at to decide whether it
+	// is text.
+	binarySampleBytes = 8000
+)
+
+// PathCheck says whether the tool may read a path and returns it with its links
+// followed. The registry hands one in, so that the rule about where the agent
+// may read lives in one place rather than in four tools.
+type PathCheck func(path string) (string, error)
+
+// Stored is where the whole text of a past result or a finished task's report is
+// kept, which is what the record keeper does through the event log.
+type Stored interface {
+	// Read brings back the whole text of one result by its label.
+	Read(ctx context.Context, id string) (string, error)
+}
+
+// Settings is what the read tool needs to do its work.
+type Settings struct {
+	// Allowed says whether a path may be read.
+	Allowed PathCheck
+	// Results is the record of the task running now, which is where a label such
+	// as r7 is read from.
+	Results Stored
+	// Reports is the record of the job the task belongs to, which is where a
+	// label such as j4.2 is read from.
+	Reports Stored
+}
+
+// input is what the model writes when it calls this tool.
+type input struct {
+	// Path is the file, the folder, or the label of a past result.
+	Path string `json:"path"`
+	// Offset is the line to start at, counting from one.
+	Offset int `json:"offset"`
+	// Limit is how many lines to read.
+	Limit int `json:"limit"`
+}
+
+// Tool is the read tool.
+type Tool struct {
+	settings Settings
+}
+
+// New returns the read tool.
+func New(settings Settings) *Tool {
+	return &Tool{settings: settings}
+}
+
+// Spec is what the model is told about this tool.
+func (tool *Tool) Spec() contract.ToolSpec {
+	return contract.ToolSpec{
+		Name: contract.ToolRead,
+		Description: "Reads a file with line numbers, a folder listing, or a past result by its label such as r7 or j4.2. " +
+			"Give a whole path. Use search when you do not know which file to open.",
+		Fields: []contract.ToolField{
+			{Name: "path", Type: "string", Description: "The whole path of a file or folder, or a result label such as r7.", Required: true},
+			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
+			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
+		},
+		Classes: []contract.PermissionClass{contract.ClassRead},
+	}
+}
+
+// Run reads whatever the path names: a past result, a folder, or a file.
+func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
+	asked, err := readInput(written)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	if label, kind, isLabel := resultLabel(asked.Path); isLabel {
+		text, err := tool.readStored(ctx, label, kind)
+		return contract.ToolOutput{Text: text}, err
+	}
+	if tool.settings.Allowed == nil {
+		return contract.ToolOutput{}, errors.New("this tool has no list of folders it may read, so wire the sandbox roots in before using it")
+	}
+	path, err := tool.settings.Allowed(asked.Path)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	about, err := os.Stat(path)
+	if err != nil {
+		return contract.ToolOutput{}, fmt.Errorf("cannot open %s, so check the path and try again: %w", path, err)
+	}
+	if about.IsDir() {
+		text, err := listFolder(path)
+		return contract.ToolOutput{Text: text}, err
+	}
+	text, err := readFile(path, asked)
+	return contract.ToolOutput{Text: text}, err
+}
+
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	asked := input{}
+	if len(written) > 0 {
+		if err := json.Unmarshal(written, &asked); err != nil {
+			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a path in it: %w", err)
+		}
+	}
+	if strings.TrimSpace(asked.Path) == "" {
+		return input{}, errors.New("this call names nothing to read, so give a path or a result label such as r7")
+	}
+	if asked.Offset < 0 || asked.Limit < 0 {
+		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", asked.Offset, asked.Limit)
+	}
+	return asked, nil
+}
+
+// resultLabel says whether what the model wrote is the label of a past result
+// rather than a path, and which record it belongs to.
+func resultLabel(path string) (string, contract.RecordKind, bool) {
+	if _, isResult := contract.ParseResultID(path); isResult {
+		return path, contract.RecordTask, true
+	}
+	if _, _, isReport := contract.ParseReportID(path); isReport {
+		return path, contract.RecordJob, true
+	}
+	return "", "", false
+}
+
+// readStored brings back the whole text of a past result or a job's report.
+func (tool *Tool) readStored(ctx context.Context, label string, kind contract.RecordKind) (string, error) {
+	stored := tool.settings.Results
+	if kind == contract.RecordJob {
+		stored = tool.settings.Reports
+	}
+	if stored == nil {
+		return "", fmt.Errorf("there is no %s record behind this tool to read %s from, so read a file instead", kind, label)
+	}
+	return stored.Read(ctx, label)
+}

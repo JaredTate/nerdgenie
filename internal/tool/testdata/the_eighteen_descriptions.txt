@@ -1,0 +1,18 @@
+read               36 words  Reads a file with line numbers, a folder listing, or a past result by its label such as r7 or j4.2. Give a whole path. Use search when you do not know which file to open.
+write              28 words  Creates a file or replaces everything in one, inside the folders the agent may work in. Use edit instead to change part of a file that already exists.
+edit               32 words  Replaces one span of text in a file with another, inside the folders the agent may work in. Quote enough lines to name one place. Use write to replace a whole file.
+search             37 words  Finds the files whose names match a pattern and the lines that match it, under a folder. Give a regular expression, or a name pattern such as *.md. Use read for a file you can already name.
+shell              36 words  Runs a command in the sandbox. After ten seconds it hands back an id to poll, tail, or kill. Set escalate with a written reason to ask for administrator powers. Use read and search for files.
+web                25 words  Searches the web, or fetches one public page as text. Anything behind a login, a click, or a form belongs to the browser tools instead.
+memory             31 words  Searches what the agent knows, brings one fact back by its name, or writes a new fact down with its source. Use read for a file and search for a folder.
+task               34 words  Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, a failure with its cause, or a result pinned to the done line it proves.
+skill              29 words  Shows a saved procedure, runs one on the words you give it, or writes a new one down as a folder of files. Use shell for a one-off command.
+job                34 words  Creates a job for work too big for one sitting, with or without a schedule, adds a task to one, or lists them. Use it only when the work needs more than one sitting.
+browser_open       31 words  Takes the agent's own Chrome to a web address and hands back the page as an outline. Use web fetch instead for a page that needs no login and no clicking.
+browser_read       33 words  Reads the page the browser is on as a short outline of its elements, each with the reference to act on it by. Use web fetch for a page that needs no login.
+browser_click      26 words  Clicks one element on the page the browser is on and checks that what you expected happened. Read the page first to get the element's reference.
+browser_type       27 words  Types into one box on the page and checks that what you expected happened. Use browser_login for a username or a password, which this tool never types.
+browser_act        33 words  Runs a short batch of browser steps, checking each one, and stops at the first that does not do what you expected. Use it for a form rather than one call per box.
+browser_login      34 words  Signs in to a site the user has saved, by pointing at the boxes on the page. You never see or write what is typed. Use it whenever a page asks who you are.
+browser_handoff    34 words  Brings the browser window forward and gives it to the user, then waits for what they say back. Use it for a login wall, a code, or a captcha, and never work round one.
+computer           30 words  Drives the screen, the mouse, and the keyboard of this machine: launch, screenshot, click, type, key, drag, clipboard. The last resort; if the browser can do it, use the browser.

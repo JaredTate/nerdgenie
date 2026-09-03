@@ -1,0 +1,14 @@
+what was expected happened
+the page moved to https://fixture.test/changed
+new on the page:
+e4 heading "The page changed" (new)
+e5 button "Go back" (new)
+---
+The page changed
+https://fixture.test/changed
+tab t1
+e1 link "Change the page"
+e2 textbox "Name"
+e3 textbox "Note"
+e4 heading "The page changed"
+e5 button "Go back"

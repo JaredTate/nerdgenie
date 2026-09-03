@@ -1,0 +1,6 @@
+launch a-text-editor
+click 1
+type a note
+press ctrl+s
+drag 1 to 2
+set the clipboard

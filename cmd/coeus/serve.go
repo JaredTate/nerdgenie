@@ -25,6 +25,7 @@ import (
 	"github.com/JaredTate/coeus/internal/memory"
 	"github.com/JaredTate/coeus/internal/permission"
 	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/vault"
@@ -73,6 +74,8 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 		return contract.ExitBadConfiguration
 	}
 
+	fmt.Fprintln(output, whichBinaryIsServing())
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -97,6 +100,9 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 		home.SocketFile(), running.model.Name())
 	if err := running.guard.Ready(); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the service manager was not told the program is up: %v\n", err)
+	}
+	if _, err := running.nightly.Register(ctx); err != nil {
+		fmt.Fprintf(problems, "coeus serve: the nightly self-check was not put on the job list: %v\n", err)
 	}
 	if err := running.serve(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: %v\n", err)
@@ -125,6 +131,18 @@ func writeWhatTheGuardFound(output io.Writer, found reliability.Startup) {
 	}
 }
 
+// whichBinaryIsServing is the first line the log carries: the whole path of the
+// program that is running and the commit it was built from. A person reading a
+// log has to know which build they are looking at, and a worktree's binary and
+// the installed one look the same from the outside.
+func whichBinaryIsServing() string {
+	program, err := os.Executable()
+	if err != nil {
+		program = "a program whose path could not be read"
+	}
+	return fmt.Sprintf("coeus %s (commit %s) serving from %s", version, commit, program)
+}
+
 // exitCodeFor turns what went wrong at startup into the code the service unit
 // reads: a configuration a restart cannot fix stops the service and waits for a
 // person, and everything else may be tried again.
@@ -145,6 +163,7 @@ type agent struct {
 
 	lock     *runLock
 	eventLog *log.Log
+	events   contract.Store
 	queue    *channel.Queue
 	secrets  *vault.Vault
 	memories *memory.Memory
@@ -163,11 +182,18 @@ type agent struct {
 	skills    *skill.Store
 	skillsBox *skillsBox
 	loop      *loop.Loop
+	nightly   *replay.Nightly
 	registry  *command.Registry
 	router    *channel.Router
 
-	busyGuard sync.Mutex
-	busy      bool
+	watched *watchedModel
+
+	busyGuard  sync.Mutex
+	busy       bool
+	recordLine string
+	toolLine   string
+	holding    int64
+	handedOver bool
 }
 
 // openAgent makes the home folder if it is not there, reads the configuration,
@@ -225,6 +251,10 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	if running.eventLog, err = log.Open(ctx, running.home.DatabaseFile()); err != nil {
 		return err
 	}
+	// Everything downstream writes through this rather than through the log
+	// itself, so that an event written by something with no clock of its own
+	// still carries the moment it happened.
+	running.events = timedEvents(running.eventLog, now)
 	running.queue, err = channel.OpenQueue(ctx, running.home.DatabaseFile(), running.settings.Caps.QueuedMessages)
 	if err != nil {
 		return err
@@ -232,11 +262,11 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	if running.secrets, err = vault.Open(running.home, now); err != nil {
 		return err
 	}
-	running.memories, err = memory.Open(ctx, running.home, running.eventLog, now, running.settings.MemoryCaps)
+	running.memories, err = memory.Open(ctx, running.home, running.events, now, running.settings.MemoryCaps)
 	if err != nil {
 		return err
 	}
-	if running.jobs, err = job.Open(ctx, running.home, running.eventLog, now); err != nil {
+	if running.jobs, err = job.Open(ctx, running.home, running.events, now); err != nil {
 		return err
 	}
 	if running.decider, err = permission.New(running.settings, now); err != nil {
@@ -245,7 +275,7 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	running.guard, err = reliability.New(reliability.Settings{
 		Home:         running.home,
 		Clock:        now,
-		Store:        running.eventLog,
+		Store:        running.events,
 		Caps:         running.settings.Caps,
 		BackupFolder: running.settings.BackupPath,
 		Send:         running.sendToTheUser,
@@ -320,14 +350,52 @@ func (running *agent) takeWhatIsWaiting(ctx context.Context) bool {
 		if !held {
 			return false
 		}
+		running.holdTheMessage(queued.Sequence)
 		if _, err := running.router.Route(ctx, queued.Message); err != nil {
 			running.note("a message was not answered: " + err.Error())
 		}
-		if err := running.queue.Done(ctx, queued.Sequence); err != nil {
-			running.note("a finished message could not be marked done: " + err.Error())
+		// A message that started a task is finished by the task, whenever that
+		// ends; everything else is finished here and now.
+		if running.stillHolding() {
+			running.finishTheMessage(queued.Sequence)
 		}
 	}
 	return true
+}
+
+// holdTheMessage says which message the drainer is working on, so that a task
+// started from it can take it over and finish it when the task ends.
+func (running *agent) holdTheMessage(sequence int64) {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	running.holding = sequence
+	running.handedOver = false
+}
+
+// tookTheMessage hands the message the drainer is holding to the task that is
+// about to run, and gives back the function that finishes it.
+func (running *agent) tookTheMessage() func() {
+	running.busyGuard.Lock()
+	sequence := running.holding
+	running.handedOver = true
+	running.busyGuard.Unlock()
+	return func() { running.finishTheMessage(sequence) }
+}
+
+// stillHolding says the drainer still owns the message it took, which is true
+// for everything but a message that started a task.
+func (running *agent) stillHolding() bool {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	return !running.handedOver
+}
+
+// finishTheMessage marks one message done, so that a restart does not hand it
+// out again.
+func (running *agent) finishTheMessage(sequence int64) {
+	if err := running.queue.Done(context.Background(), sequence); err != nil {
+		running.note("a finished message could not be marked done: " + err.Error())
+	}
 }
 
 // runDueJobs runs the task a job has due whenever nothing else is running. The
@@ -342,7 +410,7 @@ func (running *agent) runDueJobs(ctx context.Context) {
 		if running.loop.Running() != "" {
 			continue
 		}
-		found, err := running.loop.RunNextJobTask(ctx, running.socket)
+		found, err := running.runWhatIsDue(ctx)
 		if err != nil {
 			running.note("a scheduled task did not finish: " + err.Error())
 		}
@@ -352,6 +420,27 @@ func (running *agent) runDueJobs(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// runWhatIsDue runs the task a job has due now. A task the nightly self-check
+// owns is run by the check itself: it asks the memory its own questions and dry
+// runs the skills, and handing it to the model instead would spend a whole task
+// asking a model to do what the harness can do for nothing.
+func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
+	due, there, err := running.jobs.NextTask(ctx, clock.System().Now())
+	if err != nil {
+		return false, fmt.Errorf("cannot ask the jobs which task is due now: %w", err)
+	}
+	if !there {
+		return false, nil
+	}
+	if running.nightly.Handles(due) {
+		if _, err := running.nightly.Run(ctx, due); err != nil {
+			return true, fmt.Errorf("the nightly self-check did not finish: %w", err)
+		}
+		return true, nil
+	}
+	return running.loop.RunNextJobTask(ctx, running.userChannel())
 }
 
 // close puts down everything the agent opened, in the reverse order it was

@@ -14,6 +14,10 @@ import (
 // MaxTasksListed is how many tasks the tasks command prints, newest first.
 const MaxTasksListed = 50
 
+// MaxAskLettersInAListing is how much of a task's ask one line of the listing
+// shows before it says the rest was cut, so that fifty tasks are fifty lines.
+const MaxAskLettersInAListing = 60
+
 // TasksCommand is the "/tasks" command: what is running, waiting, and done;
 // "/tasks 17" prints one record; "/tasks 17 back 3" winds one back three
 // checkpoints and lets the model try another path.
@@ -129,8 +133,8 @@ func (theLoop *Loop) windTaskBack(ctx context.Context, number string, stepsWritt
 func oneLineOf(text string) string {
 	one := strings.Join(strings.Fields(text), " ")
 	letters := []rune(one)
-	if len(letters) <= 60 {
+	if len(letters) <= MaxAskLettersInAListing {
 		return one
 	}
-	return string(letters[:57]) + "..."
+	return string(letters[:MaxAskLettersInAListing-3]) + "..."
 }

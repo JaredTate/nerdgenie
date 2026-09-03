@@ -9,9 +9,9 @@
 // of the live suite is to find out that one of them has stopped working.
 //
 // The three models are the ones CLAUDE.md describes: the Qwen the llama-server
-// daemon serves on this machine, Opus through the claude program on the user's
-// subscription, and GPT through the codex program on the same footing. There
-// are no API keys on this machine and none are wanted, so both cloud models are
+// daemon serves on this machine, Opus through `claude -p` on the user's
+// subscription, and GPT through `codex exec` on the same footing. There are no
+// API keys on this machine and none are wanted, so both cloud models are
 // reached by running the vendor's own program once per call.
 package functional
 

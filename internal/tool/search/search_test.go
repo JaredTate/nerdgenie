@@ -135,7 +135,7 @@ func TestASearchIsCappedAtFiftyRows(t *testing.T) {
 	if err := os.MkdirAll(crowded, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the crowded folder: %v", err)
 	}
-	for at := range search.MaxRows + 20 {
+	for at := range 70 {
 		name := filepath.Join(crowded, fmt.Sprintf("file-%03d.txt", at))
 		if err := os.WriteFile(name, []byte("a line holding gamma\n"), contract.DataFileMode); err != nil {
 			t.Fatalf("cannot write %s: %v", name, err)
@@ -147,8 +147,8 @@ func TestASearchIsCappedAtFiftyRows(t *testing.T) {
 		t.Fatalf("searching failed: %v", err)
 	}
 	rows := strings.Count(strings.TrimSpace(output.Text), "\n") + 1
-	if rows > search.MaxRows+2 {
-		t.Errorf("the search returned %d rows, and the cap is %d", rows, search.MaxRows)
+	if rows > 52 {
+		t.Errorf("the search returned %d rows, and the cap is fifty and one line saying so", rows)
 	}
 	if !strings.Contains(output.Text, "narrow") {
 		t.Errorf("the search stopped at the cap without saying what to do: %q", output.Text)

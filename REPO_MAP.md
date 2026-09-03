@@ -87,6 +87,7 @@ docs/EXTENDING.md
 docs/HARNESS_V2.md
 docs/PROGRESS.md
 docs/SECURITY_REVIEW.md
+docs/TRIAL.md
 docs/TUI_DESIGN.md
 docs/WORK_PLAN.md
 docs/briefs/wave-0/0.1-ready-to-build.md
@@ -1208,6 +1209,7 @@ scripts/repomap/main_test.go
 scripts/stylecheck/doc.go
 scripts/stylecheck/main.go
 scripts/stylecheck/main_test.go
+scripts/trial/bad-release.sh
 skills/qa/CHANGELOG.md
 skills/qa/SKILL.md
 skills/qa/steps.md

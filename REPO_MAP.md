@@ -1232,6 +1232,9 @@ test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/jobs_test.go
+test/functional/livefixture_test.go
+test/functional/livehome_test.go
+test/functional/livetask_test.go
 test/functional/loop_test.go
 test/functional/network_test.go
 test/functional/nightly_test.go

@@ -4,14 +4,47 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// shellProgram is what a command line is handed to, because the model writes a
-// command as a person would type it and a person types it at a shell.
+// shellProgram is what a command line is handed to when bash is not on this
+// machine, because the model writes a command as a person would type it and a
+// person types it at a shell.
 const shellProgram = "/bin/sh"
+
+// bashPlaces are the three places bash is looked for, in the order they are
+// tried. The fence binds /usr and /bin read-only, so a bash found here is one
+// the command can reach inside the fence as well as outside it.
+var bashPlaces = []string{"/bin/bash", "/usr/bin/bash", "/usr/local/bin/bash"}
+
+// CommandLine is the program one command is handed to and the arguments that go
+// with it. Bash is used with pipefail set, so that a command such as
+// "go test ./... | tail -40" reports the code the test run quit with rather than
+// the code tail quit with; without it a model reads a failing run as a run that
+// passed. A machine with no bash falls back to /bin/sh without pipefail,
+// because dash cannot set it. It is exported so that a test can script a
+// sandbox for the shell this machine really has.
+func CommandLine(command string) (string, []string) {
+	if bash := bashProgram(bashPlaces); bash != "" {
+		return bash, []string{"-o", "pipefail", "-c", command}
+	}
+	return shellProgram, []string{"-c", command}
+}
+
+// bashProgram returns the first of the places that holds a program anybody may
+// run, or the empty string when bash is on this machine nowhere.
+func bashProgram(places []string) string {
+	for _, place := range places {
+		about, err := os.Stat(place)
+		if err == nil && about.Mode().IsRegular() && about.Mode().Perm()&0o111 != 0 {
+			return place
+		}
+	}
+	return ""
+}
 
 // start runs one command: inside the fence when it is ordinary, and outside it
 // through sudo when the user has approved administrator powers. Either way it
@@ -55,10 +88,11 @@ func (tool *Tool) workOf(asked Call) func(ctx context.Context) (contract.Sandbox
 			return tool.runWithSudo(ctx, asked.Command)
 		}
 	}
+	program, arguments := CommandLine(asked.Command)
 	return func(ctx context.Context) (contract.SandboxResult, error) {
 		return tool.settings.Sandbox.Run(ctx, contract.SandboxCommand{
-			Program:          shellProgram,
-			Arguments:        []string{"-c", asked.Command},
+			Program:          program,
+			Arguments:        arguments,
 			WorkingDirectory: tool.settings.WorkingDirectory,
 			Timeout:          tool.settings.Timeout,
 		})

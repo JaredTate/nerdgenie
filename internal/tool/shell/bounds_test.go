@@ -84,7 +84,7 @@ func TestATailAndAPollOnACommandStillRunningSayThereIsNothingYet(t *testing.T) {
 
 func TestAFinishedCommandMakesRoomForANewOne(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardOutput: []byte("done\n")})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte("done\n")})
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
 
 	for at := range shell.MaxRunning * 2 {
@@ -102,7 +102,7 @@ func TestAToolWithNoSandboxOrNoClockSaysWhatIsMissing(t *testing.T) {
 	}
 
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{})
 	noClock := shell.New(shell.Settings{Sandbox: sandbox, Home: home, Timeout: time.Minute})
 	if _, err := run(t, noClock, map[string]any{"command": "echo alpha"}); err == nil {
 		t.Errorf("a command ran with no clock to count the yield on")
@@ -111,7 +111,7 @@ func TestAToolWithNoSandboxOrNoClockSaysWhatIsMissing(t *testing.T) {
 
 func TestACommandWithNoTimeoutStillHasOne(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardOutput: []byte("done\n")})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte("done\n")})
 	home := testkit.NewTempHome(t)
 	tool := shell.New(shell.Settings{
 		Sandbox:          sandbox,

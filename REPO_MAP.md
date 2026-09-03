@@ -112,6 +112,7 @@ docs/briefs/wave-6/6.3-updater.md
 docs/briefs/wave-6/6.4-replay-nightly.md
 docs/briefs/wave-6/6.5-security-review-release-check.md
 docs/briefs/wave-6/6.6-what-the-fix-workers-handed-back.md
+docs/briefs/wave-6/6.7-fix-the-wave-6-gate.md
 docs/html/build.ts
 docs/html/coeus-plan.html
 docs/html/coeus.html

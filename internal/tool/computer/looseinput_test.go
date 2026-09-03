@@ -48,6 +48,25 @@ func TestAScreenshotAndAClipboardReadNeedNoExpectation(t *testing.T) {
 	}
 }
 
+func TestAnExpectationLongerThanTheCapIsRefusedAndOneWrittenAsNothingIsToo(t *testing.T) {
+	tool, _ := newTool(t)
+
+	_, err := run(t, tool, map[string]any{
+		"intent": "press the button", "action": "click", "element": 1,
+		"expectation": strings.Repeat("a", 301),
+	})
+	if err == nil {
+		t.Errorf("an expectation of 301 characters was taken, and the cap is three hundred")
+	}
+
+	_, err = run(t, tool, map[string]any{
+		"intent": "press the button", "action": "click", "element": 1, "expectation": "   ",
+	})
+	if err == nil {
+		t.Errorf("an expectation written as spaces was taken as saying what should happen")
+	}
+}
+
 func TestAStepThatChangesTheScreenStillSaysWhatItExpectsOfTheScreen(t *testing.T) {
 	tool, _ := newTool(t)
 

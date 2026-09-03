@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -50,6 +51,12 @@ func (setup Setup) lmStudioAddress() string {
 	return LMStudioAddress
 }
 
+// SetupWait is how long the whole of "coeus init" may take. At most six
+// questions each wait AnswerWait, so twenty minutes covers a person answering
+// every one of them slowly, and a run that has gone past it is a run nobody is
+// sitting in front of any more.
+const SetupWait = 20 * time.Minute
+
 // Init sets Coeus up on a machine that has never run it: it makes the home
 // folder and the work folder, writes the three persona files, asks at most six
 // questions, writes config.toml, runs the doctor, and prints the commands a new
@@ -67,6 +74,13 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 		return err
 	}
 
+	// One deadline covers the whole run, not each question in turn, so that a
+	// setup nobody is answering ends rather than waiting AnswerWait again at
+	// every question.
+	whole, stop := context.WithTimeout(ctx, SetupWait)
+	defer stop()
+	ctx = whole
+
 	if _, err := os.Stat(setup.Home.ConfigFile()); err == nil && !chosen.resetConfig {
 		fmt.Fprintf(setup.Output, "\n%s is already set up, so nothing was changed.\n", setup.Home.Root)
 		fmt.Fprintf(setup.Output, "Run \"coeus init --reset-config\" to write %s again.\n", setup.Home.ConfigFile())
@@ -76,7 +90,7 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 }
 
 // run is the setup itself, in the order a person answers it: the folders to
-// work in, the model, the key when the model needs one, and Signal.
+// work in, the model with the key when the model needs one, and Signal.
 func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 	ask := newAsker(setup.Input, setup.Output, chosen.yes)
 	fmt.Fprintf(setup.Output, "Setting Coeus up in %s.\n", setup.Home.Root)
@@ -89,11 +103,8 @@ func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 		return err
 	}
 	found := detectModels(ctx, setup)
-	picked, err := setup.askModel(ctx, ask, chosen, found)
+	picked, err := setup.chooseModel(ctx, ask, chosen, found)
 	if err != nil {
-		return err
-	}
-	if err := setup.storeKey(ctx, chosen, picked); err != nil {
 		return err
 	}
 	signalWanted, err := setup.askSignal(ctx, ask, chosen)

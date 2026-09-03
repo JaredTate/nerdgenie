@@ -109,8 +109,8 @@ func TestInitGivesUpOnAMenuNobodyAnswersProperly(t *testing.T) {
 	if err == nil {
 		t.Fatalf("coeus init carried on after three answers that were not numbers")
 	}
-	if !strings.Contains(err.Error(), "nothing was set up") {
-		t.Errorf("the refusal does not say that nothing was set up: %v", err)
+	if !strings.Contains(err.Error(), "no configuration was written") {
+		t.Errorf("the refusal does not say what was and was not set up: %v", err)
 	}
 }
 
@@ -127,8 +127,8 @@ func TestInitGivesUpOnAFolderNobodyNamesProperly(t *testing.T) {
 	if err == nil {
 		t.Fatalf("coeus init took the whole home directory after being told three times that it could not")
 	}
-	if !strings.Contains(err.Error(), "nothing was set up") {
-		t.Errorf("the refusal does not say that nothing was set up: %v", err)
+	if !strings.Contains(err.Error(), "no configuration was written") {
+		t.Errorf("the refusal does not say what was and was not set up: %v", err)
 	}
 }
 

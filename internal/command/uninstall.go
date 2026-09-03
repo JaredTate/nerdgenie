@@ -19,10 +19,16 @@ import (
 // enough.
 const PurgeConfirmation = "delete"
 
-// systemctlWait is how long one call to the service manager may take. It is a
+// SystemctlWait is how long one call to the service manager may take. It is a
 // local program answering about a local unit, so a call that has not come back
 // in this time is not going to.
-const systemctlWait = 30 * time.Second
+const SystemctlWait = 30 * time.Second
+
+// MaxProgramOutputBytes is how much of what an outside program printed is kept
+// for the message that says it refused. A service manager that prints without
+// end must not be able to fill this program's memory, and nobody reads more
+// than a screen of somebody else's output anyway.
+const MaxProgramOutputBytes = 4 << 10
 
 // Uninstall stops the service, takes the unit away, and leaves the home folder
 // where it is unless --purge is given and the confirmation word is typed.
@@ -103,17 +109,42 @@ func readConfirmation(input io.Reader) (string, error) {
 }
 
 // runSystemctl tells the user's own service manager to do one thing, and says
-// what it printed when it refuses.
+// what it printed when it refuses. Only the first MaxProgramOutputBytes of what
+// it printed are kept, because a program on the other end of a pipe decides how
+// much it writes and this one does not.
 func runSystemctl(ctx context.Context, arguments []string) error {
-	waiting, stop := context.WithTimeout(ctx, systemctlWait)
+	waiting, stop := context.WithTimeout(ctx, SystemctlWait)
 	defer stop()
 
 	told := append([]string{"--user"}, arguments...)
 	running := exec.CommandContext(waiting, "systemctl", told...)
-	printed, err := running.CombinedOutput()
-	if err != nil {
+	printed := &cappedOutput{}
+	running.Stdout, running.Stderr = printed, printed
+	if err := running.Run(); err != nil {
 		return fmt.Errorf("the service manager refused \"systemctl %s\", so check that systemd is running for your account: %s: %w",
-			strings.Join(told, " "), strings.TrimSpace(string(printed)), err)
+			strings.Join(told, " "), strings.TrimSpace(printed.String()), err)
 	}
 	return nil
 }
+
+// cappedOutput keeps the first MaxProgramOutputBytes of what a program printed
+// and quietly drops the rest. It says it took everything, because a program
+// that cannot write to its own output stops rather than finishing its work, and
+// what is wanted here is the program's own answer, not its whole story.
+type cappedOutput struct {
+	kept []byte
+}
+
+// Write keeps what fits and drops what does not.
+func (output *cappedOutput) Write(printed []byte) (int, error) {
+	if room := MaxProgramOutputBytes - len(output.kept); room > 0 {
+		if room > len(printed) {
+			room = len(printed)
+		}
+		output.kept = append(output.kept, printed[:room]...)
+	}
+	return len(printed), nil
+}
+
+// String is what was kept.
+func (output *cappedOutput) String() string { return string(output.kept) }

@@ -17,6 +17,12 @@ import (
 // blind, so the command refuses and says what to do instead.
 const MaxUndoFiles = 200
 
+// maxTurnEvents is how far past the newest message "/undo" reads for the last
+// turn's file changes. A turn writes a handful of events for each step it takes
+// and a turn's step budget is far below this, so no real turn reaches it; the
+// cap is here because every read of the log has to have one.
+const maxTurnEvents = 20000
+
 // Undo is the "/undo" command: it puts back what the last turn wrote.
 //
 // The event log is what decides what happened, so the last turn is everything
@@ -25,6 +31,10 @@ const MaxUndoFiles = 200
 // newest first, so that a file written twice in one turn ends up holding what it
 // held before the turn began, and a file the turn created is removed rather
 // than restored.
+//
+// Only that stretch is read. A log with a thousand turns in it costs no more to
+// undo than a log with one, and a file change written before there was any
+// message at all belongs to no turn and is left where it is.
 func (commands *Commands) Undo() contract.Command {
 	return contract.Command{
 		Name: "undo",
@@ -50,7 +60,7 @@ func (commands *Commands) Undo() contract.Command {
 	}
 }
 
-// turnChanges is what one walk of the log found: whether a turn ever started,
+// turnChanges is what one read of the log found: whether a turn ever started,
 // the file changes since the newest message, and whether there were more of
 // them than "/undo" will touch.
 type turnChanges struct {
@@ -59,30 +69,44 @@ type turnChanges struct {
 	changes []contract.FileChangeBody
 }
 
-// lastTurn walks the log once and keeps only the last turn's file changes.
-// Replay is the one read with no cap on it, and every message starts the count
-// again, so the walk holds at most MaxUndoFiles changes however long the log is.
+// lastTurn reads the last turn's file changes. The newest message says where
+// the turn began, and everything after it is read by its span of sequence
+// numbers, so the read is the size of one turn however long the log is and the
+// changes made before any message are never read at all.
 func lastTurn(ctx context.Context, store contract.Store) (turnChanges, error) {
-	turn := turnChanges{}
-	err := store.Replay(ctx, func(event contract.Event) error {
-		switch event.Kind {
-		case contract.EventMessage:
-			turn = turnChanges{started: true}
-		case contract.EventFileChange:
-			var change contract.FileChangeBody
-			if err := json.Unmarshal(event.Body, &change); err != nil {
-				return fmt.Errorf("the file-change event %d cannot be read, so nothing was put back: %w", event.Sequence, err)
-			}
-			if len(turn.changes) >= MaxUndoFiles {
-				turn.tooMany = true
-				return nil
-			}
-			turn.changes = append(turn.changes, change)
-		}
-		return nil
-	})
+	messages, err := store.ByKind(ctx, contract.EventMessage)
 	if err != nil {
 		return turnChanges{}, fmt.Errorf("the event log could not be read, so nothing was put back: %w", err)
+	}
+	if len(messages) == 0 {
+		return turnChanges{}, nil
+	}
+
+	began := messages[len(messages)-1].Sequence
+	events, err := store.ByRange(ctx, contract.EventRange{From: began + 1, To: began + maxTurnEvents})
+	if err != nil {
+		return turnChanges{}, fmt.Errorf("the last turn could not be read from the event log, so nothing was put back: %w", err)
+	}
+	return changesIn(events)
+}
+
+// changesIn keeps the file changes out of one turn's events, and says when the
+// turn changed more files than "/undo" will put back at once.
+func changesIn(events []contract.Event) (turnChanges, error) {
+	turn := turnChanges{started: true}
+	for _, event := range events {
+		if event.Kind != contract.EventFileChange {
+			continue
+		}
+		var change contract.FileChangeBody
+		if err := json.Unmarshal(event.Body, &change); err != nil {
+			return turnChanges{}, fmt.Errorf("the file-change event %d cannot be read, so nothing was put back: %w", event.Sequence, err)
+		}
+		if len(turn.changes) >= MaxUndoFiles {
+			turn.tooMany = true
+			return turn, nil
+		}
+		turn.changes = append(turn.changes, change)
 	}
 	return turn, nil
 }

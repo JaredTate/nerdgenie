@@ -23,6 +23,12 @@ import (
 // with half a home folder.
 const AnswerWait = 2 * time.Minute
 
+// pickUpThere is the ending every giving-up message shares. By the time a
+// question is asked, the home folder, the folders inside it, the persona files,
+// and the work folder are all there, so saying that nothing was set up would be
+// untrue: what is missing is config.toml, and a second run writes it.
+const pickUpThere = "; the home folder was made, but no configuration was written, so run coeus init again and it picks up there"
+
 // The bounds on the conversation, so that a pipe full of rubbish cannot make
 // the setup read for ever.
 const (
@@ -88,7 +94,7 @@ func (ask *asker) yesOrNo(ctx context.Context, question string, fallback bool) (
 		}
 		fmt.Fprintln(ask.output, "answer yes or no.")
 	}
-	return false, fmt.Errorf("the question %q was not answered yes or no in %d tries, so nothing was set up", question, maxTriesPerQuestion)
+	return false, fmt.Errorf("the question %q was not answered yes or no in %d tries%s", question, maxTriesPerQuestion, pickUpThere)
 }
 
 // choice prints a numbered menu and reads back the number of one of its lines.
@@ -109,7 +115,7 @@ func (ask *asker) choice(ctx context.Context, question string, choices []string,
 		}
 		fmt.Fprintf(ask.output, "type a number from 1 to %d.\n", len(choices))
 	}
-	return 0, fmt.Errorf("no number from 1 to %d was typed in %d tries, so nothing was set up", len(choices), maxTriesPerQuestion)
+	return 0, fmt.Errorf("no number from 1 to %d was typed in %d tries%s", len(choices), maxTriesPerQuestion, pickUpThere)
 }
 
 // read waits for one line, and gives up when nothing arrives inside the wait, so
@@ -131,7 +137,7 @@ func (ask *asker) read(ctx context.Context) (string, error) {
 	case answer := <-answers:
 		return readOneLine(answer.line, answer.err)
 	case <-waiting.Done():
-		return "", fmt.Errorf("no answer came in %s, so nothing was set up; run coeus init again", AnswerWait)
+		return "", fmt.Errorf("no answer came in %s%s", AnswerWait, pickUpThere)
 	}
 }
 
@@ -140,10 +146,11 @@ func (ask *asker) read(ctx context.Context) (string, error) {
 // has none; nothing at all means the answers ran out.
 func readOneLine(line string, err error) (string, error) {
 	if err != nil && !errors.Is(err, io.EOF) {
-		return "", fmt.Errorf("the answer could not be read, so nothing was set up: %w", err)
+		return "", fmt.Errorf("the answer could not be read: %w%s", err, pickUpThere)
 	}
 	if line == "" {
-		return "", errors.New("the answers ran out before every question was asked, so nothing was set up; give coeus init every answer as a flag instead")
+		return "", errors.New("the answers ran out before every question was asked" + pickUpThere +
+			", or give coeus init every answer as a flag instead")
 	}
 	return strings.TrimRight(line, "\r\n"), nil
 }

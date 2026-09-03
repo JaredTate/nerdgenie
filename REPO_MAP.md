@@ -155,6 +155,7 @@ internal/clock/doc.go
 internal/command/always_test.go
 internal/command/answer.go
 internal/command/answer_test.go
+internal/command/bounds_test.go
 internal/command/core.go
 internal/command/core_test.go
 internal/command/deps.go
@@ -166,8 +167,10 @@ internal/command/fuzz_test.go
 internal/command/initanswers_test.go
 internal/command/initask.go
 internal/command/initflags.go
+internal/command/initgivingup_test.go
 internal/command/initialize.go
 internal/command/initialize_test.go
+internal/command/initmenu_test.go
 internal/command/initmodels.go
 internal/command/initsteps.go
 internal/command/inittemplate.go
@@ -184,11 +187,13 @@ internal/command/testdata/coeus-backup.service.golden
 internal/command/testdata/coeus-backup.timer.golden
 internal/command/testdata/coeus.service.golden
 internal/command/testdata/help.golden
+internal/command/testdata/model-menu.golden
 internal/command/testdata/sessions.golden
 internal/command/testdata/status-fresh.golden
 internal/command/testdata/status.golden
 internal/command/undo.go
 internal/command/undo_test.go
+internal/command/undorange_test.go
 internal/command/uninstall.go
 internal/config/check.go
 internal/config/check_test.go
@@ -906,6 +911,7 @@ test/fixtures/site/qa.html
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
+test/functional/command_test.go
 test/functional/context_test.go
 test/functional/fixturesite_test.go
 test/functional/permission_test.go

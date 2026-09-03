@@ -144,8 +144,8 @@ func TestTheWholeSocketRunsInARealHomeFolder(t *testing.T) {
 		}
 	}()
 
-	if socket.Name() != TerminalChannelName {
-		t.Errorf("the socket calls itself %q, want %q", socket.Name(), TerminalChannelName)
+	if socket.Name() != contract.TerminalChannelName {
+		t.Errorf("the socket calls itself %q, want %q", socket.Name(), contract.TerminalChannelName)
 	}
 	details, err := os.Stat(home.SocketFile())
 	if err != nil {

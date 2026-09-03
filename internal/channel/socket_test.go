@@ -23,8 +23,8 @@ func TestAClientAttachesSendsAMessageAndStreamsAReplyDeltaByDelta(t *testing.T) 
 	if taken.Message.Text != "book me a flight" {
 		t.Errorf("the queue holds %q, want %q", taken.Message.Text, "book me a flight")
 	}
-	if taken.Message.Channel != TerminalChannelName {
-		t.Errorf("the message came from the channel %q, want %q", taken.Message.Channel, TerminalChannelName)
+	if taken.Message.Channel != contract.TerminalChannelName {
+		t.Errorf("the message came from the channel %q, want %q", taken.Message.Channel, contract.TerminalChannelName)
 	}
 	if !taken.Message.Received.Equal(harness.clock.Now()) {
 		t.Errorf("the message was received at %s, want the clock's %s", taken.Message.Received, harness.clock.Now())
@@ -293,8 +293,8 @@ func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 func TestTheSocketIsAChannelNamedTerminalAndSaysWhetherItIsWorking(t *testing.T) {
 	harness := newSocketHarness(t)
 	ctx := context.Background()
-	if name := harness.socket.Name(); name != TerminalChannelName {
-		t.Errorf("the socket calls itself %q, want %q", name, TerminalChannelName)
+	if name := harness.socket.Name(); name != contract.TerminalChannelName {
+		t.Errorf("the socket calls itself %q, want %q", name, contract.TerminalChannelName)
 	}
 	if health := harness.socket.Health(ctx); !health.Healthy {
 		t.Errorf("a listening socket says it is not working: %s", health.Detail)

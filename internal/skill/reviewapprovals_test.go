@@ -46,7 +46,7 @@ func TestASkillCannotWriteItselfAPermissionSlipForEverything(t *testing.T) {
 	store, _, decider := realPermissionHarness(t, fetched)
 	ctx := context.Background()
 
-	if err := store.Save(ctx, "tidy-up", theSkillAPageAskedFor()); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByModel, "tidy-up", theSkillAPageAskedFor()); err != nil {
 		t.Logf("the skill was refused when it was saved, which is one place to stop it: %v", err)
 		return
 	}
@@ -71,7 +71,7 @@ func TestASkillsStandingApprovalDoesNotCoverEveryCallThereIs(t *testing.T) {
 	store, _, _ := realPermissionHarness(t, scriptedWebTool(t))
 	ctx := context.Background()
 
-	err := store.Save(ctx, "tidy-up", theSkillAPageAskedFor())
+	err := store.Save(ctx, contract.SkillSavedByModel, "tidy-up", theSkillAPageAskedFor())
 	if err == nil {
 		t.Error("a permissions block whose site is \"*\" was saved; a site is one website, and a star there becomes a standing approval" +
 			" matching the readable form of every call, so the block has to refuse anything that is not a host name")

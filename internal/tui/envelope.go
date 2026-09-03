@@ -6,6 +6,9 @@ import "github.com/JaredTate/coeus/internal/contract"
 // match it. A kind this screen does not understand is ignored rather than
 // refused, so that an older screen and a newer program can still work together.
 func (screen *Screen) receive(envelope contract.SocketEnvelope) {
+	if envelope.Clear {
+		screen.emptyTheTranscript()
+	}
 	switch envelope.Type {
 	case contract.SocketDelta:
 		if envelope.Reset {
@@ -32,6 +35,22 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 		screen.flushDeltas()
 		screen.showTrouble(troubleWords(envelope))
 	}
+}
+
+// emptyTheTranscript takes every block off the screen, and the reply that was
+// still on its way with them, because the person asked for a clean screen with
+// the clear command. The header, the status strip and the side panel are left
+// alone, because they are drawn from what the program says about itself and the
+// program has not forgotten anything. The last tool line and the last record
+// line the screen has drawn are kept too: the program sends them again on every
+// heartbeat until something changes, and a screen that forgot it had drawn them
+// would draw them straight back into the empty transcript.
+func (screen *Screen) emptyTheTranscript() {
+	screen.blocks = nil
+	screen.pending = ""
+	screen.streaming = false
+	screen.scrollBack = 0
+	screen.waitingFor = 0
 }
 
 // maxFilesNamed is how many of a reply's files the transcript names, because a

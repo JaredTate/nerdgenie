@@ -19,8 +19,10 @@ import (
 )
 
 // registerCommands fills the one registry with every slash command each package
-// owns, in the order the help listing prints them.
-func (running *agent) registerCommands() error {
+// owns, in the order the help listing prints them. The memory of what each
+// screen's newest task was doing is handed in because the clear command
+// forgets from it.
+func (running *agent) registerCommands(lastTasks *screenTasks) error {
 	running.registry = command.NewRegistry()
 	core := command.New(running.registry, command.Deps{
 		Settings:        running.settings,
@@ -45,6 +47,7 @@ func (running *agent) registerCommands() error {
 		browser.ScreenCommand(running.browser),
 		vault.NewCommand(running.secrets),
 		running.memories.Command(),
+		running.clearCommand(lastTasks),
 		readyCommand())
 	if running.settings.SignalAccount != "" {
 		all = append(all, signalchannel.PairCommand(running.pairingStore()))

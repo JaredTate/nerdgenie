@@ -42,6 +42,7 @@ const (
 	hollowDotGlyph = '○'
 	barFullGlyph   = '▰'
 	barEmptyGlyph  = '▱'
+	repeatGlyph    = '×'
 )
 
 // span is one run of text drawn in one style. A row is built out of spans, so

@@ -27,6 +27,11 @@ const buildingToolsTakes = 30 * time.Second
 // openTheFront opens everything a message meets on its way in and out: the
 // model, the event stream, the local socket, the fence, the tools, the skills,
 // the turn loop, the commands, and the router.
+//
+// The memory of what each screen's newest task was doing is made here and
+// handed to the two things that read it: the router, whose one function that
+// starts a task is where a message is handed to a task already under way, and
+// the commands, because the clear command forgets from it.
 func (running *agent) openTheFront(ctx context.Context) error {
 	if err := running.openTheModelAndTheScreens(); err != nil {
 		return err
@@ -37,10 +42,11 @@ func (running *agent) openTheFront(ctx context.Context) error {
 	if err := running.openTheLoop(); err != nil {
 		return err
 	}
-	if err := running.registerCommands(); err != nil {
+	lastTasks := newScreenTasks()
+	if err := running.registerCommands(lastTasks); err != nil {
 		return err
 	}
-	return running.openTheRouter()
+	return running.openTheRouter(lastTasks)
 }
 
 // openTheModelAndTheScreens opens the model the configuration names, the event
@@ -353,13 +359,10 @@ func (running *agent) sendToTheUserHere(ctx context.Context, text string) error 
 }
 
 // openTheRouter gives the router the five things it needs from the rest of the
-// program.
-//
-// The memory of what each screen's newest task was doing is made here and read
-// by nothing but the one function that starts a task, which is the only place a
-// message can be handed to a task that is already under way.
-func (running *agent) openTheRouter() error {
-	lastTasks := newScreenTasks()
+// program, and the one function that starts a task the memory of what each
+// screen's newest task was doing, which is the only place a message can be
+// handed to a task that is already under way.
+func (running *agent) openTheRouter(lastTasks *screenTasks) error {
 	built, err := channel.NewRouter(channel.Routes{
 		RunCommand:  running.registry.Run,
 		FindChannel: running.channelNamed,

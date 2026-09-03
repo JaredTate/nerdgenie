@@ -97,7 +97,7 @@ Results go in `docs/PROGRESS.md` with the token cost of each run. A `live` test 
 
 ### The human trial and the visual checklist
 
-Screens are tested by a person looking at them. After waves 3, 5, and 6, a person uses Coeus for at least ten minutes in a visible window on the development machine, never through a screenshot alone, and writes notes in `docs/PROGRESS.md` under the wave. The checklist:
+Screens are tested by a person looking at them. After waves 3, 5, and 6, a person uses Coeus for at least ten minutes in a visible window on the development machine, never through a screenshot alone, and writes notes in `docs/PROGRESS.md` under the wave. **Every trial runs on the local Qwen 3.8**, the `local` alias that a fresh install ships with, so that what the person sees is what a person with no subscription and no key would see; the two subscription models are for the live suite, not the trial. The orchestrator starts `coeus serve` in one terminal window on the machine's own display and the person uses `coeus` in a second. The checklist:
 
 1. Install on a clean user account, run `init`, and get to the first reply without reading any document. Until the installer exists in wave 6, "install" means `make install`.
 2. Watch the terminal screen: first frame at once, streaming visible, an approval prompt answered inline, a masked prompt that never echoes, no flicker on resize.

@@ -42,6 +42,7 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/reviewaskpass_test.go
 cmd/coeus/runlock.go
 cmd/coeus/sandbox_entry.go
 cmd/coeus/sandbox_entry_test.go
@@ -63,6 +64,7 @@ docs/DEPENDENCIES.md
 docs/EXTENDING.md
 docs/HARNESS_V2.md
 docs/PROGRESS.md
+docs/SECURITY_REVIEW.md
 docs/TUI_DESIGN.md
 docs/WORK_PLAN.md
 docs/briefs/wave-0/0.1-ready-to-build.md
@@ -265,6 +267,7 @@ internal/context/persona.go
 internal/context/persona_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
+internal/context/reviewmarker_test.go
 internal/context/testdata/prompt-200k.txt
 internal/context/testdata/prompt-24k.txt
 internal/context/window.go
@@ -305,6 +308,7 @@ internal/contract/tool.go
 internal/contract/toolnames.go
 internal/contract/usertool.go
 internal/contract/usertool_test.go
+internal/desktop/accessibility_test.go
 internal/desktop/client.go
 internal/desktop/client_test.go
 internal/desktop/desktop.go
@@ -471,6 +475,8 @@ internal/permission/reduce.go
 internal/permission/reduce_test.go
 internal/permission/remembered_test.go
 internal/permission/rememberedwins_test.go
+internal/permission/reviewevasion_test.go
+internal/permission/reviewstanding_test.go
 internal/permission/rules.go
 internal/permission/rules_test.go
 internal/permission/shellwords.go
@@ -616,6 +622,7 @@ internal/sandbox/entry.go
 internal/sandbox/entry_test.go
 internal/sandbox/fuzz_test.go
 internal/sandbox/integration_restrict_test.go
+internal/sandbox/integration_review_test.go
 internal/sandbox/integration_roots_test.go
 internal/sandbox/integration_run_test.go
 internal/sandbox/integration_test.go
@@ -660,6 +667,7 @@ internal/signal/link_test.go
 internal/signal/pairing.go
 internal/signal/pairing_test.go
 internal/signal/pairingfile.go
+internal/signal/reviewredaction_test.go
 internal/signal/split.go
 internal/signal/split_test.go
 internal/signal/stream.go
@@ -700,6 +708,7 @@ internal/skill/integration_test.go
 internal/skill/learn.go
 internal/skill/learn_test.go
 internal/skill/permission_test.go
+internal/skill/reviewapprovals_test.go
 internal/skill/run.go
 internal/skill/run_test.go
 internal/skill/save.go
@@ -845,6 +854,7 @@ internal/tool/read/testdata/a_file.txt
 internal/tool/read/testdata/a_folder.txt
 internal/tool/registry.go
 internal/tool/registry_test.go
+internal/tool/reviewpaths_test.go
 internal/tool/roots.go
 internal/tool/roots_test.go
 internal/tool/search/bounds_test.go
@@ -888,6 +898,7 @@ internal/tool/web/doc.go
 internal/tool/web/fetch.go
 internal/tool/web/fuzz_test.go
 internal/tool/web/results.go
+internal/tool/web/reviewaddress_test.go
 internal/tool/web/search.go
 internal/tool/web/testdata/a_fetched_page.txt
 internal/tool/web/testdata/a_page_as_text.txt

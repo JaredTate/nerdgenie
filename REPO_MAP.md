@@ -146,7 +146,6 @@ internal/channel/sockethelper_test.go
 internal/channel/status_test.go
 internal/channel/stream.go
 internal/channel/stream_test.go
-internal/channel/testdata/fuzz/FuzzTheCommandSplitter/282befd696e0675c
 internal/clock/clock.go
 internal/clock/clock_test.go
 internal/clock/doc.go

@@ -10,6 +10,7 @@ import (
 
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
 )
 
 // The bounds on the few facts the harness writes into the record for itself.
@@ -28,21 +29,22 @@ func (running *run) writeCostAndBudget(ctx context.Context, usage contract.Usage
 	if running.keeper == nil {
 		return nil
 	}
-	if err := running.keeper.SetBudget(ctx, running.roundsLeft(), running.minutesLeft()); err != nil {
+	if err := running.keeper.SetBudget(ctx, running.budgetLeft()); err != nil {
 		return fmt.Errorf("cannot write the budget left into the record: %w", err)
 	}
 	return workingcontext.WriteCostLine(ctx, running.keeper, usage)
 }
 
-// roundsLeft is how many rounds the task may still take.
-func (running *run) roundsLeft() int {
-	return max(running.roundsAllowed-running.roundsUsed, 0)
-}
-
-// minutesLeft is how many minutes the task may still take.
-func (running *run) minutesLeft() int {
-	left := running.timeAllowed - running.spent()
-	return max(int(left/time.Minute), 0)
+// budgetLeft is how much of the task's budget is left on each of the limits it
+// has. A limit the user did not set is off, which is the default, and the header
+// says so rather than counting down from nothing.
+func (running *run) budgetLeft() record.Budget {
+	return record.Budget{
+		RoundsLeft:    max(running.roundsAllowed-running.roundsUsed, 0),
+		NoRoundBudget: running.roundsAllowed <= 0,
+		MinutesLeft:   max(int((running.timeAllowed-running.spent())/time.Minute), 0),
+		NoTimeBudget:  running.timeAllowed <= 0,
+	}
 }
 
 // writeSituation fills the record's situation from the facts ordinary code can

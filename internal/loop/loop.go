@@ -179,7 +179,10 @@ func New(options Options) (*Loop, error) {
 			return nil, fmt.Errorf("the turn loop needs %s, so pass one in its options", needed.name)
 		}
 	}
-	if options.Caps.RoundsPerTask <= 0 {
+	// A caller that passed no caps at all gets the shipped ones. A zero in any
+	// one budget is not that: it is the user's own way of saying that budget
+	// is off, and it is left alone.
+	if options.Caps == (contract.Caps{}) {
 		options.Caps = contract.DefaultConfig().Caps
 	}
 	return &Loop{options: options}, nil

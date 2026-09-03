@@ -167,7 +167,8 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 }
 
 // budgetRounds is how many rounds this task may take: its own budget when a
-// skill set one, and the cap otherwise.
+// skill set one, and the cap otherwise. Zero, which is what the caps ship
+// with, means no limit.
 func budgetRounds(task Task, caps contract.Caps) int {
 	if task.Budget.Rounds > 0 {
 		return task.Budget.Rounds
@@ -181,6 +182,23 @@ func budgetTime(task Task, caps contract.Caps) time.Duration {
 		return task.Budget.Time
 	}
 	return caps.TimePerTask
+}
+
+// describeBudget says in plain words what a task may spend, for the situation
+// line a continued task carries: "no budget", or the rounds, the minutes, or
+// both.
+func describeBudget(rounds int, allowed time.Duration) string {
+	parts := []string{}
+	if rounds > 0 {
+		parts = append(parts, fmt.Sprintf("%d rounds", rounds))
+	}
+	if allowed > 0 {
+		parts = append(parts, fmt.Sprintf("%d minutes", int(allowed/time.Minute)))
+	}
+	if len(parts) == 0 {
+		return "no budget"
+	}
+	return strings.Join(parts, " and ")
 }
 
 // resume picks a waiting or stopped task up again from its last checkpoint,
@@ -202,8 +220,13 @@ func (running *run) resume(ctx context.Context) error {
 	running.keeper = keeper
 	running.takeThePinsBackFromTheRecord(ctx)
 	header := keeper.Record().Header
-	running.roundsAllowed = header.RoundsLeft
-	running.timeAllowed = time.Duration(header.MinutesLeft) * time.Minute
+	running.roundsAllowed, running.timeAllowed = 0, 0
+	if !header.NoRoundBudget {
+		running.roundsAllowed = header.RoundsLeft
+	}
+	if !header.NoTimeBudget {
+		running.timeAllowed = time.Duration(header.MinutesLeft) * time.Minute
+	}
 	if err := running.carryOnFromAStop(ctx, header.Status); err != nil {
 		return err
 	}
@@ -226,11 +249,12 @@ func (running *run) carryOnFromAStop(ctx context.Context, standing contract.Reco
 	}
 	running.roundsAllowed = budgetRounds(running.task, running.theLoop.options.Caps)
 	running.timeAllowed = budgetTime(running.task, running.theLoop.options.Caps)
-	minutes := int(running.timeAllowed / time.Minute)
-	running.continuedFact = fmt.Sprintf(
-		"the person asked this task to carry on, so it was given a fresh budget of %d rounds and %d minutes",
-		running.roundsAllowed, minutes)
-	if err := running.keeper.SetBudget(ctx, running.roundsAllowed, minutes); err != nil {
+	given := describeBudget(running.roundsAllowed, running.timeAllowed)
+	running.continuedFact = "the person asked this task to carry on, so it was given a fresh budget of " + given
+	if given == "no budget" {
+		running.continuedFact = "the person asked this task to carry on, and it runs with no budget"
+	}
+	if err := running.keeper.SetBudget(ctx, running.budgetLeft()); err != nil {
 		return fmt.Errorf("cannot give task %s the fresh budget it was asked to carry on with: %w",
 			running.task.ResumeID, err)
 	}
@@ -276,9 +300,14 @@ func (running *run) taskID() string {
 	return running.keeper.ID()
 }
 
-// play runs round after round until the task reaches an end state.
+// play runs round after round until the task reaches an end state. A task with
+// a round budget is also held to that many rounds and the two spare ones here,
+// as a second wall behind the check at the top of every round. A task with no
+// round budget, which is the default, has no wall: what ends it is its own
+// answer, a stop line, the person's stop, the detector, a failure, or the
+// context it runs under being cancelled, and nothing else.
 func (running *run) play(ctx context.Context) (Outcome, error) {
-	for range running.roundsAllowed + extraRounds {
+	for round := 0; running.mayPlayRound(round); round++ {
 		outcome, more, err := running.oneRound(ctx)
 		if err != nil {
 			return outcome, err
@@ -290,6 +319,12 @@ func (running *run) play(ctx context.Context) (Outcome, error) {
 	return running.finalReport(ctx, "the task used every round it was allowed")
 }
 
+// mayPlayRound says whether this round of the loop may run: always, on a task
+// with no round budget, and up to the budget and the spare rounds otherwise.
+func (running *run) mayPlayRound(round int) bool {
+	return running.roundsAllowed <= 0 || round < running.roundsAllowed+extraRounds
+}
+
 // oneRound is one turn of the loop: orient, call, guard, permit, run, update.
 // It returns false when the task has reached an end state.
 func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
@@ -298,7 +333,7 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 		return outcome, false, err
 	}
 	if running.theLoop.stopAsked() {
-		outcome, err := running.stopHere(ctx, "the user asked the task to stop")
+		outcome, err := running.stopForThePerson(ctx, "the user asked the task to stop")
 		return outcome, false, err
 	}
 	reply, err := running.callTheModel(ctx)
@@ -307,7 +342,7 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 		// a stop, not a failure: the person pressed Escape and is owed the
 		// stopped report rather than an error about a cancelled context.
 		if running.theLoop.stopAsked() {
-			outcome, stopped := running.stopHere(ctx, "the user asked the task to stop")
+			outcome, stopped := running.stopForThePerson(ctx, "the user asked the task to stop")
 			return outcome, false, stopped
 		}
 		outcome, failed := running.failHere(ctx, err)

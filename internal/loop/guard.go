@@ -54,12 +54,14 @@ type pastCall struct {
 }
 
 // budgetIsSpent says why the task's budget is gone, and is empty while it has
-// budget left.
+// budget left. A limit the user did not set is off, and a task with both off
+// is never stopped here: Coeus puts no cap on its own work unless the user
+// asks for one.
 func (running *run) budgetIsSpent() string {
-	if running.roundsUsed >= running.roundsAllowed {
+	if running.roundsAllowed > 0 && running.roundsUsed >= running.roundsAllowed {
 		return fmt.Sprintf("the budget of %d rounds is used up", running.roundsAllowed)
 	}
-	if running.spent() >= running.timeAllowed {
+	if running.timeAllowed > 0 && running.spent() >= running.timeAllowed {
 		return fmt.Sprintf("the budget of %s is used up", running.timeAllowed)
 	}
 	return ""

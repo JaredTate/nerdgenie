@@ -255,13 +255,16 @@ func (running *run) startTheRecord(ctx context.Context) error {
 		return nil
 	}
 	taskID := running.number
+	left := running.budgetLeft()
 	keeper, err := record.New(ctx, running.theLoop.options.Store, record.Start{
-		Kind:        contract.RecordTask,
-		ID:          taskID,
-		Origin:      running.origin(),
-		Ask:         running.task.Message.Text,
-		RoundsLeft:  running.roundsLeft(),
-		MinutesLeft: running.minutesLeft(),
+		Kind:          contract.RecordTask,
+		ID:            taskID,
+		Origin:        running.origin(),
+		Ask:           running.task.Message.Text,
+		RoundsLeft:    left.RoundsLeft,
+		NoRoundBudget: left.NoRoundBudget,
+		MinutesLeft:   left.MinutesLeft,
+		NoTimeBudget:  left.NoTimeBudget,
 	})
 	if err != nil {
 		return fmt.Errorf("cannot start the record of task %s: %w", taskID, err)

@@ -228,6 +228,16 @@ func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) 
 	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), true)
 }
 
+// stopForThePerson stops the task because the person asked it to, with Escape
+// or with the word stop, and asks the model nothing more. The four review
+// questions used to be asked here as well, which is a model call the stop
+// could not reach: the person pressed Escape, the call in flight was
+// cancelled, and the loop at once made another call they had to press Escape
+// at again. A stop the person asked for ends with the call they stopped.
+func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome, error) {
+	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+}
+
 // stopAndSay ends the task as stopped and sends the one report the user gets:
 // which line stopped it, where the work stands, and how to carry it on. The four
 // review questions are asked unless the caller has already spent the ending's

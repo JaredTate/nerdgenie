@@ -3,6 +3,7 @@ package loop_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
@@ -25,7 +26,15 @@ func TestAStoppedTaskThePersonContinuesGetsAFreshBudget(t *testing.T) {
 	built := newHarness(t, aTaskThatRunsOutAndThenCarriesOn(), scriptedTool("read", "the notes", "the brand file"))
 
 	stopped := runOutOfBudget(t, built)
-	carriedOn := continueTheTask(t, built, stopped.TaskID)
+	carryOn := built.task("carry on")
+	carryOn.ResumeID = stopped.TaskID
+	// The carry-on runs under the same skill as the first sitting, so it has a
+	// budget of its own; the caps themselves set none.
+	carryOn.Budget = loop.Budget{Rounds: 5, Time: 10 * time.Minute}
+	carriedOn, err := built.loop.Run(t.Context(), carryOn)
+	if err != nil {
+		t.Fatalf("the loop could not pick task %s up again: %v", stopped.TaskID, err)
+	}
 
 	if carriedOn.Status != contract.StatusDone {
 		t.Fatalf("the continued task ended %q, want done: it was given a fresh budget to finish on. %s",
@@ -101,7 +110,12 @@ func TestAWaitingTaskThePersonAnswersKeepsTheBudgetItHad(t *testing.T) {
 		answerStep("I posted from the DigiByte account. Nothing is left."),
 	}, scriptedTool("read", "the notes"))
 
-	waiting := built.ask(t, "post the anniversary tweet")
+	first := built.task("post the anniversary tweet")
+	first.Budget = loop.Budget{Rounds: 10, Time: time.Hour}
+	waiting, err := built.loop.Run(t.Context(), first)
+	if err != nil {
+		t.Fatalf("the loop could not run the task: %v", err)
+	}
 	if waiting.Status != contract.StatusWaiting {
 		t.Fatalf("the task ended %q, want waiting, because the model asked the user something", waiting.Status)
 	}

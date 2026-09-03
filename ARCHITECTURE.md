@@ -47,7 +47,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/reliability` | Leases, ledgers, sentinels, the breaker, the watchdog feed, backups | 4, built |
 | `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 4, built |
 | `internal/skill` | The skill folder format, loading, learning, replay | 4, built |
-| `internal/browser` | The Go side of the browser: worker lifecycle, login, handoff | 5 |
+| `internal/browser` | The Go side of the browser: worker lifecycle, login, handoff | 5, built |
 | `internal/job` | Job records, the task list, and the scheduler | 4, built |
 | `internal/desktop` | The Go side of the desktop worker | 6, built |
 | `internal/update` | Update, rollback, migrations | 6 |
@@ -502,6 +502,22 @@ Its dependencies are in `docs/DEPENDENCIES.md`. `npm test` builds and then runs
 unit tests, property tests with `fast-check`, and tests that drive a real Chrome
 against recorded fixture pages served on a loopback port, and fails under seventy
 percent coverage.
+
+## The Go side of the browser: `internal/browser` (built, wave 5, brief 5.2)
+
+`internal/browser` is the other half of `worker/browser/PROTOCOL.md`. `Browser` implements `contract.BrowserWorker`, so the seven browser tools call it exactly as they call the fake, and it adds three things a tool cannot do for itself: a login from the vault, a handoff to the user, and the `/screen` command.
+
+**The worker's life.** No worker starts until the first browser call. `workerReady` starts one, asks `health` before it trusts it, and stops a worker that says it cannot drive a browser, because one that cannot work is worse than none. A worker that will not start is tried again after a wait that doubles from one second up to thirty, four attempts in all, and every wait is on `contract.Clock` so that no test waits for real. One worker serves every call after that. An idle watcher wakes once a minute and stops a worker nothing has used for thirty minutes, so no browser window sits on the screen all day; the clock on that stretch restarts when a call goes out rather than when it comes back, so a call in flight is never taken for idleness. `ProcessStart` runs the worker as a child process with `--profile` and `--pacing`, in its own process group, handed only the environment a browser needs and nothing secret, with its own logging copied one capped line at a time into the agent's log. It is stopped by closing its standard input, and only if that fails is the process group started under that one exact process identifier signalled. Nothing is ever found by name.
+
+**The wire.** One request at a time, one JSON object per line, an identifier that must come back, a cap of eight megabytes on an answer line because a screenshot is one line of base64, and a deadline per method that is longer than the worker's own deadline for the same method so that a slow worker answers rather than being restarted underneath itself. The error table decides what a refusal means: `-32700`, `-32600` and `-32003` stop the worker and tell the model the browser was interrupted and will be started again; `-32601` is a fault in Coeus and says so; the rest come back as a `RefusedError` carrying the code, and a `-32000` carries the fresh snapshot the protocol promises so the model is handed something it can point at. A batch that stops part way still hands back the diffs of the steps that ran.
+
+**The daily budget.** Design section 9 gives every website a daily budget of actions. One count per hostname per calendar day on `contract.Clock`, spent by everything that acts on a page and by nothing that only reads one, one unit per step of a batch, and charged before the call so that the limit really stops it. The refusal names the number and the midnight the budget comes back. The `www.` is trimmed, so one site is one entry.
+
+**Login.** `Login(site, refs)` resolves `secret://site` through `contract.Secrets`, reads the page, and refuses unless the hostname is one of the entry's own domains or a name under one, naming the hostname it is actually on. It takes the boxes from the snapshot by role and name, or the refs the model passed, checking that a ref the model passed is really a box on the page. When the entry has a two-factor secret and the page has a code box, it makes a code through the vault's `Code` and waits for the next thirty-second window when fewer than `vault.FreshCodeSeconds` remain. Then `loginFill` types all three. The model never sees a value: it names an entry, and nothing that comes back or is logged holds a character of one. The worker redacts its own answer, and this side reads the whole answer back as text and throws it away if any value of six characters or more survives anywhere in it.
+
+**Handoff.** `Handoff(reason)` brings the tab forward through `tabs`, takes a numbered screenshot, writes it to a private file, and sends it through the current channel with why the agent stopped, where the browser is, the wall it hit, the numbered marks, and the three things the user can reply. Then it holds the task until they answer: `done`, a short run of digits, or `abort`, with anything else answered by the three choices again and a cap on how many messages it will read. A code is typed into the box the wall named and is never returned to the model, because a code in the model's context buys nothing. Nobody answering is not a failure: when the configured handoff timeout passes on the clock, it comes back saying so. `ScreenCommand` is the same picture on demand, sent through whichever channel `/screen` was typed on.
+
+**What `serve.go` must wire.** `browser.ProcessStart(command, profile, browser.PacingHuman, note)` with Node and the built worker as the command and `config.BrowserProfilePath` as the profile, then `browser.New` with that start, the current channel, the vault as both `Secrets` and `Codes`, `clock.System()`, and `config.HandoffTimeout`; then `browser.ScreenCommand(theBrowser)` in the command registry. The daily budget has no field in `contract.Config` yet, so `DefaultDailyActionsPerSite` is what every install uses until one is added.
 
 ## The desktop: `worker/desktop` and `internal/desktop` (built, wave 6, brief 6.1)
 

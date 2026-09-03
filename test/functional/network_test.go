@@ -10,10 +10,12 @@
 package functional
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -93,32 +95,35 @@ func TestAShellCommandInsideTheFenceCanReachTheNetwork(t *testing.T) {
 }
 
 func TestTheBrowserProfileIsNeverInsideAFolderTheFenceOpens(t *testing.T) {
-	agent := startTheAgentWithABrowserProfileInsideTheWorkFolder(t)
-
-	screen := agent.attach(t)
-	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "readyz"})
-	screen.waitFor(t, contract.SocketReply, 20*time.Second)
-
-	said := whatItSaid(agent.saidPath)
-	if !strings.Contains(said, "no sandbox could be built") {
-		t.Errorf("the agent came up with a fence that holds the browser profile, and that profile is the agent's own logins:\n%s", said)
+	work := aWorkFolder(t)
+	model := testkit.NewFakeProviderServer(testkit.Script{Name: "local", ContextLength: 32768})
+	t.Cleanup(model.Close)
+	program := buildTheBinary(t)
+	home := aHomePointingAt(t, model.Address()+"/v1", work)
+	profile := filepath.Join(work, "browser-profile")
+	if err := os.MkdirAll(profile, contract.HomeFolderMode); err != nil {
+		t.Fatalf("making the browser profile failed: %v", err)
 	}
-}
+	addSettingToTheHome(t, home, "browser_profile_path = "+quotedForJSON(profile))
 
-// startTheAgentWithABrowserProfileInsideTheWorkFolder starts the agent with a
-// configuration that puts the browser profile inside the one folder a command
-// may reach, which is exactly what the fence must refuse.
-func startTheAgentWithABrowserProfileInsideTheWorkFolder(t *testing.T) runningAgent {
-	t.Helper()
-	return startTheAgentWorkingIn(t, func(string) testkit.Script {
-		return testkit.Script{Name: "local", ContextLength: 32768}
-	}, func(home contract.Home, work string) {
-		profile := filepath.Join(work, "browser-profile")
-		if err := os.MkdirAll(profile, contract.HomeFolderMode); err != nil {
-			t.Fatalf("making the browser profile failed: %v", err)
-		}
-		addSettingToTheHome(t, home, "browser_profile_path = "+quotedForJSON(profile))
-	})
+	// The configuration check refuses the root before anything is built, so
+	// the program must quit while reading its settings, name the setting, and
+	// never open its socket. The bound is there so a program that comes up
+	// anyway fails the test instead of hanging it.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	started := exec.CommandContext(ctx, program, "serve")
+	started.Env = append(os.Environ(), "COEUS_HOME="+home.Root)
+	said, err := started.CombinedOutput()
+	if err == nil {
+		t.Fatalf("coeus serve came up with the browser profile inside a sandbox root; it said:\n%s", said)
+	}
+	if !strings.Contains(string(said), "sandbox_roots") || !strings.Contains(string(said), profile) {
+		t.Errorf("the refusal does not name the setting and the profile:\n%s", said)
+	}
+	if _, err := os.Stat(home.SocketFile()); err == nil {
+		t.Errorf("the socket was opened even though the settings were refused")
+	}
 }
 
 // aServerToReach is a web server on a loopback port of its own, which a command

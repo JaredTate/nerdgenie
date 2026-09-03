@@ -55,10 +55,28 @@ func (record programRecord) arguments() []string {
 	return strings.Split(strings.TrimSuffix(written, argumentSeparator), argumentSeparator)
 }
 
+// scratchFile returns what one file of the folder the program was run in held
+// when it ran, together with what the filesystem said about it. The folder
+// itself is gone by the time a test looks, so the stand-in keeps a copy.
+func (record programRecord) scratchFile(t *testing.T, name string) (string, os.FileInfo) {
+	t.Helper()
+	path := filepath.Join(record.folder, "scratch", name)
+	about, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("the folder the program ran in held no file called %q: %v", name, err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("the copy of %s the stand-in kept could not be read: %v", name, err)
+	}
+	return string(body), about
+}
+
 // installFakeProgram writes a stand-in for one of the vendor programs onto a
 // folder at the front of the PATH. It writes down its arguments, its working
-// folder, what that folder held, and everything it was given on standard input,
-// then prints the output and exits with the code.
+// folder, what that folder held, a copy of that folder with the file modes kept,
+// and everything it was given on standard input, then prints the output and
+// exits with the code.
 func installFakeProgram(t *testing.T, name, output string, exitCode int) programRecord {
 	t.Helper()
 	binFolder := t.TempDir()
@@ -70,11 +88,14 @@ func installFakeProgram(t *testing.T, name, output string, exitCode int) program
 printf '%%s%s' "$@" > %q/args.txt
 pwd > %q/cwd.txt
 ls -A > %q/folder.txt
+mkdir -p %q/scratch
+cp -a . %q/scratch/
 cat > %q/stdin.txt
 cat %q/stdout.txt
 exit %d
 `, strings.ReplaceAll(argumentSeparator, "\n", "\\n"),
-		recordFolder, recordFolder, recordFolder, recordFolder, recordFolder, exitCode)
+		recordFolder, recordFolder, recordFolder, recordFolder, recordFolder,
+		recordFolder, recordFolder, exitCode)
 	if err := os.WriteFile(filepath.Join(binFolder, name), []byte(script), 0o700); err != nil {
 		t.Fatalf("writing the stand-in program failed: %v", err)
 	}

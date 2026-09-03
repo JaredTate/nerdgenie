@@ -11,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
@@ -131,24 +132,24 @@ func New(options Options) *Screen {
 	if environment == nil {
 		environment = os.Getenv
 	}
-	clock := options.Clock
-	if clock == nil {
-		clock = systemClock{}
+	reading := options.Clock
+	if reading == nil {
+		reading = clock.System()
 	}
 	screen := &Screen{
-		clock:        clock,
+		clock:        reading,
 		colors:       newTheme(environment),
 		canDrawEmoji: canDrawEmoji(environment),
 		pictures:     detectPictures(environment),
 		link:         noLink{},
 		width:        max(options.Width, smallestWidth),
 		height:       max(options.Height, smallestHeight),
-		now:          clock.Now(),
+		now:          reading.Now(),
 		state:        stateConnecting,
 		commands:     options.Commands,
 	}
 	if options.Dialer != nil {
-		screen.client = NewClient(options.Dialer, clock)
+		screen.client = NewClient(options.Dialer, reading)
 		screen.link = screen.client
 	}
 	return screen

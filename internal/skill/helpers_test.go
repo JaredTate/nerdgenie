@@ -3,6 +3,7 @@ package skill_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -112,6 +113,22 @@ type echoTool struct {
 // Spec is what the model would be told about the echo tool.
 func (tool *echoTool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{Name: tool.name, Description: "Says back whatever it is given, for a test"}
+}
+
+// failingTool is a tool that always goes wrong, which is how a test sees what a
+// replay says when a step's tool fails rather than returning the wrong thing.
+type failingTool struct {
+	name string
+}
+
+// Spec is what the model would be told about the failing tool.
+func (tool *failingTool) Spec() contract.ToolSpec {
+	return contract.ToolSpec{Name: tool.name, Description: "Always goes wrong, for a test"}
+}
+
+// Run always fails, saying so in the words a tool would use.
+func (tool *failingTool) Run(_ context.Context, _ json.RawMessage) (contract.ToolOutput, error) {
+	return contract.ToolOutput{}, errors.New("this tool goes wrong every time it is asked")
 }
 
 // Run hands back the "say" field, or the whole input when there is none.

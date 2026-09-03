@@ -70,7 +70,7 @@ func (store *Store) showOneSkill(ctx context.Context, name string) (string, erro
 	}
 	changelog, err := store.Changelog(name)
 	if err != nil {
-		return body, nil
+		return "", err
 	}
 	return body + "\n" + changelog, nil
 }

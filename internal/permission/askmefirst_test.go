@@ -61,6 +61,9 @@ var nearMisses = []askMeFirstCall{
 	{contract.ToolShell, map[string]any{"command": "git reset"}, ""},
 	{contract.ToolShell, map[string]any{"command": "apt install ripgrep"}, ""},
 	{contract.ToolShell, map[string]any{"command": "pseudo-thing --run"}, ""},
+	{contract.ToolShell, map[string]any{"command": "sh -c 'ls -la'"}, ""},
+	{contract.ToolShell, map[string]any{"command": "bash -lc 'git status'"}, ""},
+	{contract.ToolShell, map[string]any{"command": "/usr/bin/ls -la /tmp"}, ""},
 	{contract.ToolBrowserAct, map[string]any{"intent": "delete the last message"}, ""},
 	{contract.ToolBrowserClick, map[string]any{"intent": "read the news"}, ""},
 	{contract.ToolWeb, map[string]any{"url": "https://example.com/about"}, ""},
@@ -81,11 +84,15 @@ func TestTheShippedListCatchesSpendingMoney(t *testing.T) {
 
 func TestTheShippedListLeavesEveryNearMissAlone(t *testing.T) {
 	book := shippedRulebook(t)
+	decider := newDecider(t, contract.DefaultConfig())
 	for _, call := range nearMisses {
 		request := contract.PermissionRequest{ToolName: call.toolName, Input: jsonInput(t, call.fields)}
 		reduced := permission.Reduce(request)
 		if matched, covered := book.Match(call.toolName, reduced); covered {
 			t.Errorf("the ask-me-first list caught %q, and it is not %q", reduced, matched.Reason)
+		}
+		if decision := decide(t, decider, request); decision.Ruling != contract.RulingAllow {
+			t.Errorf("%q was ruled %q, want %q, because a near miss runs on its own", reduced, decision.Ruling, contract.RulingAllow)
 		}
 	}
 }

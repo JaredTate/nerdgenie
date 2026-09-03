@@ -78,6 +78,23 @@ func TestADeleteHandedToANestedShellIsCaughtByTheList(t *testing.T) {
 	}
 }
 
+func TestAShellNestedDeeperThanTheCapSaysSoAndAsks(t *testing.T) {
+	command := "rm -rf /tmp/x"
+	for wrapping := 0; wrapping < 5; wrapping++ {
+		command = "sh -c '" + strings.ReplaceAll(command, "'", `'\''`) + "'"
+	}
+
+	reduced := permission.Reduce(shellRequest(t, command))
+	if !strings.HasSuffix(reduced, "(cut short before the end)") {
+		t.Errorf("the readable form of five nested shells is %q, and the reducer has to say where it stopped", reduced)
+	}
+
+	decision := decide(t, newDecider(t, contract.DefaultConfig()), shellRequest(t, command))
+	if decision.Ruling != contract.RulingAsk {
+		t.Errorf("a delete under five nested shells was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
+	}
+}
+
 // programsWrittenAsAFullPath are the commands whose program is written with the
 // folders it lives in, which is the same program under a longer name.
 var programsWrittenAsAFullPath = []struct {

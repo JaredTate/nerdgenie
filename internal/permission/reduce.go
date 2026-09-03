@@ -141,7 +141,7 @@ func reduceShellCall(request contract.PermissionRequest) (string, string) {
 		return contract.ToolShell, ""
 	}
 
-	line, note := reduceCommandLine(command)
+	line, note := reduceCommandLine(command, 0)
 	if boolField(fields, "escalate") {
 		line = strings.TrimSpace(sudoProgram + " " + line)
 	}
@@ -150,31 +150,46 @@ func reduceShellCall(request contract.PermissionRequest) (string, string) {
 
 // reduceCommandLine reduces every command on one line, joins them the way a
 // shell chains them, and passes on the note when the line does not say
-// everything it will do.
-func reduceCommandLine(command string) (string, string) {
+// everything it will do. The depth counts the shells this line is already
+// wrapped inside.
+func reduceCommandLine(command string, depth int) (string, string) {
 	segments, note := commandWords(command)
 	reduced := []string{}
 	for _, words := range segments {
-		if part := reduceOneCommand(words); part != "" {
+		part, partNote := reduceOneCommand(words, depth)
+		if part != "" {
 			reduced = append(reduced, part)
+		}
+		if note == "" {
+			note = partNote
 		}
 	}
 	return strings.Join(reduced, " | "), note
 }
 
 // reduceOneCommand reduces the words of one command to its program, the
-// subcommand words the table says define it, and the flags that matter.
-func reduceOneCommand(words []string) string {
+// subcommand words the table says define it, and the flags that matter. A shell
+// handed a script reduces that script as a command line of its own.
+func reduceOneCommand(words []string, depth int) (string, string) {
 	words = withoutEnvironmentAssignments(words)
 	prefix := ""
-	if len(words) > 0 && words[0] == sudoProgram {
+	if len(words) > 0 && programName(words[0]) == sudoProgram {
 		prefix = sudoProgram + " "
 		words = withoutSudoFlags(words[1:])
 	}
 	if len(words) == 0 {
-		return strings.TrimSpace(prefix)
+		return strings.TrimSpace(prefix), ""
 	}
+	if flag, script, handed := scriptHandedToAShell(words); handed {
+		return reduceNestedShell(prefix+words[0]+" "+flag, script, depth)
+	}
+	return prefix + wordsThatDefineTheCommand(words), ""
+}
 
+// wordsThatDefineTheCommand keeps the program, the subcommand words the shape
+// says define it, and the flags the shape says matter, and leaves out the
+// arguments that change every time.
+func wordsThatDefineTheCommand(words []string) string {
 	shape := shapeOf(words)
 	kept := []string{}
 	taken := 0
@@ -188,14 +203,15 @@ func reduceOneCommand(words []string) string {
 			kept = append(kept, word)
 			taken++
 		case !shape.keepFlags:
-			return prefix + strings.Join(kept, " ")
+			return strings.Join(kept, " ")
 		}
 	}
-	return prefix + strings.Join(kept, " ")
+	return strings.Join(kept, " ")
 }
 
 // shapeOf finds the shape of a command by its longest named prefix, counting
-// only the words that are not flags, and falls back to the default shape.
+// only the words that are not flags, and falls back to the default shape. The
+// program is looked up by its own name, so that "/usr/bin/git" is git.
 func shapeOf(words []string) commandShape {
 	leading := []string{}
 	for _, word := range words {
@@ -206,6 +222,9 @@ func shapeOf(words []string) commandShape {
 		if len(leading) == 3 {
 			break
 		}
+	}
+	if len(leading) > 0 {
+		leading[0] = programName(leading[0])
 	}
 	for length := len(leading); length > 0; length-- {
 		if shape, named := commandShapes[strings.Join(leading[:length], " ")]; named {

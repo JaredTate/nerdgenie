@@ -25,6 +25,7 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 .github/workflows/release.yml
 .gitignore
 ARCHITECTURE.md
+BENCHMARK.md
 CLAUDE.md
 COEUS.md
 LICENSE
@@ -81,6 +82,7 @@ cmd/coeus/taskbudget_test.go
 cmd/coeus/taskcontext.go
 cmd/coeus/taskcontext_test.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
+cmd/coeus/think.go
 cmd/coeus/think_test.go
 cmd/coeus/timedstore.go
 cmd/coeus/tui.go
@@ -362,6 +364,7 @@ internal/contract/socket.go
 internal/contract/socket_test.go
 internal/contract/store.go
 internal/contract/store_test.go
+internal/contract/think.go
 internal/contract/think_test.go
 internal/contract/tool.go
 internal/contract/toolnames.go
@@ -616,6 +619,7 @@ internal/provider/stream.go
 internal/provider/stream_test.go
 internal/provider/support_test.go
 internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
+internal/provider/think.go
 internal/provider/think_test.go
 internal/provider/thinkwire_test.go
 internal/provider/wire_test.go

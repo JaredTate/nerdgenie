@@ -68,7 +68,7 @@ func recordSaveAndReplay(ctx context.Context, t *testing.T, store *skill.Store, 
 	if _, err := recorder.Type(ctx, "Write the note.", "e3", "nine years", "the note box holds the words"); err != nil {
 		t.Fatalf("cannot write the note: %v", err)
 	}
-	if err := recorder.Save(ctx, store, skill.Definition{
+	if err := recorder.Save(ctx, contract.SkillSavedByPerson, store, skill.Definition{
 		Name:        "fixture-walk",
 		Description: "Walks the fixture page and writes a note on it.",
 		Triggers:    []string{"fixture walk"},

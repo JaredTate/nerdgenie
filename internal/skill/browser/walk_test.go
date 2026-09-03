@@ -316,7 +316,7 @@ func TestWalkCheckRefusesASkillThatIsNotAWalk(t *testing.T) {
 		skill.DescriptionFile: skill.RenderDescriptionFile(definitionOf("shell-thing")),
 		skill.ScriptFile:      []byte("#!/bin/sh\necho hello\n"),
 	}
-	if err := built.store.Save(context.Background(), "shell-thing", files); err != nil {
+	if err := built.store.Save(context.Background(), contract.SkillSavedByPerson, "shell-thing", files); err != nil {
 		t.Fatalf("cannot save a skill that carries a script: %v", err)
 	}
 	walk := theWalkCommand(built, nil)

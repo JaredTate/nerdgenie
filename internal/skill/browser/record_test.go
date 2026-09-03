@@ -2,6 +2,7 @@ package browser_test
 
 import (
 	"context"
+	"github.com/JaredTate/coeus/internal/contract"
 	"strings"
 	"testing"
 
@@ -50,7 +51,7 @@ func TestARecordingBecomesASkillFolderThatLoadsAndReadsBack(t *testing.T) {
 	built := newBench(t)
 	recorder := recordTheThreeStepFlow(t, built)
 
-	if err := recorder.Save(context.Background(), built.store, definitionOf("fixture-walk")); err != nil {
+	if err := recorder.Save(context.Background(), contract.SkillSavedByPerson, built.store, definitionOf("fixture-walk")); err != nil {
 		t.Fatalf("cannot save the recording as a skill: %v", err)
 	}
 
@@ -78,7 +79,7 @@ func TestARecordingBecomesASkillFolderThatLoadsAndReadsBack(t *testing.T) {
 func TestTheDryRunOfASavedRecordingOpensThePageTheRecordingOpened(t *testing.T) {
 	built := newBench(t)
 	recorder := recordTheThreeStepFlow(t, built)
-	if err := recorder.Save(context.Background(), built.store, definitionOf("fixture-walk")); err != nil {
+	if err := recorder.Save(context.Background(), contract.SkillSavedByPerson, built.store, definitionOf("fixture-walk")); err != nil {
 		t.Fatalf("cannot save the recording as a skill: %v", err)
 	}
 
@@ -151,7 +152,7 @@ func TestARecordingWithNoStepsInItIsNotSaved(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot build the recorder: %v", err)
 	}
-	if err := recorder.Save(context.Background(), built.store, definitionOf("empty-walk")); err == nil {
+	if err := recorder.Save(context.Background(), contract.SkillSavedByPerson, built.store, definitionOf("empty-walk")); err == nil {
 		t.Fatal("an empty recording was saved, and a skill with no steps replays nothing")
 	}
 }
@@ -192,7 +193,7 @@ func TestARecordedStepAgainstAnElementThePageDoesNotHaveIsReported(t *testing.T)
 func TestARecordingSaysWhatItIsMadeOfWhenTheSkillNameIsWrong(t *testing.T) {
 	built := newBench(t)
 	recorder := recordTheThreeStepFlow(t, built)
-	if err := recorder.Save(context.Background(), built.store, skill.Definition{Name: "Not A Name"}); err == nil {
+	if err := recorder.Save(context.Background(), contract.SkillSavedByPerson, built.store, skill.Definition{Name: "Not A Name"}); err == nil {
 		t.Fatal("a recording was saved under a name no folder may have")
 	}
 }

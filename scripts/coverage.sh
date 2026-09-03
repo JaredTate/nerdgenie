@@ -36,10 +36,13 @@ measured="$(go list "${roots[@]}" | grep -v '/internal/browser$' | grep -v '/int
 if ! report="$(go test -tags integration -cover $measured 2>&1)"; then
 	tests_failed=1
 fi
-if ! windowed="$(go test -cover ./internal/browser/ ./internal/desktop/ 2>&1)"; then
-	tests_failed=1
+windowed_packages="$(go list "${roots[@]}" | grep -E '/internal/(browser|desktop)$' || true)"
+if [ -n "$windowed_packages" ]; then
+	if ! windowed="$(go test -cover $windowed_packages 2>&1)"; then
+		tests_failed=1
+	fi
+	report="$(printf '%s\n%s\n' "$report" "$windowed")"
 fi
-report="$(printf '%s\n%s\n' "$report" "$windowed")"
 
 printf '%-56s %8s %8s  %s\n' "PACKAGE" "COVERED" "NEEDED" "RESULT"
 

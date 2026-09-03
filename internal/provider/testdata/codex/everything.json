@@ -1,0 +1,88 @@
+{
+  "model": "gpt-5.5",
+  "instructions": "Follow the harness rules.\n\nThe goal is to find the port the daemon listens on.",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [{"type": "input_text", "text": "Read the config and tell me the port."}]
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [{"type": "output_text", "text": "I will read the config and search it."}]
+    },
+    {
+      "type": "function_call",
+      "call_id": "call_1",
+      "name": "read",
+      "arguments": "{\"path\":\"config.toml\"}"
+    },
+    {
+      "type": "function_call",
+      "call_id": "call_2",
+      "name": "grep",
+      "arguments": "{\"pattern\":\"port\",\"path\":\"config.toml\"}"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_1",
+      "output": "port = 19091"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_2",
+      "output": "This tool call failed.\nno such file: config.toml"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "read",
+      "description": "Read one file.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string", "description": "The file to read."}
+        },
+        "required": ["path"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "grep",
+      "description": "Search files for a pattern.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {"type": "string", "description": "What to look for."},
+          "path": {"type": "string", "description": "Where to look, or everywhere when empty."}
+        },
+        "required": ["pattern"]
+      },
+      "strict": false
+    },
+    {
+      "type": "function",
+      "name": "shell",
+      "description": "Run one command.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "command": {"type": "string", "description": "The command line."},
+          "timeout": {"type": "integer", "description": "Seconds to wait."},
+          "background": {"type": "boolean"}
+        },
+        "required": ["command"]
+      },
+      "strict": false
+    }
+  ],
+  "tool_choice": "auto",
+  "parallel_tool_calls": true,
+  "stream": true,
+  "store": false,
+  "reasoning": {"effort": "medium"},
+  "include": ["reasoning.encrypted_content"]
+}

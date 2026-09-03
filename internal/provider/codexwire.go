@@ -1,25 +1,67 @@
-// The shapes on this wire are the Responses API's, as the two working
-// implementations send them to the ChatGPT backend: the input items, the flat
-// function tools with strict off, store always false, and the output cap left
-// out, were read from Hermes at
-// ~/.hermes/hermes-agent/agent/codex_responses_adapter.py
-// (_chat_messages_to_responses_input and the tool conversion beside it) and
-// ~/.hermes/hermes-agent/agent/transports/codex.py (build_kwargs), which is
-// the installed Hermes; the reference clone at ~/Code/hermes-agent is older
-// than that transport and has no copy of it.
+// The shape of one Responses API call to OpenAI's Codex backend was read from
+// Hermes: the message, function_call, and function_call_output input items and
+// the flat function tool with strict off come from
+// ~/Code/hermes-agent/agent/codex_responses_adapter.py
+// (_chat_messages_to_responses_input and _responses_tools), and the request
+// fields it posts, store, tool_choice, parallel_tool_calls, reasoning, and
+// include, come from ~/Code/hermes-agent/agent/transports/codex.py. The copy
+// under ~/.hermes/hermes-agent that the brief named builds the same shapes.
 
 package provider
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// codexTool is one tool the model may ask for. Unlike the Chat Completions
-// wire, the Responses API writes the function's fields flat on the tool.
+// codexTextPart is one piece of text inside a message item. Its type is
+// "input_text" on a user message and "output_text" on an assistant one, and the
+// API rejects the wrong one.
+type codexTextPart struct {
+	// Type says which side wrote the text.
+	Type string `json:"type"`
+	// Text is the words.
+	Text string `json:"text"`
+}
+
+// codexMessageItem is one turn of plain text in the input.
+type codexMessageItem struct {
+	// Type is always "message".
+	Type string `json:"type"`
+	// Role is "user" or "assistant".
+	Role string `json:"role"`
+	// Content is the text in its one part.
+	Content []codexTextPart `json:"content"`
+}
+
+// codexCallItem is one tool call the model made on an earlier turn, sent back
+// so that the model can see its own call beside the result.
+type codexCallItem struct {
+	// Type is always "function_call".
+	Type string `json:"type"`
+	// CallID is the identifier the result answers.
+	CallID string `json:"call_id"`
+	// Name is the tool the model asked for.
+	Name string `json:"name"`
+	// Arguments is the JSON object the model wrote, as a string.
+	Arguments string `json:"arguments"`
+}
+
+// codexOutputItem is the result of one tool call.
+type codexOutputItem struct {
+	// Type is always "function_call_output".
+	Type string `json:"type"`
+	// CallID says which call this answers.
+	CallID string `json:"call_id"`
+	// Output is the result's text, which may be empty.
+	Output string `json:"output"`
+}
+
+// codexTool is one tool the model may ask for. Unlike the chat-completions
+// shape, the name and description sit beside the type rather than under a
+// function key.
 type codexTool struct {
 	// Type is always "function".
 	Type string `json:"type"`
@@ -29,134 +71,123 @@ type codexTool struct {
 	Description string `json:"description"`
 	// Parameters describes the tool's inputs.
 	Parameters jsonSchema `json:"parameters"`
-	// Strict is always false, because the harness's schemas mark only the
-	// fields that are required, and strict mode wants every field required.
+	// Strict is always false, because strict mode demands a schema that names
+	// every field required and forbids the optional ones these tools have.
 	Strict bool `json:"strict"`
-}
-
-// codexInputItem is one item of the conversation on the wire. A message
-// carries a role and content; a function_call carries the call's identifier,
-// name, and arguments; a function_call_output answers one by its identifier.
-type codexInputItem struct {
-	// Type is "function_call" or "function_call_output", and is left out on a
-	// message, whose type the API reads from its role.
-	Type string `json:"type,omitempty"`
-	// Role is "user" or "assistant", on a message.
-	Role string `json:"role,omitempty"`
-	// Content is the message's text.
-	Content string `json:"content,omitempty"`
-	// CallID is the call's identifier, on a call and on its output.
-	CallID string `json:"call_id,omitempty"`
-	// Name is the tool the model asked for, on a call.
-	Name string `json:"name,omitempty"`
-	// Arguments is the JSON object the model wrote, as a string, on a call.
-	Arguments string `json:"arguments,omitempty"`
-	// Output is the tool's result, on an output. It is a pointer so that an
-	// empty result still goes over as an empty string rather than nothing.
-	Output *string `json:"output,omitempty"`
 }
 
 // codexReasoning is how hard the model is asked to think.
 type codexReasoning struct {
-	// Effort is the level's wire word.
+	// Effort is the level's own name.
 	Effort string `json:"effort"`
 }
 
-// codexBody is the whole request. It carries no sampling fields, because the
-// design leaves the sampling to the server, and no output cap, because the
-// ChatGPT backend refuses one; the reply's text is capped in the reader.
+// codexBody is the whole request.
 type codexBody struct {
 	// Model is what the backend calls the model.
 	Model string `json:"model"`
-	// Instructions is the system prompt, which this API takes as a field of
-	// its own rather than as the first message.
-	Instructions string `json:"instructions,omitempty"`
-	// Input is the conversation as items.
-	Input []codexInputItem `json:"input"`
-	// Tools is what the model may ask for, and is left out when the harness
-	// has switched the tools off.
+	// Instructions is the system prompt, which this API takes as a field of its
+	// own rather than as the first message.
+	Instructions string `json:"instructions"`
+	// Input is the conversation as a flat list of items.
+	Input []any `json:"input"`
+	// Tools is what the model may ask for, and is left out when the harness has
+	// switched the tools off or there are none.
 	Tools []codexTool `json:"tools,omitempty"`
-	// ToolChoice is "auto" when there are tools, so that the model decides.
+	// ToolChoice is "auto" whenever tools are sent, and left out otherwise.
 	ToolChoice string `json:"tool_choice,omitempty"`
-	// ParallelToolCalls lets the model ask for more than one tool in a reply,
-	// and is left out when there are no tools.
-	ParallelToolCalls *bool `json:"parallel_tool_calls,omitempty"`
-	// Store is always false, because the backend keeps nothing for a client
-	// that is not the codex program, and refuses to be asked.
-	Store bool `json:"store"`
+	// ParallelToolCalls lets the model make several calls in one turn, and is
+	// sent only beside the tools.
+	ParallelToolCalls bool `json:"parallel_tool_calls,omitempty"`
 	// Stream is always true, because this provider always streams.
 	Stream bool `json:"stream"`
-	// Reasoning is how hard to think, and is left out when nobody asked, so
-	// that the backend's own default stands.
+	// Store is always false, because the backend keeps nothing between calls
+	// and the harness sends the whole conversation each time.
+	Store bool `json:"store"`
+	// Reasoning is the effort level, and is left out when nobody asked or
+	// thinking is off, so that the backend's own default stands.
 	Reasoning *codexReasoning `json:"reasoning,omitempty"`
+	// Include asks the backend to send its encrypted reasoning back beside the
+	// reply, and goes with the reasoning field.
+	Include []string `json:"include,omitempty"`
 }
 
-// codexRequestBody turns one harness request into the JSON the backend
-// reads, for the model the backend knows by the given name. The think level
-// is the one on the request, which the caller has already settled against the
-// alias and checked.
+// encryptedReasoningInclude is the one thing the reference asks the backend to
+// include.
+const encryptedReasoningInclude = "reasoning.encrypted_content"
+
+// codexRequestBody is the JSON body of one call to the Codex backend for the
+// request.
 func codexRequestBody(request contract.Request, modelName string) ([]byte, error) {
 	body := codexBody{
 		Model:        modelName,
 		Instructions: joinSystemBlocks(request.SystemBlocks),
-		Input:        codexInputItems(request),
+		Input:        codexInput(request.Messages),
 		Tools:        codexTools(request),
-		Store:        false,
 		Stream:       true,
+		Store:        false,
 	}
 	if len(body.Tools) > 0 {
 		body.ToolChoice = "auto"
-		parallel := true
-		body.ParallelToolCalls = &parallel
+		body.ParallelToolCalls = true
 	}
 	if asksForThinking(request.Think) {
-		body.Reasoning = &codexReasoning{Effort: codexEffort(request.Think)}
+		body.Reasoning = &codexReasoning{Effort: string(request.Think)}
+		body.Include = []string{encryptedReasoningInclude}
 	}
-	written, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("the request to the model %q could not be written as JSON: %w", modelName, err)
-	}
-	return written, nil
+	return json.Marshal(body)
 }
 
-// codexInputItems walks the conversation and writes it as the items this API
-// reads: a message for each turn with text, a function_call for each call the
-// assistant made, and a function_call_output for each result.
-func codexInputItems(request contract.Request) []codexInputItem {
-	items := []codexInputItem{}
-	for _, message := range request.Messages {
-		items = append(items, codexInputItemsFor(message)...)
+// codexInput flattens the conversation into the items this API reads, in order.
+func codexInput(messages []contract.Message) []any {
+	items := []any{}
+	for _, message := range messages {
+		items = append(items, codexItemsFor(message)...)
 	}
 	return items
 }
 
-// codexInputItemsFor turns one harness message into the items it stands for.
-// Results come first, because they answer calls from the turn before.
-func codexInputItemsFor(message contract.Message) []codexInputItem {
-	written := []codexInputItem{}
+// codexItemsFor turns one harness message into its items: the results first,
+// because they answer the calls that came before, then the text, then the
+// calls. A message that carries nothing at all adds nothing.
+func codexItemsFor(message contract.Message) []any {
+	items := []any{}
 	for _, result := range message.ToolResults {
 		text := result.Text
 		if result.Failed {
 			text = failedToolResultPrefix + text
 		}
-		written = append(written, codexInputItem{Type: "function_call_output", CallID: result.CallID, Output: &text})
+		items = append(items, codexOutputItem{Type: "function_call_output", CallID: result.CallID, Output: text})
 	}
 	if message.Text != "" {
-		written = append(written, codexInputItem{Role: string(message.Role), Content: message.Text})
+		items = append(items, codexMessageFor(message.Role, message.Text))
 	}
 	for _, call := range message.ToolCalls {
-		arguments := string(call.Input)
-		if strings.TrimSpace(arguments) == "" {
+		arguments := strings.TrimSpace(string(call.Input))
+		if arguments == "" {
 			arguments = "{}"
 		}
-		written = append(written, codexInputItem{Type: "function_call", CallID: call.ID, Name: call.Name, Arguments: arguments})
+		items = append(items, codexCallItem{Type: "function_call", CallID: call.ID, Name: call.Name, Arguments: arguments})
 	}
-	return written
+	return items
 }
 
-// codexTools turns the tool specifications into the flat function tools this
-// API reads, and returns nothing at all when the harness has switched the
-// tools off.
+// codexMessageFor wraps text in the message item for its side, with the part
+// type that side is allowed.
+func codexMessageFor(role contract.Role, text string) codexMessageItem {
+	partType := "input_text"
+	if role == contract.RoleAssistant {
+		partType = "output_text"
+	}
+	return codexMessageItem{
+		Type:    "message",
+		Role:    string(role),
+		Content: []codexTextPart{{Type: partType, Text: text}},
+	}
+}
+
+// codexTools turns the tool specifications into the flat shape this API reads,
+// and returns nothing at all when the harness has switched the tools off.
 func codexTools(request contract.Request) []codexTool {
 	if request.ToolsOff {
 		return nil

@@ -121,14 +121,15 @@ func TestTheWholeSocketRunsInARealHomeFolder(t *testing.T) {
 	}
 	defer func() { _ = queue.Close() }()
 
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 	socket, err := Listen(Options{
-		Path:    home.SocketFile(),
-		Stream:  stream,
-		Queue:   queue,
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           home.SocketFile(),
+		Stream:         stream,
+		Queue:          queue,
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("opening the socket in the home folder's run folder failed: %v", err)
@@ -144,8 +145,8 @@ func TestTheWholeSocketRunsInARealHomeFolder(t *testing.T) {
 		}
 	}()
 
-	if socket.Name() != TerminalChannelName {
-		t.Errorf("the socket calls itself %q, want %q", socket.Name(), TerminalChannelName)
+	if socket.Name() != contract.TerminalChannelName {
+		t.Errorf("the socket calls itself %q, want %q", socket.Name(), contract.TerminalChannelName)
 	}
 	details, err := os.Stat(home.SocketFile())
 	if err != nil {

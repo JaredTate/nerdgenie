@@ -140,6 +140,7 @@ internal/channel/queue_test.go
 internal/channel/queuedamaged_test.go
 internal/channel/router.go
 internal/channel/router_test.go
+internal/channel/routerskills_test.go
 internal/channel/screen_test.go
 internal/channel/secret_test.go
 internal/channel/socket.go
@@ -148,7 +149,6 @@ internal/channel/sockethelper_test.go
 internal/channel/status_test.go
 internal/channel/stream.go
 internal/channel/stream_test.go
-internal/channel/testdata/fuzz/FuzzTheCommandSplitter/282befd696e0675c
 internal/clock/clock.go
 internal/clock/clock_test.go
 internal/clock/doc.go

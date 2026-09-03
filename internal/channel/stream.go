@@ -11,8 +11,10 @@
 package channel
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -27,19 +29,93 @@ const SubscriberBacklog = 256
 // machine with something wrong on it.
 const MaxSubscribers = 32
 
+// StatusHeartbeat is how often the stream says how the agent is doing when
+// nothing else is happening. A screen calls the program gone when no status has
+// reached it for ten seconds, so this is half of that: often enough to keep the
+// health mark lit, far enough apart to cost nothing.
+const StatusHeartbeat = 5 * time.Second
+
+// StreamOptions are what the stream needs beyond the events the loop publishes.
+// The two go together: a stream given neither carries only what is published to
+// it, which is all a caller that has nothing to say about the agent needs.
+type StreamOptions struct {
+	// Clock is where the heartbeat counts its five seconds.
+	Clock contract.Clock
+	// Status returns what a screen has to be told about the agent right now:
+	// the state word, the command list the palette is filled from, and whatever
+	// else the program knows, under the contract.StatusField names.
+	// cmd/coeus/serve.go fills it in.
+	Status func() map[string]string
+}
+
 // Stream is the one feed of events from the agent loop, which every attached
 // channel subscribes to. The loop publishes deltas, replies, previews,
 // questions, handoffs, status, and errors, and never learns which channels are
 // listening.
+//
+// The stream adds one message of its own: a status, sent to a screen the moment
+// it attaches and again on every heartbeat, so that a screen's palette is filled
+// and its health mark stays lit without the loop having to remember to say so.
 type Stream struct {
+	options     StreamOptions
+	stopBeating context.CancelFunc
+
 	guard       sync.Mutex
 	subscribers map[*Subscription]struct{}
 	closed      bool
 }
 
-// NewStream returns an empty stream with nobody listening to it yet.
-func NewStream() *Stream {
-	return &Stream{subscribers: map[*Subscription]struct{}{}}
+// NewStream returns an empty stream with nobody listening to it yet. A stream
+// given both a clock and something to say about the agent starts its heartbeat
+// at once, and Close stops it.
+func NewStream(options StreamOptions) *Stream {
+	stream := &Stream{options: options, subscribers: map[*Subscription]struct{}{}}
+	if options.Clock == nil || options.Status == nil {
+		return stream
+	}
+
+	beating, stopBeating := context.WithCancel(context.Background())
+	stream.stopBeating = stopBeating
+	go stream.beat(beating)
+	return stream
+}
+
+// beat sends one status every StatusHeartbeat until the stream is closed, so
+// that a screen watching a quiet agent still knows the agent is there.
+func (stream *Stream) beat(ctx context.Context) {
+	for {
+		if err := stream.options.Clock.Sleep(ctx, StatusHeartbeat); err != nil {
+			return
+		}
+		status, worth := stream.statusToSend()
+		if !worth {
+			continue
+		}
+		if err := stream.Publish(status); err != nil {
+			// The only thing Publish refuses an already checked status for is a
+			// closed stream, and a closed stream is the end of the heartbeat.
+			return
+		}
+	}
+}
+
+// statusToSend is what the stream has to say about the agent right now, and
+// whether that is anything at all. A status whose state word is not one a screen
+// knows is held back, because Publish refuses such a status and the two paths
+// must agree.
+func (stream *Stream) statusToSend() (contract.SocketEnvelope, bool) {
+	if stream.options.Status == nil {
+		return contract.SocketEnvelope{}, false
+	}
+	fields := stream.options.Status()
+	if len(fields) == 0 {
+		return contract.SocketEnvelope{}, false
+	}
+	status := contract.SocketEnvelope{Type: contract.SocketStatus, Fields: fields}
+	if err := checkStatusWords(status); err != nil {
+		return contract.SocketEnvelope{}, false
+	}
+	return status, true
 }
 
 // Subscribe adds one reader and returns its subscription. It refuses once the
@@ -58,6 +134,14 @@ func (stream *Stream) Subscribe() (*Subscription, error) {
 		events: make(chan contract.SocketEnvelope, SubscriberBacklog),
 	}
 	stream.subscribers[subscription] = struct{}{}
+
+	// A screen that has just attached knows nothing about the agent, so it is
+	// told at once rather than left with an empty palette and a hollow health
+	// mark until the loop next publishes something of its own. The subscription
+	// is new, so there is always room for this one message.
+	if status, worth := stream.statusToSend(); worth {
+		subscription.events <- status
+	}
 	return subscription, nil
 }
 
@@ -123,6 +207,9 @@ func (stream *Stream) Close() {
 		return
 	}
 	stream.closed = true
+	if stream.stopBeating != nil {
+		stream.stopBeating()
+	}
 	for subscription := range stream.subscribers {
 		delete(stream.subscribers, subscription)
 		subscription.finish(false)

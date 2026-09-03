@@ -23,8 +23,8 @@ func TestAClientAttachesSendsAMessageAndStreamsAReplyDeltaByDelta(t *testing.T) 
 	if taken.Message.Text != "book me a flight" {
 		t.Errorf("the queue holds %q, want %q", taken.Message.Text, "book me a flight")
 	}
-	if taken.Message.Channel != TerminalChannelName {
-		t.Errorf("the message came from the channel %q, want %q", taken.Message.Channel, TerminalChannelName)
+	if taken.Message.Channel != contract.TerminalChannelName {
+		t.Errorf("the message came from the channel %q, want %q", taken.Message.Channel, contract.TerminalChannelName)
 	}
 	if !taken.Message.Received.Equal(harness.clock.Now()) {
 		t.Errorf("the message was received at %s, want the clock's %s", taken.Message.Received, harness.clock.Now())
@@ -225,11 +225,12 @@ func TestTheSocketFileIsReadableByNobodyElse(t *testing.T) {
 func TestListeningRefusesASocketAnotherCopyIsAlreadyOn(t *testing.T) {
 	harness := newSocketHarness(t)
 	_, err := Listen(Options{
-		Path:    harness.path,
-		Stream:  NewStream(),
-		Queue:   harness.queue,
-		Secrets: harness.secrets,
-		Clock:   harness.clock,
+		Path:           harness.path,
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          harness.queue,
+		Secrets:        harness.secrets,
+		Clock:          harness.clock,
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err == nil {
 		t.Fatal("a second socket was opened on a path another copy is already listening on")
@@ -251,11 +252,12 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 	}
 
 	socket, err := Listen(Options{
-		Path:    path,
-		Stream:  NewStream(),
-		Queue:   newTestQueue(t, 10),
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           path,
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          newTestQueue(t, 10),
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("a socket file left behind by a crash stopped the socket opening: %v", err)
@@ -270,18 +272,38 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 
 func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 	whole := Options{
-		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
-		Stream:  NewStream(),
-		Queue:   newTestQueue(t, 10),
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           filepath.Join(t.TempDir(), "coeus.sock"),
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          newTestQueue(t, 10),
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	}
 	missing := map[string]Options{
-		"the path":         {Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the event stream": {Path: whole.Path, Queue: whole.Queue, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the queue":        {Path: whole.Path, Stream: whole.Stream, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the vault":        {Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue, Clock: whole.Clock},
-		"the clock":        {Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets},
+		"the path": {
+			Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the event stream": {
+			Path: whole.Path, Queue: whole.Queue, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the queue": {
+			Path: whole.Path, Stream: whole.Stream, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the vault": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the clock": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Secrets: whole.Secrets, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the answer deadline": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Secrets: whole.Secrets, Clock: whole.Clock,
+		},
 	}
 	for what, options := range missing {
 		if _, err := Listen(options); err == nil {
@@ -293,8 +315,8 @@ func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 func TestTheSocketIsAChannelNamedTerminalAndSaysWhetherItIsWorking(t *testing.T) {
 	harness := newSocketHarness(t)
 	ctx := context.Background()
-	if name := harness.socket.Name(); name != TerminalChannelName {
-		t.Errorf("the socket calls itself %q, want %q", name, TerminalChannelName)
+	if name := harness.socket.Name(); name != contract.TerminalChannelName {
+		t.Errorf("the socket calls itself %q, want %q", name, contract.TerminalChannelName)
 	}
 	if health := harness.socket.Health(ctx); !health.Healthy {
 		t.Errorf("a listening socket says it is not working: %s", health.Detail)
@@ -358,6 +380,39 @@ func TestEverythingSentOutIsRedactedFirst(t *testing.T) {
 	}
 	if !strings.Contains(got.Text, contract.RedactedMarker) {
 		t.Errorf("the screen was sent %q, want the secret replaced by %q", got.Text, contract.RedactedMarker)
+	}
+
+	// A secret does not travel only in the body. The line above a preview, the
+	// reason beside a refusal, and every value of a status all leave the program
+	// too, so each one is put through the redactor and each one is pinned here.
+	carried := map[string]func(contract.SocketEnvelope) string{
+		"the title": func(sent contract.SocketEnvelope) string { return sent.Title },
+		"the reason": func(sent contract.SocketEnvelope) string {
+			return sent.Reason
+		},
+		"the status field": func(sent contract.SocketEnvelope) string {
+			return sent.Fields[contract.StatusFieldToolLine]
+		},
+	}
+	if err := harness.stream.Publish(contract.SocketEnvelope{
+		Type:   contract.SocketPreview,
+		ID:     "9",
+		Title:  "sign in with hunter2the-real-one",
+		Text:   "the body says nothing",
+		Reason: "the last try refused hunter2the-real-one",
+		Fields: map[string]string{contract.StatusFieldToolLine: "curl -u jared:hunter2the-real-one"},
+	}); err != nil {
+		t.Fatalf("publishing the preview failed: %v", err)
+	}
+
+	sent := client.next()
+	for what, read := range carried {
+		if strings.Contains(read(sent), "hunter2the-real-one") {
+			t.Errorf("%s reached the screen as %q, and no secret may leave the program", what, read(sent))
+		}
+		if !strings.Contains(read(sent), contract.RedactedMarker) {
+			t.Errorf("%s reached the screen as %q, want the secret replaced by %q", what, read(sent), contract.RedactedMarker)
+		}
 	}
 }
 

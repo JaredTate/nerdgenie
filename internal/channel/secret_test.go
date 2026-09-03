@@ -37,6 +37,20 @@ func (harness *socketHarness) askSecret(ctx context.Context) chan secretResult {
 	return answers
 }
 
+// waitForSecret reads one masked prompt's answer and fails the test rather than
+// hanging when none arrives, because a wait with no timeout in a test is a test
+// that never says what went wrong.
+func waitForSecret(t *testing.T, answers chan secretResult) secretResult {
+	t.Helper()
+	select {
+	case got := <-answers:
+		return got
+	case <-time.After(aReadWait):
+		t.Fatalf("the masked prompt was not answered within %s", aReadWait)
+		return secretResult{}
+	}
+}
+
 // nothingArrives says whether the screen was sent nothing at all for a while.
 func (client *screen) nothingArrives() bool {
 	client.t.Helper()
@@ -168,7 +182,7 @@ func TestAMaskedPromptNobodyAnswersInTimeGivesUp(t *testing.T) {
 		t.Fatalf("the screen saw a %s, want a question", asked.Type)
 	}
 	harness.waitForSleepers(t, 1)
-	harness.clock.Advance(DefaultAnswerDeadline + time.Second)
+	harness.clock.Advance(theAnswerDeadline + time.Second)
 
 	got := <-answers
 	if got.err == nil {
@@ -176,6 +190,32 @@ func TestAMaskedPromptNobodyAnswersInTimeGivesUp(t *testing.T) {
 	}
 	if got.secret != "" {
 		t.Errorf("a secret came back from a prompt nobody answered: %q", got.secret)
+	}
+}
+
+func TestCancellingAMaskedPromptGivesUpAtOnceRatherThanWaitingOutTheDeadline(t *testing.T) {
+	harness := newSocketHarness(t)
+	client := harness.attach(t)
+	answers := harness.askSecret(context.Background())
+
+	asked := client.next()
+	if asked.Type != contract.SocketAsk {
+		t.Fatalf("the screen saw a %s, want a question", asked.Type)
+	}
+	// Escape at the terminal sends a cancel under the prompt's own number. The
+	// clock is never moved on, so an answer arriving at all is proof that the
+	// prompt gave up at once rather than waiting the whole deadline out.
+	client.send(contract.SocketEnvelope{Type: contract.SocketCancel, ID: asked.ID})
+
+	got := waitForSecret(t, answers)
+	if got.err == nil {
+		t.Fatal("a cancelled masked prompt came back with no error, and the caller has to learn nobody typed a secret")
+	}
+	if !strings.Contains(got.err.Error(), "cancel") {
+		t.Errorf("a cancelled masked prompt came back with %q, and the error has to name the cancellation", got.err)
+	}
+	if got.secret != "" {
+		t.Errorf("a secret came back from a prompt that was cancelled: %q", got.secret)
 	}
 }
 

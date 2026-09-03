@@ -39,7 +39,7 @@ func anInbound(text string) contract.Inbound {
 		Sender:   "jared",
 		Text:     text,
 		Received: arrived,
-		Channel:  TerminalChannelName,
+		Channel:  contract.TerminalChannelName,
 	}
 }
 

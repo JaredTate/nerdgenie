@@ -16,11 +16,6 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// TerminalChannelName is the name the local socket answers to. It is the name
-// the terminal and every other screen attached to the socket send under, and the
-// name a command that may only run in the terminal is checked against.
-const TerminalChannelName = "terminal"
-
 // The socket is the first real channel, so the compiler is asked to say at once
 // if it ever stops matching the contract every other package writes against.
 var _ contract.Channel = (*Socket)(nil)
@@ -30,6 +25,11 @@ var _ contract.Channel = (*Socket)(nil)
 // loses its copy rather than holding the socket up.
 const watcherBacklog = 64
 
+// MaxWatchers is how many callers of Receive the socket carries at once. Every
+// watcher costs a buffer of its own, and a program with more of them than this
+// watching one socket is a program that has forgotten to let one go.
+const MaxWatchers = 8
+
 // watcher is one caller of Receive and the messages going to it.
 type watcher struct {
 	// messages is where the caller reads what the socket took in.
@@ -37,8 +37,11 @@ type watcher struct {
 }
 
 // Name is the channel's name, which every message from a screen arrives under.
+// It is contract.TerminalChannelName and nothing of this package's own, because
+// a command that may only run in the terminal is checked against that one name
+// and two spellings of it would let such a command run over Signal.
 func (socket *Socket) Name() string {
-	return TerminalChannelName
+	return contract.TerminalChannelName
 }
 
 // Receive is the live copy of everything the socket takes in. Every message a
@@ -52,6 +55,10 @@ func (socket *Socket) Receive(ctx context.Context) (<-chan contract.Inbound, err
 	if socket.closed {
 		socket.guard.Unlock()
 		return nil, fmt.Errorf("the local socket at %s is closed, so there is nothing to receive from it", socket.options.Path)
+	}
+	if len(socket.watchers) >= MaxWatchers {
+		socket.guard.Unlock()
+		return nil, fmt.Errorf("the local socket at %s already carries %d watchers of what it receives, which is the limit, so let one go before starting another", socket.options.Path, MaxWatchers)
 	}
 	watching := &watcher{messages: make(chan contract.Inbound, watcherBacklog)}
 	socket.watchers[watching] = struct{}{}

@@ -2,6 +2,7 @@ package channel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -22,7 +23,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	if id == "" {
 		id = socket.nextAskID()
 	}
-	waiting := make(chan contract.PreviewAnswer, 1)
+	waiting := make(chan contract.PreviewAnswerWithReason, 1)
 	if !socket.waitOnPreview(id, waiting) {
 		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, fmt.Errorf("a preview numbered %q is already waiting to be answered, so give this one a number of its own", shortenedText(id))
 	}
@@ -45,7 +46,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	if !answered {
 		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, contextTrouble(ctx)
 	}
-	return contract.PreviewAnswerWithReason{Answer: answer}, nil
+	return answer, nil
 }
 
 // AskSecret asks for a secret on every attached screen, marked with the
@@ -59,7 +60,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 // error tells the caller to do something about.
 func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, error) {
 	id := socket.nextAskID()
-	waiting := make(chan string, 1)
+	waiting := make(chan promptAnswer, 1)
 	socket.waitOnPrompt(id, waiting)
 	defer socket.stopWaitingOnPrompt(id)
 
@@ -76,15 +77,29 @@ func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, err
 		return "", fmt.Errorf("no screen is attached to type the secret into: %w", contract.ErrNoMaskedPrompt)
 	}
 
-	secret, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
-	if !answered {
+	typed, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
+	switch {
+	case !answered:
 		return "", fmt.Errorf("nobody typed the secret within %s, so ask again when you are at the terminal", socket.options.AnswerDeadline)
+	case typed.cancelled:
+		return "", errors.New("the masked prompt was cancelled at the terminal, so nothing was typed; ask again when the person is ready")
 	}
-	return secret, nil
+	return typed.secret, nil
+}
+
+// promptAnswer is what a screen sent back to a masked prompt: what the person
+// typed, or word that they cancelled the prompt instead of answering it. The
+// two are kept apart so that a caller is never handed an empty secret as though
+// it were the real one.
+type promptAnswer struct {
+	// secret is what the person typed, and is empty when they cancelled.
+	secret string
+	// cancelled says the person withdrew from the prompt.
+	cancelled bool
 }
 
 // waitOnPrompt writes down that someone is waiting for a secret.
-func (socket *Socket) waitOnPrompt(id string, waiting chan string) {
+func (socket *Socket) waitOnPrompt(id string, waiting chan promptAnswer) {
 	socket.guard.Lock()
 	defer socket.guard.Unlock()
 	socket.prompts[id] = waiting
@@ -135,7 +150,7 @@ func contextTrouble(ctx context.Context) error {
 // and says no when that number is already taken. A number is what the user
 // answers with, so two previews sharing one would leave one of them waiting for
 // an answer that could never reach it.
-func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswer) bool {
+func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswerWithReason) bool {
 	socket.guard.Lock()
 	defer socket.guard.Unlock()
 	if _, taken := socket.previews[id]; taken {

@@ -175,11 +175,16 @@ func (socket *Socket) handle(attached *client, envelope contract.SocketEnvelope)
 	case contract.SocketMessage, contract.SocketCommand:
 		return socket.enqueue(attached, envelope)
 	case contract.SocketApprove:
-		return socket.answerPreview(attached, envelope, approvalIn(envelope))
+		return socket.answerPreview(attached, envelope, contract.PreviewAnswerWithReason{Answer: approvalIn(envelope)})
 	case contract.SocketDeny:
-		return socket.answerPreview(attached, envelope, contract.AnswerReject)
+		return socket.answerPreview(attached, envelope, contract.PreviewAnswerWithReason{
+			Answer: contract.AnswerReject,
+			Reason: envelope.Reason,
+		})
 	case contract.SocketSecret:
 		return socket.answerPrompt(attached, envelope)
+	case contract.SocketCancel:
+		return socket.cancel(attached, envelope)
 	default:
 		// The line reader refuses every other type before it reaches here, so
 		// this can only happen if the two ever drift apart, and then doing
@@ -198,11 +203,11 @@ func (socket *Socket) enqueue(attached *client, envelope contract.SocketEnvelope
 	}
 	message := contract.Inbound{
 		ID:          envelope.ID,
-		Sender:      TerminalChannelName,
+		Sender:      contract.TerminalChannelName,
 		Text:        text,
 		Attachments: envelope.Attachments,
 		Received:    socket.options.Clock.Now(),
-		Channel:     TerminalChannelName,
+		Channel:     contract.TerminalChannelName,
 	}
 
 	if _, err := socket.options.Queue.Add(attached.ctx, message); err != nil {
@@ -213,8 +218,11 @@ func (socket *Socket) enqueue(attached *client, envelope contract.SocketEnvelope
 }
 
 // answerPreview hands a screen's approve or deny to whoever is waiting on that
-// preview, and tells the screen when there is nothing waiting under that id.
-func (socket *Socket) answerPreview(attached *client, envelope contract.SocketEnvelope, answer contract.PreviewAnswer) error {
+// preview, and tells the screen when there is nothing waiting under that id. A
+// refusal carries the reason the person typed, in their own words, because that
+// reason is what the model is told and what stops it trying the same thing
+// again.
+func (socket *Socket) answerPreview(attached *client, envelope contract.SocketEnvelope, answer contract.PreviewAnswerWithReason) error {
 	socket.guard.Lock()
 	waiting, held := socket.previews[envelope.ID]
 	socket.guard.Unlock()
@@ -231,6 +239,46 @@ func (socket *Socket) answerPreview(attached *client, envelope contract.SocketEn
 	return nil
 }
 
+// theCancelledQuestionReason is what the model is told when a person withdrew
+// from a preview rather than typing a reason for refusing it, so that a
+// cancellation reads as what it is instead of as a silent no.
+const theCancelledQuestionReason = "the question was cancelled at the terminal, so nothing was run"
+
+// cancel withdraws whoever is waiting under this number, whether that is a
+// preview or a masked prompt. Escape at the terminal means the same thing in
+// front of either, and the one number the screen has is the number the question
+// arrived under, so both are looked in rather than only one; a person who backs
+// out must not be left waiting the whole deadline out. A number nothing is
+// waiting on is answered and the screen stays connected.
+func (socket *Socket) cancel(attached *client, envelope contract.SocketEnvelope) error {
+	socket.guard.Lock()
+	preview, waitingOnPreview := socket.previews[envelope.ID]
+	prompt, waitingOnPrompt := socket.prompts[envelope.ID]
+	socket.guard.Unlock()
+
+	switch {
+	case waitingOnPreview:
+		reason := envelope.Reason
+		if strings.TrimSpace(reason) == "" {
+			reason = theCancelledQuestionReason
+		}
+		select {
+		case preview <- contract.PreviewAnswerWithReason{Answer: contract.AnswerReject, Reason: reason}:
+		default:
+		}
+		return nil
+	case waitingOnPrompt:
+		select {
+		case prompt <- promptAnswer{cancelled: true}:
+		default:
+		}
+		return nil
+	}
+	return attached.write(errorEnvelope(fmt.Sprintf(
+		"there is nothing waiting to be cancelled under the number %q, so check the number on the preview or the prompt",
+		shortenedText(envelope.ID))))
+}
+
 // answerPrompt hands a screen's secret to whoever is waiting on that masked
 // prompt. The secret is never written anywhere: it goes straight to the caller
 // that asked for it.
@@ -245,7 +293,7 @@ func (socket *Socket) answerPrompt(attached *client, envelope contract.SocketEnv
 	}
 
 	select {
-	case waiting <- envelope.Secret:
+	case waiting <- promptAnswer{secret: envelope.Secret}:
 	default:
 	}
 	return nil

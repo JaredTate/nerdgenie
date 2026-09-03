@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
@@ -139,13 +140,63 @@ func TestListeningRefusesAPathItCannotUse(t *testing.T) {
 	} {
 		if _, err := Listen(Options{
 			Path:    path,
-			Stream:  NewStream(),
+			Stream:  NewStream(StreamOptions{}),
 			Queue:   newTestQueue(t, 10),
 			Secrets: testkit.NewFakeSecrets(),
 			Clock:   testkit.NewFakeClock(arrived),
 		}); err == nil {
 			t.Errorf("a socket was opened on %s", what)
 		}
+	}
+}
+
+func TestListeningRefusesASocketWithNoAnswerDeadline(t *testing.T) {
+	// A deadline of the package's own choosing would quietly ignore the
+	// time_per_turn the user set, and a question asked inside a turn cannot
+	// usefully outlive the turn that asked it, so the caller has to pass one.
+	_, err := Listen(Options{
+		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
+		Stream:  NewStream(StreamOptions{}),
+		Queue:   newTestQueue(t, 10),
+		Secrets: testkit.NewFakeSecrets(),
+		Clock:   testkit.NewFakeClock(arrived),
+	})
+	if err == nil {
+		t.Fatal("a socket was opened with no deadline for answering a preview, and it would have used a deadline of its own instead of the user's")
+	}
+	if !strings.Contains(err.Error(), "time_per_turn") {
+		t.Errorf("the refusal reads %q, and it has to name the setting the deadline comes from", err)
+	}
+}
+
+func TestReceiveRefusesMoreWatchersThanItsCap(t *testing.T) {
+	harness := newSocketHarness(t)
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+
+	for number := range MaxWatchers {
+		if _, err := harness.socket.Receive(ctx); err != nil {
+			t.Fatalf("watcher %d was refused below the cap: %v", number, err)
+		}
+	}
+	if _, err := harness.socket.Receive(ctx); err == nil {
+		t.Errorf("watcher %d was taken, and the cap is %d", MaxWatchers+1, MaxWatchers)
+	}
+}
+
+func TestWhatAnErrorRepeatsBackIsCutOnWholeLetters(t *testing.T) {
+	// Half a letter is not a letter: cutting a line by bytes lands in the middle
+	// of anything but plain English and reaches the screen as a question mark in
+	// a box.
+	cut := shortenedText(strings.Repeat("é", maxTextInAMessage+10))
+	if !utf8.ValidString(cut) {
+		t.Fatalf("the cut line %q is not readable text, so a letter was cut in half", cut)
+	}
+	if letters := utf8.RuneCountInString(strings.TrimSuffix(cut, "...")); letters != maxTextInAMessage {
+		t.Errorf("the cut line holds %d letters, want %d", letters, maxTextInAMessage)
+	}
+	if short := strings.Repeat("é", maxTextInAMessage); shortenedText(short) != short {
+		t.Errorf("a line of %d letters was cut to %q, and only a longer one is cut", maxTextInAMessage, shortenedText(short))
 	}
 }
 

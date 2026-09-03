@@ -101,7 +101,7 @@ func tokenWords(count int) string {
 	if count < 100000 {
 		return strings.TrimSuffix(strconv.FormatFloat(float64(count)/1000, 'f', 1, 64), ".0") + "k"
 	}
-	return strconv.Itoa((count + 500) / 1000) + "k"
+	return strconv.Itoa((count+500)/1000) + "k"
 }
 
 // linkPiece is what the header says about a link that is not there. A screen

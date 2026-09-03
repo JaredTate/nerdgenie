@@ -225,11 +225,12 @@ func TestTheSocketFileIsReadableByNobodyElse(t *testing.T) {
 func TestListeningRefusesASocketAnotherCopyIsAlreadyOn(t *testing.T) {
 	harness := newSocketHarness(t)
 	_, err := Listen(Options{
-		Path:    harness.path,
-		Stream:  NewStream(StreamOptions{}),
-		Queue:   harness.queue,
-		Secrets: harness.secrets,
-		Clock:   harness.clock,
+		Path:           harness.path,
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          harness.queue,
+		Secrets:        harness.secrets,
+		Clock:          harness.clock,
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err == nil {
 		t.Fatal("a second socket was opened on a path another copy is already listening on")
@@ -251,11 +252,12 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 	}
 
 	socket, err := Listen(Options{
-		Path:    path,
-		Stream:  NewStream(StreamOptions{}),
-		Queue:   newTestQueue(t, 10),
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           path,
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          newTestQueue(t, 10),
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("a socket file left behind by a crash stopped the socket opening: %v", err)
@@ -270,18 +272,38 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 
 func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 	whole := Options{
-		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
-		Stream:  NewStream(StreamOptions{}),
-		Queue:   newTestQueue(t, 10),
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(arrived),
+		Path:           filepath.Join(t.TempDir(), "coeus.sock"),
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          newTestQueue(t, 10),
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: theAnswerDeadline,
 	}
 	missing := map[string]Options{
-		"the path":         {Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the event stream": {Path: whole.Path, Queue: whole.Queue, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the queue":        {Path: whole.Path, Stream: whole.Stream, Secrets: whole.Secrets, Clock: whole.Clock},
-		"the vault":        {Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue, Clock: whole.Clock},
-		"the clock":        {Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets},
+		"the path": {
+			Stream: whole.Stream, Queue: whole.Queue, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the event stream": {
+			Path: whole.Path, Queue: whole.Queue, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the queue": {
+			Path: whole.Path, Stream: whole.Stream, Secrets: whole.Secrets,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the vault": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Clock: whole.Clock, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the clock": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Secrets: whole.Secrets, AnswerDeadline: whole.AnswerDeadline,
+		},
+		"the answer deadline": {
+			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
+			Secrets: whole.Secrets, Clock: whole.Clock,
+		},
 	}
 	for what, options := range missing {
 		if _, err := Listen(options); err == nil {

@@ -18,6 +18,11 @@ import (
 // it gives up and says the socket is stuck.
 const aReadWait = 5 * time.Second
 
+// theAnswerDeadline is how long the socket in these tests waits for a screen to
+// answer, which is the shipped time_per_turn: what cmd/coeus/serve.go passes
+// from the user's own configuration.
+var theAnswerDeadline = contract.DefaultConfig().Caps.TimePerTurn
+
 // socketHarness is a listening socket with everything around it a test needs.
 type socketHarness struct {
 	socket  *Socket
@@ -49,11 +54,12 @@ func newSocketHarness(t *testing.T) *socketHarness {
 		served:  make(chan error, 1),
 	}
 	socket, err := Listen(Options{
-		Path:    harness.path,
-		Stream:  harness.stream,
-		Queue:   harness.queue,
-		Secrets: harness.secrets,
-		Clock:   harness.clock,
+		Path:           harness.path,
+		Stream:         harness.stream,
+		Queue:          harness.queue,
+		Secrets:        harness.secrets,
+		Clock:          harness.clock,
+		AnswerDeadline: theAnswerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("listening on the socket failed: %v", err)

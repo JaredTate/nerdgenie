@@ -182,7 +182,7 @@ func TestAMaskedPromptNobodyAnswersInTimeGivesUp(t *testing.T) {
 		t.Fatalf("the screen saw a %s, want a question", asked.Type)
 	}
 	harness.waitForSleepers(t, 1)
-	harness.clock.Advance(DefaultAnswerDeadline + time.Second)
+	harness.clock.Advance(theAnswerDeadline + time.Second)
 
 	got := <-answers
 	if got.err == nil {

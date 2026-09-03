@@ -75,6 +75,13 @@ func expandFolders(written []string, userHome string) []string {
 // the ones that are not there yet, which is how the work folder ~/coeus comes
 // into being on a fresh machine. The agent's own home folder is passed in
 // rather than worked out, because a test puts it somewhere else.
+//
+// Nothing is passed for the configured browser profile and backup folder, which
+// the check also takes, because "coeus init" is what writes the first
+// configuration: at this moment both of them are still the defaults inside the
+// agent's home folder, which the check works out for itself. The configuration
+// checker in internal/config is where a browser_profile_path the user has moved
+// somewhere else is measured, on every start after this one.
 func makeWorkFolders(roots []string, userHome string, agentHome string) ([]string, error) {
 	if len(roots) == 0 {
 		return nil, fmt.Errorf("no folder was named, so Coeus could reach nothing; name one such as %s", contract.DefaultSandboxRoots(userHome)[0])

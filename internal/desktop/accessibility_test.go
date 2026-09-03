@@ -166,33 +166,58 @@ func startedSince(before []int, after []int) []string {
 	return started
 }
 
-// accessibilityVariables are the environment variables that switch a toolkit's
-// accessibility bridge on. The desktop worker must be handed none of them, so
-// that the driver it loads cannot be told to turn the bus on through its
-// environment.
-var accessibilityVariables = []string{
-	"GNOME_ACCESSIBILITY",
-	"GTK_MODULES",
-	"QT_ACCESSIBILITY",
-	"QT_LINUX_ACCESSIBILITY_ALWAYS_ON",
+// variablesThatWakeTheScreenReader are the environment variables that let a
+// program bring the desktop's accessibility bridge up. The session bus is on the
+// list because a program handed it can ask the desktop to start the bridge, and
+// on this machine that started Orca and it spoke aloud. None of them may reach
+// the worker or the applications it launches.
+var variablesThatWakeTheScreenReader = []string{
+	"DBUS_SESSION_BUS_ADDRESS",
+	"DBUS_SESSION_BUS_PID",
 	"AT_SPI_BUS_ADDRESS",
+	"GNOME_ACCESSIBILITY",
+	"QT_LINUX_ACCESSIBILITY_ALWAYS_ON",
 	"ACCESSIBILITY_ENABLED",
-	"NO_AT_BRIDGE",
 }
 
-func TestTheWorkerIsHandedNothingThatTurnsTheAccessibilityBusOn(t *testing.T) {
+func TestTheWorkerIsHandedNothingThatWakesTheScreenReader(t *testing.T) {
 	t.Setenv("DISPLAY", ":0")
-	for _, name := range accessibilityVariables {
-		t.Setenv(name, "1")
+	for _, name := range variablesThatWakeTheScreenReader {
+		t.Setenv(name, "a value the worker must never see")
 	}
+	t.Setenv("GTK_MODULES", "gail:atk-bridge")
+	t.Setenv("QT_ACCESSIBILITY", "1")
 
 	handed := workerEnvironment()
 
 	for _, line := range handed {
 		name, _, _ := strings.Cut(line, "=")
-		if slices.Contains(accessibilityVariables, name) {
-			t.Errorf("the desktop worker was handed %s, and a variable that switches an accessibility bridge on must stay out of its environment,"+
-				" because the driver it loads reads the accessibility tree and turning the bus on starts the screen reader", name)
+		if slices.Contains(variablesThatWakeTheScreenReader, name) {
+			t.Errorf("the desktop worker was handed %s, and a variable that lets a program wake the accessibility bridge must stay out of its"+
+				" environment, because the driver it loads reads the accessibility tree and waking the bridge starts the screen reader", name)
 		}
+	}
+	for _, want := range []string{"NO_AT_BRIDGE=1", "GTK_MODULES=", "QT_ACCESSIBILITY=0"} {
+		if !slices.Contains(handed, want) {
+			t.Errorf("the desktop worker was handed %v, want %q in it so that the toolkits it loads never bring the accessibility bridge up", handed, want)
+		}
+	}
+}
+
+// liveDesktopSwitch is the environment variable that asks for the tests which
+// drive this machine's own screen. The TypeScript suite is gated behind it for
+// the same reason, and the Go suite must be gated behind it too, because a test
+// run on a machine somebody is logged in to must never move a real window.
+const liveDesktopSwitch = "COEUS_LIVE_DESKTOP"
+
+func TestTheIntegrationTestsAreGatedBehindTheLiveDesktopSwitch(t *testing.T) {
+	written, err := os.ReadFile("integration_test.go")
+	if err != nil {
+		t.Fatalf("reading this package's integration tests failed: %v", err)
+	}
+
+	if !strings.Contains(string(written), liveDesktopSwitch) {
+		t.Errorf("integration_test.go never looks at %s, so `go test -tags integration ./internal/desktop/` drives this machine's own screen;"+
+			" gate it the way worker/desktop gates its own fixture-window suite", liveDesktopSwitch)
 	}
 }

@@ -12,14 +12,22 @@
 //
 // Two rules from the design are enforced here rather than in the worker. The
 // user grants an application once per session, through a preview on the
-// channel, and nothing at all can be done until one is granted. Every action
-// inside it that cannot be undone, which is typing into a field, a drag, and a
-// paste, goes through contract.Permission and gets its own preview of exactly
-// what is about to happen. A click and a key press do not, because they can be
-// undone.
+// channel, and nothing at all can be done until one is granted, the clipboard
+// included. Every action inside it that cannot be undone, which is typing into
+// a field, a drag, and a paste, goes through contract.Permission and gets its
+// own preview of exactly what is about to happen; so does reading the
+// clipboard, because the clipboard belongs to the whole machine rather than to
+// the granted window and often holds a password the user has just copied. A
+// click and a key press do not, because they can be undone.
 //
 // Every action states what the model expected to happen and the worker checks
-// it, which is the act-and-assert rule the browser uses. An expectation that
-// was not met comes back as an error carrying what the worker saw instead, so
-// that the model is told rather than left to guess.
+// it, which is the act-and-assert rule the browser uses. The expectation is
+// carried on the method itself, so the caller cannot leave it behind, and an
+// expectation that was not met comes back as an error carrying what the worker
+// saw instead, so that the model is told rather than left to guess.
+//
+// The worker is handed the display and nothing else. In particular it is not
+// handed the desktop's session bus, and it is told to leave the accessibility
+// bridge alone, because a program handed the bus can bring that bridge up and
+// on the development machine that started the screen reader and it spoke aloud.
 package desktop

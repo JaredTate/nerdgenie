@@ -106,7 +106,7 @@ func (tool *Tool) matchingLines(ctx context.Context, path string, pattern string
 // match by quitting with a code of one, which is not a failure of the search.
 func (tool *Tool) linesThroughRipgrep(ctx context.Context, pattern string, path string) ([]string, error) {
 	written, err := runQuietly(ctx, tool.ripgrep,
-		"--line-number", "--no-heading", "--color", "never", "--max-count", fmt.Sprint(MaxRows), "-e", pattern, "--", path)
+		"--line-number", "--with-filename", "--no-heading", "--color", "never", "--max-count", fmt.Sprint(MaxRows), "-e", pattern, "--", path)
 	if err != nil {
 		return nil, err
 	}

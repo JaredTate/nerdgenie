@@ -126,7 +126,7 @@ func (setup Setup) askModel(ctx context.Context, ask *asker, chosen initFlags, f
 
 // errNoKeyTyped means the person pressed Enter at the masked key prompt without
 // typing anything, which is how they say they picked the wrong model.
-var errNoKeyTyped = errors.New("no key was typed at the masked prompt")
+var errNoKeyTyped = errors.New("nothing was typed at the masked key prompt")
 
 // chooseModel asks which model to use and puts its key in the vault when the
 // model needs one. Pressing Enter at the key prompt goes back to the menu, so
@@ -192,7 +192,7 @@ func (setup Setup) readKey(_ context.Context, chosen initFlags, picked modelChoi
 		return "", fmt.Errorf("the %s key was not entered, so nothing was kept: %w", picked.name, err)
 	}
 	if strings.TrimSpace(key) == "" {
-		return "", fmt.Errorf("no %s key was entered, so run coeus init again and type it, or use --api-key-from-env: %w", picked.name, errNoKeyTyped)
+		return "", fmt.Errorf("%w, so run coeus init again and type the %s key, or use --api-key-from-env", errNoKeyTyped, picked.name)
 	}
 	return strings.TrimSpace(key), nil
 }

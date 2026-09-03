@@ -153,7 +153,7 @@ func notFoundLine(choices []modelChoice) string {
 	if len(missing) == 0 {
 		return ""
 	}
-	return "This was not found on this machine: " + inPlainList(missing) + "."
+	return "What was not found on this machine: " + inPlainList(missing) + "."
 }
 
 // firstDetected is the model "coeus init --yes" takes: the first one found on

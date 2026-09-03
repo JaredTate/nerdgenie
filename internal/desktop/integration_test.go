@@ -21,8 +21,17 @@ import (
 const fixtureTitle = "Coeus desktop integration fixture"
 
 // workerCommand is node and the built worker, or a reason it cannot be run here.
+//
+// The first check is the one that matters. These tests open a window on the
+// screen of whoever runs them and drive it through the accessibility tree, and
+// on a machine somebody is logged in to that can wake the screen reader. So they
+// run only when COEUS_LIVE_DESKTOP asks for them, which is the same gate the
+// worker's own fixture-window suite keeps.
 func workerCommand(t *testing.T) []string {
 	t.Helper()
+	if os.Getenv(liveDesktopSwitch) != "1" {
+		t.Skipf("these tests drive this machine's own screen, so they run only when %s=1 asks for them", liveDesktopSwitch)
+	}
 	here, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("finding the working folder failed: %v", err)

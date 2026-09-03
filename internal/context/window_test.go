@@ -16,7 +16,7 @@ func TestABigModelKeepsEveryResultOnTheTable(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	input := sampleInput()
 	input.ContextLength = 200000
-	input.Messages = roundsOfConversation(20, 400)
+	input.Messages = roundsOfConversation(20, 1200)
 
 	request, err := builder.Build(t.Context(), input)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestASmallModelPutsTheOldestResultsBackOnTheShelf(t *testing.T) {
 	builder := newTestBuilder(t, Options{MaxOutputTokens: 1000})
 	input := sampleInput()
 	input.ContextLength = 6000
-	input.Messages = roundsOfConversation(20, 400)
+	input.Messages = roundsOfConversation(20, 1200)
 
 	request, err := builder.Build(t.Context(), input)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestAResultNeverOutlivesTheCallItAnswers(t *testing.T) {
 	builder := newTestBuilder(t, Options{MaxOutputTokens: 1000})
 	input := sampleInput()
 	input.ContextLength = 6000
-	input.Messages = roundsOfConversation(20, 400)
+	input.Messages = roundsOfConversation(20, 1200)
 
 	request, err := builder.Build(t.Context(), input)
 	if err != nil {
@@ -90,7 +90,7 @@ func TestPinnedEvidenceNeverLeavesTheWindow(t *testing.T) {
 	builder := newTestBuilder(t, Options{MaxOutputTokens: 1000})
 	input := sampleInput()
 	input.ContextLength = 6000
-	input.Messages = roundsOfConversation(20, 400)
+	input.Messages = roundsOfConversation(20, 1200)
 	input.Pinned = []Pin{{ID: "r1", Text: "the anniversary is the seventeenth of January"}}
 
 	request, err := builder.Build(t.Context(), input)

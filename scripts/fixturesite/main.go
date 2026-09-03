@@ -10,6 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -23,18 +24,30 @@ import (
 const readHeaderWait = 10 * time.Second
 
 func main() {
-	listen := flag.String("listen", "127.0.0.1:8471", "the address to serve on")
-	flag.Parse()
-	if err := run(context.Background(), *listen, os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, "fixturesite:", err)
-		os.Exit(1)
+	os.Exit(command(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// command reads the flags, serves the site, and returns the exit code: zero
+// when the site served and was stopped, one when it could not come up.
+func command(arguments []string, output *os.File, problems io.Writer) int {
+	flags := flag.NewFlagSet("fixturesite", flag.ContinueOnError)
+	flags.SetOutput(problems)
+	listen := flags.String("listen", "127.0.0.1:8471", "the address to serve on")
+	pages := flags.String("pages", testkit.FixturePagesFolder(), "the folder the pages are read from")
+	if err := flags.Parse(arguments); err != nil {
+		return 2
 	}
+	if err := run(context.Background(), *listen, *pages, output); err != nil {
+		fmt.Fprintln(problems, "fixturesite:", err)
+		return 1
+	}
+	return 0
 }
 
 // run serves the site on the address until the context ends or the process is
 // interrupted, and says where it is and what it accepts.
-func run(ctx context.Context, listen string, output *os.File) error {
-	site, err := testkit.NewFixtureSite(testkit.FixturePagesFolder())
+func run(ctx context.Context, listen string, pages string, output *os.File) error {
+	site, err := testkit.NewFixtureSite(pages)
 	if err != nil {
 		return fmt.Errorf("the pages could not be read, so run this from the repository: %w", err)
 	}

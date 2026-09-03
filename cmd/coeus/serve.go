@@ -184,14 +184,17 @@ type agent struct {
 	decider  *permission.Decider
 	guard    *reliability.Guard
 
-	model     contract.Model
-	stream    *channel.Stream
-	socket    *channel.Socket
-	previews  *waitingPreviews
-	builder   *perTaskContext
-	fence     contract.Sandbox
-	browser   *browser.Browser
-	desktop   *desktop.Desktop
+	model    contract.Model
+	stream   *channel.Stream
+	socket   *channel.Socket
+	previews *waitingPreviews
+	builder  *perTaskContext
+	fence    contract.Sandbox
+	browser  *browser.Browser
+	desktop  *desktop.Desktop
+	// userTools are the user's own programs, asked what they are once at start
+	// and shared by every task's registry.
+	userTools []contract.Tool
 	tools     *tool.Registry
 	skills    *skill.Store
 	skillsBox *skillsBox

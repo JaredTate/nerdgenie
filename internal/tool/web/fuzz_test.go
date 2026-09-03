@@ -53,7 +53,11 @@ func FuzzTheAddressCheck(f *testing.F) {
 		if err := web.CheckAddressAllowed(address, nil); err != nil {
 			return
 		}
-		if !strings.HasPrefix(address, "http://") && !strings.HasPrefix(address, "https://") {
+		// The scheme of a web address is read without regard to capital
+		// letters, which is what the standard says, so "httpS://" is a web
+		// address and this looks at the lowercase form.
+		lowered := strings.ToLower(address)
+		if !strings.HasPrefix(lowered, "http://") && !strings.HasPrefix(lowered, "https://") {
 			t.Fatalf("the address %q was allowed and is not a web address", address)
 		}
 	})

@@ -101,6 +101,47 @@ func TestTheWatchdogIsFedAtHalfTheIntervalSystemdAnnounced(t *testing.T) {
 	}
 }
 
+func TestTheWatchdogIsFedTwiceForEveryIntervalSystemdAnnounced(t *testing.T) {
+	listening := aNotifySocket(t, true)
+	clock := testkit.NewFakeClock(startOfTime)
+	watchdog, err := reliability.NewWatchdog(clock)
+	if err != nil {
+		t.Fatalf("building the watchdog failed: %v", err)
+	}
+	feeding, stopFeeding := context.WithCancel(context.Background())
+	defer stopFeeding()
+	go func() { _ = watchdog.Feed(feeding) }()
+	waitForTheFirstFeed(t, clock, listening)
+
+	clock.Advance(2 * watchdogInterval)
+
+	fed := 0
+	for whatArrived(t, listening, 200*time.Millisecond) != "" {
+		fed++
+	}
+	if fed != 4 {
+		t.Errorf("systemd was told the program is alive %d times in %s, want 4: once every %s, which is half the %s it announced, and a feed at a third of the interval would be six",
+			fed, 2*watchdogInterval, watchdogInterval/2, watchdogInterval)
+	}
+}
+
+// waitForTheFirstFeed moves the clock until the feed answers, so that the test
+// knows the feed's own ticker exists, and then takes everything already sent
+// off the socket.
+func waitForTheFirstFeed(t *testing.T, clock *testkit.FakeClock, listening net.PacketConn) {
+	t.Helper()
+	for range 100 {
+		clock.Advance(watchdogInterval / 2)
+		if whatArrived(t, listening, 20*time.Millisecond) != "" {
+			for whatArrived(t, listening, 100*time.Millisecond) != "" {
+				continue
+			}
+			return
+		}
+	}
+	t.Fatalf("the feed never told the service manager that the program is alive")
+}
+
 func TestTheFeedEndsWithTheContextItWasGiven(t *testing.T) {
 	aNotifySocket(t, true)
 	clock := testkit.NewFakeClock(startOfTime)

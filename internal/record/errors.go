@@ -43,6 +43,10 @@ var (
 	// ErrBeforeTheFirstCheckpoint says the wind-back asked for a moment before
 	// the record was created, and there is nothing there.
 	ErrBeforeTheFirstCheckpoint = errors.New("that is before the record's first checkpoint, so wind back fewer steps")
+	// ErrAskIsElsewhere says this checkpoint keeps the user's ask in another
+	// checkpoint, and that one was not among the ones read, so the record cannot
+	// be handed back whole.
+	ErrAskIsElsewhere = errors.New("the checkpoint that carries the user's ask was not read, so read the whole log of this record")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
 	// ErrRecordTooLarge is the rule that a record stays small enough to sit in

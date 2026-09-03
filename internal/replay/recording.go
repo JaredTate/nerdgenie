@@ -152,12 +152,16 @@ func (reading *reader) take(event contract.Event) error {
 
 // takeCheckpoint reads one saved copy of the record, which is where the rounds
 // and the orient lines come from.
+//
+// Only the first checkpoint of a record carries the user's ask; the ones after
+// it name that one for it, so the ask picked up on the way past is what puts
+// each of them back together.
 func (reading *reader) takeCheckpoint(event contract.Event) error {
 	saved := record.Checkpoint{}
 	if err := json.Unmarshal(event.Body, &saved); err != nil {
 		return nil
 	}
-	held, err := record.Parse([]byte(saved.Text))
+	held, err := saved.Read(reading.recording.Ask)
 	if err != nil {
 		return nil
 	}
@@ -167,6 +171,11 @@ func (reading *reader) takeCheckpoint(event contract.Event) error {
 		reading.recording.Ask = held.Goal.Ask
 		reading.recording.Origin = held.Header.Origin
 	}
+	// The orient line of a round is written into the situation once that round's
+	// tools have finished, so it reaches the log in the checkpoint of the round
+	// after it. It is taken before the round is closed, so that it lands on the
+	// round that wrote it rather than the one about to start.
+	reading.takeOrient(held)
 	if reading.started && held.Header.RoundsLeft != reading.budget {
 		if err := reading.closeRound(); err != nil {
 			return err
@@ -174,7 +183,6 @@ func (reading *reader) takeCheckpoint(event contract.Event) error {
 	}
 	reading.budget = held.Header.RoundsLeft
 	reading.started = true
-	reading.takeOrient(held)
 	return nil
 }
 

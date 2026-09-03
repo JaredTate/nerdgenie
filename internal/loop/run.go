@@ -189,6 +189,7 @@ func (running *run) resume(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot pick task %s up again: %w", running.task.ResumeID, err)
 	}
+	keeper.SaveOncePerRound()
 	running.keeper = keeper
 	header := keeper.Record().Header
 	running.roundsAllowed = header.RoundsLeft
@@ -277,6 +278,12 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	found := repair.Find(reply, running.specs(), running.failedParses)
 	running.orient(found.Text, reply.Text)
 	if err := running.writeCostAndBudget(ctx, reply.Usage); err != nil {
+		return Outcome{}, false, err
+	}
+	// One model call is one checkpoint, taken here: after the call and before
+	// anything this round does, so that it carries this round's budget and the
+	// whole of the round before it, which is where a replay reads the boundary.
+	if err := running.saveTheRound(ctx); err != nil {
 		return Outcome{}, false, err
 	}
 	if found.Problem != "" {

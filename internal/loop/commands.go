@@ -21,12 +21,13 @@ const MaxTasksListed = 50
 const MaxAskLettersInAListing = 60
 
 // TasksCommand is the "/tasks" command: what is running, waiting, and done;
-// "/tasks 17" prints one record; "/tasks 17 back 3" winds one back three
-// checkpoints and lets the model try another path.
+// "/tasks 17" prints one record; "/tasks 17 back 3" winds one back three rounds
+// and lets the model try another path. A task saves one checkpoint per round, so
+// a step back is a round of work.
 func (theLoop *Loop) TasksCommand() contract.Command {
 	return contract.Command{
 		Name: "tasks",
-		Help: "Show what is running, waiting, and done. /tasks 17 prints one record, /tasks 17 back 3 winds it back three checkpoints.",
+		Help: "Show what is running, waiting, and done. /tasks 17 prints one record, /tasks 17 back 3 winds it back three rounds.",
 		Run: func(ctx context.Context, arguments string, _ contract.CommandContext) (string, error) {
 			words := strings.Fields(arguments)
 			switch {
@@ -80,7 +81,7 @@ func (theLoop *Loop) listTasks(ctx context.Context) (string, error) {
 	}
 	lines := []string{}
 	for _, number := range numbers {
-		held, err := record.Parse([]byte(newest[number].Text))
+		held, err := newest[number].newest.Read(newest[number].theAsk())
 		if err != nil {
 			continue
 		}
@@ -89,15 +90,36 @@ func (theLoop *Loop) listTasks(ctx context.Context) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
+// checkpointsOfATask is the two checkpoints a listing needs of one task: the
+// newest, which is where the task stands now, and the one that carries the
+// user's ask, which every checkpoint after it names rather than copying.
+type checkpointsOfATask struct {
+	newest   record.Checkpoint
+	carrying record.Checkpoint
+}
+
+// theAsk is the user's own words, read out of the checkpoint that holds them.
+func (found checkpointsOfATask) theAsk() string {
+	if found.newest.CarriesTheAsk() {
+		return ""
+	}
+	held, err := record.Parse([]byte(found.carrying.Text))
+	if err != nil {
+		return ""
+	}
+	return held.Goal.Ask
+}
+
 // newestCheckpointOfEachTask reads the log once and keeps the last checkpoint
-// each task saved, which is where that task stands now. A job's checkpoints are
-// left out, because a job's key begins with a letter and a task's is its number.
-func (theLoop *Loop) newestCheckpointOfEachTask(ctx context.Context) (map[int]record.Checkpoint, error) {
+// each task saved, which is where that task stands now, together with the first,
+// which is the one carrying the ask. A job's checkpoints are left out, because a
+// job's key begins with a letter and a task's is its number.
+func (theLoop *Loop) newestCheckpointOfEachTask(ctx context.Context) (map[int]checkpointsOfATask, error) {
 	saved, err := theLoop.options.Store.ByKind(ctx, contract.EventCheckpoint)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the log to list the tasks: %w", err)
 	}
-	newest := map[int]record.Checkpoint{}
+	newest := map[int]checkpointsOfATask{}
 	for _, event := range saved {
 		number, isTask := taskNumberOf(event.TaskID)
 		if !isTask {
@@ -107,9 +129,14 @@ func (theLoop *Loop) newestCheckpointOfEachTask(ctx context.Context) (map[int]re
 		if err := json.Unmarshal(event.Body, &one); err != nil {
 			continue
 		}
-		if held, there := newest[number]; !there || one.Number >= held.Number {
-			newest[number] = one
+		found := newest[number]
+		if found.newest.Number == 0 || one.Number >= found.newest.Number {
+			found.newest = one
 		}
+		if one.CarriesTheAsk() && (found.carrying.Number == 0 || one.Number < found.carrying.Number) {
+			found.carrying = one
+		}
+		newest[number] = found
 	}
 	return newest, nil
 }
@@ -124,16 +151,17 @@ func (theLoop *Loop) printTask(ctx context.Context, number string) (string, erro
 }
 
 // windTaskBack reloads a record from the checkpoint the given number of steps
-// before the latest, so that the model can try another path. Nothing in the log
-// is lost: the checkpoints in between stay where they are.
+// before the latest, so that the model can try another path. A task saves one
+// checkpoint per round, so a step back is a round of work. Nothing in the log is
+// lost: the checkpoints in between stay where they are.
 func (theLoop *Loop) windTaskBack(ctx context.Context, number string, stepsWritten string) (string, error) {
 	steps, err := strconv.Atoi(stepsWritten)
 	if err != nil {
-		return "", fmt.Errorf("%q is not a number of checkpoints to wind back, so write one such as %q", stepsWritten, "3")
+		return "", fmt.Errorf("%q is not a number of rounds to wind back, so write one such as %q", stepsWritten, "3")
 	}
 	keeper, err := record.Back(ctx, theLoop.options.Store, contract.RecordTask, number, steps)
 	if err != nil {
-		return "", fmt.Errorf("cannot wind task %s back %d checkpoints: %w", number, steps, err)
+		return "", fmt.Errorf("cannot wind task %s back %d rounds: %w", number, steps, err)
 	}
 	return fmt.Sprintf("Task %s is back at checkpoint %d.\n\n%s", number, keeper.LatestCheckpoint(), keeper.Text()), nil
 }

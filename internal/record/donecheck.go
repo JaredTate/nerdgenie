@@ -49,11 +49,15 @@ func DoneCheck(held contract.Record) error {
 
 // SetStatus writes where the record stands. Closing it runs the done-check, so a
 // record can never say it is done while a line of its done list is waiting.
+//
+// This one always saves its checkpoint, whatever its owner does about rounds:
+// where a record stands is what a resume, a listing and a replay read, and an
+// ending has no round after it to save what was waiting.
 func (keeper *Keeper) SetStatus(ctx context.Context, status contract.RecordStatus) error {
 	if !knownStatus(status) {
 		return fmt.Errorf("%q is not where a record can stand, so use running, waiting, stopped, failed, or done", status)
 	}
-	return keeper.change(ctx, func(into *contract.Record) error {
+	return keeper.changeAndSave(ctx, func(into *contract.Record) error {
 		if status == contract.StatusDone {
 			if err := DoneCheck(*into); err != nil {
 				return err

@@ -42,7 +42,8 @@ const (
 // every change: the budget, the cost, every result, and the situation, which is
 // four writes of the whole record for one tool call. A round is one model call,
 // and a round is where a replay reads the boundary, so a round is one
-// checkpoint and no more.
+// checkpoint, with one more at the end for where the task finished, which no
+// round after it would ever save.
 func TestOneCheckpointIsSavedForEveryModelCall(t *testing.T) {
 	built := newHarness(t, aScriptOfRounds(roundsInTheShortTask), theNotesTool(roundsInTheShortTask))
 
@@ -54,8 +55,8 @@ func TestOneCheckpointIsSavedForEveryModelCall(t *testing.T) {
 		t.Fatalf("the task made %d model calls, and the script has %d rounds and an answer",
 			calls, roundsInTheShortTask)
 	}
-	if saved != calls {
-		t.Errorf("the task made %d model calls and saved %d checkpoints, and a checkpoint is saved once per call",
+	if saved != calls+1 {
+		t.Errorf("the task made %d model calls and saved %d checkpoints, and it saves one per call and one for the ending",
 			calls, saved)
 	}
 }
@@ -69,19 +70,29 @@ func TestTheCheckpointOfARoundIsSavedBeforeItsToolsRun(t *testing.T) {
 
 	built.ask(t, "read the notes")
 
+	saved := checkpointsInTheLog(t, built)
 	budgets := []int{}
-	for _, saved := range checkpointsInTheLog(t, built) {
-		held, err := record.Parse([]byte(saved.Text))
+	for _, one := range saved {
+		held, err := record.Parse([]byte(one.Text))
 		if err != nil {
-			t.Fatalf("checkpoint %d does not read back as a record: %v", saved.Number, err)
+			t.Fatalf("checkpoint %d does not read back as a record: %v", one.Number, err)
 		}
 		budgets = append(budgets, held.Header.RoundsLeft)
 	}
-	for at := 1; at < len(budgets); at++ {
-		if budgets[at] >= budgets[at-1] {
+	// The last checkpoint is the ending, which spends no round of its own.
+	rounds := budgets[:len(budgets)-1]
+	for at := 1; at < len(rounds); at++ {
+		if rounds[at] >= rounds[at-1] {
 			t.Errorf("checkpoint %d has %d rounds left and the one before it %d, so a round did not spend one",
-				at+1, budgets[at], budgets[at-1])
+				at+1, rounds[at], rounds[at-1])
 		}
+	}
+	ending, err := record.Parse([]byte(saved[len(saved)-1].Text))
+	if err != nil {
+		t.Fatalf("the last checkpoint does not read back as a record: %v", err)
+	}
+	if ending.Header.Status != contract.StatusWaiting {
+		t.Errorf("the last checkpoint says the task is %q, and the script ends with a question", ending.Header.Status)
 	}
 }
 
@@ -95,11 +106,16 @@ func TestAFortyRoundTaskWithALongAskWritesFewCheckpointBytes(t *testing.T) {
 
 	outcome := built.ask(t, ask)
 
-	written := 0
-	for _, event := range built.eventsOfKind(t, contract.EventCheckpoint) {
+	written, saved := 0, built.eventsOfKind(t, contract.EventCheckpoint)
+	for _, event := range saved {
 		written += len(event.Body)
 	}
-	t.Logf("a %d-round task with a %d-word ask wrote %d bytes of checkpoints", roundsInTheLongTask, wordsInTheLongAsk, written)
+	t.Logf("a %d-round task with a %d-word ask wrote %d checkpoints and %d bytes of them",
+		roundsInTheLongTask, wordsInTheLongAsk, len(saved), written)
+	if len(saved) != roundsInTheLongTask+2 {
+		t.Errorf("the task saved %d checkpoints, and %d rounds and an answer save one each with one more for the ending",
+			len(saved), roundsInTheLongTask)
+	}
 	if written > checkpointBytesAFortyRoundTaskMayWrite {
 		t.Errorf("the task wrote %d bytes of checkpoints and the bound is %d, so the record is being copied into the log more often or more whole than it needs to be",
 			written, checkpointBytesAFortyRoundTaskMayWrite)

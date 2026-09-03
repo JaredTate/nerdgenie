@@ -1117,6 +1117,7 @@ internal/tui/messages.go
 internal/tui/monitor_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
+internal/tui/panel.go
 internal/tui/panel_test.go
 internal/tui/pictures.go
 internal/tui/pseudoterminal_test.go
@@ -1146,6 +1147,8 @@ internal/tui/testdata/fuzz/FuzzTheFrameStaysInsideTheTerminal/761ef5c109d348f4
 internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
+internal/tui/testdata/panel-idle-120x36.txt
+internal/tui/testdata/panel-task-120x36.txt
 internal/tui/testdata/themed-banner-120x40.txt
 internal/tui/testdata/themed-banner-80x24.txt
 internal/tui/testdata/themed-conversation-120x40.txt

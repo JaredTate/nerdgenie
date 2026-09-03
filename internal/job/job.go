@@ -87,6 +87,7 @@ type Jobs struct {
 	nextJob       int
 	closed        bool
 	lastWaitEnded time.Time
+	mayStartWork  func() bool
 }
 
 // The job store is the one real job store, so the compiler is asked to say at
@@ -134,6 +135,22 @@ func Open(ctx context.Context, home contract.Home, eventLog contract.Store, cloc
 		return nil, err
 	}
 	return opened, nil
+}
+
+// OnlyStartWorkWhen sets the question the store asks before it hands out any
+// task at all. It is how the drain marker an update writes and the crash-loop
+// breaker reach the scheduler: cmd/coeus/serve.go passes
+// reliability.Guard.MayStartTask here, and while that says no, NextTask hands
+// out nothing and touches no claim, so an update waits for the running task
+// rather than cutting a forty-round job in half.
+//
+// The question is asked while the store's own lock is held, so it must answer
+// for itself and never call back into the jobs. With none set, work always
+// starts, which is what a test that does not care about draining gets.
+func (jobs *Jobs) OnlyStartWorkWhen(mayStart func() bool) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobs.mayStartWork = mayStart
 }
 
 // Close lets go of every connection to the database file. Closing a job store

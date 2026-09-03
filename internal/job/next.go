@@ -27,6 +27,9 @@ import (
 func (jobs *Jobs) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
+	if jobs.mayStartWork != nil && !jobs.mayStartWork() {
+		return contract.TaskToRun{}, false, nil
+	}
 	if err := jobs.releaseTasksPastTheirBudget(ctx, now); err != nil {
 		return contract.TaskToRun{}, false, err
 	}

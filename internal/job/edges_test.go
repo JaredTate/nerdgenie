@@ -115,6 +115,41 @@ func TestANoteLongerThanTheWholeNotepadIsCutToFitIt(t *testing.T) {
 	}
 }
 
+func TestTheRestartGuardReadsAProgramByItsNameHoweverTheCommandIsWritten(t *testing.T) {
+	for _, refused := range []string{
+		"reboot",
+		"sudo reboot",
+		"systemctl --user stop coeus",
+		"pkill coeus",
+		"echo hi && shutdown -h now",
+		"coeus update",
+		"sudo -n reboot",
+		"bash -c reboot",
+		"sh -c 'reboot'",
+		"/sbin/reboot",
+		"/usr/bin/pkill coeus",
+		"/bin/systemctl --user stop coeus",
+		"nice -n 5 reboot",
+		"timeout 5 reboot",
+		"xargs reboot",
+		"/usr/local/bin/coeus update",
+	} {
+		if err := checkItCannotRestartTheAgent(refused); err == nil {
+			t.Errorf("the work %q was allowed, and it stops or restarts the agent", refused)
+		}
+	}
+	for _, allowed := range []string{
+		"write a blog piece about the reboot of the franchise",
+		"read /sbin/reboot and say in one line what it does",
+		"restart the conversation with the user",
+		"check that systemctl is installed",
+	} {
+		if err := checkItCannotRestartTheAgent(allowed); err != nil {
+			t.Errorf("ordinary work was refused as work that restarts the agent: %q: %v", allowed, err)
+		}
+	}
+}
+
 func TestACommandThatIsOnlyAWordInFrontOfOneIsNoCommand(t *testing.T) {
 	for _, harmless := range []string{"sudo", "  ", ";;;", "env NAME=value"} {
 		if err := checkItCannotRestartTheAgent(harmless); err != nil {

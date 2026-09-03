@@ -18,9 +18,8 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// theAskToClearTheScratchFolder is what the person types to start each task,
-// and theScratchFolder is the folder inside the agent's work folder that the
-// scripted model removes with a recursive delete.
+// The ask the person types to start each task, and the folder inside the
+// agent's work folder that the scripted model removes with a recursive delete.
 const (
 	theAskToClearTheScratchFolder = "clear out the scratch folder"
 	theScratchFolder              = "scratch"

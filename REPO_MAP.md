@@ -94,6 +94,8 @@ cmd/coeus/version.go
 cmd/coeus/watchedmodel.go
 cmd/coeus/wiring.go
 cmd/coeus/wiring_test.go
+cmd/coeus/yolo.go
+cmd/coeus/yolo_test.go
 docs/COEUS_PLAN.md
 docs/DEPENDENCIES.md
 docs/EXTENDING.md
@@ -284,6 +286,7 @@ internal/command/undo.go
 internal/command/undo_test.go
 internal/command/undorange_test.go
 internal/command/uninstall.go
+internal/command/yolo_test.go
 internal/config/check.go
 internal/config/check_test.go
 internal/config/doc.go
@@ -583,6 +586,8 @@ internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a-su
 internal/permission/unattended_test.go
 internal/permission/website.go
 internal/permission/wrappers.go
+internal/permission/yolo.go
+internal/permission/yolo_test.go
 internal/provider/anthropic.go
 internal/provider/anthropic_test.go
 internal/provider/anthropicstream.go
@@ -1353,6 +1358,7 @@ test/functional/usertools_test.go
 test/functional/vault_test.go
 test/functional/walk_test.go
 test/functional/whilebusy_test.go
+test/functional/yolo_test.go
 test/replays/task_1_test.go
 test/replays/testdata/task-1.json
 worker/browser/.gitignore

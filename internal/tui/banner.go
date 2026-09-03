@@ -24,6 +24,12 @@ const wordmarkText = "COEUS AGENT"
 // the fewest words that say it.
 const taglineText = "the agent that does not forget what it is doing"
 
+// commandHintText is the line under the tag, and it is the only thing on a first
+// frame that says where the tasks, the jobs and everything else are to be found.
+// The first person to use the screen asked how to see what jobs and tasks it
+// had, and nothing on the frame answered.
+const commandHintText = "type / to see the commands"
+
 // blockLetters is the five-row block font the wordmark is drawn in, written here
 // rather than taken from a library because nine letters are nine letters. A
 // space is drawn by the gap between the two words rather than by a letter.
@@ -74,6 +80,7 @@ func (screen *Screen) bannerRows(height int) []string {
 	middle = append(middle, "")
 	middle = append(middle, screen.centredRow(styleDim, taglineText))
 	middle = append(middle, screen.centredRow(styleChip, " "+screen.bannerWords()+" "))
+	middle = append(middle, screen.centredRow(styleDim, commandHintText))
 
 	if len(middle) > height {
 		middle = middle[len(middle)-height:]

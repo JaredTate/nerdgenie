@@ -2,6 +2,7 @@ package tui
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -38,6 +39,10 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldTokensOut, &screen.tokensOut)
 	setIfSent(fields, contract.StatusFieldCost, &screen.money)
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
+	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
+	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
+	setCountIfSent(fields, contract.StatusFieldStreamed, &screen.streamed)
+	setMomentIfSent(fields, contract.StatusFieldCallStarted, &screen.callStarted)
 	screen.readBudget(fields)
 
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
@@ -47,8 +52,24 @@ func (screen *Screen) readStatus(fields map[string]string) {
 		screen.flushDeltas()
 		screen.remember(block{kind: blockTool, text: line})
 	}
+	screen.readRecordLine(fields)
 	screen.readHealth(fields)
 	screen.readReportedState(fields)
+}
+
+// readRecordLine puts one pill in the transcript for the latest change to the
+// record, drawn exactly as a tool call is, so that a person can watch tasks and
+// jobs start and finish without asking. The program sends the same line on every
+// heartbeat until something else changes, so only a line that differs from the
+// last one shown is worth a pill of its own.
+func (screen *Screen) readRecordLine(fields map[string]string) {
+	line, sent := fields[contract.StatusFieldRecordLine]
+	if !sent || line == "" || line == screen.lastRecord {
+		return
+	}
+	screen.lastRecord = line
+	screen.flushDeltas()
+	screen.remember(block{kind: blockTool, text: line})
 }
 
 // readBudget works out how much of the task's budget is left, so that the status
@@ -122,4 +143,36 @@ func setIfSent(fields map[string]string, name string, into *string) {
 	if value, sent := fields[name]; sent {
 		*into = value
 	}
+}
+
+// setMomentIfSent copies one field that names a moment into the screen. The
+// program writes it the RFC 3339 way, and a field written any other way counts
+// as no moment at all, because a screen that counted from a time it could not
+// read would draw a number that means nothing.
+func setMomentIfSent(fields map[string]string, name string, into *time.Time) {
+	value, sent := fields[name]
+	if !sent {
+		return
+	}
+	moment, err := time.Parse(time.RFC3339, strings.TrimSpace(value))
+	if err != nil {
+		*into = time.Time{}
+		return
+	}
+	*into = moment
+}
+
+// setCountIfSent copies one field that counts something into the screen. A field
+// that is not a plain number counts as nothing at all, because a screen must
+// never measure one thing against another it could not read.
+func setCountIfSent(fields map[string]string, name string, into *int) {
+	value, sent := fields[name]
+	if !sent {
+		return
+	}
+	count, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || count < 0 {
+		count = 0
+	}
+	*into = count
 }

@@ -112,6 +112,12 @@ type Screen struct {
 	budgetMost   int
 	lastHealth   time.Time
 
+	contextTokens int
+	contextWindow int
+	callStarted   time.Time
+	streamed      int
+	lastRecord    string
+
 	blocks     []block
 	scrollBack int
 	pending    string

@@ -30,12 +30,15 @@ func TestTheInstructionTextIsTheDesignsOwnWords(t *testing.T) {
 
 // TestTheInstructionTextIsSmallEnoughToRideInEveryPrompt counts the words,
 // because this text is read on every call to every model and its length is a
-// cost paid on every turn.
+// cost paid on every turn. The heading over the skill list is the harness's own
+// words too, sent whenever a home has a skill, so it is counted against the same
+// budget: a line added there is a line taken out of the instructions.
 func TestTheInstructionTextIsSmallEnoughToRideInEveryPrompt(t *testing.T) {
-	counted := len(strings.Fields(InstructionText))
-	t.Logf("the instruction text is %d words and %d bytes", counted, len(InstructionText))
+	counted := len(strings.Fields(InstructionText)) + len(strings.Fields(skillsHeading))
+	t.Logf("the instruction text and the skill heading are %d words and %d bytes together",
+		counted, len(InstructionText)+len(skillsHeading))
 	if counted > MaxInstructionWords {
-		t.Errorf("the instruction text is %d words and the cap is %d, so shorten it in the design and copy it here again",
+		t.Errorf("the instruction text and the skill heading are %d words and the cap is %d, so shorten the text in the design and copy it here again",
 			counted, MaxInstructionWords)
 	}
 }

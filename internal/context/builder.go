@@ -27,7 +27,7 @@ import (
 const (
 	// BlockInstructions holds what the model is told about the harness.
 	BlockInstructions = "instructions"
-	// BlockPersona holds the three persona files.
+	// BlockPersona holds SOUL.md and the list of skills the model may load.
 	BlockPersona = "persona"
 	// BlockTools stands for the tool list, which the provider renders.
 	BlockTools = "tools"
@@ -74,6 +74,12 @@ type Options struct {
 	// program does; a test sets it so that its golden files do not change on
 	// every run.
 	Boundary string
+	// Skills are the name and one-line description of every skill the model
+	// may load with the `skill` tool, as the store lists them. They are read
+	// once, when the builder is made, because they ride above cache boundary
+	// A and nothing up there may move during a task; the wiring makes a
+	// builder per task, so a skill added mid-task shows on the next one.
+	Skills []contract.SkillSummary
 }
 
 // Builder builds the working context for one task, on any model.
@@ -82,6 +88,7 @@ type Builder struct {
 	memoryCaps      contract.MemoryCaps
 	maxOutputTokens int
 	boundary        string
+	skills          string
 }
 
 // BuildInput is everything one turn hands the builder.
@@ -141,6 +148,7 @@ func New(options Options) (*Builder, error) {
 		memoryCaps:      options.MemoryCaps,
 		maxOutputTokens: options.MaxOutputTokens,
 		boundary:        boundary,
+		skills:          skillsText(options.Skills),
 	}, nil
 }
 
@@ -162,6 +170,7 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	if err != nil {
 		return contract.Request{}, err
 	}
+	persona = joinBlocks(persona, builder.skills)
 	known, err := readWhatIsKnown(builder.home, builder.memoryCaps)
 	if err != nil {
 		return contract.Request{}, err
@@ -212,6 +221,19 @@ func (builder *Builder) systemBlocks(persona string, input BuildInput, stable st
 		})
 	}
 	return blocks
+}
+
+// joinBlocks puts two pieces of one system block together with a blank line
+// between them, and leaves out whichever of them is empty, so that a block never
+// begins or ends with a blank line.
+func joinBlocks(first string, second string) string {
+	if first == "" {
+		return second
+	}
+	if second == "" {
+		return first
+	}
+	return first + "\n\n" + second
 }
 
 // asUserMessage is one piece of the prompt below the cache line, written as a

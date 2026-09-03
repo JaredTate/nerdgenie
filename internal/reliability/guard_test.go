@@ -15,10 +15,17 @@ import (
 // home and the same log is what a restart looks like.
 func aGuard(t *testing.T, home contract.Home, store *testkit.FakeStore) (*reliability.Guard, *sender) {
 	t.Helper()
+	return aGuardWithClock(t, home, store, testkit.NewFakeClock(startOfTime))
+}
+
+// aGuardWithClock is the same thing over a clock the test keeps hold of, for the
+// tests that move time while a turn is running.
+func aGuardWithClock(t *testing.T, home contract.Home, store *testkit.FakeStore, clock *testkit.FakeClock) (*reliability.Guard, *sender) {
+	t.Helper()
 	told := &sender{}
 	guard, err := reliability.New(reliability.Settings{
 		Home:  home,
-		Clock: testkit.NewFakeClock(startOfTime),
+		Clock: clock,
 		Store: store,
 		Caps:  contract.DefaultConfig().Caps,
 		Send:  told.send,

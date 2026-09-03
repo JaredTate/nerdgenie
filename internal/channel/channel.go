@@ -25,6 +25,11 @@ var _ contract.Channel = (*Socket)(nil)
 // loses its copy rather than holding the socket up.
 const watcherBacklog = 64
 
+// MaxWatchers is how many callers of Receive the socket carries at once. Every
+// watcher costs a buffer of its own, and a program with more of them than this
+// watching one socket is a program that has forgotten to let one go.
+const MaxWatchers = 8
+
 // watcher is one caller of Receive and the messages going to it.
 type watcher struct {
 	// messages is where the caller reads what the socket took in.
@@ -50,6 +55,10 @@ func (socket *Socket) Receive(ctx context.Context) (<-chan contract.Inbound, err
 	if socket.closed {
 		socket.guard.Unlock()
 		return nil, fmt.Errorf("the local socket at %s is closed, so there is nothing to receive from it", socket.options.Path)
+	}
+	if len(socket.watchers) >= MaxWatchers {
+		socket.guard.Unlock()
+		return nil, fmt.Errorf("the local socket at %s already carries %d watchers of what it receives, which is the limit, so let one go before starting another", socket.options.Path, MaxWatchers)
 	}
 	watching := &watcher{messages: make(chan contract.Inbound, watcherBacklog)}
 	socket.watchers[watching] = struct{}{}

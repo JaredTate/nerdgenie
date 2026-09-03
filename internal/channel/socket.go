@@ -22,12 +22,6 @@ const (
 	DefaultMaxLineBytes = 64 * 1024
 )
 
-// DefaultAnswerDeadline is how long the socket waits for a screen to answer a
-// preview or a masked prompt. It is the turn's own budget from the shipped
-// configuration, because a question asked inside a turn cannot usefully outlive
-// the turn that asked it.
-var DefaultAnswerDeadline = contract.DefaultConfig().Caps.TimePerTurn
-
 // writeWait is how long one write to one screen may take before the socket gives
 // up on that screen. It is measured on the operating system's clock rather than
 // contract.Clock, because a deadline on a connection is the operating system's
@@ -38,8 +32,8 @@ const writeWait = 30 * time.Second
 // cap when a line needs more.
 const firstLineBytes = 4096
 
-// Options are what the socket needs to run. The first five are required and the
-// last three fall back to the limits above.
+// Options are what the socket needs to run. The first six are required and the
+// last two fall back to the limits above.
 type Options struct {
 	// Path is where the socket file goes, which is the home folder's SocketFile.
 	Path string
@@ -52,7 +46,10 @@ type Options struct {
 	// Clock is where the time a message arrived is read from.
 	Clock contract.Clock
 	// AnswerDeadline is how long a preview or a masked prompt waits for an
-	// answer. Zero means DefaultAnswerDeadline.
+	// answer. It is the user's own time_per_turn, because a question asked
+	// inside a turn cannot usefully outlive the turn that asked it, and it is
+	// required rather than filled in here, because a deadline of this package's
+	// own choosing would quietly ignore what the user set.
 	AnswerDeadline time.Duration
 	// MaxClients is how many screens may be connected at once. Zero means
 	// DefaultMaxClients.
@@ -247,15 +244,14 @@ func (options Options) check() error {
 		return errors.New("the socket needs the vault to redact what it sends, so pass the secret store")
 	case options.Clock == nil:
 		return errors.New("the socket needs a clock to say when a message arrived, so pass the one the rest of the agent reads")
+	case options.AnswerDeadline <= 0:
+		return errors.New("the socket needs to know how long to wait for an answer to a preview or a masked prompt, so pass the user's time_per_turn from the configuration")
 	}
 	return nil
 }
 
 // fillIn puts the shipped limits into whatever the caller left at zero.
 func (options *Options) fillIn() {
-	if options.AnswerDeadline <= 0 {
-		options.AnswerDeadline = DefaultAnswerDeadline
-	}
 	if options.MaxClients <= 0 {
 		options.MaxClients = DefaultMaxClients
 	}

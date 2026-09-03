@@ -197,15 +197,18 @@ func (router *Router) channelFor(message contract.Inbound) (contract.Channel, er
 	return where, nil
 }
 
-// maxTextInAMessage is how much of what the user wrote an error message repeats
-// back, so that a very long line cannot fill a screen or a log.
+// maxTextInAMessage is how many letters of what the user wrote an error message
+// repeats back, so that a very long line cannot fill a screen or a log.
 const maxTextInAMessage = 60
 
 // shortenedText cuts what the user wrote down to something an error message can
-// carry, and says it was cut.
+// carry, and says it was cut. It counts letters rather than bytes and never
+// cuts one in half, because half a letter is not a letter and would reach the
+// screen as a question mark in a box.
 func shortenedText(text string) string {
-	if len(text) <= maxTextInAMessage {
+	letters := []rune(text)
+	if len(letters) <= maxTextInAMessage {
 		return text
 	}
-	return text[:maxTextInAMessage] + "..."
+	return string(letters[:maxTextInAMessage]) + "..."
 }

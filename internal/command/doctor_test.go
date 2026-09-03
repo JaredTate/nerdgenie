@@ -57,6 +57,34 @@ func TestDoctorSaysWhenTheHomeFolderIsNotThere(t *testing.T) {
 // user-namespace probe fills in.
 const sandboxFindingName = "the sandbox fence"
 
+// TestDoctorSaysWhichWayTheSandboxSettingIsTurned holds what a person runs
+// "coeus doctor" for after changing the setting: the printed report says whether
+// commands are running on this machine as them or inside the fence.
+func TestDoctorSaysWhichWayTheSandboxSettingIsTurned(t *testing.T) {
+	for _, written := range []struct {
+		document string
+		wanted   string
+	}{
+		{"", "straight on this machine as you"},
+		{"sandbox = \"fence\"\n", "only the sandbox roots"},
+	} {
+		home := testkit.NewTempHome(t)
+		if err := os.WriteFile(home.ConfigFile(), []byte(written.document), contract.DataFileMode); err != nil {
+			t.Fatalf("writing the configuration failed: %v", err)
+		}
+		printed := &strings.Builder{}
+
+		command.Doctor(context.Background(), home, printed)
+
+		if !strings.Contains(printed.String(), "the sandbox setting") {
+			t.Fatalf("the doctor's report has no line about the sandbox setting:\n%s", printed)
+		}
+		if !strings.Contains(printed.String(), written.wanted) {
+			t.Errorf("the configuration %q is reported without %q:\n%s", written.document, written.wanted, printed)
+		}
+	}
+}
+
 // aFolderEveryMachineHas is the folder this test builds its own throwaway fence
 // over, the same one the doctor uses. The probe makes an empty fence and quits
 // without ever looking at the folders, so which folder it is does not matter as

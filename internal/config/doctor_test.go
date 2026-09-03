@@ -376,3 +376,30 @@ func TestTheDoctorSaysWhatTheConfigurationAsksFor(t *testing.T) {
 		}
 	}
 }
+
+// TestTheDoctorSaysWhichWayTheSandboxSettingIsTurned holds the one line that
+// tells a person whether commands are boxed into the sandbox roots or running on
+// their machine as them. A home with no configuration file at all runs with the
+// sandbox off, which is the default, and the report has to say so.
+func TestTheDoctorSaysWhichWayTheSandboxSettingIsTurned(t *testing.T) {
+	for _, written := range []struct {
+		document string
+		wanted   string
+	}{
+		{"", contract.SandboxOff},
+		{"sandbox = \"off\"\n", contract.SandboxOff},
+		{"sandbox = \"fence\"\n", contract.SandboxFence},
+	} {
+		home := writeConfig(t, written.document)
+		finding := findingAbout(t, config.Doctor(context.Background(), home), "the sandbox setting")
+
+		if finding.Result != config.Fine {
+			t.Errorf("the configuration %q reports the sandbox %s: %s, want it fine either way",
+				written.document, finding.Result, finding.Detail)
+		}
+		if !strings.Contains(finding.Detail, written.wanted) {
+			t.Errorf("the configuration %q is reported as %q, and it does not name %q",
+				written.document, finding.Detail, written.wanted)
+		}
+	}
+}

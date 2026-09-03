@@ -69,10 +69,14 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	written.WriteString("# The models to try, in order, when the one above cannot be reached.\n")
 	fmt.Fprintf(written, "fallback_chain = %s\n\n", quotedList(fallbackNames(chosen, found)))
 
-	written.WriteString("# The only folders a sandboxed command and the file tools may reach.\n")
-	written.WriteString("# Everything else on this machine is outside the fence, and your home\n")
-	written.WriteString("# directory as a whole is refused, because it holds your browser profile,\n")
-	written.WriteString("# your cloud credentials, and your keys.\n")
+	written.WriteString("# How commands run: \"off\" runs them straight on this machine as you, which\n")
+	written.WriteString("# is the default; \"fence\" boxes them into the sandbox roots below.\n")
+	written.WriteString("sandbox = \"off\"\n\n")
+
+	written.WriteString("# With the fence on, the only folders a command and the file tools may\n")
+	written.WriteString("# reach. Everything else on this machine is then outside the fence, and your\n")
+	written.WriteString("# home directory as a whole is refused, because it holds your browser\n")
+	written.WriteString("# profile, your cloud credentials, and your keys.\n")
 	fmt.Fprintf(written, "sandbox_roots = %s\n", quotedList(roots))
 
 	for _, choice := range aliasesToWrite(chosen, found) {

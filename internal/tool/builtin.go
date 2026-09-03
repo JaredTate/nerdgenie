@@ -48,9 +48,7 @@ func New(ctx context.Context, settings Settings) (*Registry, error) {
 func builtInTools(settings Settings) []contract.Tool {
 	// The check is held as a plain function rather than as its own named type,
 	// so that each tool's own name for the same shape takes it without a cast.
-	var allowed func(path string) (string, error) = NewPathCheck(
-		settings.Configuration.SandboxRoots, settings.UserHome, settings.Home.Root,
-		settings.Configuration.BrowserProfilePath, settings.Configuration.BackupPath)
+	var allowed func(path string) (string, error) = settings.pathCheck()
 	tools := []contract.Tool{
 		read.New(read.Settings{Allowed: allowed, Results: settings.Results, Reports: settings.Reports}),
 		write.New(write.Settings{Allowed: allowed, Log: settings.Log, TaskID: settings.TaskID, Clock: settings.Clock}),

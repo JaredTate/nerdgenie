@@ -100,6 +100,20 @@ func (settings Settings) note(line string) {
 	log.Print(line)
 }
 
+// pathCheck is the rule the four file tools are given, which the sandbox setting
+// picks: inside the sandbox roots when the configuration asks for the fence, and
+// everywhere but the paths that must stay outside when the sandbox is off, which
+// is what a fresh install runs as. Either way the vault, the browser profile,
+// the backups, and the user's SSH keys are out of reach.
+func (settings Settings) pathCheck() PathCheck {
+	if settings.Configuration.SandboxMode() == contract.SandboxOff {
+		return NewOpenPathCheck(settings.UserHome, settings.Home.Root,
+			settings.Configuration.BrowserProfilePath, settings.Configuration.BackupPath)
+	}
+	return NewPathCheck(settings.Configuration.SandboxRoots, settings.UserHome, settings.Home.Root,
+		settings.Configuration.BrowserProfilePath, settings.Configuration.BackupPath)
+}
+
 // toolTimeout is how long one tool may run, from the configuration, with the
 // shipped default when the configuration says nothing.
 func (settings Settings) toolTimeout() time.Duration {

@@ -61,6 +61,38 @@ func NewPathCheck(roots []string, userHome string, agentHome string, alsoOutside
 	}
 }
 
+// NewOpenPathCheck returns the check the file tools are given when the sandbox
+// is off: every whole path on the machine is allowed except the ones
+// contract.ExcludedFromSandbox names, which are the agent's home folder, the
+// vault, the browser profiles, and the user's SSH keys, together with any path
+// the caller adds, such as a configured browser profile or backup folder. The
+// sandbox roots have no part in it, because with the sandbox off there is no
+// fence for them to describe; the gate on what the agent does is the permission
+// function and the user's ask-me-first list.
+//
+// Links are followed exactly as they are inside the fence. A symbolic link is
+// judged by where it lands, so a shortcut into the vault is refused, and a file
+// known by more than one name on the disk is refused outright, because a hard
+// link has no target to follow and its other name may be the vault itself.
+func NewOpenPathCheck(userHome string, agentHome string, alsoOutside ...string) PathCheck {
+	excluded := contract.ExcludedFromSandbox(userHome, agentHome, alsoOutside...)
+
+	return func(path string) (string, error) {
+		wanted, err := wholePath(path)
+		if err != nil {
+			return "", err
+		}
+		resolved := resolveLinks(wanted)
+		if err := outsideEvery(resolved, excluded); err != nil {
+			return "", err
+		}
+		if err := hasOneNameOnly(resolved); err != nil {
+			return "", err
+		}
+		return resolved, nil
+	}
+}
+
 // hasOneNameOnly says no to a file that is known by more than one name on the
 // disk. A hard link has no target for the check above to follow, so a link made
 // inside a root before the agent ever ran would otherwise let a tool read and

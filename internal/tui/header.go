@@ -115,8 +115,11 @@ func (screen *Screen) linkPiece() span {
 	return span{style: styleDim, text: "connecting"}
 }
 
-// taskWords is the task and its state, such as "task 17 running", or empty when
-// no task is running.
+// taskWords is the task and its state in the words docs/TUI_DESIGN.md writes
+// them in, such as "task 17 running", or empty when the program has named no
+// task. The state is drawn only when the program said what it is; the number
+// alone is drawn when it did not, because a bare number in the middle of the
+// header says nothing at all.
 func (screen *Screen) taskWords() string {
 	switch {
 	case screen.taskID == "" && screen.taskState == "":
@@ -124,10 +127,20 @@ func (screen *Screen) taskWords() string {
 	case screen.taskID == "":
 		return screen.taskState
 	case screen.taskState == "":
-		return screen.taskID
+		return taskNamed(screen.taskID)
 	default:
-		return screen.taskID + " " + screen.taskState
+		return taskNamed(screen.taskID) + " " + screen.taskState
 	}
+}
+
+// taskNamed puts the word "task" in front of a task's number, because the
+// program sends the number on its own. A program that already says the word is
+// not made to say it twice.
+func taskNamed(id string) string {
+	if strings.HasPrefix(id, "task") {
+		return id
+	}
+	return "task " + id
 }
 
 // taskStyle draws a running task in the accent colour and every other state

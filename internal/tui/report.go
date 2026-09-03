@@ -48,13 +48,44 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
 		screen.learnCommands(listed)
 	}
-	if line, sent := fields[contract.StatusFieldToolLine]; sent && line != "" {
-		screen.flushDeltas()
-		screen.remember(block{kind: blockTool, text: line})
-	}
+	screen.readToolLine(fields)
 	screen.readRecordLine(fields)
 	screen.readHealth(fields)
 	screen.readReportedState(fields)
+}
+
+// readToolLine puts one pill in the transcript for the call in flight. The
+// program sends the same line on every heartbeat until the call changes, so a
+// line that is what is already on the screen is not drawn again, and a line that
+// is the same call with what came back added to it takes the place of the pill
+// that call already has rather than making a second one.
+func (screen *Screen) readToolLine(fields map[string]string) {
+	line, sent := fields[contract.StatusFieldToolLine]
+	if !sent || line == "" || line == screen.lastTool {
+		return
+	}
+	screen.flushDeltas()
+	if !screen.replacePill(screen.lastTool, line) {
+		screen.remember(block{kind: blockTool, text: line})
+	}
+	screen.lastTool = line
+}
+
+// replacePill writes a newer line into the pill an older one is already drawn
+// in, when the newer line is the older one with more added to the end of it,
+// which is what a call gaining its result looks like. It says whether it found
+// that pill.
+func (screen *Screen) replacePill(older string, newer string) bool {
+	if older == "" || !strings.HasPrefix(newer, older) {
+		return false
+	}
+	for at := len(screen.blocks) - 1; at >= 0; at-- {
+		if screen.blocks[at].kind == blockTool && screen.blocks[at].text == older {
+			screen.blocks[at].text = keepTail(newer)
+			return true
+		}
+	}
+	return false
 }
 
 // readRecordLine puts one pill in the transcript for the latest change to the

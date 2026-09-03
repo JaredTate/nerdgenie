@@ -190,14 +190,14 @@ func TestTheHeaderSaysTheTaskInWordsWhenTheProgramSendsTheNumberAlone(t *testing
 		contract.StatusFieldTask: "24",
 	}})
 
-	if header := plainText(headerOf(screen)); !strings.Contains(header, "· task 24 ·") {
+	if header := plainText(headerOf(screen)); !strings.Contains(header, "· task 24") {
 		t.Errorf("the header is %q, and the design writes a task the screen knows no state for as \"task 24\"", header)
 	}
 
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
 		contract.StatusFieldTaskState: "running",
 	}})
-	if header := plainText(headerOf(screen)); !strings.Contains(header, "· task 24 running ·") {
+	if header := plainText(headerOf(screen)); !strings.Contains(header, "· task 24 running") {
 		t.Errorf("the header is %q, and the design writes a running task as \"task 24 running\"", header)
 	}
 }

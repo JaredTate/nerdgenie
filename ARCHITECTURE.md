@@ -599,6 +599,23 @@ the model thinking, a tool running, or a task working through — rather than on
 a busy state, because a plain reply is not a task and the person who wants a
 rambling answer to stop must not wait for it to finish.
 
+The second trial ran the real screen on a pseudo-terminal at a hundred and
+twenty columns by thirty-six against a running serve and found four more things,
+all fixed here. The transcript draws whole blocks only: a block that will not fit
+in the room left at the top of the view is left out rather than cut, because the
+frame was showing a bubble with its lid and none of its words; only the newest
+block is ever cut, and only when it is taller than the whole transcript.
+`StatusFieldToolLine` now draws one pill per call however many heartbeats carry
+it: a line the screen has already drawn changes nothing, and the same line with
+its result added is written into the pill that call already has, which is what
+`readToolLine` and `replacePill` in `report.go` do. `pillRows` takes a leading
+arrow off the line before drawing its own, because the program writes its tool
+lines beginning with `loop.ToolLineMark` and the frame was reading `▸ ▸`. And the
+header writes the task in words, `task 24 running` when the program said the
+state and `task 24` when it did not, because the program sends the number on its
+own and the header was reading `· 24 ·`; a program that already writes the word
+is not made to write it twice.
+
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text
 means this one call; a deny carries the person's reason in `Reason`; and

@@ -121,6 +121,7 @@ type Screen struct {
 	callStarted   time.Time
 	streamed      int
 	lastRecord    string
+	lastTool      string
 
 	blocks     []block
 	scrollBack int

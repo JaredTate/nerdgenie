@@ -21,6 +21,8 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 ```text
 .
 .github/workflows/check.yml
+.github/workflows/install.yml
+.github/workflows/release.yml
 .gitignore
 ARCHITECTURE.md
 CLAUDE.md
@@ -1057,6 +1059,15 @@ scripts/gate/fuzz_test.go
 scripts/gate/gofmt_test.go
 scripts/gate/threshold_test.go
 scripts/gofmt.sh
+scripts/install.sh
+scripts/release/build.sh
+scripts/release/build_test.go
+scripts/release/container_test.go
+scripts/release/fixture_test.go
+scripts/release/helpers_test.go
+scripts/release/installer_test.go
+scripts/release/node.sh
+scripts/release/node_test.go
 scripts/repomap/doc.go
 scripts/repomap/drift_test.go
 scripts/repomap/fuzz_test.go

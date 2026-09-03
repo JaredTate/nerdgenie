@@ -466,6 +466,7 @@ internal/log/replay_test.go
 internal/loop/answercloses_test.go
 internal/loop/asknumber_test.go
 internal/loop/bounds_test.go
+internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
 internal/loop/checkpoints_test.go

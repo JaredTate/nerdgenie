@@ -260,25 +260,6 @@ func installUserTool(t *testing.T, home contract.Home, source []byte) {
 	}
 }
 
-// repositoryRoot walks up from the test's own folder until it finds go.mod, so
-// that a test can read a file this repository ships without knowing where it was
-// run from.
-func repositoryRoot(t *testing.T) string {
-	t.Helper()
-	folder, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("cannot find the working directory: %v", err)
-	}
-	for step := 0; step < 8; step++ {
-		if _, err := os.Stat(filepath.Join(folder, "go.mod")); err == nil {
-			return folder
-		}
-		folder = filepath.Dir(folder)
-	}
-	t.Fatal("cannot find go.mod above the test's own folder, so the repository root is unknown")
-	return ""
-}
-
 // newRegistryForTest builds the real tool registry over a temporary home, which
 // is what loads the executables in the tools folder, and hands back the lines it
 // said about anything it skipped.

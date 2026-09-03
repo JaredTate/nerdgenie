@@ -19,7 +19,8 @@
 // version has come up, so that a link switched back always lands on a schema the
 // older binary understands. They are forward-only and numbered, each one in a
 // transaction, and the whole run happens after a backup: a migration that fails
-// puts the backup back and the update rolls the link back with it. This package
+// brings the agent down, waits until it has really let go of the database, puts
+// the backup back, and the update rolls the link back with it. This package
 // owns the list of migrations and the schema version that internal/log created
 // at one, and CheckSchema is how a binary refuses a database written by a newer
 // Coeus while naming the version to use instead.

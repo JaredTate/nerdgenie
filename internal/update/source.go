@@ -31,6 +31,9 @@ const (
 	// downloadWait is how long fetching one archive may take, which on a slow
 	// line is minutes rather than seconds.
 	downloadWait = 15 * time.Minute
+	// maxRedirects is how many times a release address may move before the read
+	// gives up, which is the number Go's own default policy stops at.
+	maxRedirects = 10
 )
 
 // Source is where releases are read from: a web address beginning with http://
@@ -144,10 +147,28 @@ func (source Source) copyWithin(name string, into io.Writer, from io.Reader) (in
 }
 
 // client is the client a web address is read with, made here so that nothing
-// outside this package has to know the timeouts.
+// outside this package has to know the timeouts or where a redirect may lead.
 func (source Source) client() *http.Client {
 	if source.Client != nil {
 		return source.Client
 	}
-	return &http.Client{Timeout: downloadWait}
+	return &http.Client{Timeout: downloadWait, CheckRedirect: refuseADowngrade}
+}
+
+// refuseADowngrade stops a release that was asked for over https from being
+// followed to a plain address, and gives up on an address that keeps moving.
+//
+// The manifest is what carries the checksums, so a plaintext manifest and a
+// plaintext archive that agrees with it are a whole release nobody has checked;
+// whoever can answer in the middle of a plain connection can write both.
+func refuseADowngrade(request *http.Request, sent []*http.Request) error {
+	if len(sent) >= maxRedirects {
+		return fmt.Errorf("the release address moved %d times without settling, which is more than the %d this reads, so name the address it ends at with --from",
+			len(sent), maxRedirects)
+	}
+	if len(sent) > 0 && sent[0].URL.Scheme == "https" && request.URL.Scheme != "https" {
+		return fmt.Errorf("the release address %s sent Coeus on to %s, which is not https, so nothing was read; a release is only as trustworthy as the manifest that names its checksums, so name an https address with --from",
+			sent[0].URL, request.URL)
+	}
+	return nil
 }

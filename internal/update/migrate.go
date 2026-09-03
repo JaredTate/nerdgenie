@@ -17,6 +17,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/log"
 	"github.com/JaredTate/coeus/internal/reliability"
@@ -83,6 +84,11 @@ type MigrateSettings struct {
 	// Version is the version of Coeus running the migrations, which is written
 	// down beside each one.
 	Version string
+	// StopTheAgent brings the running agent down, and is the service manager's
+	// own stop when it is nil. It is asked only on the one path that puts the
+	// backup back, because that path rewrites the database file, and a test
+	// passes its own so that no test ever touches this machine's services.
+	StopTheAgent func(ctx context.Context) error
 }
 
 // Migrate brings the one database up to the schema this program understands and
@@ -191,7 +197,17 @@ func applyOne(ctx context.Context, database *sql.DB, migration Migration, versio
 
 // putTheBackupBack restores the database as it was before the run and reports
 // both what went wrong and what was done about it.
+//
+// The agent is brought down first and its going is proved before anything is
+// touched. The migration step of an update runs after the new version has come
+// up, so "coeus serve" is holding the database open at this moment, and putting
+// a backup back clears the write-ahead file and rewrites the database in place;
+// doing that under a live connection throws away writes the agent has already
+// taken. An agent that will not go leaves the database as it is.
 func putTheBackupBack(ctx context.Context, settings MigrateSettings, archive string, why error) error {
+	if err := bringTheAgentDown(ctx, settings); err != nil {
+		return fmt.Errorf("%w, and the backup %s was left where it is because the database is still in use: %w", why, archive, err)
+	}
 	for _, beside := range []string{"-wal", "-shm"} {
 		if err := os.Remove(settings.Home.DatabaseFile() + beside); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("%w, and %s could not be cleared away before putting the backup back: %w", why, settings.Home.DatabaseFile()+beside, err)
@@ -204,4 +220,29 @@ func putTheBackupBack(ctx context.Context, settings MigrateSettings, archive str
 		return fmt.Errorf("%w, and the backup %s could not be put back either, so put it back by hand with \"coeus restore\": %w", why, archive, err)
 	}
 	return fmt.Errorf("%w, so the backup %s was put back and the database is as it was", why, archive)
+}
+
+// bringTheAgentDown stops the running agent and proves it has let go of the
+// database, which is the one thing that makes rewriting the file safe.
+//
+// What decides is the readiness check rather than the service manager: an agent
+// that still answers has the database open whatever the manager said, and one
+// that no longer answers is gone even on a machine that runs no service at all.
+func bringTheAgentDown(ctx context.Context, settings MigrateSettings) error {
+	stop := settings.StopTheAgent
+	if stop == nil {
+		stop = service{unit: command.ServiceName, stopWait: reliability.DrainExpiry}.stop
+	}
+	refused := stop(ctx)
+	if askIfReady(ctx, settings.Home) != nil {
+		return nil
+	}
+	byHand := fmt.Sprintf("stop Coeus with \"systemctl --user stop %s\" and put the backup back with \"coeus restore\"",
+		command.ServiceName)
+	if refused != nil {
+		return fmt.Errorf("the agent is still answering on %s after the service manager refused to stop it, so it still has the database open; %s: %w",
+			settings.Home.SocketFile(), byHand, refused)
+	}
+	return fmt.Errorf("the agent is still answering on %s after it was told to stop, so it still has the database open; %s",
+		settings.Home.SocketFile(), byHand)
 }

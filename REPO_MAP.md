@@ -627,6 +627,7 @@ internal/repair/thinking.go
 internal/repair/thinking_test.go
 internal/replay/astest.go
 internal/replay/astest_test.go
+internal/replay/bounds_test.go
 internal/replay/channel.go
 internal/replay/compare.go
 internal/replay/doc.go
@@ -1007,6 +1008,7 @@ internal/tui/transcript.go
 internal/tui/typing_test.go
 internal/tui/unixsocket.go
 internal/tui/unixsocket_test.go
+internal/update/bounds_test.go
 internal/update/doc.go
 internal/update/failures_test.go
 internal/update/fixture_test.go
@@ -1022,10 +1024,12 @@ internal/update/readiness_internal_test.go
 internal/update/refusals_test.go
 internal/update/release.go
 internal/update/release_internal_test.go
+internal/update/rollback_test.go
 internal/update/schema.go
 internal/update/service.go
 internal/update/service_test.go
 internal/update/source.go
+internal/update/source_internal_test.go
 internal/update/source_test.go
 internal/update/switchover.go
 internal/update/updater.go

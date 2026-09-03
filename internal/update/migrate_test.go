@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -85,6 +86,17 @@ func TestADatabaseFromANewerCoeusIsRefusedWithTheVersionToUse(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), home.DatabaseFile()) {
 		t.Errorf("the refusal does not name the database: %v", err)
+	}
+}
+
+func TestTheRefusalOfANewerDatabaseIsOneTheProgramStartingCanRecognise(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	aDatabaseAtVersion(t, home.DatabaseFile(), SchemaVersion()+1, "0.9.0")
+
+	err := CheckSchema(context.Background(), home.DatabaseFile())
+
+	if !errors.Is(err, ErrDatabaseFromANewerCoeus) {
+		t.Errorf("the refusal is %v, which the program starting cannot tell from any other trouble, so it cannot leave with the code that stops the service being restarted", err)
 	}
 }
 

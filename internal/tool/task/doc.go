@@ -12,4 +12,13 @@
 // hands the model back the rule it broke, word for word, so that it can fix the
 // call rather than guess. It is meant to ride in the same reply as the model's
 // other tool calls, so it does no work of its own and never waits on anything.
+//
+// The seven are strict; the way they are written is not. The operation is found
+// by its plain name, so the case, the underscores and a leading set or add do
+// not matter, and a call that names no operation at all is read from the fields
+// it carries. Every field is read on its own, under either name a model gives
+// it, and a field in a shape this tool cannot read is refused by name with the
+// shapes it does take, because one badly written field must not cost the whole
+// call. What comes back is the sentence naming what was written and the whole
+// update as JSON under it.
 package task

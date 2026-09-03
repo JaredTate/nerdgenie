@@ -45,25 +45,27 @@ func TestThePrivateRangesAreRefused(t *testing.T) {
 }
 
 func TestAPublicAddressIsAllowed(t *testing.T) {
-	if err := web.CheckAddressAllowed("https://example.com/notes", nil); err != nil {
+	// The address is written as a number rather than a name, because no test in
+	// this package reaches the network, and a name would have to be looked up.
+	if err := web.CheckAddressAllowed("https://93.184.216.34/notes", nil); err != nil {
 		t.Errorf("an ordinary public address was refused: %v", err)
 	}
 }
 
 func TestARedirectToAnAddressOnThisMachineIsRefused(t *testing.T) {
-	tool, server := newTool(t, "")
+	_, server := newTool(t, "")
 	elsewhere := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(writer, "<html><body><p>the secret</p></body></html>")
 	}))
 	t.Cleanup(elsewhere.Close)
 
 	server.AddPage("/redirect", "")
-	away := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-		http.Redirect(writer, nil, elsewhere.URL+"/secret", http.StatusFound)
+	away := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, elsewhere.URL+"/secret", http.StatusFound)
 	}))
 	t.Cleanup(away.Close)
 
-	tool = web.New(web.Settings{
+	tool := web.New(web.Settings{
 		ResultsPageAddress: server.DuckDuckGoAddress(),
 		AllowedHosts:       []string{hostOf(t, away.URL)},
 		Timeout:            10 * time.Second,
@@ -78,6 +80,8 @@ func TestARedirectToAnAddressOnThisMachineIsRefused(t *testing.T) {
 }
 
 func TestAHostThatResolvesToNothingSaysSo(t *testing.T) {
+	// The name ends in .invalid, which the standards keep aside for exactly this
+	// and which therefore stands for nothing anywhere.
 	if err := web.CheckAddressAllowed("https://no-such-host.invalid/x", nil); err == nil {
 		t.Errorf("a host that resolves to nothing was allowed")
 	}

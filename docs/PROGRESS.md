@@ -184,3 +184,7 @@ All twenty-three security findings are fixed and merged, one worker per package,
 
 Two numbers from the context builder after the layout change: consecutive rounds of the forty-step fixture share 84, 86, and 87 percent of the prompt at rounds 10, 20, and 30, where the reviewer had measured 48, 38, and 33; a memory save mid-task now leaves 90 percent in place instead of 21.
 
+### Live results after the fix waves, 2026-09-03
+
+`make live` on main, the two live suites that exist (the provider contract test and the context builder's forty-step fixture) against all three real models: green, with the context suite taking 98 seconds on the local model. The functional suite against the real models, which `CLAUDE.md` promises under the same target, is not built yet; a worker was started for it and cut off by the session limit, and it resumes when the limit lifts. The loop and file-tool sections of brief 6.7 merged after their workers were cut off; what each still owes is written in the orchestrator's memory and in the wiring worker's list.
+

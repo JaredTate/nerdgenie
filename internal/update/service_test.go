@@ -40,7 +40,8 @@ func aMachineWithAService(t *testing.T) (contract.Home, *fakeService) {
 		"    if " + home.CurrentReleaseLink() + " serve >/dev/null 2>&1; then echo active > " + service.state +
 		"; else echo failed > " + service.state + "; fi ;;\n" +
 		"  is-active)\n" +
-		"    state=$(cat " + service.state + " 2>/dev/null || echo unknown)\n" +
+		"    state=unknown\n" +
+		"    if [ -f " + service.state + " ]; then read state < " + service.state + "; fi\n" +
 		"    echo \"$state\"\n" +
 		"    [ \"$state\" = active ] || exit 3 ;;\n" +
 		"esac\n" +

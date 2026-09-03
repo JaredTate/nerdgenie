@@ -195,3 +195,5 @@ With the workers locked out by the session limit, the orchestrator built brief 6
 The desktop is wired the same night (finding 48): opened beside the browser at start, closed with it, handed to the computer tool, with a functional test that a binary with no worker bundle says so.
 
 For the wave 5 and 6 trial: `docs/TRIAL.md` writes the checklist as commands, `go run ./scripts/fixturesite` serves the fixture site for a person, and `scripts/trial/bad-release.sh` stages a good release and a bad one so the rollback can be watched.
+
+After streaming and the desktop wiring landed: `make live` green again on all three real models (the provider suite 46 seconds, the context fixture 38 seconds, the functional suite 110 seconds), and `make test-browser` green headless on the shared fixture site with the screen reader settings unchanged and no Orca process before or after.

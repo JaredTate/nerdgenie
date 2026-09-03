@@ -73,6 +73,7 @@ docs/briefs/wave-3/3.2-channel-core.md
 docs/briefs/wave-3/3.3-commands-init-install.md
 docs/briefs/wave-3/3.4-terminal-screen.md
 docs/briefs/wave-3/3.5-signal.md
+docs/briefs/wave-3/3.6-fix-the-wave-3-gate.md
 docs/briefs/wave-4/4.1-reliability-backups.md
 docs/briefs/wave-4/4.2-memory.md
 docs/briefs/wave-4/4.3-skills.md

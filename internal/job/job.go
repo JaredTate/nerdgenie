@@ -45,6 +45,11 @@ const (
 	// TimerClamp is the longest the job store ever sleeps before looking for work
 	// again, however far away the next tick is.
 	TimerClamp = 60 * time.Second
+	// RestBetweenWaits is the shortest time Wait ever takes to come back a second
+	// time. Work already past its moment makes the wait nothing at all, so
+	// without this rest a driver that cannot take that work yet would ask again
+	// as fast as the processor allows.
+	RestBetweenWaits = time.Second
 	// FailuresThatPause is how many tasks may fail in a row before a plain job is
 	// paused, because somebody is there to look at it.
 	FailuresThatPause = 3
@@ -71,16 +76,17 @@ const databaseOptions = "?_pragma=busy_timeout(5000)" +
 // tasks that are running, and the schedules of the ones that have one. It is
 // what internal/contract calls a Job.
 type Jobs struct {
-	home     contract.Home
-	eventLog contract.Store
-	clock    contract.Clock
-	database *sql.DB
-	owner    string
-	guard    sync.Mutex
-	order    []string
-	held     map[string]*heldJob
-	nextJob  int
-	closed   bool
+	home          contract.Home
+	eventLog      contract.Store
+	clock         contract.Clock
+	database      *sql.DB
+	owner         string
+	guard         sync.Mutex
+	order         []string
+	held          map[string]*heldJob
+	nextJob       int
+	closed        bool
+	lastWaitEnded time.Time
 }
 
 // The job store is the one real job store, so the compiler is asked to say at

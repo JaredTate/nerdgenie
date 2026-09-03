@@ -45,16 +45,16 @@ func (fence *Fence) Available() error {
 	return fence.canMakeANamespace()
 }
 
-// canMakeANamespace asks bwrap to build an empty fence and remembers the answer,
-// because the question costs a process to ask and the answer does not change
-// while the agent is running.
+// canMakeANamespace asks the fence's prober to build an empty fence and
+// remembers the answer, because the question costs a process to ask and the
+// answer does not change while the agent is running.
 func (fence *Fence) canMakeANamespace() error {
 	fence.probeGuard.Lock()
 	defer fence.probeGuard.Unlock()
 
 	if !fence.probed {
 		fence.probed = true
-		fence.probeReason = probeForANamespace()
+		fence.probeReason = fence.probe()
 	}
 	return fence.probeReason
 }

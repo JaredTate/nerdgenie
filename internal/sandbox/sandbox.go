@@ -36,7 +36,11 @@ type Settings struct {
 	UserHome string
 	// AgentHome is the agent's own home folder, which COEUS_HOME may have moved
 	// away from the default under the user's home; the fence must keep it out
-	// wherever it is. Empty means the default, ~/.coeus.
+	// wherever it is, because the vault and the browser profile live inside it.
+	// Whoever builds the fence passes the Root of the contract.Home it is
+	// already holding, which is what cmd/coeus/serve.go has to do when the
+	// orchestrator wires the fence. Empty means the default, ~/.coeus, and is
+	// only right when COEUS_HOME has not moved it.
 	AgentHome string
 	// OutputCap is the most bytes kept from each of a command's two output
 	// streams. Zero means the tool output cap from the configuration's defaults.
@@ -57,9 +61,14 @@ type Fence struct {
 	outputCap     int
 	helperProgram string
 
-	// The answer to whether bwrap can really make a user namespace here, asked
-	// once and then remembered, because asking it starts a process and the
-	// answer does not change while the agent is running.
+	// probe asks whether bwrap can really make a user namespace here. New puts
+	// the real probe here; it is a field so that a test can count how many times
+	// it is asked, which is the only way to see that the answer is remembered.
+	probe func() error
+
+	// The answer that probe gave, asked once and then remembered, because asking
+	// it starts a process and the answer does not change while the agent is
+	// running.
 	probeGuard  sync.Mutex
 	probed      bool
 	probeReason error
@@ -89,6 +98,7 @@ func New(settings Settings) (*Fence, error) {
 		userHome:      settings.UserHome,
 		outputCap:     outputCap,
 		helperProgram: helperProgram,
+		probe:         probeForANamespace,
 	}, nil
 }
 

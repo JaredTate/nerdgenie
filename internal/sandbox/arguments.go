@@ -63,8 +63,9 @@ type fencePlan struct {
 }
 
 // planFor works one command into a plan, refusing anything the fence cannot
-// allow. It touches nothing on disk, so that it is cheap enough to run before
-// every command.
+// allow. The only thing it reads from disk is where the working directory's
+// links lead, because the roots it is measured against are folders and not the
+// names they were written under.
 func (fence *Fence) planFor(command contract.SandboxCommand) (fencePlan, error) {
 	if err := checkCommand(command); err != nil {
 		return fencePlan{}, err
@@ -148,12 +149,17 @@ func allowedEnvironment(scratchHome string, language string, terminal string, ex
 }
 
 // workingDirectoryFor returns where the command runs, which is the first root
-// when the caller named none and has to be inside a root when it did.
+// when the caller named none and has to be inside a root when it did. It is
+// measured by where its links lead, because that is how the roots themselves are
+// held, and a link out of a root is not a way into one.
 func (fence *Fence) workingDirectoryFor(asked string) (string, error) {
 	if asked == "" {
 		return fence.roots[0], nil
 	}
-	clean := filepath.Clean(asked)
+	clean, err := whereItLeads(filepath.Clean(asked))
+	if err != nil {
+		return "", fmt.Errorf("the working directory %q cannot be followed to a real folder, so name a folder that is there: %w", asked, err)
+	}
 	for _, root := range fence.roots {
 		if clean == root || strings.HasPrefix(clean, root+string(filepath.Separator)) {
 			return clean, nil

@@ -47,9 +47,10 @@ func checkRoots(roots []string, userHome string, agentHome string) ([]string, er
 
 // checkOneRoot holds the rules one root has to keep. The first three are the
 // contract's: it is a full path, it is not one of the paths that must stay
-// outside the fence, and it does not hold one of them. The last is this
-// package's own, because only something about to run a command needs it: the
-// root is a folder that is really there.
+// outside the fence, and it does not hold one of them. The last two are this
+// package's own, because only something about to run a command needs them: the
+// root is a folder that is really there, and what comes back is the folder its
+// links lead to rather than the name it was written under.
 func checkOneRoot(root string, userHome string, agentHome string) (string, error) {
 	if err := contract.CheckSandboxRoot(root, userHome, agentHome); err != nil {
 		return "", err
@@ -63,5 +64,22 @@ func checkOneRoot(root string, userHome string, agentHome string) (string, error
 	if !details.IsDir() {
 		return "", fmt.Errorf("the sandbox root %q is a file rather than a folder, so name the folder a command may work in", clean)
 	}
-	return clean, nil
+
+	followed, err := whereItLeads(clean)
+	if err != nil {
+		return "", fmt.Errorf("the sandbox root %q cannot be followed to a real folder, so name one whose links all lead somewhere: %w", clean, err)
+	}
+	return followed, nil
+}
+
+// whereItLeads returns the folder at the end of every link in a path.
+//
+// The fence is built from that folder and not from the name it was written
+// under, because bwrap binds the folder a link leads to and Landlock hangs its
+// rule on the same folder. A fence built from the link itself would bind one
+// path and be asked to write under another, and a root that is a link out of the
+// work folder would put whatever it leads to inside the fence under a name that
+// looks harmless.
+func whereItLeads(folder string) (string, error) {
+	return filepath.EvalSymlinks(folder)
 }

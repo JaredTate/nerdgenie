@@ -52,16 +52,6 @@ func TestAvailabilityIsNotFooledByAModuleNameThatMerelyContainsLandlock(t *testi
 	}
 }
 
-func TestAvailableOnThisMachineReadsTheRealPathAndTheRealKernel(t *testing.T) {
-	fence := &Fence{}
-
-	// The result depends on the machine, so the test asserts only that the
-	// answer is one of the two shapes the caller has to handle.
-	if err := fence.Available(); err != nil && !strings.Contains(err.Error(), "sandbox") {
-		t.Errorf("the reason the sandbox cannot run says %q, and it must say what is missing and what to do", err)
-	}
-}
-
 func TestTheReasonANamespaceWasRefusedNamesTheFixAPersonHasToApply(t *testing.T) {
 	err := namespaceRefusedError("bwrap: setting up uid map: Permission denied", errors.New("bwrap quit with exit status 1"))
 
@@ -81,15 +71,23 @@ func TestTheReasonANamespaceWasRefusedNamesTheFixAPersonHasToApply(t *testing.T)
 
 func TestTheNamespaceProbeIsRunOnceAndItsAnswerRemembered(t *testing.T) {
 	fence, _ := aFenceForTesting(t)
-
-	first := fence.canMakeANamespace()
-	if !fence.probed {
-		t.Fatal("the fence did not remember that it had already asked bwrap")
+	asked := 0
+	refused := errors.New("bwrap cannot make a user namespace on this machine")
+	fence.probe = func() error {
+		asked++
+		return refused
 	}
 
-	// The second answer comes from what was remembered, so it is the same value
-	// even though nothing runs the second time.
-	if second := fence.canMakeANamespace(); !errors.Is(second, first) && second != first {
-		t.Errorf("the second answer is %v and the first was %v, want the one that was remembered", second, first)
+	first := fence.canMakeANamespace()
+	second := fence.canMakeANamespace()
+
+	// Counting is the whole point. Asking costs a process, the answer does not
+	// change while the agent is running, and a test that only compares the two
+	// answers stays green when the remembering is taken out.
+	if asked != 1 {
+		t.Errorf("the fence asked bwrap %d times, want once", asked)
+	}
+	if !errors.Is(first, refused) || !errors.Is(second, refused) {
+		t.Errorf("the answers are %v and %v, want the remembered %v both times", first, second, refused)
 	}
 }

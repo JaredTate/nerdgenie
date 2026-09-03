@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -90,11 +91,35 @@ func Entry(arguments []string, progress io.Writer) error {
 // restrictions that were just applied and dropping the fence marker so that the
 // command never sees it.
 func becomeTheCommand(request entryRequest) error {
+	program, err := programToBecome(request.program)
+	if err != nil {
+		return err
+	}
+
+	// The command keeps the name it was asked for as its own first argument,
+	// which is what a shell would have given it and what it prints in its own
+	// messages.
 	whole := append([]string{request.program}, request.arguments...)
-	if err := syscall.Exec(request.program, whole, environmentWithoutMarker()); err != nil {
+	if err := syscall.Exec(program, whole, environmentWithoutMarker()); err != nil {
 		return fmt.Errorf("the sandbox cannot start %q inside the fence, so check that the program is in a folder the fence allows: %w", request.program, err)
 	}
 	return nil
+}
+
+// programToBecome turns the name the fence was given into the full path
+// syscall.Exec needs, because that call searches no path of its own.
+//
+// The search runs here, inside the fence and after Landlock, so it looks along
+// the PATH the fence set rather than along the one this program was started
+// with, and finds only what the fence allows. A name with a slash in it is
+// already a path and is only checked.
+func programToBecome(asked string) (string, error) {
+	found, err := exec.LookPath(asked)
+	if err != nil {
+		return "", fmt.Errorf("the sandbox cannot find %q inside the fence, so name the program by a full path or by a program on the fence's PATH, which is %s: %w",
+			asked, os.Getenv("PATH"), err)
+	}
+	return found, nil
 }
 
 // environmentWithoutMarker is this program's environment with the fence marker

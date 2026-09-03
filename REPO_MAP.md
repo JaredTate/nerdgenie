@@ -42,6 +42,8 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/run.go
+cmd/coeus/run_test.go
 cmd/coeus/runlock.go
 cmd/coeus/sandbox_entry.go
 cmd/coeus/sandbox_entry_test.go
@@ -57,6 +59,7 @@ cmd/coeus/uninstall.go
 cmd/coeus/update.go
 cmd/coeus/update_test.go
 cmd/coeus/version.go
+cmd/coeus/watchedmodel.go
 cmd/coeus/wiring.go
 docs/COEUS_PLAN.md
 docs/DEPENDENCIES.md
@@ -418,12 +421,14 @@ internal/loop/permit.go
 internal/loop/permit_test.go
 internal/loop/problems_test.go
 internal/loop/realtools_test.go
+internal/loop/recordline.go
 internal/loop/recordwrite.go
 internal/loop/resume_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/situation.go
+internal/loop/stopcancels_test.go
 internal/loop/turn_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
@@ -1039,9 +1044,12 @@ test/functional/fixturesite_test.go
 test/functional/loop_test.go
 test/functional/permission_test.go
 test/functional/readfile_test.go
+test/functional/recordline_test.go
 test/functional/sample_test.go
 test/functional/serve_test.go
 test/functional/site_test.go
+test/functional/status_test.go
+test/functional/stop_test.go
 test/functional/vault_test.go
 worker/browser/.gitignore
 worker/browser/PROTOCOL.md

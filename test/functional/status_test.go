@@ -14,8 +14,8 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// theCallHeld and theCallWrote are the token counts the scripted model reports,
-// which are the numbers the status has to carry back.
+// The token counts the scripted model reports, which are the numbers the status
+// has to carry back to the header.
 const (
 	theCallHeld  = 1234
 	theCallWrote = 56

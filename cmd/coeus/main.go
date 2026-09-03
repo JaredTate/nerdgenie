@@ -49,6 +49,7 @@ func subcommands() []subcommand {
 		initSubcommand,
 		doctorSubcommand,
 		serveSubcommand,
+		runSubcommand,
 		tuiSubcommand,
 		installSubcommand,
 		uninstallSubcommand,

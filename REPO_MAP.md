@@ -502,6 +502,7 @@ internal/provider/schema.go
 internal/provider/stream.go
 internal/provider/stream_test.go
 internal/provider/support_test.go
+internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
 internal/provider/wire_test.go
 internal/record/agreement_test.go
 internal/record/checkpoint.go

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -75,6 +76,25 @@ func TestARefusalWithNoWordsInItStillSaysSomething(t *testing.T) {
 	long := strings.Repeat("x", maxErrorBodyBytes*2)
 	if said := messageFromBody([]byte(long)); len(said) > maxErrorBodyBytes {
 		t.Errorf("a very long refusal was read as %d bytes, and the cap is %d", len(said), maxErrorBodyBytes)
+	}
+}
+
+func TestARefusalOfBytesThatAreNotTextIsStillCutToTheCap(t *testing.T) {
+	// A byte that is not valid UTF-8 comes back out of the JSON reader as the
+	// three-byte replacement character, so a body that is under the cap can
+	// decode into a message that is three times as long. The cap has to be put
+	// on the message that is handed on, not only on the bytes that were read.
+	grows := []byte(`{"error":{"message":"` + strings.Repeat("\xc8", maxErrorBodyBytes-64) + `"}}`)
+	said := messageFromBody(grows)
+	if len(said) > maxErrorBodyBytes {
+		t.Errorf("a refusal of bytes that are not text was read as %d bytes, and the cap is %d",
+			len(said), maxErrorBodyBytes)
+	}
+	if said == "" {
+		t.Error("a refusal of bytes that are not text was read as nothing at all")
+	}
+	if !utf8.ValidString(said) {
+		t.Error("a refusal was cut in the middle of a character, and the message must always be readable text")
 	}
 }
 

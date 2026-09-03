@@ -118,10 +118,36 @@ func looksLikeOverflow(said string) bool {
 
 // messageFromBody digs the sentence out of a refusal body, which both APIs wrap
 // in an "error" object, and falls back to the body itself when it is neither.
+// The cap is put on the sentence that is handed on and not only on the bytes it
+// was read from, because reading grows them: a byte that is not valid UTF-8
+// comes back out of the JSON reader as the three-byte replacement character, so
+// a body that was under the cap can decode into a message three times as long.
 func messageFromBody(body []byte) string {
 	if len(body) > maxErrorBodyBytes {
 		body = body[:maxErrorBodyBytes]
 	}
+	return cutToBytes(sentenceFromBody(body), maxErrorBodyBytes)
+}
+
+// cutToBytes shortens a message to at most the given number of bytes, cutting
+// between characters so that a character is never left half written.
+func cutToBytes(said string, limit int) string {
+	if len(said) <= limit {
+		return said
+	}
+	cut := 0
+	for boundary := range said {
+		if boundary > limit {
+			break
+		}
+		cut = boundary
+	}
+	return said[:cut]
+}
+
+// sentenceFromBody reads the refusal's sentence out of a body, leaving how long
+// that sentence may be to messageFromBody, which is the one place that caps it.
+func sentenceFromBody(body []byte) string {
 	shaped := struct {
 		Error struct {
 			Message string `json:"message"`

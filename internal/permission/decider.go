@@ -74,9 +74,13 @@ func rulesFromConfiguration(written []contract.PermissionRule) []Rule {
 }
 
 // Decide rules on one call: allow it, ask the user about it, or refuse it. A
-// call no rule covers is allowed, because the agent runs on its own by default,
-// unless its readable form is not the whole story, and then it is put to the
-// user, because a form that leaves something out cannot be ruled on.
+// rule that refuses is read first, because nothing outranks it. The answer the
+// user gave earlier in this session is read next, because the user's word for
+// the session outranks a rule that would have let the call run without asking.
+// After those, a call no rule covers is allowed, because the agent runs on its
+// own by default, unless its readable form is not the whole story, and then it
+// is put to the user, because a form that leaves something out cannot be ruled
+// on.
 func (decider *Decider) Decide(ctx context.Context, request contract.PermissionRequest) (contract.PermissionDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return contract.PermissionDecision{}, fmt.Errorf("the turn was stopped before the %s call could be ruled on: %w", request.ToolName, err)
@@ -84,8 +88,15 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 
 	reduced, note := reduceCall(request)
 	matched, covered := decider.book.Match(request.ToolName, reduced)
+	if covered && matched.Action == contract.RulingDeny {
+		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
+	}
+	if answered, alreadyAnswered := decider.answerAlreadyGiven(request.ToolName, reduced); alreadyAnswered {
+		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}, nil
+	}
+
 	switch {
-	case covered && matched.Action != contract.RulingAsk:
+	case covered && matched.Action == contract.RulingAllow:
 		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
 	case covered:
 		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced)), nil
@@ -99,6 +110,15 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 	}
 }
 
+// answerAlreadyGiven returns the answer the user gave earlier in this session
+// about a call that reduces to the same thing, and says whether there was one.
+func (decider *Decider) answerAlreadyGiven(toolName string, reduced string) (rememberedAnswer, bool) {
+	decider.guard.Lock()
+	defer decider.guard.Unlock()
+	answered, alreadyAnswered := decider.remembered[rememberedKey(toolName, reduced)]
+	return answered, alreadyAnswered
+}
+
 // whyTheFormLeavesSomethingOut says, in the words the user and the model both
 // read, why a call whose readable form is not the whole story needs a yes.
 func whyTheFormLeavesSomethingOut(note string, reduced string) string {
@@ -108,17 +128,10 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 	return fmt.Sprintf("the call %q was too long to read to the end, so nothing here can say what the rest of it does", reduced)
 }
 
-// ruleOnSomethingToAskAbout takes a call that needs a yes and sees whether the
-// user has already answered a call like it in this session, and then whether a
-// skill holds a standing approval for it.
+// ruleOnSomethingToAskAbout takes a call that needs a yes, which the user has
+// not already answered about in this session, and sees whether a skill holds a
+// standing approval for it before putting it to the user.
 func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string) contract.PermissionDecision {
-	decider.guard.Lock()
-	answered, alreadyAnswered := decider.remembered[rememberedKey(request.ToolName, reduced)]
-	decider.guard.Unlock()
-
-	if alreadyAnswered {
-		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}
-	}
 	if approval, standing := decider.useStandingApproval(reduced); standing {
 		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 	}

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // The bounds on one read. A model that asks for a whole file gets the beginning
@@ -121,22 +122,38 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: text}, err
 }
 
+// The names a model writes for the three fields this tool takes. The first of
+// each is the one the specification asks for, and the rest are the names the
+// other agents use or a model half-remembers.
+var (
+	pathNames   = []string{"path", "file_path", "filepath", "file", "filename", "target"}
+	offsetNames = []string{"offset", "start", "start_line", "from", "from_line"}
+	limitNames  = []string{"limit", "count", "lines", "line_count", "max_lines"}
+)
+
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on.
 func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a path in it: %w", err)
-		}
+	fields, err := loose.Read(written, "a path")
+	if err != nil {
+		return input{}, err
 	}
-	if strings.TrimSpace(asked.Path) == "" {
+	path, wrotePath := fields.Text(pathNames...)
+	offset, _ := fields.Number(offsetNames...)
+	limit, _ := fields.Number(limitNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if !wrotePath {
+		return input{}, fields.Missing("path", "the whole path of a file or folder, or a result label such as r7,")
+	}
+	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names nothing to read, so give a path or a result label such as r7")
 	}
-	if asked.Offset < 0 || asked.Limit < 0 {
-		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", asked.Offset, asked.Limit)
+	if offset < 0 || limit < 0 {
+		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", offset, limit)
 	}
-	return asked, nil
+	return input{Path: path, Offset: offset, Limit: limit}, nil
 }
 
 // resultLabel says whether what the model wrote is the label of a past result

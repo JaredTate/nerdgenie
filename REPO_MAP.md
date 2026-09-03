@@ -317,6 +317,7 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go
 internal/memory/capture_test.go
@@ -327,11 +328,15 @@ internal/memory/doc.go
 internal/memory/facts.go
 internal/memory/files.go
 internal/memory/fuzz_test.go
+internal/memory/hint.go
+internal/memory/hint_test.go
 internal/memory/index.go
 internal/memory/integration_test.go
 internal/memory/internals_test.go
 internal/memory/memory.go
 internal/memory/memory_test.go
+internal/memory/pages_test.go
+internal/memory/reads_test.go
 internal/memory/rebuild.go
 internal/memory/robustness_test.go
 internal/memory/runner_test.go

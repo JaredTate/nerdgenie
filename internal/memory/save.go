@@ -16,6 +16,12 @@ import (
 // up, so that a memory full of hand-written ids cannot make it spin.
 const maxMintAttempts = 1000
 
+// maxFactsPerBatch is how many facts one save may carry. A save reads a row of
+// the index for every fact in the batch before it writes anything, so a batch
+// with no limit is a read with no limit; the biggest batch anything in Coeus
+// writes is one finished task's capture, which is maxCapturedFacts.
+const maxFactsPerBatch = 500
+
 // storedFact is one fact ready to be written down, together with the family of
 // file it belongs in.
 type storedFact struct {
@@ -28,6 +34,9 @@ type storedFact struct {
 // and the file the fact belongs in. It refuses the whole batch rather than part
 // of it, so that a save either happens or does not.
 func (memory *Memory) prepareFacts(ctx context.Context, transaction runner, facts []contract.Fact) ([]storedFact, error) {
+	if len(facts) > maxFactsPerBatch {
+		return nil, fmt.Errorf("this save carries %d facts and memory writes at most %d at a time, so write them in smaller batches", len(facts), maxFactsPerBatch)
+	}
 	prepared := make([]storedFact, 0, len(facts))
 	seen := map[string]bool{}
 	for _, fact := range facts {
@@ -51,8 +60,8 @@ func (memory *Memory) prepareOneFact(ctx context.Context, transaction runner, fa
 	if fact.Text == "" {
 		return storedFact{}, fmt.Errorf("the fact %q has no text, so give every fact something to say", fact.ID)
 	}
-	if len(fact.Text) > MaxFactTextBytes {
-		return storedFact{}, fmt.Errorf("the fact %q is %d bytes and one fact may be at most %d, so write it as a note in the memory folder instead", fact.ID, len(fact.Text), MaxFactTextBytes)
+	if len(fact.Text) > maxFactTextBytes {
+		return storedFact{}, fmt.Errorf("the fact %q is %d bytes and one fact may be at most %d, so write it as a note in the memory folder instead", fact.ID, len(fact.Text), maxFactTextBytes)
 	}
 	fact.Source = withoutSeparators(fact.Source)
 	if fact.Recorded.IsZero() {
@@ -90,7 +99,7 @@ func (memory *Memory) prepareOneFact(ctx context.Context, transaction runner, fa
 // with the user prefix and MEMORY.md for everything else.
 func familyOf(ctx context.Context, transaction runner, fact contract.Fact) (factFamily, error) {
 	if fact.Supersedes == "" {
-		if strings.HasPrefix(fact.ID, UserFactPrefix) {
+		if strings.HasPrefix(fact.ID, userFactPrefix) {
 			return userFacts, nil
 		}
 		return worldFacts, nil
@@ -128,7 +137,7 @@ func mintFactID(ctx context.Context, transaction runner, family factFamily) (str
 	}
 	prefix := "m"
 	if family == userFacts {
-		prefix = UserFactPrefix
+		prefix = userFactPrefix
 	}
 	for attempt := 0; attempt < maxMintAttempts; attempt++ {
 		id := prefix + strconv.Itoa(next+attempt)

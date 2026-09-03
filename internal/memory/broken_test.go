@@ -44,7 +44,7 @@ func aBrokenMemory(t *testing.T) *Memory {
 func TestTheIndexerSaysSoWhenTheDatabaseIsBroken(t *testing.T) {
 	ctx := context.Background()
 	remembering := aBrokenMemory(t)
-	budget := &runBudget{left: MaxIndexedPerRun}
+	budget := &runBudget{left: maxIndexedPerRun}
 
 	notePath := filepath.Join(remembering.home.MemoryFolder(), "product.md")
 	if err := os.WriteFile(notePath, []byte("the kayaks are in the shed\n"), contract.DataFileMode); err != nil {

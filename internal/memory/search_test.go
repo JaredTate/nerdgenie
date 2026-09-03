@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/memory"
 )
 
 // shippedCaps are the limits a fresh install ships with, which is what the
@@ -94,9 +93,15 @@ func TestTheHintSaysNothingWhenNothingMatches(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	ctx := context.Background()
 
-	opened.saveWorldFact(t, "the anniversary is on the tenth of January")
+	for _, fact := range []string{
+		"the anniversary is on the tenth of January",
+		"the blog is built with Hugo and the theme is ananke",
+		"the user posts in the morning and never in the evening",
+	} {
+		opened.saveWorldFact(t, fact)
+	}
 
-	for _, query := range []string{"", "   ", "kayaks and canoes"} {
+	for _, query := range []string{"", "   ", "kayaks and canoes", "and then the one of them is on it for a while"} {
 		hint, err := opened.memory.Hint(ctx, query)
 		if err != nil {
 			t.Fatalf("cannot ask for a hint for %q: %v", query, err)
@@ -124,8 +129,8 @@ func TestTheHintIsThreeLinesOfOneHundredAndTwentyCharactersAtMost(t *testing.T) 
 		t.Fatalf("the hint is %d lines, want %d", len(hint), contract.MemoryHintLines)
 	}
 	for _, line := range hint {
-		if len([]rune(line)) > memory.MaxHintRunes {
-			t.Errorf("the hint line is %d characters, and the cap is %d", len([]rune(line)), memory.MaxHintRunes)
+		if len([]rune(line)) > theHintLineCap {
+			t.Errorf("the hint line is %d characters, and the cap is %d", len([]rune(line)), theHintLineCap)
 		}
 		if strings.ContainsAny(line, "\n\r") {
 			t.Errorf("the hint line %q carries a line break, and each hint is one line", line)
@@ -145,8 +150,8 @@ func TestASearchIsCappedHoweverManyResultsAreAskedFor(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot search with the limit %d: %v", limit, err)
 		}
-		if len(found) > memory.MaxSearchResults {
-			t.Errorf("a search with the limit %d gave %d results, and the cap is %d", limit, len(found), memory.MaxSearchResults)
+		if len(found) > theSearchResultCap {
+			t.Errorf("a search with the limit %d gave %d results, and the cap is %d", limit, len(found), theSearchResultCap)
 		}
 	}
 	found, err := opened.memory.Search(ctx, "anniversary", 4)
@@ -196,7 +201,7 @@ func TestANoteInTheMemoryFolderIsSearchableAndReadableInFull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the note: %v", err)
 	}
-	if len(found) == 0 || !strings.HasPrefix(found[0].ID, memory.NoteIDPrefix) {
+	if len(found) == 0 || !strings.HasPrefix(found[0].ID, theNotePrefix) {
 		t.Fatalf("the note is not searchable, and the search found %v", found)
 	}
 	whole, err := reopened.Get(ctx, found[0].ID)
@@ -255,7 +260,7 @@ func TestAPastMessageIsSearchableAndReadableByItsID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the message: %v", err)
 	}
-	if len(found) == 0 || !strings.HasPrefix(found[0].ID, memory.MessageIDPrefix) {
+	if len(found) == 0 || !strings.HasPrefix(found[0].ID, theMessagePrefix) {
 		t.Fatalf("the past message is not searchable, and the search found %+v", found)
 	}
 	if found[0].Source != "a message in task 17" {
@@ -297,8 +302,8 @@ func TestReadingSomethingThatIsNotThereSaysSo(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	ctx := context.Background()
 
-	missing := []string{"m404", memory.NoteIDPrefix + "memory/nothing.md", memory.MessageIDPrefix + "9999",
-		memory.MessageIDPrefix + "not a number", memory.NoteIDPrefix + "../../outside.md"}
+	missing := []string{"m404", theNotePrefix + "memory/nothing.md", theMessagePrefix + "9999",
+		theMessagePrefix + "not a number", theNotePrefix + "../../outside.md"}
 	for _, id := range missing {
 		if _, err := opened.memory.Get(ctx, id); err == nil {
 			t.Errorf("reading %q returned no error, and it must name the id", id)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,14 +15,21 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxIndexedPerRun is how many files and messages one run of the indexer takes
+// maxIndexedPerRun is how many files and messages one run of the indexer takes
 // in. A very large log or a very full memory folder is caught up over several
 // runs rather than in one that never ends.
-const MaxIndexedPerRun = 2000
+const maxIndexedPerRun = 2000
 
 // indexedThroughCounter names the state row holding the number of the last
 // event the indexer has read, so that a later run carries on from there.
 const indexedThroughCounter = "indexed through event"
+
+// maxIndexPagesPerRun is how many reads of the event log one run of the indexer
+// may make. A list read of the log returns at most log.MaxEventsPerRead events,
+// and a run indexes at most maxIndexedPerRun of them, so this is far more pages
+// than a run can ever want, and it is here so that a log which keeps saying
+// there is more can never hold a run open for ever.
+const maxIndexPagesPerRun = 100
 
 // runBudget is how much work one run of the indexer may do.
 type runBudget struct {
@@ -38,13 +46,24 @@ func (budget *runBudget) spend() bool {
 	return true
 }
 
+// newRunBudget is the budget one run of the indexer starts with, which is the
+// most pieces of work any run may do.
+func newRunBudget() *runBudget {
+	return &runBudget{left: maxIndexedPerRun}
+}
+
 // rebuild brings the index up to date with what is on disk and in the event
 // log, inside one run's budget. It runs once when the memory is opened.
 func (memory *Memory) rebuild(ctx context.Context) error {
 	memory.writing.Lock()
 	defer memory.writing.Unlock()
+	return memory.rebuildInside(ctx, newRunBudget())
+}
 
-	budget := &runBudget{left: MaxIndexedPerRun}
+// rebuildInside does the work of a rebuild with the write lock already held and
+// with a budget a test can make small, so that what a run does when its budget
+// runs out can be proved without writing two thousand rows first.
+func (memory *Memory) rebuildInside(ctx context.Context, budget *runBudget) error {
 	if err := memory.indexTheFactFiles(ctx, budget); err != nil {
 		return err
 	}
@@ -87,6 +106,9 @@ func (memory *Memory) indexTheFactFiles(ctx context.Context, budget *runBudget) 
 func (memory *Memory) indexTheNotes(ctx context.Context, budget *runBudget) error {
 	folder := memory.home.MemoryFolder()
 	walkErr := filepath.WalkDir(folder, func(path string, entry fs.DirEntry, err error) error {
+		if budget.left <= 0 {
+			return fs.SkipAll
+		}
 		if err != nil || entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			return nil
 		}
@@ -102,7 +124,7 @@ func (memory *Memory) indexTheNotes(ctx context.Context, budget *runBudget) erro
 	if walkErr != nil {
 		return fmt.Errorf("cannot walk the memory folder %s to index it: %w", folder, walkErr)
 	}
-	return memory.forgetMissingNotes(ctx)
+	return memory.forgetMissingNotes(ctx, budget)
 }
 
 // indexMovedFactsNote reads the facts back out of a dated note the overflow
@@ -152,10 +174,16 @@ func (memory *Memory) indexNoteText(ctx context.Context, reference string, body 
 }
 
 // forgetMissingNotes takes out of the index every note whose file is no longer
-// on disk, so that a search never offers something the user has deleted.
-func (memory *Memory) forgetMissingNotes(ctx context.Context) error {
+// on disk, so that a search never offers something the user has deleted. It
+// looks at no more notes than the run has budget left for, and forgetting one
+// costs a piece of that budget, so that a memory folder with a great many notes
+// in it is caught up over several runs rather than in one that never ends.
+func (memory *Memory) forgetMissingNotes(ctx context.Context, budget *runBudget) error {
+	if budget.left <= 0 {
+		return nil
+	}
 	rows, err := memory.database.QueryContext(ctx,
-		"SELECT reference FROM memory_indexed WHERE kind = ?", noteEntry)
+		"SELECT reference FROM memory_indexed WHERE kind = ? LIMIT ?", noteEntry, budget.left)
 	if err != nil {
 		return fmt.Errorf("cannot list the notes the memory index holds: %w", err)
 	}
@@ -179,6 +207,9 @@ func (memory *Memory) forgetMissingNotes(ctx context.Context) error {
 		return fmt.Errorf("cannot finish listing the notes the memory index holds: %w", err)
 	}
 	for _, reference := range gone {
+		if !budget.spend() {
+			return nil
+		}
 		if err := forgetIndexEntry(ctx, memory.database, noteEntry, reference); err != nil {
 			return err
 		}
@@ -187,35 +218,53 @@ func (memory *Memory) forgetMissingNotes(ctx context.Context) error {
 }
 
 // indexTheMessages reads the event log from where the last run stopped and puts
-// every message into the index, inside this run's budget.
+// every message into the index, inside this run's budget. It reads spans of
+// numbers rather than replaying the whole log, because a replay hands out every
+// event ever written and this run only wants the ones written since the run
+// before it.
 func (memory *Memory) indexTheMessages(ctx context.Context, budget *runBudget) error {
 	from, err := nextNumber(ctx, memory.database, indexedThroughCounter)
 	if err != nil {
 		return err
 	}
-	already := int64(from - 1)
-	reached := already
-	outOfBudget := errors.New("this run of the memory indexer has used up its budget")
-
-	replayErr := memory.eventLog.Replay(ctx, func(event contract.Event) error {
-		if event.Sequence <= already {
-			return nil
+	reached := int64(from - 1)
+	for page := 1; page <= maxIndexPagesPerRun; page++ {
+		events, readErr := memory.eventLog.ByRange(ctx, contract.EventRange{From: reached + 1, To: math.MaxInt64})
+		if readErr != nil && !readWasCutShort(events, readErr) {
+			return fmt.Errorf("cannot read the event log to index the messages in it: %w", readErr)
 		}
+		if len(events) == 0 {
+			break
+		}
+		read, outOfBudget, err := memory.indexOnePageOfMessages(ctx, events, budget)
+		reached = read
+		if err != nil {
+			return err
+		}
+		if outOfBudget || readErr == nil {
+			break
+		}
+	}
+	return setNumber(ctx, memory.database, indexedThroughCounter, int(reached)+1)
+}
+
+// indexOnePageOfMessages puts the messages of one page of the log into the
+// index and says how far it got and whether the run's budget ran out part way
+// through, so that the next run carries on from there.
+func (memory *Memory) indexOnePageOfMessages(ctx context.Context, events []contract.Event, budget *runBudget) (reached int64, outOfBudget bool, err error) {
+	reached = events[0].Sequence - 1
+	for _, event := range events {
 		if event.Kind == contract.EventMessage {
 			if !budget.spend() {
-				return outOfBudget
+				return reached, true, nil
 			}
 			if err := memory.indexMessage(ctx, event); err != nil {
-				return err
+				return reached, false, err
 			}
 		}
 		reached = event.Sequence
-		return nil
-	})
-	if replayErr != nil && !errors.Is(replayErr, outOfBudget) {
-		return fmt.Errorf("cannot read the event log to index the messages in it: %w", replayErr)
 	}
-	return setNumber(ctx, memory.database, indexedThroughCounter, int(reached)+1)
+	return reached, false, nil
 }
 
 // IndexEvent puts one new event into the index, which is what the loop calls

@@ -90,11 +90,11 @@ func TestTheMemoryCommandForgetsAFactWithoutDeletingIt(t *testing.T) {
 	if !strings.Contains(withdrawn.Text, "superseded by") {
 		t.Errorf("the forgotten fact came back as %q, and it must say it was superseded", withdrawn.Text)
 	}
-	found, err := opened.memory.Search(ctx, "the user withdrew this", 5)
+	found, err := opened.memory.Search(ctx, "the user withdrew the fact", 5)
 	if err != nil {
 		t.Fatalf("cannot search for the withdrawal: %v", err)
 	}
-	if !holdsText(found, "the user withdrew this: the user posts in the morning") {
+	if !holdsText(found, "the user withdrew the fact u1, so what it said is no longer true") {
 		t.Errorf("the withdrawal itself is not searchable, and the search found %v", factTexts(found))
 	}
 }

@@ -34,10 +34,10 @@ func TestEveryCallSaysSoOnceTheMemoryIsClosed(t *testing.T) {
 	if _, err := opened.memory.Get(ctx, "m1"); err == nil {
 		t.Error("reading a fact out of a closed memory returned no error")
 	}
-	if _, err := opened.memory.Get(ctx, memory.NoteIDPrefix+"memory/a.md"); err == nil {
+	if _, err := opened.memory.Get(ctx, theNotePrefix+"memory/a.md"); err == nil {
 		t.Error("reading a note out of a closed memory returned no error")
 	}
-	if _, err := opened.memory.Get(ctx, memory.MessageIDPrefix+"1"); err == nil {
+	if _, err := opened.memory.Get(ctx, theMessagePrefix+"1"); err == nil {
 		t.Error("reading a message out of a closed memory returned no error")
 	}
 	if _, err := opened.memory.Hint(ctx, "anniversary"); err == nil {
@@ -149,8 +149,8 @@ func TestAVeryLongCorrectionIsCutAndSaysWhereTheRestIs(t *testing.T) {
 	if !strings.Contains(found[0].Text, "the whole of it is in the event log") {
 		t.Errorf("the long correction came back as %q, and it must say where the rest of it is", found[0].Text)
 	}
-	if len(found[0].Text) > memory.MaxFactTextBytes {
-		t.Errorf("the long correction is %d bytes, and one fact may be at most %d", len(found[0].Text), memory.MaxFactTextBytes)
+	if len(found[0].Text) > theFactTextCap {
+		t.Errorf("the long correction is %d bytes, and one fact may be at most %d", len(found[0].Text), theFactTextCap)
 	}
 }
 
@@ -229,7 +229,7 @@ func TestAHandWrittenLineIsSearchableAsANoteOfItsOwn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot search for the hand-written line: %v", err)
 	}
-	if len(found) == 0 || !strings.HasPrefix(found[0].ID, memory.NoteIDPrefix) {
+	if len(found) == 0 || !strings.HasPrefix(found[0].ID, theNotePrefix) {
 		t.Errorf("the hand-written line is not searchable, and the search found %+v", found)
 	}
 }

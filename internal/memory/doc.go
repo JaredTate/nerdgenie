@@ -30,7 +30,15 @@
 // events of a finished task and writes down the files it changed, the commands
 // it ran, the sites it visited, the jobs it created, and any message from the
 // user that begins with "no", "actually", "always", "never", or "don't", which
-// is kept word for word as a correction. Hint takes the text of the step the
-// agent is on and returns at most three short lines to ride along at the end of
-// the prompt, and nothing at all when nothing matches.
+// is kept word for word as a correction. A task with more events than one read
+// of the event log returns is read the rest of the way in pages, because a
+// capture that took the first page for the whole task would forget everything
+// the task did after it. Hint takes the text of the step the agent is on and
+// returns at most three short lines to ride along at the end of the prompt, and
+// nothing at all when the step offers no word worth searching for or when
+// nothing holds enough of them. The hint is stricter than a search on purpose,
+// because it rides in the model's context on every turn whether it is wanted or
+// not: it searches only on the step's words of four runes or more that are not
+// stop words, it leaves out every fact something later replaced, and it keeps
+// only lines holding at least two of the step's own words.
 package memory

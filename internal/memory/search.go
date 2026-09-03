@@ -24,13 +24,9 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// MaxSearchResults is the most results one search hands back, whatever limit it
+// maxSearchResults is the most results one search hands back, whatever limit it
 // was asked for, because a search result rides in the model's context.
-const MaxSearchResults = 50
-
-// MaxHintRunes is the longest one line of the memory hint may be. Three lines
-// of this length is what rides below the cache line on every turn.
-const MaxHintRunes = 120
+const maxSearchResults = 50
 
 // maxSnippetRunes is how much of a note or a past message a search result
 // shows. The whole of it comes back from Get.
@@ -61,8 +57,8 @@ const (
 // notes, and past messages all come back as facts, and a fact something later
 // replaced is marked as superseded in its own text.
 func (memory *Memory) Search(ctx context.Context, query string, limit int) ([]contract.Fact, error) {
-	if limit <= 0 || limit > MaxSearchResults {
-		limit = MaxSearchResults
+	if limit <= 0 || limit > maxSearchResults {
+		limit = maxSearchResults
 	}
 	expression := matchExpression(query)
 	statement := searchColumns + searchTables +
@@ -74,6 +70,21 @@ func (memory *Memory) Search(ctx context.Context, query string, limit int) ([]co
 		arguments = []any{limit}
 	}
 
+	hits, err := memory.searchHits(ctx, statement, arguments, query)
+	if err != nil {
+		return nil, err
+	}
+	found := make([]contract.Fact, 0, len(hits))
+	for _, hit := range hits {
+		found = append(found, hit.asFact())
+	}
+	return found, nil
+}
+
+// searchHits runs one of this package's search statements and reads back the
+// rows it found. The hint runs a statement of its own, so the rows come back as
+// they were read rather than already turned into facts.
+func (memory *Memory) searchHits(ctx context.Context, statement string, arguments []any, query string) ([]searchHit, error) {
 	rows, err := memory.database.QueryContext(ctx, statement, arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("cannot search memory for %q: %w", query, err)
@@ -82,16 +93,16 @@ func (memory *Memory) Search(ctx context.Context, query string, limit int) ([]co
 	return readSearchHits(rows, query)
 }
 
-// readSearchHits turns the rows of a search into facts.
-func readSearchHits(rows *sql.Rows, query string) ([]contract.Fact, error) {
-	found := []contract.Fact{}
+// readSearchHits reads the rows of a search.
+func readSearchHits(rows *sql.Rows, query string) ([]searchHit, error) {
+	found := []searchHit{}
 	for rows.Next() {
 		hit := searchHit{}
 		if err := rows.Scan(&hit.kind, &hit.reference, &hit.recorded, &hit.source,
 			&hit.body, &hit.text, &hit.supersedes, &hit.supersededBy); err != nil {
 			return nil, fmt.Errorf("cannot read a result of the memory search for %q: %w", query, err)
 		}
-		found = append(found, hit.asFact())
+		found = append(found, hit)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("cannot finish the memory search for %q: %w", query, err)
@@ -123,32 +134,34 @@ func (hit searchHit) asFact() contract.Fact {
 		fact.Text = markIfSuperseded(hit.text, hit.supersededBy)
 		fact.Supersedes = hit.supersedes
 	case noteEntry:
-		fact.ID = NoteIDPrefix + hit.reference
+		fact.ID = noteIDPrefix + hit.reference
 		fact.Text = cutToRunes(oneLine(hit.body), maxSnippetRunes)
 	default:
-		fact.ID = MessageIDPrefix + hit.reference
+		fact.ID = messageIDPrefix + hit.reference
 		fact.Text = cutToRunes(oneLine(hit.body), maxSnippetRunes)
 	}
 	return fact
 }
 
 // markIfSuperseded says in the fact's own words that something later replaced
-// it, because nothing is ever deleted and a reader has to be told.
+// it, because nothing is ever deleted and a reader has to be told. The mark goes
+// at the front of the line rather than the end, because a line is cut to fit
+// before a reader sees it and a mark on the end is cut off with the rest.
 func markIfSuperseded(text string, supersededBy string) string {
 	if supersededBy == "" {
 		return text
 	}
-	return text + " (superseded by " + supersededBy + ")"
+	return "(superseded by " + supersededBy + ") " + text
 }
 
 // Get returns one thing the index holds by its id: a fact by its own id, a note
 // by "note:" and its path inside the home folder, or a past message by "msg:"
 // and its number in the event log.
 func (memory *Memory) Get(ctx context.Context, id string) (contract.Fact, error) {
-	if reference, isNote := strings.CutPrefix(id, NoteIDPrefix); isNote {
+	if reference, isNote := strings.CutPrefix(id, noteIDPrefix); isNote {
 		return memory.getNote(ctx, id, reference)
 	}
-	if reference, isMessage := strings.CutPrefix(id, MessageIDPrefix); isMessage {
+	if reference, isMessage := strings.CutPrefix(id, messageIDPrefix); isMessage {
 		return memory.getMessage(ctx, id, reference)
 	}
 	fact, supersededBy, err := factRow(ctx, memory.database, id)
@@ -174,7 +187,7 @@ func (memory *Memory) getNote(ctx context.Context, id string, reference string) 
 	if err != nil {
 		return contract.Fact{}, err
 	}
-	fact.Text = cutToRunes(string(held), MaxNoteBytes)
+	fact.Text = cutToBytes(string(held), maxNoteBytes, "the whole of it is in the file itself")
 	return fact, nil
 }
 
@@ -225,46 +238,49 @@ func (memory *Memory) pathInsideTheHome(reference string) (string, error) {
 	return path, nil
 }
 
-// Hint returns at most three short lines for the end of the prompt, chosen by
-// searching for the text of the step the agent is on, and nothing at all when
-// nothing matches or when there is nothing to search for.
-func (memory *Memory) Hint(ctx context.Context, query string) ([]string, error) {
-	if matchExpression(query) == "" {
-		return nil, nil
-	}
-	found, err := memory.Search(ctx, query, contract.MemoryHintLines)
-	if err != nil {
-		return nil, err
-	}
-	if len(found) == 0 {
-		return nil, nil
-	}
-	lines := make([]string, 0, len(found))
-	for _, fact := range found {
-		lines = append(lines, cutToRunes(oneLine(fact.Text), MaxHintRunes))
-	}
-	return lines, nil
+// matchExpression turns a query into the expression the search table matches
+// on: every distinct word of it. A query with no words in it returns nothing at
+// all, which is what makes a search with no words list the newest instead.
+func matchExpression(query string) string {
+	return expressionOf(distinctWords(query, anyWord))
 }
 
-// matchExpression turns a query into the expression the search table matches
-// on: every distinct word, quoted so that a word the search table treats as one
-// of its own is read as a word, and joined so that any of them counts as a
-// match. A query with no words in it returns nothing at all.
-func matchExpression(query string) string {
+// distinctWords returns the words of a query worth keeping: lower case, each one
+// only once, each cut to the longest a search term may be, and no more of them
+// than one query may carry, because a step's text can be long and every word of
+// it would otherwise be another term the search table has to weigh.
+func distinctWords(query string, worthKeeping func(word string) bool) []string {
 	seen := map[string]bool{}
-	terms := []string{}
+	kept := []string{}
 	for _, word := range strings.FieldsFunc(strings.ToLower(query), notPartOfAWord) {
 		if len([]rune(word)) > maxTokenRunes {
 			word = string([]rune(word)[:maxTokenRunes])
 		}
-		if seen[word] {
+		if seen[word] || !worthKeeping(word) {
 			continue
 		}
 		seen[word] = true
-		terms = append(terms, `"`+word+`"`)
-		if len(terms) >= maxQueryTokens {
+		kept = append(kept, word)
+		if len(kept) >= maxQueryTokens {
 			break
 		}
+	}
+	return kept
+}
+
+// anyWord keeps every word of a query, which is what a search does: the user
+// asked for these words and gets back whatever holds them.
+func anyWord(string) bool {
+	return true
+}
+
+// expressionOf joins words into an expression the search table matches on, each
+// one quoted so that a word the table would otherwise read as one of its own is
+// read as a word, and joined so that any one of them counts as a match.
+func expressionOf(words []string) string {
+	terms := make([]string, 0, len(words))
+	for _, word := range words {
+		terms = append(terms, `"`+word+`"`)
 	}
 	return strings.Join(terms, " OR ")
 }

@@ -81,8 +81,12 @@ func TestEveryStatementSaysSoWhenTheDatabaseIsBroken(t *testing.T) {
 	if err := remembering.checkTheEventLogIsThere(ctx); err == nil {
 		t.Error("looking for the events table in a broken database returned no error")
 	}
-	if err := remembering.forgetMissingNotes(ctx); err == nil {
+	if err := remembering.forgetMissingNotes(ctx, newRunBudget()); err == nil {
 		t.Error("listing the notes in a broken database returned no error")
+	}
+	if err := remembering.forgetMissingNotes(ctx, &runBudget{}); err != nil {
+		t.Errorf("listing the notes with no budget left gave the error %v, and a run with nothing left "+
+			"to spend must not read the index at all", err)
 	}
 }
 
@@ -169,7 +173,7 @@ func TestACapturedIDFitsOnAFactLineHoweverLongTheTaskIs(t *testing.T) {
 	if !validFactID(long) {
 		t.Errorf("the captured id %q could not be written on a fact line", long)
 	}
-	if !strings.HasPrefix(long, UserFactPrefix+"c") {
+	if !strings.HasPrefix(long, userFactPrefix+"c") {
 		t.Errorf("the captured id %q does not say it is a fact about the user", long)
 	}
 	huge := capturedFactID("17", 1234567890123456789, false)
@@ -182,14 +186,18 @@ func TestACapturedIDFitsOnAFactLineHoweverLongTheTaskIs(t *testing.T) {
 }
 
 func TestTextIsCutOnlyWhenItIsTooLong(t *testing.T) {
-	if cutToBytes("short enough", 100) != "short enough" {
+	where := "the whole of it is in the event log"
+	if cutToBytes("short enough", 100, where) != "short enough" {
 		t.Error("text inside the limit was cut")
 	}
-	cut := cutToBytes(strings.Repeat("é", 200), 100)
+	cut := cutToBytes(strings.Repeat("é", 200), 100, where)
 	if len(cut) > 100 {
 		t.Errorf("the cut text is %d bytes, and the limit is 100", len(cut))
 	}
-	if cutToBytes(strings.Repeat("a", 200), 10) == "" {
+	if !strings.Contains(cut, where) {
+		t.Errorf("the cut text is %q, and it must say where the whole of it can still be read", cut)
+	}
+	if cutToBytes(strings.Repeat("a", 200), 10, where) == "" {
 		t.Error("a limit smaller than the note it adds left nothing at all")
 	}
 	if cutToRunes("short enough", 0) != "short enough" {

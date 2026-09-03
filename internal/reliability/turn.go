@@ -8,6 +8,7 @@ package reliability
 
 import (
 	"context"
+	"fmt"
 )
 
 // RunTurn runs one turn for a session under both of the things a turn needs: the
@@ -26,4 +27,21 @@ func (guard *Guard) RunTurn(ctx context.Context, session string, turn func(ctx c
 	bounded, stopWatching := guard.TurnDeadline().Watch(ctx)
 	defer stopWatching()
 	return turn(bounded)
+}
+
+// Deliver is how every reply reaches the user: written into the event log
+// first, sent second, marked delivered third. A reply that was written down and
+// never marked is sent again by the next start with the duplicate marker in
+// front of it, so a crash between the writing and the sending costs the user a
+// repeated message rather than the answer they paid a turn for. A send that
+// fails leaves the reply in the ledger on purpose and says why.
+func (guard *Guard) Deliver(ctx context.Context, taskID string, channel string, text string) error {
+	reply, err := guard.ledger.Record(ctx, taskID, channel, text)
+	if err != nil {
+		return err
+	}
+	if err := guard.settings.Send(ctx, channel, text); err != nil {
+		return fmt.Errorf("the reply was written down and could not be sent, so Coeus will send it again when it next starts: %w", err)
+	}
+	return guard.ledger.MarkDelivered(ctx, reply)
 }

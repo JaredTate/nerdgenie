@@ -1196,6 +1196,7 @@ internal/tui/palette.go
 internal/tui/palette_test.go
 internal/tui/panel.go
 internal/tui/panel_test.go
+internal/tui/paste_test.go
 internal/tui/pictures.go
 internal/tui/pseudoterminal_test.go
 internal/tui/record_test.go

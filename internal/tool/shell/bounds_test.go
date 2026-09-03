@@ -14,6 +14,42 @@ import (
 	"github.com/JaredTate/coeus/internal/tool/shell"
 )
 
+// TestTheNumbersThisToolIsBoundedByAreTheOnesTheDesignNames is finding 38 of
+// the wave 6 gate review: every one of these five could be changed in a scratch
+// copy and the package stayed green, because each test that used one measured
+// against the constant and moved with it. The literal is written here, with the
+// sentence that says why it is that number, so a change to any of them has to
+// be a change somebody meant to make.
+func TestTheNumbersThisToolIsBoundedByAreTheOnesTheDesignNames(t *testing.T) {
+	// Ten seconds is what design section 7 names in words: long enough for
+	// nearly every command a model runs, short enough that it never sits
+	// waiting on a build.
+	if shell.YieldAfter != 10*time.Second {
+		t.Errorf("the tool hands back an id after %s, and the design says ten seconds", shell.YieldAfter)
+	}
+	// Sixteen kilobytes is a long command line and a short script, so anything
+	// longer belongs in a file the model writes first.
+	if shell.MaxCommandBytes != 16*1024 {
+		t.Errorf("the longest command is %d bytes, want 16384", shell.MaxCommandBytes)
+	}
+	// Eight commands at once is more than a model has ever needed and few
+	// enough that a task cannot fill the machine with them.
+	if shell.MaxRunning != 8 {
+		t.Errorf("%d commands may run at once, want 8", shell.MaxRunning)
+	}
+	// Twenty kilobytes of each stream is about three hundred lines, which is
+	// enough of a build log to act on and small enough to leave room in the
+	// working context for everything else.
+	if shell.MaxStreamBytes != 20*1024 {
+		t.Errorf("each stream is cut at %d bytes, want 20480", shell.MaxStreamBytes)
+	}
+	// Five hundred characters is a paragraph, and the reason for administrator
+	// powers is meant to be one line the user can read at a glance.
+	if shell.MaxReasonRunes != 500 {
+		t.Errorf("the reason may be %d characters, want 500", shell.MaxReasonRunes)
+	}
+}
+
 // refusingPermission is a permission function that cannot answer at all, which
 // is how a test proves that a command with no ruling behind it never runs.
 type refusingPermission struct{ *testkit.FakePermission }

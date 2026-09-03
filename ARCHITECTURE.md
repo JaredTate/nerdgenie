@@ -291,6 +291,19 @@ reply as the model's other work. **The pins live for the length of one run**: a
 task picked up again days later starts with none, because a record has no field
 for them yet.
 
+**Picking a task up again.** `resume` loads the record from its last checkpoint
+and takes the budget from the record's own header, so a task cannot buy itself
+rounds by asking a question and waiting for the answer. A task that stopped
+because its budget ran out is the one exception, and the resume work found why:
+that task ends stopped with nothing left and a report saying to tell it how to
+carry on, and picked up on the nothing it stopped with it spent its two spare
+rounds writing the same ending again and told the person the budget was used up —
+an answer to a question they had already answered. So `carryOnFromAStop` gives a
+record standing at stopped a fresh round and minute budget, writes it into the
+header, and keeps one line for the situation saying the person asked this task to
+carry on and what it was given. A record standing at waiting is left exactly as
+it is.
+
 **The end.** The done-check refuses to close while `record` says any line has
 nothing behind it, and adds the two checks ordinary code can make: a command a
 line wrote in backticks is run through `contract.Sandbox` and has to exit zero,

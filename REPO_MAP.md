@@ -444,6 +444,7 @@ internal/loop/commands.go
 internal/loop/commands_test.go
 internal/loop/contextbuilder.go
 internal/loop/contextbuilder_test.go
+internal/loop/continued_test.go
 internal/loop/doc.go
 internal/loop/donecheck.go
 internal/loop/donecheck_test.go

@@ -28,6 +28,7 @@ func TestASiteHasToBeABareHostName(t *testing.T) {
 		{"nothing between two of its dots", "news..example.com"},
 		{"a part that ends in a hyphen", "news-.example.com"},
 		{"a character no host name holds", "news_example.com"},
+		{"a part longer than a part of a host name may be", strings.Repeat("a", 64) + ".example.com"},
 		{"a name longer than the domain name system carries", strings.Repeat("a.", 130) + "com"},
 	}
 	for _, one := range refused {

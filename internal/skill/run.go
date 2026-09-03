@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -198,9 +199,7 @@ func (store *Store) askTheUser(ctx context.Context, folder Folder, step Step, wh
 // block does not name. Only a step that carries an address is checked, because
 // a step with no address visits nothing.
 func siteOutsideTheBlock(permissions Permissions, step Step, input json.RawMessage) (string, bool) {
-	switch step.Tool {
-	case contract.ToolBrowserOpen, contract.ToolBrowserRead, contract.ToolBrowserLogin, contract.ToolWeb:
-	default:
+	if !visitsAWebsite(step.Tool) {
 		return "", false
 	}
 
@@ -248,12 +247,18 @@ func hostOf(address string) string {
 }
 
 // registerApprovals turns a skill's permissions block into standing approvals
-// in the permission function: one per website it may visit, each good for the
-// daily limit and running out at midnight. They are registered once a day per
-// skill, so that running a skill twice does not hand it twice its budget.
+// in the permission function: for every website the block names, the forms of a
+// visit to that website with the tools the skill's own steps use, each good for
+// the daily limit and running out at midnight. They are registered once a day
+// per skill, so that running a skill twice does not hand it twice its budget.
+//
+// The site is checked here as well as where SKILL.md was read, because this is
+// the place a site line turns into permission to act, and a folder can reach it
+// from anywhere a Definition is built.
 func (store *Store) registerApprovals(folder Folder) error {
 	permissions := folder.Definition.Permissions
-	if store.standing == nil || len(permissions.Sites) == 0 {
+	tools := toolsTheStepsVisitWith(folder)
+	if store.standing == nil || len(permissions.Sites) == 0 || len(tools) == 0 {
 		return nil
 	}
 	now := store.clock.Now()
@@ -265,18 +270,48 @@ func (store *Store) registerApprovals(folder Folder) error {
 		return nil
 	}
 	for _, site := range permissions.Sites {
-		approval := permission.StandingApproval{
-			Skill:       folder.Definition.Name,
-			ReducedForm: "*" + site + "*",
-			Limit:       permissions.DailyLimit,
-			Expires:     nextMidnight(now),
-		}
-		if err := store.standing.RegisterStandingApproval(approval); err != nil {
-			return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", folder.Definition.Name, site, err)
+		if err := store.registerOneSite(folder, site, tools, now); err != nil {
+			return err
 		}
 	}
 	store.registered[folder.Definition.Name] = today
 	return nil
+}
+
+// registerOneSite gives the permission function every form of a visit to one
+// website that the skill's steps could make.
+func (store *Store) registerOneSite(folder Folder, site string, tools []string, now time.Time) error {
+	name := folder.Definition.Name
+	if err := checkSite(site); err != nil {
+		return fmt.Errorf("the skill %q names the website %q in its permissions block, and a standing approval is built from one bare host name, because %w", name, site, err)
+	}
+	for _, form := range approvalFormsFor(site, tools) {
+		approval := permission.StandingApproval{
+			Skill:       name,
+			ReducedForm: form,
+			Limit:       folder.Definition.Permissions.DailyLimit,
+			Expires:     nextMidnight(now),
+		}
+		if err := store.standing.RegisterStandingApproval(approval); err != nil {
+			return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", name, site, err)
+		}
+	}
+	return nil
+}
+
+// toolsTheStepsVisitWith returns the website-visiting tools a skill's steps
+// name, in the order the steps name them and without repeats. A skill's
+// standing approvals cover only these, because a replay makes no call its steps
+// do not name, and an approval for a tool the skill never uses is authority
+// nobody asked for.
+func toolsTheStepsVisitWith(folder Folder) []string {
+	tools := []string{}
+	for _, step := range folder.Steps {
+		if visitsAWebsite(step.Tool) && !slices.Contains(tools, step.Tool) {
+			tools = append(tools, step.Tool)
+		}
+	}
+	return tools
 }
 
 // nextMidnight is the start of the next day where the machine is, which is when

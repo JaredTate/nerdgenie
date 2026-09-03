@@ -2,7 +2,10 @@ package skill
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 // The bounds on the website a permissions block may name. They are the bounds
@@ -58,6 +61,48 @@ func checkSiteLabel(label string) error {
 		}
 	}
 	return nil
+}
+
+// webSchemes are the two ways a web address begins, both written out in full
+// wherever a standing approval is built. A star in front of the host would let
+// any text at all sit between the tool's name and the host, and a shell command
+// can carry a website's name inside it.
+var webSchemes = []string{"https://", "http://"}
+
+// toolsThatVisitAWebsite are the tools whose call carries a web address. They
+// are the only tools a permissions block can approve, because a block names
+// websites: it may approve a visit to a website and nothing else, never a shell
+// command, never a file change, never money spent somewhere else.
+func toolsThatVisitAWebsite() []string {
+	return []string{contract.ToolWeb, contract.ToolBrowserOpen, contract.ToolBrowserRead, contract.ToolBrowserLogin}
+}
+
+// visitsAWebsite says whether a call to this tool carries a web address, which
+// is what makes it a call a permissions block has anything to say about.
+func visitsAWebsite(tool string) bool {
+	return slices.Contains(toolsThatVisitAWebsite(), tool)
+}
+
+// approvalFormsFor returns the readable forms one website's standing approvals
+// cover: one for every tool given, every scheme, and both shapes a web address
+// takes, which are the host on its own and the host with a path after it.
+//
+// The tool's name and the scheme are written out in full, so nothing before the
+// host is left free and no call to somewhere else can slip its own address in
+// front. The host is followed by the end of the form or by the slash that
+// starts a path, so news.example.com covers news.example.com/today and covers
+// neither notnews.example.com nor news.example.com.evil.net. The host itself
+// carries no star and no question mark, because checkSite refused any site line
+// that held one, and the permission function reads everything else in a pattern
+// as the characters it is.
+func approvalFormsFor(site string, tools []string) []string {
+	forms := make([]string, 0, len(tools)*len(webSchemes)*2)
+	for _, tool := range tools {
+		for _, scheme := range webSchemes {
+			forms = append(forms, tool+" "+scheme+site, tool+" "+scheme+site+"/*")
+		}
+	}
+	return forms
 }
 
 // isHostCharacter says whether one character may stand in a host name. The

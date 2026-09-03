@@ -262,6 +262,7 @@ internal/permission/preview_test.go
 internal/permission/reduce.go
 internal/permission/reduce_test.go
 internal/permission/remembered_test.go
+internal/permission/rememberedwins_test.go
 internal/permission/rules.go
 internal/permission/rules_test.go
 internal/permission/shellwords.go

@@ -36,7 +36,7 @@ type refusedRange struct {
 // The reasons, written once because several ranges share one.
 const (
 	reasonPrivate              = "is on a private network"
-	reasonThisMachine          = "is on this machine, which is not outside it"
+	reasonThisMachine          = "is on this machine"
 	reasonStandsForThisMachine = "stands for this machine rather than for a computer on the web"
 	reasonLinkLocal            = "is a link-local one, which reaches no further than the wire it is on"
 	reasonMulticast            = "is a multicast one, and a page is fetched from one machine"

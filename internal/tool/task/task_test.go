@@ -248,3 +248,58 @@ func TestAToolWithNoRecordWiredInSaysSo(t *testing.T) {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
 	}
 }
+
+// TestADoneLineWrittenAsAPlainStringIsTakenAsItsText reproduces what the local
+// model did in the first trial: it wrote the done list as a list of strings,
+// the tool refused every one of seven tries, and the task went nowhere. A
+// string is the line's text; an object still works; anything else is refused
+// with the shape named.
+func TestADoneLineWrittenAsAPlainStringIsTakenAsItsText(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"done_when": []any{"the folder exists", map[string]any{"text": "the tests pass"}},
+	}); err != nil {
+		t.Fatalf("a done list written as strings was refused: %v", err)
+	}
+	lines := keeper.Record().Goal.DoneWhen
+	if len(lines) != 2 || lines[0].Text != "the folder exists" || lines[1].Text != "the tests pass" {
+		t.Errorf("the done list came out as %+v", lines)
+	}
+
+	_, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": []any{42}})
+	if err == nil || !strings.Contains(err.Error(), `"text"`) {
+		t.Errorf("a done line that is a number was not refused with the shape named: %v", err)
+	}
+}
+
+// TestTheShapesAModelPlausiblyWritesAreAllTaken reproduces the second stall of
+// the first trial: the model wrote the why in the "text" field and was refused
+// on every try. The why is taken from "text" when "why" is empty, a list may be
+// one string, the done list may be one line, and a line number may be written
+// as a string.
+func TestTheShapesAModelPlausiblyWritesAreAllTaken(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{"operation": "why", "text": "the user wants a game"}); err != nil {
+		t.Fatalf("a why written in the text field was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "plan", "plan": "write the tests first"}); err != nil {
+		t.Fatalf("a plan written as one string was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "stop_when", "stop_when": "the user says stop"}); err != nil {
+		t.Fatalf("a stop list written as one string was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": "the game runs"}); err != nil {
+		t.Fatalf("a done list written as one string was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "pin_result", "line": "1", "result": "r1"}); err != nil {
+		t.Fatalf("a line number written as a string was refused: %v", err)
+	}
+	held := keeper.Record()
+	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Goal.StopWhen) != 1 ||
+		len(held.Goal.DoneWhen) != 1 || !held.Goal.DoneWhen[0].Done {
+		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.StopWhen, held.Goal.DoneWhen)
+	}
+}

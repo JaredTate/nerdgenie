@@ -1,6 +1,9 @@
 package contract
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // SkillSummary is a skill's name and its one-line description, which is all that
 // rides in the prompt. The body loads only when the skill is used.
@@ -18,6 +21,13 @@ type SkillMatch struct {
 	// Matched says whether any skill matched at all. When it is false the
 	// message goes to the model as a task instead.
 	Matched bool
+	// Rounds is how many model calls a task run under this skill may make, and
+	// is zero when the skill sets none, which means the caps in the
+	// configuration apply. Design section 3, rule 3: every task has a budget,
+	// and a skill can set its own.
+	Rounds int
+	// Time is how long such a task may take, and is zero the same way.
+	Time time.Duration
 }
 
 // SkillSource says who saved a skill. It rides with every save, because a skill

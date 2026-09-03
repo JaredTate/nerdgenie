@@ -72,6 +72,8 @@ cmd/coeus/starting.go
 cmd/coeus/status.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
+cmd/coeus/taskbudget.go
+cmd/coeus/taskbudget_test.go
 cmd/coeus/taskcontext.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
 cmd/coeus/timedstore.go
@@ -487,6 +489,7 @@ internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/situation.go
+internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
 internal/loop/stopline_test.go
 internal/loop/summary_test.go
@@ -815,6 +818,7 @@ internal/skill/browser/walk_test.go
 internal/skill/browser/walkrecord.go
 internal/skill/browser/walkrecord_test.go
 internal/skill/browser/writeqa_test.go
+internal/skill/budget_test.go
 internal/skill/command.go
 internal/skill/command_test.go
 internal/skill/contract_test.go

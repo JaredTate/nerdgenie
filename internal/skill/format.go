@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -64,6 +65,15 @@ const (
 	DefaultDailyLimit = 100
 	// MaxDailyLimit is the largest daily limit a permissions block may name.
 	MaxDailyLimit = 1000
+	// MaxBudgetRounds is the most model calls a skill may give a task run under
+	// it. The default cap is a hundred, and a record filled to a hundred rounds
+	// is under the three thousand tokens the design promises; ten times that is
+	// a skill asking for a task that could never fit its own record.
+	MaxBudgetRounds = 1000
+	// MaxBudgetTime is the longest a skill may let such a task run. The default
+	// cap is an hour, and a task is one sitting of work; a day is the most a
+	// sitting could be stretched to before it is a job.
+	MaxBudgetTime = 24 * time.Hour
 )
 
 // The keys a line of the permissions block may carry. Anything else is a typo,
@@ -75,6 +85,14 @@ const (
 	sourceKey           = "source"
 	dailyLimitKey       = "daily limit"
 	irreversibleStepKey = "irreversible step"
+)
+
+// The keys a line of the budget block may carry, held to the same rule: a typo
+// would quietly set nothing and leave the task on the caps, so it is refused by
+// name.
+const (
+	roundsKey = "rounds"
+	timeKey   = "time"
 )
 
 // Permissions is the block in SKILL.md that says what a skill may do: the
@@ -107,6 +125,12 @@ type Definition struct {
 	Triggers []string
 	// Permissions is what the skill may do.
 	Permissions Permissions
+	// Rounds is how many model calls a task run under this skill may make, from
+	// the budget block, and is zero when the block sets none, which leaves the
+	// caps in the configuration to apply.
+	Rounds int
+	// Time is how long such a task may take, the same way.
+	Time time.Duration
 	// Source is who saved the skill, and is empty for every skill saved before
 	// the store began writing it down. Only the store writes this line, and a
 	// skill the model wrote holds no standing approval until a person has run
@@ -159,6 +183,11 @@ func readDescriptionLine(definition *Definition, section string, line string) er
 	case "permissions":
 		if written := bulletText(line); written != "" {
 			return readPermissionLine(definition, written)
+		}
+		return nil
+	case "budget":
+		if written := bulletText(line); written != "" {
+			return readBudgetLine(definition, written)
 		}
 		return nil
 	default:
@@ -216,6 +245,35 @@ func readPermissionLine(definition *Definition, written string) error {
 	return nil
 }
 
+// readBudgetLine reads one "key: value" bullet of the budget block, which says
+// how much a task run under the skill may spend: its rounds, its time, or both.
+func readBudgetLine(definition *Definition, written string) error {
+	key, value, separated := strings.Cut(written, ":")
+	key = strings.ToLower(strings.TrimSpace(key))
+	value = strings.TrimSpace(value)
+	if !separated || value == "" {
+		return fmt.Errorf("the budget line %q in %s says no value, so write it as \"- rounds: 40\" or \"- time: 30m\"", written, DescriptionFile)
+	}
+
+	switch key {
+	case roundsKey:
+		rounds, err := strconv.Atoi(value)
+		if err != nil || rounds < 1 {
+			return fmt.Errorf("the rounds in the budget of %s are %q and they have to be a whole number of model calls above zero, so write a number such as 40", DescriptionFile, value)
+		}
+		definition.Rounds = rounds
+	case timeKey:
+		length, err := time.ParseDuration(value)
+		if err != nil || length <= 0 {
+			return fmt.Errorf("the time in the budget of %s is %q and it has to be a length of time above zero, so write one such as \"30m\" or \"2h\"", DescriptionFile, value)
+		}
+		definition.Time = length
+	default:
+		return fmt.Errorf("%s has a budget line about %q, which is not one of rounds or time", DescriptionFile, key)
+	}
+	return nil
+}
+
 // checkDefinition holds every bound on what SKILL.md may say, so that the caps
 // live in one place rather than scattered through the reader.
 func checkDefinition(definition Definition) error {
@@ -240,7 +298,26 @@ func checkDefinition(definition Definition) error {
 			return fmt.Errorf("the trigger %q in %s is longer than %d characters, so shorten it to the words a message would really hold", trigger, DescriptionFile, MaxTriggerRunes)
 		}
 	}
-	return checkPermissions(definition.Permissions)
+	if err := checkPermissions(definition.Permissions); err != nil {
+		return err
+	}
+	return checkBudget(definition)
+}
+
+// checkBudget holds the bounds on the budget block: each half is either left
+// out or between one and its cap, because a budget of nothing stops a task
+// before it starts and a budget past the cap is a task that could never fit its
+// own record or its one sitting.
+func checkBudget(definition Definition) error {
+	if definition.Rounds < 0 || definition.Rounds > MaxBudgetRounds {
+		return fmt.Errorf("the budget of the skill %q gives a task %d rounds and it has to be between 1 and %d, so write a number in that range or leave the line out to use the cap",
+			definition.Name, definition.Rounds, MaxBudgetRounds)
+	}
+	if definition.Time < 0 || definition.Time > MaxBudgetTime {
+		return fmt.Errorf("the budget of the skill %q gives a task %s and it has to be between one second and %s, so write a length in that range or leave the line out to use the cap",
+			definition.Name, definition.Time, MaxBudgetTime)
+	}
+	return nil
 }
 
 // checkPermissions holds the bounds on the permissions block.
@@ -311,5 +388,36 @@ func RenderDescriptionFile(definition Definition) []byte {
 	for _, number := range definition.Permissions.IrreversibleSteps {
 		lines = append(lines, fmt.Sprintf("- %s: %d", irreversibleStepKey, number))
 	}
+	lines = append(lines, budgetBlock(definition)...)
 	return []byte(strings.Join(lines, "\n") + "\n")
+}
+
+// budgetBlock writes the budget block for a definition that sets one, and
+// nothing for a definition that leaves the caps to apply, so that a folder never
+// spells the caps out in numbers that could go stale.
+func budgetBlock(definition Definition) []string {
+	if definition.Rounds == 0 && definition.Time == 0 {
+		return nil
+	}
+	lines := []string{"", "## Budget", ""}
+	if definition.Rounds != 0 {
+		lines = append(lines, fmt.Sprintf("- %s: %d", roundsKey, definition.Rounds))
+	}
+	if definition.Time != 0 {
+		lines = append(lines, "- "+timeKey+": "+plainLengthOfTime(definition.Time))
+	}
+	return lines
+}
+
+// plainLengthOfTime writes a length of time the way a person would, as "2h" or
+// "30m" rather than "30m0s", while staying something the reader can read back.
+func plainLengthOfTime(length time.Duration) string {
+	switch {
+	case length%time.Hour == 0:
+		return fmt.Sprintf("%dh", int(length/time.Hour))
+	case length%time.Minute == 0:
+		return fmt.Sprintf("%dm", int(length/time.Minute))
+	default:
+		return length.String()
+	}
 }

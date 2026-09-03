@@ -173,20 +173,22 @@ func (store *Store) Match(_ context.Context, text string) (contract.SkillMatch, 
 	}
 
 	words := strings.Fields(strings.ToLower(text))
-	matched := ""
+	matched := Definition{}
 	for _, definition := range definitions {
 		if !triggersFire(definition.Triggers, words) {
 			continue
 		}
-		if matched != "" {
+		if matched.Name != "" {
 			return contract.SkillMatch{}, nil
 		}
-		matched = definition.Name
+		matched = definition
 	}
-	if matched == "" {
+	if matched.Name == "" {
 		return contract.SkillMatch{}, nil
 	}
-	return contract.SkillMatch{Name: matched, Matched: true}, nil
+	// The match carries the skill's own budget, so that the task the message
+	// starts can be given it: design section 3, rule 3.
+	return contract.SkillMatch{Name: matched.Name, Matched: true, Rounds: matched.Rounds, Time: matched.Time}, nil
 }
 
 // triggersFire says whether the message holds every trigger the skill names. A

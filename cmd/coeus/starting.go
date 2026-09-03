@@ -56,13 +56,14 @@ func (running *agent) startTask(ctx context.Context, lastTasks *screenTasks, mes
 	// the answer and the next start sends again what never arrived.
 	session := message.Channel + ":" + message.Sender
 	carryOn := lastTasks.taskToCarryOn(session, message.Text)
+	budget := running.budgetForTheMessage(ctx, message)
 	answering := throughTheLedger(where, running.guard)
 	go func() {
 		defer running.freeTheLoop()
 		defer finished()
 		err := running.guard.RunTurn(context.WithoutCancel(ctx), session, func(turn context.Context) error {
 			outcome, err := running.loop.Run(turn,
-				loop.Task{Message: message, Channel: answering, ResumeID: carryOn})
+				loop.Task{Message: message, Channel: answering, ResumeID: carryOn, Budget: budget})
 			// Where the task ended is written down whatever happened, so that a
 			// task that could not be picked up again is not picked up again and
 			// again by every message that follows it.

@@ -125,6 +125,9 @@ func TestAnOpeningStepThatLandedSomewhereElseIsNotWrittenDown(t *testing.T) {
 	}
 }
 
+// The fifty in this test is written out rather than read from the package,
+// because a loop that counted to the constant would take whatever the constant
+// became and still pass.
 func TestARecordingRefusesMoreStepsThanASkillFolderHolds(t *testing.T) {
 	built := newBench(t)
 	recorder, err := browser.NewRecorder(built.worker)
@@ -132,7 +135,7 @@ func TestARecordingRefusesMoreStepsThanASkillFolderHolds(t *testing.T) {
 		t.Fatalf("cannot build the recorder: %v", err)
 	}
 	ctx := context.Background()
-	for taken := 0; taken < browser.MaxRecordedSteps; taken++ {
+	for taken := 0; taken < 50; taken++ {
 		if _, err := recorder.Open(ctx, "Open the fixture page.", testkit.FixtureSimplePage, "a simple page"); err != nil {
 			t.Fatalf("cannot open the fixture page on step %d: %v", taken+1, err)
 		}

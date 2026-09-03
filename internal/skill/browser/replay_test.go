@@ -193,11 +193,21 @@ func TestAStepThatCannotBeUndoneIsShownToTheUserBeforeItRuns(t *testing.T) {
 	}
 }
 
+// aModelThatWouldNameTheLink answers the one question a self-heal asks with the
+// reference of the link on the fixture page, so that a replay which heals a
+// refused step really does follow it.
+func aModelThatWouldNameTheLink() *testkit.FakeModel {
+	return testkit.NewFakeModel(testkit.Script{Name: "healer", ContextLength: 8000, Steps: []testkit.Step{{
+		Text: "e1", Finish: contract.FinishEnd,
+	}}})
+}
+
 func TestAStepThatCannotBeUndoneIsNotRunWhenTheUserSaysNo(t *testing.T) {
 	built := newBench(t)
 	built.channel.AnswerPreviewsWith(contract.AnswerReject)
 	folder := built.save(t, "fixture-walk", theThreeStepFlow(), 3)
-	replayer, err := browser.New(browser.Options{Browser: built.worker, Ask: built.channel.ShowPreview})
+	model := aModelThatWouldNameTheLink()
+	replayer, err := browser.New(browser.Options{Browser: built.worker, Model: model, Ask: built.channel.ShowPreview, Skills: built.store})
 	if err != nil {
 		t.Fatalf("cannot build the replayer: %v", err)
 	}
@@ -208,6 +218,12 @@ func TestAStepThatCannotBeUndoneIsNotRunWhenTheUserSaysNo(t *testing.T) {
 	}
 	if report.Met() {
 		t.Fatalf("the replay ran a step the user refused:\n%s", report)
+	}
+	if report.Outcomes[2].Met || report.Outcomes[2].Healed {
+		t.Errorf("the refused step is reported as %+v, and a step the user refused was never taken", report.Outcomes[2])
+	}
+	if calls := len(model.Requests()); calls != 0 {
+		t.Errorf("the model was asked %d times about a step the user refused, and a refused step is never healed", calls)
 	}
 	page, err := built.worker.Read(context.Background(), contract.ReadOptions{})
 	if err != nil {
@@ -221,7 +237,8 @@ func TestAStepThatCannotBeUndoneIsNotRunWhenTheUserSaysNo(t *testing.T) {
 func TestAStepThatCannotBeUndoneStopsAReplayWithNoScreenToAskOn(t *testing.T) {
 	built := newBench(t)
 	folder := built.save(t, "fixture-walk", theThreeStepFlow(), 3)
-	replayer, err := browser.New(browser.Options{Browser: built.worker})
+	model := aModelThatWouldNameTheLink()
+	replayer, err := browser.New(browser.Options{Browser: built.worker, Model: model, Skills: built.store})
 	if err != nil {
 		t.Fatalf("cannot build the replayer: %v", err)
 	}
@@ -235,6 +252,16 @@ func TestAStepThatCannotBeUndoneStopsAReplayWithNoScreenToAskOn(t *testing.T) {
 	}
 	if seen := report.Outcomes[2].Seen; !strings.Contains(seen, "no screen") {
 		t.Errorf("the report says %q, and it should say there was nobody to ask", seen)
+	}
+	if calls := len(model.Requests()); calls != 0 {
+		t.Errorf("the model was asked %d times about a step nobody could be asked about, and such a step is never healed", calls)
+	}
+	page, err := built.worker.Read(context.Background(), contract.ReadOptions{})
+	if err != nil {
+		t.Fatalf("cannot read the page the browser is on: %v", err)
+	}
+	if page.URL == testkit.FixtureChangedPage {
+		t.Error("an unattended replay followed the link it stopped before")
 	}
 }
 

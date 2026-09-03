@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -43,6 +42,37 @@ func TestTheCascadeFindsNothingWhenTheDescriptorPointsAtNothingThere(t *testing.
 				t.Errorf("the cascade returned %q, want the reference the page uses now", ref)
 			}
 		})
+	}
+}
+
+// thePageOfNearMisses holds the two elements the reviewer's probes resolved to
+// wrongly: a link whose name happens to hold two letters of a button's name, and
+// a button whose name begins with the word a link was called.
+func thePageOfNearMisses() contract.Snapshot {
+	return contract.Snapshot{URL: "https://fixture.test/settings", Title: "Settings", Elements: []contract.Element{
+		{Ref: "e1", Role: "link", Name: "Cookie settings"},
+		{Ref: "e2", Role: "button", Name: "Delete my account"},
+	}}
+}
+
+func TestTheTextRungLooksForNothingShorterThanFourCharacters(t *testing.T) {
+	ref, foundBy, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "button", Name: "OK", Shown: "OK"})
+	if found {
+		t.Errorf("a step recorded on the button OK resolved to %s by %s, and two letters sit inside almost any name", ref, foundBy)
+	}
+}
+
+func TestTheTextRungRefusesANameFarLongerThanTheTextWhenTheRolesDisagree(t *testing.T) {
+	ref, foundBy, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "link", Name: "Delete", Shown: "Delete"})
+	if found {
+		t.Errorf("a step recorded on the link Delete resolved to %s by %s, which is the button that closes the account", ref, foundBy)
+	}
+}
+
+func TestTheTextRungTakesANameFarLongerThanTheTextWhenTheRolesAgree(t *testing.T) {
+	ref, _, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "button", Name: "Delete", Shown: "Delete"})
+	if !found || ref != "e2" {
+		t.Errorf("a step recorded on a button called Delete found %q, want the button whose name begins with the word", ref)
 	}
 }
 
@@ -209,38 +239,6 @@ func TestAPatchIsNotWrittenForASkillThatIsNotOnDisk(t *testing.T) {
 	}
 	if report.Applied {
 		t.Fatalf("a patch was written for a skill that is nowhere on disk:\n%s", report)
-	}
-}
-
-func TestAPageWithMoreElementsThanTheModelIsShownIsCutShort(t *testing.T) {
-	built := newBench(t)
-	crowded := contract.Snapshot{URL: "https://fixture.test/crowded", Title: "Crowded", TabID: "t1"}
-	for number := 1; number <= browser.MaxElementsShownToTheModel+5; number++ {
-		crowded.Elements = append(crowded.Elements, contract.Element{
-			Ref: "x" + strconv.Itoa(number), Role: "link", Name: "Thing " + strconv.Itoa(number),
-		})
-	}
-	built.worker.AddPage(crowded)
-	model := testkit.NewFakeModel(testkit.Script{Name: "healer", ContextLength: 8000, Steps: []testkit.Step{{
-		Expect: []string{"more elements are not listed"}, Text: "none", Finish: contract.FinishEnd,
-	}}})
-	folder := built.save(t, "crowded-walk", []browser.Step{
-		{Number: 1, Intent: "Open the page.", Tool: contract.ToolBrowserOpen, Address: crowded.URL, Expectation: "the crowded page"},
-		{
-			Number: 2, Intent: "Click the missing thing.", Tool: contract.ToolBrowserClick,
-			Element: browser.Descriptor{Ref: "e1", Role: "button", Name: "Nowhere", Shown: "Nowhere"}, Expectation: "something happens",
-		},
-	})
-	replayer, err := browser.New(browser.Options{Browser: built.worker, Model: model})
-	if err != nil {
-		t.Fatalf("cannot build the replayer: %v", err)
-	}
-
-	if _, err := replayer.Replay(context.Background(), folder); err != nil {
-		t.Fatalf("cannot replay the recording: %v", err)
-	}
-	if calls := len(model.Requests()); calls != 1 {
-		t.Fatalf("the model was asked %d times, want once", calls)
 	}
 }
 

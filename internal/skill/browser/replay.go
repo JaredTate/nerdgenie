@@ -18,10 +18,11 @@ import (
 )
 
 // Options is what a replayer is built from. Only the browser is needed. Without
-// a model no failed step is ever healed; without a screen a patch is never
-// proposed; without a skill store an approved patch cannot be written down. Each
-// of the three says so in the report rather than failing, so an unattended
-// replay is a replay and not an error.
+// a model no failed step is ever healed; without a screen a heal is proposed in
+// the report and never acted on, because the user is asked before the step is
+// taken on an element the recording never named; without a skill store an
+// approved patch cannot be written down. Each of the three says so in the report
+// rather than failing, so an unattended replay is a replay and not an error.
 type Options struct {
 	// Browser is the worker driving the agent's own Chrome.
 	Browser contract.BrowserWorker
@@ -139,11 +140,11 @@ func (replayer *Replayer) Replay(ctx context.Context, folder skill.Folder) (Repo
 	report := Report{Skill: folder.Definition.Name}
 	healsLeft := replayer.healsAllowed()
 	for at, step := range steps {
-		outcome, err := replayer.takeStep(ctx, folder, step)
+		outcome, mustNotRun, err := replayer.takeStep(ctx, folder, step)
 		if err != nil {
 			return report, err
 		}
-		if !outcome.Met && healsLeft > 0 {
+		if !outcome.Met && !mustNotRun && healsLeft > 0 {
 			healsLeft--
 			outcome, report.Patch, report.Applied = replayer.heal(ctx, folder, steps, at, outcome)
 		}
@@ -164,32 +165,36 @@ func (replayer *Replayer) healsAllowed() int {
 	return HealAttempts
 }
 
-// takeStep runs one recorded step. A step that could not be carried out is an
-// outcome saying so rather than an error, because the replay's answer to a page
-// that changed is a report, not a crash. Only a browser that cannot be reached
-// at all is an error.
-func (replayer *Replayer) takeStep(ctx context.Context, folder skill.Folder, step Step) (Outcome, error) {
+// takeStep runs one recorded step. Its second answer says the step must not be
+// run at all, which is what a refusal of a step that cannot be undone means: such
+// a step is never healed either, because healing a step is taking it. A step that
+// could not be carried out is an outcome saying so rather than an error, because
+// the replay's answer to a page that changed is a report, not a crash. Only a
+// browser that cannot be reached at all is an error.
+func (replayer *Replayer) takeStep(ctx context.Context, folder skill.Folder, step Step) (Outcome, bool, error) {
 	outcome := Outcome{Number: step.Number, Intent: step.Intent}
 	if refused := replayer.askAboutAStepThatCannotBeUndone(ctx, folder, step); refused != "" {
 		outcome.Seen = refused
-		return outcome, nil
+		return outcome, true, nil
 	}
 	if step.Tool == contract.ToolBrowserOpen {
-		return replayer.openStep(ctx, step, outcome)
+		opened, err := replayer.openStep(ctx, step, outcome)
+		return opened, false, err
 	}
 
 	page, err := replayer.options.Browser.Read(ctx, contract.ReadOptions{})
 	if err != nil {
-		return Outcome{}, fmt.Errorf("cannot read the page before step %d of the skill %q: %w", step.Number, folder.Definition.Name, err)
+		return Outcome{}, false, fmt.Errorf("cannot read the page before step %d of the skill %q: %w", step.Number, folder.Definition.Name, err)
 	}
 	ref, foundBy, found := FindElement(page, step.Element)
 	if !found {
 		outcome.Seen = fmt.Sprintf("expected %q, and there is no element on the page matching %s, on %s",
 			step.Expectation, step.Element, WhatIsShown(page))
-		return outcome, nil
+		return outcome, false, nil
 	}
 	outcome.FoundBy = foundBy
-	return replayer.actOnStep(ctx, step, ref, outcome)
+	acted, err := replayer.actOnStep(ctx, step, ref, outcome)
+	return acted, false, err
 }
 
 // openStep goes to the address a step recorded and judges the page it landed on
@@ -298,19 +303,37 @@ func FindElement(page contract.Snapshot, wanted Descriptor) (string, string, boo
 }
 
 // findByText is the last rung: the text the element showed when the step was
-// recorded, looked for inside the name of anything on the page now.
+// recorded, looked for inside the name of anything on the page now. Two things
+// keep the rung from finding whatever it likes. Text shorter than a word is not
+// looked for at all, because two letters sit inside almost any name. And an
+// element whose role has changed is taken only when the recorded text makes up
+// most of its name, so that a page renaming a link from "Change the page" to
+// "Change the page now" is still followed while a link called "Delete" is not
+// followed onto the button called "Delete my account".
 func findByText(page contract.Snapshot, wanted Descriptor) (string, string, bool) {
 	shown := strings.ToLower(strings.TrimSpace(wanted.Shown))
 	if shown == "" {
 		shown = strings.ToLower(strings.TrimSpace(wanted.Name))
 	}
-	if shown == "" {
+	if len([]rune(shown)) < shortestTextToLookFor {
 		return "", "", false
 	}
 	for _, element := range page.Elements {
-		if strings.Contains(strings.ToLower(element.Name), shown) {
+		if strings.Contains(strings.ToLower(element.Name), shown) && strings.EqualFold(element.Role, wanted.Role) {
+			return element.Ref, "the text it showed", true
+		}
+	}
+	for _, element := range page.Elements {
+		name := strings.ToLower(element.Name)
+		if strings.Contains(name, shown) && mostOfTheName(shown, name) {
 			return element.Ref, "the text it showed", true
 		}
 	}
 	return "", "", false
+}
+
+// mostOfTheName says whether the recorded text makes up enough of the name it
+// was found inside for the two to be the same thing.
+func mostOfTheName(shown string, name string) bool {
+	return len([]rune(shown))*100 >= len([]rune(name))*leastOfTheNameOutOfAHundred
 }

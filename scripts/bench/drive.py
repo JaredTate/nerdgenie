@@ -20,7 +20,9 @@ import sys
 import time
 
 SOCK, PROMPT_FILE, LOG = sys.argv[1], sys.argv[2], sys.argv[3]
-TIMEOUT_MIN = float(sys.argv[4]) if len(sys.argv) > 4 else 90.0
+# Zero minutes, which is what a missing argument means, is no timeout at all:
+# the driver waits for as long as the program takes.
+TIMEOUT_MIN = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
 # How long the program must stay idle after its reply before the driver leaves.
 QUIET_SECONDS = 5.0
 
@@ -126,7 +128,7 @@ def handle(envelope):
 
 
 while True:
-    if time.time() - start > TIMEOUT_MIN * 60:
+    if TIMEOUT_MIN > 0 and time.time() - start > TIMEOUT_MIN * 60:
         out("!! overall timeout reached")
         break
     if counts["replies"] and time.time() - last > QUIET_SECONDS and laststatus.get("state") == "idle":

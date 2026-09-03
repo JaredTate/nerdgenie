@@ -10,7 +10,6 @@ package loop
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -378,6 +377,3 @@ func (theLoop *Loop) logEvent(ctx context.Context, taskID string, kind contract.
 	}
 	return nil
 }
-
-// ErrNoRecord means something asked for a record the log does not hold.
-var ErrNoRecord = errors.New("there is no record with that number, so check the number with the tasks command")

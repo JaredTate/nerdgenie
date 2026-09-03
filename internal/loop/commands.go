@@ -2,7 +2,9 @@ package loop
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -59,50 +61,57 @@ func (theLoop *Loop) StopCommand() contract.Command {
 	}
 }
 
-// listTasks prints one line per task the log knows about, newest first.
+// listTasks prints one line per task the log knows about, newest first. The log
+// is read once: every task's newest checkpoint is already in that one read, and
+// loading each task instead would replay that task's whole checkpoint history
+// again for one line of text.
 func (theLoop *Loop) listTasks(ctx context.Context) (string, error) {
-	numbers, err := theLoop.taskNumbers(ctx)
+	newest, err := theLoop.newestCheckpointOfEachTask(ctx)
 	if err != nil {
 		return "", err
 	}
-	if len(numbers) == 0 {
+	if len(newest) == 0 {
 		return "There are no tasks yet.", nil
+	}
+	numbers := slices.Sorted(maps.Keys(newest))
+	slices.Reverse(numbers)
+	if len(numbers) > MaxTasksListed {
+		numbers = numbers[:MaxTasksListed]
 	}
 	lines := []string{}
 	for _, number := range numbers {
-		keeper, err := record.Load(ctx, theLoop.options.Store, contract.RecordTask, number)
+		held, err := record.Parse([]byte(newest[number].Text))
 		if err != nil {
 			continue
 		}
-		held := keeper.Record()
 		lines = append(lines, fmt.Sprintf("task %s  %s  %s", held.Header.ID, held.Header.Status, oneLineOf(held.Goal.Ask)))
 	}
 	return strings.Join(lines, "\n"), nil
 }
 
-// taskNumbers is every task the log holds a checkpoint for, newest first and no
-// more than the listing shows.
-func (theLoop *Loop) taskNumbers(ctx context.Context) ([]string, error) {
+// newestCheckpointOfEachTask reads the log once and keeps the last checkpoint
+// each task saved, which is where that task stands now. A job's checkpoints are
+// left out, because a job's key begins with a letter and a task's is its number.
+func (theLoop *Loop) newestCheckpointOfEachTask(ctx context.Context) (map[int]record.Checkpoint, error) {
 	saved, err := theLoop.options.Store.ByKind(ctx, contract.EventCheckpoint)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the log to list the tasks: %w", err)
 	}
-	numbers := []int{}
+	newest := map[int]record.Checkpoint{}
 	for _, event := range saved {
-		if number, isTask := taskNumberOf(event.TaskID); isTask && !slices.Contains(numbers, number) {
-			numbers = append(numbers, number)
+		number, isTask := taskNumberOf(event.TaskID)
+		if !isTask {
+			continue
+		}
+		one := record.Checkpoint{}
+		if err := json.Unmarshal(event.Body, &one); err != nil {
+			continue
+		}
+		if held, there := newest[number]; !there || one.Number >= held.Number {
+			newest[number] = one
 		}
 	}
-	slices.Sort(numbers)
-	slices.Reverse(numbers)
-	if len(numbers) > MaxTasksListed {
-		numbers = numbers[:MaxTasksListed]
-	}
-	listed := make([]string, 0, len(numbers))
-	for _, number := range numbers {
-		listed = append(listed, strconv.Itoa(number))
-	}
-	return listed, nil
+	return newest, nil
 }
 
 // printTask prints one record as the model reads it.

@@ -5,17 +5,18 @@ package context
 // every turn, and a test measures it.
 //
 // Section 5 of the design says the text is "under five hundred words". As the
-// text stands it is 623 words, counted the way strings.Fields counts them, which
-// is a hundred and twenty-three more than the design claims for itself. Seventy-
-// three of those are the paragraph the wave 6 security review asked for, which
-// tells the model what the two lines round a tool result mean; the other fifty
-// were there before it. The cap here holds the text at the length it actually
-// has, so that nothing can be added to it without a decision, and the
-// disagreement between the design's claim and the design's own words is reported
-// to the orchestrator rather than papered over. Cutting the prompt back under
-// five hundred words, or changing the claim, is a change to the design and not
-// this package's to make.
-const MaxInstructionWords = 623
+// text stands it is 648 words, counted the way strings.Fields counts them, which
+// is a hundred and forty-eight more than the design claims for itself. Fifty
+// were there from the start; seventy-three are the paragraph the wave 6 security
+// review asked for, which tells the model what the two lines round a tool result
+// mean; and twenty-five say where each part of the prompt falls now that the
+// result list and the budget line sit at the tail. The cap here holds the text
+// at the length it actually has, so that nothing can be added to it without a
+// decision, and the disagreement between the design's claim and the design's own
+// words is reported to the orchestrator rather than papered over. Cutting the
+// prompt back under five hundred words, or changing the claim, is a change to
+// the design and not this package's to make.
+const MaxInstructionWords = 648
 
 // InstructionText is what the model is told about the harness it runs inside,
 // and it is the first thing in every prompt, before the persona and before the
@@ -23,7 +24,7 @@ const MaxInstructionWords = 623
 // intent and this constant only carries it, so when the design's text changes
 // this changes with it. A test compares the two on every run.
 const InstructionText = "" +
-	"**Where you are.** You are the reasoning engine inside Coeus, an assistant that runs on the user's computer. You do not remember earlier calls. The harness around you does. On every call it gives you, in this order: these rules, your persona, your tools, a summary of the job if the task belongs to one, the record of the current task, any evidence that has been pinned, the most recent messages, and a short memory hint. Everything else that ever happened is stored on disk, and you can fetch any past result by its id.\n" +
+	"**Where you are.** You are the reasoning engine inside Coeus, an assistant that runs on the user's computer. You do not remember earlier calls. The harness around you does. On every call it gives you, in this order: these rules, your persona, your tools, a summary of the job if the task belongs to one, the goal and the rules of the current task, its work and its lessons, any evidence that has been pinned, the most recent messages, a short memory hint, every result of the task so far, and last of all the line saying where the work stands. Everything else that ever happened is stored on disk, and you can fetch any past result by its id.\n" +
 	"\n" +
 	"**The task record is the truth.** The record tells you what the user asked, why, what they corrected, what has been decided, what has failed, and where the work stands. Trust the record over your own recollection of the conversation. Your first line on every turn states where the work stands and what you will do next. If what you see does not match the plan, update the plan before you act.\n" +
 	"\n" +

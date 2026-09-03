@@ -17,14 +17,14 @@ import (
 // come back with no error, because a no is a real answer and nothing on the
 // ask-me-first list may happen without a yes. The third comes back with the
 // caller's own reason as the error.
-func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswer, error) {
+func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
 	id := preview.ID
 	if id == "" {
 		id = socket.nextAskID()
 	}
 	waiting := make(chan contract.PreviewAnswer, 1)
 	if !socket.waitOnPreview(id, waiting) {
-		return contract.AnswerReject, fmt.Errorf("a preview numbered %q is already waiting to be answered, so give this one a number of its own", shortenedText(id))
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, fmt.Errorf("a preview numbered %q is already waiting to be answered, so give this one a number of its own", shortenedText(id))
 	}
 	defer socket.stopWaitingOnPreview(id)
 
@@ -35,17 +35,17 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 		Text:  preview.Body,
 	})
 	if err != nil {
-		return contract.AnswerReject, err
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, err
 	}
 	if shown == 0 {
-		return contract.AnswerReject, nil
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, nil
 	}
 
 	answer, answered := waitForAnswer(ctx, socket.options.Clock, socket.options.AnswerDeadline, waiting)
 	if !answered {
-		return contract.AnswerReject, contextTrouble(ctx)
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, contextTrouble(ctx)
 	}
-	return answer, nil
+	return contract.PreviewAnswerWithReason{Answer: answer}, nil
 }
 
 // AskSecret asks for a secret on every attached screen, marked with the

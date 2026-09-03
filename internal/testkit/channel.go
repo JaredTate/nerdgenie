@@ -34,6 +34,7 @@ type FakeChannel struct {
 	files        []SentFile
 	previews     []contract.Preview
 	answer       contract.PreviewAnswer
+	reason       string
 	secret       string
 	cannotMask   bool
 	healthy      bool
@@ -195,11 +196,20 @@ func (channel *FakeChannel) SendFile(_ context.Context, path string, caption str
 }
 
 // ShowPreview records the preview and answers it the way the test said.
-func (channel *FakeChannel) ShowPreview(_ context.Context, preview contract.Preview) (contract.PreviewAnswer, error) {
+func (channel *FakeChannel) ShowPreview(_ context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
 	channel.guard.Lock()
 	defer channel.guard.Unlock()
 	channel.previews = append(channel.previews, preview)
-	return channel.answer, nil
+	return contract.PreviewAnswerWithReason{Answer: channel.answer, Reason: channel.reason}, nil
+}
+
+// AnswerPreviewsWithReason makes every later preview come back refused with the
+// user's reason, which is what a test of the reject path needs.
+func (channel *FakeChannel) AnswerPreviewsWithReason(reason string) {
+	channel.guard.Lock()
+	defer channel.guard.Unlock()
+	channel.answer = contract.AnswerReject
+	channel.reason = reason
 }
 
 // AskSecret gives back what the test set, or refuses when the channel cannot

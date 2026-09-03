@@ -37,8 +37,8 @@ func CheckChannel(ctx context.Context, channel contract.Channel) error {
 	if err != nil {
 		return fmt.Errorf("showing a preview failed: %w", err)
 	}
-	if !contract.KnownPreviewAnswer(answer) {
-		return fmt.Errorf("the preview was answered %q, want once, always, or reject", answer)
+	if !contract.KnownPreviewAnswer(answer.Answer) {
+		return fmt.Errorf("the preview was answered %q, want once, always, or reject", answer.Answer)
 	}
 
 	if _, err := channel.AskSecret(ctx, "a secret for the contract check"); err != nil && !errors.Is(err, contract.ErrNoMaskedPrompt) {

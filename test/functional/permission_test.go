@@ -167,10 +167,10 @@ func askAndRun(ctx context.Context, decider *permission.Decider, channel contrac
 	if err != nil {
 		return false, err
 	}
-	if err := decider.Remember(request, answer, ""); err != nil {
+	if err := decider.Remember(request, answer.Answer, ""); err != nil {
 		return false, err
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
 		return false, channel.Send(ctx, "the call was refused by you")
 	}
 	return true, nil

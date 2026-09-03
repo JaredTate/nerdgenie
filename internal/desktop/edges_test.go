@@ -19,8 +19,8 @@ type silentChannel struct {
 }
 
 // ShowPreview never gets to the user.
-func (channel silentChannel) ShowPreview(context.Context, contract.Preview) (contract.PreviewAnswer, error) {
-	return "", errors.New("the terminal has gone, so nobody can be shown anything")
+func (channel silentChannel) ShowPreview(context.Context, contract.Preview) (contract.PreviewAnswerWithReason, error) {
+	return contract.PreviewAnswerWithReason{}, errors.New("the terminal has gone, so nobody can be shown anything")
 }
 
 func TestAnApplicationWithNoNameIsRefusedBeforeAnybodyIsAsked(t *testing.T) {

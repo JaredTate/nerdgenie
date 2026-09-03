@@ -46,6 +46,15 @@ func KnownPreviewAnswer(answer PreviewAnswer) bool {
 	}
 }
 
+// PreviewAnswerWithReason is how a user answered a preview, with the reason
+// they gave when they refused, in their own words, so the model is told why.
+type PreviewAnswerWithReason struct {
+	// Answer is once, always, or reject.
+	Answer PreviewAnswer
+	// Reason is the user's words on a reject, and empty otherwise.
+	Reason string
+}
+
 // Preview is exactly what is about to happen, shown to the user before it does.
 type Preview struct {
 	// ID is what the user answers with, as in "/approve 3".
@@ -77,7 +86,7 @@ type Channel interface {
 	// SendFile delivers one file with a caption.
 	SendFile(ctx context.Context, path string, caption string) error
 	// ShowPreview shows what is about to happen and waits for the answer.
-	ShowPreview(ctx context.Context, preview Preview) (PreviewAnswer, error)
+	ShowPreview(ctx context.Context, preview Preview) (PreviewAnswerWithReason, error)
 	// AskSecret prompts for a secret without echoing it, or returns
 	// ErrNoMaskedPrompt when the channel cannot hide what is typed.
 	AskSecret(ctx context.Context, prompt string) (string, error)

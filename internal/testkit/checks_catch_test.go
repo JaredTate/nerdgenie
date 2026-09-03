@@ -25,8 +25,8 @@ func (namelessChannel) Name() string { return "" }
 type confusedChannel struct{ *testkit.FakeChannel }
 
 // ShowPreview answers with a word the harness does not understand.
-func (confusedChannel) ShowPreview(context.Context, contract.Preview) (contract.PreviewAnswer, error) {
-	return "maybe", nil
+func (confusedChannel) ShowPreview(context.Context, contract.Preview) (contract.PreviewAnswerWithReason, error) {
+	return contract.PreviewAnswerWithReason{Answer: "maybe"}, nil
 }
 
 // silentlyUnwellChannel says it is broken and will not say why.

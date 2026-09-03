@@ -29,7 +29,7 @@ func (harness *socketHarness) showPreview(ctx context.Context) chan previewResul
 	answers := make(chan previewResult, 1)
 	go func() {
 		answer, err := harness.socket.ShowPreview(ctx, aPreview)
-		answers <- previewResult{answer: answer, err: err}
+		answers <- previewResult{answer: answer.Answer, err: err}
 	}()
 	return answers
 }
@@ -147,8 +147,8 @@ func TestAPreviewWithNoScreenAttachedIsRefusedAtOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("showing a preview with nobody attached failed: %v", err)
 	}
-	if answer != contract.AnswerReject {
-		t.Errorf("a preview nobody could see came back as %q, want %q", answer, contract.AnswerReject)
+	if answer.Answer != contract.AnswerReject {
+		t.Errorf("a preview nobody could see came back as %q, want %q", answer.Answer, contract.AnswerReject)
 	}
 }
 
@@ -181,7 +181,7 @@ func TestAPreviewWithNoNumberOfItsOwnIsGivenOne(t *testing.T) {
 			Title: "post to X",
 			Body:  "Coeus can now book flights.",
 		})
-		answers <- previewResult{answer: answer, err: err}
+		answers <- previewResult{answer: answer.Answer, err: err}
 	}()
 
 	shown := client.next()

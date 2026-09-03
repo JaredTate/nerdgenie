@@ -29,6 +29,9 @@ const (
 	SocketAttach SocketMessageType = "attach"
 	// SocketDetach asks to stop receiving it.
 	SocketDetach SocketMessageType = "detach"
+	// SocketCancel withdraws from a preview or a masked prompt by id, which is
+	// what Escape sends, so the program stops waiting at once.
+	SocketCancel SocketMessageType = "cancel"
 )
 
 // The message types the program sends to a screen.
@@ -53,7 +56,7 @@ const (
 func (kind SocketMessageType) FromScreen() bool {
 	switch kind {
 	case SocketMessage, SocketCommand, SocketApprove, SocketDeny,
-		SocketSecret, SocketAttach, SocketDetach:
+		SocketSecret, SocketAttach, SocketDetach, SocketCancel:
 		return true
 	default:
 		return false

@@ -114,7 +114,7 @@ func TestChannelShowsAPreviewAndTakesTheAnswer(t *testing.T) {
 					ID: "3", Title: "Run a command", Body: "rm -rf /tmp/old",
 				})
 				if err == nil {
-					answered <- answer
+					answered <- answer.Answer
 				}
 			}()
 

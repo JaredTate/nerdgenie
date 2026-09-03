@@ -265,7 +265,7 @@ func (channel *Channel) SendFile(ctx context.Context, path string, caption strin
 
 // ShowPreview sends what is about to happen as the message itself, explains the
 // three answers once, and waits for one of them.
-func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswer, error) {
+func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
 	// The answer is waited for before the preview is sent, never after, because
 	// somebody reading fast can reply before a send has finished returning.
 	answers := make(chan contract.PreviewAnswer, 1)
@@ -276,7 +276,7 @@ func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Previe
 
 	shown := strings.TrimSpace(preview.Title + "\n\n" + preview.Body + "\n\n" + previewInstructions)
 	if err := channel.client.Send(ctx, channel.recipient(), shown, nil); err != nil {
-		return contract.AnswerReject, err
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, err
 	}
 
 	waited, stopWaiting := context.WithCancel(ctx)
@@ -290,11 +290,11 @@ func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Previe
 
 	select {
 	case answer := <-answers:
-		return answer, nil
+		return contract.PreviewAnswerWithReason{Answer: answer}, nil
 	case <-expired:
-		return contract.AnswerReject, fmt.Errorf("nobody answered the preview %q within %v, so it counts as refused", preview.ID, PreviewTimeout)
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, fmt.Errorf("nobody answered the preview %q within %v, so it counts as refused", preview.ID, PreviewTimeout)
 	case <-ctx.Done():
-		return contract.AnswerReject, ctx.Err()
+		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, ctx.Err()
 	}
 }
 

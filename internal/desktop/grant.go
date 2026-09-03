@@ -34,7 +34,7 @@ func (desktop *Desktop) grant(ctx context.Context, application string) error {
 	if err != nil {
 		return fmt.Errorf("the user could not be asked whether the agent may use %s: %w", application, err)
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
 		return fmt.Errorf("the user did not grant the application %s, so the desktop cannot open it", application)
 	}
 
@@ -88,10 +88,10 @@ func (desktop *Desktop) askTheUser(
 	if err != nil {
 		return fmt.Errorf("the user could not be shown what the desktop was about to do: %w", err)
 	}
-	if err := desktop.options.Permission.Remember(request, answer, decision.Reason); err != nil {
+	if err := desktop.options.Permission.Remember(request, answer.Answer, decision.Reason); err != nil {
 		return fmt.Errorf("the user's answer about the desktop action could not be remembered: %w", err)
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
 		return fmt.Errorf("the user refused the desktop action %q", intent)
 	}
 	return nil

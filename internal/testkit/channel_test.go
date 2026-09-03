@@ -65,7 +65,7 @@ func TestTheFakeChannelAnswersAPreviewTheWayTheTestSaid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("showing the preview failed: %v", err)
 	}
-	if answer != contract.AnswerAlways {
+	if answer.Answer != contract.AnswerAlways {
 		t.Errorf("the preview was answered %q, want %q", answer, contract.AnswerAlways)
 	}
 	if previews := channel.Previews(); len(previews) != 1 || previews[0].Body == "" {

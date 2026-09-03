@@ -40,17 +40,10 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/permission` | Decide allow, ask, or deny for a tool call | 2, built |
 | `internal/sandbox` | Run a command inside bwrap and Landlock | 2, built |
 | `internal/channel` | The queue, the router, the event stream, and the local socket | 3, built |
-| `internal/command` | The command registry and the core slash commands | 3 |
-| `internal/tui` | The terminal screen | 3, built |
-
-| `internal/channel` | The queue, the event stream, and the local socket | 3 |
 | `internal/command` | The command registry, the core slash commands, and the work behind `coeus init`, `doctor`, `install`, and `uninstall` | 3, built |
-| `internal/tui` | The terminal screen | 3 |
-| `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3 |
-| `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2, built |
-
+| `internal/tui` | The terminal screen | 3, built |
 | `internal/signal` | The signal-cli client, linking, pairing, and the Signal channel | 3, built |
-| `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2 |
+| `internal/vault` | The encrypted secret store, the resolver, TOTP, the sudo password, redaction | 2, built |
 | `internal/reliability` | Leases, ledgers, sentinels, the breaker, the watchdog feed, backups | 4 |
 | `internal/memory` | The memory files, the search index, the hint, and zero-token capture | 4, built |
 | `internal/skill` | The skill folder format, loading, learning, replay | 4 |
@@ -59,8 +52,8 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/desktop` | The Go side of the desktop worker | 6, built |
 | `internal/update` | Update, rollback, migrations | 6 |
 | `internal/replay` | Re-run any logged task as a test | 6 |
-| `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, 3 onward |
-| `worker/browser` | The TypeScript browser worker | 5, built early |
+| `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, built |
+| `worker/browser` | The TypeScript browser worker | 5, built |
 | `worker/desktop` | The TypeScript desktop worker | 6, built |
 
 ## The contracts (built, wave 0)

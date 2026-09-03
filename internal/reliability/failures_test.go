@@ -295,7 +295,7 @@ func TestTheWatchdogSaysWhenTheServiceManagerCannotBeReached(t *testing.T) {
 	}
 
 	stopped := make(chan error, 1)
-	go func() { stopped <- watchdog.Feed(context.Background(), func() bool { return true }) }()
+	go func() { stopped <- watchdog.Feed(context.Background()) }()
 	for range 100 {
 		clock.Advance(watchdogInterval / 2)
 		select {

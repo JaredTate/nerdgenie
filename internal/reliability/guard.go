@@ -123,13 +123,12 @@ func (guard *Guard) Stop() error {
 // MayStartTask says whether the loop may pick up new work. It is false while
 // the breaker is tripped and while a drain is on.
 func (guard *Guard) MayStartTask() bool {
-	return guard.Healthy() && !guard.drain.Requested()
+	return guard.WhyNoNewTask() == ""
 }
 
-// Healthy is what the watchdog feed asks before it tells systemd that the
-// program is alive. A tripped breaker is not healthy: nothing inside the
-// program is going to put a crash loop right, so the feed stops and systemd
-// starts the program again.
+// Healthy says whether the agent is in a crash loop, which is what a screen's
+// health mark shows. A broken breaker file leaves the answer healthy, because a
+// breaker nobody can read must never make a working agent look broken.
 func (guard *Guard) Healthy() bool {
 	tripped, err := guard.breaker.Tripped()
 	return err != nil || !tripped
@@ -162,9 +161,13 @@ func (guard *Guard) Drain() *Drain { return guard.drain }
 func (guard *Guard) Ready() error { return guard.watchdog.Ready() }
 
 // FeedWatchdog keeps telling the service manager that the program is alive
-// until the context ends or the breaker trips.
+// until the context ends. It goes on feeding while the breaker is tripped,
+// because a tripped breaker means the agent answers the user and starts no
+// task: a feed that stopped would have systemd kill the program, the kill would
+// leave the sentinel behind, the next start would count as one more crash, and
+// the task that was killing the program would be picked up again.
 func (guard *Guard) FeedWatchdog(ctx context.Context) error {
-	return guard.watchdog.Feed(ctx, guard.Healthy)
+	return guard.watchdog.Feed(ctx)
 }
 
 // Backup writes one archive of the database, the vault, and the browser

@@ -11,6 +11,23 @@ import (
 	"fmt"
 )
 
+// WhyNoNewTask is the sentence to send whoever asked for work when the guard
+// will not start a task, and is empty when it will. The caller asks it before it
+// picks up a message and before it hands a job's task to the loop, and sends
+// what it says back to the person who asked, so that an agent which is starting
+// no task says so instead of going quiet.
+func (guard *Guard) WhyNoNewTask() string {
+	if tripped, err := guard.breaker.Tripped(); err == nil && tripped {
+		return fmt.Sprintf(
+			"Coeus stopped and started several times in a row, so it is answering you but starting no task until it has been quiet for %s. Ask again then, or restart Coeus yourself.",
+			QuietPeriod)
+	}
+	if why := guard.drain.Why(); why != "" {
+		return why + ", so it is finishing the task it has and starting no new one. Ask again in a few minutes."
+	}
+	return ""
+}
+
 // RunTurn runs one turn for a session under both of the things a turn needs: the
 // lease, so that two messages arriving at once on one session cannot write the
 // same record twice, and the turn deadline, so that a wedged turn stops instead

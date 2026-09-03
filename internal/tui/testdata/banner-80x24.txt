@@ -13,7 +13,7 @@
                                                                                 
                 the agent that does not forget what it is doing                 
                                    connecting                                   
-                                                                                
+                           type / to see the commands                           
                                                                                 
                                                                                 
                                                                                 

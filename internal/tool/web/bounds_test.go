@@ -88,14 +88,14 @@ func TestAResultsPageWithNoRowsOnItSaysNothingWasFound(t *testing.T) {
 	}
 }
 
-func TestAToolWithNoSettingsAtAllStillHasATimeoutAndAResultsPage(t *testing.T) {
-	tool := web.New(web.Settings{})
-
-	// The shipped results page is on the real internet, which no test reaches,
-	// so the only thing checked here is that the call is refused rather than
-	// hanging or reaching for a page with no address at all.
-	if _, err := run(t, tool, map[string]any{"action": "search", "query": "anything"}); err == nil {
-		t.Errorf("a search reached the real internet from a test")
+func TestWithNoResultsPageConfiguredTheShippedOneIsUsed(t *testing.T) {
+	// No test in this package reaches the real internet, so what is checked here
+	// is the address itself rather than a search through it.
+	if !strings.Contains(web.DefaultResultsPage, "duckduckgo") {
+		t.Errorf("the shipped results page is %q, and search must work with no key and no server", web.DefaultResultsPage)
+	}
+	if !strings.HasPrefix(web.DefaultResultsPage, "https://") {
+		t.Errorf("the shipped results page is %q, and it must be fetched over a secure connection", web.DefaultResultsPage)
 	}
 }
 
@@ -145,5 +145,36 @@ func TestAnAddressThatCannotBeReachedSaysSo(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cannot reach") {
 		t.Errorf("the failure reads %q and does not say the address could not be reached", err)
+	}
+}
+
+func TestTheResultsPageRedirectIsUnwrappedSoTheRealAddressComesBack(t *testing.T) {
+	tool, server := newTool(t, "")
+
+	output, err := run(t, tool, map[string]any{"action": "search", "query": "digibyte"})
+	if err != nil {
+		t.Fatalf("searching the results page failed: %v", err)
+	}
+	if strings.Contains(output.Text, "duckduckgo.com/l/") {
+		t.Errorf("the results page's own redirect is still in the rows: %q", output.Text)
+	}
+	if !strings.Contains(output.Text, server.PageAddress("/notes")) {
+		t.Errorf("the rows do not carry the address the result really points at: %q", output.Text)
+	}
+}
+
+func TestAResultsPageWithLinksThatNeverCloseStillReads(t *testing.T) {
+	broken := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(writer, `<html><body><div class="results"><a class="result__a" href="//x/?uddg=%2F%2Fnowhere`)
+	}))
+	t.Cleanup(broken.Close)
+
+	tool := web.New(web.Settings{ResultsPageAddress: broken.URL + "/html/"})
+	output, err := run(t, tool, map[string]any{"action": "search", "query": "anything"})
+	if err != nil {
+		t.Fatalf("searching a broken results page failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "nothing was found") {
+		t.Errorf("a results page whose links never close read as %q", output.Text)
 	}
 }

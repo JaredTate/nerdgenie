@@ -66,22 +66,7 @@ func (tool *Tool) throughTheResultsPage(ctx context.Context, query string) (stri
 	if err != nil {
 		return "", "", err
 	}
-	return rowsFromResultsPage(HTMLToText(page.body)), address, nil
-}
-
-// rowsFromResultsPage keeps the lines of a results page that carry a link, which
-// is what a row of results is, and drops the rest of the page's furniture.
-func rowsFromResultsPage(text string) string {
-	rows := []string{}
-	for _, line := range strings.Split(text, "\n") {
-		if strings.Contains(line, "[http") && len(rows) < MaxSearchRows*2 {
-			rows = append(rows, line)
-		}
-	}
-	if len(rows) == 0 {
-		return "nothing was found"
-	}
-	return strings.Join(rows, "\n")
+	return rowsFromResultsPage(page.body), address, nil
 }
 
 // resultsPage is the results page to read, with the shipped one when the

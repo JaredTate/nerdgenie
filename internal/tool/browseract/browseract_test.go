@@ -77,8 +77,8 @@ func TestABatchStopsAtTheFirstStepThatDoesNotDoWhatWasExpected(t *testing.T) {
 	output, err := run(t, tool, map[string]any{
 		"intent": "follow the link twice",
 		"steps": []any{
-			map[string]any{"method": "click", "element": testkit.FixtureChangeLinkRef, "expectation": "the page changes"},
-			map[string]any{"method": "click", "element": testkit.FixtureChangeLinkRef, "expectation": "the page changes again"},
+			map[string]any{"method": "click", "element": testkit.FixtureChangeLinkRef, "expectation": "a receipt appears"},
+			map[string]any{"method": "click", "element": testkit.FixtureChangeLinkRef, "expectation": "a second receipt appears"},
 		},
 	})
 	if err != nil {

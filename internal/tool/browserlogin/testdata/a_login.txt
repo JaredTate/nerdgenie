@@ -1,6 +1,6 @@
 signed in to the-board
 not what was expected
-what happened instead: expected "the login is accepted", and the page is still Sign in
+what happened instead: expected "the login is accepted", and the page is showing a login wall: a password box named Password
 this page shows a login wall (a password box named Password), so hand the browser to the user rather than working round it
 ---
 Sign in
@@ -9,3 +9,4 @@ tab t1
 e2 textbox "Username"
 e3 textbox "Password"
 e4 button "Sign in"
+this page shows a login wall (a password box named Password), so hand the browser to the user rather than working round it

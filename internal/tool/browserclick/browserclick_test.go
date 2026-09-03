@@ -70,7 +70,7 @@ func TestAClickThatChangesNothingSaysSo(t *testing.T) {
 	worker.NextActionChangesNothing()
 
 	output, err := run(t, tool, map[string]any{
-		"intent": "try the link", "element": testkit.FixtureChangeLinkRef, "expectation": "the page changes",
+		"intent": "try the link", "element": testkit.FixtureChangeLinkRef, "expectation": "a receipt appears",
 	})
 	if err != nil {
 		t.Fatalf("clicking failed: %v", err)

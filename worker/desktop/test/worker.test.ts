@@ -74,6 +74,15 @@ describe("the worker process", () => {
     expect(JSON.parse(out[0] as string).error.code).toBe(DesktopErrorCode.NoApplicationOpen)
   })
 
+  test("a screenshot before any launch is answered with a picture rather than refused", async () => {
+    const { out } = await ran(['{"jsonrpc":"2.0","id":5,"method":"screenshot","params":{}}'])
+
+    const answered = JSON.parse(out[0] as string)
+    expect(answered.error).toBeUndefined()
+    expect(answered.result.pngBase64).toBe("iVBORw0KGgoWHOLE")
+    expect(answered.result.windows).toEqual(["Coeus fixture window"])
+  })
+
   test("a failure that is not the protocol's own is still answered rather than thrown", async () => {
     const { out } = await ran([
       '{"jsonrpc":"2.0","id":1,"method":"launch","params":{"application":"zenity"}}',

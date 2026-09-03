@@ -133,12 +133,11 @@ func TestTheGrantPreviewSaysWhichApplicationAndWhatItMeans(t *testing.T) {
 	}
 }
 
-func TestNothingCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
+func TestNothingButAScreenshotCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
 	desk := newDesk(t)
 	ctx := context.Background()
 
 	tries := map[string]func() error{
-		"screenshot":       func() error { _, err := desk.desktop.Screenshot(ctx); return err },
 		"click":            func() error { return desk.desktop.Click(ctx, 1, "the text box takes the typing") },
 		"type":             func() error { return desk.desktop.Type(ctx, "hello", "the text box holds the word") },
 		"press":            func() error { return desk.desktop.Press(ctx, "ctrl+s", "the file is saved") },
@@ -154,6 +153,45 @@ func TestNothingCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
 	}
 	if *desk.starts != 0 {
 		t.Error("a worker was started to answer a call that could not be answered, and none should have been")
+	}
+}
+
+func TestAScreenshotAloneNeedsNoLaunchAndAsksNobodyAnything(t *testing.T) {
+	desk := newDesk(t)
+
+	picture, err := desk.desktop.Screenshot(context.Background())
+
+	if err != nil {
+		t.Fatalf("taking a screenshot with no application open failed: %v, and looking at the screen needs no application", err)
+	}
+	if picture.PNGBase64 == "" {
+		t.Error("the screenshot has no picture in it")
+	}
+	if shown := len(desk.channel.Previews()); shown != 0 {
+		t.Errorf("the user was shown %d previews for a screenshot alone, want none: the grant question belongs to launching an application", shown)
+	}
+	if asked := len(desk.permission.Requests()); asked != 0 {
+		t.Errorf("the permission function was asked about %d calls for a screenshot alone, want none", asked)
+	}
+	if asked := desk.latestWorker(t).methodsAsked(); len(asked) != 2 || asked[0] != "health" || asked[1] != "screenshot" {
+		t.Errorf("the worker was asked %v, want the health check and then the screenshot, with no launch in between", asked)
+	}
+}
+
+func TestAScreenshotSaysWhichWindowsAreOnTheScreenAndWhichApplicationItIsOf(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+
+	picture, err := desk.desktop.Screenshot(context.Background())
+
+	if err != nil {
+		t.Fatalf("taking a screenshot failed: %v", err)
+	}
+	if len(picture.Windows) != 2 || picture.Windows[0] != "Coeus fixture window" || picture.Windows[1] != "Firefox" {
+		t.Errorf("the windows are %q, want the two titles the worker sent, so that the model knows what it is looking at", picture.Windows)
+	}
+	if picture.Application != "zenity" {
+		t.Errorf("the picture is of %q, want the application the worker said it photographed", picture.Application)
 	}
 }
 

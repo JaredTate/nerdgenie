@@ -37,6 +37,8 @@ export class FakeDriver implements DesktopDriver {
   title = "Coeus fixture window"
   /** The picture the window returns, already encoded as base64 text. */
   picture = "iVBORw0KGgoFAKE"
+  /** The picture of the whole screen, told apart from the window's by its text. */
+  screen = "iVBORw0KGgoWHOLE"
   /** What the clipboard holds. */
   clipboard = ""
   /** The version the driver reports. */
@@ -82,6 +84,11 @@ export class FakeDriver implements DesktopDriver {
       ? [...this.elements, { element_index: 99, element_token: `s${this.readings}:99`, role: "button", label: `Tick ${this.readings}`, enabled: true, frame: { x: 0, y: 0, w: 10, h: 10 } }]
       : this.elements
     return { title: this.title, elements, pictureBase64: withPicture ? this.picture : "" }
+  }
+
+  async readScreen(): Promise<string> {
+    this.record("read the whole screen")
+    return this.screen
   }
 
   async click(_target: WindowTarget, token: string, holdMilliseconds: number): Promise<void> {

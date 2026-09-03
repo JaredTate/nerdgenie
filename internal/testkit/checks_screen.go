@@ -206,7 +206,8 @@ func checkBrowserLogin(ctx context.Context, worker contract.BrowserWorker) error
 }
 
 // CheckDesktop asserts what every desktop promises: an application the user has
-// not granted is refused, and nothing can be done before something is open.
+// not granted is refused, nothing can be done in one before it is open, and a
+// picture of the screen needs no application, because looking is not acting.
 func CheckDesktop(ctx context.Context, desktop contract.Desktop) error {
 	if err := desktop.Launch(ctx, "an-application-nobody-granted", "the application opens"); err == nil {
 		return errors.New("an application nobody granted was launched, and the user grants an application once per session")
@@ -214,8 +215,8 @@ func CheckDesktop(ctx context.Context, desktop contract.Desktop) error {
 	if err := desktop.Click(ctx, 1, "the control is pressed"); err == nil {
 		return errors.New("a click landed with no application open, and there is nothing to click on")
 	}
-	if _, err := desktop.Screenshot(ctx); err == nil {
-		return errors.New("a screenshot was taken with no application open, and there is nothing to photograph")
+	if _, err := desktop.Screenshot(ctx); err != nil {
+		return fmt.Errorf("a screenshot with no application open was refused: %w; looking at the screen needs no application, only acting in one does", err)
 	}
 	return nil
 }

@@ -143,6 +143,36 @@ func TestCheckRootsRefusesAnEmptyUserHome(t *testing.T) {
 	}
 }
 
+func TestCheckRootsRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	agentHome := filepath.Join(work, "agenthome")
+	if err := os.MkdirAll(agentHome, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the moved agent home for the test: %v", err)
+	}
+
+	_, err := checkRoots([]string{work}, userHome, agentHome)
+	if err == nil {
+		t.Fatalf("the root %q was accepted, and COEUS_HOME put the agent's home, its vault, and its browser profile inside it", work)
+	}
+	if !strings.Contains(err.Error(), agentHome) {
+		t.Errorf("the refusal says %q, and it must name the folder it would have put inside the fence", err)
+	}
+}
+
+func TestCheckRootsAcceptsARootBesideTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	agentHome := filepath.Join(userHome, "somewhere-else")
+	if err := os.MkdirAll(agentHome, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the moved agent home for the test: %v", err)
+	}
+
+	if _, err := checkRoots([]string{work}, userHome, agentHome); err != nil {
+		t.Fatalf("a folder beside the moved agent home was refused: %v", err)
+	}
+}
+
 func TestCheckRootsKeepsWhereALinkLeadsRatherThanTheLinkItself(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")

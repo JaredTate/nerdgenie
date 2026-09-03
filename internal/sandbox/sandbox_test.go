@@ -59,6 +59,23 @@ func TestNewFenceRefusesARootThatMustStayOutside(t *testing.T) {
 	}
 }
 
+func TestNewFenceRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	agentHome := filepath.Join(work, "agenthome")
+	if err := os.MkdirAll(agentHome, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the moved agent home for the test: %v", err)
+	}
+
+	_, err := New(Settings{Roots: []string{work}, UserHome: userHome, AgentHome: agentHome, HelperProgram: "/bin/sh"})
+	if err == nil {
+		t.Fatalf("a fence was built around %q, and COEUS_HOME put the vault and the browser profile inside it", work)
+	}
+	if !strings.Contains(err.Error(), agentHome) {
+		t.Errorf("the refusal says %q, and it must name the folder it would have put inside the fence", err)
+	}
+}
+
 func TestNewFenceKeepsAnOutputCapTheCallerAsksFor(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")

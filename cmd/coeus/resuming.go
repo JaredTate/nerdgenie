@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"slices"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/coeus/internal/record"
 )
 
 // maxScreensRemembered is how many screens the newest task is remembered for.
@@ -15,6 +21,12 @@ import (
 // that has been quiet longest is forgotten, and its next message starts a fresh
 // task rather than picking an old one up.
 const maxScreensRemembered = 64
+
+// maxTasksLookedBackAt is how many of the newest waiting or stopped tasks a
+// start reads out of the log to rebuild this memory: as many as there are
+// screens to remember, because each of them can hold one task at most, so a
+// long log of abandoned tasks cannot make the start slow.
+const maxTasksLookedBackAt = maxScreensRemembered
 
 // theWordsForCarryingOn are the whole messages that mean "pick up the task you
 // put down". A person who wants the stopped task back says one of these and
@@ -129,4 +141,103 @@ func (tasks *screenTasks) howManyScreens() int {
 func saysCarryOn(said string) bool {
 	trimmed := strings.TrimRight(strings.ToLower(strings.TrimSpace(said)), ".!? ")
 	return slices.Contains(theWordsForCarryingOn, trimmed)
+}
+
+// rememberedFromTheLog rebuilds the memory of what each screen was last doing
+// out of the event log, which is what a restart would otherwise have forgotten:
+// for each screen, the newest task whose record stands at waiting or stopped,
+// so that "continue" after a restart picks that task up under the number it
+// already had rather than starting a fresh one.
+//
+// The log says where each task stands in its newest checkpoint, and whose it is
+// in the ask written under its number. A task whose ask is not there is passed
+// over, because there is nothing to say which screen may pick it up. A log that
+// cannot be read is said so, and the memory handed back is empty rather than
+// missing, so the agent still starts and every message starts a fresh task.
+func rememberedFromTheLog(ctx context.Context, store contract.Store) (*screenTasks, error) {
+	tasks := newScreenTasks()
+	standing, err := tasksToPickUp(ctx, store)
+	if err != nil {
+		return tasks, err
+	}
+	// The newest tasks are looked at first, as many as there are screens, and
+	// then remembered oldest first, so that the newest of a screen's tasks is
+	// what stands when two of them could be picked up.
+	if len(standing) > maxTasksLookedBackAt {
+		standing = standing[len(standing)-maxTasksLookedBackAt:]
+	}
+	for _, task := range standing {
+		number := strconv.Itoa(task.number)
+		screen, found := screenOfTheTask(ctx, store, number)
+		if !found {
+			continue
+		}
+		tasks.remember(screen, loop.Outcome{TaskID: number, Status: task.status})
+	}
+	return tasks, nil
+}
+
+// numberedTask is one task and where its record stands.
+type numberedTask struct {
+	number int
+	status contract.RecordStatus
+}
+
+// tasksToPickUp reads the log once and returns every task whose record stands at
+// waiting or stopped, oldest first, which is what the newest checkpoint of each
+// task says. A job's checkpoints are left out, because a job's key begins with a
+// letter and a task's is its number, and a checkpoint that does not read as a
+// record is passed over rather than stopping the rebuild.
+func tasksToPickUp(ctx context.Context, store contract.Store) ([]numberedTask, error) {
+	saved, err := store.ByKind(ctx, contract.EventCheckpoint)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the checkpoints out of the log to see which tasks are waiting: %w", err)
+	}
+	newest := map[int]record.Checkpoint{}
+	for _, event := range saved {
+		number, err := strconv.Atoi(event.TaskID)
+		if err != nil || number < 1 {
+			continue
+		}
+		one := record.Checkpoint{}
+		if err := json.Unmarshal(event.Body, &one); err != nil {
+			continue
+		}
+		if held, known := newest[number]; !known || one.Number >= held.Number {
+			newest[number] = one
+		}
+	}
+
+	found := []numberedTask{}
+	for number, checkpoint := range newest {
+		held, err := record.Parse([]byte(checkpoint.Text))
+		if err != nil {
+			continue
+		}
+		if held.Header.Status == contract.StatusWaiting || held.Header.Status == contract.StatusStopped {
+			found = append(found, numberedTask{number: number, status: held.Header.Status})
+		}
+	}
+	sort.Slice(found, func(first int, second int) bool { return found[first].number < found[second].number })
+	return found, nil
+}
+
+// screenOfTheTask is the screen one task came from, read from the ask written
+// under its number, and false when the log holds no such message.
+func screenOfTheTask(ctx context.Context, store contract.Store, number string) (string, bool) {
+	events, err := store.ByTask(ctx, number)
+	if err != nil {
+		return "", false
+	}
+	for _, event := range events {
+		if event.Kind != contract.EventMessage {
+			continue
+		}
+		message := contract.Inbound{}
+		if err := json.Unmarshal(event.Body, &message); err != nil || message.Channel == "" {
+			continue
+		}
+		return screenNamed(message.Channel, message.Sender), true
+	}
+	return "", false
 }

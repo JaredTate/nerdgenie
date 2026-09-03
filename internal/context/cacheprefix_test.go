@@ -44,8 +44,8 @@ func TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid(t *testing.T) {
 		whole := renderPrompt(later)
 		shared := sharedPrefix(renderPrompt(earlier), whole)
 		share := 100 * len(shared) / len(whole)
-		t.Logf("at round %d the prompt is %d characters and shares %d of them with round %d, which is %d per cent",
-			round, len(whole), len(shared), round-1, share)
+		t.Logf("at round %d the prompt is %d characters and shares %d of them with round %d, which is %.1f per cent",
+			round, len(whole), len(shared), round-1, 100*float64(len(shared))/float64(len(whole)))
 		if share < leastSharedPercent {
 			t.Errorf("at round %d only %d per cent of the prompt is what the last call already said, and the layout has to hold %d;"+
 				" something that changes every call has got in above something that does not", round, share, leastSharedPercent)

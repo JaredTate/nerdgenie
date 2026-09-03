@@ -78,22 +78,22 @@ func TestUpRecallsWhatWasSentAndDownComesBackToAnEmptyBox(t *testing.T) {
 	}
 }
 
-func TestScrollingUpShowsTheMoreMarkerAndScrollingBackClearsIt(t *testing.T) {
+func TestScrollingUpShowsTheOlderMarkAndScrollingBackClearsIt(t *testing.T) {
 	screen, _ := screenWithLink()
 	for range 40 {
 		screen.remember(block{kind: blockReply, text: "one more line of a long conversation"})
 	}
-	if strings.Contains(statusStrip(screen), "more") {
-		t.Fatal("the more marker is showing while the view is at the bottom")
+	if strings.Contains(statusStrip(screen), olderMark) {
+		t.Fatal("the older mark is showing while the view is at the bottom")
 	}
 
 	pressKey(screen, tea.KeyPgUp)
-	if !strings.Contains(statusStrip(screen), "more") {
-		t.Errorf("the status strip is %q after scrolling up, and it should say there is more below", statusStrip(screen))
+	if !strings.Contains(statusStrip(screen), olderMark) {
+		t.Errorf("the status strip is %q after scrolling up, and it should say the view is on older rows", statusStrip(screen))
 	}
 	pressKey(screen, tea.KeyPgDown)
-	if strings.Contains(statusStrip(screen), "more") {
-		t.Error("the more marker is still showing after scrolling back to the bottom")
+	if strings.Contains(statusStrip(screen), olderMark) {
+		t.Error("the older mark is still showing after scrolling back to the bottom")
 	}
 }
 

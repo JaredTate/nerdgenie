@@ -12,8 +12,16 @@
 //
 // Two rules from the design are enforced here rather than in the worker. The
 // user grants an application once per session, through a preview on the
-// channel, and nothing at all can be done until one is granted, the clipboard
-// included. Every action inside it that cannot be undone, which is typing into
+// channel, and nothing can be done in one until it is granted, the clipboard
+// included. The one call that needs no grant is a picture of the screen,
+// because looking at the screen is not acting in an application: with nothing
+// open no control is numbered, the windows on the screen are named by title, so
+// that the model knows what it is looking at and can launch the one it wants,
+// and the picture is of the whole screen where the display allows one. The
+// first human trial found the model refused a screenshot for that reason, and
+// told to launch something first.
+//
+// Every action inside a granted application that cannot be undone, which is typing into
 // a field, a drag, and a paste, goes through contract.Permission and gets its
 // own preview of exactly what is about to happen; so does reading the
 // clipboard, because the clipboard belongs to the whole machine rather than to

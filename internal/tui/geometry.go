@@ -37,7 +37,7 @@ const (
 	promptGlyph    = '›'
 	lockGlyph      = '🔒'
 	maskGlyph      = '•'
-	moreGlyph      = '▼'
+	olderGlyph     = '↑'
 	filledDotGlyph = '●'
 	hollowDotGlyph = '○'
 	barFullGlyph   = '▰'

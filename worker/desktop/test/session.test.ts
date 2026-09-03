@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest"
 import { DesktopSession } from "../src/session.js"
-import { maximumPictureLength, maximumTypedCharacters } from "../src/limits.js"
+import { maximumPictureLength, maximumTypedCharacters, maximumWindowsListed } from "../src/limits.js"
+import { maximumNameLength } from "../src/marks.js"
 import { pacingNamed } from "../src/pacing.js"
 import { DesktopErrorCode, ProtocolError } from "../src/wire.js"
 import { FakeDriver, aWindow } from "./fakedriver.js"
@@ -33,7 +34,6 @@ const failure = async (run: () => Promise<unknown>): Promise<ProtocolError> => {
 
 describe("acting before an application is open", () => {
   test.each([
-    ["screenshot", () => session.screenshot()],
     ["click", () => session.click(1, "something happens")],
     ["type", () => session.type("hello", undefined, "something happens")],
     ["press", () => session.press("ctrl+s", "something happens")],
@@ -95,6 +95,75 @@ describe("launching an application", () => {
   })
 })
 
+describe("taking a screenshot with nothing open", () => {
+  test("the whole screen is photographed, no control is numbered, and the windows are named by title", async () => {
+    driver.windows = [aWindow(), aWindow({ windowId: 5, title: "DigiByte - Firefox", application: "firefox" })]
+
+    const picture = await session.screenshot()
+
+    expect(picture.pngBase64).toBe("iVBORw0KGgoWHOLE")
+    expect(picture.marks).toEqual([])
+    expect(picture.application).toBe("")
+    expect(picture.windows).toEqual(["Coeus fixture window", "DigiByte - Firefox"])
+    expect(driver.calls).toContain("read the whole screen")
+    expect(driver.calls.some((call) => call.startsWith("read window") || call.startsWith("bring window"))).toBe(false)
+  })
+
+  test("a window with no title is named by its application, and one with neither is left out", async () => {
+    driver.windows = [
+      aWindow({ windowId: 5, title: "", application: "gedit" }),
+      aWindow({ windowId: 6, title: "  ", application: "" }),
+      aWindow({ windowId: 7, title: "  Notes  ", application: "gedit" }),
+    ]
+
+    const picture = await session.screenshot()
+
+    expect(picture.windows).toEqual(["gedit", "Notes"])
+  })
+
+  test("no more windows than the cap are named, each on one short line", async () => {
+    driver.windows = Array.from({ length: maximumWindowsListed + 25 }, (_, at) =>
+      aWindow({ windowId: at, title: `Window ${at}\n${"x".repeat(300)}` }),
+    )
+
+    const picture = await session.screenshot()
+
+    expect(picture.windows).toHaveLength(maximumWindowsListed)
+    expect(picture.windows[0]).not.toContain("\n")
+    expect((picture.windows[0] as string).length).toBeLessThanOrEqual(maximumNameLength)
+  })
+
+  test("a screen the driver cannot photograph whole still names the windows, with no picture and a logged reason", async () => {
+    const logged: string[] = []
+    const quiet = new DesktopSession(driver, fast, (line) => logged.push(line))
+    driver.windows = [aWindow()]
+    driver.screenBrokenWith = "X11 error BadMatch from GetImage"
+
+    const picture = await quiet.screenshot()
+
+    expect(picture.pngBase64).toBe("")
+    expect(picture.windows).toEqual(["Coeus fixture window"])
+    expect(logged.some((line) => line.includes("BadMatch"))).toBe(true)
+  })
+
+  test("a driver that will not answer at all is still reported as unavailable", async () => {
+    driver.brokenWith = "the native library is missing"
+
+    const thrown = await failure(() => session.screenshot())
+
+    expect(thrown.code).toBe(DesktopErrorCode.DriverUnavailable)
+  })
+
+  test("a picture of the whole screen bigger than the cap is refused rather than sent", async () => {
+    driver.screen = "x".repeat(maximumPictureLength + 1)
+
+    const thrown = await failure(() => session.screenshot())
+
+    expect(thrown.code).toBe(DesktopErrorCode.UnreadableWindow)
+    expect(thrown.message).toContain("too big")
+  })
+})
+
 describe("taking a screenshot", () => {
   test("the picture comes back with its controls numbered", async () => {
     await opened()
@@ -109,6 +178,17 @@ describe("taking a screenshot", () => {
     ])
     expect(picture.application).toBe("zenity")
     expect(picture.hidden).toBe(0)
+  })
+
+  test("the picture is of the granted window alone, and still names every window on the screen", async () => {
+    await opened()
+    driver.windows = [...driver.windows, aWindow({ windowId: 5, title: "DigiByte - Firefox", application: "firefox" })]
+
+    const picture = await session.screenshot()
+
+    expect(picture.windows).toEqual(["Coeus fixture window", "DigiByte - Firefox"])
+    expect(driver.calls).not.toContain("read the whole screen")
+    expect(driver.calls).toContain("read window 77 with a picture")
   })
 
   test("a picture bigger than the cap is refused rather than sent", async () => {

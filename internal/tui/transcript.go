@@ -44,14 +44,17 @@ type block struct {
 }
 
 // remember puts one block on the end of the transcript and drops the oldest when
-// the transcript is full.
+// the transcript is full. A view the person has scrolled up is held where it is,
+// so that a reply arriving does not pull them away from what they were reading.
 func (screen *Screen) remember(added block) {
 	added.text = keepTail(added.text)
+	if screen.scrolledUp() {
+		screen.scrollBack += screen.rowsAddedBy(added)
+	}
 	screen.blocks = append(screen.blocks, added)
 	if len(screen.blocks) > maxTranscriptBlocks {
 		screen.blocks = screen.blocks[len(screen.blocks)-maxTranscriptBlocks:]
 	}
-	screen.scrollBack = 0
 }
 
 // transcriptWidth is how many columns the text of a block wraps at: the frame
@@ -89,13 +92,22 @@ func keepTail(text string) string {
 // ones being read. Drawing from the bottom up is what makes a frame cost the
 // same on the thousandth block as on the first.
 func (screen *Screen) transcriptRows(wanted int) []string {
+	return screen.newestRows(wanted, true)
+}
+
+// newestRows gathers rows from the newest block backwards until it has as many
+// as were asked for. With wholeAtTheTop set it keeps the rule above, leaving out
+// a block that would fit whole but not in the room left; without it the block is
+// gathered and cut, which is what a view scrolled up by rows needs, because a
+// view moving three rows at a time has to cross every block on its way.
+func (screen *Screen) newestRows(wanted int, wholeAtTheTop bool) []string {
 	gathered := []string{}
 	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
 		lines := screen.blockLines(screen.blocks[at])
 		if at > 0 && blankBetween(screen.blocks[at-1].kind, screen.blocks[at].kind) {
 			lines = append([]string{""}, lines...)
 		}
-		if len(gathered)+len(lines) > wanted && len(lines) <= wanted {
+		if wholeAtTheTop && len(gathered)+len(lines) > wanted && len(lines) <= wanted {
 			break
 		}
 		gathered = append(lines, gathered...)
@@ -166,7 +178,9 @@ func (screen *Screen) toolLines(item block) []string {
 // visibleTranscript is the rows of the transcript that fit in the space it has,
 // pushed to the bottom, less however far the person has scrolled up. A scroll
 // that has run off the top is pulled back here, which is the one place that
-// knows how many rows there really are.
+// knows how many rows there really are. The rule that a block is drawn whole or
+// not at all holds only for the view resting on the newest row; a view scrolled
+// up is a window moved by rows, and the blocks at its edges are cut.
 func (screen *Screen) visibleTranscript(height int) []string {
 	if height < 1 {
 		return []string{}
@@ -174,25 +188,12 @@ func (screen *Screen) visibleTranscript(height int) []string {
 	if len(screen.blocks) == 0 {
 		return screen.bannerRows(height)
 	}
-	gathered := screen.transcriptRows(height + screen.scrollBack)
+	gathered := screen.newestRows(height+screen.scrollBack, !screen.scrolledUp())
 	screen.scrollBack = min(screen.scrollBack, max(len(gathered)-height, 0))
 	end := len(gathered) - screen.scrollBack
 	start := max(end-height, 0)
 	shown := gathered[start:end]
 	return append(make([]string, height-len(shown)), shown...)
-}
-
-// scrolledUp says whether the person has scrolled away from the newest content,
-// which is what puts the "more" marker in the status strip.
-func (screen *Screen) scrolledUp() bool {
-	return screen.scrollBack > 0
-}
-
-// scrollBy moves the view up or down inside the transcript. It never goes below
-// the newest row here, and how far up it may go is found when the frame is next
-// drawn.
-func (screen *Screen) scrollBy(rows int) {
-	screen.scrollBack = max(screen.scrollBack+rows, 0)
 }
 
 // ruleRow draws one thin dim line across the frame, which is what separates the

@@ -28,10 +28,10 @@ const buildingToolsTakes = 30 * time.Second
 // model, the event stream, the local socket, the fence, the tools, the skills,
 // the turn loop, the commands, and the router.
 //
-// The memory of what each screen's newest task was doing is made here and
-// handed to the two things that read it: the router, whose one function that
-// starts a task is where a message is handed to a task already under way, and
-// the commands, because the clear command forgets from it.
+// The memory of what each screen's newest task was doing is rebuilt here out of
+// the event log and handed to the two things that read it: the router, whose
+// one function that starts a task is where a message is handed to a task already
+// under way, and the commands, because the clear command forgets from it.
 func (running *agent) openTheFront(ctx context.Context) error {
 	if err := running.openTheModelAndTheScreens(); err != nil {
 		return err
@@ -42,11 +42,24 @@ func (running *agent) openTheFront(ctx context.Context) error {
 	if err := running.openTheLoop(); err != nil {
 		return err
 	}
-	lastTasks := newScreenTasks()
+	lastTasks := running.rememberedTasks(ctx)
 	if err := running.registerCommands(lastTasks); err != nil {
 		return err
 	}
 	return running.openTheRouter(lastTasks)
+}
+
+// rememberedTasks is the memory of what each screen's newest task was doing,
+// rebuilt out of the event log so that a restart forgets nothing a person could
+// pick up. A log the rebuild cannot read is noted and the agent starts with an
+// empty memory, so the next message from each screen starts a fresh task rather
+// than nothing at all.
+func (running *agent) rememberedTasks(ctx context.Context) *screenTasks {
+	lastTasks, err := rememberedFromTheLog(ctx, running.events)
+	if err != nil {
+		running.note("the memory of what each screen was last doing could not be rebuilt from the log, so the next message from each screen starts a fresh task: " + err.Error())
+	}
+	return lastTasks
 }
 
 // openTheModelAndTheScreens opens the model the configuration names, the event
@@ -84,11 +97,14 @@ func (running *agent) openTheModelAndTheScreens() error {
 // registry, and the box is then filled with the store. Nothing asks the box a
 // question until the agent is serving, which is long after it is filled.
 func (running *agent) openTheWorkbench(ctx context.Context) error {
-	running.builder = newPerTaskContext(running.home, running.settings)
+	// The box is made before the builder because the builder reads the skill
+	// list through it at the start of every task, which is how the model is
+	// told what skills it may load.
+	running.skillsBox = &skillsBox{}
+	running.builder = newPerTaskContext(running.home, running.settings, running.skillsBox, running.note)
 	running.fence = running.openTheFence()
 	running.browser = running.openTheBrowser()
 	running.desktop = running.openTheDesktop()
-	running.skillsBox = &skillsBox{}
 
 	walking, stopWalking := withinTheToolWalkLimit(ctx)
 	defer stopWalking()

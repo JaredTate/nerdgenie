@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -86,7 +87,12 @@ type runningAgent struct {
 	work     string
 	model    *testkit.FakeProviderServer
 	saidPath string
-	wait     func() error
+	// wait blocks until the program has ended and says how it ended, and may
+	// be called more than once.
+	wait func() error
+	// stop signals the program by its exact process identifier and waits for it
+	// to end, which is what a restart and the cleanup both do.
+	stop func()
 }
 
 // startTheAgent starts the agent against a script that needs to know nothing
@@ -121,16 +127,24 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 // from startTheAgentWorkingIn so that a test whose script has to name paths
 // inside the home can make the home first and still start the agent the same
 // way, which is what sandboxoff_test.go does.
+func startTheServe(t *testing.T, home contract.Home, work string, model *testkit.FakeProviderServer,
+	waitingForTheSocket bool) runningAgent {
+	t.Helper()
+	agent := runningAgent{program: buildTheBinary(t), home: home, work: work, model: model}
+	return agent.start(t, waitingForTheSocket)
+}
+
+// start runs "coeus serve" as its own process over this agent's home and, unless
+// told not to, waits until it answers on its socket. It is what the first start
+// and a restart both do, so a restarted agent is the same program over the same
+// home and the same scripted model.
 //
 // The child is given a home directory of its own, the folder the agent's home
 // folder sits in, so that what the agent works out from the user's home is
 // worked out from a folder this test made rather than from the home directory of
 // whoever is running the suite.
-func startTheServe(t *testing.T, home contract.Home, work string, model *testkit.FakeProviderServer,
-	waitingForTheSocket bool) runningAgent {
+func (agent runningAgent) start(t *testing.T, waitForIt bool) runningAgent {
 	t.Helper()
-	program := buildTheBinary(t)
-
 	saidPath := filepath.Join(t.TempDir(), "coeus-serve.log")
 	said, err := os.Create(saidPath)
 	if err != nil {
@@ -138,47 +152,57 @@ func startTheServe(t *testing.T, home contract.Home, work string, model *testkit
 	}
 	t.Cleanup(func() { _ = said.Close() })
 
-	started := exec.Command(program, "serve")
-	started.Env = append(os.Environ(), "COEUS_HOME="+home.Root, "HOME="+filepath.Dir(home.Root))
+	started := exec.Command(agent.program, "serve")
+	started.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root, "HOME="+filepath.Dir(agent.home.Root))
 	started.Stdout = said
 	started.Stderr = said
 	if err := started.Start(); err != nil {
 		t.Fatalf("starting coeus serve failed: %v", err)
 	}
 
-	stopped := make(chan error, 1)
-	go func() { stopped <- started.Wait() }()
 	// The child is waited for once and the answer kept, because a test that
-	// asks how it ended and the cleanup that stops it are both waiting on it.
+	// asks how it ended, a restart, and the cleanup are all waiting on it.
 	ended := make(chan error, 1)
+	go func() { ended <- started.Wait() }()
+	var once sync.Once
+	var exit error
 	waitFor := func() error {
-		select {
-		case err := <-stopped:
-			ended <- err
-			return err
-		case err := <-ended:
-			ended <- err
-			return err
-		}
+		once.Do(func() { exit = <-ended })
+		return exit
 	}
-	t.Cleanup(func() {
+	stop := func() {
 		// The child is signalled by the exact process identifier the operating
 		// system gave this run of it, so that nothing else on the machine can be
 		// caught by the same stop.
 		_ = started.Process.Signal(syscall.SIGTERM)
+		gone := make(chan struct{})
+		go func() { _ = waitFor(); close(gone) }()
 		select {
-		case err := <-stopped:
-			ended <- err
+		case <-gone:
 		case <-time.After(15 * time.Second):
 			_ = started.Process.Kill()
+			<-gone
 		}
+	}
+	t.Cleanup(func() {
+		stop()
 		t.Logf("what coeus serve said:\n%s", whatItSaid(saidPath))
 	})
 
-	if waitingForTheSocket {
-		waitForTheSocket(t, home, saidPath)
+	if waitForIt {
+		waitForTheSocket(t, agent.home, saidPath)
 	}
-	return runningAgent{program: program, home: home, work: work, model: model, saidPath: saidPath, wait: waitFor}
+	agent.saidPath, agent.wait, agent.stop = saidPath, waitFor, stop
+	return agent
+}
+
+// restart stops the program and starts it again over the same home and the same
+// scripted model, which is what a person sees when the service manager restarts
+// the agent or they start it again themselves.
+func (agent runningAgent) restart(t *testing.T) runningAgent {
+	t.Helper()
+	agent.stop()
+	return agent.start(t, true)
 }
 
 // buildTheBinary compiles cmd/coeus into a folder of this test's own, so that

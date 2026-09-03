@@ -79,9 +79,10 @@ func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolRead,
 		Description: "Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. " +
-			"Give a whole path. Use search when you do not know which file to open.",
+			"Use search when you do not know which file to open.",
 		Fields: []contract.ToolField{
-			{Name: "path", Type: "string", Description: "A file, a folder, a past result by its id such as r7, or ask for the whole of the user's original ask.", Required: true},
+			{Name: "path", Type: "string", Description: "A file or folder, taken from the folder the agent works in unless it starts at the root or at ~; " +
+				"or a past result by its id such as r7; or ask for the whole of the user's original ask.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
 		},
@@ -141,7 +142,7 @@ func readInput(written json.RawMessage) (input, error) {
 		return input{}, err
 	}
 	if !wrotePath {
-		return input{}, fields.Missing("path", "the whole path of a file or folder, a result label such as r7, or ask for the whole of the ask,")
+		return input{}, fields.Missing("path", "the path of a file or folder, a result label such as r7, or ask for the whole of the ask,")
 	}
 	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names nothing to read, so give a path or a result label such as r7")

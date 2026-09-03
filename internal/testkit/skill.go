@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -16,6 +17,10 @@ type fakeSkillEntry struct {
 	triggers []string
 	files    map[string][]byte
 	source   contract.SkillSource
+	// rounds and budgetTime are the budget the skill sets for a task run under
+	// it, and are zero for a skill that leaves the caps to apply.
+	rounds     int
+	budgetTime time.Duration
 }
 
 // FakeSkill holds skills in memory, matches their trigger words, and records
@@ -41,6 +46,16 @@ func (skills *FakeSkill) Add(summary contract.SkillSummary, body string, trigger
 		skills.order = append(skills.order, summary.Name)
 	}
 	skills.entries[summary.Name] = &fakeSkillEntry{summary: summary, body: body, triggers: triggers}
+}
+
+// SetBudget gives one skill a budget of its own, which a match on that skill
+// then carries, the way the real store reads one out of the skill's SKILL.md.
+func (skills *FakeSkill) SetBudget(name string, rounds int, budgetTime time.Duration) {
+	skills.guard.Lock()
+	defer skills.guard.Unlock()
+	if entry, held := skills.entries[name]; held {
+		entry.rounds, entry.budgetTime = rounds, budgetTime
+	}
 }
 
 // Files is what one saved skill's folder holds, which a test uses to check that
@@ -155,9 +170,10 @@ func (skills *FakeSkill) Match(_ context.Context, text string) (contract.SkillMa
 	defer skills.guard.Unlock()
 	lowered := strings.ToLower(text)
 	for _, name := range skills.order {
-		for _, trigger := range skills.entries[name].triggers {
+		entry := skills.entries[name]
+		for _, trigger := range entry.triggers {
 			if trigger != "" && strings.Contains(lowered, strings.ToLower(trigger)) {
-				return contract.SkillMatch{Name: name, Matched: true}, nil
+				return contract.SkillMatch{Name: name, Matched: true, Rounds: entry.rounds, Time: entry.budgetTime}, nil
 			}
 		}
 	}

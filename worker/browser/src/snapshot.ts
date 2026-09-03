@@ -9,19 +9,23 @@
  * and counting what a person would have to scroll to see are all borrowed from
  * browser-use's page serializer at docs/reference/browser-use/serializer.py. The
  * cap on how many elements one answer may hold is the gap that serializer leaves
- * open, and the code here is written fresh.
+ * open, and the code here is written fresh. The page's text rides beside the
+ * tree, because the first human trial asked for a number in a table whose cells
+ * were icon buttons with no name, and the number was on no element at all.
  */
 import type { Frame, Page } from "playwright-core";
 import { markNewElements } from "./diff.js";
 import {
   MAX_ELEMENT_NAME_CHARS,
   MAX_FRAMES,
+  MAX_PAGE_TEXT_CHARS,
   MAX_SNAPSHOT_ELEMENTS,
   REF_NUMBERS_PER_FRAME,
 } from "./limits.js";
 import { scanFrame, type FoundElement } from "./page-bridge.js";
 import { PDF_CONTENT_TYPE, pdfElementName, savePdfShownOnPage } from "./pdf.js";
 import type { Session } from "./session.js";
+import { pageTextOf, type FrameText } from "./text.js";
 import type { Snapshot, SnapshotElement, Wall } from "./types.js";
 import { findWall } from "./walls.js";
 
@@ -76,10 +80,12 @@ async function scanEveryFrame(
   title: string;
   contentType: string;
   found: FoundElement[];
+  texts: FrameText[];
   frameUrls: string[];
 }> {
   const frames: Frame[] = page.frames().slice(0, MAX_FRAMES);
   const found: FoundElement[] = [];
+  const texts: FrameText[] = [];
   const frameUrls: string[] = [];
   let url = page.url();
   let title = "";
@@ -91,6 +97,7 @@ async function scanEveryFrame(
         roles: SCANNED_ROLES,
         mostNodes: MOST_NODES_WALKED,
         mostNameCharacters: MAX_ELEMENT_NAME_CHARS,
+        mostTextCharacters: MAX_PAGE_TEXT_CHARS,
       });
       if (position === 0) {
         url = scan.url;
@@ -100,6 +107,7 @@ async function scanEveryFrame(
         frameUrls.push(scan.url);
       }
       found.push(...scan.elements);
+      texts.push(scan.text);
     } catch (problem) {
       const why = problem instanceof Error ? problem.message : String(problem);
       log(`a frame at ${frame.url()} could not be read and was left out: ${why}`);
@@ -109,7 +117,7 @@ async function scanEveryFrame(
       frameUrls.push(frame.url());
     }
   }
-  return { url, title, contentType, found, frameUrls };
+  return { url, title, contentType, found, texts, frameUrls };
 }
 
 /**
@@ -130,6 +138,7 @@ async function readPdfPage(
       title,
       tabId,
       elements: [{ ref: PDF_LABEL_REF, role: "article", name: pdfElementName(saved, url) }],
+      text: "",
       belowFold: 0,
       dialog: null,
       download: saved,
@@ -183,6 +192,7 @@ export async function readPage(
         title: settings.against?.title ?? "",
         tabId,
         elements: [],
+        text: "",
         belowFold: 0,
         dialog,
         download,
@@ -192,7 +202,10 @@ export async function readPage(
     };
   }
 
-  const { url, title, contentType, found, frameUrls } = await scanEveryFrame(page, session.log);
+  const { url, title, contentType, found, texts, frameUrls } = await scanEveryFrame(
+    page,
+    session.log,
+  );
   if (contentType === PDF_CONTENT_TYPE) {
     return readPdfPage(session, page, url, title, tabId);
   }
@@ -212,6 +225,7 @@ export async function readPage(
       comparable(settings.against, url, tabId) ? settings.against!.elements : null,
       chosen,
     ),
+    text: pageTextOf(texts, MAX_PAGE_TEXT_CHARS),
     belowFold: outOfSight,
     dialog: null,
     download,

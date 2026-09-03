@@ -79,7 +79,7 @@ func (running *run) theLoopsOwnOperation(ctx context.Context, call contract.Tool
 		answer, refused := running.pinEvidence(ctx, written)
 		return answer, refused, true
 	case OperationUnpinEvidence:
-		answer, refused := running.unpinEvidence(written)
+		answer, refused := running.unpinEvidence(ctx, written)
 		return answer, refused, true
 	default:
 		return "", false, false
@@ -137,7 +137,9 @@ func (running *run) stopNowAsked(written aTaskCall) (string, bool) {
 
 // pinEvidence keeps one result in front of the model word for word. The text is
 // read out of the record now and held for the rest of the task, so that a result
-// the window would otherwise drop is still there twenty rounds later.
+// the window would otherwise drop is still there twenty rounds later, and the
+// mark is written into the record itself, so that it is still there after the
+// task has been put down and picked up again.
 func (running *run) pinEvidence(ctx context.Context, written aTaskCall) (string, bool) {
 	label := strings.TrimSpace(written.Result)
 	if label == "" {
@@ -157,12 +159,16 @@ func (running *run) pinEvidence(ctx context.Context, written aTaskCall) (string,
 	if err != nil {
 		return fmt.Sprintf("there is no result %s in this task's record, so name one the record holds: %s", label, err), true
 	}
+	if err := running.keeper.Pin(ctx, label, true); err != nil {
+		return fmt.Sprintf("the record would not mark %s pinned: %s", label, err), true
+	}
 	running.pinned = append(running.pinned, workingcontext.Pin{ID: label, Text: text})
 	return "The result " + label + " is pinned and stays in front of you until you unpin it.", false
 }
 
-// unpinEvidence lets one pinned result go.
-func (running *run) unpinEvidence(written aTaskCall) (string, bool) {
+// unpinEvidence lets one pinned result go, in the record as well as in the
+// window, so that picking the task up again does not bring it back.
+func (running *run) unpinEvidence(ctx context.Context, written aTaskCall) (string, bool) {
 	label := strings.TrimSpace(written.Result)
 	kept := []workingcontext.Pin{}
 	for _, pin := range running.pinned {
@@ -173,8 +179,29 @@ func (running *run) unpinEvidence(written aTaskCall) (string, bool) {
 	if len(kept) == len(running.pinned) {
 		return "The result " + label + " was not pinned, so there was nothing to unpin.", true
 	}
+	if err := running.keeper.Pin(ctx, label, false); err != nil {
+		return fmt.Sprintf("the record would not take the pin off %s: %s", label, err), true
+	}
 	running.pinned = kept
 	return "The result " + label + " is unpinned.", false
+}
+
+// takeThePinsBackFromTheRecord puts the evidence a resumed task had pinned back
+// in front of the model. The marks are in the record, which is the only thing
+// that survives the wait; the texts are in the log under their own labels, and
+// one that cannot be read back is left out rather than taking the resume down
+// with it.
+func (running *run) takeThePinsBackFromTheRecord(ctx context.Context) {
+	for _, result := range running.keeper.Record().Work.Results {
+		if !result.Pinned || len(running.pinned) >= MaxResultsPinned {
+			continue
+		}
+		text, err := running.keeper.Read(ctx, result.ID)
+		if err != nil {
+			continue
+		}
+		running.pinned = append(running.pinned, workingcontext.Pin{ID: result.ID, Text: text})
+	}
 }
 
 // alreadyPinned says whether one result is pinned already.

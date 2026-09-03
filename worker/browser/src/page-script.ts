@@ -127,6 +127,26 @@ window.__coeusShortNumeric = window.__coeusShortNumeric || function (element) {
 `;
 
 /**
+ * What the page says, as a person reads it. The browser's own innerText already
+ * leaves out what is not drawn, puts a line break between blocks, and separates
+ * the cells of a table row with a tab, so the work here is to turn the tabs into
+ * bars, collapse the spaces, drop the blank lines, and cut at the cap, saying
+ * how much was cut.
+ */
+const TEXT = `
+window.__coeusPageText = window.__coeusPageText || function (mostCharacters) {
+  var raw = document.body ? (document.body.innerText || "") : "";
+  var lines = [];
+  raw.split("\\n").forEach(function (line) {
+    var tidy = line.replace(/\\t/g, " | ").replace(/\\s+/g, " ").trim();
+    if (tidy) { lines.push(tidy); }
+  });
+  var whole = lines.join("\\n");
+  return { text: whole.slice(0, mostCharacters), cut: Math.max(0, whole.length - mostCharacters) };
+};
+`;
+
+/**
  * Look at everything on this document and report it. Every element that is kept
  * gets a ref written onto it, and a ref is never handed out twice, so a ref names
  * the same element for as long as that element lives.
@@ -158,7 +178,13 @@ window.__coeusScan = window.__coeusScan || function (how) {
       shortNumeric: window.__coeusShortNumeric(element)
     });
   });
-  return { url: location.href, title: document.title, contentType: document.contentType, elements: found };
+  return {
+    url: location.href,
+    title: document.title,
+    contentType: document.contentType,
+    elements: found,
+    text: window.__coeusPageText(how.mostTextCharacters)
+  };
 };
 `;
 
@@ -265,7 +291,7 @@ window.__coeusClearMarks = window.__coeusClearMarks || function () {
 `;
 
 /** Everything above, in the order it depends on itself. */
-export const PAGE_SCRIPT = [WALK, ROLE, NAME, SHAPE, SCAN, FIND, BOX, WATCH, MARKS].join("\n");
+export const PAGE_SCRIPT = [WALK, ROLE, NAME, SHAPE, TEXT, SCAN, FIND, BOX, WATCH, MARKS].join("\n");
 
 /** Wrap a call to one of the page's own functions so it can be sent on its own. */
 export function pageCall(expression: string): string {

@@ -170,3 +170,23 @@ func TestAnApplicationNameLongerThanThePreviewCanShowIsRefused(t *testing.T) {
 		t.Errorf("the user was shown %d previews of a name that long, want none: the preview is a sentence a person reads", shown)
 	}
 }
+
+func TestOnlyAsManyWindowTitlesAsTheModelCanReadComeBack(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	crowded := []any{}
+	for number := 1; number <= 5_000; number++ {
+		crowded = append(crowded, fmt.Sprintf("Window %d", number))
+	}
+	desk.latestWorker(t).answer("screenshot", map[string]any{"pngBase64": "iVBORw0KGgoFAKE", "marks": []any{}, "windows": crowded})
+
+	picture, err := desk.desktop.Screenshot(context.Background())
+
+	if err != nil {
+		t.Fatalf("taking a screenshot of a crowded screen failed: %v", err)
+	}
+	if len(picture.Windows) != 50 {
+		t.Errorf("a screen with five thousand windows came back naming %d of them, want 50: every title is a line of the model's"+
+			" context, and a person has no more windows open than that", len(picture.Windows))
+	}
+}

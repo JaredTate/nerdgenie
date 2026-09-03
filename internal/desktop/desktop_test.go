@@ -133,12 +133,11 @@ func TestTheGrantPreviewSaysWhichApplicationAndWhatItMeans(t *testing.T) {
 	}
 }
 
-func TestNothingCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
+func TestNothingButAScreenshotCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
 	desk := newDesk(t)
 	ctx := context.Background()
 
 	tries := map[string]func() error{
-		"screenshot":       func() error { _, err := desk.desktop.Screenshot(ctx); return err },
 		"click":            func() error { return desk.desktop.Click(ctx, 1, "the text box takes the typing") },
 		"type":             func() error { return desk.desktop.Type(ctx, "hello", "the text box holds the word") },
 		"press":            func() error { return desk.desktop.Press(ctx, "ctrl+s", "the file is saved") },

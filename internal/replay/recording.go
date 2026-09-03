@@ -229,9 +229,15 @@ func (reading *reader) takeResult(event contract.Event) error {
 }
 
 // takeMessage keeps a message the user sent while the task was running. The
-// ask itself is written before the task has a number, so anything under the
-// task's own number is something the user said afterwards.
+// ask itself is written under the task's number before the record exists, and
+// so before any checkpoint; a message read before the first checkpoint is that
+// ask, or a correction that arrived before any round had begun, and neither is
+// something a replay delivers to a round, because the ask is the recording's
+// own and there is no round before the first for a correction to land on.
 func (reading *reader) takeMessage(event contract.Event) error {
+	if reading.checkpoints == 0 {
+		return nil
+	}
 	message := contract.Inbound{}
 	if err := json.Unmarshal(event.Body, &message); err != nil || message.Text == "" {
 		return nil

@@ -46,6 +46,7 @@ tokens, never the page's markup.
     { "ref": "e3", "role": "textbox", "name": "Post text", "new": true },
     { "ref": "e7", "role": "button", "name": "Post" }
   ],
+  "text": "Compose post\nWhat is happening?\nPost",
   "belowFold": 24,
   "dialog": null,
   "download": null
@@ -56,6 +57,13 @@ tokens, never the page's markup.
   number.
 - `new` marks an element that was not in the previous snapshot, which is how the
   model sees what an action produced.
+- `text` is what the page says, as a person reads it: its visible text in
+  reading order, one line per block element, a table as one line per row with
+  the cells separated by ` | `, and never the markup or a script. It is capped at
+  eight thousand characters, and when it was cut its last line says how much.
+  An element the model can act on keeps its ref in `elements`; the text carries
+  what the elements cannot, such as the number in a cell whose only element is
+  an icon button with no name.
 - `belowFold` counts the elements a person would have to scroll to see.
 - `dialog` is `{"kind":"alert"|"confirm"|"prompt"|"beforeunload","message":"..."}`
   when a dialog box is open.
@@ -174,16 +182,17 @@ Goes to an address and returns the page.
 
 Request: `{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"https://x.com/compose/post"}}`
 
-Response: `{"jsonrpc":"2.0","id":1,"result":{"url":"https://x.com/compose/post","title":"Compose post","tabId":"t1","elements":[{"ref":"e7","role":"button","name":"Post"}],"belowFold":24}}`
+Response: `{"jsonrpc":"2.0","id":1,"result":{"url":"https://x.com/compose/post","title":"Compose post","tabId":"t1","elements":[{"ref":"e7","role":"button","name":"Post"}],"text":"Compose post\nPost","belowFold":24}}`
 
 ### `read`
 
 Returns a fresh snapshot of the page the worker is on. `visibleOnly` reads only
-what is above the fold.
+the elements above the fold; `text` is the whole page's text either way, because
+it is bounded on its own.
 
 Request: `{"jsonrpc":"2.0","id":2,"method":"read","params":{"visibleOnly":false}}`
 
-Response: `{"jsonrpc":"2.0","id":2,"result":{"url":"https://x.com/compose/post","title":"Compose post","tabId":"t1","elements":[{"ref":"e3","role":"textbox","name":"Post text"}],"belowFold":24}}`
+Response: `{"jsonrpc":"2.0","id":2,"result":{"url":"https://x.com/compose/post","title":"Compose post","tabId":"t1","elements":[{"ref":"e3","role":"textbox","name":"Post text"}],"text":"Compose post\nPost text","belowFold":24}}`
 
 ### `click`
 

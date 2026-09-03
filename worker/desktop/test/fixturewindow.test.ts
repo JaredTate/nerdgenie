@@ -92,6 +92,19 @@ describe.skipIf(missing !== "")("driving a real fixture window", () => {
     expect(health.display).toMatch(/x11|wayland/u)
   })
 
+  test("a screenshot before any launch is a real picture of the whole screen that names the fixture window", async () => {
+    const picture = await session.screenshot()
+
+    expect(picture.application).toBe("")
+    expect(picture.marks).toEqual([])
+    // Through XWayland the driver cannot grab the whole screen, and then the
+    // picture is empty and the names are the answer; on X11 it is a real PNG.
+    if (picture.pngBase64 !== "") {
+      expect(Buffer.from(picture.pngBase64.slice(0, 12), "base64").subarray(1, 4).toString()).toBe("PNG")
+    }
+    expect(picture.windows.some((title) => title.includes(fixtureTitle))).toBe(true)
+  })
+
   test("launch finds the fixture window that is already open and brings it forward", async () => {
     const launched = await session.launch(fixtureTitle, "a window with a text box opens")
 

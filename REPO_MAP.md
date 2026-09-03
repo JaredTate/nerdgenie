@@ -51,6 +51,7 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/rebuilt_test.go
 cmd/coeus/replay.go
 cmd/coeus/replay_test.go
 cmd/coeus/resuming.go
@@ -74,7 +75,10 @@ cmd/coeus/starting.go
 cmd/coeus/status.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
+cmd/coeus/taskbudget.go
+cmd/coeus/taskbudget_test.go
 cmd/coeus/taskcontext.go
+cmd/coeus/taskcontext_test.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
 cmd/coeus/timedstore.go
 cmd/coeus/tui.go
@@ -192,6 +196,7 @@ internal/browser/lifecycle_test.go
 internal/browser/login.go
 internal/browser/login_test.go
 internal/browser/methods.go
+internal/browser/pagetext_test.go
 internal/browser/process.go
 internal/browser/process_test.go
 internal/browser/protocol.go
@@ -309,6 +314,8 @@ internal/context/persona_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
 internal/context/reviewmarker_test.go
+internal/context/skills.go
+internal/context/skills_test.go
 internal/context/testdata/prompt-200k.txt
 internal/context/testdata/prompt-24k.txt
 internal/context/window.go
@@ -367,6 +374,7 @@ internal/desktop/lifecycle.go
 internal/desktop/process.go
 internal/desktop/process_test.go
 internal/desktop/protocol.go
+internal/desktop/screenshot_test.go
 internal/desktop/support_test.go
 internal/desktop/wiring_test.go
 internal/job/bounds_test.go
@@ -443,6 +451,7 @@ internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
 internal/loop/answercloses_test.go
+internal/loop/asknumber_test.go
 internal/loop/bounds_test.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
@@ -491,6 +500,7 @@ internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/situation.go
+internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
 internal/loop/stopline_test.go
 internal/loop/summary_test.go
@@ -623,6 +633,7 @@ internal/record/parse.go
 internal/record/parse_test.go
 internal/record/parsebad_test.go
 internal/record/parseitems.go
+internal/record/pinned_test.go
 internal/record/print.go
 internal/record/print_test.go
 internal/record/size.go
@@ -820,6 +831,7 @@ internal/skill/browser/walk_test.go
 internal/skill/browser/walkrecord.go
 internal/skill/browser/walkrecord_test.go
 internal/skill/browser/writeqa_test.go
+internal/skill/budget_test.go
 internal/skill/command.go
 internal/skill/command_test.go
 internal/skill/contract_test.go
@@ -954,11 +966,13 @@ internal/tool/browserread/browserread.go
 internal/tool/browserread/browserread_test.go
 internal/tool/browserread/doc.go
 internal/tool/browserread/forgery_test.go
+internal/tool/browserread/fuzz_test.go
 internal/tool/browserread/looseinput_test.go
 internal/tool/browserread/page.go
 internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
+internal/tool/browserread/testdata/a_page_with_text.txt
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
 internal/tool/browsertype/doc.go
@@ -974,6 +988,7 @@ internal/tool/computer/looseinput_test.go
 internal/tool/computer/pinnedbounds_test.go
 internal/tool/computer/read.go
 internal/tool/computer/testdata/a_screenshot.txt
+internal/tool/computer/testdata/a_screenshot_before_any_launch.txt
 internal/tool/computer/testdata/the_actions.txt
 internal/tool/doc.go
 internal/tool/edit/doc.go
@@ -986,8 +1001,10 @@ internal/tool/edit/match.go
 internal/tool/edit/match_test.go
 internal/tool/edit/matchers.go
 internal/tool/edit/pinnedbounds_test.go
+internal/tool/edit/relativepath_test.go
 internal/tool/edit/testdata/one_span.txt
 internal/tool/foldercap_test.go
+internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go
 internal/tool/job/bounds_test.go
 internal/tool/job/doc.go
@@ -1019,11 +1036,13 @@ internal/tool/read/file.go
 internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go
 internal/tool/read/read_test.go
+internal/tool/read/relativepath_test.go
 internal/tool/read/testdata/a_file.txt
 internal/tool/read/testdata/a_folder.txt
 internal/tool/read/wholefile_test.go
 internal/tool/registry.go
 internal/tool/registry_test.go
+internal/tool/relativepath_test.go
 internal/tool/reviewpaths_test.go
 internal/tool/roots.go
 internal/tool/roots_test.go
@@ -1034,6 +1053,7 @@ internal/tool/search/fence_test.go
 internal/tool/search/fieldnames_test.go
 internal/tool/search/find.go
 internal/tool/search/pinnedbounds_test.go
+internal/tool/search/relativepath_test.go
 internal/tool/search/search.go
 internal/tool/search/search_test.go
 internal/tool/search/testdata/alpha.txt
@@ -1077,24 +1097,32 @@ internal/tool/web/doc.go
 internal/tool/web/fetch.go
 internal/tool/web/fuzz_test.go
 internal/tool/web/results.go
+internal/tool/web/results_fuzz_test.go
+internal/tool/web/resultspage_test.go
 internal/tool/web/search.go
 internal/tool/web/testdata/a_fetched_page.txt
+internal/tool/web/testdata/a_human_check_page_from_duckduckgo.html
 internal/tool/web/testdata/a_page_as_text.txt
+internal/tool/web/testdata/a_results_page_from_duckduckgo.html
 internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/7f72ed17f01b6f36
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/ec7528631b9ef93e
+internal/tool/web/testdata/fuzz/FuzzTheResultsPageReader/3ccaab33a166ff15
+internal/tool/web/testdata/fuzz/FuzzTheResultsPageReader/44d5247ff8b126f6
 internal/tool/web/testdata/fuzz/FuzzTheTurnIntoText/5227ce2ede044796
 internal/tool/web/text.go
 internal/tool/web/text_test.go
 internal/tool/web/web.go
 internal/tool/web/web_test.go
+internal/tool/wholepath.go
 internal/tool/write/bounds_test.go
 internal/tool/write/change.go
 internal/tool/write/doc.go
 internal/tool/write/fence_test.go
 internal/tool/write/fieldnames_test.go
 internal/tool/write/pinnedbounds_test.go
+internal/tool/write/relativepath_test.go
 internal/tool/write/testdata/a_new_file.txt
 internal/tool/write/write.go
 internal/tool/write/write_test.go
@@ -1135,6 +1163,8 @@ internal/tui/repeat_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go
+internal/tui/scroll.go
+internal/tui/scroll_test.go
 internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go
@@ -1159,6 +1189,7 @@ internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
 internal/tui/testdata/panel-idle-120x36.txt
 internal/tui/testdata/panel-task-120x36.txt
+internal/tui/testdata/scrolled-up-80x24.txt
 internal/tui/testdata/themed-banner-120x40.txt
 internal/tui/testdata/themed-banner-80x24.txt
 internal/tui/testdata/themed-conversation-120x40.txt
@@ -1253,6 +1284,7 @@ test/fixtures/site/captcha.html
 test/fixtures/site/compose.html
 test/fixtures/site/login.html
 test/fixtures/site/qa.html
+test/fixtures/site/rankings.html
 test/functional/boundary_test.go
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
@@ -1278,6 +1310,7 @@ test/functional/readfile_test.go
 test/functional/recordline_test.go
 test/functional/reliability_test.go
 test/functional/replyproof_test.go
+test/functional/restart_test.go
 test/functional/resume_test.go
 test/functional/sample_test.go
 test/functional/sandboxoff_test.go
@@ -1285,6 +1318,7 @@ test/functional/schema_test.go
 test/functional/serve_test.go
 test/functional/signal_test.go
 test/functional/site_test.go
+test/functional/skilllist_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go
@@ -1324,6 +1358,7 @@ worker/browser/src/session.ts
 worker/browser/src/settle.ts
 worker/browser/src/snapshot.ts
 worker/browser/src/tabs.ts
+worker/browser/src/text.ts
 worker/browser/src/types.ts
 worker/browser/src/walls.ts
 worker/browser/src/wire.ts
@@ -1338,6 +1373,7 @@ worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
 worker/browser/test/pacing.test.ts
 worker/browser/test/page-events.test.ts
+worker/browser/test/page-text.test.ts
 worker/browser/test/pages/busy-attributes.html
 worker/browser/test/pages/captcha.html
 worker/browser/test/pages/changes-on-click.html
@@ -1350,10 +1386,12 @@ worker/browser/test/pages/links-and-form.html
 worker/browser/test/pages/login.html
 worker/browser/test/pages/long.html
 worker/browser/test/pages/more-on-scroll.html
+worker/browser/test/pages/much-text.html
 worker/browser/test/pages/never-settles.html
 worker/browser/test/pages/new-tab.html
 worker/browser/test/pages/no-change-on-click.html
 worker/browser/test/pages/notes.txt
+worker/browser/test/pages/rankings.html
 worker/browser/test/pages/recaptcha-anchor.html
 worker/browser/test/pages/reloads-forever.html
 worker/browser/test/pages/report.pdf
@@ -1367,6 +1405,7 @@ worker/browser/test/properties.test.ts
 worker/browser/test/redact.test.ts
 worker/browser/test/server.ts
 worker/browser/test/snapshot.test.ts
+worker/browser/test/text.test.ts
 worker/browser/test/walls.test.ts
 worker/browser/test/wire.test.ts
 worker/browser/tsconfig.json

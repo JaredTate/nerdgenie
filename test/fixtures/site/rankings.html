@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rankings</title>
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      A rankings table like the one the first human trial ran into: the first
+      cell of every row is an icon button with no text, so an outline of the
+      elements alone shows empty buttons and never the number. The same page is
+      served by the Go fixture site from test/fixtures/site/rankings.html.
+    -->
+    <h1>Coin rankings</h1>
+    <p>
+      Every coin scored, updated
+      each morning.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Watch</th><th>Rank</th><th>Name</th><th>D-Score</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><button type="button"></button></td><td>1</td><td>Bitcoin</td><td>97.2</td></tr>
+        <tr><td><button type="button"></button></td><td>2</td><td>DigiByte</td><td>91.4</td></tr>
+      </tbody>
+    </table>
+    <button type="button" id="load-more">Load more</button>
+    <p class="hidden">Nobody sees this line.</p>
+    <script>
+      window.computedOnThePage = "not for the model";
+    </script>
+  </body>
+</html>

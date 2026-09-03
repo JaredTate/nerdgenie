@@ -32,7 +32,7 @@ type Settings struct {
 
 // input is what the model writes when it calls this tool.
 type input struct {
-	// Path is the whole path of the file to write.
+	// Path is the path of the file to write.
 	Path string `json:"path"`
 	// Content is everything the file is to hold afterwards.
 	Content string `json:"content"`
@@ -59,7 +59,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Description: "Creates a file or replaces everything in one, inside the folders the agent may work in. " +
 			"Use edit instead to change part of a file that already exists.",
 		Fields: []contract.ToolField{
-			{Name: "path", Type: "string", Description: "The whole path of the file to write.", Required: true},
+			{Name: "path", Type: "string", Description: "The path of the file to write, taken from the folder the agent works in unless it starts at the root or at ~.", Required: true},
 			{Name: "content", Type: "string", Description: "Everything the file is to hold afterwards.", Required: true},
 		},
 		Classes: []contract.PermissionClass{contract.ClassWrite},
@@ -117,10 +117,10 @@ func readInput(written json.RawMessage) (input, error) {
 		return input{}, err
 	}
 	if !wrotePath {
-		return input{}, fields.Missing("path", "the whole path of the file to write")
+		return input{}, fields.Missing("path", "the path of the file to write")
 	}
 	if strings.TrimSpace(path) == "" {
-		return input{}, errors.New("this call names no file to write, so give the whole path of the file")
+		return input{}, errors.New("this call names no file to write, so give the path of the file")
 	}
 	if !wroteContent {
 		return input{}, fields.Missing("content", "everything the file is to hold afterwards")

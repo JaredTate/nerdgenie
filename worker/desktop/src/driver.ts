@@ -62,6 +62,8 @@ export interface DesktopDriver {
   bringToFront(target: WindowTarget): Promise<void>
   /** read returns the window's tree, and its picture when one is asked for. */
   read(target: WindowTarget, withPicture: boolean): Promise<DriverSnapshot>
+  /** readScreen returns the whole screen's picture as base64 text. */
+  readScreen(): Promise<string>
   /** click presses and releases the mouse on one control. */
   click(target: WindowTarget, token: string, holdMilliseconds: number): Promise<void>
   /** type sends text to one control, or to whatever holds the focus. */

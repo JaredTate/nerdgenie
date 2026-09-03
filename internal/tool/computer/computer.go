@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -139,21 +140,41 @@ func (tool *Tool) doIt(ctx context.Context, asked input) (contract.ToolOutput, e
 	}
 }
 
-// screenshot lists the numbered controls on the screen, which is what the model
-// reads in place of the picture.
+// screenshot says what is on the screen, which is what the model reads in place
+// of the picture: the windows by title, then the numbered controls of the open
+// application, or a line saying to launch one when none is open.
 func (tool *Tool) screenshot(ctx context.Context) (contract.ToolOutput, error) {
 	picture, err := tool.settings.Desktop.Screenshot(ctx)
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot take a picture of the screen: %w", err)
 	}
 	written := &strings.Builder{}
-	for _, mark := range picture.Marks {
-		fmt.Fprintf(written, "%d %s %q\n", mark.Number, mark.Role, mark.Name)
-	}
-	if len(picture.Marks) == 0 {
-		written.WriteString("nothing on the screen can be clicked\n")
+	written.WriteString(windowsLine(picture.Windows))
+	switch {
+	case picture.Application == "":
+		written.WriteString("no application is open, so no control is numbered; launch one by its program name or its window title to click or type in it\n")
+	case len(picture.Marks) == 0:
+		fmt.Fprintf(written, "nothing in %s can be clicked\n", picture.Application)
+	default:
+		fmt.Fprintf(written, "controls in %s:\n", picture.Application)
+		for _, mark := range picture.Marks {
+			fmt.Fprintf(written, "%d %s %q\n", mark.Number, mark.Role, mark.Name)
+		}
 	}
 	return contract.ToolOutput{Text: written.String()}, nil
+}
+
+// windowsLine names the windows on the screen on one line, so that the model
+// knows what it is looking at.
+func windowsLine(windows []string) string {
+	if len(windows) == 0 {
+		return "windows on the screen: none\n"
+	}
+	quoted := make([]string, 0, len(windows))
+	for _, title := range windows {
+		quoted = append(quoted, strconv.Quote(oneLine(title)))
+	}
+	return "windows on the screen: " + strings.Join(quoted, ", ") + "\n"
 }
 
 // said turns the desktop's answer into the line the model reads.

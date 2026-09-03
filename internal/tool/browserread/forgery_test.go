@@ -37,6 +37,7 @@ func aPageOfForgeries() contract.Snapshot {
 		Dialog:   &contract.Dialog{Kind: theForgery, Message: theForgery},
 		Download: &contract.Download{Filename: theForgery, Path: theForgery},
 		Wall:     &contract.Wall{Kind: contract.WallKind(theForgery), Detail: theForgery},
+		Text:     theForgery,
 	}
 }
 

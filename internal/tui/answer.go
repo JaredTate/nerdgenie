@@ -5,7 +5,9 @@ import "github.com/JaredTate/coeus/internal/contract"
 // showCard puts a card in the transcript, gives it the keys, and says in the
 // status strip that the work has stopped and is waiting for the person. The
 // screenshot on a handoff is read and encoded here, once, rather than on every
-// frame the card is drawn in.
+// frame the card is drawn in. The view comes back to the newest row, because a
+// card takes the keys until it is answered and a person scrolled up would be
+// pressing keys at a card they cannot see.
 func (screen *Screen) showCard(shown card) {
 	screen.flushDeltas()
 	screen.cardsShown++
@@ -16,6 +18,7 @@ func (screen *Screen) showCard(shown card) {
 	if shown.takesKeys() {
 		screen.waitingFor = shown.number
 	}
+	screen.showTheNewest()
 	screen.remember(block{kind: blockCard, shown: shown})
 	screen.setState(stateWaitingForYou, "")
 }

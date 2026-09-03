@@ -49,7 +49,7 @@ func (screen *Screen) emptyTheTranscript() {
 	screen.blocks = nil
 	screen.pending = ""
 	screen.streaming = false
-	screen.scrollBack = 0
+	screen.showTheNewest()
 	screen.waitingFor = 0
 }
 
@@ -113,7 +113,7 @@ func (screen *Screen) flushDeltas() {
 		return
 	}
 	if open := screen.openReply(); open != nil {
-		open.text = keepTail(open.text + screen.pending)
+		screen.setText(open, open.text+screen.pending)
 	} else {
 		screen.remember(block{kind: blockReply, text: screen.pending})
 		screen.streaming = true
@@ -127,7 +127,7 @@ func (screen *Screen) flushDeltas() {
 func (screen *Screen) withdrawReply() {
 	screen.pending = ""
 	if open := screen.openReply(); open != nil {
-		open.text = ""
+		screen.setText(open, "")
 	}
 }
 
@@ -141,7 +141,7 @@ func (screen *Screen) finishReply(text string) {
 	case open == nil && text != "":
 		screen.remember(block{kind: blockReply, text: text})
 	case open != nil && text != "":
-		open.text = keepTail(text)
+		screen.setText(open, text)
 	}
 	screen.streaming = false
 }

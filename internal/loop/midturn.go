@@ -42,7 +42,7 @@ func (running *run) takeTheCorrection(ctx context.Context, message contract.Inbo
 	running.hadCorrection = true
 	running.forgetTheCalls()
 	running.remember(contract.Message{Role: contract.RoleUser, Text: message.Text})
-	if err := running.theLoop.logEvent(ctx, running.taskID(), contract.EventMessage, message); err != nil {
+	if err := running.theLoop.logEvent(ctx, running.number, contract.EventMessage, message); err != nil {
 		return err
 	}
 	if running.keeper == nil {

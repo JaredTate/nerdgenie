@@ -46,7 +46,7 @@ func (desktop *Desktop) grant(ctx context.Context, application string) error {
 		ID:    "desktop-grant-" + application,
 		Title: fmt.Sprintf("use the application %s on your desktop", application),
 		Body: fmt.Sprintf(
-			"The agent wants to open %s on your screen and use it: it will be able to see that window, click its controls, and type into it until this task ends. Nothing outside that window is read.",
+			"The agent wants to open %s on your screen and use it: it will be able to see that window, click its controls, and type into it until this task ends. Nothing outside that window is clicked or typed into.",
 			application),
 	})
 	if err != nil {

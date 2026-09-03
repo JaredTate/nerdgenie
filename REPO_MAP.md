@@ -138,6 +138,7 @@ internal/channel/queue_test.go
 internal/channel/queuedamaged_test.go
 internal/channel/router.go
 internal/channel/router_test.go
+internal/channel/routerskills_test.go
 internal/channel/screen_test.go
 internal/channel/secret_test.go
 internal/channel/socket.go

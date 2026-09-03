@@ -648,6 +648,7 @@ internal/sandbox/doc.go
 internal/sandbox/entry.go
 internal/sandbox/entry_test.go
 internal/sandbox/fuzz_test.go
+internal/sandbox/integration_home_test.go
 internal/sandbox/integration_namespace_test.go
 internal/sandbox/integration_resolver_test.go
 internal/sandbox/integration_restrict_test.go

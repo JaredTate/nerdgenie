@@ -121,6 +121,9 @@ type Screen struct {
 	callStarted   time.Time
 	streamed      int
 	lastRecord    string
+	lastTool      string
+	plan          string
+	jobs          string
 
 	blocks     []block
 	scrollBack int
@@ -292,9 +295,9 @@ func (screen *Screen) frame() string {
 		palette = palette[:max(spare, 0)]
 	}
 
+	middle := append(screen.visibleTranscript(spare-len(palette)), palette...)
 	rows := []string{screen.headerRow(), screen.ruleRow()}
-	rows = append(rows, screen.visibleTranscript(spare-len(palette))...)
-	rows = append(rows, palette...)
+	rows = append(rows, screen.besideThePanel(middle)...)
 	rows = append(rows, screen.ruleRow())
 	rows = append(rows, input...)
 	rows = append(rows, screen.statusRow())
@@ -308,7 +311,14 @@ func (screen *Screen) frame() string {
 // terminal, so that the ground the frame is drawn on runs the whole width of
 // every row and there are no unpainted gaps down the right-hand side.
 func (screen *Screen) paintToTheEdge(drawn string) string {
-	gap := screen.width - displayWidth(drawn)
+	return screen.paintTo(drawn, screen.width)
+}
+
+// paintTo fills a row out to a number of columns with the ground, which is what
+// puts the side panel at the same column on every row however short the row
+// beside it is.
+func (screen *Screen) paintTo(drawn string, columns int) string {
+	gap := columns - displayWidth(drawn)
 	if gap <= 0 {
 		return drawn
 	}

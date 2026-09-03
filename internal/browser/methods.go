@@ -130,14 +130,19 @@ func (browser *Browser) Screenshot(ctx context.Context) (contract.Screenshot, er
 }
 
 // LoginFill types a username, a password, and a code into the fields it is
-// given, and returns a diff that holds none of them. Login is what a caller
-// wants: it finds the credential in the vault and the fields on the page first.
+// given, and returns a diff that holds none of them. Every path that fills a
+// login form comes through here, so the check that no value survived the answer
+// is here too. Login is the fuller thing: it finds the credential in the vault
+// and the boxes on the page first.
 func (browser *Browser) LoginFill(ctx context.Context, fields contract.LoginFields) (contract.Diff, error) {
 	if err := browser.budget.charge(browser.hostnameNow(), 1); err != nil {
 		return contract.Diff{}, err
 	}
 	var diff contract.Diff
 	if err := browser.call(ctx, "loginFill", fields, &diff); err != nil {
+		return contract.Diff{}, err
+	}
+	if err := checkNothingLeaked(diff, fields); err != nil {
 		return contract.Diff{}, err
 	}
 	browser.rememberPage(diff.Snapshot.URL)

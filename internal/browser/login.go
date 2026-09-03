@@ -56,9 +56,6 @@ func (browser *Browser) Login(ctx context.Context, site string, chosen LoginRefs
 	if err != nil {
 		return contract.Diff{}, err
 	}
-	if err := checkNothingLeaked(diff, fields); err != nil {
-		return contract.Diff{}, err
-	}
 	browser.noteWhatTheLoginDid(site, page.URL, diff)
 	return diff, nil
 }

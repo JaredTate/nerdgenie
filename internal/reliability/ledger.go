@@ -34,9 +34,10 @@ const (
 	// the answer is stale and a message out of nowhere confuses more than it
 	// helps.
 	DeliveryLifetime = 24 * time.Hour
-	// maxTrackedReplies caps how many undelivered replies are held in memory
-	// while the log is read, because every buffer in Coeus has a cap.
-	maxTrackedReplies = 1000
+	// MaxUndeliveredReplies caps how many undelivered replies are held in memory
+	// while the log is read, because every buffer in Coeus has a cap. A log with
+	// more than this waiting is a log to read by hand.
+	MaxUndeliveredReplies = 1000
 )
 
 // ReplyState says where one reply got to.
@@ -160,8 +161,8 @@ func (ledger *Ledger) Undelivered(ctx context.Context) ([]Reply, error) {
 			return nil
 		}
 		if _, known := waiting[id]; !known {
-			if len(waiting) >= maxTrackedReplies {
-				return fmt.Errorf("more than %d replies are waiting to be sent, which is more than Coeus holds at once: read the log to see what happened", maxTrackedReplies)
+			if len(waiting) >= MaxUndeliveredReplies {
+				return fmt.Errorf("more than %d replies are waiting to be sent, which is more than Coeus holds at once: read the log to see what happened", MaxUndeliveredReplies)
 			}
 			order = append(order, id)
 		}

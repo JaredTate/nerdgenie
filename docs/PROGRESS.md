@@ -203,3 +203,21 @@ After streaming and the desktop wiring landed: `make live` green again on all th
 The loop worker's section landed with a test per finding: a stop line the model wrote no longer fires on a tool result that repeats two of its words (the model declares its own stop lines with `stop_now`); polling a long command is no longer "the same call over and over"; a command in backticks in a done line goes through the permission function and the log as the shell call it is; the model can pin evidence in front of itself (`pin_evidence`, four at most); a question without a question mark waits for the person in two calls, not six; an unattended task offers no skill to nobody; fifteen bounds are pinned by literals; a budget that runs out costs one report and one call; a done line only the answer can prove names `reply` and closes when the answer is given; and every tool call runs inside the reliability guard's deadline.
 
 Bubble Tea 2 replaced Bubble Tea 1 and lipgloss on 2026-09-03, a dependency change the orchestrator approved: version 1 asked the terminal for its background colour from package `init` and read the answer one byte at a time with a five-second wait per byte, eating whatever the person typed in the first seconds on a terminal that never answers. A real pseudo-terminal test in `internal/tui` types at one second and sees the letters; the golden frames are byte-for-byte unchanged, and nothing in the binary can put a blocking question to a terminal again.
+
+### The live tier, 2026-09-03
+
+`make live` now runs the functional suite against the three real models through a real `coeus serve`: one task that needs a tool ("write hello coeus to greeting.txt and read it back"), asserted on the file, the record's round trip, and the done-check, and the forty-step fixture with its three assertions held before and after a real model call. Numbers from the first full run:
+
+| test | model | wall | tokens in (cached) | out | cost |
+|---|---|---|---|---|---|
+| fixture | local Qwen 3.8 | 3 s | 4,319 (3,728) | 31 | free |
+| fixture | Opus 4.8 | 3 s | 3,960 (3,721) | 47 | $0.0064 |
+| fixture | GPT-5.5 | 8 s | 11,666 (7,552) | 113 | not reported |
+| one-tool task | local Qwen 3.8 | 20 s | 19,652 (16,139) | 264 | free |
+| one-tool task | Opus 4.8 | 17 s | 14,353 (3,721) | 641 | $0.1288 |
+| one-tool task | GPT-5.5 | 38 s | 63,417 (32,640) | 1,049 | not reported |
+
+Two findings came with it. GPT failed the one-tool task about half the time because the codex program ran with its own shell tool on and the model wrote the file itself inside the program's read-only sandbox, bypassing the harness; the program now runs with `shell_tool` and `unified_exec` off, as the claude side already did, and the test passed three times running. And no model writes a done list for a small task, so the task ended "waiting" rather than "done"; the live home carries a persona line asking for one, and the loop worker holds the rule that an answer with no question and no done list closes the task with the answer as its proof.
+
+The browser worker now reports a person's own clicks, typing lengths, and navigations over the protocol, and `/walk record` writes them down until `/walk stop`.
+

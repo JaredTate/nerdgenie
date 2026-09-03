@@ -49,6 +49,7 @@ type run struct {
 	hadFailure    bool
 	hadStop       bool
 	stopLine      string
+	stopNow       string
 	number        string
 	perTask       contract.ToolRegistry
 }

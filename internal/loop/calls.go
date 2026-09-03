@@ -95,6 +95,10 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	if failed {
 		result.Text = text + "\n" + ThreeOptions
 	}
+	if line := running.theStopTheModelAskedFor(); line != "" {
+		ended, err := running.stopHere(ctx, line)
+		return result, &ended, err
+	}
 	// The record write is the harness's own words coming back, and a stop list
 	// written into the record would otherwise fire on itself the moment the
 	// model wrote it. Only what a tool found in the world is checked.
@@ -111,6 +115,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 // runOneTool finds the tool and runs it under the tool time limit, and says
 // whether what came back is a result or an error.
 func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (string, bool) {
+	if answer, refused, mine := running.theLoopsOwnOperation(call); mine {
+		return answer, refused
+	}
 	tool, found := running.tools().Lookup(call.Name)
 	if !found && call.Name == contract.ToolTask {
 		return running.applyRecordWrite(ctx, call)

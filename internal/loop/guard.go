@@ -26,12 +26,6 @@ const (
 	// does at rounds twenty-nine and thirty. The third is refused and the
 	// fourth ends the turn.
 	IdenticalCallsAllowed = 2
-	// MinWordLettersInAPhrase is how long each word of a stop line's phrase has
-	// to be before the phrase is worth matching on. Short words are in every
-	// sentence and would fire the line on anything.
-	MinWordLettersInAPhrase = 4
-	// MaxPhrasesPerStopLine bounds how many phrases one stop line is read as.
-	MaxPhrasesPerStopLine = 20
 )
 
 // HarnessStopLineWall is the second line the harness adds to every stop list:
@@ -119,51 +113,46 @@ func canonicalArguments(arguments json.RawMessage) string {
 }
 
 // stopLineFiredBy returns the line of the stop list that this tool result sets
-// off, and is empty when nothing did. The model's own lines are checked first,
-// so the user is told the line they were promised rather than the harness's.
+// off, and is empty when nothing did. Only the harness's own line is read here.
+// The lines the model writes are statements about the world that the harness
+// cannot check for itself — "the product notes file cannot be found" and "the
+// post is longer than the limit after two tries" are about the work, not about
+// anything the harness can see — so the model says when one of its own lines
+// has come true, with the stop_now operation of the task tool, and the harness
+// only recognises the wall it can recognise for itself.
 func (running *run) stopLineFiredBy(toolName string, text string) string {
-	seen := strings.ToLower(text)
-	for _, line := range running.stopList() {
-		for _, phrase := range notablePhrases(line) {
-			if strings.Contains(seen, phrase) {
-				return line
-			}
-		}
+	if !strings.HasPrefix(toolName, "browser") {
+		return ""
 	}
-	if strings.HasPrefix(toolName, "browser") {
-		for _, wall := range wallWords {
-			if strings.Contains(seen, wall) {
-				return HarnessStopLineWall
-			}
+	seen := strings.ToLower(text)
+	for _, wall := range wallWords {
+		if !strings.Contains(seen, wall) {
+			continue
 		}
+		if line := running.stopLineAboutTheWall(); line != "" {
+			return line
+		}
+		return HarnessStopLineWall
 	}
 	return ""
 }
 
-// stopList is what the model wrote into the record's stop list, and is empty
-// before there is a record.
-func (running *run) stopList() []string {
+// stopLineAboutTheWall is the model's own line about the same wall, when it
+// wrote one, so that the user is told the line they were promised rather than
+// the harness's words for it. Only the wall's own few words are looked for,
+// because the wall is the one thing on a stop list the harness can recognise
+// for itself.
+func (running *run) stopLineAboutTheWall() string {
 	if running.keeper == nil {
-		return nil
+		return ""
 	}
-	return running.keeper.Record().Rules.StopWhen
-}
-
-// notablePhrases is how a stop line written in plain English is matched against
-// what the harness can see: every pair of neighbouring words long enough to
-// mean something on their own. "the account shows a login page or a captcha"
-// gives "account shows" and "login page", and a result holding either of those
-// is the thing the line was written about.
-func notablePhrases(line string) []string {
-	words := strings.FieldsFunc(strings.ToLower(line), func(letter rune) bool {
-		return !(letter >= 'a' && letter <= 'z') && !(letter >= '0' && letter <= '9')
-	})
-	phrases := []string{}
-	for at := 0; at+1 < len(words) && len(phrases) < MaxPhrasesPerStopLine; at++ {
-		if len(words[at]) < MinWordLettersInAPhrase || len(words[at+1]) < MinWordLettersInAPhrase {
-			continue
+	for _, line := range running.keeper.Record().Rules.StopWhen {
+		written := strings.ToLower(line)
+		for _, wall := range wallWords {
+			if strings.Contains(written, wall) {
+				return line
+			}
 		}
-		phrases = append(phrases, words[at]+" "+words[at+1])
 	}
-	return phrases
+	return ""
 }

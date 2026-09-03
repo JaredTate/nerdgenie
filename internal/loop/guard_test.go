@@ -159,8 +159,10 @@ func TestADifferentCallInBetweenClearsTheRun(t *testing.T) {
 }
 
 // TestTheStopListStopsTheTaskAndNamesTheLine proves the guard's first check:
-// every line of the record's stop list is checked against what the harness can
-// see, and a hit stops the task and tells the user which line.
+// the one wall the harness recognises for itself is checked against what a
+// browser result shows, and a hit stops the task and tells the user the line of
+// their own stop list that the wall answers, rather than the harness's words
+// for it.
 func TestTheStopListStopsTheTaskAndNamesTheLine(t *testing.T) {
 	stopLine := "the account shows a login page or a captcha"
 	built := newHarness(t, []testkit.Step{

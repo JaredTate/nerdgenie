@@ -52,9 +52,6 @@ func FuzzWhatTheHarnessReadsFromText(f *testing.F) {
 		if len(pathsIn(doneLine)) > MaxPathsCheckedPerLine {
 			t.Fatalf("the line %q was read as more paths than the cap allows", doneLine)
 		}
-		if phrases := notablePhrases(doneLine); len(phrases) > MaxPhrasesPerStopLine {
-			t.Fatalf("the line %q was read as %d phrases, and the cap is %d", doneLine, len(phrases), MaxPhrasesPerStopLine)
-		}
 		if line := cutToALine(result); len([]rune(line)) > MaxSituationLineLetters {
 			t.Fatalf("a situation line came out %d letters long, and the cap is %d", len([]rune(line)), MaxSituationLineLetters)
 		}

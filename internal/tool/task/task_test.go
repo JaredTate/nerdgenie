@@ -214,6 +214,38 @@ func TestTheAskAndTheCorrectionsCannotBeWrittenThroughThisTool(t *testing.T) {
 	}
 }
 
+// TestAnOperationInAnotherCaseOrWithACommonPrefixIsTaken is finding 26 of the
+// wave 6 gate review, and the live run's first finding one layer up. The name
+// was compared letter for letter, so DONE_WHEN, doneWhen, done-when, set_why,
+// add_decision and set_plan were each refused outright, costing a full round
+// apiece, and the refusal read the same list every time, so a model that went
+// on writing set_why went on getting the same answer.
+func TestAnOperationInAnotherCaseOrWithACommonPrefixIsTaken(t *testing.T) {
+	for _, taken := range []struct {
+		fields  map[string]any
+		written string
+	}{
+		{map[string]any{"operation": "DONE_WHEN", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "doneWhen", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "done-when", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "set_why", "why": "the release is on Friday"}, "the why"},
+		{map[string]any{"operation": "add_decision", "text": "write from the tags", "reason": "they are complete"}, "a decision"},
+		{map[string]any{"operation": "set_plan", "plan": []any{"read the tags"}}, "the plan"},
+		{map[string]any{"operation": "update_stop_when", "stop_when": []any{"the release is cancelled"}}, "the stop list"},
+	} {
+		tool, keeper := newTool(t)
+		if _, err := run(t, tool, taken.fields); err != nil {
+			t.Errorf("the call %v was refused although it writes %s: %v", taken.fields, taken.written, err)
+			continue
+		}
+		held := keeper.Record()
+		if held.Goal.Why == "" && len(held.Goal.DoneWhen) == 0 && len(held.Rules.StopWhen) == 0 &&
+			len(held.Work.Plan) == 0 && len(held.Lessons.Decisions) == 0 {
+			t.Errorf("the call %v was taken and %s was not written", taken.fields, taken.written)
+		}
+	}
+}
+
 func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 	tool, _ := newTool(t)
 

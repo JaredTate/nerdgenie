@@ -138,6 +138,9 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 	if note == buildsItselfNote {
 		return fmt.Sprintf("the command %q works out part of itself while it runs, so nothing here can say what it will really do", reduced)
 	}
+	if note == unclosedQuoteNote {
+		return fmt.Sprintf("the command %q opens a quote and never closes it, so nothing here can say where one word ends and the next begins", reduced)
+	}
 	return fmt.Sprintf("the call %q was too long to read to the end, so nothing here can say what the rest of it does", reduced)
 }
 
@@ -157,7 +160,7 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 		}
 	}
 	if !onTheAskMeFirstList {
-		if approval, standing := decider.useStandingApproval(reduced); standing {
+		if approval, standing := decider.useStandingApproval(request, reduced); standing {
 			return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 		}
 	}

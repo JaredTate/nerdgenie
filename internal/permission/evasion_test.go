@@ -181,6 +181,35 @@ func TestACommandThatBuildsItselfWhileItRunsSaysSoAndAsks(t *testing.T) {
 	}
 }
 
+// commandsWithAQuoteTheyNeverClose leave a quote open, so where one word ends
+// and the next begins is a guess: everything after the quote, the characters
+// that end one command and start another among them, is read as more of the same
+// word. The fuzzer found the second of these by putting a subshell round the
+// first, and the swallowed bracket turned "/sudo" into a program named "sudo )",
+// which nothing on the ask-me-first list knows.
+var commandsWithAQuoteTheyNeverClose = []string{
+	`/sudo"`,
+	`( /sudo" )`,
+	`rm -rf '/tmp/unclosed`,
+	`echo "hello`,
+	`( rm -rf "/tmp/x )`,
+}
+
+func TestACommandWithAQuoteItNeverClosesSaysSoAndAsks(t *testing.T) {
+	decider := newDecider(t, contract.DefaultConfig())
+
+	for _, command := range commandsWithAQuoteTheyNeverClose {
+		reduced := permission.Reduce(shellRequest(t, command))
+		if !strings.HasSuffix(reduced, "(a quote that is never closed)") {
+			t.Errorf("the readable form of %q is %q, and it has to say that a quote was never closed", command, reduced)
+		}
+		if decision := decide(t, decider, shellRequest(t, command)); decision.Ruling != contract.RulingAsk {
+			t.Errorf("%q was ruled %q, want %q, because nothing here can say where one word ends and the next begins",
+				command, decision.Ruling, contract.RulingAsk)
+		}
+	}
+}
+
 // bracketsThatBuildNothing look like a substitution and are not one, so the
 // permission function has to leave every one of them alone.
 var bracketsThatBuildNothing = []string{
@@ -258,7 +287,11 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, command string, number int) {
 		if number < 0 || number >= len(disguises) {
-			t.Skip("the fuzzer picked a disguise number that does not name one of the four")
+			t.Skip("the fuzzer picked a disguise number that does not name one of the disguises")
+		}
+		if firstWord := strings.Fields(command); len(firstWord) > 0 && strings.HasPrefix(firstWord[0], "-") {
+			t.Skip("a command line whose first word is a flag names no program to run, and a program that runs another program" +
+				" would read that flag as one of its own, as xargs reads the -r in \"xargs -r rm\" and runs rm without it")
 		}
 		if decide(t, decider, shellRequest(t, command)).Ruling == contract.RulingAllow {
 			return

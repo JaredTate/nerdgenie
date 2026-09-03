@@ -37,6 +37,7 @@ cmd/coeus/askpass_name_test.go
 cmd/coeus/askpass_test.go
 cmd/coeus/backup.go
 cmd/coeus/backup_test.go
+cmd/coeus/clear_test.go
 cmd/coeus/commands.go
 cmd/coeus/desktop.go
 cmd/coeus/doc.go
@@ -1097,6 +1098,7 @@ internal/tui/banner.go
 internal/tui/behaviour_test.go
 internal/tui/bubble.go
 internal/tui/card.go
+internal/tui/clear_test.go
 internal/tui/client.go
 internal/tui/client_test.go
 internal/tui/context_test.go
@@ -1248,6 +1250,7 @@ test/functional/boundary_test.go
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
+test/functional/clear_test.go
 test/functional/command_test.go
 test/functional/context_test.go
 test/functional/desktop_test.go

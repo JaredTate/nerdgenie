@@ -82,6 +82,7 @@ type runningAgent struct {
 	program string
 	home    contract.Home
 	work    string
+	model   *testkit.FakeProviderServer
 }
 
 // startTheAgent starts the agent against a script that needs to know nothing
@@ -136,7 +137,7 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 	})
 
 	waitForTheSocket(t, home, saidPath)
-	return runningAgent{program: program, home: home, work: work}
+	return runningAgent{program: program, home: home, work: work, model: model}
 }
 
 // buildTheBinary compiles cmd/coeus into a folder of this test's own, so that
@@ -283,5 +284,46 @@ func (screen *attachedScreen) waitFor(t *testing.T, wanted contract.SocketMessag
 		}
 	}
 	t.Fatalf("no %s arrived within %s; the agent sent %v (%v)", wanted, bound, seen, screen.lines.Err())
+	return contract.SocketEnvelope{}
+}
+
+// waitForStatusCarrying reads envelopes until a status arrives with something in
+// the named field, which is how a test waits for the numbers the header draws
+// rather than for the first status of any kind.
+func (screen *attachedScreen) waitForStatusCarrying(t *testing.T, field string, bound time.Duration) contract.SocketEnvelope {
+	t.Helper()
+	return screen.waitUntil(t, bound, "a status carrying "+field, func(envelope contract.SocketEnvelope) bool {
+		return envelope.Type == contract.SocketStatus && envelope.Fields[field] != ""
+	})
+}
+
+// waitForReplySaying reads envelopes until a reply arrives with the words in it.
+func (screen *attachedScreen) waitForReplySaying(t *testing.T, words string, bound time.Duration) contract.SocketEnvelope {
+	t.Helper()
+	return screen.waitUntil(t, bound, "a reply saying "+words, func(envelope contract.SocketEnvelope) bool {
+		return envelope.Type == contract.SocketReply && strings.Contains(strings.ToLower(envelope.Text), strings.ToLower(words))
+	})
+}
+
+// waitUntil reads envelopes until one of them is the one being waited for, and
+// fails the test with what did arrive when none is.
+func (screen *attachedScreen) waitUntil(t *testing.T, bound time.Duration, what string,
+	itIsThis func(envelope contract.SocketEnvelope) bool) contract.SocketEnvelope {
+	t.Helper()
+	if err := screen.connection.SetReadDeadline(time.Now().Add(bound)); err != nil {
+		t.Fatalf("setting the read deadline failed: %v", err)
+	}
+	seen := []string{}
+	for screen.lines.Scan() {
+		envelope := contract.SocketEnvelope{}
+		if err := json.Unmarshal(screen.lines.Bytes(), &envelope); err != nil {
+			t.Fatalf("the agent sent a line that is not a JSON object: %q", screen.lines.Text())
+		}
+		seen = append(seen, string(envelope.Type))
+		if itIsThis(envelope) {
+			return envelope
+		}
+	}
+	t.Fatalf("no %s arrived within %s; the agent sent %v (%v)", what, bound, seen, screen.lines.Err())
 	return contract.SocketEnvelope{}
 }

@@ -138,14 +138,30 @@ func startTheLiveAgent(t *testing.T, model liveModel,
 	}, changes...)
 }
 
-// useTheRealModels writes the live configuration over the one the starter wrote,
-// before the agent reads it.
+// livePersona is the SOUL.md a live home is given. It says the one thing the
+// shipped instruction text says only in passing and no real model does on its
+// own for a small task: keep the record as you go, and prove each done line with
+// the result behind it. Without this line all three models write the file, say
+// they are finished, and leave the task waiting with an empty done list, because
+// a reply with nothing behind it is read as a question.
+const livePersona = "You are Coeus. You do the work with your tools and you keep the task record as you go.\n" +
+	"Before you answer that the work is finished, call the task tool to write the done list, " +
+	"with each line marked done and naming the id of the result that proves it, such as r1."
+
+// useTheRealModels writes the live configuration and the persona over what the
+// starter wrote, before the agent reads either.
 func useTheRealModels(t *testing.T, model liveModel) func(home contract.Home, work string) {
 	return func(home contract.Home, work string) {
 		t.Helper()
 		settings := liveConfiguration(model.alias, work)
 		if err := os.WriteFile(home.ConfigFile(), []byte(settings), contract.DataFileMode); err != nil {
 			t.Fatalf("writing the live configuration to %s failed: %v", home.ConfigFile(), err)
+		}
+		if err := os.MkdirAll(home.PersonaFolder(), contract.HomeFolderMode); err != nil {
+			t.Fatalf("making the persona folder %s failed: %v", home.PersonaFolder(), err)
+		}
+		if err := os.WriteFile(home.SoulFile(), []byte(livePersona), contract.DataFileMode); err != nil {
+			t.Fatalf("writing the persona to %s failed: %v", home.SoulFile(), err)
 		}
 	}
 }

@@ -188,10 +188,22 @@ context, calls the model with the deltas forwarded, and reads the reply through
 become calls the same way. The reply's first line is the model's orient line and
 goes into the record's situation. A reply with no calls ends the turn: a
 question puts the record into waiting, and anything else goes to the done-check.
-**A question is read by what the reply has behind it, and not by one character**:
-a question mark on the last non-empty line says so plainly, and so does a reply
-with no tool calls, an empty done list, and no result written this round, because
-such a reply has nothing behind it that could close a task. A reply `repair`
+**A question is read by the words of the reply and not by one character**:
+a question mark on the last non-empty line says so plainly, and so do the plain
+ways of asking — "tell me", "let me know", "I need to know", "should I", and a
+few more — on the last line of a reply the record has no done list to close on.
+That second reading used to be the empty done list on its own, and the live
+functional suite found what it costs: asked to write hello to a file and read it
+back, none of the three real models writes a done list at all, so every small
+task ended waiting on a user who had been asked nothing and the done-check never
+ran. **An answer that asks nothing closes the task, and the answer proves it**:
+where the model wrote no done list the harness writes the answer into the record
+as a result and one done line of its own behind it — "the work was done and the
+user was told what changed" — and the done-check then runs on a record that says
+what done looked like. A record the model did write a done list into is left
+alone, which is also the fence round the list of ways of asking: those words are
+read on nothing else, because the harness's own stopped report ends "Tell me how
+to carry on" and a replay hands that report back to the loop as a reply. A reply `repair`
 could not read goes back as the problem it wrote, and after two such replies in a
 row `repair` hands the text back as the answer instead.
 

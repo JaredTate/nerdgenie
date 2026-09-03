@@ -432,6 +432,7 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/loop/answercloses_test.go
 internal/loop/bounds_test.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
@@ -862,6 +863,7 @@ internal/testkit/fixturesite.go
 internal/testkit/fixturesite_test.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
+internal/testkit/fortystepcalls_test.go
 internal/testkit/fortystepchecks.go
 internal/testkit/fortystepupdate.go
 internal/testkit/fuzz_test.go

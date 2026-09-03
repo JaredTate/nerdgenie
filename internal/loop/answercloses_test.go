@@ -86,6 +86,30 @@ func TestATaskThatWroteNoDoneListAndAsksSomethingStillWaits(t *testing.T) {
 	}
 }
 
+// TestAnAnswerSayingTellMeStillClosesWhenTheRecordHasADoneList pins the fence
+// round the list of plain ways of asking: those words are read only on a reply
+// the record has nothing to close on. The harness's own stopped report ends
+// "Tell me how to carry on and I will pick it up from here", and a replay hands
+// that report straight back to the loop as a model reply, so a list read on
+// every reply would leave every such replay waiting.
+func TestAnAnswerSayingTellMeStillClosesWhenTheRecordHasADoneList(t *testing.T) {
+	said := "I read the notes. Tell me how to carry on and I will pick it up from here."
+	built := newHarness(t, []testkit.Step{
+		callStep("Nothing is read yet. I will read the notes.",
+			callFor("c1", "read", `{"path":"notes.md"}`),
+			taskCall("c1t", `{"why":"the user wants the notes read",`+
+				`"doneWhen":[{"text":"the notes are read","done":true,"resultId":"r1"}]}`)),
+		answerStep(said),
+	}, scriptedTool("read", "the notes"))
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the task ended %q, want done: the record said what done looked like and the done-check passed",
+			outcome.Status)
+	}
+}
+
 // aSmallTaskThatWritesNoRecord is the small task the live suite ran: two tool
 // calls, no call to the task tool at any point, and then the words the test
 // gave it, four times over so that a reading which sends the model back to work

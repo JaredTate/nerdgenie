@@ -107,6 +107,9 @@ type Screen struct {
 	tokensOut    string
 	money        string
 	budget       string
+	budgetTask   string
+	budgetNow    int
+	budgetMost   int
 	lastHealth   time.Time
 
 	blocks     []block

@@ -97,10 +97,12 @@ func TestNoColorRendersTheSameStructure(t *testing.T) {
 	aTalkedTranscript(plain)
 
 	colored := New(Options{
-		Clock:       plain.clock,
-		Width:       80,
-		Height:      24,
-		Environment: func(string) string { return "" },
+		Clock:  plain.clock,
+		Width:  80,
+		Height: 24,
+		Environment: func(name string) string {
+			return map[string]string{"COLORTERM": "truecolor", "TERM": "xterm-256color"}[name]
+		},
 	})
 	aTalkedTranscript(colored)
 

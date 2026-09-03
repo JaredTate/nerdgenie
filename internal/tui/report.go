@@ -1,10 +1,15 @@
 package tui
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
+
+// maxBudgetDigits is the longest run of digits the screen will read as a budget
+// count, so that a line of nonsense cannot become a huge number.
+const maxBudgetDigits = 9
 
 // reportedStates turns the word a status message carries in its state field into
 // what this screen says in its status strip. A word that is not one of the five
@@ -33,6 +38,7 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldTokensOut, &screen.tokensOut)
 	setIfSent(fields, contract.StatusFieldCost, &screen.money)
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
+	screen.readBudget(fields)
 
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
 		screen.learnCommands(listed)
@@ -43,6 +49,45 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	}
 	screen.readHealth(fields)
 	screen.readReportedState(fields)
+}
+
+// readBudget works out how much of the task's budget is left, so that the status
+// strip can draw a bar as well as the words. The count is the first number in
+// the budget line, and the fullest report seen since this task started is what
+// the bar is measured against; a new task starts the measure again.
+func (screen *Screen) readBudget(fields map[string]string) {
+	if _, sent := fields[contract.StatusFieldBudget]; !sent {
+		return
+	}
+	if screen.taskID != screen.budgetTask {
+		screen.budgetTask = screen.taskID
+		screen.budgetMost = 0
+	}
+	screen.budgetNow = firstNumber(screen.budget)
+	screen.budgetMost = max(screen.budgetMost, screen.budgetNow)
+}
+
+// firstNumber reads the first run of digits in a line of plain words, and says
+// zero when there is none or when the run is too long to be a count of anything.
+func firstNumber(text string) int {
+	digits := ""
+	for _, letter := range text {
+		if letter >= '0' && letter <= '9' {
+			digits += string(letter)
+			continue
+		}
+		if digits != "" {
+			break
+		}
+	}
+	if digits == "" || len(digits) > maxBudgetDigits {
+		return 0
+	}
+	count, err := strconv.Atoi(digits)
+	if err != nil {
+		return 0
+	}
+	return count
 }
 
 // readHealth fills in the dot on the right of the header. The program says in so

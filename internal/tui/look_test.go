@@ -40,13 +40,16 @@ func TestTheBannerIsDrawnWhileThereIsNothingToShowAndScrollsAwayOnceThereIs(t *t
 	screen, _ := newTestScreen(80, 24)
 	frame := screen.View()
 
-	for _, wanted := range []string{"COEUS AGENT", "the agent that does not forget what it is doing", "connecting"} {
+	for _, wanted := range []string{"the agent that does not forget what it is doing", "connecting"} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the first frame does not hold %q:\n%s", wanted, frame)
 		}
 	}
 	if strings.Count(frame, string(blockGlyph)) < 100 {
 		t.Errorf("the wordmark is not drawn in block letters:\n%s", frame)
+	}
+	if rows := strings.Count(frame, string(blockGlyph)+string(blockGlyph)); rows < blockRows {
+		t.Errorf("the wordmark is not five rows tall:\n%s", frame)
 	}
 
 	screen.remember(block{kind: blockPerson, text: "hello"})
@@ -115,16 +118,22 @@ func TestATallMessageAndAShortOneGetBubblesOfTheirOwnWidth(t *testing.T) {
 	screen.remember(block{kind: blockPerson, text: "hi"})
 	screen.remember(block{kind: blockPerson, text: strings.Repeat("a long message ", 20)})
 
-	short := screen.blockLines(screen.blocks[0])
-	long := screen.blockLines(screen.blocks[1])
-	if displayWidth(short[0]) >= displayWidth(long[0]) {
-		t.Errorf("a two-letter message drew a bubble %d columns wide and a long one drew %d", displayWidth(short[0]), displayWidth(long[0]))
+	short := boxWidth(screen.blockLines(screen.blocks[0])[0])
+	long := boxWidth(screen.blockLines(screen.blocks[1])[0])
+	if short >= long {
+		t.Errorf("a two-letter message drew a bubble %d columns wide and a long one drew %d", short, long)
 	}
-	for _, drawn := range append(short, long...) {
+	for _, drawn := range append(screen.blockLines(screen.blocks[0]), screen.blockLines(screen.blocks[1])...) {
 		if displayWidth(drawn) > 80 {
 			t.Errorf("the bubble row %q is wider than the terminal", drawn)
 		}
 	}
+}
+
+// boxWidth is how wide a bubble's own box is, leaving out the blanks that push a
+// right-leaning bubble over to the right-hand edge.
+func boxWidth(drawn string) int {
+	return displayWidth(strings.TrimLeft(drawn, " "))
 }
 
 func TestATheToolLineIsDrawnAsASmallPill(t *testing.T) {

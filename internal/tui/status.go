@@ -1,5 +1,7 @@
 package tui
 
+import "strings"
+
 // programState is what the program said it was doing last, which is the one
 // thing the status strip is allowed to say.
 type programState int
@@ -68,6 +70,9 @@ func (screen *Screen) statusRow() string {
 	line.add(screen.stateStyle(), screen.stateWords())
 	if screen.budget != "" {
 		line.add(styleDim, " · "+screen.budget)
+		filled, empty := screen.budgetBar()
+		line.add(styleBold, filled)
+		line.add(styleDim, empty)
 	}
 	if screen.scrolledUp() {
 		line.add(styleDim, " · "+string(moreGlyph)+" more")
@@ -78,6 +83,33 @@ func (screen *Screen) statusRow() string {
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
+}
+
+// progressCells is how many cells the budget bar is drawn out of. Four is short
+// enough to leave room for the key hints at the design's eighty columns and long
+// enough to read at a glance.
+const progressCells = 4
+
+// budgetBar is the thin bar in the status strip: the filled cells and the empty
+// ones, or two empty strings when no task is running.
+//
+// The program reports its budget in plain words, such as "86 rounds, 51 min
+// left", so the first number in that line is the count and the largest count
+// seen since this task started is a full bar. There is no fuller measure to be
+// had, and a bar measured against the fullest report of this task is the truth
+// as the screen knows it.
+func (screen *Screen) budgetBar() (string, string) {
+	if !screen.taskRunning() || screen.budgetMost <= 0 || screen.budgetNow <= 0 {
+		return "", ""
+	}
+	filled := min((screen.budgetNow*progressCells+screen.budgetMost-1)/screen.budgetMost, progressCells)
+	return " " + strings.Repeat(string(barFullGlyph), filled), strings.Repeat(string(barEmptyGlyph), progressCells-filled)
+}
+
+// taskRunning says whether a task is running right now, which is the only time
+// the budget bar and the accent-coloured task words are drawn.
+func (screen *Screen) taskRunning() bool {
+	return screen.taskState == "running"
 }
 
 // keyHints are the three key hints on the right of the status strip, which

@@ -57,19 +57,81 @@ type card struct {
 	drawn string
 }
 
-// answersLine is the last line inside the box: the single keys that answer this
-// card, in the words docs/TUI_DESIGN.md uses.
-func (shown card) answersLine() string {
+// answerButton is one single-key answer drawn as a small button: the key itself
+// in a filled shape, and the words that say what pressing it does.
+type answerButton struct {
+	// key is the single key the person presses.
+	key string
+	// words say what that key does, in the words docs/TUI_DESIGN.md uses.
+	words string
+}
+
+// answerButtons are the single keys that answer this card. A question is
+// answered in the input box and so has none.
+func (shown card) answerButtons() []answerButton {
 	switch shown.kind {
 	case cardPreview:
-		return "[a] approve once   [A] always this session   [r] reject with a reason"
+		return []answerButton{
+			{key: "a", words: "approve once"},
+			{key: "A", words: "always this session"},
+			{key: "r", words: "reject with a reason"},
+		}
 	case cardHandoff:
-		return "[a] I have finished   [r] give up on this"
+		return []answerButton{{key: "a", words: "I have finished"}, {key: "r", words: "give up on this"}}
 	case cardQuestion:
-		return "type your answer below and press Enter"
+		return nil
 	default:
-		return "[Esc] dismiss"
+		return []answerButton{{key: "Esc", words: "dismiss"}}
 	}
+}
+
+// buttonWidth is how many columns one button and its words take, with the two
+// blanks that separate it from the button after it.
+func (one answerButton) buttonWidth() int {
+	return displayWidth(one.key) + displayWidth(one.words) + 7
+}
+
+// answerRows draws the buttons at the foot of a card: all on one row when they
+// fit, and one to a row when they do not, so that a key is never split from the
+// words that say what it does.
+func (screen *Screen) answerRows(shown card, inner int) []row {
+	buttons := shown.answerButtons()
+	if len(buttons) == 0 {
+		return wrapSpans([]span{{style: styleDim, text: "type your answer below and press Enter"}}, inner)
+	}
+	needed := 0
+	for _, one := range buttons {
+		needed += one.buttonWidth()
+	}
+	if needed-2 <= inner {
+		return []row{cutRow(buttonsInARow(buttons), inner)}
+	}
+	drawn := []row{}
+	for _, one := range buttons {
+		drawn = append(drawn, cutRow(buttonsInARow([]answerButton{one}), inner))
+	}
+	return drawn
+}
+
+// cutRow shortens a row so that it fits inside a box, which is what a terminal
+// too narrow for the words on a button gets.
+func cutRow(line row, inner int) row {
+	line.keepWithin(inner)
+	return line
+}
+
+// buttonsInARow draws one row of buttons, each key in a filled shape with its
+// words beside it.
+func buttonsInARow(buttons []answerButton) row {
+	line := row{}
+	for at, one := range buttons {
+		if at > 0 {
+			line.blanks(2)
+		}
+		line.add(styleChip, "[ "+one.key+" ]")
+		line.add(styleNormal, " "+one.words)
+	}
+	return line
 }
 
 // takesKeys says whether this card holds the single keys. A preview and a
@@ -82,13 +144,14 @@ func (shown card) takesKeys() bool {
 	return shown.kind == cardPreview || shown.kind == cardHandoff
 }
 
-// titleStyle is how the title in the top rule is drawn: accent on a preview,
-// because that is the one the person must answer, error on a failure, and dim on
-// the rest.
+// titleStyle is how the border and the title of a card are drawn: the bright
+// gold of the palette on a preview, because that is the one card the person must
+// answer and gold on the blue ground is the loudest pairing there is; the error
+// colour on a failure; and dim on the rest.
 func (shown card) titleStyle() style {
 	switch shown.kind {
 	case cardPreview:
-		return styleAccent
+		return styleWarn
 	case cardError:
 		return styleError
 	default:
@@ -106,15 +169,15 @@ func (screen *Screen) cardLines(shown card) []string {
 	inner := outer - 4
 	drawn := []string{screen.cardTopRow(shown, outer)}
 	for _, line := range screen.cardBodyLines(shown, inner) {
-		drawn = append(drawn, screen.cardBodyRow(line, inner))
+		drawn = append(drawn, screen.cardBodyRow(spansOf(styleNormal, line), inner, shown))
 	}
-	drawn = append(drawn, screen.cardBodyRow("", inner))
-	for _, line := range wrapText(shown.answersLine(), inner) {
-		drawn = append(drawn, screen.cardBodyRow(line, inner))
+	drawn = append(drawn, screen.cardBodyRow(nil, inner, shown))
+	for _, line := range screen.answerRows(shown, inner) {
+		drawn = append(drawn, screen.cardBodyRow(line.spans, inner, shown))
 	}
 	bottom := row{}
 	bottom.blanks(marginColumns)
-	bottom.add(styleDim, "└"+strings.Repeat(string(ruleGlyph), outer-2)+"┘")
+	bottom.add(shown.titleStyle(), "└"+strings.Repeat(string(ruleGlyph), outer-2)+"┘")
 	drawn = append(drawn, bottom.render(screen.colors))
 
 	// A picture is drawn under the box rather than inside it, because the
@@ -145,20 +208,31 @@ func (screen *Screen) cardTopRow(shown card, outer int) string {
 	title := cutTo(shown.title, outer-6)
 	line := row{}
 	line.blanks(marginColumns)
-	line.add(styleDim, "┌ ")
+	line.add(shown.titleStyle(), "┌ ")
 	line.add(shown.titleStyle(), title)
-	line.add(styleDim, " "+strings.Repeat(string(ruleGlyph), outer-4-displayWidth(title))+"┐")
+	line.add(shown.titleStyle(), " "+strings.Repeat(string(ruleGlyph), outer-4-displayWidth(title))+"┐")
 	return line.render(screen.colors)
 }
 
 // cardBodyRow draws one line inside the box, padded so that the right-hand edge
 // of the frame stays straight.
-func (screen *Screen) cardBodyRow(text string, inner int) string {
+func (screen *Screen) cardBodyRow(pieces []span, inner int, shown card) string {
 	line := row{}
 	line.blanks(marginColumns)
-	line.add(styleDim, "│ ")
-	line.add(styleNormal, text)
+	line.add(shown.titleStyle(), "│ ")
+	for _, piece := range pieces {
+		line.addSpan(piece)
+	}
 	line.padTo(marginColumns + 2 + inner)
-	line.add(styleDim, " │")
+	line.add(shown.titleStyle(), " │")
 	return line.render(screen.colors)
+}
+
+// spansOf is one piece of plain text as the one styled run a card body row draws
+// it as.
+func spansOf(chosen style, text string) []span {
+	if text == "" {
+		return nil
+	}
+	return []span{{style: chosen, text: text}}
 }

@@ -40,6 +40,8 @@ const (
 	moreGlyph      = '▼'
 	filledDotGlyph = '●'
 	hollowDotGlyph = '○'
+	barFullGlyph   = '▰'
+	barEmptyGlyph  = '▱'
 )
 
 // span is one run of text drawn in one style. A row is built out of spans, so
@@ -74,10 +76,17 @@ func (line *row) addSpan(piece span) {
 	line.add(piece.style, piece.text)
 }
 
-// blanks puts a run of spaces on the end of the row.
+// blanks puts a run of spaces on the end of the row, drawn on the plain ground.
 func (line *row) blanks(columns int) {
+	line.padWith(styleNormal, columns)
+}
+
+// padWith puts a run of spaces on the end of the row drawn in one style, so that
+// a filled shape such as a pill or a bubble is filled to its own edge rather
+// than showing the ground through its padding.
+func (line *row) padWith(chosen style, columns int) {
 	if columns > 0 {
-		line.add(styleNormal, strings.Repeat(" ", columns))
+		line.add(chosen, strings.Repeat(" ", columns))
 	}
 }
 
@@ -137,12 +146,17 @@ func (line row) render(colors theme) string {
 }
 
 // trimTrailingBlanks drops the spaces on the end of a row, and the spans that
-// were nothing but spaces.
+// were nothing but spaces. Only blanks on the plain ground are dropped: a blank
+// drawn in any other style is paint, such as the right-hand end of a filled
+// pill, and dropping it would leave the shape open.
 func trimTrailingBlanks(spans []span) []span {
 	kept := make([]span, len(spans))
 	copy(kept, spans)
 	for len(kept) > 0 {
 		last := len(kept) - 1
+		if kept[last].style != styleNormal {
+			break
+		}
 		trimmed := strings.TrimRight(kept[last].text, " ")
 		if trimmed != "" {
 			kept[last].text = trimmed

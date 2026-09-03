@@ -32,7 +32,7 @@ func (screen *Screen) headerRow() string {
 func (screen *Screen) headerParts() []span {
 	parts := []span{}
 	if !screen.attached {
-		parts = append(parts, span{style: styleError, text: screen.linkWords()})
+		parts = append(parts, screen.linkPiece())
 	}
 	if screen.modelAlias != "" {
 		parts = append(parts, span{style: styleDim, text: screen.modelAlias})
@@ -46,14 +46,15 @@ func (screen *Screen) headerParts() []span {
 	return parts
 }
 
-// linkWords is what the header says about a link that is not there: it is still
-// connecting when the screen has never reached the program, and it dropped when
-// a link that was up went away.
-func (screen *Screen) linkWords() string {
+// linkPiece is what the header says about a link that is not there. A screen
+// that has never reached the program is still connecting, which is ordinary and
+// is drawn quietly; a link that was up and went away is a failure and is drawn
+// in the error colour.
+func (screen *Screen) linkPiece() span {
 	if screen.everAttached {
-		return "disconnected"
+		return span{style: styleError, text: "disconnected"}
 	}
-	return "connecting"
+	return span{style: styleDim, text: "connecting"}
 }
 
 // taskWords is the task and its state, such as "task 17 running", or empty when
@@ -74,8 +75,8 @@ func (screen *Screen) taskWords() string {
 // taskStyle draws a running task in the accent colour and every other state
 // plainly, so that the eye finds the one thing that is happening.
 func (screen *Screen) taskStyle() style {
-	if screen.taskState == "running" {
-		return styleAccent
+	if screen.taskRunning() {
+		return styleBold
 	}
 	return styleNormal
 }

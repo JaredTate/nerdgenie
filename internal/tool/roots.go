@@ -23,15 +23,16 @@ type PathCheck func(path string) (string, error)
 // when it is a whole path that sits inside one of the sandbox roots once its
 // links are followed, and outside everything that must stay outside the fence,
 // which is the agent's home folder, the vault, the browser profiles, and the
-// user's SSH keys.
-func NewPathCheck(roots []string, userHome string) PathCheck {
+// user's SSH keys. The agent's home is passed in as well as the user's, because
+// COEUS_HOME may have moved it anywhere.
+func NewPathCheck(roots []string, userHome string, agentHome string) PathCheck {
 	cleanRoots := make([]string, 0, len(roots))
 	for _, root := range roots {
 		if strings.TrimSpace(root) != "" {
 			cleanRoots = append(cleanRoots, resolveLinks(filepath.Clean(root)))
 		}
 	}
-	excluded := contract.ExcludedFromSandbox(userHome)
+	excluded := contract.ExcludedFromSandbox(userHome, agentHome)
 
 	return func(path string) (string, error) {
 		wanted, err := wholePath(path)

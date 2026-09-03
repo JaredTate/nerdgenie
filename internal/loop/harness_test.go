@@ -203,6 +203,12 @@ func callFor(id string, name string, arguments string) contract.ToolCall {
 	return contract.ToolCall{ID: id, Name: name, Input: json.RawMessage(arguments)}
 }
 
+// taskCall is a call to the task tool, which is how the model writes its half
+// of the record in the same reply as its other calls.
+func taskCall(id string, arguments string) contract.ToolCall {
+	return callFor(id, contract.ToolTask, arguments)
+}
+
 // callStep is one scripted reply that asks for tools.
 func callStep(orient string, calls ...contract.ToolCall) testkit.Step {
 	return testkit.Step{Text: orient, ToolCalls: calls, Finish: contract.FinishToolCalls}

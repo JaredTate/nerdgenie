@@ -31,6 +31,7 @@ LICENSE
 Makefile
 README.md
 REPO_MAP.md
+TEST.md
 THIRD_PARTY.md
 cmd/coeus/askpass.go
 cmd/coeus/askpass_name_test.go
@@ -96,9 +97,14 @@ docs/EXTENDING.md
 docs/HARNESS_V2.md
 docs/PROGRESS.md
 docs/SECURITY_REVIEW.md
+docs/TATER_BENCHMARK.md
 docs/TRIAL.md
 docs/TUI_DESIGN.md
 docs/WORK_PLAN.md
+docs/bench/coeus-1.png
+docs/bench/hermes-1.png
+docs/bench/opencode-1.png
+docs/bench/opencode-2.png
 docs/briefs/wave-0/0.1-ready-to-build.md
 docs/briefs/wave-0/0.2-fix-the-wave-0-gate.md
 docs/briefs/wave-1/1.1-event-log.md
@@ -1245,6 +1251,12 @@ internal/vault/totp.go
 internal/vault/totp_test.go
 internal/vault/vault.go
 internal/vault/vault_test.go
+scripts/bench/check-tater.mjs
+scripts/bench/countcalls.sh
+scripts/bench/drive.py
+scripts/bench/run-coeus.sh
+scripts/bench/tater_cost.mjs
+scripts/bench/tater_run.sh
 scripts/coverage.sh
 scripts/fixturesite/doc.go
 scripts/fixturesite/main.go

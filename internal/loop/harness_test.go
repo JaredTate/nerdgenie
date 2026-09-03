@@ -37,6 +37,8 @@ type harness struct {
 	deltas     []string
 	lineGuard  sync.Mutex
 	lines      []string
+	toolGuard  sync.Mutex
+	toolLines  []string
 }
 
 // newHarness builds a loop over the fakes, with the tools the test needs and the
@@ -87,7 +89,22 @@ func (built *harness) optionsOver(model contract.Model) loop.Options {
 		Sandbox:    built.sandbox,
 		Deltas:     built.noteDelta,
 		RecordLine: built.noteRecordLine,
+		ToolLine:   built.noteToolLine,
 	}
+}
+
+// noteToolLine records one line about the tool call in flight.
+func (built *harness) noteToolLine(line string) {
+	built.toolGuard.Lock()
+	defer built.toolGuard.Unlock()
+	built.toolLines = append(built.toolLines, line)
+}
+
+// sentToolLines is every line the loop sent about a tool call.
+func (built *harness) sentToolLines() []string {
+	built.toolGuard.Lock()
+	defer built.toolGuard.Unlock()
+	return append([]string(nil), built.toolLines...)
 }
 
 // noteRecordLine records one line about a task or a job changing.

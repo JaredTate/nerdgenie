@@ -3,6 +3,7 @@ package loop
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -84,16 +85,22 @@ func (running *run) afterADenial(ctx context.Context, call contract.ToolCall, de
 func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (contract.ToolResult, *Outcome, error) {
 	running.noteToolLine(toolLineFor(call, "", false))
 	text, failed := running.runOneTool(ctx, call)
+	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)
 	label, err := running.keeper.AddResult(ctx, summary, text)
 	if err != nil {
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}
+	running.resultsThisRound++
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
 	result := contract.ToolResult{CallID: call.ID, Text: text, Failed: failed}
 	if failed {
 		result.Text = text + "\n" + ThreeOptions
+	}
+	if line := running.theStopTheModelAskedFor(); line != "" {
+		ended, err := running.stopHere(ctx, line)
+		return result, &ended, err
 	}
 	// The record write is the harness's own words coming back, and a stop list
 	// written into the record would otherwise fire on itself the moment the
@@ -111,6 +118,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 // runOneTool finds the tool and runs it under the tool time limit, and says
 // whether what came back is a result or an error.
 func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (string, bool) {
+	if answer, refused, mine := running.theLoopsOwnOperation(ctx, call); mine {
+		return answer, refused
+	}
 	tool, found := running.tools().Lookup(call.Name)
 	if !found && call.Name == contract.ToolTask {
 		return running.applyRecordWrite(ctx, call)
@@ -133,7 +143,7 @@ func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (str
 // one.
 func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, call contract.ToolCall) (contract.ToolOutput, error) {
 	limit := running.theLoop.options.Caps.TimePerTool
-	working, giveUp := context.WithCancel(ctx)
+	working, giveUp := running.timeToRunOneTool(ctx)
 	defer giveUp()
 
 	type answer struct {
@@ -154,11 +164,48 @@ func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, c
 
 	select {
 	case got := <-answers:
+		if got.err != nil && theDeadlineHasPassed(working) {
+			return contract.ToolOutput{}, theDeadlineStoppedIt(call)
+		}
 		return got.output, got.err
 	case <-tooLong:
 		return contract.ToolOutput{}, fmt.Errorf("the tool %s ran for %s and its time was up, so run less at once or raise the limit",
 			call.Name, limit)
+	case <-working.Done():
+		if theDeadlineHasPassed(working) {
+			return contract.ToolOutput{}, theDeadlineStoppedIt(call)
+		}
+		return contract.ToolOutput{}, fmt.Errorf("the tool %s was stopped before it came back, so ask for it again when the task carries on",
+			call.Name)
 	}
+}
+
+// timeToRunOneTool is the context one tool call runs under: the task's own, with
+// the deadline the reliability guard gives this call on top of it when there is
+// one. Both are let go when the call is over.
+func (running *run) timeToRunOneTool(ctx context.Context) (context.Context, context.CancelFunc) {
+	if running.theLoop.options.ToolDeadline == nil {
+		return context.WithCancel(ctx)
+	}
+	byThen, deadlineDone := running.theLoop.options.ToolDeadline(ctx)
+	working, giveUp := context.WithCancel(byThen)
+	return working, func() {
+		giveUp()
+		deadlineDone()
+	}
+}
+
+// theDeadlineHasPassed says whether this call was stopped because the deadline
+// it was given ran out, rather than because the task itself was stopped.
+func theDeadlineHasPassed(working context.Context) bool {
+	return errors.Is(working.Err(), context.DeadlineExceeded)
+}
+
+// theDeadlineStoppedIt is what the model is told about a call the deadline cut
+// short, in words it can act on rather than the Go error.
+func theDeadlineStoppedIt(call contract.ToolCall) error {
+	return fmt.Errorf("the tool %s did not finish before the deadline this call was given, so ask for less at once or try it again",
+		call.Name)
 }
 
 // applyRecordWrite is the model's half of the record. The task tool of wave 2
@@ -166,7 +213,7 @@ func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, c
 // that holds one, so the loop applies the write itself through record's rules
 // and hands the whole update back as the result, where "read r2" can fetch it.
 func (running *run) applyRecordWrite(ctx context.Context, call contract.ToolCall) (string, bool) {
-	update, err := readRecordUpdate(call.Input)
+	update, err := readRecordUpdate(call.Input, running.keeper.Record())
 	if err != nil {
 		return err.Error(), true
 	}

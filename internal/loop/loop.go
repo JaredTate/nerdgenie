@@ -10,7 +10,6 @@ package loop
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -59,6 +58,12 @@ type Options struct {
 	// Caps are the limits from the configuration. A zero value means the
 	// defaults from contract.
 	Caps contract.Caps
+	// ToolDeadline, when it is set, is asked for the context every tool call
+	// runs under, so that the reliability guard can cut short a tool waiting on
+	// something that has stopped answering. A tool still running when the
+	// deadline passes is stopped and the model is told so. When it is nil a tool
+	// call runs under the task's own context and nothing changes.
+	ToolDeadline func(ctx context.Context) (context.Context, context.CancelFunc)
 	// Deltas is where a streamed reply goes as it arrives, and is nil when
 	// nobody is watching.
 	Deltas func(delta string)
@@ -378,6 +383,3 @@ func (theLoop *Loop) logEvent(ctx context.Context, taskID string, kind contract.
 	}
 	return nil
 }
-
-// ErrNoRecord means something asked for a record the log does not hold.
-var ErrNoRecord = errors.New("there is no record with that number, so check the number with the tasks command")

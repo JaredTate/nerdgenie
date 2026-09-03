@@ -13,6 +13,9 @@ import (
 type denial struct {
 	// reason is what the model is told, in words it can act on.
 	reason string
+	// said is the rulebook's or the user's own words on their own, for a caller
+	// that has a sentence of its own to put them in.
+	said string
 	// stopsTheTask says nobody was there to answer, so the task stops and
 	// reports what it needed rather than waiting for somebody who is not there.
 	stopsTheTask bool
@@ -39,9 +42,9 @@ func (running *run) permit(ctx context.Context, call contract.ToolCall) (bool, d
 	case contract.RulingAllow:
 		return true, denial{}, nil
 	case contract.RulingDeny:
-		return false, denial{reason: refusedBecause(call, decision.Reason)}, nil
+		return false, denial{reason: refusedBecause(call, decision.Reason), said: decision.Reason}, nil
 	case contract.RulingStop:
-		return false, denial{reason: refusedBecause(call, decision.Reason), stopsTheTask: true}, nil
+		return false, denial{reason: refusedBecause(call, decision.Reason), said: decision.Reason, stopsTheTask: true}, nil
 	default:
 		return running.askTheUser(ctx, call, asked, decision)
 	}
@@ -64,7 +67,7 @@ func (running *run) askTheUser(ctx context.Context, call contract.ToolCall,
 		return false, denial{}, fmt.Errorf("cannot remember what the user answered about %s: %w", call.Name, err)
 	}
 	if answer.Answer == contract.AnswerReject {
-		return false, denial{reason: refusedBecause(call, refusal)}, nil
+		return false, denial{reason: refusedBecause(call, refusal), said: refusal}, nil
 	}
 	return true, denial{}, nil
 }

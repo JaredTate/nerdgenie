@@ -171,9 +171,10 @@ an interface in `internal/contract`, so the whole of it is driven by the fakes i
 standard library, and nothing else. `loop.New(loop.Options{...})` is what `serve.go`
 calls; the six it refuses to be built without are the model, the tool registry,
 the permission function, the store, the clock, and a working-context builder,
-and the five it will run without are the jobs, the memory, the skills, the
-sandbox, and the delta function, each of which simply switches off the part of
-the loop that uses it.
+and the rest it will run without are the jobs, the memory, the skills, the
+sandbox, the delta function, the tool-line and record-line functions, and the
+tool deadline, each of which simply switches off the part of the loop that uses
+it.
 
 **One turn.** `Run` takes a `loop.Task` — a message with the channel it came in
 on, or a `contract.TaskToRun` from a job — and holds a lock for as long as the
@@ -182,39 +183,49 @@ context, calls the model with the deltas forwarded, and reads the reply through
 `repair.Find`, so a `cli` model's text calls and a small model's loose calls
 become calls the same way. The reply's first line is the model's orient line and
 goes into the record's situation. A reply with no calls ends the turn: a
-question, told by the finish state and a question mark on the last non-empty
-line, puts the record into waiting, and anything else goes to the done-check. A
-reply `repair` could not read goes back as the problem it wrote, and after two
-such replies in a row `repair` hands the text back as the answer instead.
+question puts the record into waiting, and anything else goes to the done-check.
+**A question is read by what the reply has behind it, and not by one character**:
+a question mark on the last non-empty line says so plainly, and so does a reply
+with no tool calls, an empty done list, and no result written this round, because
+such a reply has nothing behind it that could close a task. A reply `repair`
+could not read goes back as the problem it wrote, and after two such replies in a
+row `repair` hands the text back as the answer instead.
 
-**The guard, in order.** The budget is checked at the top of every round, and the
-record's stop list after every tool result. A stop line written in plain English
-is matched by its notable phrases — every pair of neighbouring words of four
-letters or more — so "the account shows a login page or a captcha" fires on a
-result holding "login page"; the harness adds its own two lines, the budget
-running out and a browser result showing a login form, a two-factor prompt, or a
-captcha. A record write is never checked against the stop list, because a stop
-list written into the record would otherwise fire on itself. The
-identical-call detector keeps the last `IdenticalCallWindow` calls and counts the
-run of consecutive identical ones: the first two run, the third is refused with a
-line telling the model to do something different or answer, and the fourth ends
-the turn. **This is a deliberate reading of design section 3, rule 4**, which
-says the same call is not run twice: the forty-step fixture, which is the
-design's own example task, reads the same page twice in a row on purpose at
-rounds twenty-nine and thirty, and a browser agent that cannot re-read a page is
-useless, so the rule is applied to a run rather than to any repeat. A message
-from the user, a stop, and a resume all clear the run, because the world has
-changed. Every call then goes to `contract.Permission`; a ruling of ask shows the
-preview through the channel and remembers the answer, a ruling of stop ends an
-unattended task with a report of what needed an answer, and every ruling is
-written into the log as a permission-decision event.
+**The guard, in order.** The budget is checked at the top of every round. **A
+stop line is a statement about the world, and the harness only reads the one wall
+it can recognise for itself**: a browser result showing a login form, a
+two-factor prompt, or a captcha stops the task, and the user is told the line of
+their own stop list about that wall when they wrote one. The lines the model
+writes are its own to declare, with the task tool's `stop_now` operation naming
+which line has come true, written in the same reply as its other calls and
+costing no extra model call. The word-pair matching that used to read every stop
+line is gone: it ended a task on the first tool result that repeated two words of
+a line about the work. The identical-call detector keeps the last
+`IdenticalCallWindow` calls with a fingerprint of what each came back with, and
+counts the run of consecutive identical ones **whose results also came back
+identical**, so polling a long command, which is the same call every time by
+design, is not a repeat: the first two run, the third is refused with a line
+telling the model to do something different or answer, and the fourth ends the
+turn. **This is a deliberate reading of design section 3, rule 4**, which says
+the same call is not run twice: the forty-step fixture, which is the design's own
+example task, reads the same page twice in a row on purpose at rounds twenty-nine
+and thirty, and a browser agent that cannot re-read a page is useless, so the rule
+is applied to a run rather than to any repeat. A message from the user, a stop,
+and a resume all clear the run, because the world has changed. Every call then
+goes to `contract.Permission`; a ruling of ask shows the preview through the
+channel and remembers the answer, a ruling of stop ends an unattended task with a
+report of what needed an answer, and every ruling is written into the log as a
+permission-decision event.
 
 **The record.** The record is created on the first tool call, which is where the
 design puts it, so a question answered with no tools leaves nothing behind. Each
 tool runs under the tool time limit, measured on `contract.Clock` so no test
-waits on a real one, and its result gets one line in the record and its whole
-text in the log. A tool that fails hands its error back with the three options of
-rule 6 on the end. The harness writes the header, the budget, the cost line, the
+waits on a real one, and under the deadline `Options.ToolDeadline` gives that one
+call when the reliability guard has set one; a tool still running when either
+passes is stopped and the model is told, in a sentence saying what went wrong and
+what to do, that the call did not finish in the time it was given. Its result
+gets one line in the record and its whole text in the log. A tool that fails
+hands its error back with the three options of rule 6 on the end. The harness writes the header, the budget, the cost line, the
 corrections, the results, and the situation, with no model call: the situation
 holds the page the browser is on, the files changed in this task from the
 file-change events and from the writes the loop saw, the last command and its
@@ -226,21 +237,53 @@ and applied through `record`'s rules, and the whole update comes back as the
 result so that `read r2` fetches it. The registry still advertises the tool, and
 that is the seam `serve.go` will close when `internal/tool` lands.
 
+**A done line the answer itself proves.** A task like "reply with exactly three
+words" has one done line that nothing but the answer can prove, and the record
+refuses a line pointing at a result it never wrote, so the live serve of wave 6
+watched such a task fail. A done line whose result is written as `reply` is
+taken by the loop: the rest of the change goes into the record now, the line is
+held back unproved, and the moment the model gives its answer the harness writes
+that answer into the record as a result of its own and points the line at it. A
+refusal from the done-check names the results the record does hold and says that
+`reply` stands for the answer, so a model that pointed at a result nobody wrote
+is told what there is to point at.
+
+**The three operations of the task tool the loop keeps for itself.** `stop_now`
+says a line of the stop list has come true, and is above. `pin_evidence` reads
+the whole text of one result out of the record and keeps it in front of the model
+word for word until `unpin_evidence` lets it go, which is the producer the
+working context's pinned layer never had; four at once is the cap, because pinned
+evidence never leaves the window. All three are answered before the registry sees
+the call, so they cost no extra model call, and they are written in the same
+reply as the model's other work. **The pins live for the length of one run**: a
+task picked up again days later starts with none, because a record has no field
+for them yet.
+
 **The end.** The done-check refuses to close while `record` says any line has
 nothing behind it, and adds the two checks ordinary code can make: a command a
 line wrote in backticks is run through `contract.Sandbox` and has to exit zero,
-and a path a line names has to be there. A line that fails sends the model back
-with one line naming the rule, three times, and then the task is given up on. A
-task that had a correction, a failure, a stop, or more than five rounds is
-reviewed in one call with the tools off: the four questions of the after-action
-review, of which only the fourth answer is kept, as a fact through
-`contract.Memory` with the task as its source, and, when it begins the way a
-procedure begins, as a skill offered to the user through the channel. A finished
+and a path a line names has to be there. **That command is a command the model
+wrote**, and the words of a page reach a done line whenever the model copies
+them, so it is written as the shell call it is, logged as a tool call, and put
+through `contract.Permission` exactly as the shell tool's own calls are; a
+command the rulebook refuses is not run, and the model is told what the rulebook
+said. A line that fails sends the model back with one line naming the rule, three
+times, and then the task is given up on. A task that had a correction, a failure,
+a stop, or more than five rounds is reviewed in one call with the tools off: the
+four questions of the after-action review, of which only the fourth answer is
+kept, as a fact through `contract.Memory` with the task as its source, and, when
+it begins the way a procedure begins, as a skill offered to the user through the
+channel. **An unattended task and an unattended job offer nothing**: nobody is
+there to answer, so the lesson is kept as a fact and the report says so, rather
+than a preview being shown to nobody for the whole answer deadline. A finished
 task sends its report; a stopped or failed one says what happened and which line
-fired. A task that belongs to a job has its report written into the job through
-`FinishTask`, sent to the user with the job's progress line on it, and the job's
-next due task started; when the last task finishes, the job's own done list is
-checked and reviewed the same way and the user gets the final report.
+fired. **A task whose budget ran out sends one report and makes one model call**:
+the model is asked what it did and what is left with the tools off, and those
+words are the middle of the one stopped report the user reads. A task that
+belongs to a job has its report written into the job through `FinishTask`, sent
+to the user with the job's progress line on it, and the job's next due task
+started; when the last task finishes, the job's own done list is checked and
+reviewed the same way and the user gets the final report.
 
 **The two seams onto wave 2.** `loop.ContextBuilder` is the one-method interface
 the loop is written against, and `loop.TheWorkingContext(builder)` wraps the real
@@ -261,9 +304,22 @@ The two commands the orchestrator registers are `loop.TasksCommand()` (`/tasks`,
 One note for the wave gate. The forty-step fixture writes its record updates in
 the names wave 0 gave them (`doneWhen`, `stopWhen`, `resultId`) and brief 2.5
 fixed the task tool's own (`operation`, `done_when`, `stop_when`, `result`). The
-loop's own reader takes both, so the fixture runs whichever way the record is
-written, but the real task tool takes only the second, so the fixture cannot be
-driven through it until one of the two is changed.
+loop's own reader takes both, for the lists and for the result that proves a done
+line alike, and it understands the three calls whose fields their operation gives
+their meaning: `pin_result`, and a decision or a failure written flat with its
+text, reason or cause beside it.
+
+Two notes on the tests. The tests of this package were written after its code —
+`git log --oneline --name-only -- internal/loop` shows thirteen code files
+landing in one commit with their tests added afterwards — which is why each of
+them drove the path the code takes rather than a path a model takes, and why the
+wave 6 gate review found five faults nothing here had caught. The bounds are the
+other half: every number this package works to is now named with its literal in
+one table in `bounds_test.go`, because seven of them could be changed to any
+other value with the tests still green. `loop.Task.Budget` is the one seam here
+with no writer outside a test: the two tests of design section 3, rule 3 set it,
+and rule 3 says a skill may set its own, which needs a budget on a skill that
+`contract.Skill` does not yet have.
 
 ## Signal (built, wave 3)
 

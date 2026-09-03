@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/record"
 	"github.com/JaredTate/coeus/internal/repair"
@@ -14,8 +15,10 @@ import (
 
 // The bounds one task runs inside, beyond the budget itself.
 const (
-	// extraRounds is how many calls past the budget the loop may make: the one
-	// with the tools off that asks for the final report, and the review.
+	// extraRounds is how many turns of the loop are left past the budget: the
+	// one in which the loop notices the budget is spent and asks for the final
+	// report with the tools off, and one of slack behind it. The report is one
+	// model call, and it is the only one that ending makes.
 	extraRounds = 2
 	// MaxMessagesKept is how many recent messages the loop carries from one
 	// call to the next. The record is what a task remembers; this is only the
@@ -28,29 +31,34 @@ const (
 
 // run is one task in flight, with everything that is true only while it runs.
 type run struct {
-	theLoop       *Loop
-	task          Task
-	channel       contract.Channel
-	keeper        *record.Keeper
-	jobSummary    string
-	messages      []contract.Message
-	roundsAllowed int
-	timeAllowed   time.Duration
-	startedAt     time.Time
-	roundsUsed    int
-	failedParses  int
-	doneNudges    int
-	recentCalls   []string
-	lastOrient    string
-	browserFact   string
-	commandFact   string
-	filesChanged  []string
-	hadCorrection bool
-	hadFailure    bool
-	hadStop       bool
-	stopLine      string
-	number        string
-	perTask       contract.ToolRegistry
+	theLoop          *Loop
+	task             Task
+	channel          contract.Channel
+	keeper           *record.Keeper
+	jobSummary       string
+	messages         []contract.Message
+	roundsAllowed    int
+	timeAllowed      time.Duration
+	startedAt        time.Time
+	roundsUsed       int
+	failedParses     int
+	doneNudges       int
+	resultsThisRound int
+	recentCalls      []pastCall
+	lastOrient       string
+	browserFact      string
+	commandFact      string
+	filesChanged     []string
+	hadCorrection    bool
+	hadFailure       bool
+	hadStop          bool
+	lessonUnoffered  bool
+	stopLine         string
+	stopNow          string
+	pinned           []workingcontext.Pin
+	provedByTheReply []string
+	number           string
+	perTask          contract.ToolRegistry
 }
 
 // tools is the registry this task's calls go to: the one built for this task
@@ -244,6 +252,7 @@ func (running *run) play(ctx context.Context) (Outcome, error) {
 // oneRound is one turn of the loop: orient, call, guard, permit, run, update.
 // It returns false when the task has reached an end state.
 func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
+	running.resultsThisRound = 0
 	if spent := running.budgetIsSpent(); spent != "" {
 		outcome, err := running.finalReport(ctx, spent)
 		return outcome, false, err
@@ -308,6 +317,7 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 		JobSummary:    running.jobSummary,
 		Messages:      running.messages,
 		Tools:         running.specs(),
+		Pinned:        running.pinned,
 		ToolsOff:      toolsOff,
 		MemoryHint:    running.memoryHint(ctx),
 	})

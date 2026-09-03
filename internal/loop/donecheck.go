@@ -8,6 +8,7 @@ package loop
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,6 +25,10 @@ const (
 	MaxCommandsCheckedPerLine = 3
 	// MaxPathsCheckedPerLine is how many file paths one done line may name.
 	MaxPathsCheckedPerLine = 3
+	// MaxResultsNamedInARefusal is how many result labels a refusal lists back
+	// to the model, because a task of a hundred rounds has a hundred results and
+	// a refusal is one line the model reads.
+	MaxResultsNamedInARefusal = 12
 )
 
 // doneCheck says what is wrong with the done list, in one line the model can
@@ -33,7 +38,7 @@ const (
 func (running *run) doneCheck(ctx context.Context) (string, error) {
 	held := running.keeper.Record()
 	if err := record.DoneCheck(held); err != nil {
-		return "This task cannot close yet. " + err.Error(), nil
+		return "This task cannot close yet. " + err.Error() + " " + theResultsToNameFrom(held), nil
 	}
 	for _, line := range held.Goal.DoneWhen {
 		problem, err := running.checkOneDoneLine(ctx, line)
@@ -42,6 +47,26 @@ func (running *run) doneCheck(ctx context.Context) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// theResultsToNameFrom names the results this record holds, so that a model
+// whose done line pointed at a result that was never written is told which
+// labels there are rather than guessing again, and says that the answer itself
+// has a label of its own for a line only the answer can prove.
+func theResultsToNameFrom(held contract.Record) string {
+	labels := []string{}
+	for _, one := range held.Work.Results {
+		if len(labels) >= MaxResultsNamedInARefusal {
+			break
+		}
+		labels = append(labels, one.ID)
+	}
+	written := fmt.Sprintf("The results this task has written are %s.", strings.Join(labels, ", "))
+	if len(labels) == 0 {
+		written = "This task has written no results yet."
+	}
+	return written + fmt.Sprintf(" A line that only your answer to the user can prove names %q as its result, "+
+		"and I write your answer into the record as that result when you give it.", TheReplyLabel)
 }
 
 // checkOneDoneLine runs the mechanical checks on one line: a command in
@@ -66,12 +91,29 @@ func (running *run) checkOneDoneLine(ctx context.Context, line contract.DoneLine
 	return "", nil
 }
 
-// commandFails runs one command inside the sandbox and says what was wrong with
-// it, or nothing when it exited zero. A machine with no sandbox cannot check a
-// command at all, and the line stands on the result behind it instead.
+// commandFails rules on one command, runs it inside the sandbox when it is
+// allowed, and says what was wrong with it, or nothing when it exited zero. A
+// machine with no sandbox cannot check a command at all, and the line stands on
+// the result behind it instead.
+//
+// The command is a command the model wrote, and the words of a page reach a
+// done line whenever the model copies them, so it goes through the permission
+// function exactly as the shell tool's own calls do and is written into the log
+// as a tool call. Nothing the harness runs is outside the rulebook.
 func (running *run) commandFails(ctx context.Context, command string) (string, error) {
 	if running.theLoop.options.Sandbox == nil {
 		return "", nil
+	}
+	call := theDoneCheckCall(command)
+	if err := running.theLoop.logEvent(ctx, running.taskID(), contract.EventToolCall, call); err != nil {
+		return "", err
+	}
+	allowed, refused, err := running.permit(ctx, call)
+	if err != nil {
+		return "", err
+	}
+	if !allowed {
+		return "it was not allowed to run, because " + refused.said, nil
 	}
 	result, err := running.theLoop.options.Sandbox.Run(ctx, contract.SandboxCommand{
 		Program:   "sh",
@@ -88,6 +130,19 @@ func (running *run) commandFails(ctx context.Context, command string) (string, e
 		return fmt.Sprintf("it exited %d", result.ExitCode), nil
 	}
 	return "", nil
+}
+
+// theDoneCheckCall is the command a done line named, written as the shell call
+// it is, so that the rulebook rules on it by the same rules and the log holds
+// it in the same shape as every other call.
+func theDoneCheckCall(command string) contract.ToolCall {
+	written, err := json.Marshal(struct {
+		Command string `json:"command"`
+	}{Command: command})
+	if err != nil {
+		written = []byte(`{}`)
+	}
+	return contract.ToolCall{ID: "done-check", Name: contract.ToolShell, Input: written}
 }
 
 // commandsIn is every command a done line wrote between backticks, which is how

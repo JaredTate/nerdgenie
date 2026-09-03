@@ -102,9 +102,9 @@ func TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn(t *testing.T) {
 
 	outcome := built.ask(t, "read the notes")
 
-	if len(reading.Inputs()) != loop.IdenticalCallsAllowed {
-		t.Errorf("the tool ran %d times, and only the first %d identical calls in a row are run",
-			len(reading.Inputs()), loop.IdenticalCallsAllowed)
+	if len(reading.Inputs()) != 2 {
+		t.Errorf("the tool ran %d times, and the first two identical calls in a row are run and no more",
+			len(reading.Inputs()))
 	}
 	if !strings.Contains(requestsJoined(built.model.Requests()), "Do something different") {
 		t.Error("the model was never told to do something different")
@@ -130,9 +130,9 @@ func TestTheSameCallTwiceInsideOneReplyIsCaughtToo(t *testing.T) {
 
 	built.ask(t, "read the notes")
 
-	if len(reading.Inputs()) != loop.IdenticalCallsAllowed {
-		t.Errorf("the tool ran %d times inside one reply, and only %d identical calls in a row are run",
-			len(reading.Inputs()), loop.IdenticalCallsAllowed)
+	if len(reading.Inputs()) != 2 {
+		t.Errorf("the tool ran %d times inside one reply, and two identical calls in a row are run and no more",
+			len(reading.Inputs()))
 	}
 }
 
@@ -159,8 +159,10 @@ func TestADifferentCallInBetweenClearsTheRun(t *testing.T) {
 }
 
 // TestTheStopListStopsTheTaskAndNamesTheLine proves the guard's first check:
-// every line of the record's stop list is checked against what the harness can
-// see, and a hit stops the task and tells the user which line.
+// the one wall the harness recognises for itself is checked against what a
+// browser result shows, and a hit stops the task and tells the user the line of
+// their own stop list that the wall answers, rather than the harness's words
+// for it.
 func TestTheStopListStopsTheTaskAndNamesTheLine(t *testing.T) {
 	stopLine := "the account shows a login page or a captcha"
 	built := newHarness(t, []testkit.Step{

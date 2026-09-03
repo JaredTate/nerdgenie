@@ -9,6 +9,7 @@
 package loop
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -26,12 +27,6 @@ const (
 	// does at rounds twenty-nine and thirty. The third is refused and the
 	// fourth ends the turn.
 	IdenticalCallsAllowed = 2
-	// MinWordLettersInAPhrase is how long each word of a stop line's phrase has
-	// to be before the phrase is worth matching on. Short words are in every
-	// sentence and would fire the line on anything.
-	MinWordLettersInAPhrase = 4
-	// MaxPhrasesPerStopLine bounds how many phrases one stop line is read as.
-	MaxPhrasesPerStopLine = 20
 )
 
 // HarnessStopLineWall is the second line the harness adds to every stop list:
@@ -41,6 +36,16 @@ const HarnessStopLineWall = "the harness's own line: a browser page showed a log
 // wallWords are what a browser result says when it has hit one of the three
 // walls that stop the agent and hand the window to the user.
 var wallWords = []string{"login page", "log in page", "sign in page", "captcha", "two-factor", "two factor"}
+
+// pastCall is one call the detector remembers: what was asked for, and what
+// came back of it once it had run.
+type pastCall struct {
+	// mark is the call's fingerprint: its name and its arguments.
+	mark string
+	// result is the fingerprint of what the call came back with, and is empty
+	// while the call has not run or never ran at all.
+	result string
+}
 
 // budgetIsSpent says why the task's budget is gone, and is empty while it has
 // budget left.
@@ -65,7 +70,10 @@ func (running *run) spent() time.Duration {
 func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	mark := fingerprintOf(call)
 	streak := 0
-	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at] == mark; at-- {
+	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
+		if streak > 0 && somethingChanged(running.recentCalls[at], running.recentCalls[at+1]) {
+			break
+		}
 		streak++
 	}
 	running.rememberCall(mark)
@@ -80,14 +88,38 @@ func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	return "", false
 }
 
+// somethingChanged says whether two neighbouring calls in the window came back
+// with different results, which is what makes them two calls rather than the
+// same one asked twice. A call that never ran, such as one the detector itself
+// refused, has no result and breaks nothing.
+func somethingChanged(earlier pastCall, later pastCall) bool {
+	return earlier.result != "" && later.result != "" && earlier.result != later.result
+}
+
 // rememberCall keeps one call in the detector's window, which holds the last
 // few calls of the task and no more.
 func (running *run) rememberCall(mark string) {
 	window := running.theLoop.options.Caps.IdenticalCallWindow
-	running.recentCalls = append(running.recentCalls, mark)
+	running.recentCalls = append(running.recentCalls, pastCall{mark: mark})
 	if len(running.recentCalls) > window {
 		running.recentCalls = running.recentCalls[len(running.recentCalls)-window:]
 	}
+}
+
+// noteTheResult writes what the call that has just run came back with into the
+// detector's window, as a fingerprint of a fixed size, because a result may be
+// megabytes and the window holds only what tells two calls apart.
+func (running *run) noteTheResult(text string) {
+	if len(running.recentCalls) == 0 {
+		return
+	}
+	running.recentCalls[len(running.recentCalls)-1].result = fingerprintOfText(text)
+}
+
+// fingerprintOfText is one result in a fixed number of letters, so that two
+// results can be told apart without either being kept.
+func fingerprintOfText(text string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(text)))
 }
 
 // forgetTheCalls empties the detector's window, which is what a message from
@@ -119,51 +151,46 @@ func canonicalArguments(arguments json.RawMessage) string {
 }
 
 // stopLineFiredBy returns the line of the stop list that this tool result sets
-// off, and is empty when nothing did. The model's own lines are checked first,
-// so the user is told the line they were promised rather than the harness's.
+// off, and is empty when nothing did. Only the harness's own line is read here.
+// The lines the model writes are statements about the world that the harness
+// cannot check for itself — "the product notes file cannot be found" and "the
+// post is longer than the limit after two tries" are about the work, not about
+// anything the harness can see — so the model says when one of its own lines
+// has come true, with the stop_now operation of the task tool, and the harness
+// only recognises the wall it can recognise for itself.
 func (running *run) stopLineFiredBy(toolName string, text string) string {
-	seen := strings.ToLower(text)
-	for _, line := range running.stopList() {
-		for _, phrase := range notablePhrases(line) {
-			if strings.Contains(seen, phrase) {
-				return line
-			}
-		}
+	if !strings.HasPrefix(toolName, "browser") {
+		return ""
 	}
-	if strings.HasPrefix(toolName, "browser") {
-		for _, wall := range wallWords {
-			if strings.Contains(seen, wall) {
-				return HarnessStopLineWall
-			}
+	seen := strings.ToLower(text)
+	for _, wall := range wallWords {
+		if !strings.Contains(seen, wall) {
+			continue
 		}
+		if line := running.stopLineAboutTheWall(); line != "" {
+			return line
+		}
+		return HarnessStopLineWall
 	}
 	return ""
 }
 
-// stopList is what the model wrote into the record's stop list, and is empty
-// before there is a record.
-func (running *run) stopList() []string {
+// stopLineAboutTheWall is the model's own line about the same wall, when it
+// wrote one, so that the user is told the line they were promised rather than
+// the harness's words for it. Only the wall's own few words are looked for,
+// because the wall is the one thing on a stop list the harness can recognise
+// for itself.
+func (running *run) stopLineAboutTheWall() string {
 	if running.keeper == nil {
-		return nil
+		return ""
 	}
-	return running.keeper.Record().Rules.StopWhen
-}
-
-// notablePhrases is how a stop line written in plain English is matched against
-// what the harness can see: every pair of neighbouring words long enough to
-// mean something on their own. "the account shows a login page or a captcha"
-// gives "account shows" and "login page", and a result holding either of those
-// is the thing the line was written about.
-func notablePhrases(line string) []string {
-	words := strings.FieldsFunc(strings.ToLower(line), func(letter rune) bool {
-		return !(letter >= 'a' && letter <= 'z') && !(letter >= '0' && letter <= '9')
-	})
-	phrases := []string{}
-	for at := 0; at+1 < len(words) && len(phrases) < MaxPhrasesPerStopLine; at++ {
-		if len(words[at]) < MinWordLettersInAPhrase || len(words[at+1]) < MinWordLettersInAPhrase {
-			continue
+	for _, line := range running.keeper.Record().Rules.StopWhen {
+		written := strings.ToLower(line)
+		for _, wall := range wallWords {
+			if strings.Contains(written, wall) {
+				return line
+			}
 		}
-		phrases = append(phrases, words[at]+" "+words[at+1])
 	}
-	return phrases
+	return ""
 }

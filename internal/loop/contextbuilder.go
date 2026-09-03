@@ -24,6 +24,9 @@ type BuildInput struct {
 	Messages []contract.Message
 	// Tools is the specification of every tool this turn may use.
 	Tools []contract.ToolSpec
+	// Pinned is the evidence that never leaves the window until the model
+	// unpins it, however small the window is.
+	Pinned []workingcontext.Pin
 	// ToolsOff turns the tools off, which is how the harness asks for the final
 	// report and the four review questions.
 	ToolsOff bool
@@ -72,6 +75,7 @@ func (real realBuilder) Build(ctx context.Context, input BuildInput) (contract.R
 		Record:        held,
 		JobSummary:    input.JobSummary,
 		Messages:      input.Messages,
+		Pinned:        input.Pinned,
 		Tools:         tools,
 		MemoryHint:    input.MemoryHint,
 	})

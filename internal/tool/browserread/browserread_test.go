@@ -155,3 +155,96 @@ func TestADiffThatDidNotMeetItsExpectationSaysWhatWasSeen(t *testing.T) {
 		}
 	}
 }
+
+// aRankingsPage is a page whose numbers live in its text and not on any
+// element: the first cell of every row is an icon button with no name, which is
+// what the first human trial found the outline of the elements left out.
+func aRankingsPage() contract.Snapshot {
+	return contract.Snapshot{
+		URL: "https://fixture.test/rankings", Title: "Rankings", TabID: "t1",
+		Elements: []contract.Element{
+			{Ref: "e1", Role: "heading", Name: "Coin rankings"},
+			{Ref: "e2", Role: "button", Name: ""},
+			{Ref: "e3", Role: "button", Name: "Load more"},
+		},
+		Text: "Coin rankings\nWatch | Rank | Name | D-Score\n| 2 | DigiByte | 91.4\nLoad more",
+	}
+}
+
+// aCrowdedPage is a page with as many elements as the outline lists, every
+// name as long as a name may be, and more text than the room that leaves.
+func aCrowdedPage() contract.Snapshot {
+	page := aRankingsPage()
+	page.Elements = nil
+	longName := strings.Repeat("n", browserread.MaxNameRunes)
+	for at := range browserread.MaxElements {
+		page.Elements = append(page.Elements, contract.Element{Ref: contract.ElementRef(at + 1), Role: "link", Name: longName})
+	}
+	page.Text = strings.Repeat("a line of the page's text\n", 400)
+	return page
+}
+
+func TestThePageTextComesAfterTheElementsWithEveryLineQuoted(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	worker.AddPage(aRankingsPage())
+	if _, err := worker.Open(context.Background(), aRankingsPage().URL); err != nil {
+		t.Fatalf("cannot open the rankings page: %v", err)
+	}
+	tool := browserread.New(browserread.Settings{Browser: worker})
+
+	output, err := run(t, tool, map[string]any{"intent": "find the D-Score of DigiByte"})
+	if err != nil {
+		t.Fatalf("reading the rankings page failed: %v", err)
+	}
+	testkit.Golden(t, "a_page_with_text.txt", []byte(output.Text))
+	row := strings.Index(output.Text, "> | 2 | DigiByte | 91.4")
+	button := strings.Index(output.Text, `e3 button "Load more"`)
+	if row < 0 || button < 0 || row < button {
+		t.Errorf("the row of the table should come after the last element, and the result reads:\n%s", output.Text)
+	}
+}
+
+func TestAPageWithNoTextHasNoTextSection(t *testing.T) {
+	text := browserread.PageText(contract.Snapshot{URL: "https://example.com/", Title: "Nothing said"})
+
+	if strings.Contains(text, "text on the page") {
+		t.Errorf("a page that says nothing still got a text section: %q", text)
+	}
+}
+
+func TestThePageTextIsCutBeforeTheElementsSoTheResultStaysUnderTheCap(t *testing.T) {
+	text := browserread.PageText(aCrowdedPage())
+
+	most := contract.DefaultConfig().Caps.ToolOutputBytes
+	if len(text) > most {
+		t.Errorf("the page reads as %d bytes, and the cap on a tool result is %d", len(text), most)
+	}
+	if !strings.Contains(text, contract.ElementRef(browserread.MaxElements)+" link") {
+		t.Errorf("the last element was cut, and the text is what goes first")
+	}
+	if !strings.Contains(text, "> a line of the page's text\n") {
+		t.Errorf("none of the text survived when some of it would have fit")
+	}
+	if !strings.Contains(text, "more characters of the page's text were cut") {
+		t.Errorf("the text was cut without a line saying how much: %q", text[len(text)-200:])
+	}
+}
+
+func TestThePageAfterAChangeIsCutToFitUnderTheCapToo(t *testing.T) {
+	crowded := aCrowdedPage()
+	text := browserread.ChangeText(contract.Diff{
+		URL: crowded.URL, ExpectationMet: true, Settled: true,
+		NewElements: crowded.Elements[:10], Snapshot: crowded,
+	})
+
+	most := contract.DefaultConfig().Caps.ToolOutputBytes
+	if len(text) > most {
+		t.Errorf("the change reads as %d bytes, and the cap on a tool result is %d", len(text), most)
+	}
+	if !strings.Contains(text, contract.ElementRef(browserread.MaxElements)+" link") {
+		t.Errorf("the last element was cut, and the text is what goes first")
+	}
+	if !strings.Contains(text, "more characters of the page's text were cut") {
+		t.Errorf("the text was cut without a line saying how much")
+	}
+}

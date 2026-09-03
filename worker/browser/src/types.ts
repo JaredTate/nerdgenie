@@ -56,6 +56,12 @@ export interface Snapshot {
   title: string;
   tabId: string;
   elements: SnapshotElement[];
+  /**
+   * What the page says, as a person reads it: its visible text in reading
+   * order, one line per block, a table as one line per row with the cells
+   * separated by " | ", capped, with a last line saying how much was cut.
+   */
+  text: string;
   /** How many elements a person would have to scroll to see, plus any the cap cut. */
   belowFold: number;
   dialog: DialogReport | null;

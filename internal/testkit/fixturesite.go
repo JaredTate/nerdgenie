@@ -3,7 +3,7 @@ package testkit
 // The fixture web site the browser flows and the human trial run against.
 //
 // The pages are ordinary HTML in test/fixtures/site. What makes them a site
-// rather than four files lives here: the one credential the login page accepts,
+// rather than five files lives here: the one credential the login page accepts,
 // the posts the compose page keeps, and the reports the form for the quality
 // skill files. Everything is held in memory. The functional suite serves it on
 // a loopback port of the operating system's choosing, and "go run
@@ -41,8 +41,9 @@ const (
 )
 
 // FixtureSite is the site: a login page that takes one credential, a compose
-// page that keeps what it is given, a captcha page, and a form for the quality
-// skill.
+// page that keeps what it is given, a captcha page, a form for the quality
+// skill, and a rankings table whose numbers live in its cells and on no
+// element.
 type FixtureSite struct {
 	pages *template.Template
 
@@ -95,6 +96,7 @@ func (site *FixtureSite) Handler() http.Handler {
 	routes.HandleFunc("GET /captcha", site.showCaptcha)
 	routes.HandleFunc("GET /qa", site.showQualityForm)
 	routes.HandleFunc("POST /qa", site.fileTheReport)
+	routes.HandleFunc("GET /rankings", site.showRankings)
 	return routes
 }
 
@@ -150,6 +152,13 @@ func (site *FixtureSite) keepThePost(writer http.ResponseWriter, request *http.R
 // showCaptcha serves the page the agent is meant to stop at.
 func (site *FixtureSite) showCaptcha(writer http.ResponseWriter, request *http.Request) {
 	site.show(writer, "captcha.html", map[string]any{})
+}
+
+// showRankings serves the rankings table. Every row of it starts with an icon
+// button that has no name, so the numbers live in its cells and on no element,
+// which is what the browser's integration test reads the text of a page for.
+func (site *FixtureSite) showRankings(writer http.ResponseWriter, request *http.Request) {
+	site.show(writer, "rankings.html", map[string]any{})
 }
 
 // showQualityForm serves the form the quality skill walks, with nothing filed

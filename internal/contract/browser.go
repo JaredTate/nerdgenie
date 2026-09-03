@@ -44,6 +44,12 @@ type Snapshot struct {
 	TabID string `json:"tabId"`
 	// Elements is the compact tree, in reading order.
 	Elements []Element `json:"elements"`
+	// Text is what the page says, as a person reads it: its visible text in
+	// reading order, one line per block, a table as one line per row with the
+	// cells separated by " | ", capped by the worker with a last line saying
+	// how much was cut. It carries what an outline of the elements cannot,
+	// such as the number in a cell of a table.
+	Text string `json:"text,omitempty"`
 	// BelowFold counts the elements the user would have to scroll to see.
 	BelowFold int `json:"belowFold"`
 	// Dialog is the open dialog box, or nil.

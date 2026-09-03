@@ -1,0 +1,11 @@
+Rankings
+https://fixture.test/rankings
+tab t1
+e1 heading "Coin rankings"
+e2 button ""
+e3 button "Load more"
+text on the page:
+> Coin rankings
+> Watch | Rank | Name | D-Score
+> | 2 | DigiByte | 91.4
+> Load more

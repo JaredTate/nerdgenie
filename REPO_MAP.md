@@ -195,6 +195,7 @@ internal/browser/lifecycle_test.go
 internal/browser/login.go
 internal/browser/login_test.go
 internal/browser/methods.go
+internal/browser/pagetext_test.go
 internal/browser/process.go
 internal/browser/process_test.go
 internal/browser/protocol.go
@@ -961,11 +962,13 @@ internal/tool/browserread/browserread.go
 internal/tool/browserread/browserread_test.go
 internal/tool/browserread/doc.go
 internal/tool/browserread/forgery_test.go
+internal/tool/browserread/fuzz_test.go
 internal/tool/browserread/looseinput_test.go
 internal/tool/browserread/page.go
 internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
+internal/tool/browserread/testdata/a_page_with_text.txt
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
 internal/tool/browsertype/doc.go
@@ -1263,6 +1266,7 @@ test/fixtures/site/captcha.html
 test/fixtures/site/compose.html
 test/fixtures/site/login.html
 test/fixtures/site/qa.html
+test/fixtures/site/rankings.html
 test/functional/boundary_test.go
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
@@ -1335,6 +1339,7 @@ worker/browser/src/session.ts
 worker/browser/src/settle.ts
 worker/browser/src/snapshot.ts
 worker/browser/src/tabs.ts
+worker/browser/src/text.ts
 worker/browser/src/types.ts
 worker/browser/src/walls.ts
 worker/browser/src/wire.ts
@@ -1349,6 +1354,7 @@ worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
 worker/browser/test/pacing.test.ts
 worker/browser/test/page-events.test.ts
+worker/browser/test/page-text.test.ts
 worker/browser/test/pages/busy-attributes.html
 worker/browser/test/pages/captcha.html
 worker/browser/test/pages/changes-on-click.html
@@ -1361,10 +1367,12 @@ worker/browser/test/pages/links-and-form.html
 worker/browser/test/pages/login.html
 worker/browser/test/pages/long.html
 worker/browser/test/pages/more-on-scroll.html
+worker/browser/test/pages/much-text.html
 worker/browser/test/pages/never-settles.html
 worker/browser/test/pages/new-tab.html
 worker/browser/test/pages/no-change-on-click.html
 worker/browser/test/pages/notes.txt
+worker/browser/test/pages/rankings.html
 worker/browser/test/pages/recaptcha-anchor.html
 worker/browser/test/pages/reloads-forever.html
 worker/browser/test/pages/report.pdf
@@ -1378,6 +1386,7 @@ worker/browser/test/properties.test.ts
 worker/browser/test/redact.test.ts
 worker/browser/test/server.ts
 worker/browser/test/snapshot.test.ts
+worker/browser/test/text.test.ts
 worker/browser/test/walls.test.ts
 worker/browser/test/wire.test.ts
 worker/browser/tsconfig.json

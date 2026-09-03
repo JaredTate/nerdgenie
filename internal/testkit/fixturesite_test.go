@@ -99,3 +99,27 @@ func TestTheFixtureSiteFilesReportsAndRefusesAFormItCannotRead(t *testing.T) {
 		t.Errorf("the front page led to %s, want the login page", home.Request.URL.Path)
 	}
 }
+
+// TestTheFixtureSiteServesARankingsTable is the page whose numbers live in its
+// cells and not on any element, which the first human trial found the outline
+// of a page left out, so that the browser's integration test can prove the
+// text of a page arrives end to end.
+func TestTheFixtureSiteServesARankingsTable(t *testing.T) {
+	site, err := testkit.NewFixtureSite(testkit.FixturePagesFolder())
+	if err != nil {
+		t.Fatalf("the fixture site could not be built: %v", err)
+	}
+	server := httptest.NewServer(site.Handler())
+	defer server.Close()
+
+	answer, err := http.Get(server.URL + "/rankings")
+	if err != nil || answer.StatusCode != http.StatusOK {
+		t.Fatalf("the rankings page answered %v and %v, want it served", answer, err)
+	}
+	body := readAll(t, answer)
+	for _, wanted := range []string{"<table>", "DigiByte", "91.4", "Load more"} {
+		if !strings.Contains(body, wanted) {
+			t.Errorf("the rankings page does not hold %q", wanted)
+		}
+	}
+}

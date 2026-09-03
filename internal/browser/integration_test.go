@@ -217,3 +217,43 @@ func builtWorkerEntry(t *testing.T) string {
 	}
 	return entry
 }
+
+// The text of a page reaches the Go side beside its elements. The rankings page
+// on the fixture site is the one the first human trial ran into: every row
+// starts with an icon button that has no name, so the outline of the elements
+// alone showed empty buttons and never the number. The number lives in the
+// text, and a row of the table reads as one line.
+func TestTheRealWorkerReadsTheTextOfARankingsTableEndToEnd(t *testing.T) {
+	fixture, err := testkit.NewFixtureSite(testkit.FixturePagesFolder())
+	if err != nil {
+		t.Fatalf("the fixture site could not be built: %v", err)
+	}
+	site := httptest.NewServer(fixture.Handler())
+	defer site.Close()
+	browser := realBrowser(t)
+	ctx, giveUp := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer giveUp()
+
+	page, err := browser.Open(ctx, site.URL+"/rankings")
+	if err != nil {
+		t.Fatalf("opening the rankings page failed: %v", err)
+	}
+	for _, wanted := range []string{"Coin rankings\n", "Watch | Rank | Name | D-Score\n", "| 2 | DigiByte | 91.4\n"} {
+		if !strings.Contains(page.Text+"\n", wanted) {
+			t.Errorf("the page's text does not hold %q, and it reads:\n%s", wanted, page.Text)
+		}
+	}
+	loadMore := ""
+	for _, element := range page.Elements {
+		if element.Role == "button" && element.Name == "Load more" {
+			loadMore = element.Ref
+		}
+	}
+	if loadMore == "" {
+		t.Errorf("the button lost its ref beside the text, and the elements are %+v", page.Elements)
+	}
+	read, err := browser.Read(ctx, contract.ReadOptions{})
+	if err != nil || read.Text != page.Text {
+		t.Errorf("read answered with %v and the text %q, and it should have been the same text as open", err, read.Text)
+	}
+}

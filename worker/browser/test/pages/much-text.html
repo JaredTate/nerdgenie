@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Much text</title>
+  </head>
+  <body>
+    <h1>Much text</h1>
+    <script>
+      // Four hundred short paragraphs, which is far more text than one snapshot
+      // may hold, so that the cap and its last line can be seen.
+      for (var at = 1; at <= 400; at += 1) {
+        var paragraph = document.createElement("p");
+        paragraph.textContent = "Paragraph " + at + " says the same thing again.";
+        document.body.appendChild(paragraph);
+      }
+    </script>
+  </body>
+</html>

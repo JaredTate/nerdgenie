@@ -48,7 +48,12 @@ func New(ctx context.Context, settings Settings) (*Registry, error) {
 func builtInTools(settings Settings) []contract.Tool {
 	// The check is held as a plain function rather than as its own named type,
 	// so that each tool's own name for the same shape takes it without a cast.
-	var allowed func(path string) (string, error) = settings.pathCheck()
+	// It is wrapped so that a path is made whole before it is judged: a short
+	// path is taken from the folder the agent works in and ~ is read as the
+	// user's home, because every model writes both. Which check it wraps, the
+	// sandbox roots or the open one, is the sandbox setting's to say.
+	var allowed func(path string) (string, error) = MadeWhole(
+		settings.pathCheck(), settings.workingDirectory(), settings.UserHome)
 	tools := []contract.Tool{
 		read.New(read.Settings{Allowed: allowed, Results: settings.Results, Reports: settings.Reports}),
 		write.New(write.Settings{Allowed: allowed, Log: settings.Log, TaskID: settings.TaskID, Clock: settings.Clock}),

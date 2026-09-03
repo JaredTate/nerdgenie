@@ -72,7 +72,7 @@ func TestASearchServerThatAnswersNonsenseSaysSo(t *testing.T) {
 	}
 }
 
-func TestAResultsPageWithNoRowsOnItSaysNothingWasFound(t *testing.T) {
+func TestAResultsPageWithNoResultOnItSaysNoResultCouldBeRead(t *testing.T) {
 	bare := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(writer, "<html><body><p>no results today</p></body></html>")
 	}))
@@ -83,8 +83,8 @@ func TestAResultsPageWithNoRowsOnItSaysNothingWasFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("searching a page with no rows on it failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "nothing was found") {
-		t.Errorf("a search that found nothing said %q", output.Text)
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
+		t.Errorf("a search that found nothing said %q, and the model cannot tell the page apart from an empty web", output.Text)
 	}
 }
 
@@ -174,7 +174,51 @@ func TestAResultsPageWithLinksThatNeverCloseStillReads(t *testing.T) {
 	if err != nil {
 		t.Fatalf("searching a broken results page failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "nothing was found") {
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
 		t.Errorf("a results page whose links never close read as %q", output.Text)
+	}
+}
+
+// The fuzzer found this one: a result link with no address, no words and no end
+// made a row of nothing, and the whole answer trimmed to an empty string, so the
+// model was handed nothing at all rather than a sentence.
+func TestAResultLinkWithNoAddressIsNoResultRatherThanAnEmptyAnswer(t *testing.T) {
+	addressless := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(writer, "<a ClAss=result__a>")
+	}))
+	t.Cleanup(addressless.Close)
+
+	tool := web.New(web.Settings{ResultsPageAddress: addressless.URL + "/html/"})
+	output, err := run(t, tool, map[string]any{"action": "search", "query": "anything"})
+	if err != nil {
+		t.Fatalf("searching a page whose one result link has no address failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
+		t.Errorf("a result link with no address read as %q, and the model cannot follow a result that leads nowhere", output.Text)
+	}
+}
+
+// The fuzzer's second finding: an address of one space was enough to keep a row,
+// so a page whose one result link led nowhere the fetch could open again read
+// as an empty answer. Only a web address is one the model can follow.
+func TestAResultLinkWhoseAddressIsNotAWebAddressIsNoResult(t *testing.T) {
+	for _, page := range []string{
+		`<a ClAss=result__ahref=" ">`,
+		`<a class="result__a" href="   ">a title over a blank address</a>`,
+		`<a class="result__a" href="/a/page/of/the/site/itself">a title over a path with no host</a>`,
+	} {
+		leadingNowhere := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			fmt.Fprint(writer, page)
+		}))
+		t.Cleanup(leadingNowhere.Close)
+
+		tool := web.New(web.Settings{ResultsPageAddress: leadingNowhere.URL + "/html/"})
+		output, err := run(t, tool, map[string]any{"action": "search", "query": "anything"})
+		if err != nil {
+			t.Fatalf("searching the page %q failed: %v", page, err)
+		}
+		if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
+			t.Errorf("the page %q read as %q, and the model cannot follow a result whose address is not a web address", page, output.Text)
+		}
 	}
 }

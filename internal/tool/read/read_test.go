@@ -36,7 +36,7 @@ func newTool(t *testing.T, results storedText, reports storedText) (*read.Tool, 
 	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the folder the agent may work in: %v", err)
 	}
-	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
+	allowed := tool.MadeWhole(tool.NewPathCheck([]string{root}, filepath.Dir(root), ""), root, filepath.Dir(root))
 	return read.New(read.Settings{Allowed: allowed, Results: results, Reports: reports}), root
 }
 

@@ -14,9 +14,13 @@ import (
 func theExampleTask(screen *Screen) {
 	screen.Update(linkMessage{up: true})
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
-		"model": "opus", "task": "task 17", "taskState": "running",
-		"tokensIn": "6.1k", "tokensOut": "0.4k", "cost": "$0.04",
-		"budget": "86 rounds, 51 min left",
+		contract.StatusFieldModel:     "opus",
+		contract.StatusFieldTask:      "task 17",
+		contract.StatusFieldTaskState: "running",
+		contract.StatusFieldTokensIn:  "6.1k",
+		contract.StatusFieldTokensOut: "0.4k",
+		contract.StatusFieldCost:      "$0.04",
+		contract.StatusFieldBudget:    "86 rounds, 51 min left",
 	}})
 	screen.remember(block{kind: blockPerson, text: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters."})
 	screen.remember(block{kind: blockReply, text: "Where I stand: the notes are read, drafting next."})

@@ -17,14 +17,14 @@ func headerOf(screen *Screen) string {
 // example task docs/TUI_DESIGN.md draws.
 func aFullStatus() contract.SocketEnvelope {
 	return contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
-		"model":     "opus",
-		"task":      "task 17",
-		"taskState": "running",
-		"tokensIn":  "6.1k",
-		"tokensOut": "0.4k",
-		"cost":      "$0.04",
-		"budget":    "86 rounds, 51 min left",
-		"state":     "thinking",
+		contract.StatusFieldModel:     "opus",
+		contract.StatusFieldTask:      "task 17",
+		contract.StatusFieldTaskState: "running",
+		contract.StatusFieldTokensIn:  "6.1k",
+		contract.StatusFieldTokensOut: "0.4k",
+		contract.StatusFieldCost:      "$0.04",
+		contract.StatusFieldBudget:    "86 rounds, 51 min left",
+		contract.StatusFieldState:     contract.StateThinking,
 	}}
 }
 
@@ -51,8 +51,8 @@ func TestTheStatusStripNamesTheToolThatIsRunning(t *testing.T) {
 	screen, _ := screenWithLink()
 	screen.Update(linkMessage{up: true})
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
-		"state": "using",
-		"tool":  "read",
+		contract.StatusFieldState: contract.StateUsingTool,
+		contract.StatusFieldTool:  "read",
 	}})
 
 	if !strings.Contains(statusStrip(screen), "using read") {
@@ -63,7 +63,7 @@ func TestTheStatusStripNamesTheToolThatIsRunning(t *testing.T) {
 func TestAFinishedToolCallIsOneDimLineInTheTranscript(t *testing.T) {
 	screen, _ := screenWithLink()
 	wanted := "read memory/product.md · 2,100 characters · r3"
-	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{"toolLine": wanted}})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldToolLine: wanted}})
 
 	frame := screen.View()
 	if !strings.Contains(frame, string(toolArrowGlyph)+" "+wanted) {
@@ -97,9 +97,9 @@ func TestAStatusFieldTheScreenDoesNotKnowIsIgnored(t *testing.T) {
 	screen, _ := screenWithLink()
 	screen.Update(linkMessage{up: true})
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
-		"model":              "opus",
-		"somethingBrandNew":  "from a newer program",
-		"anotherUnknownName": "also new",
+		contract.StatusFieldModel: "opus",
+		"somethingBrandNew":       "from a newer program",
+		"anotherUnknownName":      "also new",
 	}})
 
 	if !strings.Contains(headerOf(screen), "opus") {
@@ -110,10 +110,36 @@ func TestAStatusFieldTheScreenDoesNotKnowIsIgnored(t *testing.T) {
 func TestAnUnknownStateWordLeavesTheScreenAsItWas(t *testing.T) {
 	screen, _ := screenWithLink()
 	screen.Update(linkMessage{up: true})
-	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{"state": "thinking"}})
-	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{"state": "somethingelse"}})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldState: contract.StateThinking}})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldState: "somethingelse"}})
 
 	if !strings.Contains(statusStrip(screen), "thinking") {
 		t.Errorf("the status strip is %q, and a word the screen does not know must not make it lie", statusStrip(screen))
+	}
+}
+
+func TestTheProgramCanSayInSoManyWordsThatItsHealthCheckDidNotAnswer(t *testing.T) {
+	screen, _ := screenWithLink()
+	screen.Update(linkMessage{up: true})
+	send(screen, aFullStatus())
+	if !strings.Contains(headerOf(screen), "healthy") {
+		t.Fatal("the health dot is not filled after a status message")
+	}
+
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+		contract.StatusFieldHealthy: "false",
+	}})
+	if strings.Contains(headerOf(screen), "healthy") {
+		t.Errorf("the header is %q, and the program said its health check did not answer", headerOf(screen))
+	}
+	if !strings.Contains(headerOf(screen), "quiet") {
+		t.Errorf("the header is %q, and a program that is not answering shows a hollow dot", headerOf(screen))
+	}
+
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+		contract.StatusFieldHealthy: "true",
+	}})
+	if !strings.Contains(headerOf(screen), "healthy") {
+		t.Errorf("the header is %q, and the program said its health check answered again", headerOf(screen))
 	}
 }

@@ -29,12 +29,24 @@ func (screen *Screen) answerCard(answer contract.PreviewAnswer, reason string) {
 	screen.input.clear()
 	screen.setState(stateIdle, "")
 
-	envelope := contract.SocketEnvelope{Type: contract.SocketApprove, ID: shown.id, Text: string(answer)}
+	envelope := approveEnvelope(shown.id, answer)
 	if answer == contract.AnswerReject {
 		envelope = contract.SocketEnvelope{Type: contract.SocketDeny, ID: shown.id, Reason: reason}
 	}
 	screen.remember(block{kind: blockTool, text: answerWords(answer, reason)})
 	screen.tell(envelope)
+}
+
+// approveEnvelope is the yes the screen sends. internal/contract names the text
+// for one of the two yeses: an approve carrying ApproveAlwaysText means every
+// call like this one for the rest of the session, and an approve carrying
+// nothing means this one call.
+func approveEnvelope(id string, answer contract.PreviewAnswer) contract.SocketEnvelope {
+	envelope := contract.SocketEnvelope{Type: contract.SocketApprove, ID: id}
+	if answer == contract.AnswerAlways {
+		envelope.Text = contract.ApproveAlwaysText
+	}
+	return envelope
 }
 
 // answerWords is the one dim line the transcript keeps for an answer, so that

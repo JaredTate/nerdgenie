@@ -89,8 +89,8 @@ func TestApprovingOnceSendsTheOnceAnswerAndRecordsIt(t *testing.T) {
 		t.Fatalf("pressing a sent %d envelopes, and it sends one", len(link.sent))
 	}
 	sent := link.sent[0]
-	if sent.Type != contract.SocketApprove || sent.ID != "3" || sent.Text != string(contract.AnswerOnce) {
-		t.Errorf("pressing a sent %+v, and it approves preview 3 for this one call", sent)
+	if sent.Type != contract.SocketApprove || sent.ID != "3" || sent.Text != "" {
+		t.Errorf("pressing a sent %+v, and an approve carrying no text approves preview 3 for this one call", sent)
 	}
 	if !strings.Contains(screen.View(), "approved once") {
 		t.Error("the transcript does not record the answer, and every answer is written down in one dim line")
@@ -102,7 +102,7 @@ func TestApprovingAlwaysSendsTheAlwaysAnswer(t *testing.T) {
 	send(screen, aPreview())
 	press(screen, 'A')
 
-	if len(link.sent) != 1 || link.sent[0].Text != string(contract.AnswerAlways) {
+	if len(link.sent) != 1 || link.sent[0].Text != contract.ApproveAlwaysText {
 		t.Fatalf("pressing A sent %+v, and it approves calls like this one for the rest of the session", link.sent)
 	}
 	if !strings.Contains(screen.View(), "approved for this session") {

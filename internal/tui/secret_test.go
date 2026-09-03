@@ -14,13 +14,13 @@ import (
 const theSecret = "hunter2 is the key"
 
 // askForASecret is the message the program sends when it wants a password: an
-// ask carrying the masked field.
+// ask that tells the screen to hide what is typed.
 func askForASecret() contract.SocketEnvelope {
 	return contract.SocketEnvelope{
-		Type:   contract.SocketAsk,
-		ID:     "7",
-		Title:  "API key for anthropic",
-		Fields: map[string]string{maskedField: "true"},
+		Type:      contract.SocketAsk,
+		ID:        "7",
+		Title:     "API key for anthropic",
+		MaskInput: true,
 	}
 }
 

@@ -6,19 +6,10 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// maskedField is the name-and-value pair that turns an "ask" from the program
-// into the masked prompt rather than an ordinary question.
-//
-// internal/contract has no message type of its own for asking a secret: "secret"
-// travels only from the screen to the program, and "ask" is the one thing the
-// program sends to put a question on the screen. So a masked prompt is an "ask"
-// carrying this field, with the title of the request in Title. The program's
-// side of the socket sends the same shape.
-const maskedField = "masked"
-
-// askForSecret puts the input box into secret mode. From here until the person
-// answers or cancels, every character typed is drawn as a bullet and none of it
-// reaches the transcript, the history, or anything that is written down.
+// askForSecret puts the input box into secret mode, which is what an ask with
+// MaskInput set asks for. From here until the person answers or cancels, every
+// character typed is drawn as a bullet, and none of it reaches the transcript,
+// the history, or anything else that is written down.
 func (screen *Screen) askForSecret(envelope contract.SocketEnvelope) {
 	screen.flushDeltas()
 	screen.input.clear()

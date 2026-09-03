@@ -125,7 +125,7 @@ func TestThePaletteLearnsTheCommandsTheProgramReports(t *testing.T) {
 	screen, _ := screenWithLink()
 	send(screen, contract.SocketEnvelope{
 		Type:   contract.SocketStatus,
-		Fields: map[string]string{commandsField: "jobs\tLists every job.\ncron\tLists the jobs that have a schedule."},
+		Fields: map[string]string{contract.StatusFieldCommands: "jobs" + contract.StatusCommandSeparator + "Lists every job.\ncron" + contract.StatusCommandSeparator + "Lists the jobs that have a schedule."},
 	})
 	press(screen, '/')
 

@@ -16,16 +16,6 @@ import (
 // never swallows the transcript.
 const maxPaletteRows = 8
 
-// commandsField is the name-and-value pair a status message carries the
-// program's command list in: one command per line, its name and its help line
-// separated by a tab.
-//
-// The screen is a thin client and owns no command table of its own, and
-// internal/contract has no message type for one, so the program reports its
-// commands in the fields of a status message and the palette lists what it was
-// told.
-const commandsField = "commands"
-
 // openPalette shows the command palette, which happens when the person types a
 // slash as the first character in an empty box.
 func (screen *Screen) openPalette() {
@@ -112,7 +102,7 @@ func (screen *Screen) completeCommand() bool {
 func (screen *Screen) learnCommands(listed string) {
 	learned := []contract.Command{}
 	for _, line := range strings.Split(listed, "\n") {
-		name, help, _ := strings.Cut(strings.TrimSpace(line), "\t")
+		name, help, _ := strings.Cut(strings.TrimSpace(line), contract.StatusCommandSeparator)
 		if name == "" {
 			continue
 		}

@@ -91,8 +91,8 @@ func TestTheScreenTalksToAProgramOverTheRealSocket(t *testing.T) {
 
 	press(screen, 'a')
 	answer := readOneLine(t, fromScreen)
-	if answer.Type != contract.SocketApprove || answer.ID != "3" || answer.Text != string(contract.AnswerOnce) {
-		t.Errorf("the program was told %+v, and pressing a approves preview 3 once", answer)
+	if answer.Type != contract.SocketApprove || answer.ID != "3" || answer.Text != "" {
+		t.Errorf("the program was told %+v, and pressing a approves preview 3 for this one call", answer)
 	}
 }
 

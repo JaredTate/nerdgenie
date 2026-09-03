@@ -192,3 +192,4 @@ Two numbers from the context builder after the layout change: consecutive rounds
 
 With the workers locked out by the session limit, the orchestrator built brief 6.8 itself, tests first in each package: the provider streams each attempt's words as they arrive and calls a reset before the next attempt's first word (`Options.OnReset`); the channel's `SendDelta` redacts across pieces with a held tail of sixty-four runes, gathers pieces for thirty milliseconds, and withdraws shown text the instant a secret is recognised inside it; the screen takes a withdrawn reply down; the wiring fills the loop's `Deltas` and the provider's reset. The functional suite proves pieces of the answer reach the screen before the reply and are the start of it.
 
+The desktop is wired the same night (finding 48): opened beside the browser at start, closed with it, handed to the computer tool, with a functional test that a binary with no worker bundle says so.

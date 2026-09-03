@@ -129,8 +129,7 @@ func batchText(changes []contract.Diff) string {
 	return written.String()
 }
 
-// stepNames are the names a model writes for the list of steps, and keyNames the
-// names it writes for the key one of them presses.
+// The names a model writes for the fields of one batch and of the steps in it.
 var (
 	stepNames      = []string{"steps", "actions", "batch"}
 	keyNames       = []string{"key", "keys", "key_name"}

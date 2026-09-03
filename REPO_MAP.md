@@ -293,6 +293,7 @@ internal/config/report.go
 internal/context/bounds_test.go
 internal/context/builder.go
 internal/context/builder_test.go
+internal/context/cachemeasure_live_test.go
 internal/context/cacheprefix_test.go
 internal/context/cost.go
 internal/context/cost_test.go

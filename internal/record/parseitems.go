@@ -224,6 +224,10 @@ func splitDueDate(text string) (string, string) {
 // readResultLine reads the one line a result keeps in the record, whose full text
 // is in the event log under the same label.
 func (reading *reader) readResultLine(text string) error {
+	pinned := false
+	if rest, marked := strings.CutPrefix(text, markPinned+" "); marked {
+		pinned, text = true, rest
+	}
 	id, summary, split := strings.Cut(text, " ")
 	number, isLabel := ResultNumber(reading.record.Header, id)
 	if !split || !isLabel {
@@ -241,7 +245,8 @@ func (reading *reader) readResultLine(text string) error {
 	if err := reading.countsUpwards(id, number, before, beforeNumber); err != nil {
 		return err
 	}
-	reading.record.Work.Results = append(results, contract.ResultLine{ID: id, Summary: unfoldText(summary)})
+	reading.record.Work.Results = append(results,
+		contract.ResultLine{ID: id, Summary: unfoldText(summary), Pinned: pinned})
 	return nil
 }
 

@@ -152,6 +152,11 @@ type ResultLine struct {
 	// Summary is the one line the record holds, such as "draft post, 236
 	// characters".
 	Summary string
+	// Pinned says this result's whole text is kept in front of the model until
+	// the model lets it go. It is written down here rather than held by the
+	// turn, because a task put down and picked up days later must be picked up
+	// with the same evidence in front of it.
+	Pinned bool
 }
 
 // Work is where things stand. A task fills Plan and Results; a job fills Tasks

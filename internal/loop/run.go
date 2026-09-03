@@ -196,6 +196,7 @@ func (running *run) resume(ctx context.Context) error {
 	}
 	keeper.SaveOncePerRound()
 	running.keeper = keeper
+	running.takeThePinsBackFromTheRecord(ctx)
 	header := keeper.Record().Header
 	running.roundsAllowed = header.RoundsLeft
 	running.timeAllowed = time.Duration(header.MinutesLeft) * time.Minute

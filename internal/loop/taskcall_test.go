@@ -7,6 +7,8 @@ import (
 
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // TestOnlyTheLoopsOwnOperationsAreAnsweredHere proves the reading that decides
@@ -69,22 +71,52 @@ func TestOnlyTheLoopsOwnOperationsAreAnsweredHere(t *testing.T) {
 }
 
 // TestUnpinningTakesTheOneResultAndLeavesTheRest proves the pinned list is kept
-// in order with only the result named taken out of it.
+// in order with only the result named taken out of it, in the record as well as
+// in the window.
 func TestUnpinningTakesTheOneResultAndLeavesTheRest(t *testing.T) {
-	running := &run{pinned: []workingcontext.Pin{
-		{ID: "r1", Text: "the brand rule"},
-		{ID: "r4", Text: "the draft"},
+	keeper := aKeeperHoldingTwoPinnedResults(t)
+	running := &run{keeper: keeper, pinned: []workingcontext.Pin{
+		{ID: contract.ResultID(1), Text: "the brand rule"},
+		{ID: contract.ResultID(2), Text: "the draft"},
 	}}
 
-	answer, refused := running.unpinEvidence(aTaskCall{Result: "r1"})
+	answer, refused := running.unpinEvidence(t.Context(), aTaskCall{Result: contract.ResultID(1)})
 
 	if refused {
 		t.Errorf("unpinning a pinned result was refused: %q", answer)
 	}
-	if len(running.pinned) != 1 || running.pinned[0].ID != "r4" {
+	if len(running.pinned) != 1 || running.pinned[0].ID != contract.ResultID(2) {
 		t.Errorf("the pins are now %v, want only the one that was not unpinned", running.pinned)
 	}
-	if !running.alreadyPinned("r4") || running.alreadyPinned("r1") {
+	if !running.alreadyPinned(contract.ResultID(2)) || running.alreadyPinned(contract.ResultID(1)) {
 		t.Error("the harness does not know which results are pinned after an unpin")
 	}
+	held := keeper.Record().Work.Results
+	if held[0].Pinned || !held[1].Pinned {
+		t.Errorf("the record marks %v pinned, and only the result that was not unpinned should be", held)
+	}
+}
+
+// aKeeperHoldingTwoPinnedResults is a task record with two results in it, both
+// marked pinned, which is what a task that had pinned two things is picked up
+// as.
+func aKeeperHoldingTwoPinnedResults(t *testing.T) *record.Keeper {
+	t.Helper()
+	keeper, err := record.New(t.Context(), testkit.NewFakeStore(), record.Start{
+		Kind: contract.RecordTask, ID: "17", Origin: "terminal",
+		Ask: "write the post", RoundsLeft: 10, MinutesLeft: 10,
+	})
+	if err != nil {
+		t.Fatalf("cannot make the record the pins are written into: %v", err)
+	}
+	for _, summary := range []string{"the brand rule", "the draft"} {
+		id, err := keeper.AddResult(t.Context(), summary, summary+", in full")
+		if err != nil {
+			t.Fatalf("cannot add the result %q: %v", summary, err)
+		}
+		if err := keeper.Pin(t.Context(), id, true); err != nil {
+			t.Fatalf("cannot pin the result %q: %v", summary, err)
+		}
+	}
+	return keeper
 }

@@ -42,10 +42,14 @@ const (
 	itemMark    = "- "
 	markDone    = "[x]"
 	markWaiting = "[ ]"
-	arrow       = " -> "
-	reasonJoin  = ". Reason: "
-	causeJoin   = ". Cause: "
-	fullStop    = "."
+	// markPinned opens the line of a result whose whole text is kept in front
+	// of the model. It sits before the label, where no summary can reach, so
+	// that a summary reading like the mark cannot be taken for one.
+	markPinned = "[pinned]"
+	arrow      = " -> "
+	reasonJoin = ". Reason: "
+	causeJoin  = ". Cause: "
+	fullStop   = "."
 )
 
 // Print writes a record in the one text form the design defines, which is the
@@ -244,9 +248,19 @@ func printWork(work contract.Work, header contract.Header) []string {
 	}
 	lines = append(lines, resultsLabel(header.Kind))
 	for _, result := range work.Results {
-		lines = append(lines, itemMark+foldText(result.ID)+" "+foldText(result.Summary))
+		lines = append(lines, printResultLine(result))
 	}
 	return lines
+}
+
+// printResultLine writes the one line a result keeps in the record, opening it
+// with the pin mark when its whole text is being kept in front of the model.
+func printResultLine(result contract.ResultLine) string {
+	line := itemMark
+	if result.Pinned {
+		line += markPinned + " "
+	}
+	return line + foldText(result.ID) + " " + foldText(result.Summary)
 }
 
 // printPlanOrTasks writes a task's plan or a job's task list, whichever this

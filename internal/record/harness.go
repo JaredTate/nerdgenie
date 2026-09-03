@@ -184,6 +184,27 @@ func (keeper *Keeper) storeResult(ctx context.Context, result StoredResult) erro
 	return nil
 }
 
+// Pin marks one result as evidence that is kept in front of the model word for
+// word until it is let go of, or takes that mark off again. It is a mark and
+// not a piece of writing, so the harness makes it and it costs no model call.
+//
+// It goes through the same change path as every other edit, which is what makes
+// a pin survive a wait: the checkpoint behind it carries the mark, so a task put
+// down for days is picked up with the same evidence in front of it.
+func (keeper *Keeper) Pin(ctx context.Context, id string, pinned bool) error {
+	return keeper.change(ctx, func(into *contract.Record) error {
+		for at := range into.Work.Results {
+			if into.Work.Results[at].ID != id {
+				continue
+			}
+			into.Work.Results[at].Pinned = pinned
+			return nil
+		}
+		return fmt.Errorf("%q would be pinned and this %s never wrote it, so name a result it holds: %w",
+			id, keeper.Kind(), ErrNoSuchResult)
+	})
+}
+
 // MarkPlanStep marks one step of a task's plan done and points it at the result
 // that proves it. It is a check mark, so the harness writes it and it costs no
 // model call.

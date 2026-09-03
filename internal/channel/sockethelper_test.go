@@ -43,7 +43,7 @@ func newSocketHarness(t *testing.T) *socketHarness {
 	harness := &socketHarness{
 		path:    filepath.Join(folder, "coeus.sock"),
 		queue:   newTestQueue(t, 10),
-		stream:  NewStream(),
+		stream:  NewStream(StreamOptions{}),
 		clock:   testkit.NewFakeClock(arrived),
 		secrets: testkit.NewFakeSecrets(),
 		served:  make(chan error, 1),

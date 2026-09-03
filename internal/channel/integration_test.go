@@ -121,7 +121,7 @@ func TestTheWholeSocketRunsInARealHomeFolder(t *testing.T) {
 	}
 	defer func() { _ = queue.Close() }()
 
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 	socket, err := Listen(Options{
 		Path:    home.SocketFile(),

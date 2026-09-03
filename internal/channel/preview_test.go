@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // aPreview is what the permission function puts in front of the user before
@@ -53,14 +54,21 @@ func waitForPreviewAnswer(t *testing.T, answers chan previewResult) previewResul
 // fake clock, so that a test can move the clock knowing the waiter is there.
 func (harness *socketHarness) waitForSleepers(t *testing.T, wanted int) {
 	t.Helper()
+	waitForSleepers(t, harness.clock, wanted)
+}
+
+// waitForSleepers waits until the wanted number of callers are waiting on one
+// fake clock, so that a test can move it on knowing the waiter is there.
+func waitForSleepers(t *testing.T, clock *testkit.FakeClock, wanted int) {
+	t.Helper()
 	deadline := time.Now().Add(aReadWait)
 	for time.Now().Before(deadline) {
-		if harness.clock.Sleepers() >= wanted {
+		if clock.Sleepers() >= wanted {
 			return
 		}
 		time.Sleep(time.Millisecond)
 	}
-	t.Fatalf("%d callers are waiting on the clock after %s, want %d", harness.clock.Sleepers(), aReadWait, wanted)
+	t.Fatalf("%d callers are waiting on the clock after %s, want %d", clock.Sleepers(), aReadWait, wanted)
 }
 
 func TestAPreviewIsShownOnEveryScreenAndApprovedOverTheSocket(t *testing.T) {

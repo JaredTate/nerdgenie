@@ -16,7 +16,7 @@ func aDelta(text string) contract.SocketEnvelope {
 }
 
 func TestTwoSubscribersGetTheSameEventsInTheSameOrder(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	first, err := stream.Subscribe()
@@ -46,7 +46,7 @@ func TestTwoSubscribersGetTheSameEventsInTheSameOrder(t *testing.T) {
 }
 
 func TestASlowSubscriberIsDroppedAndTheFastOneIsUnaffected(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	slow, err := stream.Subscribe()
@@ -93,7 +93,7 @@ func TestASlowSubscriberIsDroppedAndTheFastOneIsUnaffected(t *testing.T) {
 
 func TestTwoFakeChannelsFedFromTheStreamSeeTheSameReplies(t *testing.T) {
 	ctx := context.Background()
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	terminal, signal := testkit.NewFakeChannel("terminal"), testkit.NewFakeChannel("signal")
@@ -134,7 +134,7 @@ func TestTwoFakeChannelsFedFromTheStreamSeeTheSameReplies(t *testing.T) {
 }
 
 func TestPublishRefusesAMessageOnlyAScreenSends(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	if err := stream.Publish(contract.SocketEnvelope{Type: contract.SocketMessage, Text: "hello"}); err == nil {
@@ -143,7 +143,7 @@ func TestPublishRefusesAMessageOnlyAScreenSends(t *testing.T) {
 }
 
 func TestSubscribeRefusesPastTheCap(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	for number := range MaxSubscribers {
@@ -160,7 +160,7 @@ func TestSubscribeRefusesPastTheCap(t *testing.T) {
 }
 
 func TestClosingTheStreamClosesEverySubscription(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	subscription := mustSubscribe(t, stream)
 
 	stream.Close()
@@ -180,7 +180,7 @@ func TestClosingTheStreamClosesEverySubscription(t *testing.T) {
 }
 
 func TestClosingOneSubscriptionLeavesTheOthers(t *testing.T) {
-	stream := NewStream()
+	stream := NewStream(StreamOptions{})
 	defer stream.Close()
 
 	going, staying := mustSubscribe(t, stream), mustSubscribe(t, stream)

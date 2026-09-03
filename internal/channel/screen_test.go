@@ -139,7 +139,7 @@ func TestListeningRefusesAPathItCannotUse(t *testing.T) {
 	} {
 		if _, err := Listen(Options{
 			Path:    path,
-			Stream:  NewStream(),
+			Stream:  NewStream(StreamOptions{}),
 			Queue:   newTestQueue(t, 10),
 			Secrets: testkit.NewFakeSecrets(),
 			Clock:   testkit.NewFakeClock(arrived),

@@ -226,7 +226,7 @@ func TestListeningRefusesASocketAnotherCopyIsAlreadyOn(t *testing.T) {
 	harness := newSocketHarness(t)
 	_, err := Listen(Options{
 		Path:    harness.path,
-		Stream:  NewStream(),
+		Stream:  NewStream(StreamOptions{}),
 		Queue:   harness.queue,
 		Secrets: harness.secrets,
 		Clock:   harness.clock,
@@ -252,7 +252,7 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 
 	socket, err := Listen(Options{
 		Path:    path,
-		Stream:  NewStream(),
+		Stream:  NewStream(StreamOptions{}),
 		Queue:   newTestQueue(t, 10),
 		Secrets: testkit.NewFakeSecrets(),
 		Clock:   testkit.NewFakeClock(arrived),
@@ -271,7 +271,7 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 	whole := Options{
 		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
-		Stream:  NewStream(),
+		Stream:  NewStream(StreamOptions{}),
 		Queue:   newTestQueue(t, 10),
 		Secrets: testkit.NewFakeSecrets(),
 		Clock:   testkit.NewFakeClock(arrived),

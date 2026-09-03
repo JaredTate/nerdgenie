@@ -25,13 +25,29 @@ roots=(./internal/... ./scripts/... ./cmd/...)
 # package with no row fails the gate.
 packages="$(go list "${roots[@]}")"
 
+# internal/browser and internal/desktop carry integration tests that drive a real
+# Chrome window and this machine's own screen. Driving the screen means talking to
+# the accessibility bus the desktop publishes for screen readers, and on a machine
+# somebody is logged in to that wakes the screen reader and it starts speaking, so
+# the gate must never run them; `make test-browser` runs them deliberately, on the
+# development machine. The two packages are still measured and still gated, with
+# the integration tag left off, so their unit tests count and their window-driving
+# tests stay put. This is the same line `make test` draws.
+screen_driving="$(printf '%s\n' "$packages" | grep -E '/internal/(browser|desktop)$' || true)"
+rest="$(printf '%s\n' "$packages" | grep -vE '/internal/(browser|desktop)$')"
+
 # Run every test once with coverage. A failing test still leaves a report worth
 # reading, so the failure is remembered and reported per package rather than
 # ending the script here.
 tests_failed=0
-if ! report="$(go test -tags integration -cover "${roots[@]}" 2>&1)"; then
+if ! tagged="$(go test -tags integration -cover $rest 2>&1)"; then
 	tests_failed=1
 fi
+untagged=""
+if [ -n "$screen_driving" ] && ! untagged="$(go test -cover $screen_driving 2>&1)"; then
+	tests_failed=1
+fi
+report="$(printf '%s\n%s\n' "$tagged" "$untagged")"
 
 printf '%-56s %8s %8s  %s\n' "PACKAGE" "COVERED" "NEEDED" "RESULT"
 

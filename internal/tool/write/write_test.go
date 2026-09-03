@@ -178,7 +178,7 @@ func TestAWriteOutsideTheRootsIsRefusedAndNothingIsLogged(t *testing.T) {
 }
 
 func TestNothingIsWrittenWhenTheLogRefusesTheChange(t *testing.T) {
-	tool, root, _ := newTool(t)
+	_, root, _ := newTool(t)
 	path := filepath.Join(root, "unwritten.md")
 	broken := write.New(write.Settings{
 		Allowed: func(asked string) (string, error) { return asked, nil },

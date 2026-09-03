@@ -147,10 +147,13 @@ func (screen *Screen) typeInto(letters string) {
 	}
 }
 
-// pressedStop sends the stop command while a task is running, which is what Esc
-// does when there is nothing else for it to close.
+// pressedStop sends the stop command, which is what Esc does when there is
+// nothing else for it to close. It fires whenever there is something to stop:
+// the model thinking, a tool running, or a task working its way through, in any
+// combination. A plain reply is not a task, and the person who wants a rambling
+// answer to stop must not have to wait for it to finish.
 func (screen *Screen) pressedStop() {
-	if !screen.busy() {
+	if !screen.busy() && !screen.taskRunning() {
 		return
 	}
 	screen.tell(contract.SocketEnvelope{Type: contract.SocketCommand, Text: "stop"})

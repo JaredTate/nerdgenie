@@ -57,6 +57,34 @@ func TestDoctorSaysWhenTheHomeFolderIsNotThere(t *testing.T) {
 // user-namespace probe fills in.
 const sandboxFindingName = "the sandbox fence"
 
+// TestDoctorSaysWhichWayTheSandboxSettingIsTurned holds what a person runs
+// "coeus doctor" for after changing the setting: the printed report says whether
+// commands are running on this machine as them or inside the fence.
+func TestDoctorSaysWhichWayTheSandboxSettingIsTurned(t *testing.T) {
+	for _, written := range []struct {
+		document string
+		wanted   string
+	}{
+		{"", "straight on this machine as you"},
+		{"sandbox = \"fence\"\n", "only the sandbox roots"},
+	} {
+		home := testkit.NewTempHome(t)
+		if err := os.WriteFile(home.ConfigFile(), []byte(written.document), contract.DataFileMode); err != nil {
+			t.Fatalf("writing the configuration failed: %v", err)
+		}
+		printed := &strings.Builder{}
+
+		command.Doctor(context.Background(), home, printed)
+
+		if !strings.Contains(printed.String(), "the sandbox setting") {
+			t.Fatalf("the doctor's report has no line about the sandbox setting:\n%s", printed)
+		}
+		if !strings.Contains(printed.String(), written.wanted) {
+			t.Errorf("the configuration %q is reported without %q:\n%s", written.document, written.wanted, printed)
+		}
+	}
+}
+
 // aFolderEveryMachineHas is the folder this test builds its own throwaway fence
 // over, the same one the doctor uses. The probe makes an empty fence and quits
 // without ever looking at the folders, so which folder it is does not matter as
@@ -118,4 +146,22 @@ func whatTheSandboxSays(t *testing.T, home contract.Home) error {
 		t.Fatalf("building the fence the doctor builds failed: %v", err)
 	}
 	return fence.Available()
+}
+
+// TestDoctorDoesNotSayCommandsRunInsideTheFenceWhenTheSandboxIsOff holds the
+// fence line honest on a fresh install, which runs with the sandbox off: on a
+// machine that can build a fence, the line says the fence is ready for the
+// setting that turns it on, rather than that commands are running inside it.
+func TestDoctorDoesNotSayCommandsRunInsideTheFenceWhenTheSandboxIsOff(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	written := &strings.Builder{}
+
+	command.Doctor(context.Background(), home, written)
+
+	if strings.Contains(written.String(), "shell commands run inside the fence") {
+		t.Errorf("the sandbox is off, and the report says commands run inside the fence:\n%s", written)
+	}
+	if whatTheSandboxSays(t, home) == nil && !strings.Contains(written.String(), `"fence"`) {
+		t.Errorf("the fence can be built here, and the report does not name the setting that turns it on:\n%s", written)
+	}
 }

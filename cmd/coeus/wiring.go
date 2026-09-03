@@ -215,10 +215,22 @@ func (running *agent) userChannel() contract.Channel {
 	return watchedChannel{Channel: running.socket, waiting: running.previews}
 }
 
-// openTheFence builds the sandbox every shell command runs inside. A machine
-// that cannot build one is not a machine that must not run: the agent comes up
-// without it, says so, and the shell tool refuses rather than running loose.
+// theSandboxIsOffNote is what the agent says at start when the sandbox setting
+// is off, which is what a fresh install runs as. It is the only warning a person
+// gets that commands are running on their machine as them, so it says both what
+// is gone and what is left.
+const theSandboxIsOffNote = "the sandbox is off: commands run straight on this machine as you, and the ask-me-first list is the gate"
+
+// openTheFence builds what every shell command runs through: the direct runner
+// when the sandbox setting is off, which is the default, and the bwrap fence
+// when the configuration asks for it. A machine that cannot build a fence it was
+// asked for is not a machine that must not run: the agent comes up without it,
+// says so, and the shell tool refuses rather than running loose.
 func (running *agent) openTheFence() contract.Sandbox {
+	if running.settings.SandboxMode() == contract.SandboxOff {
+		running.note(theSandboxIsOffNote)
+		return sandbox.NewDirect(sandbox.Settings{OutputCap: running.settings.Caps.ToolOutputBytes})
+	}
 	userHome, err := os.UserHomeDir()
 	if err != nil {
 		running.note("cannot find your home directory, so no sandbox was built and the shell tool will refuse: " + err.Error())

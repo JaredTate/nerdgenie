@@ -33,6 +33,7 @@ func Doctor(ctx context.Context, home contract.Home) Report {
 
 	settings, err := Load(home)
 	report.Findings = append(report.Findings, configurationFinding(home, settings, err))
+	report.Findings = append(report.Findings, sandboxModeFinding(settings, err))
 	report.Findings = append(report.Findings, programFindings()...)
 	report.Findings = append(report.Findings, daemonFinding(ctx, settings, err))
 	return report
@@ -51,6 +52,25 @@ func configurationFinding(home contract.Home, settings contract.Config, loading 
 		return Finding{What: what, Result: Trouble, Detail: "will not load: " + loading.Error()}
 	}
 	return Finding{What: what, Result: Fine, Detail: whatTheConfigurationAsksFor(settings)}
+}
+
+// sandboxModeFinding says which way the sandbox setting is turned, which is the
+// difference between a command that can only touch the sandbox roots and one
+// that can touch everything the person can. Neither way is a warning: both are
+// configurations that work, and the detail says which one is running.
+func sandboxModeFinding(settings contract.Config, loading error) Finding {
+	const what = "the sandbox setting"
+	if loading != nil {
+		return Finding{What: what, Result: Warning,
+			Detail: "was not read, because the configuration has to load before it can be"}
+	}
+	if settings.SandboxMode() == contract.SandboxOff {
+		return Finding{What: what, Result: Fine, Detail: fmt.Sprintf(
+			"is %q, so commands run straight on this machine as you, and the ask-me-first list is the gate",
+			contract.SandboxOff)}
+	}
+	return Finding{What: what, Result: Fine, Detail: fmt.Sprintf(
+		"is %q, so commands run inside bwrap and reach only the sandbox roots", contract.SandboxFence)}
 }
 
 // whatTheConfigurationAsksFor is the one line the doctor prints about a

@@ -71,7 +71,10 @@ func aTaskThatReachesTheNetwork(address string) func(string) testkit.Script {
 }
 
 func TestAShellCommandInsideTheFenceCanReachTheNetwork(t *testing.T) {
-	agent := startTheAgentWorkingIn(t, aTaskThatReachesTheNetwork(aServerToReach(t)))
+	// The sandbox is off unless the configuration asks for the fence, and this
+	// test is about the fence, so it asks.
+	agent := startTheAgentWorkingIn(t, aTaskThatReachesTheNetwork(aServerToReach(t)),
+		func(home contract.Home, _ string) { addSettingToTheHome(t, home, `sandbox = "fence"`) })
 
 	screen := agent.attach(t)
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: "can you reach the network?"})

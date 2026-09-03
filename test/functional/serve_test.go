@@ -114,19 +114,35 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 	model := testkit.NewFakeProviderServer(makeScript(work))
 	t.Cleanup(model.Close)
 
-	program := buildTheBinary(t)
 	home := aHomePointingAt(t, model.Address()+"/v1", work)
 	for _, change := range andAlso {
 		change(home, work)
 	}
-	agent := runningAgent{program: program, home: home, work: work, model: model}
-	return agent.start(t, !waitingIsSkipped(andAlso))
+	return startTheServe(t, home, work, model, !waitingIsSkipped(andAlso))
+}
+
+// startTheServe starts "coeus serve" as its own process against a home folder
+// and a work folder that are already there, waits until it answers on its socket
+// unless the caller says not to, and stops it when the test ends. It is separate
+// from startTheAgentWorkingIn so that a test whose script has to name paths
+// inside the home can make the home first and still start the agent the same
+// way, which is what sandboxoff_test.go does.
+func startTheServe(t *testing.T, home contract.Home, work string, model *testkit.FakeProviderServer,
+	waitingForTheSocket bool) runningAgent {
+	t.Helper()
+	agent := runningAgent{program: buildTheBinary(t), home: home, work: work, model: model}
+	return agent.start(t, waitingForTheSocket)
 }
 
 // start runs "coeus serve" as its own process over this agent's home and, unless
 // told not to, waits until it answers on its socket. It is what the first start
 // and a restart both do, so a restarted agent is the same program over the same
 // home and the same scripted model.
+//
+// The child is given a home directory of its own, the folder the agent's home
+// folder sits in, so that what the agent works out from the user's home is
+// worked out from a folder this test made rather than from the home directory of
+// whoever is running the suite.
 func (agent runningAgent) start(t *testing.T, waitForIt bool) runningAgent {
 	t.Helper()
 	saidPath := filepath.Join(t.TempDir(), "coeus-serve.log")
@@ -137,7 +153,7 @@ func (agent runningAgent) start(t *testing.T, waitForIt bool) runningAgent {
 	t.Cleanup(func() { _ = said.Close() })
 
 	started := exec.Command(agent.program, "serve")
-	started.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root)
+	started.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root, "HOME="+filepath.Dir(agent.home.Root))
 	started.Stdout = said
 	started.Stderr = said
 	if err := started.Start(); err != nil {
@@ -231,11 +247,19 @@ func aWorkFolder(t *testing.T) string {
 // server, so that nothing in this test reaches the real machine's model.
 func aHomePointingAt(t *testing.T, baseAddress string, work string) contract.Home {
 	t.Helper()
-	home := contract.NewHome(filepath.Join(t.TempDir(), ".coeus"))
+	home := contract.NewHome(filepath.Join(t.TempDir(), contract.HomeFolderName))
 	if err := os.MkdirAll(home.Root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the home folder failed: %v", err)
 	}
+	writeTheConfiguration(t, home, baseAddress, work)
+	return home
+}
 
+// writeTheConfiguration writes the configuration of a home folder that is
+// already made, so that a test which has to make the home before the scripted
+// server can still write the same file afterwards.
+func writeTheConfiguration(t *testing.T, home contract.Home, baseAddress string, work string) {
+	t.Helper()
 	settings := fmt.Sprintf(`default_model = "local"
 sandbox_roots = [%q]
 
@@ -249,7 +273,6 @@ context_length = 32768
 	if err := os.WriteFile(home.ConfigFile(), []byte(settings), contract.DataFileMode); err != nil {
 		t.Fatalf("writing the configuration failed: %v", err)
 	}
-	return home
 }
 
 // waitForTheSocket waits until the agent answers on its socket, and fails with

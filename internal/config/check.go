@@ -30,6 +30,7 @@ func (checker settingsChecker) run() error {
 	for _, one := range []func() error{
 		checker.checkModelAliases,
 		checker.checkDefaultAndFallback,
+		checker.checkSandboxMode,
 		checker.checkSandboxRoots,
 		checker.checkCaps,
 		checker.checkLengthsOfTime,
@@ -138,6 +139,20 @@ func (checker settingsChecker) checkDefaultAndFallback() error {
 		}
 	}
 	return nil
+}
+
+// checkSandboxMode holds the rule that the sandbox setting is one of the two
+// words it takes. A value that is neither is refused by name rather than read as
+// one of them, because a person who wrote "sandboxed" and got the fence, or
+// wrote "none" and got it too, would have no way of telling which way their
+// machine is running.
+func (checker settingsChecker) checkSandboxMode() error {
+	if contract.KnownSandboxMode(checker.settings.Sandbox) {
+		return nil
+	}
+	return checker.complain("sandbox", fmt.Sprintf(
+		"the sandbox is set to %q, and it is either %q, which runs commands straight on this machine as you, or %q, which runs them inside bwrap and only in the sandbox roots, so write one of those two words or leave the key out for %q",
+		checker.settings.Sandbox, contract.SandboxOff, contract.SandboxFence, contract.SandboxOff))
 }
 
 // checkSandboxRoots holds the rule from design section 11: the folders a

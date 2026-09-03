@@ -3,10 +3,12 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/skill"
 )
 
 // personaFile is one of the three files that say who the agent is and who the
@@ -54,6 +56,71 @@ func writePersonaFiles(home contract.Home) error {
 	return nil
 }
 
+// browserSkillName is the folder name of the one skill "coeus init" ships beside
+// the persona files. The first human trial found that the model, given the
+// seven browser tools and nothing about them, launched Chrome through the shell
+// tool thirteen times in a row and guessed at pages instead of reading them.
+const browserSkillName = "browser"
+
+// browserSkillDescription is the one line the skill listing carries about the
+// browser skill, which says when to load it.
+const browserSkillDescription = "Read this before the first browser call of a task: how to open, read, click, type, and sign in with the browser tools, and when to hand the window to the person."
+
+// browserSkillText is the SKILL.md of the browser skill: the heading the skill
+// loader reads as its name, the one line it reads as its description, and the
+// rules the trial found the model needed, in under three hundred words.
+const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescription + "\n\n" +
+	"## Working a page\n\n" +
+	"- Open a page with browser_open and read what comes back: an outline of the page's elements, each with a reference such as e12.\n" +
+	"- Look again with browser_read when the page may have changed.\n" +
+	"- Act by reference, never by guessing coordinates: browser_click, browser_type, and browser_act each take the reference of an element from the outline. Never make one up.\n" +
+	"- Use browser_act for a form, as one batch of steps, rather than one call per box.\n" +
+	"- Prices, counts, dates, and every other number are read from the outline and quoted exactly as they appear there.\n\n" +
+	"## Signing in\n\n" +
+	"- Use browser_login for a site whose credentials are in the vault. It fills the boxes itself, and you never see the password.\n" +
+	"- Call browser_handoff the moment a captcha, a two-factor prompt, or a sign-in the vault does not hold appears. The person finishes it in the window and hands it back. Never guess at it.\n\n" +
+	"## What never to do\n\n" +
+	"- Never launch Chrome through the shell tool. The browser tools own the agent's Chrome window; a browser started from the shell is one they cannot see or drive.\n" +
+	"- When an open fails, read the error and say what it said in your reply. Trying the same open again gets the same error.\n" +
+	"- The same call with the same arguments, over and over, is refused by the harness. When a page has not changed, do something different, or answer the person.\n"
+
+// browserSkillChangelog is the first line of the shipped skill's changelog. Every
+// skill folder carries one, and this one says where the skill came from and how
+// to be rid of it.
+const browserSkillChangelog = "# changelog for " + browserSkillName + "\n\n" +
+	"- shipped with Coeus. The SKILL.md beside this file is the whole skill: it says how to work the browser tools, and there are no steps to replay. To undo: /skills remove " + browserSkillName + "\n"
+
+// browserSkillFiles are the files of the browser skill folder: the SKILL.md that
+// carries the whole of it, and the three companions the skill store gives every
+// folder saved with only a SKILL.md, so that the skill loads and lists the way a
+// saved one does.
+func browserSkillFiles() map[string][]byte {
+	return map[string][]byte{
+		skill.DescriptionFile: []byte(browserSkillText),
+		skill.StepsFile:       {},
+		skill.TestFile:        skill.RenderTestFile(browserSkillName, skill.DryRunPlan{}),
+		skill.ChangelogFile:   []byte(browserSkillChangelog),
+	}
+}
+
+// writeBrowserSkill writes the browser skill folder, leaving alone one the user
+// already has, because a skill they edited is worth more than the shipped copy.
+func writeBrowserSkill(home contract.Home) error {
+	folder := home.SkillFolder(browserSkillName)
+	if _, err := os.Stat(folder); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
+		return fmt.Errorf("the skill folder %s could not be made, so check that the home folder is writable: %w", folder, err)
+	}
+	for name, content := range browserSkillFiles() {
+		if err := os.WriteFile(filepath.Join(folder, name), content, contract.DataFileMode); err != nil {
+			return fmt.Errorf("the browser skill's %s could not be written, so check that the home folder is writable: %w", name, err)
+		}
+	}
+	return nil
+}
+
 // configurationText is the config.toml a fresh install starts from: the model
 // chosen, every other model that was found on this machine as a fallback, the
 // folders Coeus may work in, and a comment above every line saying what it does.
@@ -69,10 +136,14 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	written.WriteString("# The models to try, in order, when the one above cannot be reached.\n")
 	fmt.Fprintf(written, "fallback_chain = %s\n\n", quotedList(fallbackNames(chosen, found)))
 
-	written.WriteString("# The only folders a sandboxed command and the file tools may reach.\n")
-	written.WriteString("# Everything else on this machine is outside the fence, and your home\n")
-	written.WriteString("# directory as a whole is refused, because it holds your browser profile,\n")
-	written.WriteString("# your cloud credentials, and your keys.\n")
+	written.WriteString("# How commands run: \"off\" runs them straight on this machine as you, which\n")
+	written.WriteString("# is the default; \"fence\" boxes them into the sandbox roots below.\n")
+	written.WriteString("sandbox = \"off\"\n\n")
+
+	written.WriteString("# With the fence on, the only folders a command and the file tools may\n")
+	written.WriteString("# reach. Everything else on this machine is then outside the fence, and your\n")
+	written.WriteString("# home directory as a whole is refused, because it holds your browser\n")
+	written.WriteString("# profile, your cloud credentials, and your keys.\n")
 	fmt.Fprintf(written, "sandbox_roots = %s\n", quotedList(roots))
 
 	for _, choice := range aliasesToWrite(chosen, found) {

@@ -116,6 +116,7 @@ type Screen struct {
 	contextWindow int
 	callStarted   time.Time
 	streamed      int
+	lastRecord    string
 
 	blocks     []block
 	scrollBack int

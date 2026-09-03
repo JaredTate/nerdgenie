@@ -52,8 +52,24 @@ func (screen *Screen) readStatus(fields map[string]string) {
 		screen.flushDeltas()
 		screen.remember(block{kind: blockTool, text: line})
 	}
+	screen.readRecordLine(fields)
 	screen.readHealth(fields)
 	screen.readReportedState(fields)
+}
+
+// readRecordLine puts one pill in the transcript for the latest change to the
+// record, drawn exactly as a tool call is, so that a person can watch tasks and
+// jobs start and finish without asking. The program sends the same line on every
+// heartbeat until something else changes, so only a line that differs from the
+// last one shown is worth a pill of its own.
+func (screen *Screen) readRecordLine(fields map[string]string) {
+	line, sent := fields[contract.StatusFieldRecordLine]
+	if !sent || line == "" || line == screen.lastRecord {
+		return
+	}
+	screen.lastRecord = line
+	screen.flushDeltas()
+	screen.remember(block{kind: blockTool, text: line})
 }
 
 // readBudget works out how much of the task's budget is left, so that the status

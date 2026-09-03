@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -94,7 +95,8 @@ func buildArguments(plan fencePlan) []string {
 	arguments := []string{
 		"--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
 		"--die-with-parent", "--new-session", "--clearenv",
-		"--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+		"--proc", "/proc", "--dev", "/dev",
+		"--size", strconv.Itoa(TemporaryFolderBytes), "--tmpfs", "/tmp",
 	}
 	for _, folder := range plan.systemFolders {
 		arguments = append(arguments, "--ro-bind", folder, folder)

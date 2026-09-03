@@ -10,6 +10,8 @@ bwrap
 /proc
 --dev
 /dev
+--size
+104857600
 --tmpfs
 /tmp
 --ro-bind

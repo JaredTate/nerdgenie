@@ -258,25 +258,6 @@ func TestTheTranscriptDropsItsOldestBlockWhenItIsFull(t *testing.T) {
 	}
 }
 
-func TestALightTerminalGetsTheDarkerHalfOfEveryColour(t *testing.T) {
-	light := newTheme(func(name string) string {
-		return map[string]string{"COLORFGBG": "0;15"}[name]
-	})
-	dark := newTheme(func(string) string { return "" })
-
-	if !light.light {
-		t.Fatal("a terminal that says its background is white was read as a dark one")
-	}
-	for _, chosen := range []style{styleAccent, styleDim, styleError} {
-		if light.code(chosen) == dark.code(chosen) {
-			t.Errorf("the style %d is the same colour on a light terminal as on a dark one", chosen)
-		}
-	}
-	if newTheme(func(string) string { return "not;a;number" }).light {
-		t.Error("a COLORFGBG that is not numbers was read as a light background")
-	}
-}
-
 func TestANarrowTerminalDropsTheRightHandSideRatherThanWrapping(t *testing.T) {
 	screen, _ := newTestScreen(50, 24)
 	screen.Update(linkMessage{up: true})

@@ -175,6 +175,8 @@ internal/browser/client.go
 internal/browser/client_test.go
 internal/browser/doc.go
 internal/browser/edges_test.go
+internal/browser/events.go
+internal/browser/events_test.go
 internal/browser/fields.go
 internal/browser/fuzz_test.go
 internal/browser/handoff.go
@@ -305,6 +307,7 @@ internal/context/testdata/prompt-24k.txt
 internal/context/window.go
 internal/context/window_test.go
 internal/contract/browser.go
+internal/contract/browserevent_test.go
 internal/contract/channel.go
 internal/contract/clock.go
 internal/contract/command.go
@@ -799,6 +802,8 @@ internal/skill/browser/step.go
 internal/skill/browser/step_test.go
 internal/skill/browser/walk.go
 internal/skill/browser/walk_test.go
+internal/skill/browser/walkrecord.go
+internal/skill/browser/walkrecord_test.go
 internal/skill/browser/writeqa_test.go
 internal/skill/command.go
 internal/skill/command_test.go
@@ -836,6 +841,9 @@ internal/skill/testdata/skills/news-headlines/test.md
 internal/testkit/browser.go
 internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
+internal/testkit/browsereventchecks_test.go
+internal/testkit/browserevents.go
+internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
@@ -1270,6 +1278,7 @@ worker/browser/src/batch-methods.ts
 worker/browser/src/chrome.ts
 worker/browser/src/diff.ts
 worker/browser/src/errors.ts
+worker/browser/src/events.ts
 worker/browser/src/expectation.ts
 worker/browser/src/limits.ts
 worker/browser/src/lines.ts
@@ -1281,6 +1290,7 @@ worker/browser/src/page-bridge.ts
 worker/browser/src/page-script.ts
 worker/browser/src/params.ts
 worker/browser/src/pdf.ts
+worker/browser/src/person-script.ts
 worker/browser/src/redact.ts
 worker/browser/src/refs.ts
 worker/browser/src/session.ts
@@ -1324,6 +1334,7 @@ worker/browser/test/pages/signed-in.html
 worker/browser/test/pages/stale-ref.html
 worker/browser/test/pages/two-factor.html
 worker/browser/test/pages/type-echo.html
+worker/browser/test/person-events.test.ts
 worker/browser/test/process.test.ts
 worker/browser/test/properties.test.ts
 worker/browser/test/redact.test.ts

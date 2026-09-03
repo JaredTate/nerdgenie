@@ -1,6 +1,9 @@
 package contract
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Element is one node of the compact page tree the model reads. A few hundred
 // tokens of these is the whole of what the model sees of a web page.
@@ -218,6 +221,49 @@ type Screenshot struct {
 	Marks []Mark `json:"marks"`
 }
 
+// BrowserEventKind names one of the three things a person does in the browser
+// window that the worker reports as it happens.
+type BrowserEventKind string
+
+const (
+	// BrowserEventClick is a person clicking something on the page.
+	BrowserEventClick BrowserEventKind = "click"
+	// BrowserEventType is a person typing into a box on the page.
+	BrowserEventType BrowserEventKind = "type"
+	// BrowserEventNavigate is a person taking the window to another address.
+	BrowserEventNavigate BrowserEventKind = "navigate"
+)
+
+// KnownBrowserEventKind says whether the kind is one of the three the protocol
+// defines, so that a worker sending anything else is refused rather than
+// recorded.
+func KnownBrowserEventKind(kind BrowserEventKind) bool {
+	return kind == BrowserEventClick || kind == BrowserEventType || kind == BrowserEventNavigate
+}
+
+// BrowserEvent is one thing the person did in the browser window themselves,
+// which is what "/walk record" watches to write a procedure down. What the
+// person typed is never carried: a typing event says how many characters went
+// into the box and nothing else, because a recording must not become a copy of
+// a password.
+type BrowserEvent struct {
+	// Kind is click, type, or navigate.
+	Kind BrowserEventKind `json:"kind"`
+	// Ref is the element that was clicked or typed into, such as "e12", and is
+	// empty on a navigation.
+	Ref string `json:"ref,omitempty"`
+	// Text is what the clicked element said, which is what a recorded step
+	// expects the page to answer. It is empty on the other two kinds.
+	Text string `json:"text,omitempty"`
+	// Length is how many characters the box held after the person typed, and is
+	// zero on the other two kinds.
+	Length int `json:"length,omitempty"`
+	// Address is where the window went, and is empty on the other two kinds.
+	Address string `json:"address,omitempty"`
+	// At is when it happened, by the worker's clock.
+	At time.Time `json:"at"`
+}
+
 // BrowserHealth says whether the browser worker is alive and what it is running.
 type BrowserHealth struct {
 	// Healthy is true when the worker can act on a page.
@@ -260,6 +306,11 @@ type BrowserWorker interface {
 	// prompt or dismissing it, because Chrome blocks the whole tab until one is
 	// answered.
 	Dialog(ctx context.Context, action DialogAction, text string) (Diff, error)
+	// Events is the stream of what the person did in the window themselves: their
+	// clicks, their typing, and where they took the browser. The channel closes
+	// when the reader's context is done or the worker goes, and no more than
+	// Caps.BufferedBrowserEvents are held for a reader that has fallen behind.
+	Events(ctx context.Context) (<-chan BrowserEvent, error)
 	// Close shuts the worker down and closes the browser.
 	Close() error
 }

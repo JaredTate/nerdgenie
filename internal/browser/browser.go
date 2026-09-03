@@ -84,6 +84,10 @@ type Options struct {
 	// IdleStop is how long a worker with nothing to do is kept. Zero means
 	// DefaultIdleStop.
 	IdleStop time.Duration
+	// BufferedEvents is how many of the person's own events are held for a
+	// reader that has fallen behind. Zero means DefaultBufferedEvents, which is
+	// the cap the design gives in contract.Caps.
+	BufferedEvents int
 	// Note writes one line about what happened, and may be left out.
 	Note func(format string, arguments ...any)
 }
@@ -100,6 +104,7 @@ type Browser struct {
 	talker     *client
 	lastUsed   time.Time
 	stopWatch  context.CancelFunc
+	events     *eventStream
 	page       string
 	closed     bool
 }
@@ -132,6 +137,9 @@ func New(options Options) (*Browser, error) {
 	}
 	if options.IdleStop <= 0 {
 		options.IdleStop = DefaultIdleStop
+	}
+	if options.BufferedEvents <= 0 {
+		options.BufferedEvents = DefaultBufferedEvents
 	}
 	return &Browser{
 		options: options,

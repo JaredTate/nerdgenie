@@ -128,6 +128,40 @@ export interface ActStep {
   expectation?: string;
 }
 
+/** The three things a person does in the window that the worker reports. */
+export const PERSON_EVENT_KINDS = ["click", "type", "navigate"] as const;
+
+export type PersonEventKind = (typeof PERSON_EVENT_KINDS)[number];
+
+/**
+ * One thing the person did in the window themselves. What they typed is never
+ * carried: a typing event says how many characters the box holds and no more,
+ * so that a recording of somebody signing in cannot hold their password.
+ */
+export interface PersonEvent {
+  kind: PersonEventKind;
+  /** The element clicked or typed into, and absent on a navigation. */
+  ref?: string;
+  /** What the clicked element says, and absent on the other two kinds. */
+  text?: string;
+  /** How many characters the box holds, and absent on the other two kinds. */
+  length?: number;
+  /** Where the window went, and absent on the other two kinds. */
+  address?: string;
+  /** When it happened, as an ISO 8601 moment such as 2026-09-03T10:00:00.000Z. */
+  at: string;
+}
+
+/** The same thing before the worker stamps the moment on it. */
+export type WhatThePersonDid = Omit<PersonEvent, "at">;
+
+/** A line the worker sends that nobody asked for, which is only ever an event. */
+export interface EventNotification {
+  jsonrpc: "2.0";
+  method: "event";
+  params: PersonEvent;
+}
+
 /** A request the worker accepted and is about to run. */
 export interface WorkerRequest {
   id: number;

@@ -198,8 +198,8 @@ subcommand that opens it, which is also what the bare `coeus` command runs. The
 screen is a thin client: it holds only what is on the frame, it draws what the
 running program sends over the local socket, and it sends back what the person
 types. It is built on Bubble Tea, and it imports nothing of Coeus but
-`internal/contract`, `internal/config` (in the subcommand, to find the home
-folder), and `internal/testkit` in its tests.
+`internal/contract`, `internal/clock`, `internal/config` (in the subcommand, to
+find the home folder), and `internal/testkit` in its tests.
 
 The drawing is `docs/TUI_DESIGN.md`, line for line: a header, a rule, the
 transcript with its four block kinds, a rule, the input box, and the status
@@ -224,18 +224,27 @@ quarter of a second to ten seconds, saying so in the status strip the whole time
 one megabyte is thrown away and shown as an error card, and so is a line that is
 not a message the two sides agree on; neither closes the link.
 
-**What the screen reads that `internal/contract` does not name.** The contract
-gives the socket its message types and one open map of fields, and no more, so
-the screen and `internal/channel` have to agree on three things inside that map.
-A masked prompt is an `ask` whose fields carry `masked` set to `true`, with the
-title of the request in `Title`; there is no message type for asking a secret,
-because `secret` travels only from the screen to the program. A `status` message
-carries what the header, the status strip, and the tool lines show, in the fields
-`model`, `task`, `taskState`, `tokensIn`, `tokensOut`, `cost`, `budget`, `state`,
-`tool`, and `toolLine`. The same message carries the program's slash commands in
-the field `commands`, one per line as a name and a help line with a tab between
-them, which is what the command palette lists. A field or a state word the screen
-does not know changes nothing on the frame.
+**What the screen reads on the socket.** Every name on the wire comes from
+`internal/contract`, so that the screen and `internal/channel` cannot disagree
+about a spelling. A masked prompt is an `ask` with `MaskInput` set, the title of
+the request in `Title`; there is no message type for asking a secret, because
+`secret` travels only from the screen to the program. A `status` message fills the
+header, the status strip, the tool lines, the health dot, and the command palette
+from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
+`StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
+`StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
+`StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
+holding one command per line with `contract.StatusCommandSeparator` between its
+name and its help. The state field carries one of `contract.StateIdle`,
+`StateThinking`, `StateUsingTool`, `StateWaitingForYou`, and `StatePaused`; the
+words the strip draws are the design's, so `StateUsingTool` reads as "using read"
+and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
+does not know changes nothing on the frame, a field that is not sent leaves what
+is on the screen alone, and a status message with no `StatusFieldHealthy` counts
+as the program answering for itself. Going the other way, an approve carrying
+`contract.ApproveAlwaysText` means every call like this one for the rest of the
+session and an approve carrying no text means this one call, and a deny carries
+the person's reason in `Reason`.
 
 ## The browser worker protocol (document built, wave 0; code in wave 5)
 
@@ -445,16 +454,15 @@ The development machine readied, the skeleton, the contracts, the browser protoc
 ### Wave 3, brief 3.4: the terminal screen
 
 `internal/tui` and `cmd/coeus/tui.go` are built, as described above. Nothing in
-`internal/contract` or `internal/testkit` changed. The screen depends only on the
-socket envelope, the home's socket path, `contract.Command`, and `contract.Clock`,
-so it was written and tested before `internal/channel` existed, against a fake
-dialer of its own and a real Unix socket in a temporary home.
+`internal/contract` or `internal/testkit` changed for them. The screen depends
+only on the socket envelope, the home's socket path, `contract.Command`,
+`contract.Clock`, and `internal/clock` for the real one, so it was written and
+tested before `internal/channel` existed, against a fake dialer of its own and a
+real Unix socket in a temporary home.
 
-The orchestrator has four things to wire: add `tuiSubcommand` to the table in
-`cmd/coeus/main.go` and map the bare `coeus` command to it; make
-`internal/channel` send the three shapes named under "What the screen reads that
-`internal/contract` does not name" above; decide whether those three belong in
-`internal/contract` rather than in an agreement between two packages; and replace
-this package's own two-dozen-line `systemClock`, which it needed because nothing
-on the branch it was written from had one, with `clock.System` from the
-`internal/clock` package that has since arrived.
+The screen was first written against three shapes the contract did not yet name,
+and those are now named in it: `SocketEnvelope.MaskInput`, the twelve
+`StatusField` names with `StatusCommandSeparator` and the five state words, and
+`ApproveAlwaysText`. The screen reads and writes those names and no strings of
+its own. The orchestrator has one thing left to wire: add `tuiSubcommand` to the
+table in `cmd/coeus/main.go` and map the bare `coeus` command to it.

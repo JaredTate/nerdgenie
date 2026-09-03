@@ -158,3 +158,13 @@ func TestTheStatusMessageFieldsAndStateWordsAreNamedOnce(t *testing.T) {
 		t.Errorf("the command list separates a name from its help with %q, want a tab", contract.StatusCommandSeparator)
 	}
 }
+
+func TestAScreenCanCancelAPromptAndAPreviewAnswerCarriesItsReason(t *testing.T) {
+	if !contract.SocketCancel.FromScreen() || contract.SocketCancel.FromProgram() {
+		t.Error("cancel must be a message a screen sends and the program never does")
+	}
+	answer := contract.PreviewAnswerWithReason{Answer: contract.AnswerReject, Reason: "not on that account"}
+	if answer.Answer != contract.AnswerReject || answer.Reason != "not on that account" {
+		t.Errorf("a preview answer did not hold its reason: %+v", answer)
+	}
+}

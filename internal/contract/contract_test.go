@@ -166,3 +166,13 @@ func TestASnapshotCanReportAWallAndADiffSaysWhetherThePageSettled(t *testing.T) 
 		t.Error("the dialog action \"ignore\" is known, and only accept and dismiss should be")
 	}
 }
+
+func TestShowPreviewReturnsTheAnswerWithItsReason(t *testing.T) {
+	method, found := reflect.TypeFor[contract.Channel]().MethodByName("ShowPreview")
+	if !found {
+		t.Fatal("Channel has no ShowPreview")
+	}
+	if method.Type.NumOut() != 2 || method.Type.Out(0) != reflect.TypeFor[contract.PreviewAnswerWithReason]() {
+		t.Errorf("ShowPreview returns %v, want (PreviewAnswerWithReason, error) so a rejection carries its reason", method.Type)
+	}
+}

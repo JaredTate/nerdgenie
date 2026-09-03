@@ -65,6 +65,26 @@ func TestAPreviewTheUserRefusesStopsTheCallAndTellsTheModel(t *testing.T) {
 	}
 }
 
+// TestTheUsersOwnReasonForSayingNoReachesTheModel proves the words the user
+// gave when they refused are what the model is told.
+func TestTheUsersOwnReasonForSayingNoReachesTheModel(t *testing.T) {
+	built := newHarness(t, oneShellCall(), scriptedTool("shell", "the folder is gone"))
+	built.rulings.Rule("shell", contract.PermissionDecision{
+		Ruling: contract.RulingAsk, Reason: "deleting many files at once", PreviewText: "rm -rf /tmp/old",
+	})
+	built.channel.AnswerPreviewsWithReason("that folder is the one I am working in")
+
+	built.ask(t, "delete the old folder")
+
+	if !strings.Contains(requestsJoined(built.model.Requests()), "that folder is the one I am working in") {
+		t.Error("the model was never told the user's own reason for saying no")
+	}
+	answers := built.rulings.Answers()
+	if len(answers) != 1 || answers[0].Reason != "that folder is the one I am working in" {
+		t.Errorf("the permission function was told %v, want the user's own reason", answers)
+	}
+}
+
 // TestADeniedCallNeverRuns proves a call the rulebook denies outright.
 func TestADeniedCallNeverRuns(t *testing.T) {
 	shell := testkit.NewScriptedTool(contract.ToolSpec{

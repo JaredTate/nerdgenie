@@ -145,7 +145,7 @@ func (theLoop *Loop) offerASkill(ctx context.Context, where contract.Channel, so
 	if err != nil {
 		return fmt.Errorf("cannot offer the skill from %s to the user: %w", source, err)
 	}
-	if answered == contract.AnswerReject {
+	if answered.Answer == contract.AnswerReject {
 		return nil
 	}
 	body := fmt.Sprintf("# %s\n\nWhat it is for: %s\n\nLearned from %s.\n", name, answer, source)

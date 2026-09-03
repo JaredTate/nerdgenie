@@ -59,14 +59,23 @@ func (running *run) askTheUser(ctx context.Context, call contract.ToolCall,
 	if err != nil {
 		return false, denial{}, fmt.Errorf("cannot show the user what %s is about to do: %w", call.Name, err)
 	}
-	refusal := "the user said no to this call"
-	if err := running.theLoop.options.Permission.Remember(asked, answer, refusal); err != nil {
+	refusal := refusalReason(answer)
+	if err := running.theLoop.options.Permission.Remember(asked, answer.Answer, refusal); err != nil {
 		return false, denial{}, fmt.Errorf("cannot remember what the user answered about %s: %w", call.Name, err)
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
 		return false, denial{reason: refusedBecause(call, refusal)}, nil
 	}
 	return true, denial{}, nil
+}
+
+// refusalReason is the user's own words about why they said no, and a plain
+// line saying they did when they gave no words at all.
+func refusalReason(answer contract.PreviewAnswerWithReason) string {
+	if said := strings.TrimSpace(answer.Reason); said != "" {
+		return said
+	}
+	return "the user said no to this call"
 }
 
 // previewBody is exactly what is about to happen, which is what the user reads

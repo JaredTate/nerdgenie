@@ -15,6 +15,7 @@ import (
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/sandbox"
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
@@ -294,7 +295,30 @@ func (running *agent) openTheLoop() error {
 		return err
 	}
 	running.loop = built
-	return nil
+
+	running.nightly, err = replay.NewNightly(replay.NightlySettings{
+		Jobs:   running.jobs,
+		Memory: running.memories,
+		Skills: running.skillsBox,
+		DryRun: running.dryRunOneSkill,
+		Send:   running.sendToTheUserHere,
+	})
+	return err
+}
+
+// dryRunOneSkill is the skill store's own dry run, which contract.Skill does not
+// carry, so it is passed to the self-check as a function of its own.
+func (running *agent) dryRunOneSkill(ctx context.Context, name string) (string, error) {
+	if running.skills == nil {
+		return "", fmt.Errorf("there are no skills open, so %q cannot be dry run", name)
+	}
+	return running.skills.DryRun(ctx, name)
+}
+
+// sendToTheUserHere puts one line in front of the user on the channel they are
+// normally talked to on.
+func (running *agent) sendToTheUserHere(ctx context.Context, text string) error {
+	return running.sendToTheUser(ctx, "", text)
 }
 
 // openTheRouter gives the router the five things it needs from the rest of the

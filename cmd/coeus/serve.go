@@ -25,6 +25,7 @@ import (
 	"github.com/JaredTate/coeus/internal/memory"
 	"github.com/JaredTate/coeus/internal/permission"
 	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/vault"
@@ -99,6 +100,9 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 		home.SocketFile(), running.model.Name())
 	if err := running.guard.Ready(); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the service manager was not told the program is up: %v\n", err)
+	}
+	if _, err := running.nightly.Register(ctx); err != nil {
+		fmt.Fprintf(problems, "coeus serve: the nightly self-check was not put on the job list: %v\n", err)
 	}
 	if err := running.serve(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: %v\n", err)
@@ -178,6 +182,7 @@ type agent struct {
 	skills    *skill.Store
 	skillsBox *skillsBox
 	loop      *loop.Loop
+	nightly   *replay.Nightly
 	registry  *command.Registry
 	router    *channel.Router
 
@@ -405,7 +410,7 @@ func (running *agent) runDueJobs(ctx context.Context) {
 		if running.loop.Running() != "" {
 			continue
 		}
-		found, err := running.loop.RunNextJobTask(ctx, running.socket)
+		found, err := running.runWhatIsDue(ctx)
 		if err != nil {
 			running.note("a scheduled task did not finish: " + err.Error())
 		}
@@ -415,6 +420,27 @@ func (running *agent) runDueJobs(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// runWhatIsDue runs the task a job has due now. A task the nightly self-check
+// owns is run by the check itself: it asks the memory its own questions and dry
+// runs the skills, and handing it to the model instead would spend a whole task
+// asking a model to do what the harness can do for nothing.
+func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
+	due, there, err := running.jobs.NextTask(ctx, clock.System().Now())
+	if err != nil {
+		return false, fmt.Errorf("cannot ask the jobs which task is due now: %w", err)
+	}
+	if !there {
+		return false, nil
+	}
+	if running.nightly.Handles(due) {
+		if _, err := running.nightly.Run(ctx, due); err != nil {
+			return true, fmt.Errorf("the nightly self-check did not finish: %w", err)
+		}
+		return true, nil
+	}
+	return running.loop.RunNextJobTask(ctx, running.userChannel())
 }
 
 // close puts down everything the agent opened, in the reverse order it was

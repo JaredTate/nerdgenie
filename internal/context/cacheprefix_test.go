@@ -32,6 +32,7 @@ func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
 	later := buildWithTheBudgetSpent(t, builder, run, 80, contract.CostLine{InputTokens: 15400, CachedInputTokens: 3900, OutputTokens: 600})
 
 	shared := sharedPrefix(renderPrompt(earlier), renderPrompt(later))
+	t.Logf("two rounds that follow each other share %d bytes of %d from the start", len(shared), len(renderPrompt(later)))
 	for _, wanted := range []string{
 		InstructionText,
 		"Read a file, a folder, or a past result by its id.",

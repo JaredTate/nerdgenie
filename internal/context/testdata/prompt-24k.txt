@@ -56,10 +56,7 @@ Write a file inside the allowed folders. Do not use it to edit part of a file.
   path (string): where to write
 
 === message 1 from the user ===
-**The task record, part two: the header, the work, and the lessons.** These change every turn.
-
-# task 17   running   from Signal   budget left: 100 rounds, 60 minutes
-this turn: 0.0k tokens in, 0.0k of them cached, 0.0k out
+**The task record, part two: the work and the lessons.** These only grow as the task runs.
 
 ## Work
 Plan:
@@ -335,3 +332,9 @@ e13 text 228/280 shows the post is inside the limit.
 
 - Jared posts at 14:00
 - one fact per post
+
+=== message 44 from the user ===
+**The task record, part three: where the task stands right now.** The budget left and what the last call cost. These two lines are written anew on every call, so they come last, after everything that can be read once and reused.
+
+# task 17   running   from Signal   budget left: 100 rounds, 60 minutes
+this turn: 0.0k tokens in, 0.0k of them cached, 0.0k out

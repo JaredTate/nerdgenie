@@ -8,47 +8,65 @@ import (
 	"github.com/JaredTate/coeus/internal/record"
 )
 
-// TestTheRecordSplitsAtTheCacheLine proves the record is cut into the half that
-// rarely changes and the half that changes every turn, and that the header goes
-// with the changing half, because the budget and the cost line are written anew
-// on every turn and nothing above the cache line may move.
-func TestTheRecordSplitsAtTheCacheLine(t *testing.T) {
+// TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges proves the record is cut
+// into three: the goal and the rules, which rarely change and go above the cache
+// line; the work and the lessons, which only grow; and the header, which carries
+// the budget left and the cost of the last call and is written anew every turn.
+// The order is what a prompt cache can reuse, so the header may not be mixed in
+// with either of the other two.
+func TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges(t *testing.T) {
 	held := sampleRecord()
-	stable, live := splitRecord(held)
+	stable, body, standing := splitRecord(held)
 
 	if !strings.HasPrefix(stable, "## Goal") {
-		t.Errorf("the stable half does not start at the goal:\n%s", stable)
+		t.Errorf("the stable piece does not start at the goal:\n%s", stable)
 	}
 	for _, wanted := range []string{"Post a tweet", "Corrections:", "Stop and tell the user if:"} {
 		if !strings.Contains(stable, wanted) {
-			t.Errorf("the stable half is missing %q:\n%s", wanted, stable)
+			t.Errorf("the stable piece is missing %q:\n%s", wanted, stable)
 		}
 	}
 	for _, unwanted := range []string{"## Work", "## Lessons", "budget left", "this turn:"} {
 		if strings.Contains(stable, unwanted) {
-			t.Errorf("the stable half carries %q, which changes every turn:\n%s", unwanted, stable)
+			t.Errorf("the stable piece carries %q, which changes as the task runs:\n%s", unwanted, stable)
 		}
 	}
 
-	if !strings.HasPrefix(live, "# task 17") {
-		t.Errorf("the live half does not start at the header:\n%s", live)
+	if !strings.HasPrefix(body, "## Work") {
+		t.Errorf("the body does not start at the work:\n%s", body)
 	}
-	for _, wanted := range []string{"this turn:", "budget left", "## Work", "## Lessons", "r3"} {
-		if !strings.Contains(live, wanted) {
-			t.Errorf("the live half is missing %q:\n%s", wanted, live)
+	for _, wanted := range []string{"## Work", "## Lessons", "r3"} {
+		if !strings.Contains(body, wanted) {
+			t.Errorf("the body is missing %q:\n%s", wanted, body)
 		}
 	}
-	if strings.Contains(live, "## Goal") {
-		t.Errorf("the live half carries the goal, which belongs above the cache line:\n%s", live)
+	for _, unwanted := range []string{"## Goal", "budget left", "this turn:"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("the body carries %q, which does not change at the same pace as the work:\n%s", unwanted, body)
+		}
+	}
+
+	if !strings.HasPrefix(standing, "# task 17") {
+		t.Errorf("the standing piece does not start at the header:\n%s", standing)
+	}
+	for _, wanted := range []string{"budget left", "this turn:"} {
+		if !strings.Contains(standing, wanted) {
+			t.Errorf("the standing piece is missing %q:\n%s", wanted, standing)
+		}
+	}
+	for _, unwanted := range []string{"## Goal", "## Work", "## Lessons"} {
+		if strings.Contains(standing, unwanted) {
+			t.Errorf("the standing piece carries %q, which would then be re-read on every call:\n%s", unwanted, standing)
+		}
 	}
 }
 
-// TestTheTwoHalvesHoldTheWholeRecord proves the split loses nothing: every line
-// the printer wrote is in one half or the other.
-func TestTheTwoHalvesHoldTheWholeRecord(t *testing.T) {
+// TestTheThreePiecesHoldTheWholeRecord proves the split loses nothing: every
+// line the printer wrote is in one piece or another.
+func TestTheThreePiecesHoldTheWholeRecord(t *testing.T) {
 	held := sampleRecord()
-	stable, live := splitRecord(held)
-	together := live + "\n" + stable
+	stable, body, standing := splitRecord(held)
+	together := standing + "\n" + stable + "\n" + body
 
 	for _, line := range strings.Split(strings.TrimSpace(string(record.Print(held))), "\n") {
 		if strings.TrimSpace(line) == "" {
@@ -62,11 +80,11 @@ func TestTheTwoHalvesHoldTheWholeRecord(t *testing.T) {
 
 // TestARecordThatHasNotBeenMadeYetSplitsIntoNothing proves the first turn of a
 // task, before any tool has run and before a record exists, builds no record
-// halves at all rather than two empty ones.
+// pieces at all rather than three empty ones.
 func TestARecordThatHasNotBeenMadeYetSplitsIntoNothing(t *testing.T) {
-	stable, live := splitRecord(contract.Record{})
-	if stable != "" || live != "" {
-		t.Errorf("a record that does not exist yet split into %q and %q, want nothing at all", stable, live)
+	stable, body, standing := splitRecord(contract.Record{})
+	if stable != "" || body != "" || standing != "" {
+		t.Errorf("a record that does not exist yet split into %q, %q and %q, want nothing at all", stable, body, standing)
 	}
 }
 

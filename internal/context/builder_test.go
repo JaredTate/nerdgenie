@@ -85,17 +85,22 @@ func TestTheRecordIsSplitAcrossTheCacheLine(t *testing.T) {
 	}
 	first := request.Messages[0]
 	if first.Role != contract.RoleUser || !strings.Contains(first.Text, "## Work") {
-		t.Errorf("the record's live half is not the first thing below the cache line: %+v", first)
+		t.Errorf("the record's body is not the first thing below the cache line: %+v", first)
 	}
-	if !strings.Contains(first.Text, "this turn:") {
-		t.Errorf("the record's header, which changes every turn, is not below the cache line:\n%s", first.Text)
+	last := request.Messages[len(request.Messages)-1]
+	if !strings.Contains(last.Text, "this turn:") {
+		t.Errorf("the record's header, which is written anew on every call, is not the last thing below the cache line:\n%s", last.Text)
+	}
+	if strings.Contains(first.Text, "this turn:") {
+		t.Errorf("the record's header is still ahead of the work, where it costs the provider the whole body:\n%s", first.Text)
 	}
 }
 
-// TestTheMessagesRunFromTheRecordToTheMemoryHint proves the order below the
-// cache line is the one the instruction text promises the model: the record, the
-// pinned evidence, the recent messages, then the memory hint.
-func TestTheMessagesRunFromTheRecordToTheMemoryHint(t *testing.T) {
+// TestTheMessagesRunFromTheRecordToTheBudgetLine proves the order below the
+// cache line runs from what changes least to what changes most: the record's
+// body, the pinned evidence, the recent messages, the memory hint, and last of
+// all the two lines of the record's header, which are written anew every call.
+func TestTheMessagesRunFromTheRecordToTheBudgetLine(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	input := sampleInput()
 	input.Pinned = []Pin{{ID: "r6", Text: "the draft post, 236 characters"}}
@@ -106,7 +111,7 @@ func TestTheMessagesRunFromTheRecordToTheMemoryHint(t *testing.T) {
 		t.Fatalf("cannot build the working context: %v", err)
 	}
 	whole := testkit.WholeRequestText(request)
-	order := []string{"## Work", "the draft post, 236 characters", "Reading the product notes.", "Jared posts at 14:00"}
+	order := []string{"## Work", "the draft post, 236 characters", "Reading the product notes.", "Jared posts at 14:00", "budget left:"}
 	at := -1
 	for _, wanted := range order {
 		found := strings.Index(whole, wanted)

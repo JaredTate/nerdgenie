@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -50,6 +51,12 @@ func (setup Setup) lmStudioAddress() string {
 	return LMStudioAddress
 }
 
+// SetupWait is how long the whole of "coeus init" may take. At most six
+// questions each wait AnswerWait, so twenty minutes covers a person answering
+// every one of them slowly, and a run that has gone past it is a run nobody is
+// sitting in front of any more.
+const SetupWait = 20 * time.Minute
+
 // Init sets Coeus up on a machine that has never run it: it makes the home
 // folder and the work folder, writes the three persona files, asks at most six
 // questions, writes config.toml, runs the doctor, and prints the commands a new
@@ -66,6 +73,13 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 	if err != nil {
 		return err
 	}
+
+	// One deadline covers the whole run, not each question in turn, so that a
+	// setup nobody is answering ends rather than waiting AnswerWait again at
+	// every question.
+	whole, stop := context.WithTimeout(ctx, SetupWait)
+	defer stop()
+	ctx = whole
 
 	if _, err := os.Stat(setup.Home.ConfigFile()); err == nil && !chosen.resetConfig {
 		fmt.Fprintf(setup.Output, "\n%s is already set up, so nothing was changed.\n", setup.Home.Root)

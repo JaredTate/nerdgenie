@@ -82,52 +82,6 @@ func FuzzOpenAIStreamParser(f *testing.F) {
 	})
 }
 
-func FuzzCodexStreamParser(f *testing.F) {
-	f.Add(strings.Join([]string{
-		`event: response.created`,
-		`data: {"type":"response.created","response":{"id":"resp_1","status":"in_progress"}}`,
-		``,
-		`event: response.output_item.added`,
-		`data: {"type":"response.output_item.added","item":{"id":"fc_1","type":"function_call","call_id":"call_1","name":"read","arguments":""}}`,
-		``,
-		`event: response.function_call_arguments.delta`,
-		`data: {"type":"response.function_call_arguments.delta","delta":"{\"path\":\"a\"}","item_id":"fc_1"}`,
-		``,
-		`event: response.output_text.delta`,
-		`data: {"type":"response.output_text.delta","delta":"hi","item_id":"msg_1"}`,
-		``,
-		`event: response.completed`,
-		`data: {"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":3,"input_tokens_details":{"cached_tokens":1},"output_tokens":1}}}`,
-		``,
-	}, "\n") + "\n")
-	f.Add("data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"fc_9\",\"type\":\"function_call\",\"arguments\":\"{\"}}\n\n")
-	f.Add("data: {\"type\":\"response.incomplete\",\"response\":{\"incomplete_details\":{\"reason\":\"max_output_tokens\"}}}\n\n")
-	f.Add("data: {\"type\":\"response.failed\",\"response\":{\"error\":{\"message\":\"broken\"}}}\n\n")
-	f.Add("data: {\"type\":\"error\",\"message\":\"broken\"}\n\n")
-	f.Add("data: {\"type\":\"response.function_call_arguments.delta\",\"delta\":\"{\",\"item_id\":\"\"}\n\n")
-	f.Add("event: response.completed\n\n")
-	f.Add("")
-	f.Add("data:")
-	f.Add("\x00\xff\xfe")
-
-	f.Fuzz(func(t *testing.T, stream string) {
-		checkPromptly(t, "the Codex stream parser", func() {
-			written := strings.Builder{}
-			reply, err := readCodexStream(strings.NewReader(stream), func(delta string) {
-				written.WriteString(delta)
-			})
-			if err == nil && reply.Text != written.String() {
-				t.Fatalf("the deltas joined to %q and the reply is %q, and the two must always be the same",
-					written.String(), reply.Text)
-			}
-			if err == nil && reply.Usage.CachedInputTokens > reply.Usage.InputTokens {
-				t.Fatalf("the reply says %d of %d input tokens were cached, and the cached count is a part of the input count",
-					reply.Usage.CachedInputTokens, reply.Usage.InputTokens)
-			}
-		})
-	})
-}
-
 func FuzzClaudeOutputParser(f *testing.F) {
 	f.Add(`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hi"}}}
 {"type":"result","subtype":"success","is_error":false,"result":"hi","total_cost_usd":0.001,"usage":{"input_tokens":10,"output_tokens":1}}

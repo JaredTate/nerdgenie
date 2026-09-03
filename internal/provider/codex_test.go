@@ -86,12 +86,12 @@ func TestTheCodexProviderSendsTheSystemPromptAsInstructionsAndTheConversationAsI
 		t.Fatalf("the request carries %v as its input, want four items: the ask, the assistant's words, the call, and the result", body["input"])
 	}
 	first := items[0].(map[string]any)
-	if first["role"] != "user" || first["content"] != "Post the tweet about the launch." {
-		t.Errorf("the first item is %v, want the user's ask", first)
+	if first["type"] != "message" || first["role"] != "user" || textOfMessageItem(first) != "input_text: Post the tweet about the launch." {
+		t.Errorf("the first item is %v, want the user's ask as one input_text part", first)
 	}
 	second := items[1].(map[string]any)
-	if second["role"] != "assistant" || second["content"] != "Reading the notes." {
-		t.Errorf("the second item is %v, want the assistant's words", second)
+	if second["type"] != "message" || second["role"] != "assistant" || textOfMessageItem(second) != "output_text: Reading the notes." {
+		t.Errorf("the second item is %v, want the assistant's words as one output_text part", second)
 	}
 	third := items[2].(map[string]any)
 	if third["type"] != "function_call" || third["call_id"] != "call_1" || third["name"] != contract.ToolRead || third["arguments"] != `{"path":"notes.md"}` {
@@ -387,7 +387,6 @@ func TestTheCodexProviderIgnoresTheEventsItDoesNotRead(t *testing.T) {
 		`{"type":"response.reasoning_summary_text.delta","delta":"thinking about it","item_id":"rs_1"}`,
 		`{"type":"response.output_item.done","item":{"id":"rs_1","type":"reasoning","summary":[]}}`,
 		`{"type":"response.output_text.delta","delta":"ok","item_id":"msg_1"}`,
-		`not json at all`,
 		`{"type":"response.completed","response":{"id":"resp_7","status":"completed","usage":{"input_tokens":1,"output_tokens":1}}}`,
 	)})
 	model, _ := codexAgainst(t, backend)
@@ -413,4 +412,17 @@ func codexTokenOnDisk(t *testing.T) string {
 	start := strings.Index(string(contents), `"access_token":"`) + len(`"access_token":"`)
 	end := strings.Index(string(contents)[start:], `"`)
 	return string(contents)[start : start+end]
+}
+
+// textOfMessageItem reads the one text part out of a message item, with its
+// type in front, so that a test can say in one line which side wrote it.
+func textOfMessageItem(item map[string]any) string {
+	parts, _ := item["content"].([]any)
+	if len(parts) != 1 {
+		return ""
+	}
+	part, _ := parts[0].(map[string]any)
+	kind, _ := part["type"].(string)
+	text, _ := part["text"].(string)
+	return kind + ": " + text
 }

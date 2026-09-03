@@ -1,18 +1,16 @@
 // The address of OpenAI's Codex backend and the headers it lets through were
-// read from Hermes at
-// ~/.hermes/hermes-agent/plugins/model-providers/openai-codex/__init__.py
-// (the base address, and that the sign-in is the codex program's rather than a
-// key), ~/.hermes/hermes-agent/agent/auxiliary_client.py, where the
+// read from Hermes: the base address, and that the sign-in is the codex
+// program's rather than a key, from
+// ~/Code/hermes-agent/plugins/model-providers/openai-codex/__init__.py; the
 // originator, the user agent shaped like the codex program's, and the account
-// header are set because the layer in front of the backend turns away a
-// caller that does not send them, and ~/.hermes/hermes-agent/agent/transports/
-// codex.py, which sends the request. The place the sign-in file lives, and the
-// variable that moves it, were read from
-// ~/.hermes/hermes-agent/hermes_cli/auth.py (_import_codex_cli_tokens). All of
-// that is the installed Hermes; the reference clone at ~/Code/hermes-agent is
-// older than its Codex transport and has no copy of it. The session_id header
-// is the one the codex program itself sends on every call, so that the backend
-// can scope its prompt cache to one conversation.
+// header from ~/Code/hermes-agent/agent/codex_headers.py, where they are set
+// because the layer in front of the backend turns away a caller that does not
+// send them; and the place the sign-in file lives, with the variable that
+// moves it, from ~/Code/hermes-agent/hermes_cli/auth.py
+// (_import_codex_cli_tokens). The installed copy under ~/.hermes/hermes-agent
+// that the brief named says the same. The session_id header is the one the
+// codex program itself sends on every call, so that the backend can scope its
+// prompt cache to one conversation.
 //
 // Why this provider exists: the codex program, run as a bare model, describes
 // its own tools to the backend in a developer item that nothing removes, so
@@ -173,7 +171,7 @@ func (model *codexModel) headers(login codexLogin) http.Header {
 func (model *codexModel) explainRefusal(err error) error {
 	failure := providerError{}
 	if errors.As(err, &failure) && (failure.status == http.StatusUnauthorized || failure.status == http.StatusForbidden) {
-		return fmt.Errorf("%w, which means the backend did not accept the sign-in, so %s", err, codexSignInHint)
+		return fmt.Errorf("%w, which means the backend did not accept the sign-in, so %s", err, codexSignInAdvice)
 	}
 	return err
 }

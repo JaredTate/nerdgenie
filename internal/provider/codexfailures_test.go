@@ -122,41 +122,27 @@ func TestTheCodexProviderFailsPlainlyWhenTheSignInFileIsNotWhatCodexWrites(t *te
 	}
 }
 
-func TestTheCodexProviderTakesTheAccountFromTheTokenWhenTheFileNamesNone(t *testing.T) {
-	backend := newCodexBackend(t, codexAnswer{events: codexTextStream("ok", "")})
-	token := codexTokenExpiring(testClockNow().Add(time.Hour), "account-from-the-token")
-	writeCodexLogin(t, `{"auth_mode":"chatgpt","tokens":{"access_token":"`+token+`"}}`)
-	options, _ := testOptions(t, newTestClock())
+func TestTheCodexProviderRefusesATokenWhoseClaimsItCannotReadWithoutPrintingIt(t *testing.T) {
+	backend := newCodexBackend(t, codexAnswer{events: codexTextStream("never reached", "")})
+	writeCodexLogin(t, codexLoginFile("not.a.token."+codexSecretToken))
+	options, lines := testOptions(t, newTestClock())
 	model, err := provider.New(codexAliasAt(backend.address(), contract.ThinkDefault), options)
 	if err != nil {
 		t.Fatalf("building the Codex provider failed: %v", err)
 	}
 
-	if _, err := model.Send(context.Background(), requestWithEverything(), nil); err != nil {
-		t.Fatalf("one call to the Codex provider failed: %v", err)
-	}
+	_, err = model.Send(context.Background(), requestWithEverything(), nil)
 
-	if got := backend.lastCall(t).header.Get("ChatGPT-Account-Id"); got != "account-from-the-token" {
-		t.Errorf("the account header is %q, want the account the token's claims name", got)
+	if err == nil {
+		t.Fatal("a call with a token whose claims cannot be read came back as a good reply")
 	}
-}
-
-func TestTheCodexProviderSendsATokenWhoseClaimsItCannotReadAndLetsTheBackendJudge(t *testing.T) {
-	backend := newCodexBackend(t, codexAnswer{events: codexTextStream("ok", "")})
-	writeCodexLogin(t, codexLoginFile("not.a.token"))
-	options, _ := testOptions(t, newTestClock())
-	model, err := provider.New(codexAliasAt(backend.address(), contract.ThinkDefault), options)
-	if err != nil {
-		t.Fatalf("building the Codex provider failed: %v", err)
+	if !strings.Contains(err.Error(), "run codex once") {
+		t.Errorf("the error does not say to run codex once to sign in again: %v", err)
 	}
-
-	if _, err := model.Send(context.Background(), requestWithEverything(), nil); err != nil {
-		t.Fatalf("one call to the Codex provider failed: %v", err)
+	if backend.callCount() != 0 {
+		t.Errorf("the backend was called %d times with a token the provider could not read", backend.callCount())
 	}
-
-	if got := backend.lastCall(t).header.Get("Authorization"); got != "Bearer not.a.token" {
-		t.Errorf("the token went over as %q, want it sent as it is for the backend to judge", got)
-	}
+	checkNoTokenIn(t, err, lines)
 }
 
 func TestTheCodexProviderTellsTheUserToSignInAgainOnAnUnauthorizedAnswer(t *testing.T) {

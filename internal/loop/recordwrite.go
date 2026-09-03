@@ -262,9 +262,17 @@ func whatTheTaskToolTakes() string {
 
 // fieldsWritten names the parts of the record one write touched, in order, for
 // the one line the record keeps about it.
-func fieldsWritten(arguments string) string {
+//
+// The answer it reads is what the task tool gave back, which is a sentence
+// naming what was written with the whole update as JSON under it, so the reading
+// starts at the first brace. An answer with no update under it at all is one
+// change and nothing more can be said about it.
+func fieldsWritten(answer string) string {
+	if starts := strings.Index(answer, "{"); starts > 0 {
+		answer = answer[starts:]
+	}
 	written := map[string]json.RawMessage{}
-	if err := json.Unmarshal([]byte(arguments), &written); err != nil {
+	if err := json.Unmarshal([]byte(answer), &written); err != nil {
 		return "one change"
 	}
 	names := slices.Sorted(maps.Keys(written))

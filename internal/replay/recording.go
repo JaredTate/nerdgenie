@@ -88,6 +88,14 @@ func Read(ctx context.Context, store contract.Store, taskID string) (Recording, 
 		return Recording{}, fmt.Errorf("cannot read the recording of task %q without an event log to read it from", taskID)
 	}
 	events, err := store.ByTask(ctx, taskID)
+	// A read that came back cut short hands over the events it did read
+	// together with the log's own advice on how to read the rest. That advice is
+	// for a caller walking the log in pages, and a replay is not one: it needs
+	// the whole run or none of it. So the real reason is what is said here.
+	if err != nil && len(events) > 0 {
+		return Recording{}, fmt.Errorf("task %q wrote more events than one read of the log returns, so it is too long to replay; replay a shorter task, or read it with the tasks command: %w",
+			taskID, err)
+	}
 	if err != nil {
 		return Recording{}, fmt.Errorf("cannot read the events of task %q: %w", taskID, err)
 	}

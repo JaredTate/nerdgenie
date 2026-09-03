@@ -252,3 +252,21 @@ func TestEveryRowOfAThemedFrameIsPaintedRightToTheEdge(t *testing.T) {
 		}
 	}
 }
+
+func TestAnEscapeCharacterFromEitherSideNeverReachesTheTerminal(t *testing.T) {
+	screen, _ := newTestScreen(80, 24)
+	screen.link = &recordingLink{}
+	screen.remember(block{kind: blockPerson, text: "before\x1b[2Jafter"})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketReply, Text: "a reply\x07with a bell"})
+	screen.input.setText("typed\x1b]0;a new title\x07")
+
+	frame := screen.View()
+	if strings.Contains(plainText(frame), "\x1b") || strings.Contains(frame, "\x07") {
+		t.Errorf("a control character the screen was handed reached the frame:\n%q", frame)
+	}
+	for number, line := range strings.Split(frame, "\n") {
+		if width := displayWidth(plainText(line)); width != 80 {
+			t.Errorf("row %d measures %d columns and the terminal is 80: %q", number+1, width, line)
+		}
+	}
+}

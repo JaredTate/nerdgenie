@@ -62,13 +62,41 @@ type row struct {
 	width int
 }
 
-// add puts one piece of text on the end of the row.
+// add puts one piece of text on the end of the row, with the control characters
+// taken out of it first.
 func (line *row) add(chosen style, text string) {
+	text = withoutControls(text)
 	if text == "" {
 		return
 	}
 	line.spans = append(line.spans, span{style: chosen, text: text})
 	line.width += displayWidth(text)
+}
+
+// withoutControls turns every control character in a piece of text into one
+// blank. Everything the person types and everything the program sends is drawn
+// through this, because a screen that passes an escape character straight to the
+// terminal lets whoever wrote it move the cursor, repaint the frame, or hide
+// what it did, and because a row holding a stray escape is no longer as wide as
+// it measures. The escape codes the screen draws its own colours with are added
+// after this, when the row is rendered.
+func withoutControls(text string) string {
+	if !strings.ContainsFunc(text, isControl) {
+		return text
+	}
+	return strings.Map(func(letter rune) rune {
+		if isControl(letter) {
+			return ' '
+		}
+		return letter
+	}, text)
+}
+
+// isControl says whether a character is one the terminal reads as an
+// instruction rather than drawing: the thirty-three control characters and the
+// delete character.
+func isControl(letter rune) bool {
+	return letter < ' ' || letter == 0x7f
 }
 
 // addSpan puts an already-styled piece of text on the end of the row.

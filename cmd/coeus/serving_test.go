@@ -131,7 +131,7 @@ func TestNoNewTaskStartsWhileTheGuardSaysNo(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
 
-	if !strings.Contains(readTheSourceOf(t, "wiring.go"), "WhyNoNewTask") {
+	if !strings.Contains(readTheSourceOf(t, "starting.go"), "WhyNoNewTask") {
 		t.Error("nothing asks the guard whether a task may start, so the crash-loop breaker and the drain marker do nothing")
 	}
 	if !strings.Contains(readTheSourceOf(t, "serving.go"), "WhyNoNewTask") {

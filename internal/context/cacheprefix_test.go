@@ -48,6 +48,38 @@ func TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid(t *testing.T) {
 	}
 }
 
+// TestOneMemorySaveDoesNotMoveTheTopOfThePrompt is finding 18 of the wave 6 gate
+// review. The three persona files are read from disk on every build, and the
+// `memory` tool and the after-action review both write into two of them, so a
+// single fact saved in the middle of a task used to rewrite the block that ends
+// cache boundary A and cost the whole prompt under it. What the agent knows
+// belongs below the cache line, where saving a fact costs only the lines after
+// it; only SOUL.md, which nothing but the user writes, stays above.
+func TestOneMemorySaveDoesNotMoveTheTopOfThePrompt(t *testing.T) {
+	run := newFixtureRun(t)
+	home := roomyHome(t)
+	builder := newTestBuilder(t, Options{Home: home, MaxOutputTokens: contract.DefaultConfig().Caps.OutputTokensPerCall, Boundary: goldenBoundary})
+	run.playTo(t, 20)
+
+	before := renderPrompt(buildWithTheBudgetSpent(t, builder, run, 80,
+		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500}))
+	writePersonaFile(t, home.WorldFactsFile(),
+		"DigiByte launched on the tenth of January 2014.\nA DigiByte block is mined about every fifteen seconds.")
+	after := renderPrompt(buildWithTheBudgetSpent(t, builder, run, 80,
+		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500}))
+
+	if !strings.Contains(after, "about every fifteen seconds") {
+		t.Fatal("the saved fact never reached the prompt, so this test is not measuring what it says it measures")
+	}
+	shared := sharedPrefix(before, after)
+	share := 100 * len(shared) / len(after)
+	t.Logf("one fact saved mid-task leaves %d characters of %d shared, which is %d per cent", len(shared), len(after), share)
+	if share < leastSharedPercent {
+		t.Errorf("saving one fact left only %d per cent of the prompt where it was, and the layout has to hold %d;"+
+			" what the agent writes about itself is sitting above what it does not", share, leastSharedPercent)
+	}
+}
+
 // TestThePromptTheProviderCanReuseReachesPastTheRecordBody is the layout half of
 // the cache rule, and it came out of the first live run on the local model: every
 // call read about fifteen thousand tokens and the provider reused only about

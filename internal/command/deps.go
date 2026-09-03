@@ -55,6 +55,10 @@ type Deps struct {
 	// Channels is every channel the program is listening on, which "/status"
 	// asks the health of.
 	Channels func() []contract.Channel
+	// YoloIsOn says whether the yolo switch is on, which "/status" reports,
+	// because while it is on every call that would have asked runs without
+	// asking. Left empty, the status says nothing about it.
+	YoloIsOn func() bool
 	// Sessions lists the conversations, newest first.
 	Sessions func(ctx context.Context) ([]Session, error)
 	// NewSession starts a fresh conversation and returns its id.

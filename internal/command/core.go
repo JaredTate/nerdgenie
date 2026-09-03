@@ -21,18 +21,17 @@ func (commands *Commands) Help() contract.Command {
 	}
 }
 
-// Status is the "/status" command: the model in use, what the session has cost
-// so far, the jobs, what is waiting for an answer, and whether each channel is
-// working.
+// Status is the "/status" command: the model in use, whether yolo is on, what
+// the session has cost so far, the jobs, what is waiting for an answer, and
+// whether each channel is working.
 func (commands *Commands) Status() contract.Command {
 	return contract.Command{
 		Name: "status",
 		Help: "Shows the model, the cost so far, the jobs, the answers waiting, and the health of each channel.",
 		Run: func(ctx context.Context, _ string, _ contract.CommandContext) (string, error) {
-			lines := []string{
-				"model: " + commands.modelLine(),
-				"cost so far: " + commands.costLine(),
-			}
+			lines := []string{"model: " + commands.modelLine()}
+			lines = append(lines, commands.yoloLines()...)
+			lines = append(lines, "cost so far: "+commands.costLine())
 			lines = append(lines, commands.jobLines(ctx)...)
 			lines = append(lines, commands.waitingLines(ctx)...)
 			lines = append(lines, commands.channelLines(ctx)...)
@@ -52,6 +51,21 @@ func (commands *Commands) modelLine() string {
 		}
 	}
 	return name
+}
+
+// yoloLines is the one line saying whether yolo is on, which is the one fact
+// about the session a person most needs to know before they ask for anything,
+// because while it is on every call that would have asked runs without asking.
+// A build with nothing wired up to switch it prints no line, because there is
+// nothing to report.
+func (commands *Commands) yoloLines() []string {
+	if commands.deps.YoloIsOn == nil {
+		return nil
+	}
+	if commands.deps.YoloIsOn() {
+		return []string{"yolo: on, so every call that would have asked first runs without asking, until /yolo off"}
+	}
+	return []string{"yolo: off"}
 }
 
 // modelInUse is the alias the program is talking to, or the one the

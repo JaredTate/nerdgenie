@@ -30,5 +30,8 @@
 // somewhere else and go to the person; every other approval names a readable
 // form and is matched as a pattern. A run with nobody there to answer is ruled
 // stop before any approval is read, so the task reports what it needed rather
-// than waiting forever.
+// than waiting forever. The one switch is yolo, which "/yolo" turns on for a
+// session: while it is on, every call that would have asked runs without
+// asking and is logged as allowed by yolo, and a rule that refuses and a no the
+// user already gave stay exactly as they were.
 package permission

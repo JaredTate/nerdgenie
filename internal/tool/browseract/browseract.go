@@ -24,6 +24,11 @@ const (
 	MethodType = "type"
 	// MethodPress presses one key.
 	MethodPress = "press"
+	// MethodScroll scrolls the page.
+	MethodScroll = "scroll"
+	// MaxScrollAmount is the most steps one scroll may ask for, because a
+	// page is read a screen at a time and a longer scroll is a loop.
+	MaxScrollAmount = 20
 )
 
 // Settings is what the browser act tool needs to do its work.
@@ -34,7 +39,7 @@ type Settings struct {
 
 // writtenStep is one step of a batch as the model writes it.
 type writtenStep struct {
-	// Method is click, type, or press.
+	// Method is click, type, press, or scroll.
 	Method string `json:"method"`
 	// Element is the reference to act on, for a click or typing.
 	Element string `json:"element"`
@@ -42,6 +47,11 @@ type writtenStep struct {
 	Text string `json:"text"`
 	// Key is the key to press, when the method is press.
 	Key string `json:"key"`
+	// Direction is up or down, when the method is scroll.
+	Direction string `json:"direction"`
+	// Amount is how many steps to scroll, when the method is scroll; one
+	// when it is left out.
+	Amount int `json:"amount"`
 	// Expectation says what should happen because of this step.
 	Expectation string `json:"expectation"`
 }
@@ -72,7 +82,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			"Use it for a form rather than one call per box.",
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What the whole batch is for, in one line.", Required: true},
-			{Name: "steps", Type: "array", Description: "The steps in order, each with a method, an element, and an expectation.", Required: true},
+			{Name: "steps", Type: "array", Description: "The steps in order, each with a method (click, type, press, or scroll), what it acts on, and an expectation.", Required: true},
 		},
 		Classes: []contract.PermissionClass{contract.ClassNetwork, contract.ClassExecute},
 	}
@@ -132,7 +142,9 @@ func readSteps(asked input) ([]contract.ActStep, error) {
 			return nil, err
 		}
 		steps = append(steps, contract.ActStep{
-			Method: step.Method, Ref: step.Element, Text: step.Text, Key: step.Key, Expectation: step.Expectation,
+			Method: step.Method, Ref: step.Element, Text: step.Text, Key: step.Key,
+			Direction: contract.ScrollDirection(step.Direction), Amount: max(step.Amount, 1),
+			Expectation: step.Expectation,
 		})
 	}
 	return steps, nil
@@ -149,12 +161,29 @@ func checkStep(at int, step writtenStep) error {
 		if strings.TrimSpace(step.Key) == "" {
 			return fmt.Errorf("step %d names no key to press, so write one such as Enter", at+1)
 		}
+	case MethodScroll:
+		if err := checkScroll(step); err != nil {
+			return fmt.Errorf("step %d cannot scroll: %w", at+1, err)
+		}
 	default:
-		return fmt.Errorf("step %d asks for %q, which is not a method this tool knows, so use click, type, or press",
+		return fmt.Errorf("step %d asks for %q, which is not a method this tool knows, so use click, type, press, or scroll",
 			at+1, step.Method)
 	}
 	if err := browserclick.CheckExpectation(step.Expectation); err != nil {
 		return fmt.Errorf("the batch cannot run step %d: %w", at+1, err)
+	}
+	return nil
+}
+
+// checkScroll holds the rules a scroll step must satisfy: a direction the
+// browser knows and an amount inside the cap.
+func checkScroll(step writtenStep) error {
+	direction := contract.ScrollDirection(step.Direction)
+	if direction != contract.ScrollUp && direction != contract.ScrollDown {
+		return fmt.Errorf("the scroll direction %q is not one the browser knows, so use up or down", step.Direction)
+	}
+	if step.Amount > MaxScrollAmount {
+		return fmt.Errorf("the scroll asks for %d steps and the cap is %d, so scroll in pieces", step.Amount, MaxScrollAmount)
 	}
 	return nil
 }

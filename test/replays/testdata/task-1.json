@@ -1,0 +1,64 @@
+{
+  "taskId": "1",
+  "ask": "count the files in the notes folder",
+  "origin": "terminal",
+  "rounds": [
+    {
+      "orient": "I am starting on the notes folder.",
+      "calls": [
+        {
+          "name": "search",
+          "input": {
+            "pattern": "*"
+          },
+          "result": "three files",
+          "ran": true
+        },
+        {
+          "name": "task",
+          "input": {
+            "why": "the user wants a count",
+            "done_when": [
+              "the files are counted"
+            ],
+            "plan": [
+              "read the folder",
+              "name the files"
+            ]
+          },
+          "result": "{\"why\":\"the user wants a count\",\"done_when\":[\"the files are counted\"],\"plan\":[\"read the folder\",\"name the files\"]}",
+          "ran": true
+        }
+      ]
+    },
+    {
+      "orient": "I have the count and now want the names.",
+      "calls": [
+        {
+          "name": "search",
+          "input": {
+            "pattern": "*.md"
+          },
+          "result": "notes.md, list.md, plan.md",
+          "ran": true
+        },
+        {
+          "name": "task",
+          "input": {
+            "done_when": [
+              {
+                "text": "the files are counted",
+                "done": true,
+                "resultId": "r3"
+              }
+            ]
+          },
+          "result": "{\"done_when\":[{\"text\":\"the files are counted\",\"done\":true,\"resultId\":\"r3\"}]}",
+          "ran": true
+        }
+      ]
+    }
+  ],
+  "answer": "There are three files: notes.md, list.md, plan.md.",
+  "finalText": "# task 1   done   from terminal   budget left: 97 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: There are three files: notes.md, list.md, plan.md.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n"
+}

@@ -19,7 +19,10 @@ func readInput(written json.RawMessage) (input, error) {
 	}
 	switch asked.Operation {
 	case OperationWhy:
-		return asked, needsText(asked.Why, "the why is the one line on why the user wants this, so write it")
+		if strings.TrimSpace(asked.Why) == "" {
+			asked.Why = asked.Text
+		}
+		return asked, needsText(asked.Why, `the why is the one line on why the user wants this, so write it in the "why" field`)
 	case OperationDoneWhen:
 		return asked, checkList(len(asked.DoneWhen), "done list", "one line each saying what must be true")
 	case OperationStopWhen:

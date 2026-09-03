@@ -1093,6 +1093,7 @@ worker/browser/test/chrome.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
+worker/browser/test/headless.test.ts
 worker/browser/test/pacing.test.ts
 worker/browser/test/page-events.test.ts
 worker/browser/test/pages/busy-attributes.html

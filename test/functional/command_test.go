@@ -28,6 +28,12 @@ import (
 // queue, or a reply before it says the agent is stuck.
 const aCommandWait = 5 * time.Second
 
+// messagesBeforeAReply is how many messages the screen reads while looking for
+// the answer to a line it typed. The stream sends a status of its own now and
+// then, and those are stepped over; anything more than a handful of them means
+// the answer is not coming.
+const messagesBeforeAReply = 8
+
 // theStartOfTime is the moment the fake clock in this file starts at, so that
 // nothing here reads the machine's own clock.
 var theStartOfTime = time.Date(2026, time.September, 2, 14, 3, 0, 0, time.UTC)
@@ -109,11 +115,25 @@ func (terminal *aTerminal) typeLine(ctx context.Context, line string) string {
 	}
 	terminal.finish(ctx, taken)
 
-	reply := terminal.next()
-	if reply.Type != contract.SocketReply {
-		terminal.t.Fatalf("the screen was sent a %s rather than a reply to %q", reply.Type, line)
+	return terminal.replyText(line)
+}
+
+// replyText reads until the answer arrives, stepping over the status messages
+// the stream sends a screen of its own accord, and gives back what it said.
+func (terminal *aTerminal) replyText(line string) string {
+	terminal.t.Helper()
+	for read := 0; read < messagesBeforeAReply; read++ {
+		envelope := terminal.next()
+		if envelope.Type == contract.SocketStatus {
+			continue
+		}
+		if envelope.Type != contract.SocketReply {
+			terminal.t.Fatalf("the screen was sent a %s rather than a reply to %q", envelope.Type, line)
+		}
+		return envelope.Text
 	}
-	return reply.Text
+	terminal.t.Fatalf("no reply to %q reached the screen in %d messages", line, messagesBeforeAReply)
+	return ""
 }
 
 // send writes one command envelope and waits for it to reach the queue, which is
@@ -219,13 +239,14 @@ func startATerminal(t *testing.T, ctx context.Context) *aTerminal {
 	}
 	t.Cleanup(func() { _ = queue.Close() })
 
-	stream := channel.NewStream()
+	stream := channel.NewStream(channel.StreamOptions{})
 	socket, err := channel.Listen(channel.Options{
-		Path:    filepath.Join(folder, "coeus.sock"),
-		Stream:  stream,
-		Queue:   queue,
-		Secrets: testkit.NewFakeSecrets(),
-		Clock:   testkit.NewFakeClock(theStartOfTime),
+		Path:           filepath.Join(folder, "coeus.sock"),
+		Stream:         stream,
+		Queue:          queue,
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(theStartOfTime),
+		AnswerDeadline: contract.DefaultConfig().Caps.TimePerTurn,
 	})
 	if err != nil {
 		t.Fatalf("listening on the socket failed: %v", err)

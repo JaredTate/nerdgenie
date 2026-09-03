@@ -386,7 +386,10 @@ down to none. The codes are written here rather than by `lipgloss.Style.Render`
 because a lipgloss renderer reports no colour at all when its writer is not a
 terminal, which every test process is. `View` paints every row out to the
 right-hand edge so the ground has no gaps. `banner.go` draws the `COEUS AGENT`
-wordmark in a five-row block font while the transcript is empty; `bubble.go`
+wordmark in a five-row block font while the transcript is empty, with the tagline,
+a small filled tag naming the model and what the program is doing, and one line
+saying `type / to see the commands`, which is the only thing on a first frame
+that says where the tasks and the jobs are to be found; `bubble.go`
 draws the person's filled bubble leaning right, the agent's outlined bubble
 leaning left, and a tool call as a small filled pill.
 
@@ -417,9 +420,12 @@ header, the status strip, the tool lines, the health dot, the budget bar and the
 command palette from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
 `StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
 `StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
-`StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
-holding one command per line with `contract.StatusCommandSeparator` between its
-name and its help. The state field carries one of `contract.StateIdle`,
+`StatusFieldToolLine`, `StatusFieldHealthy`, `StatusFieldCommands`,
+`StatusFieldContextTokens`, `StatusFieldContextWindow`, `StatusFieldCallStarted`,
+`StatusFieldStreamed`, and `StatusFieldRecordLine`. The commands field holds one
+command per line with `contract.StatusCommandSeparator` between its name and its
+help, and the name is held without the slash the program writes it with, because
+the palette draws a slash of its own and matches on what is typed after one. The state field carries one of `contract.StateIdle`,
 `StateThinking`, `StateUsingTool`, `StateWaitingForYou`, and `StatePaused`; the
 words the strip draws are the design's, so `StateUsingTool` reads as "using read"
 and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
@@ -429,6 +435,25 @@ as the program answering for itself. The budget line is read for its first
 number, and the fullest report seen since this task started is what the bar in
 the status strip is measured against. A `reply` that carries `Attachments` names
 each file as a pill.
+
+The first human trial added four things the program tells the screen and the
+screen draws. The header measures the last call's context against the model's
+window from `StatusFieldContextTokens` and `StatusFieldContextWindow`, reading
+`ctx 12.4k / 262k · 5%` after the model alias and before the session cost, quiet
+below eighty percent, gold from eighty, and red from ninety-five, and drawn only
+when the program sent both numbers. While the state is thinking, the status strip
+counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
+`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count begins
+the moment the program reports the call rather than when the spinner is due, so
+it never blinks with the spinner's own delay and hold, and it goes the moment the
+state stops being thinking. A start time the screen cannot read is not counted
+from at all. `StatusFieldRecordLine` is one line about the newest change to the
+record, drawn as a pill exactly as a tool call is; the program sends the same
+line on every heartbeat until something else changes, so only a line that differs
+from the last one shown gets a pill. And Escape now stops whatever is running —
+the model thinking, a tool running, or a task working through — rather than only
+a busy state, because a plain reply is not a task and the person who wants a
+rambling answer to stop must not wait for it to finish.
 
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text
@@ -457,7 +482,21 @@ card arriving above a preview cannot take the preview's three answers with it.
 
 **The browser is optional.** `browser.ProcessStart` points at `workers/browser/main.js` beside the binary, with `config.BrowserProfilePath` as the profile and human pacing; `browser.New` takes that start, the user's channel, the vault as both `Secrets` and `Codes`, the clock, and `handoff_timeout`; the browser and its `Credentials`, `TwoFactorCode` and `AskUser` go into the tool settings, and `browser.ScreenCommand` into the registry. When the bundle is not there, or Node is not on the PATH, the agent comes up without it and says so in the doctor's own manner, and the seven browser tools refuse.
 
-**One thing is left off on purpose: no deltas.** `provider.WithRetries` and `provider.NewChain` both hold an attempt's text back until that attempt has succeeded, so a delta today is not live text; the whole answer arrives in one lump a moment before the reply. The two then travel to a screen by different paths, deltas on the event stream and the reply straight out of `Socket.Send`, and nothing orders those paths against each other. Measured against the real local model on this machine, the reply won every time, and the terminal, which reads a delta arriving after a reply as the start of a new answer, drew the same answer twice. Live text becomes possible the day a channel's reply rides the same event stream its deltas do.
+**What a screen is told.** The status a screen reads on every heartbeat, and at once whenever anything moves, carries the model, the running task, the state, the budget line, the health mark, and the command list, and beside them everything the header and the strip draw: `StatusFieldContextWindow` from the model's own window and `StatusFieldContextTokens` from the last call's input tokens, the session's tokens in and out and its money, `StatusFieldCallStarted` and `StatusFieldStreamed` while a call is in flight, `StatusFieldRecordLine` for the newest change to a task or a job, and `StatusFieldToolLine` for the tool call in flight and its result. The numbers come from `cmd/coeus/watchedmodel.go`, a `contract.Model` wrapped around the provider chain that counts what each call began, wrote, held and cost; it sits between the loop and the provider because the loop must not know about screens and the provider must not know about sessions. The two lines come from the loop, which calls `Options.ToolLine` and `Options.RecordLine`.
+
+**A task runs beside the drainer, not inside it.** The drainer is the one path a command travels, so a task run inside it would hold every later message behind itself: the person would press Escape, or ask `/status` from a second screen, and nothing would happen until the model had answered. That is what the first human trial found. The task goroutine takes the queue's message with it and marks it done when it ends, so a crash mid-task still hands the message out again.
+
+**Stopping.** `Loop.Stop` sets the stop flag and cancels the model call in flight, which the loop holds while it is calling; the call gets a context of its own so that cancelling it leaves the task alive to write and send its stopped report. A call that comes back cancelled while a stop was asked ends the task as stopped rather than failed, because the person pressed Escape and is owed the stopped report rather than an error about a cancelled context.
+
+**Every event carries a time.** `cmd/coeus/timedstore.go` wraps the event log so that an event written with no time on it is given the time it was written, and every writer is handed that rather than the log itself. The record keeper saves a checkpoint and a tool result on every change and has no clock of its own; a live run found all of them dated the year one.
+
+**The nightly self-check.** `replay.NewNightly` is built beside the loop, with the skill store's own `DryRun` passed as a function because `contract.Skill` does not carry it, and registered once as soon as the agent is up. The job driver asks `Handles` before it hands a due task to the loop and calls `Run` when the answer is yes, so the check asks the memory its own questions and dry runs the skills without spending a model call.
+
+**`coeus run`.** One prompt from a script: it attaches to the socket exactly as the screen does, sends the message, writes the reply on the ordinary output and every other line on the error output, prints a preview and refuses it unless `--yes` was given, waits for the reply or, with `--wait`, for the task to end, and leaves with 0 on a reply and 1 on anything else, inside a `--timeout` that defaults to thirty minutes.
+
+**`coeus askpass` under sudo.** The helper runs in an environment that is not the agent's: `COEUS_HOME` may have moved the home, the shell tool sets `HOME` to the agent's home before it runs sudo, and sudo may have replaced `HOME` with root's while naming the account that asked in `SUDO_USER`. It tries each of those in turn and takes the first that really holds a vault, and it never opens a vault that is not there, because opening one makes an age private key and a helper that only wanted to read must leave nothing behind.
+
+**One thing is left off on purpose: no deltas.**
 
 ## The commands and the four subcommands (built, wave 3, brief 3.3)
 
@@ -865,6 +904,22 @@ Four kinds of tests, described in `docs/WORK_PLAN.md`: unit, integration, functi
 `make check` is `scripts/gofmt.sh`, `go vet`, `staticcheck`, the style checker, the repository-map drift test, `scripts/coverage.sh`, and `make test`. The three scripts are driven by tests of their own in `scripts/gate`, which build a small module in a temporary folder and run the real script against it, because a shell script nothing tests is a gate nothing guards.
 
 The format check reads the file list from `git ls-files` rather than from `find`, so it covers what this branch tracks and nothing in another worker's worktree, quotes every path, and checks gofmt's exit status as well as its output. The coverage gate is driven by `go list`, so a package the report never mentions is a failure rather than a silence, and a package with no test file is named for what it is. The fuzz script lists with the integration tag on and fails on a package whose test binary will not build, rather than skipping it. `internal/lint` reports a file it cannot parse as a violation naming the file, resolves the callee's package through the file's own imports so an alias or a dot import cannot hide an error message, counts an error message's words with the format verbs taken out, reads a field's trailing comment as well as the one above it, and allows the conventional one-letter names only in a test file, in a helper that takes a testing handle, and in a request handler.
+
+## The installer and the release (built, wave 6, brief 6.2)
+
+`scripts/install.sh` is the whole of "a person can install with one script". It is one hundred and ninety-seven lines of POSIX shell, run either as `curl ... | sh` or from a checkout, and everything after a bare `--` is handed on to `coeus init`, so a machine with no keyboard answers every question on the command line. It prints one line per step, and only two things stop it: a command line it cannot read, and a release it cannot verify or unpack. Everything else is a warning that names what to do, because a machine missing bubblewrap or signal-cli still runs Coeus with that one tool switched off, which is what `coeus doctor` says too.
+
+The order matters. The archive is found and checked against `SHA256SUMS` **before** anything on the machine is changed, because a release that cannot be verified means none of the rest was worth doing; when the release is downloaded, the checksum file is fetched first and the archive is chosen out of it, so nothing is ever pulled that could not have been checked anyway. Then bubblewrap and ripgrep come from `apt-get`; signal-cli comes from `apt-get` when it is there and from a pinned, checksum-verified native build when it is not, and a download that does not match the pin is thrown away rather than installed. On Ubuntu 24.04 and later, where AppArmor refuses an unconfined program a new user namespace, the profile `/etc/apparmor.d/bwrap` is written and loaded with `apparmor_parser -r`, and then proved with one real `bwrap --unshare-user --ro-bind / / /bin/true`; finding bwrap installed is not the same as being allowed to fence, which is the same thing `internal/sandbox` says. The work folder `~/coeus` is made, Google Chrome is named as the user's own job with the two ways to get it, the archive is unpacked into `~/.coeus/releases/<version>/` with `current` linked at that version's binary, which is what the service unit's `ExecStart` runs, a launcher goes in `~/.local/bin`, and `coeus init` runs last. A distribution that is not Ubuntu or Debian is not a failure: it is told plainly which packages to install by hand, and the release is still installed. `--from <path>` installs a local `make release` archive instead of downloading, which is how the tests drive it, and `--no-signal` leaves signal-cli out.
+
+`make release` is `scripts/release/build.sh`, and it writes `dist/`: one `coeus-<version>-<architecture>.tar.gz` for `linux/amd64` and `linux/arm64`, a flat `SHA256SUMS` written last that never lists itself, and a `manifest.json` holding the version, the UTC date, the Node version, the architectures, and each archive's checksum keyed by the archive's own name, which is exactly what `internal/update.ParseManifest` reads. The version comes from `git describe` unless `VERSION` says otherwise. Inside an archive are four things, and no folder of its own around them: `coeus`, a `VERSION` file, `node/bin/node`, and `workers/browser/` and `workers/desktop/`, each with its bundle at `main.js` beside the dependencies it needs at run time. That is the same shape `bin/workers/<name>/main.js` has in a checkout, so one path finds a worker in a development build and in an install.
+
+Two details of the archive are `internal/update`'s rules rather than this brief's, and the release keeps them because the updater is the other half of the same job. It unpacks into a folder it has already made and then looks for `coeus` at the top of it, so the archive carries no wrapper folder and the installer strips nothing. And it refuses any entry that is not a plain file or a folder, because a link is a way to write outside the folder being unpacked, so `npm`'s `node_modules/.bin` goes before an archive is packed — a release starts a worker as `node main.js` and runs none of those programs — and the staging step then fails the build if any link is left, where there is somebody to fix it rather than a user watching an update refuse itself. The manifest is checked in the tests by `update.ParseManifest` rather than by a struct written out a second time, so the two cannot drift apart quietly. Compiling the two bundles is the `build` target's job and nothing else's, so `release` depends on `build` and `build.sh` only checks that `worker/<name>/dist/main.js` is there, naming `make build` when it is not; a release never compiles a worker a second way.
+
+Two things about the archives are easy to get wrong and are worth naming. The workers' dependencies are installed fresh from their lock files into the release tree with `npm ci --omit=dev --os=linux --cpu=<x64|arm64>` rather than copied out of the checkout, because the desktop worker's driver ships a compiled library per architecture and a copied tree would put this machine's x86_64 library in the arm64 archive, where nothing could load it. And the pinned Node runtime is bundled at all so that a new user does not have to install Node first; `scripts/release/node.sh` downloads the official build, checks it against a SHA-256 written down in that script, keeps only the one program, and caches it under `~/.cache/coeus-release` rather than in the checkout, so a release never makes the working tree dirty. `docs/DEPENDENCIES.md` carries the pin and how to raise it.
+
+The tests are Go tests in `scripts/release` that run the real scripts, the way `scripts/gate` tests the gate scripts, because a shell script nothing tests is a promise nothing keeps. The installer is driven against a fake machine: a fake package manager, a fake `apparmor_parser`, a fake `bwrap`, a temporary `HOME`, and `COEUS_OS_RELEASE` and `COEUS_APPARMOR_DIR` pointing at a fixture, so every privileged step is exercised without any privilege and the real `~/.coeus` is never touched. `scripts/release/container_test.go`, under the `integration` tag, is the honest one: it installs a real `make release` archive on a clean Ubuntu and a clean Debian container with every `init` answer as a flag and ends on a passing `coeus doctor`. It needs a container runtime whose daemon answers and an archive in `dist/`, and says which is missing and skips when either is; `.github/workflows/install.yml` is where it always runs, and that workflow turns a skip into a failure so a green run cannot mean nothing was proved. `.github/workflows/release.yml` builds on a version tag and publishes the archives, `SHA256SUMS`, and `manifest.json` with `gh release create`.
+
+**The borrowed designs**, named at the top of each script: fetching the checksum file before the archive it checks, and keeping nothing that does not match, from ZeroClaw's `~/Code/zeroclaw/install.sh`; one flat `SHA256SUMS` written last and one archive named after its target, from ZeroClaw's `~/Code/zeroclaw/.github/workflows/release-stable-manual.yml`. OpenClaw's `~/Code/openclaw/scripts/install.sh` is the example avoided: four thousand lines, a progress-bar program downloaded at run time to draw spinners, a hand-rolled timeout across three temporary files, and `sudo bash` handed a script fetched from a third party.
 
 ## Wave log
 

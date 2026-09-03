@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/browser"
@@ -16,6 +15,7 @@ import (
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/sandbox"
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
@@ -53,7 +53,8 @@ func (running *agent) openTheModelAndTheScreens() error {
 	if err != nil {
 		return err
 	}
-	running.model = model
+	running.watched = newWatchedModel(model, clock.System(), running.tellTheScreens)
+	running.model = running.watched
 	running.stream = channel.NewStream(channel.StreamOptions{
 		Clock:  clock.System(),
 		Status: running.statusForAScreen,
@@ -211,7 +212,7 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 		UserHome:      userHomeOrEmpty(),
 		TaskID:        taskID,
 		Note:          running.note,
-		Log:           running.eventLog,
+		Log:           running.events,
 		Sandbox:       running.fence,
 		Permission:    running.decider,
 		Memory:        running.memories,
@@ -279,7 +280,7 @@ func (running *agent) openTheLoop() error {
 		Tools:        running.tools,
 		ToolsForTask: running.toolsForTask,
 		Permission:   running.decider,
-		Store:        running.eventLog,
+		Store:        running.events,
 		Clock:        clock.System(),
 		Context:      loop.TheWorkingContext(running.builder),
 		Jobs:         running.jobs,
@@ -287,12 +288,37 @@ func (running *agent) openTheLoop() error {
 		Skills:       running.skillsBox,
 		Sandbox:      running.fence,
 		Caps:         running.settings.Caps,
+		ToolLine:     running.noteToolLine,
+		RecordLine:   running.noteRecordLine,
 	})
 	if err != nil {
 		return err
 	}
 	running.loop = built
-	return nil
+
+	running.nightly, err = replay.NewNightly(replay.NightlySettings{
+		Jobs:   running.jobs,
+		Memory: running.memories,
+		Skills: running.skillsBox,
+		DryRun: running.dryRunOneSkill,
+		Send:   running.sendToTheUserHere,
+	})
+	return err
+}
+
+// dryRunOneSkill is the skill store's own dry run, which contract.Skill does not
+// carry, so it is passed to the self-check as a function of its own.
+func (running *agent) dryRunOneSkill(ctx context.Context, name string) (string, error) {
+	if running.skills == nil {
+		return "", fmt.Errorf("there are no skills open, so %q cannot be dry run", name)
+	}
+	return running.skills.DryRun(ctx, name)
+}
+
+// sendToTheUserHere puts one line in front of the user on the channel they are
+// normally talked to on.
+func (running *agent) sendToTheUserHere(ctx context.Context, text string) error {
+	return running.sendToTheUser(ctx, "", text)
 }
 
 // openTheRouter gives the router the five things it needs from the rest of the
@@ -323,9 +349,21 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	if !running.takeTheLoop() {
 		return running.loop.Deliver(message)
 	}
-	defer running.freeTheLoop()
-	_, err := running.loop.Run(ctx, loop.Task{Message: message, Channel: where})
-	return err
+
+	// The task runs beside the drainer rather than inside it. The drainer is
+	// the one path a command travels, so a task run inside it would hold every
+	// later message behind itself: the person would press Escape and nothing
+	// would happen until the model had answered, which is exactly what the
+	// first human trial found.
+	finished := running.tookTheMessage()
+	go func() {
+		defer running.freeTheLoop()
+		defer finished()
+		if _, err := running.loop.Run(context.WithoutCancel(ctx), loop.Task{Message: message, Channel: where}); err != nil {
+			running.note("a task did not finish: " + err.Error())
+		}
+	}()
+	return nil
 }
 
 // takeTheLoop says this caller may run a task, and says no when one is already
@@ -349,11 +387,14 @@ func (running *agent) freeTheLoop() {
 	running.busy = false
 }
 
-// loopIsBusy says whether a task is running, for the status a screen is sent.
+// loopIsBusy says whether a task is running, for the status a screen is sent. A
+// model call in flight counts too, because a plain reply is not a task and the
+// person still wants to see that the agent is thinking.
 func (running *agent) loopIsBusy() bool {
 	running.busyGuard.Lock()
-	defer running.busyGuard.Unlock()
-	return running.busy
+	busy := running.busy
+	running.busyGuard.Unlock()
+	return busy || running.watched.calling()
 }
 
 // stopTask asks the running task to stop, which is what Escape at the terminal
@@ -369,7 +410,7 @@ func (running *agent) registerCommands() error {
 	running.registry = command.NewRegistry()
 	core := command.New(running.registry, command.Deps{
 		Settings:        running.settings,
-		Store:           running.eventLog,
+		Store:           running.events,
 		Jobs:            running.jobs,
 		ResumeJob:       running.jobs.Resume,
 		CurrentModel:    running.model.Name,
@@ -423,26 +464,4 @@ func (running *agent) channelNamed(name string) (contract.Channel, bool) {
 		return running.userChannel(), true
 	}
 	return nil, false
-}
-
-// statusForAScreen is what a screen is told the moment it attaches and on every
-// heartbeat: which model is in use, which task is running, that the agent is
-// answering for itself, and the command list the palette is filled from.
-func (running *agent) statusForAScreen() map[string]string {
-	listed := strings.Builder{}
-	for _, one := range running.registry.All() {
-		listed.WriteString(channel.CommandPrefix + one.Name + contract.StatusCommandSeparator + one.Help + "\n")
-	}
-
-	state := contract.StateIdle
-	if running.loopIsBusy() {
-		state = contract.StateThinking
-	}
-	return map[string]string{
-		contract.StatusFieldModel:    running.model.Name(),
-		contract.StatusFieldTask:     running.loop.Running(),
-		contract.StatusFieldState:    state,
-		contract.StatusFieldHealthy:  "true",
-		contract.StatusFieldCommands: strings.TrimRight(listed.String(), "\n"),
-	}
 }

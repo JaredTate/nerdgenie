@@ -1,6 +1,10 @@
 package tui
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 // programState is what the program said it was doing last, which is the one
 // thing the status strip is allowed to say.
@@ -68,6 +72,9 @@ func (screen *Screen) statusRow() string {
 		line.add(styleAccent, screen.spinnerFrame()+" ")
 	}
 	line.add(screen.stateStyle(), screen.stateWords())
+	if watched := screen.callWords(); watched != "" {
+		line.add(styleDim, " · "+watched)
+	}
 	if screen.budget != "" {
 		line.add(styleDim, " · "+screen.budget)
 		filled, empty := screen.budgetBar()
@@ -83,6 +90,26 @@ func (screen *Screen) statusRow() string {
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
+}
+
+// callWords is what the strip says about the model call in progress: how long it
+// has been running and how many tokens it has written, such as "14 s · 212
+// tokens". It is empty whenever no call is running or the program did not say
+// when this one began, because a count from a moment the screen does not know is
+// worse than no count at all.
+//
+// The count is drawn from the moment the program reports the call, not from the
+// moment the spinner is due, so it never blinks in and out with the spinner's
+// own delay and hold.
+func (screen *Screen) callWords() string {
+	if screen.state != stateThinking || screen.callStarted.IsZero() {
+		return ""
+	}
+	running := screen.now.Sub(screen.callStarted)
+	if running < 0 {
+		running = 0
+	}
+	return strconv.Itoa(int(running/time.Second)) + " s · " + strconv.Itoa(screen.streamed) + " tokens"
 }
 
 // progressCells is how many cells the budget bar is drawn out of. Four is short

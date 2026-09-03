@@ -59,19 +59,18 @@ _Running now, one harness at a time on card A._
 
 | Thing | Opus 4.8 phase | Qwen 3.8 phase |
 |---|---|---|
-| Model | `claude-opus-4-8` through `claude -p` on the user's subscription, one call per model call, effort `medium`, program tools off, no MCP, no session saved, safe mode, scratch folder per call | Qwen 3.8 27B, TurboQuant llama-server, one daemon per card, byte-identical settings, thinking off at the daemon |
-| Access path | one local bridge per harness (`scripts/bench/bridge/`), same flags for all four, Coeus included | each harness's own OpenAI-style HTTP to the daemon |
-| Tool calls | one text form for all four, one parser | each harness's own |
-| State | fresh home and fresh work folder per run, no memory, no past sessions, no instruction files | same |
-| Task | same bytes, checked by hash | same |
-| Cap | none, of any kind; Coeus's own task budget raised so it cannot act as one | same |
-| Counting | the bridge log: uncached input, cache write, cache read, output, cost, latency per call | the daemon log: `countcalls.sh` |
+| Model | `claude-opus-4-8` on the user's Claude subscription, no API key, each harness through its own supported path (the first row of the Opus table says which) | Qwen 3.8 27B, TurboQuant llama-server, one daemon per card, byte-identical settings, thinking off at the daemon |
+| Thinking setting | each program's own default; Coeus gains a `think` setting and a `/think` command for pinning it | off at the daemon for everyone |
+| State | fresh home and fresh work folder per run, no memory, no past sessions, no instruction files, for every harness | same |
+| Task | the same bytes, checked by hash | same |
+| Cap | none of any kind; Coeus's own task budget raised so it cannot act as one | same |
+| Counting | each harness's own report, and for OpenClaw the Claude Code session it left behind | the daemon log, `scripts/bench/countcalls.sh`, the same for all four |
 | Judge | `scripts/bench/check-tater.mjs`: six logic checks, four play-through checks in a headless browser, tests written and passing | same |
 
 ## How to read the numbers
 
 - **Model calls** is how many times the harness asked the model; **tool calls** is how many tools it ran. A harness that batches several tool calls into one reply spends fewer model calls.
 - **Tokens in** is what the model read across the run, split into the part it could not take from cache and the part it could. **Tokens out** is what it wrote.
-- **Cost** is the dollar figure Claude Code itself computed per call at list rates, summed. On the `claude -p` path only the system prompt caches, so this is close to full price for every harness alike.
+- **Cost** is at Anthropic list rates: Claude Code's own per-call figure where it reports one, otherwise computed from the tokens.
 - **Model time** is the sum of the model's own call durations; **harness time** is everything else: tool runs, its own bookkeeping, process start-up.
 - **Quality** is the checker's verdict, never the harness's own claim.

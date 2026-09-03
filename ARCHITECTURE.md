@@ -141,7 +141,7 @@ The tool input field names this package reduces by are the ones fixed in `docs/b
 
 **Three rules live in one place and are handed to the tools that need them.** `tool.NewPathCheck` builds the check the four file tools are given: a path is allowed only when it is a whole path that sits inside one of `Config.SandboxRoots` once its links are followed, and outside everything `contract.ExcludedFromSandbox` names, and every refusal names the roots. `browserread.PageText` and `browserread.ChangeText` are what a page and a change look like to the model, and the other six browser tools describe the page they left behind by calling them, so a page reads the same however the model arrived at it. `write.Change` writes the file-change event, and the edit tool records its change through the same door, so there is one shape of `contract.FileChangeBody` and one place that writes it: what the file held, the mode it had, and whether it was there at all go into the log **before** a byte is written, so a change that was never recorded is never made.
 
-**The tools worth a line each.** `read` reads a file with a line number in front of every line, a folder as a sorted listing, or a past result by its label, which is `r7` through the task's record and `j4.2` through the job's, both injected as `read.Stored`; a file that is not text is refused by name. `edit` tries the exact text and then four fallbacks that each have a job the others do not — lines that match once trailing spaces are off, one line that matches once every run of spaces is one space, a block that matches once the shared indentation is off, and the text with its ends trimmed as a substring — and every candidate span must be in the file exactly once or it is refused with the count. `search` reads one pattern as a regular expression when it is one and as a name pattern such as `*.md` when it is not, matches both the names of files and the lines inside them, runs through ripgrep when it is on the machine and through its own walk when it is not, and is capped at fifty rows; every test in that package runs both ways so the two cannot drift. `shell` runs every ordinary command through `contract.Sandbox`, waits `shell.YieldAfter`, ten seconds counted on `contract.Clock`, and then hands back an id such as `p1` from a bounded table that answers `poll`, `tail`, and `kill`; `escalate` with a written reason puts the whole command to `contract.Permission`, and only an allowed one runs outside the fence through `sudo -A`, with `SUDO_ASKPASS` pointing at a little program the tool writes under the run folder that runs the coeus binary's `askpass` subcommand, because sudo takes one program there and `coeus askpass` is two words. `web` resolves a name once and connects to that exact number, refuses every private, loopback, link-local and cloud-credential address and any redirect that leads to one unless the settings name that host, caps the page, turns it into text keeping the headings, links and lists, and wraps everything from outside in a boundary with a random id and a sentence saying the text is data; search goes to the configured SearXNG address as JSON, or, with none configured, reads the DuckDuckGo results page, unwrapping the redirect that page wraps its links in. `task` is the model's only door into the record: seven operations, each turned into one `record.Update` and put through the record's own rules, with the rule handed back word for word when a change is refused, and no door at all to the ask, the corrections, the header, the situation, or a result. `browserlogin` never sees a credential in its own right: the harness supplies one through `browserlogin.Credentials` and a code through `browserlogin.TwoFactorCode`, both wired to the vault in wave 5, and the tests refuse any result that carries one. `browserhandoff` puts the reason to the user through `browserhandoff.AskUser`, which wave 3's channel fills in, and hands their reply back.
+**The tools worth a line each.** `read` reads a file with a line number in front of every line, a folder as a sorted listing, or a past result by its label, which is `r7` through the task's record and `j4.2` through the job's, both injected as `read.Stored`; a file that is not text is refused by name. `edit` tries the exact text and then four fallbacks that each have a job the others do not — lines that match once trailing spaces are off, one line that matches once every run of spaces is one space, a block that matches once the shared indentation is off, and the text with its ends trimmed as a substring — and every candidate span must be in the file exactly once or it is refused with the count. `search` reads one pattern as a regular expression when it is one and as a name pattern such as `*.md` when it is not, matches both the names of files and the lines inside them, runs through ripgrep when it is on the machine and through its own walk when it is not, and is capped at fifty rows; every test in that package runs both ways so the two cannot drift. `shell` runs every ordinary command through `contract.Sandbox`, waits `shell.YieldAfter`, ten seconds counted on `contract.Clock`, and then hands back an id such as `p1` from a bounded table that answers `poll`, `tail`, and `kill`; `escalate` with a written reason puts the whole command to `contract.Permission`, and only an allowed one runs outside the fence through `sudo -A`, with `SUDO_ASKPASS` pointing at a little program the tool writes under the run folder that runs the coeus binary's `askpass` subcommand, because sudo takes one program there and `coeus askpass` is two words. `web` resolves a name once and connects to that exact number, refuses every private, loopback, link-local and cloud-credential address and any redirect that leads to one unless the settings name that host, caps the page, turns it into text keeping the headings, links and lists, and wraps everything from outside in a boundary with a random id and a sentence saying the text is data; search goes to the configured SearXNG address as JSON, or, with none configured, reads the DuckDuckGo results page, unwrapping the redirect that page wraps its links in. `task` is the model's only door into the record: seven operations, each turned into one `record.Update` and put through the record's own rules, with the rule handed back word for word when a change is refused, and no door at all to the ask, the corrections, the header, the situation, or a result. `browserlogin` never sees a credential in its own right: the harness supplies one through `browserlogin.Credentials` and a code through `browserlogin.TwoFactorCode`, both wired to the vault in wave 5, and the tests refuse any result that carries one. `browserhandoff` puts the reason to the user through `browserhandoff.AskUser`, which wave 3's channel fills in, and hands their reply back. After the first live run on the local model, `task` takes every shape a model plausibly writes: a done line as a plain string or under `line`, `item`, or `description`; a list as one string; the why under `text`; a line number as a string; and several sections (`why`, `done_when`, `stop_when`, `plan`) in one call, whatever `operation` names, because a refusal there stalled the model seven times running. `browseract` takes a `scroll` step with a direction and an amount up to twenty, so the model can read below the fold in one batch.
 
 **The three imports outside `contract`.** `internal/tool/read` and `internal/tool/task` import `internal/record`, for a past result and for `record.Update`. `internal/tool/edit` imports `internal/tool/write` for the file-change door, and the browser tools import `internal/tool/browserread` for the words a page reads in. Inside `internal/tool`, the order is: `browserread`, then the other browser tools; `write`, then `edit`; then the registry itself, which imports all eighteen.
 
@@ -386,7 +386,10 @@ down to none. The codes are written here rather than by `lipgloss.Style.Render`
 because a lipgloss renderer reports no colour at all when its writer is not a
 terminal, which every test process is. `View` paints every row out to the
 right-hand edge so the ground has no gaps. `banner.go` draws the `COEUS AGENT`
-wordmark in a five-row block font while the transcript is empty; `bubble.go`
+wordmark in a five-row block font while the transcript is empty, with the tagline,
+a small filled tag naming the model and what the program is doing, and one line
+saying `type / to see the commands`, which is the only thing on a first frame
+that says where the tasks and the jobs are to be found; `bubble.go`
 draws the person's filled bubble leaning right, the agent's outlined bubble
 leaning left, and a tool call as a small filled pill.
 
@@ -417,9 +420,12 @@ header, the status strip, the tool lines, the health dot, the budget bar and the
 command palette from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
 `StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
 `StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
-`StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
-holding one command per line with `contract.StatusCommandSeparator` between its
-name and its help. The state field carries one of `contract.StateIdle`,
+`StatusFieldToolLine`, `StatusFieldHealthy`, `StatusFieldCommands`,
+`StatusFieldContextTokens`, `StatusFieldContextWindow`, `StatusFieldCallStarted`,
+`StatusFieldStreamed`, and `StatusFieldRecordLine`. The commands field holds one
+command per line with `contract.StatusCommandSeparator` between its name and its
+help, and the name is held without the slash the program writes it with, because
+the palette draws a slash of its own and matches on what is typed after one. The state field carries one of `contract.StateIdle`,
 `StateThinking`, `StateUsingTool`, `StateWaitingForYou`, and `StatePaused`; the
 words the strip draws are the design's, so `StateUsingTool` reads as "using read"
 and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
@@ -429,6 +435,25 @@ as the program answering for itself. The budget line is read for its first
 number, and the fullest report seen since this task started is what the bar in
 the status strip is measured against. A `reply` that carries `Attachments` names
 each file as a pill.
+
+The first human trial added four things the program tells the screen and the
+screen draws. The header measures the last call's context against the model's
+window from `StatusFieldContextTokens` and `StatusFieldContextWindow`, reading
+`ctx 12.4k / 262k · 5%` after the model alias and before the session cost, quiet
+below eighty percent, gold from eighty, and red from ninety-five, and drawn only
+when the program sent both numbers. While the state is thinking, the status strip
+counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
+`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count begins
+the moment the program reports the call rather than when the spinner is due, so
+it never blinks with the spinner's own delay and hold, and it goes the moment the
+state stops being thinking. A start time the screen cannot read is not counted
+from at all. `StatusFieldRecordLine` is one line about the newest change to the
+record, drawn as a pill exactly as a tool call is; the program sends the same
+line on every heartbeat until something else changes, so only a line that differs
+from the last one shown gets a pill. And Escape now stops whatever is running —
+the model thinking, a tool running, or a task working through — rather than only
+a busy state, because a plain reply is not a task and the person who wants a
+rambling answer to stop must not wait for it to finish.
 
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text

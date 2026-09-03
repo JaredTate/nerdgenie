@@ -952,6 +952,7 @@ internal/tui/bubble.go
 internal/tui/card.go
 internal/tui/client.go
 internal/tui/client_test.go
+internal/tui/context_test.go
 internal/tui/doc.go
 internal/tui/envelope.go
 internal/tui/example_test.go
@@ -960,15 +961,18 @@ internal/tui/frame_test.go
 internal/tui/gate_test.go
 internal/tui/geometry.go
 internal/tui/header.go
+internal/tui/hint_test.go
 internal/tui/input.go
 internal/tui/integration_test.go
 internal/tui/keys.go
 internal/tui/look_test.go
 internal/tui/markdown.go
 internal/tui/messages.go
+internal/tui/monitor_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
 internal/tui/pictures.go
+internal/tui/record_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go
@@ -979,10 +983,12 @@ internal/tui/spinner.go
 internal/tui/spinner_test.go
 internal/tui/status.go
 internal/tui/status_test.go
+internal/tui/stop_test.go
 internal/tui/stream_test.go
 internal/tui/style.go
 internal/tui/testdata/banner-120x40.txt
 internal/tui/testdata/banner-80x24.txt
+internal/tui/testdata/context-measure-80x24.txt
 internal/tui/testdata/conversation-120x40.txt
 internal/tui/testdata/conversation-80x24.txt
 internal/tui/testdata/example-frame.txt
@@ -990,6 +996,7 @@ internal/tui/testdata/first-frame.txt
 internal/tui/testdata/fuzz/FuzzTheFrameStaysInsideTheTerminal/761ef5c109d348f4
 internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
+internal/tui/testdata/no-context-measure-80x24.txt
 internal/tui/testdata/themed-banner-120x40.txt
 internal/tui/testdata/themed-banner-80x24.txt
 internal/tui/testdata/themed-conversation-120x40.txt

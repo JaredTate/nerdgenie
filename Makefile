@@ -102,13 +102,20 @@ check:
 live:
 	go test -tags live ./test/functional/... ./internal/...
 
-release:
-	@echo "make release is built in wave 6, brief 6.2. It is not done yet."
-	@exit 1
+# One release: bin/coeus for linux/amd64 and linux/arm64, each packed with the two
+# worker bundles and a pinned Node runtime so that nobody has to install Node, and
+# beside them a SHA256SUMS the installer checks against and a manifest.json the
+# updater reads. The version comes from git describe unless VERSION says otherwise.
+# release depends on build, so the two worker bundles are always compiled by the
+# one step above that knows how, and scripts/release/build.sh is left with only
+# the work a release adds: a binary per architecture, a pinned Node runtime, a
+# worker tree installed for the machine each archive is for, and beside them the
+# SHA256SUMS the installer checks against and the manifest.json the updater reads.
+release: build
+	scripts/release/build.sh $(if $(filter-out dev,$(VERSION)),--version $(VERSION))
 
-install:
-	@echo "make install is built in wave 3, brief 3.3. It is not done yet."
-	@exit 1
+install: build
+	./bin/coeus install
 
 repo-map:
 	go run ./scripts/repomap > REPO_MAP.md

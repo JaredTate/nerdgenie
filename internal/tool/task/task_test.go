@@ -307,3 +307,59 @@ func TestTheShapesAModelPlausiblyWritesAreAllTaken(t *testing.T) {
 		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Rules.StopWhen, held.Goal.DoneWhen)
 	}
 }
+
+// TestARecordWriteMayCarrySeveralSectionsAtOnce reproduces two more shapes
+// from the trial's event log: one call carrying the why, the done list and the
+// plan together, and a done line whose text is under "line". Both are taken,
+// and a call with an operation that names one section while another section
+// is the one written still writes what it carries.
+func TestARecordWriteMayCarrySeveralSectionsAtOnce(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"why":       "the user wants a game",
+		"done_when": []any{map[string]any{"line": "the tests pass"}},
+		"plan":      []any{"write the tests", "write the game"},
+	}); err != nil {
+		t.Fatalf("a call carrying three sections was refused: %v", err)
+	}
+	held := keeper.Record()
+	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 2 ||
+		len(held.Goal.DoneWhen) != 1 || held.Goal.DoneWhen[0].Text != "the tests pass" {
+		t.Errorf("the record came out as why=%q plan=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.DoneWhen)
+	}
+
+	if _, err := run(t, tool, map[string]any{"operation": "done_when", "stop_when": []any{"the user says stop"}}); err != nil {
+		t.Fatalf("a call naming one section and carrying another was refused: %v", err)
+	}
+	if len(keeper.Record().Rules.StopWhen) != 1 {
+		t.Errorf("the stop list was not written: %v", keeper.Record().Rules.StopWhen)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "plan"}); err == nil {
+		t.Errorf("a call that writes nothing was taken")
+	}
+}
+
+// TestTheShapesTheTaskToolRefusesAreNamed covers the edges of the lenient
+// reader: a null list is an empty one, a list that is neither a string nor a
+// list is refused with the shape named, and so is a line number that is not a
+// number.
+func TestTheShapesTheTaskToolRefusesAreNamed(t *testing.T) {
+	tool, _ := newTool(t)
+	for _, broken := range []struct {
+		fields map[string]any
+		named  string
+	}{
+		{map[string]any{"operation": "plan", "plan": nil}, "writes nothing"},
+		{map[string]any{"operation": "plan", "plan": 7}, "list"},
+		{map[string]any{"operation": "done_when", "done_when": nil}, "writes nothing"},
+		{map[string]any{"operation": "pin_result", "line": "one", "result": "r1"}, "whole number"},
+		{map[string]any{"operation": "pin_result", "line": nil, "result": "r1"}, "no done line"},
+	} {
+		_, err := run(t, tool, broken.fields)
+		if err == nil || !strings.Contains(err.Error(), broken.named) {
+			t.Errorf("the call %v was not refused with %q named: %v", broken.fields, broken.named, err)
+		}
+	}
+}

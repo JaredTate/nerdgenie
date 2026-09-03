@@ -107,7 +107,8 @@ func runSystemctl(ctx context.Context, arguments []string) error {
 	running := exec.CommandContext(waiting, "systemctl", told...)
 	printed, err := running.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("systemctl %s failed: %s: %w", strings.Join(told, " "), strings.TrimSpace(string(printed)), err)
+		return fmt.Errorf("the service manager refused \"systemctl %s\", so check that systemd is running for your account: %s: %w",
+			strings.Join(told, " "), strings.TrimSpace(string(printed)), err)
 	}
 	return nil
 }

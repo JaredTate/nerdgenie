@@ -12,6 +12,8 @@ import (
 // value, a number where a number cannot go, and a heading with nothing under it.
 var descriptionSeeds = []string{
 	"# name\n\nOne line about the skill.\n\n## Triggers\n\n- a word\n\n## Permissions\n\n- daily limit: 3\n",
+	"# name\n\nOne line about the skill.\n\n## Budget\n\n- rounds: 40\n- time: 30m\n",
+	"# a\n\nb\n\n## Budget\n\n- rounds: soon\n- time: 4\n",
 	"",
 	"#",
 	"# \n\n\n",

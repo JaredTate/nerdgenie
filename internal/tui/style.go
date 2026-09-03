@@ -3,36 +3,34 @@ package tui
 import (
 	"strconv"
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
-// The DigiByte palette, written as the lipgloss colours the frame is designed
-// in. The ground is DigiByte's blue lightened so that white letters sit on it,
-// the accent is DigiByte's own blue, and the last two are kept for the two
-// things that must never be missed. Each colour also names the nearest of the
-// sixteen colours every terminal has, for the terminals that have no more.
+// The DigiByte palette, written as the six hex digits the frame is designed in.
+// The ground is DigiByte's blue lightened so that white letters sit on it, the
+// accent is DigiByte's own blue, and the last two are kept for the two things
+// that must never be missed. Each colour also names the nearest of the sixteen
+// colours every terminal has, for the terminals that have no more.
 //
-// The escape codes are written here rather than by lipgloss.Style.Render
-// because a lipgloss renderer reports "no colour at all" whenever the writer it
-// was built on is not a terminal, which every test process is; painting through
-// it would drop the colours out of exactly the golden files that have to prove
-// them. The colour values and the borders are lipgloss's; the depth is ours.
+// The escape codes are written here rather than by a terminal styling library,
+// because such a library reports "no colour at all" whenever the writer it was
+// built on is not a terminal, which every test process is; painting through one
+// would drop the colours out of exactly the golden files that have to prove
+// them.
 var (
 	// groundTone is the light DigiByte blue behind every row of the frame.
-	groundTone = tone{color: lipgloss.Color("#1E90FF"), basic: 4}
+	groundTone = tone{color: "#1E90FF", basic: 4}
 	// textTone is the white every ordinary word is drawn in.
-	textTone = tone{color: lipgloss.Color("#FFFFFF"), basic: 15}
+	textTone = tone{color: "#FFFFFF", basic: 15}
 	// dimTone is the pale blue the quiet parts of the frame are drawn in.
-	dimTone = tone{color: lipgloss.Color("#CFE6FF"), basic: 7}
+	dimTone = tone{color: "#CFE6FF", basic: 7}
 	// accentTone is DigiByte's own blue, which fills the pills, the buttons and
 	// the person's bubble and draws the health dot.
-	accentTone = tone{color: lipgloss.Color("#0066CC"), basic: 12}
+	accentTone = tone{color: "#0066CC", basic: 12}
 	// warnTone is the gold that draws the border of the card the person must
 	// answer, because gold on blue is the loudest pairing the palette has.
-	warnTone = tone{color: lipgloss.Color("#FFD166"), basic: 11}
+	warnTone = tone{color: "#FFD166", basic: 11}
 	// troubleTone is the red a failure is drawn in.
-	troubleTone = tone{color: lipgloss.Color("#FF6B6B"), basic: 9}
+	troubleTone = tone{color: "#FF6B6B", basic: 9}
 )
 
 // The two escape codes that are not colours: bold letters, and the swap of the
@@ -44,11 +42,11 @@ const (
 	resetCode   = "\x1b[0m"
 )
 
-// tone is one colour of the palette: the value lipgloss names it by, and the
-// nearest of the sixteen colours a terminal with nothing better can draw.
+// tone is one colour of the palette: the six hex digits it is written as, and
+// the nearest of the sixteen colours a terminal with nothing better can draw.
 type tone struct {
-	// color is the colour itself, as lipgloss writes it.
-	color lipgloss.Color
+	// color is the colour itself, as a hash and six hex digits.
+	color string
 	// basic is the number of the nearest of the sixteen ordinary colours.
 	basic int
 }
@@ -56,7 +54,7 @@ type tone struct {
 // redGreenBlue reads a palette colour back as the three numbers a terminal
 // wants, and reads as black when the colour was not written as six hex digits.
 func (one tone) redGreenBlue() (int, int, int) {
-	digits := strings.TrimPrefix(string(one.color), "#")
+	digits := strings.TrimPrefix(one.color, "#")
 	if len(digits) != 6 {
 		return 0, 0, 0
 	}

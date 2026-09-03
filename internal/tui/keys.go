@@ -8,7 +8,7 @@ package tui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -16,15 +16,20 @@ import (
 // scrollRows is how far one page-up or page-down moves the transcript.
 const scrollRows = 10
 
+// heldWithControl says whether one letter was pressed with the control key held
+// and nothing else, which is how Ctrl+C and Ctrl+J are told apart from the
+// letters themselves.
+func heldWithControl(key tea.KeyPressMsg, letter rune) bool {
+	return key.Code == letter && key.Mod == tea.ModCtrl
+}
+
 // pressed takes one key press and gives it to whatever holds the keys: the card
 // that is waiting for an answer, the reason prompt, or the input box.
-func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
-	if key.Type != tea.KeyCtrlC {
-		screen.quitArmed = false
-	}
-	if key.Type == tea.KeyCtrlC {
+func (screen *Screen) pressed(key tea.KeyPressMsg) tea.Cmd {
+	if heldWithControl(key, 'c') {
 		return screen.pressedQuit()
 	}
+	screen.quitArmed = false
 	if screen.input.secret {
 		if screen.pressedAtTheMaskedPrompt(key) {
 			return nil
@@ -49,8 +54,8 @@ func (screen *Screen) pressed(key tea.KeyMsg) tea.Cmd {
 // pressedWhileThePaletteIsOpen holds the three keys the palette takes: Tab and
 // Enter complete the command that matches, and Escape closes the list and leaves
 // what was typed alone.
-func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyMsg) bool {
-	switch key.Type {
+func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyPressMsg) bool {
+	switch key.Code {
 	case tea.KeyTab, tea.KeyEnter:
 		return screen.completeCommand()
 	case tea.KeyEsc:
@@ -63,18 +68,20 @@ func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyMsg) bool {
 // pressedWhileACardWaits holds the single-key answers a card takes. It says
 // false only for the keys that still belong to the screen as a whole, such as
 // scrolling, so that stray typing never lands in a box the person cannot use.
-func (screen *Screen) pressedWhileACardWaits(key tea.KeyMsg) bool {
-	switch key.Type {
+func (screen *Screen) pressedWhileACardWaits(key tea.KeyPressMsg) bool {
+	switch key.Code {
 	case tea.KeyPgUp, tea.KeyPgDown:
 		return false
 	case tea.KeyEsc:
 		screen.withdrawFromCard()
 		return true
-	case tea.KeyRunes:
-	default:
+	}
+	// A key that stands for no printable character at all, such as an arrow or
+	// a control combination, is none of the three answers and is swallowed.
+	if key.Text == "" {
 		return true
 	}
-	switch string(key.Runes) {
+	switch key.Text {
 	case "a":
 		screen.answerCard(contract.AnswerOnce, "")
 	case "A":
@@ -87,8 +94,8 @@ func (screen *Screen) pressedWhileACardWaits(key tea.KeyMsg) bool {
 
 // pressedWhileGivingAReason holds the two keys that end the reason prompt, and
 // lets every other key through to the input box so that the reason can be typed.
-func (screen *Screen) pressedWhileGivingAReason(key tea.KeyMsg) bool {
-	switch key.Type {
+func (screen *Screen) pressedWhileGivingAReason(key tea.KeyPressMsg) bool {
+	switch key.Code {
 	case tea.KeyEnter:
 		screen.answerCard(contract.AnswerReject, screen.input.text())
 		return true
@@ -102,12 +109,23 @@ func (screen *Screen) pressedWhileGivingAReason(key tea.KeyMsg) bool {
 
 // pressedInTheInputBox is the ordinary case: a binding that edits what is being
 // typed, or a character going into it.
-func (screen *Screen) pressedInTheInputBox(key tea.KeyMsg) tea.Cmd {
-	switch key.Type {
+func (screen *Screen) pressedInTheInputBox(key tea.KeyPressMsg) tea.Cmd {
+	screen.editWithTheKey(key)
+	screen.judgePalette()
+	return nil
+}
+
+// editWithTheKey is the table of bindings the input box holds. Ctrl+J is asked
+// about first, because a control combination carries the plain letter as its
+// code and would otherwise be typed as one.
+func (screen *Screen) editWithTheKey(key tea.KeyPressMsg) {
+	if heldWithControl(key, 'j') {
+		screen.input.insert("\n")
+		return
+	}
+	switch key.Code {
 	case tea.KeyEnter:
 		screen.sendWhatWasTyped()
-	case tea.KeyCtrlJ:
-		screen.input.insert("\n")
 	case tea.KeyBackspace:
 		screen.input.backspace()
 	case tea.KeyLeft:
@@ -126,15 +144,15 @@ func (screen *Screen) pressedInTheInputBox(key tea.KeyMsg) tea.Cmd {
 		screen.scrollBy(scrollRows)
 	case tea.KeyPgDown:
 		screen.scrollBy(-scrollRows)
-	case tea.KeySpace:
-		screen.input.insert(" ")
-	case tea.KeyRunes:
-		screen.typeInto(string(key.Runes))
 	case tea.KeyEsc:
 		screen.pressedStop()
+	default:
+		// Everything left that stands for printable characters, the space bar
+		// among them, is typed into the box.
+		if key.Text != "" {
+			screen.typeInto(key.Text)
+		}
 	}
-	screen.judgePalette()
-	return nil
 }
 
 // typeInto puts characters in the input box, and opens the command palette when

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // escapeCodes matches the colour and style codes a terminal reads and a person
@@ -50,15 +50,15 @@ func TestResizingRewrapsTheSameWordsAndLeavesNothingBehind(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 	aTalkedTranscript(screen)
 
-	wide := screen.View()
+	wide := screen.frame()
 	wideWords := transcriptWords(screen)
 
 	resizeTo(screen, 60, 24)
-	narrow := screen.View()
+	narrow := screen.frame()
 	narrowWords := transcriptWords(screen)
 
 	resizeTo(screen, 80, 24)
-	wideAgain := screen.View()
+	wideAgain := screen.frame()
 
 	if narrowWords != wideWords {
 		t.Errorf("the transcript reads %q at sixty columns and %q at eighty, and a resize changes only the wrapping", narrowWords, wideWords)
@@ -86,7 +86,7 @@ func TestEveryFrameHasExactlyAsManyRowsAsTheTerminal(t *testing.T) {
 	aTalkedTranscript(screen)
 	for _, size := range [][2]int{{80, 24}, {60, 24}, {120, 40}, {40, 10}, {200, 60}} {
 		resizeTo(screen, size[0], size[1])
-		if rows := len(strings.Split(screen.View(), "\n")); rows != size[1] {
+		if rows := len(strings.Split(screen.frame(), "\n")); rows != size[1] {
 			t.Errorf("at %d by %d the frame is %d rows", size[0], size[1], rows)
 		}
 	}
@@ -106,17 +106,17 @@ func TestNoColorRendersTheSameStructure(t *testing.T) {
 	})
 	aTalkedTranscript(colored)
 
-	if !strings.Contains(colored.View(), "\x1b[") {
+	if !strings.Contains(colored.frame(), "\x1b[") {
 		t.Fatal("the coloured frame holds no escape codes at all, so nothing is coloured")
 	}
-	if strings.Contains(plain.View(), "\x1b[") {
+	if strings.Contains(plain.frame(), "\x1b[") {
 		t.Fatal("the frame holds escape codes even though NO_COLOR is set")
 	}
-	if plainText(colored.View()) != plain.View() {
+	if plainText(colored.frame()) != plain.frame() {
 		t.Error("taking the colour out of the coloured frame does not give the plain frame, so the two do not have the same structure")
 	}
 	for _, carrying := range []string{string(personBarGlyph), string(toolArrowGlyph), string(ruleGlyph), "┌", "└"} {
-		if !strings.Contains(plain.View(), carrying) {
+		if !strings.Contains(plain.frame(), carrying) {
 			t.Errorf("the plain frame has no %q, and without colour the glyphs are what carry the structure", carrying)
 		}
 	}

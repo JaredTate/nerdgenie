@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// quits says whether a key press told Bubble Tea to stop.
-func quits(screen *Screen, key tea.KeyMsg) bool {
-	_, command := screen.Update(key)
+// quitsOnControlC says whether one Ctrl+C told Bubble Tea to stop.
+func quitsOnControlC(screen *Screen) bool {
+	_, command := pressWithControl(screen, 'c')
 	if command == nil {
 		return false
 	}
@@ -25,19 +25,19 @@ func TestControlCOnceArmsTheQuitAndTwiceDoesIt(t *testing.T) {
 	screen, _ := screenWithLink()
 	typeWord(screen, "half a message")
 
-	if quits(screen, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+	if quitsOnControlC(screen) {
 		t.Fatal("one Ctrl+C quit, and one stray press must never throw away what was typed")
 	}
-	if !quits(screen, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+	if !quitsOnControlC(screen) {
 		t.Fatal("two Ctrl+C presses did not quit")
 	}
 }
 
 func TestAKeyBetweenTheTwoControlCsDisarmsTheQuit(t *testing.T) {
 	screen, _ := screenWithLink()
-	screen.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	pressWithControl(screen, 'c')
 	press(screen, 'x')
-	if quits(screen, tea.KeyMsg{Type: tea.KeyCtrlC}) {
+	if quitsOnControlC(screen) {
 		t.Error("a Ctrl+C after other typing quit, and the two presses must be next to each other")
 	}
 }
@@ -151,7 +151,7 @@ func TestAHandoffShowsThePathWhenTheTerminalCannotDrawPictures(t *testing.T) {
 		Attachments: []string{"/tmp/a-screenshot.png"},
 	})
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, wanted := range []string{handoffTitle, "open this file to see the page", "a-screenshot.png"} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the handoff card does not hold %q", wanted)
@@ -177,7 +177,7 @@ func TestAHandoffDrawsThePictureWhenTheTerminalCan(t *testing.T) {
 	screen.link = &recordingLink{}
 	send(screen, contract.SocketEnvelope{Type: contract.SocketHandoff, ID: "9", Attachments: []string{path}})
 
-	frame := screen.View()
+	frame := screen.frame()
 	if strings.Contains(frame, "open this file to see the page") {
 		t.Error("a terminal that draws pictures was given the path instead")
 	}
@@ -198,7 +198,7 @@ func TestAPictureThatCannotBeReadFallsBackToItsPath(t *testing.T) {
 	screen.link = &recordingLink{}
 	send(screen, contract.SocketEnvelope{Type: contract.SocketHandoff, Attachments: []string{"/no/such/picture.png"}})
 
-	if !strings.Contains(screen.View(), "open this file to see the page") {
+	if !strings.Contains(screen.frame(), "open this file to see the page") {
 		t.Error("a picture that cannot be read did not fall back to its path")
 	}
 }
@@ -207,7 +207,7 @@ func TestAnErrorMessageFromTheProgramBecomesAnErrorCard(t *testing.T) {
 	screen, _ := screenWithLink()
 	send(screen, contract.SocketEnvelope{Type: contract.SocketError, Text: "the tool failed.", Reason: "the file is not there."})
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, wanted := range []string{errorTitle, "the tool failed.", "the file is not there."} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the error card does not hold %q", wanted)
@@ -218,7 +218,7 @@ func TestAnErrorMessageFromTheProgramBecomesAnErrorCard(t *testing.T) {
 func TestAnErrorWithNothingInItStillSaysSomething(t *testing.T) {
 	screen, _ := screenWithLink()
 	send(screen, contract.SocketEnvelope{Type: contract.SocketError})
-	if !strings.Contains(screen.View(), "did not say what it was") {
+	if !strings.Contains(screen.frame(), "did not say what it was") {
 		t.Error("an error with no words in it drew an empty card")
 	}
 }
@@ -269,7 +269,7 @@ func TestANarrowTerminalDropsTheRightHandSideRatherThanWrapping(t *testing.T) {
 	if strings.Contains(statusStrip(screen), "Ctrl+J") {
 		t.Error("a fifty-column terminal still draws the key hints, and they are dropped below sixty")
 	}
-	for _, line := range strings.Split(screen.View(), "\n") {
+	for _, line := range strings.Split(screen.frame(), "\n") {
 		if displayWidth(line) > 50 {
 			t.Errorf("the row %q is wider than the terminal", line)
 		}
@@ -281,7 +281,7 @@ func TestATinyTerminalIsDrawnAtTheSmallestSizeRatherThanBreaking(t *testing.T) {
 	aTalkedTranscript(screen)
 	resizeTo(screen, 2, 1)
 
-	rows := strings.Split(screen.View(), "\n")
+	rows := strings.Split(screen.frame(), "\n")
 	if len(rows) != smallestHeight {
 		t.Errorf("a terminal of one row drew %d rows, and the smallest frame is %d", len(rows), smallestHeight)
 	}

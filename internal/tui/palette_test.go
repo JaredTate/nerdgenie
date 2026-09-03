@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -37,7 +37,7 @@ func TestTypingASlashOpensThePaletteAndListsEveryCommand(t *testing.T) {
 	screen, _ := screenWithCommands()
 	press(screen, '/')
 
-	frame := screen.View()
+	frame := screen.frame()
 	for _, one := range theCommands() {
 		if !strings.Contains(frame, "/"+one.Name) {
 			t.Errorf("the palette does not list /%s", one.Name)
@@ -52,7 +52,7 @@ func TestThePaletteFiltersAsThePersonTypes(t *testing.T) {
 	screen, _ := screenWithCommands()
 	typeWord(screen, "/st")
 
-	frame := screen.View()
+	frame := screen.frame()
 	if !strings.Contains(frame, "/status") || !strings.Contains(frame, "/stop") {
 		t.Error("the palette dropped a command that still matches what was typed")
 	}
@@ -64,7 +64,7 @@ func TestThePaletteFiltersAsThePersonTypes(t *testing.T) {
 func TestThePaletteClosesWhenNothingMatchesAndWhenTheSlashGoes(t *testing.T) {
 	screen, _ := screenWithCommands()
 	typeWord(screen, "/zzz")
-	if strings.Contains(screen.View(), "Shows every command.") {
+	if strings.Contains(screen.frame(), "Shows every command.") {
 		t.Error("the palette is still listing commands when nothing matches what was typed")
 	}
 
@@ -129,7 +129,7 @@ func TestThePaletteLearnsTheCommandsTheProgramReports(t *testing.T) {
 	})
 	press(screen, '/')
 
-	frame := screen.View()
+	frame := screen.frame()
 	if !strings.Contains(frame, "/jobs") || !strings.Contains(frame, "Lists every job.") {
 		t.Error("the palette did not learn the commands the program reported")
 	}

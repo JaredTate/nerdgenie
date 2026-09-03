@@ -105,7 +105,7 @@ func TestTheContextShareIsWarningColouredAtEightyAndErrorColouredAtNinetyFive(t 
 
 func TestTheHeaderIsDrawnAsTheGoldenFilesHaveItWithAndWithoutTheContextMeasure(t *testing.T) {
 	with := attachedWith(aStatusWithTheContextInUse("12400", "262144"))
-	testkit.Golden(t, "context-measure-80x24.txt", []byte(with.View()))
+	testkit.Golden(t, "context-measure-80x24.txt", []byte(with.frame()))
 
 	without := attachedWith(contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
 		contract.StatusFieldModel:     "local",
@@ -113,5 +113,5 @@ func TestTheHeaderIsDrawnAsTheGoldenFilesHaveItWithAndWithoutTheContextMeasure(t
 		contract.StatusFieldTokensOut: "0.4k",
 		contract.StatusFieldCost:      "$0.04",
 	}})
-	testkit.Golden(t, "no-context-measure-80x24.txt", []byte(without.View()))
+	testkit.Golden(t, "no-context-measure-80x24.txt", []byte(without.frame()))
 }

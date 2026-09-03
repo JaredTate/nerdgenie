@@ -10,7 +10,7 @@ import (
 
 // headerOf is the first row of the frame.
 func headerOf(screen *Screen) string {
-	return strings.Split(screen.View(), "\n")[0]
+	return strings.Split(screen.frame(), "\n")[0]
 }
 
 // aFullStatus is what the running program says about itself in the middle of the
@@ -65,7 +65,7 @@ func TestAFinishedToolCallIsOneDimLineInTheTranscript(t *testing.T) {
 	wanted := "read memory/product.md · 2,100 characters · r3"
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldToolLine: wanted}})
 
-	frame := screen.View()
+	frame := screen.frame()
 	if !strings.Contains(frame, string(toolArrowGlyph)+" "+wanted) {
 		t.Errorf("the frame does not hold the tool line %q under the arrow", wanted)
 	}

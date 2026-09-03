@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -29,7 +29,7 @@ func TestTheMaskedPromptNeverEchoesWhatIsTyped(t *testing.T) {
 	send(screen, askForASecret())
 	typeWord(screen, theSecret)
 
-	frame := screen.View()
+	frame := screen.frame()
 	if strings.Contains(frame, "hunter2") {
 		t.Fatal("the secret is on the frame, and nothing typed at a masked prompt is ever drawn")
 	}
@@ -59,7 +59,7 @@ func TestNothingTypedAtAMaskedPromptIsKept(t *testing.T) {
 	typeWord(screen, theSecret)
 	pressKey(screen, tea.KeyEnter)
 
-	if strings.Contains(screen.View(), "hunter2") {
+	if strings.Contains(screen.frame(), "hunter2") {
 		t.Error("the secret reached the transcript, and nothing typed at a masked prompt is written down")
 	}
 	if len(screen.history) != 0 {
@@ -91,7 +91,7 @@ func TestTheMaskedPromptUsesAStarWhereTheTerminalHasNoPadlock(t *testing.T) {
 	screen, _ := screenWithLink()
 	send(screen, askForASecret())
 
-	if !strings.Contains(screen.View(), "*") {
+	if !strings.Contains(screen.frame(), "*") {
 		t.Error("the prompt glyph is not a star, and this terminal's settings do not promise an emoji")
 	}
 
@@ -103,7 +103,7 @@ func TestTheMaskedPromptUsesAStarWhereTheTerminalHasNoPadlock(t *testing.T) {
 	})
 	withEmoji.link = &recordingLink{}
 	send(withEmoji, askForASecret())
-	if !strings.Contains(withEmoji.View(), string(lockGlyph)) {
+	if !strings.Contains(withEmoji.frame(), string(lockGlyph)) {
 		t.Error("the prompt glyph is not the padlock, and this terminal's settings promise an emoji")
 	}
 }
@@ -116,7 +116,7 @@ func TestAnOrdinaryQuestionIsNotMasked(t *testing.T) {
 	if screen.input.secret {
 		t.Error("an ordinary question put the box into secret mode, and only a masked ask does that")
 	}
-	if !strings.Contains(screen.View(), "the DigiByte one") {
+	if !strings.Contains(screen.frame(), "the DigiByte one") {
 		t.Error("an ordinary answer is not being drawn, and only a secret is hidden")
 	}
 }

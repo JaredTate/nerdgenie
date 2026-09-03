@@ -15,8 +15,8 @@ From the repository, build a release and install it into a throwaway home so not
 ```
 make release
 export HOME=/tmp/coeus-clean && mkdir -p $HOME
-sh scripts/install.sh --from dist --no-signal -- --yes --model local
-coeus doctor
+sh scripts/install.sh --from "$(ls dist/coeus-*-amd64.tar.gz)" --no-signal -- --yes --model local --signal off
+export PATH="$HOME/.local/bin:$PATH" && coeus doctor
 ```
 
 Then, in one terminal, `coeus serve`; in another, `coeus`. Type a question. The first frame must be there at once, the reply must stream, and nothing should need a document. Put your `HOME` back afterwards.

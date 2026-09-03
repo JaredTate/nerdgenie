@@ -11,6 +11,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/tool/read"
 )
 
@@ -31,13 +32,11 @@ func (stored storedText) Read(_ context.Context, id string) (string, error) {
 // and the folder.
 func newTool(t *testing.T, results storedText, reports storedText) (*read.Tool, string) {
 	t.Helper()
-	root := t.TempDir()
-	allowed := func(path string) (string, error) {
-		if !strings.HasPrefix(filepath.Clean(path), root) {
-			return "", fmt.Errorf("the path %s is outside the folder the agent may work in, which is %s", path, root)
-		}
-		return filepath.Clean(path), nil
+	root := filepath.Join(t.TempDir(), "work")
+	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder the agent may work in: %v", err)
 	}
+	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
 	return read.New(read.Settings{Allowed: allowed, Results: results, Reports: reports}), root
 }
 

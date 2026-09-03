@@ -30,7 +30,7 @@ func TestAVeryLongLineIsCutAndSaysHowMuchWasLeftOff(t *testing.T) {
 func TestAFileOfManyLinesStopsAtTheLineCapAndSaysHowToReadOn(t *testing.T) {
 	tool, root := newTool(t, nil, nil)
 	path := filepath.Join(root, "many.txt")
-	if err := os.WriteFile(path, []byte(strings.Repeat("a line\n", read.MaxLines+10)), contract.DataFileMode); err != nil {
+	if err := os.WriteFile(path, []byte(strings.Repeat("a line\n", 2010)), contract.DataFileMode); err != nil {
 		t.Fatalf("cannot write the fixture file: %v", err)
 	}
 
@@ -38,7 +38,7 @@ func TestAFileOfManyLinesStopsAtTheLineCapAndSaysHowToReadOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading a long file failed: %v", err)
 	}
-	if !strings.Contains(output.Text, fmt.Sprintf("offset of %d", read.MaxLines+1)) {
+	if !strings.Contains(output.Text, "offset of 2001") {
 		t.Errorf("the read stopped at the line cap without saying where to read on from")
 	}
 }
@@ -55,8 +55,8 @@ func TestAFileOfManyBytesStopsAtTheByteCap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading a wide file failed: %v", err)
 	}
-	if len(output.Text) > read.MaxBytes+200 {
-		t.Errorf("the read returned %d bytes, and the cap is %d", len(output.Text), read.MaxBytes)
+	if len(output.Text) > 256<<10+200 {
+		t.Errorf("the read returned %d bytes, and the cap is 256 kilobytes and one line saying so", len(output.Text))
 	}
 	if !strings.Contains(output.Text, "bytes") {
 		t.Errorf("the read stopped at the byte cap without saying so")
@@ -69,7 +69,7 @@ func TestAFolderOfManyEntriesStopsAtTheEntryCap(t *testing.T) {
 	if err := os.MkdirAll(crowded, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the crowded folder: %v", err)
 	}
-	for at := range read.MaxEntries + 5 {
+	for at := range 1005 {
 		name := filepath.Join(crowded, fmt.Sprintf("file-%05d", at))
 		if err := os.WriteFile(name, []byte("x"), contract.DataFileMode); err != nil {
 			t.Fatalf("cannot write %s: %v", name, err)

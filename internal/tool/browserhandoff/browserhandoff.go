@@ -9,6 +9,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxReasonRunes is how long the reason put to the user may be. A person reading
@@ -29,9 +30,9 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for.
-	Intent string `json:"intent"`
+	Intent string
 	// Reason is what the user is told, in the model's own words.
-	Reason string `json:"reason"`
+	Reason string
 }
 
 // Tool is the browser handoff tool.
@@ -60,16 +61,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run puts the reason to the user and hands their reply back.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent and a reason in it: %w", err)
-		}
-	}
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return contract.ToolOutput{}, err
-	}
-	if err := checkReason(asked.Reason); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.AskUser == nil {
@@ -81,6 +74,33 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return contract.ToolOutput{}, fmt.Errorf("the browser was given to the user and nothing came back: %w", err)
 	}
 	return contract.ToolOutput{Text: fmt.Sprintf("the user took the browser and said: %s\n", oneLine(said))}, nil
+}
+
+// reasonNames are the names a model writes for what the user is told.
+var reasonNames = []string{"reason", "message", "ask", "to_the_user"}
+
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent and a reason")
+	if err != nil {
+		return input{}, err
+	}
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	reason, wroteReason := fields.Text(reasonNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
+	}
+	if !wroteReason {
+		return input{}, fields.Missing("reason", "what to tell the user they need to do in the browser,")
+	}
+	if err := checkReason(reason); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, Reason: reason}, nil
 }
 
 // checkReason holds the rule that a handoff tells the user what is needed.

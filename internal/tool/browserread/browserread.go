@@ -8,11 +8,20 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxIntentRunes is how long the line saying what a step is for may be. It is
 // read by a person in a preview and written into the log, so it fits on a line.
 const MaxIntentRunes = 300
+
+// IntentNames are the names a model writes for the line saying what a step is
+// for. Every browser tool and the desktop tool read it under all of them.
+var IntentNames = []string{"intent", "why", "goal"}
+
+// visibleNames are the names a model writes for reading only what is above the
+// fold.
+var visibleNames = []string{"visible_only", "visible", "only_visible", "above_the_fold"}
 
 // Settings is what the browser read tool needs to do its work.
 type Settings struct {
@@ -23,9 +32,9 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for, in the model's own words.
-	Intent string `json:"intent"`
+	Intent string
 	// VisibleOnly reads only what is above the fold.
-	VisibleOnly bool `json:"visible_only"`
+	VisibleOnly bool
 }
 
 // Tool is the browser read tool.
@@ -54,13 +63,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run reads the page the browser is on.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent in it: %w", err)
-		}
-	}
-	if err := CheckIntent(asked.Intent); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.Browser == nil {
@@ -74,9 +78,36 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: PageText(page)}, nil
 }
 
-// CheckIntent holds the rule every browser and desktop call keeps: it says what
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent")
+	if err != nil {
+		return input{}, err
+	}
+	intent, wroteIntent := fields.Text(IntentNames...)
+	visibleOnly, _ := fields.Flag(visibleNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if err := NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, VisibleOnly: visibleOnly}, nil
+}
+
+// NeedIntent holds the rule every browser and desktop call keeps: it says what
 // the step is for, because that line is what the user reads in a preview and
-// what a recorded skill is patched against when a page changes.
+// what a recorded skill is patched against when a page changes. A call that
+// writes no intent at all is refused with the field's own name.
+func NeedIntent(fields *loose.Fields, intent string, wrote bool) error {
+	if !wrote {
+		return fields.Missing("intent", "what this step is for, in one line,")
+	}
+	return CheckIntent(intent)
+}
+
+// CheckIntent holds the length rule for that line.
 func CheckIntent(intent string) error {
 	if strings.TrimSpace(intent) == "" {
 		return errors.New("this call does not say what the step is for, so write the intent in one line")

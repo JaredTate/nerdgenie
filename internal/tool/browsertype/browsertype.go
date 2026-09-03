@@ -9,6 +9,7 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/tool/browserclick"
 	"github.com/JaredTate/coeus/internal/tool/browserread"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxTextRunes is how much may be typed into one box in one call. A model
@@ -24,13 +25,13 @@ type Settings struct {
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for.
-	Intent string `json:"intent"`
+	Intent string
 	// Element is the reference of the box to type into.
-	Element string `json:"element"`
+	Element string
 	// Text is what to type, which may be nothing at all to clear the box.
-	Text string `json:"text"`
+	Text string
 	// Expectation says what should happen because of the typing.
-	Expectation string `json:"expectation"`
+	Expectation string
 }
 
 // Tool is the browser type tool.
@@ -61,13 +62,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 
 // Run types into the box and hands back what changed.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an intent, an element, text, and an expectation in it: %w", err)
-		}
-	}
-	if err := checkCall(asked); err != nil {
+	asked, err := readInput(written)
+	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if tool.settings.Browser == nil {
@@ -81,20 +77,40 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: browserread.ChangeText(change)}, nil
 }
 
-// checkCall holds the rules one call must satisfy before anything is typed.
-func checkCall(asked input) error {
-	if err := browserread.CheckIntent(asked.Intent); err != nil {
-		return err
+// textNames are the names a model writes for what to type. A call that writes
+// none of them is refused rather than acted on, because typing nothing into a
+// box empties it, and a model that forgot the text did not mean to.
+var textNames = []string{"text", "value", "content", "input", "to_type"}
+
+// readInput reads the model's arguments and refuses anything this tool could not
+// act on.
+func readInput(written json.RawMessage) (input, error) {
+	fields, err := loose.Read(written, "an intent, an element, text, and an expectation")
+	if err != nil {
+		return input{}, err
 	}
-	if err := browserclick.CheckElement(asked.Element); err != nil {
-		return err
+	intent, wroteIntent := fields.Text(browserread.IntentNames...)
+	element, wroteElement := fields.Text(browserclick.ElementNames...)
+	text, wroteText := fields.Text(textNames...)
+	expectation, wroteExpectation := fields.Text(browserclick.ExpectationNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
 	}
-	if err := browserclick.CheckExpectation(asked.Expectation); err != nil {
-		return err
+	if err := browserread.NeedIntent(fields, intent, wroteIntent); err != nil {
+		return input{}, err
 	}
-	if len([]rune(asked.Text)) > MaxTextRunes {
-		return fmt.Errorf("this call would type %d characters and the cap is %d, so type it in pieces",
-			len([]rune(asked.Text)), MaxTextRunes)
+	if err := browserclick.NeedElement(fields, element, wroteElement); err != nil {
+		return input{}, err
 	}
-	return nil
+	if !wroteText {
+		return input{}, fields.Missing("text", "what to type, which may be an empty string to clear the box,")
+	}
+	if len([]rune(text)) > MaxTextRunes {
+		return input{}, fmt.Errorf("this call would type %d characters and the cap is %d, so type it in pieces",
+			len([]rune(text)), MaxTextRunes)
+	}
+	if err := browserclick.NeedExpectation(fields, expectation, wroteExpectation); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, Element: element, Text: text, Expectation: expectation}, nil
 }

@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // The bounds on one search. A search is a question, and a question with a
@@ -34,19 +35,18 @@ const (
 	MaxRowRunes = 300
 )
 
-// PathCheck says whether the tool may search a path and returns it with its
-// links followed. The registry hands one in, so that the rule about where the
-// agent may read lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Settings is what the search tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be searched.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Ripgrep is the path of the ripgrep program. Empty means look for it on the
 	// PATH. When it is not on the machine, the tool searches on its own, more
 	// slowly and with the same answers.
 	Ripgrep string
+	// DefaultFolder is where a search with no folder in it looks, which is the
+	// first folder the agent may work in. A model that means everywhere writes a
+	// pattern and nothing else.
+	DefaultFolder string
 }
 
 // input is what the model writes when it calls this tool.
@@ -91,7 +91,11 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if tool.settings.Allowed == nil {
 		return contract.ToolOutput{}, errors.New("this tool has no list of folders it may search, so wire the sandbox roots in before using it")
 	}
-	path, err := tool.settings.Allowed(asked.Path)
+	wanted, err := tool.folderToSearch(asked)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	path, err := tool.settings.Allowed(wanted)
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
@@ -115,26 +119,50 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: rowsAsText(rows, asName)}, nil
 }
 
+// folderToSearch is where this call looks: the folder the model named, or the
+// folder the agent works in when it named none, because a model that means
+// everywhere writes a pattern and nothing else.
+func (tool *Tool) folderToSearch(asked input) (string, error) {
+	if strings.TrimSpace(asked.Path) != "" {
+		return asked.Path, nil
+	}
+	if strings.TrimSpace(tool.settings.DefaultFolder) != "" {
+		return tool.settings.DefaultFolder, nil
+	}
+	return "", errors.New("this call names no folder to search and this tool has no folder to fall back on, so give the whole path of the folder or the file")
+}
+
+// The names a model writes for the two fields this tool needs. The first of each
+// is the one the specification asks for, and the rest are the names the other
+// agents use or a model half-remembers.
+var (
+	patternNames = []string{"pattern", "query", "regex", "regexp", "text", "search", "glob"}
+	pathNames    = []string{"path", "folder", "directory", "dir", "file_path", "root", "in"}
+)
+
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on.
 func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a pattern and a path in it: %w", err)
-		}
+	fields, err := loose.Read(written, "a pattern and a path")
+	if err != nil {
+		return input{}, err
 	}
-	if strings.TrimSpace(asked.Pattern) == "" {
+	pattern, wrotePattern := fields.Text(patternNames...)
+	path, _ := fields.Text(pathNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if !wrotePattern {
+		return input{}, fields.Missing("pattern", "a regular expression, or a name pattern such as *.md,")
+	}
+	if strings.TrimSpace(pattern) == "" {
 		return input{}, errors.New("this call has nothing to look for, so give a regular expression or a name pattern such as *.md")
 	}
-	if len([]rune(asked.Pattern)) > MaxPatternRunes {
+	if len([]rune(pattern)) > MaxPatternRunes {
 		return input{}, fmt.Errorf("the pattern is %d characters and the cap is %d, so look for something shorter",
-			len([]rune(asked.Pattern)), MaxPatternRunes)
+			len([]rune(pattern)), MaxPatternRunes)
 	}
-	if strings.TrimSpace(asked.Path) == "" {
-		return input{}, errors.New("this call names no folder to search, so give the whole path of the folder or the file")
-	}
-	return asked, nil
+	return input{Pattern: pattern, Path: path}, nil
 }
 
 // readPattern compiles the pattern as a regular expression, and says so when it

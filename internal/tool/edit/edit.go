@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 	"github.com/JaredTate/coeus/internal/tool/write"
 )
 
@@ -17,15 +18,10 @@ import (
 // matchers would walk the whole of it.
 const MaxFileBytes = 8 << 20
 
-// PathCheck says whether the tool may change a path and returns it with its
-// links followed. The registry hands one in, so that the rule about where the
-// agent may write lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Settings is what the edit tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be changed.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Log is the event log the prior contents are recorded in.
 	Log contract.Store
 	// TaskID is the task or job the change belongs to.
@@ -109,19 +105,43 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}, nil
 }
 
+// The names a model writes for the three fields this tool needs. The first of
+// each is the one the specification asks for; old_string and new_string are what
+// Claude Code and OpenCode call them, so a model that half-remembers one of those
+// writes them here, and a call that names neither is refused rather than acted
+// on, because an edit with no new text is a span deleted.
+var (
+	pathNames = []string{"path", "file_path", "filepath", "file", "filename"}
+	oldNames  = []string{"old", "old_string", "old_text", "old_str", "search", "find", "target"}
+	newNames  = []string{"new", "new_string", "new_text", "new_str", "replace", "replacement", "with"}
+)
+
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on.
 func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a path, old, and new in it: %w", err)
-		}
+	fields, err := loose.Read(written, "a path, old, and new")
+	if err != nil {
+		return input{}, err
 	}
-	if strings.TrimSpace(asked.Path) == "" {
+	path, wrotePath := fields.Text(pathNames...)
+	old, wroteOld := fields.Text(oldNames...)
+	replacement, wroteNew := fields.Text(newNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if !wrotePath {
+		return input{}, fields.Missing("path", "the whole path of the file to change")
+	}
+	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names no file to change, so give the whole path of the file")
 	}
-	return asked, nil
+	if !wroteOld {
+		return input{}, fields.Missing("old", "the text to replace, quoted from the file")
+	}
+	if !wroteNew {
+		return input{}, fields.Missing("new", "what to put in its place")
+	}
+	return input{Path: path, Old: old, New: replacement}, nil
 }
 
 // readFile reads the file to be changed, refusing one this tool has no business

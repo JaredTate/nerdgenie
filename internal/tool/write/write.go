@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // MaxContentBytes is the most one call may write. A model that asks to write
@@ -17,15 +18,10 @@ import (
 // explain than a full disk.
 const MaxContentBytes = 4 << 20
 
-// PathCheck says whether the tool may write a path and returns it with its links
-// followed. The registry hands one in, so that the rule about where the agent
-// may write lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Settings is what the write tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be written.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Log is the event log the prior contents are recorded in.
 	Log contract.Store
 	// TaskID is the task or job the change belongs to.
@@ -98,23 +94,42 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: saidAndDone(path, len(asked.Content), existed, held)}, nil
 }
 
+// The names a model writes for the two fields this tool needs. The first of
+// each is the one the specification asks for, and the rest are the names the
+// other agents use or a model half-remembers; a call that writes none of them is
+// refused rather than acted on, because a write with no content is a file
+// emptied.
+var (
+	pathNames    = []string{"path", "file_path", "filepath", "file", "filename"}
+	contentNames = []string{"content", "contents", "text", "body", "file_text", "new_content"}
+)
+
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on.
 func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a path and content in it: %w", err)
-		}
+	fields, err := loose.Read(written, "a path and content")
+	if err != nil {
+		return input{}, err
 	}
-	if strings.TrimSpace(asked.Path) == "" {
+	path, wrotePath := fields.Text(pathNames...)
+	content, wroteContent := fields.Text(contentNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if !wrotePath {
+		return input{}, fields.Missing("path", "the whole path of the file to write")
+	}
+	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names no file to write, so give the whole path of the file")
 	}
-	if len(asked.Content) > MaxContentBytes {
-		return input{}, fmt.Errorf("this call would write %d bytes, and one write is capped at %d, so write it in pieces",
-			len(asked.Content), MaxContentBytes)
+	if !wroteContent {
+		return input{}, fields.Missing("content", "everything the file is to hold afterwards")
 	}
-	return asked, nil
+	if len(content) > MaxContentBytes {
+		return input{}, fmt.Errorf("this call would write %d bytes, and one write is capped at %d, so write it in pieces",
+			len(content), MaxContentBytes)
+	}
+	return input{Path: path, Content: content}, nil
 }
 
 // fileAsItStands says whether the file is there and how big it is, for the one

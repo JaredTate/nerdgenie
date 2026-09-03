@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -53,8 +54,30 @@ func NewPathCheck(roots []string, userHome string, agentHome string, alsoOutside
 		if err := outsideEvery(resolved, excluded); err != nil {
 			return "", err
 		}
+		if err := hasOneNameOnly(resolved); err != nil {
+			return "", err
+		}
 		return resolved, nil
 	}
+}
+
+// hasOneNameOnly says no to a file that is known by more than one name on the
+// disk. A hard link has no target for the check above to follow, so a link made
+// inside a root before the agent ever ran would otherwise let a tool read and
+// write a file that sits anywhere at all, the vault and the user's keys
+// included. Folders are passed over, because a folder always has more than one
+// name, and a file that is not there yet has none.
+func hasOneNameOnly(path string) error {
+	about, err := os.Stat(path)
+	if err != nil || !about.Mode().IsRegular() {
+		return nil
+	}
+	names, known := about.Sys().(*syscall.Stat_t)
+	if !known || names.Nlink <= 1 {
+		return nil
+	}
+	return fmt.Errorf("the file %s is known by %d names on this disk, and the others may be outside the folders the agent may work in, so copy it to a file of its own and work on the copy",
+		path, names.Nlink)
 }
 
 // wholePath returns the tidied form of a path the model wrote, and refuses

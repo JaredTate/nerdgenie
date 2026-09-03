@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"log"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -32,6 +33,11 @@ type Settings struct {
 	// Note is where the registry says what it skipped and why. When it is nil
 	// the line goes to the standard library's logger.
 	Note func(line string)
+	// UserTools are the user's own tools as LoadUserTools already read them.
+	// The program asks the tools folder once at startup and puts the answer
+	// here, so that the registry a task builds costs nothing but the adding.
+	// When it is nil, the registry asks the folder itself.
+	UserTools []contract.Tool
 
 	// Log is the event log the write and edit tools record a file's prior
 	// contents in.
@@ -82,6 +88,16 @@ type Settings struct {
 	// is, which is how a search server of the user's own on this machine stays
 	// reachable.
 	AllowedHosts []string
+}
+
+// note says one line about something that was skipped, through the function the
+// settings named, or to the standard library's logger when they named none.
+func (settings Settings) note(line string) {
+	if settings.Note != nil {
+		settings.Note(line)
+		return
+	}
+	log.Print(line)
 }
 
 // toolTimeout is how long one tool may run, from the configuration, with the

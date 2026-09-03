@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/coeus/internal/tool/loose"
 )
 
 // The bounds on one read. A model that asks for a whole file gets the beginning
@@ -33,11 +35,6 @@ const (
 	binarySampleBytes = 8000
 )
 
-// PathCheck says whether the tool may read a path and returns it with its links
-// followed. The registry hands one in, so that the rule about where the agent
-// may read lives in one place rather than in four tools.
-type PathCheck func(path string) (string, error)
-
 // Stored is where the whole text of a past result or a finished task's report is
 // kept, which is what the record keeper does through the event log.
 type Stored interface {
@@ -48,7 +45,7 @@ type Stored interface {
 // Settings is what the read tool needs to do its work.
 type Settings struct {
 	// Allowed says whether a path may be read.
-	Allowed PathCheck
+	Allowed func(path string) (string, error)
 	// Results is the record of the task running now, which is where a label such
 	// as r7 is read from.
 	Results Stored
@@ -81,10 +78,10 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolRead,
-		Description: "Reads a file with line numbers, a folder listing, or a past result by its label such as r7 or j4.2. " +
+		Description: "Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. " +
 			"Give a whole path. Use search when you do not know which file to open.",
 		Fields: []contract.ToolField{
-			{Name: "path", Type: "string", Description: "The whole path of a file or folder, or a result label such as r7.", Required: true},
+			{Name: "path", Type: "string", Description: "A file, a folder, a past result by its id such as r7, or ask for the whole of the user's original ask.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
 		},
@@ -121,27 +118,48 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	return contract.ToolOutput{Text: text}, err
 }
 
+// The names a model writes for the three fields this tool takes. The first of
+// each is the one the specification asks for, and the rest are the names the
+// other agents use or a model half-remembers.
+var (
+	pathNames   = []string{"path", "file_path", "filepath", "file", "filename", "target"}
+	offsetNames = []string{"offset", "start", "start_line", "from", "from_line"}
+	limitNames  = []string{"limit", "count", "lines", "line_count", "max_lines"}
+)
+
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on.
 func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
-			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with a path in it: %w", err)
-		}
+	fields, err := loose.Read(written, "a path")
+	if err != nil {
+		return input{}, err
 	}
-	if strings.TrimSpace(asked.Path) == "" {
+	path, wrotePath := fields.Text(pathNames...)
+	offset, _ := fields.Number(offsetNames...)
+	limit, _ := fields.Number(limitNames...)
+	if err := fields.Wrong(); err != nil {
+		return input{}, err
+	}
+	if !wrotePath {
+		return input{}, fields.Missing("path", "the whole path of a file or folder, a result label such as r7, or ask for the whole of the ask,")
+	}
+	if strings.TrimSpace(path) == "" {
 		return input{}, errors.New("this call names nothing to read, so give a path or a result label such as r7")
 	}
-	if asked.Offset < 0 || asked.Limit < 0 {
-		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", asked.Offset, asked.Limit)
+	if offset < 0 || limit < 0 {
+		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", offset, limit)
 	}
-	return asked, nil
+	return input{Path: path, Offset: offset, Limit: limit}, nil
 }
 
 // resultLabel says whether what the model wrote is the label of a past result
-// rather than a path, and which record it belongs to.
+// rather than a path, and which record it belongs to. The label "ask" is one of
+// them: the record shows the model the start of a very long ask and a line
+// saying to read this label for the whole of it, and the record answers it.
 func resultLabel(path string) (string, contract.RecordKind, bool) {
+	if path == record.AskLabel {
+		return path, contract.RecordTask, true
+	}
 	if _, isResult := contract.ParseResultID(path); isResult {
 		return path, contract.RecordTask, true
 	}

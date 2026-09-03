@@ -11,6 +11,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/tool/search"
 )
 
@@ -27,7 +28,10 @@ var theTree = map[string]string{
 // and a path that is not there makes the tool use its own slow search.
 func newTool(t *testing.T, ripgrep string) (*search.Tool, string) {
 	t.Helper()
-	root := t.TempDir()
+	root := filepath.Join(t.TempDir(), "work")
+	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder the agent may work in: %v", err)
+	}
 	for name, held := range theTree {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), contract.HomeFolderMode); err != nil {
@@ -37,12 +41,7 @@ func newTool(t *testing.T, ripgrep string) (*search.Tool, string) {
 			t.Fatalf("cannot write %s: %v", name, err)
 		}
 	}
-	allowed := func(path string) (string, error) {
-		if !strings.HasPrefix(filepath.Clean(path), root) {
-			return "", fmt.Errorf("the path %s is outside the folder the agent may work in, which is %s", path, root)
-		}
-		return filepath.Clean(path), nil
-	}
+	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
 	return search.New(search.Settings{Allowed: allowed, Ripgrep: ripgrep}), root
 }
 
@@ -136,7 +135,7 @@ func TestASearchIsCappedAtFiftyRows(t *testing.T) {
 	if err := os.MkdirAll(crowded, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the crowded folder: %v", err)
 	}
-	for at := range search.MaxRows + 20 {
+	for at := range 70 {
 		name := filepath.Join(crowded, fmt.Sprintf("file-%03d.txt", at))
 		if err := os.WriteFile(name, []byte("a line holding gamma\n"), contract.DataFileMode); err != nil {
 			t.Fatalf("cannot write %s: %v", name, err)
@@ -148,8 +147,8 @@ func TestASearchIsCappedAtFiftyRows(t *testing.T) {
 		t.Fatalf("searching failed: %v", err)
 	}
 	rows := strings.Count(strings.TrimSpace(output.Text), "\n") + 1
-	if rows > search.MaxRows+2 {
-		t.Errorf("the search returned %d rows, and the cap is %d", rows, search.MaxRows)
+	if rows > 52 {
+		t.Errorf("the search returned %d rows, and the cap is fifty and one line saying so", rows)
 	}
 	if !strings.Contains(output.Text, "narrow") {
 		t.Errorf("the search stopped at the cap without saying what to do: %q", output.Text)

@@ -55,7 +55,11 @@ func builtInTools(settings Settings) []contract.Tool {
 		read.New(read.Settings{Allowed: allowed, Results: settings.Results, Reports: settings.Reports}),
 		write.New(write.Settings{Allowed: allowed, Log: settings.Log, TaskID: settings.TaskID, Clock: settings.Clock}),
 		edit.New(edit.Settings{Allowed: allowed, Log: settings.Log, TaskID: settings.TaskID, Clock: settings.Clock}),
-		search.New(search.Settings{Allowed: allowed, Ripgrep: settings.Ripgrep}),
+		search.New(search.Settings{
+			Allowed:       allowed,
+			Ripgrep:       settings.Ripgrep,
+			DefaultFolder: settings.workingDirectory(),
+		}),
 		shell.New(shell.Settings{
 			Sandbox:          settings.Sandbox,
 			Permission:       settings.Permission,

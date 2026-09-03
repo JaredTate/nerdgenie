@@ -272,6 +272,26 @@ func jsonInput(t *testing.T, fields map[string]any) json.RawMessage {
 	return encoded
 }
 
+func TestAReadableFormCutToTheCapSaysSoAndTheCallAsks(t *testing.T) {
+	request := contract.PermissionRequest{
+		ToolName: contract.ToolBrowserAct,
+		Input:    jsonInput(t, map[string]any{"intent": strings.Repeat("scroll a little further down the page and then ", 40)}),
+	}
+
+	reduced := permission.Reduce(request)
+	if !strings.HasSuffix(reduced, "(cut short before the end)") {
+		t.Errorf("the readable form is %q, and a form cut to the cap has to say that it stopped", reduced)
+	}
+	if len([]rune(reduced)) > permission.MaxReducedRunes {
+		t.Errorf("the readable form is %d runes, and the cap is %d", len([]rune(reduced)), permission.MaxReducedRunes)
+	}
+
+	decision := decide(t, newDecider(t, contract.DefaultConfig()), request)
+	if decision.Ruling != contract.RulingAsk {
+		t.Errorf("a call whose readable form was cut to the cap was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
+	}
+}
+
 // writeFileOfSize writes a file of exactly the number of bytes asked for.
 func writeFileOfSize(t *testing.T, path string, size int) {
 	t.Helper()

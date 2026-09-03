@@ -112,35 +112,54 @@ var mainFieldsByTool = map[string][]string{
 // log records, and what the preview shows, so it always fits on one line and is
 // never longer than MaxReducedRunes.
 func Reduce(request contract.PermissionRequest) string {
+	form, _ := reduceCall(request)
+	return form
+}
+
+// reduceCall returns the readable form of one tool call and, when that form is
+// not the whole story, the note saying what it leaves out. The permission
+// function puts such a call to the user rather than running it, because a bound
+// that hides the end of a command is a bound that turns the rule off.
+func reduceCall(request contract.PermissionRequest) (string, string) {
 	if request.ToolName == contract.ToolShell {
-		return oneLine(reduceShellCall(request))
+		line, note := reduceShellCall(request)
+		return oneLine(line, note)
 	}
-	return oneLine(reduceOtherCall(request))
+	return oneLine(reduceOtherCall(request), "")
 }
 
 // reduceShellCall reduces a shell call to the commands it runs, in order, with
-// the arguments that change every time left out.
-func reduceShellCall(request contract.PermissionRequest) string {
+// the arguments that change every time left out, and passes on the note when the
+// call does not say everything it will do.
+func reduceShellCall(request contract.PermissionRequest) (string, string) {
 	fields := readFields(request.Input)
 	command, written := stringField(fields, "command")
 	if !written {
 		if prefix := strings.TrimSpace(request.CommandPrefix); prefix != "" {
-			return prefix
+			return prefix, ""
 		}
-		return contract.ToolShell
+		return contract.ToolShell, ""
 	}
 
+	line, note := reduceCommandLine(command)
+	if boolField(fields, "escalate") {
+		line = strings.TrimSpace(sudoProgram + " " + line)
+	}
+	return line, note
+}
+
+// reduceCommandLine reduces every command on one line, joins them the way a
+// shell chains them, and passes on the note when the line does not say
+// everything it will do.
+func reduceCommandLine(command string) (string, string) {
+	segments, note := commandWords(command)
 	reduced := []string{}
-	for _, words := range commandWords(command) {
+	for _, words := range segments {
 		if part := reduceOneCommand(words); part != "" {
 			reduced = append(reduced, part)
 		}
 	}
-	line := strings.Join(reduced, " | ")
-	if boolField(fields, "escalate") {
-		line = strings.TrimSpace(sudoProgram + " " + line)
-	}
-	return line
+	return strings.Join(reduced, " | "), note
 }
 
 // reduceOneCommand reduces the words of one command to its program, the
@@ -353,8 +372,10 @@ func boolField(fields map[string]json.RawMessage, name string) bool {
 }
 
 // oneLine puts text on a single line, collapses the runs of spaces that leaves
-// behind, and cuts it to the cap, so that a readable form is always readable.
-func oneLine(text string) string {
+// behind, and cuts it to the cap, so that a readable form is always readable. It
+// ends the form with the note when the form is not the whole story, and the cap
+// itself is one of the reasons it may not be.
+func oneLine(text string, note string) (string, string) {
 	flattened := strings.Map(func(letter rune) rune {
 		if letter == '\t' || unicode.IsControl(letter) {
 			return ' '
@@ -363,8 +384,15 @@ func oneLine(text string) string {
 	}, text)
 	tidied := strings.Join(strings.Fields(flattened), " ")
 	letters := []rune(tidied)
-	if len(letters) > MaxReducedRunes {
-		return string(letters[:MaxReducedRunes])
+	if note == "" && len(letters) <= MaxReducedRunes {
+		return tidied, ""
 	}
-	return tidied
+	if note == "" {
+		note = cutShortNote
+	}
+	room := max(MaxReducedRunes-len([]rune(note))-1, 0)
+	if len(letters) > room {
+		tidied = strings.TrimSpace(string(letters[:room]))
+	}
+	return strings.TrimSpace(tidied + " " + note), note
 }

@@ -74,33 +74,44 @@ func rulesFromConfiguration(written []contract.PermissionRule) []Rule {
 }
 
 // Decide rules on one call: allow it, ask the user about it, or refuse it. A
-// call no rule covers is allowed, because the agent runs on its own by default.
+// call no rule covers is allowed, because the agent runs on its own by default,
+// unless its readable form is not the whole story, and then it is put to the
+// user, because a form that leaves something out cannot be ruled on.
 func (decider *Decider) Decide(ctx context.Context, request contract.PermissionRequest) (contract.PermissionDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return contract.PermissionDecision{}, fmt.Errorf("the turn was stopped before the %s call could be ruled on: %w", request.ToolName, err)
 	}
 
-	reduced := Reduce(request)
+	reduced, note := reduceCall(request)
 	matched, covered := decider.book.Match(request.ToolName, reduced)
-	if !covered {
+	switch {
+	case covered && matched.Action != contract.RulingAsk:
+		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
+	case covered:
+		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced)), nil
+	case note != "":
+		return decider.ruleOnSomethingToAskAbout(request, reduced, whyTheFormLeavesSomethingOut(note, reduced)), nil
+	default:
 		return contract.PermissionDecision{
 			Ruling: contract.RulingAllow,
 			Reason: fmt.Sprintf("no rule on your ask-me-first list covers %q, so it runs", reduced),
 		}, nil
 	}
-
-	switch matched.Action {
-	case contract.RulingAllow, contract.RulingDeny:
-		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
-	default:
-		return decider.ruleOnSomethingToAskAbout(request, matched, reduced), nil
-	}
 }
 
-// ruleOnSomethingToAskAbout takes a call a rule says to ask about and sees
-// whether the user has already answered a call like it in this session, and
-// then whether a skill holds a standing approval for it.
-func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, matched Rule, reduced string) contract.PermissionDecision {
+// whyTheFormLeavesSomethingOut says, in the words the user and the model both
+// read, why a call whose readable form is not the whole story needs a yes.
+func whyTheFormLeavesSomethingOut(note string, reduced string) string {
+	if note == buildsItselfNote {
+		return fmt.Sprintf("the command %q works out part of itself while it runs, so nothing here can say what it will really do", reduced)
+	}
+	return fmt.Sprintf("the call %q was too long to read to the end, so nothing here can say what the rest of it does", reduced)
+}
+
+// ruleOnSomethingToAskAbout takes a call that needs a yes and sees whether the
+// user has already answered a call like it in this session, and then whether a
+// skill holds a standing approval for it.
+func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string) contract.PermissionDecision {
 	decider.guard.Lock()
 	answered, alreadyAnswered := decider.remembered[rememberedKey(request.ToolName, reduced)]
 	decider.guard.Unlock()
@@ -108,19 +119,19 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 	if alreadyAnswered {
 		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}
 	}
-	if why, standing := decider.useStandingApproval(reduced); standing {
-		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: why}
+	if approval, standing := decider.useStandingApproval(reduced); standing {
+		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 	}
 	if request.Unattended {
 		return contract.PermissionDecision{
 			Ruling:      contract.RulingStop,
-			Reason:      fmt.Sprintf("nobody is there to answer, and %q is on your ask-me-first list under %q, so the task stops and reports instead of waiting", reduced, reasonOf(matched, reduced)),
+			Reason:      fmt.Sprintf("nobody is there to answer, and %q needs a yes first: %s. The task stops and reports instead of waiting.", reduced, why),
 			PreviewText: previewOf(request, reduced),
 		}
 	}
 	return contract.PermissionDecision{
 		Ruling:      contract.RulingAsk,
-		Reason:      reasonOf(matched, reduced),
+		Reason:      why,
 		PreviewText: previewOf(request, reduced),
 	}
 }

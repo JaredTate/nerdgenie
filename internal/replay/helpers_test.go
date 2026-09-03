@@ -9,6 +9,7 @@ import (
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
@@ -34,6 +35,8 @@ type scriptedTask struct {
 	// deliver is a message the user sends while the first tool call runs, and
 	// is empty when nobody interrupts the task.
 	deliver string
+	// caps are the limits the run works inside, and are the defaults when zero.
+	caps contract.Caps
 }
 
 // recorded is a scripted task that has been run through the real turn loop,
@@ -64,6 +67,7 @@ func runScript(t *testing.T, scripted scriptedTask) recorded {
 		Store:      store,
 		Clock:      testkit.NewFakeClock(theStartOfTime),
 		Context:    theWorkingContext(t),
+		Caps:       scripted.caps,
 	})
 	if err != nil {
 		t.Fatalf("cannot build the loop that records the fixture: %v", err)
@@ -165,4 +169,18 @@ func scriptedTool(name string, outputs ...string) contract.Tool {
 // callTo is one tool call written out for a script.
 func callTo(id string, name string, arguments string) contract.ToolCall {
 	return contract.ToolCall{ID: id, Name: name, Input: json.RawMessage(arguments)}
+}
+
+// theReplayOptions is the dependency set every replay in these tests runs with:
+// a throwaway log to write into, the real working context, and a rulebook that
+// allows everything, which stands for a machine where nothing is in the way.
+func theReplayOptions(t *testing.T, from contract.Store) replay.Options {
+	t.Helper()
+	return replay.Options{
+		From:       from,
+		Into:       testkit.NewFakeStore(),
+		Context:    theWorkingContext(t),
+		Permission: testkit.NewFakePermission(contract.RulingAllow),
+		Clock:      testkit.NewFakeClock(theStartOfTime),
+	}
 }

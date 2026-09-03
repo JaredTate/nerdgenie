@@ -10,6 +10,8 @@ package tui
 import (
 	"strconv"
 	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 const (
@@ -27,6 +29,13 @@ const (
 	// how many more there are, so that a plan of fifty steps is not the whole
 	// screen.
 	maxPlanSteps = 8
+	// maxJobTasks is how many tasks of a job the panel draws before it says
+	// how many more there are, so that a job of two hundred tasks is not the
+	// whole screen. Twelve is the job in section 4 of COEUS.md drawn whole.
+	maxJobTasks = 12
+	// jobTaskMarkColumns is what a task line spends before its label: the
+	// pointer or its blank, and the mark with the blank after it.
+	jobTaskMarkColumns = 6
 )
 
 const (
@@ -37,10 +46,14 @@ const (
 	doneStepGlyph = '✓'
 	// toDoStepGlyph is the mark beside a step that is not finished yet.
 	toDoStepGlyph = '·'
+	// currentTaskGlyph is the pointer beside the task of the job that is
+	// running now.
+	currentTaskGlyph = '▸'
 )
 
 // The two things the panel draws that internal/contract does not name yet. The
-// lines asked for are:
+// job the running task belongs to is not one of them: the program sends it in
+// the four StatusFieldJob fields the contract names. The lines asked for are:
 //
 //	// StatusFieldPlan is the running task's plan: one done-when step per line,
 //	// each beginning with "[x] " when the step is done and "[ ] " when it is
@@ -105,8 +118,9 @@ func (screen *Screen) panelRows(height int) []string {
 
 // panelLines is what the panel says, in three groups with a blank line between
 // them: which model is answering and what it has cost, the running task and how
-// far through its plan it is, and how many jobs are waiting. A group the program
-// has said nothing about is left out altogether, blank line and all.
+// far through its plan it is, and the job the task belongs to or else how many
+// jobs are waiting. A group the program has said nothing about is left out
+// altogether, blank line and all.
 func (screen *Screen) panelLines() []row {
 	lines := []row{}
 	for _, group := range [][]row{screen.modelPanelLines(), screen.taskPanelLines(), screen.jobPanelLines()} {
@@ -154,10 +168,63 @@ func (screen *Screen) taskPanelLines() []row {
 	return lines
 }
 
-// jobPanelLines is how many jobs are waiting, or nothing at all when the program
+// jobPanelLines is the job the running task belongs to: its number, its ask,
+// one line per task with a mark on every task that is done and a pointer at
+// the one running now, and how far the job has got. While no job's task is
+// running it is how many jobs are waiting, or nothing at all when the program
 // has not said.
 func (screen *Screen) jobPanelLines() []row {
-	return appendPanelWords(nil, styleDim, jobWords(screen.jobs))
+	if screen.job == "" {
+		return appendPanelWords(nil, styleDim, jobWords(screen.jobs))
+	}
+	lines := appendPanelWords(nil, styleBold, "job "+screen.job)
+	lines = appendPanelWords(lines, styleDim, screen.jobAsk)
+	tasks := contract.ParseJobTaskLines(screen.jobTasks)
+	shown := tasks
+	if len(shown) > maxJobTasks {
+		shown = shown[:maxJobTasks]
+	}
+	for _, task := range shown {
+		lines = append(lines, jobTaskLine(task, task.TaskID != "" && task.TaskID == screen.jobTask))
+	}
+	if len(tasks) > len(shown) {
+		lines = appendPanelWords(lines, styleDim, "and "+strconv.Itoa(len(tasks)-len(shown))+" more tasks")
+	}
+	if len(tasks) > 0 {
+		lines = appendPanelWords(lines, styleDim, tasksDoneWords(tasks))
+	}
+	return lines
+}
+
+// jobTaskLine draws one task of the job on one line: the pointer when it is
+// the task running now, its mark, and its label and title cut to the room that
+// is left, because a task list is one line per task.
+func jobTaskLine(task contract.JobTask, current bool) row {
+	line := row{}
+	if current {
+		line.add(styleAccent, string(currentTaskGlyph)+" ")
+	} else {
+		line.blanks(2)
+	}
+	words, mark := styleNormal, "[ ] "
+	if task.Done {
+		words, mark = styleDim, "[x] "
+	}
+	line.add(words, mark)
+	line.add(words, cutTo(strings.TrimSpace(task.TaskID+" "+task.Text), panelTextColumns-jobTaskMarkColumns))
+	return line
+}
+
+// tasksDoneWords is the job's progress in the words the design uses, "3 of 12
+// tasks done", counted from the list the program sent.
+func tasksDoneWords(tasks []contract.JobTask) string {
+	done := 0
+	for _, task := range tasks {
+		if task.Done {
+			done++
+		}
+	}
+	return strconv.Itoa(done) + " of " + strconv.Itoa(len(tasks)) + " tasks done"
 }
 
 // jobWords says how many jobs are waiting in the words a person would use.

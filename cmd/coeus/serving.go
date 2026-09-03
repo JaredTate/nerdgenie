@@ -174,5 +174,9 @@ func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
 		}
 		return true, nil
 	}
-	return running.loop.RunNextJobTask(ctx, throughTheLedger(running.userChannel(), running.guard))
+	// The task has already been taken from the store above, and a task taken
+	// once cannot be taken again, so the loop is handed the task itself rather
+	// than asked for the next one: asking would take the job's second task and
+	// leave the first sitting taken until its budget ran out.
+	return true, running.loop.RunJobTask(ctx, due, throughTheLedger(running.userChannel(), running.guard))
 }

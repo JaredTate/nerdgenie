@@ -15,6 +15,12 @@ var (
 	// ErrJobTaskNeedsReport is the rule that a task on a job marked done must
 	// name the report it wrote.
 	ErrJobTaskNeedsReport = errors.New("a task marked done must name the report it wrote, such as j4.2")
+	// ErrDoneListTooLong is the rule that a task's done list holds at most
+	// MaxDoneLines lines, because a task is one sitting and an ask that needs
+	// more than that is a job. The harness decides this rather than the model,
+	// because a small model never says an ask is too big for it. The message
+	// says what to do instead, and it is the one line the model reads.
+	ErrDoneListTooLong = errors.New("this ask is a job, not one task: create it with the job tool, one task per done line, each task with one clear done line, and then work the first task")
 	// ErrDecisionNeedsReason is the rule that every decision carries its reason,
 	// so that the model does not argue with itself later.
 	ErrDecisionNeedsReason = errors.New("a decision must carry the reason it was made, so add a reason to it")

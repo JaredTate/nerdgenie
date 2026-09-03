@@ -114,8 +114,10 @@ func recordFilledToTheBudget(t *testing.T) *Keeper {
 	for step := range 12 {
 		plan = append(plan, fmt.Sprintf("step %d of the plan, which says what to do in about eight words", step+1))
 	}
+	// The done list is as long as a task's may be, which is the five lines a
+	// sitting can prove; a longer one is a job and is refused.
 	done := []contract.DoneLine{}
-	for line := range 6 {
+	for line := range MaxDoneLines {
 		done = append(done, contract.DoneLine{Text: fmt.Sprintf("done line %d, one thing that must be true at the end", line+1)})
 	}
 	stop := []string{}

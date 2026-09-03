@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // SocketMessageType is one kind of message on the local socket, which the
@@ -162,11 +163,78 @@ const (
 	// task or a job created, started, finished, or failed, with its id, which
 	// the screen shows once as a pill when the line changes.
 	StatusFieldRecordLine = "recordLine"
+	// StatusFieldJob is the number of the job the running task belongs to,
+	// such as "4", and is sent empty when the running task is a person's or
+	// nothing is running, so that a screen showing a job knows when to stop.
+	StatusFieldJob = "job"
+	// StatusFieldJobAsk is that job's ask, folded onto one line.
+	StatusFieldJobAsk = "jobAsk"
+	// StatusFieldJobTask is the label of the job's task that is running now,
+	// such as "t31", so that a screen can point at it in the list.
+	StatusFieldJobTask = "jobTask"
+	// StatusFieldJobTasks is the job's task list as JobTaskLines writes it: one
+	// task per line, each beginning with "[x] " when the task is done and "[ ] "
+	// when it is not, then the task's label and its text, so that a screen can
+	// draw the list with a check beside every task that is finished.
+	StatusFieldJobTasks = "jobTasks"
 	// ReplyLabel is what a done line names as its result when the answer to
 	// the user is its own proof. The harness writes that answer into the record
 	// as a result of its own and points the line at it.
 	ReplyLabel = "reply"
 )
+
+// The two marks a task carries in the job's task list on the wire.
+const (
+	jobTaskDoneMark = "[x] "
+	jobTaskToDoMark = "[ ] "
+)
+
+// JobTaskLines writes a job's task list the way StatusFieldJobTasks carries
+// it: one task per line, its mark, its label, and its text folded onto the one
+// line. The program writes it and a screen reads it back with
+// ParseJobTaskLines, so that the two never disagree about the shape.
+func JobTaskLines(tasks []JobTask) string {
+	lines := make([]string, 0, len(tasks))
+	for _, task := range tasks {
+		mark := jobTaskToDoMark
+		if task.Done {
+			mark = jobTaskDoneMark
+		}
+		lines = append(lines, mark+strings.Join(strings.Fields(task.TaskID+" "+task.Text), " "))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// ParseJobTaskLines reads the task list back: the mark says whether the task
+// is done, the first word is its label when it is one a job writes, and the
+// rest is its text. A line in any other shape is read as a task that is not
+// done, because a list a screen cannot quite read is still a list worth
+// showing. Only what the list carries comes back: the report behind a finished
+// task and the date a waiting one is due stay in the record.
+func ParseJobTaskLines(text string) []JobTask {
+	tasks := []JobTask{}
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		task := JobTask{}
+		if rest, marked := strings.CutPrefix(line, jobTaskDoneMark); marked {
+			task.Done, line = true, rest
+		} else if rest, marked := strings.CutPrefix(line, jobTaskToDoMark); marked {
+			line = rest
+		}
+		words := strings.Fields(line)
+		if len(words) > 0 {
+			if _, isALabel := ParseTaskID(words[0]); isALabel {
+				task.TaskID, words = words[0], words[1:]
+			}
+		}
+		task.Text = strings.Join(words, " ")
+		tasks = append(tasks, task)
+	}
+	return tasks
+}
 
 // StatusCommandSeparator separates a command's name from its help line inside
 // the commands field.

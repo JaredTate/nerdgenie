@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -31,6 +32,7 @@ func (running *agent) statusForAScreen() map[string]string {
 	}
 	if running.loop != nil {
 		fields[contract.StatusFieldTask] = running.loop.Running()
+		running.fillTheJob(fields)
 	}
 	if running.loopIsBusy() {
 		fields[contract.StatusFieldState] = contract.StateThinking
@@ -48,6 +50,41 @@ func (running *agent) statusForAScreen() map[string]string {
 		fields[contract.StatusFieldToolLine] = line
 	}
 	return fields
+}
+
+// fillTheJob writes the job the running task belongs to, which is what the side
+// panel draws: the job's number, its ask, which of its tasks is running, and
+// its task list. All four are sent empty when the running task is a person's
+// or nothing is running, so that a screen goes back to its count of jobs rather
+// than keeping the job it drew last. A job whose record cannot be read is
+// still named by its number and its task, because a person watching a job
+// that has just gone wrong wants to know which one it was.
+func (running *agent) fillTheJob(fields map[string]string) {
+	for _, field := range []string{
+		contract.StatusFieldJob, contract.StatusFieldJobAsk, contract.StatusFieldJobTask, contract.StatusFieldJobTasks,
+	} {
+		fields[field] = ""
+	}
+	fromJob, there := running.loop.RunningJobTask()
+	if !there || running.jobs == nil {
+		return
+	}
+	held, err := running.jobs.Load(context.Background(), fromJob.JobID)
+	if err != nil {
+		fields[contract.StatusFieldJob] = fromJob.JobID
+		fields[contract.StatusFieldJobTask] = fromJob.TaskID
+		return
+	}
+	fillTheJobFields(fields, fromJob, held)
+}
+
+// fillTheJobFields writes the four job fields from the job's record and the
+// task of it that is running.
+func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held contract.Record) {
+	fields[contract.StatusFieldJob] = fromJob.JobID
+	fields[contract.StatusFieldJobAsk] = onOneLine(held.Goal.Ask)
+	fields[contract.StatusFieldJobTask] = fromJob.TaskID
+	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
 }
 
 // commandList is the palette: one command per line, its name and its help with

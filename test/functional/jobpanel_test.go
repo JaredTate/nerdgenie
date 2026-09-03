@@ -82,7 +82,9 @@ func TestTheStatusCarriesTheJobAndItsTaskListWhileItsTasksRun(t *testing.T) {
 	screen := agent.attach(t)
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatIsAJob})
 
-	first := screen.waitForStatusWhere(t, 90*time.Second, func(fields map[string]string) bool {
+	// The job driver notices a job made while it waits within the minute its
+	// timer is clamped to, so the first task may be a minute in coming.
+	first := screen.waitForStatusWhere(t, 120*time.Second, func(fields map[string]string) bool {
 		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobTask] == "t1"
 	})
 	if first.Fields[contract.StatusFieldJobAsk] != theAskThatIsAJob {

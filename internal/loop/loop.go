@@ -129,10 +129,13 @@ type Loop struct {
 	stopWanted  bool
 	stopTheCall context.CancelFunc
 	running     string
-	highest     int
-	counted     bool
-	thinkModel  string
-	thinkLevel  contract.Think
+	// runningFromJob is the job's task the loop is running now, and nil while
+	// the running task is a person's or nothing is running.
+	runningFromJob *contract.TaskToRun
+	highest        int
+	counted        bool
+	thinkModel     string
+	thinkLevel     contract.Think
 }
 
 // UseThink sets how hard one model is asked to think, for the rest of the
@@ -208,10 +211,19 @@ func (theLoop *Loop) RunNextJobTask(ctx context.Context, where contract.Channel)
 	if !there {
 		return false, nil
 	}
-	if _, err := theLoop.Run(ctx, taskFromJob(due, where)); err != nil {
-		return true, err
-	}
-	return true, nil
+	return true, theLoop.RunJobTask(ctx, due, where)
+}
+
+// RunJobTask runs one task of a job that its caller has already taken from the
+// job store, and carries on with the job's next tasks the way RunNextJobTask
+// does. The job driver in cmd/coeus asks the store for the due task itself, so
+// that it can hand the nightly self-check to the checker rather than to the
+// model, and a task taken once cannot be taken again: a driver that then asked
+// this loop for the next task would run the second task of a job first and
+// leave the first sitting taken until its budget ran out.
+func (theLoop *Loop) RunJobTask(ctx context.Context, due contract.TaskToRun, where contract.Channel) error {
+	_, err := theLoop.Run(ctx, taskFromJob(due, where))
+	return err
 }
 
 // taskFromJob turns a job's next task into a task the loop can run.
@@ -263,7 +275,9 @@ func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, error) {
 		return Outcome{}, err
 	}
 	theLoop.nowRunning(running.taskID())
+	theLoop.nowRunningFromJob(task.FromJob)
 	defer theLoop.nowRunning("")
+	defer theLoop.nowRunningFromJob(nil)
 
 	theLoop.noteRecordLine(RecordLineOf(running.number, task.FromJob, "started", task.Message.Text))
 	outcome, err := running.play(ctx)
@@ -367,6 +381,27 @@ func (theLoop *Loop) nowRunning(taskID string) {
 	theLoop.guard.Lock()
 	defer theLoop.guard.Unlock()
 	theLoop.running = taskID
+}
+
+// RunningJobTask is the job's task running now, when the running task is a
+// job's rather than a person's, and false otherwise. It is what the program
+// builds the status a screen draws the job from, and it is known from the
+// moment the task starts rather than from its first tool call, because a task
+// of a job is a job's task whether or not it ever opens a record.
+func (theLoop *Loop) RunningJobTask() (contract.TaskToRun, bool) {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	if theLoop.runningFromJob == nil {
+		return contract.TaskToRun{}, false
+	}
+	return *theLoop.runningFromJob, true
+}
+
+// nowRunningFromJob records which job's task is running, or that none is.
+func (theLoop *Loop) nowRunningFromJob(fromJob *contract.TaskToRun) {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	theLoop.runningFromJob = fromJob
 }
 
 // nextTaskNumber is the number the next task takes: one above the highest the

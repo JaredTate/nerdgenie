@@ -37,13 +37,17 @@ type recordParts struct {
 
 // splitRecord cuts a printed record into those four pieces.
 //
+// It prints through record.PrintForTheModel rather than record.Print, so an ask
+// too long to ride in every prompt arrives as its first quarter and one line
+// saying how to read the rest. The stored record keeps the user's words entire.
+//
 // A record that has not been made yet, which is what the first turn of a task
 // holds, splits into nothing at all.
 func splitRecord(held contract.Record) recordParts {
 	if held.Header.Kind == "" {
 		return recordParts{}
 	}
-	lines := strings.Split(strings.TrimRight(string(record.Print(held)), "\n"), "\n")
+	lines := strings.Split(strings.TrimRight(string(record.PrintForTheModel(held)), "\n"), "\n")
 	goalAt, workAt := lineAt(lines, goalHeading), lineAt(lines, workHeading)
 	if goalAt < 0 || workAt < goalAt {
 		return recordParts{Body: strings.Join(lines, "\n")}

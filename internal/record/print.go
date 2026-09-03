@@ -2,6 +2,7 @@ package record
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,47 @@ func Print(record contract.Record) []byte {
 		lines = append(lines, part...)
 	}
 	return []byte(strings.Join(lines, "\n") + "\n")
+}
+
+// PrintForTheModel writes the record as the working context puts it in front of
+// the model, which is Print with one difference: an ask longer than MaxAskTokens
+// shows its first quarter's worth and then one line saying how much more there
+// is and how to read it. Nothing else is ever shortened, and nothing is
+// shortened anywhere but here — the record in hand, the stored form and every
+// checkpoint hold the user's words entire.
+//
+// What this writes is a view and not a record, and Parse refuses it, which is
+// deliberate: there is then no road by which a shortened ask could be read back
+// and saved over the user's own words.
+func PrintForTheModel(record contract.Record) []byte {
+	shown, note := askForTheModel(record.Goal.Ask)
+	if note == "" {
+		return Print(record)
+	}
+	record.Goal.Ask = shown
+	lines := strings.Split(strings.TrimRight(string(Print(record)), "\n"), "\n")
+	for at, line := range lines {
+		if strings.HasPrefix(line, labelAsk) {
+			lines = slices.Insert(lines, at+1, note)
+			break
+		}
+	}
+	return []byte(strings.Join(lines, "\n") + "\n")
+}
+
+// askForTheModel cuts a long ask down to the share of the prompt it is allowed
+// and writes the line that stands where the rest of it was. An ask inside its
+// share comes back unchanged with no line beside it.
+func askForTheModel(ask string) (shown string, note string) {
+	words := strings.Fields(ask)
+	allowed := MaxAskTokens * 100 / TokensPerHundredWords
+	if len(words) <= allowed {
+		return ask, ""
+	}
+	left := EstimateTokens(strings.Join(words[allowed:], " "))
+	return strings.Join(words[:allowed], " "),
+		fmt.Sprintf("%s about %d more tokens, which are stored whole. Read all of it with `read %s`.]",
+			AskCutNote, left, AskLabel)
 }
 
 // printHeader writes the first line of a record, and, on a task, the cost line

@@ -9,7 +9,7 @@ import (
 // aLongAsk is the shape of ask this rule exists for: one pasted specification,
 // far past the quarter of a record's size the ask is allowed to fill.
 func aLongAsk() string {
-	return "Build the release pipeline. " + strings.Repeat("one more sentence of the specification the user pasted in. ", 200)
+	return "Build the release pipeline. " + strings.Repeat("one more sentence of the specification the user pasted in. ", 400)
 }
 
 // TestARecordWithALongAskStillTakesWrites is the first half of the decision on

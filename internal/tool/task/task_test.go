@@ -294,12 +294,49 @@ func TestTheShapesAModelPlausiblyWritesAreAllTaken(t *testing.T) {
 	if _, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": "the game runs"}); err != nil {
 		t.Fatalf("a done list written as one string was refused: %v", err)
 	}
-	if _, err := run(t, tool, map[string]any{"operation": "pin_result", "line": "1", "result": "r1"}); err != nil {
+	id, err := keeper.AddResult(context.Background(), "the game, 40 files", "the whole of the game")
+	if err != nil {
+		t.Fatalf("cannot add a result to the record: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "pin_result", "line": "1", "result": id}); err != nil {
 		t.Fatalf("a line number written as a string was refused: %v", err)
 	}
 	held := keeper.Record()
-	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Goal.StopWhen) != 1 ||
+	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Rules.StopWhen) != 1 ||
 		len(held.Goal.DoneWhen) != 1 || !held.Goal.DoneWhen[0].Done {
-		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.StopWhen, held.Goal.DoneWhen)
+		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Rules.StopWhen, held.Goal.DoneWhen)
+	}
+}
+
+// TestARecordWriteMayCarrySeveralSectionsAtOnce reproduces two more shapes
+// from the trial's event log: one call carrying the why, the done list and the
+// plan together, and a done line whose text is under "line". Both are taken,
+// and a call with an operation that names one section while another section
+// is the one written still writes what it carries.
+func TestARecordWriteMayCarrySeveralSectionsAtOnce(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"why":       "the user wants a game",
+		"done_when": []any{map[string]any{"line": "the tests pass"}},
+		"plan":      []any{"write the tests", "write the game"},
+	}); err != nil {
+		t.Fatalf("a call carrying three sections was refused: %v", err)
+	}
+	held := keeper.Record()
+	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 2 ||
+		len(held.Goal.DoneWhen) != 1 || held.Goal.DoneWhen[0].Text != "the tests pass" {
+		t.Errorf("the record came out as why=%q plan=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.DoneWhen)
+	}
+
+	if _, err := run(t, tool, map[string]any{"operation": "done_when", "stop_when": []any{"the user says stop"}}); err != nil {
+		t.Fatalf("a call naming one section and carrying another was refused: %v", err)
+	}
+	if len(keeper.Record().Rules.StopWhen) != 1 {
+		t.Errorf("the stop list was not written: %v", keeper.Record().Rules.StopWhen)
+	}
+	if _, err := run(t, tool, map[string]any{"operation": "plan"}); err == nil {
+		t.Errorf("a call that writes nothing was taken")
 	}
 }

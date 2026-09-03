@@ -114,9 +114,8 @@ live:
 release: build
 	scripts/release/build.sh $(if $(filter-out dev,$(VERSION)),--version $(VERSION))
 
-install:
-	@echo "make install is built in wave 3, brief 3.3. It is not done yet."
-	@exit 1
+install: build
+	./bin/coeus install
 
 repo-map:
 	go run ./scripts/repomap > REPO_MAP.md

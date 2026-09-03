@@ -8,14 +8,13 @@
 package testkit
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -27,11 +26,9 @@ const (
 	SignalHealthPath = "/api/v1/check"
 	// SignalEventsPath is the stream of inbound messages.
 	SignalEventsPath = "/api/v1/events"
-	// SignalRemoteProcedurePath is where sends and typing indicators go.
+	// SignalRemoteProcedurePath is where sends, typing indicators, and requests
+	// for an attachment's bytes go.
 	SignalRemoteProcedurePath = "/api/v1/rpc"
-	// SignalAttachmentsPath is where the daemon serves the bytes of one
-	// attachment, named by the opaque id it put on the event.
-	SignalAttachmentsPath = "/api/v1/attachments/"
 )
 
 // SignalSend is one message the harness asked the daemon to send.
@@ -75,7 +72,6 @@ func NewFakeSignalCLI() *FakeSignalCLI {
 	router.HandleFunc(SignalHealthPath, daemon.handleHealth)
 	router.HandleFunc(SignalEventsPath, daemon.handleEvents)
 	router.HandleFunc(SignalRemoteProcedurePath, daemon.handleRemoteProcedure)
-	router.HandleFunc(SignalAttachmentsPath, daemon.handleAttachment)
 	daemon.server = httptest.NewServer(router)
 	return daemon
 }
@@ -93,12 +89,6 @@ func (daemon *FakeSignalCLI) EventsAddress() string {
 // RemoteProcedureAddress is the full address sends and typing indicators go to.
 func (daemon *FakeSignalCLI) RemoteProcedureAddress() string {
 	return daemon.server.URL + SignalRemoteProcedurePath
-}
-
-// AttachmentAddress is the full address of one attachment's bytes, by the id the
-// daemon put on the event.
-func (daemon *FakeSignalCLI) AttachmentAddress(identifier string) string {
-	return daemon.server.URL + SignalAttachmentsPath + url.PathEscape(identifier)
 }
 
 // PushMessage puts one inbound message on the stream, with any attachments, and
@@ -255,57 +245,83 @@ func waitOrGiveUp(wait time.Duration, dropped <-chan struct{}, stopped <-chan st
 	}
 }
 
-// handleAttachment serves the bytes of one attachment by its opaque id, the way
-// signal-cli does.
-func (daemon *FakeSignalCLI) handleAttachment(writer http.ResponseWriter, request *http.Request) {
-	identifier := strings.TrimPrefix(request.URL.Path, SignalAttachmentsPath)
-	daemon.guard.Lock()
-	path, known := daemon.attachments[identifier]
-	daemon.guard.Unlock()
-
-	if !known {
-		http.Error(writer, `{"error":{"message":"there is no attachment with that id, so use the id from the event"}}`, http.StatusNotFound)
-		return
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		http.Error(writer, `{"error":{"message":"that attachment is not on the disk, so write the file before pushing the message"}}`, http.StatusNotFound)
-		return
-	}
-	writer.Header().Set("Content-Type", "application/octet-stream")
-	_, _ = writer.Write(content)
-}
-
-// handleRemoteProcedure records a send or a typing indicator.
+// handleRemoteProcedure records a send or a typing indicator, and hands back an
+// attachment's bytes. The parameters are kept unread until the method is known,
+// because getAttachment names one recipient where send names a list of them.
 func (daemon *FakeSignalCLI) handleRemoteProcedure(writer http.ResponseWriter, request *http.Request) {
 	var call struct {
-		Method string `json:"method"`
-		Params struct {
-			Recipient   []string `json:"recipient"`
-			Message     string   `json:"message"`
-			Attachments []string `json:"attachments"`
-		} `json:"params"`
+		Method string          `json:"method"`
+		Params json.RawMessage `json:"params"`
 	}
 	if err := json.NewDecoder(request.Body).Decode(&call); err != nil {
 		http.Error(writer, `{"error":{"message":"the call was not JSON"}}`, http.StatusBadRequest)
 		return
 	}
 
+	writer.Header().Set("Content-Type", "application/json")
+	if call.Method == "getAttachment" {
+		daemon.answerAttachment(writer, call.Params)
+		return
+	}
+
+	daemon.recordCall(call.Method, call.Params)
+	fmt.Fprint(writer, `{"jsonrpc":"2.0","id":1,"result":{"timestamp":1}}`)
+}
+
+// recordCall writes down a send or a typing indicator.
+func (daemon *FakeSignalCLI) recordCall(method string, raw json.RawMessage) {
+	var params struct {
+		Recipient   []string `json:"recipient"`
+		Message     string   `json:"message"`
+		Attachments []string `json:"attachments"`
+	}
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &params)
+	}
+
 	daemon.guard.Lock()
-	switch call.Method {
+	defer daemon.guard.Unlock()
+	switch method {
 	case "send":
 		daemon.sends = append(daemon.sends, SignalSend{
-			Recipients:  call.Params.Recipient,
-			Message:     call.Params.Message,
-			Attachments: call.Params.Attachments,
+			Recipients:  params.Recipient,
+			Message:     params.Message,
+			Attachments: params.Attachments,
 		})
 	case "sendTyping":
 		daemon.typings++
 	}
+}
+
+// answerAttachment hands back one attachment's bytes as base64 under "data",
+// which is what signal-cli answers a getAttachment call with. The method name,
+// its parameters, and the base64 field were read from OpenClaw's Signal monitor
+// at ~/Code/openclaw/extensions/signal/src/monitor.ts.
+func (daemon *FakeSignalCLI) answerAttachment(writer http.ResponseWriter, raw json.RawMessage) {
+	var params struct {
+		ID string `json:"id"`
+	}
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &params)
+	}
+
+	daemon.guard.Lock()
+	path, known := daemon.attachments[params.ID]
 	daemon.guard.Unlock()
 
-	writer.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(writer, `{"jsonrpc":"2.0","id":1,"result":{"timestamp":1}}`)
+	if !known {
+		fmt.Fprintf(writer, `{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":%s}}`,
+			mustJSON("there is no attachment with the id "+params.ID+", so use the id from the event"))
+		return
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(writer, `{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":%s}}`,
+			mustJSON("the attachment "+params.ID+" is not on the disk, so write the file before pushing the message"))
+		return
+	}
+	fmt.Fprintf(writer, `{"jsonrpc":"2.0","id":1,"result":{"data":%s}}`,
+		mustJSON(base64.StdEncoding.EncodeToString(content)))
 }
 
 // attachmentList turns the paths into the shape signal-cli reports them in: a

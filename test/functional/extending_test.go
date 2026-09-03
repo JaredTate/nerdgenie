@@ -332,18 +332,24 @@ func checksNamedInTheGuide(t *testing.T, root string) []string {
 func checksTestkitExports(t *testing.T, root string) map[string]bool {
 	t.Helper()
 	folder := filepath.Join(root, "internal", "testkit")
-	parsed, err := parser.ParseDir(token.NewFileSet(), folder, nil, 0)
+	entries, err := os.ReadDir(folder)
 	if err != nil {
 		t.Fatalf("cannot read %s: %v", folder, err)
 	}
+	positions := token.NewFileSet()
 	held := map[string]bool{}
-	for _, one := range parsed {
-		for _, file := range one.Files {
-			for _, declared := range file.Decls {
-				function, ok := declared.(*ast.FuncDecl)
-				if ok && function.Recv == nil && strings.HasPrefix(function.Name.Name, "Check") {
-					held[function.Name.Name] = true
-				}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+			continue
+		}
+		file, err := parser.ParseFile(positions, filepath.Join(folder, entry.Name()), nil, 0)
+		if err != nil {
+			t.Fatalf("cannot read %s: %v", entry.Name(), err)
+		}
+		for _, declared := range file.Decls {
+			function, ok := declared.(*ast.FuncDecl)
+			if ok && function.Recv == nil && strings.HasPrefix(function.Name.Name, "Check") {
+				held[function.Name.Name] = true
 			}
 		}
 	}

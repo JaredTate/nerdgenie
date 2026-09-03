@@ -69,3 +69,33 @@ func readAll(t *testing.T, answer *http.Response) string {
 	}
 	return built.String()
 }
+
+// TestTheFixtureSiteFilesReportsAndRefusesAFormItCannotRead covers the quality
+// form the qa skill walks, and the one answer a form that cannot be read gets.
+func TestTheFixtureSiteFilesReportsAndRefusesAFormItCannotRead(t *testing.T) {
+	site, err := testkit.NewFixtureSite(testkit.FixturePagesFolder())
+	if err != nil {
+		t.Fatalf("the fixture site could not be built: %v", err)
+	}
+	server := httptest.NewServer(site.Handler())
+	defer server.Close()
+
+	if form, _ := http.Get(server.URL + "/qa"); form.StatusCode != http.StatusOK {
+		t.Errorf("the quality form answered %d", form.StatusCode)
+	}
+	filed, _ := http.PostForm(server.URL+"/qa", url.Values{"reporter": {"jared"}, "what": {"the button is off"}, "area": {"the top"}})
+	if body := readAll(t, filed); !strings.Contains(body, "jared") {
+		t.Errorf("the form did not thank the reporter by name")
+	}
+	if reports := site.Reports(); len(reports) != 1 || !strings.Contains(reports[0], "jared said the button is off about the top") {
+		t.Errorf("the site kept %v, want the one report", reports)
+	}
+	broken, _ := http.NewRequest(http.MethodPost, server.URL+"/qa", strings.NewReader("reporter=%zz"))
+	broken.Header.Set("content-type", "application/x-www-form-urlencoded")
+	if answer, _ := http.DefaultClient.Do(broken); answer.StatusCode != http.StatusBadRequest {
+		t.Errorf("a form that cannot be read answered %d, want a bad request", answer.StatusCode)
+	}
+	if home, _ := http.Get(server.URL + "/"); home.Request.URL.Path != "/login" {
+		t.Errorf("the front page led to %s, want the login page", home.Request.URL.Path)
+	}
+}

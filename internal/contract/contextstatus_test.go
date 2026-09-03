@@ -39,3 +39,11 @@ func TestADeltaCanWithdrawThePartialReply(t *testing.T) {
 		t.Errorf("the reset field was not kept")
 	}
 }
+
+// TestTheReplyLabelIsTheWordTheModelNames pins the label a done line names as
+// its result when the answer to the user is its own proof.
+func TestTheReplyLabelIsTheWordTheModelNames(t *testing.T) {
+	if ReplyLabel != "reply" {
+		t.Errorf("the reply label is %q, want %q", ReplyLabel, "reply")
+	}
+}

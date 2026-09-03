@@ -42,6 +42,12 @@ type Settings struct {
 	// orchestrator wires the fence. Empty means the default, ~/.coeus, and is
 	// only right when COEUS_HOME has not moved it.
 	AgentHome string
+	// AlsoOutside are paths that must stay outside the fence besides the four
+	// the contract always knows. The configuration can put the browser profile
+	// and the backup folder anywhere on the machine, and the cookies in that
+	// profile are the agent's own logins, so whoever builds the fence passes
+	// both of the configured paths here.
+	AlsoOutside []string
 	// Network says whether commands inside this fence reach the network. It is
 	// false by default, and a fence built that way has a network namespace of
 	// its own with nothing in it, so a command cannot reach the internet or any
@@ -86,7 +92,7 @@ type Fence struct {
 // cannot be allowed and what to do about it. Everything that can be refused is
 // refused here, once, rather than on every command.
 func New(settings Settings) (*Fence, error) {
-	roots, err := checkRoots(settings.Roots, settings.UserHome, settings.AgentHome)
+	roots, err := checkRoots(settings.Roots, settings.UserHome, settings.AgentHome, settings.AlsoOutside...)
 	if err != nil {
 		return nil, err
 	}

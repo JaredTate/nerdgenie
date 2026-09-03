@@ -50,6 +50,36 @@ func TestNewFenceKeepsTheCleanedRootsAndFillsInTheDefaults(t *testing.T) {
 	}
 }
 
+func TestAFenceNeverBindsAPathTheCallerNamedAsOneToKeepOutside(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	profile := filepath.Join(userHome, "chrome-profile")
+	helper := filepath.Join(work, "coeus")
+	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("cannot write the stand-in helper program: %v", err)
+	}
+
+	fence, err := New(Settings{Roots: []string{work}, UserHome: userHome, HelperProgram: helper, AlsoOutside: []string{profile}})
+	if err != nil {
+		t.Fatalf("cannot build a fence beside the named path: %v", err)
+	}
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true"})
+	if err != nil {
+		t.Fatalf("planning a command failed: %v", err)
+	}
+
+	arguments := buildArguments(plan)
+	for index, argument := range arguments {
+		if argument != "--bind" && argument != "--ro-bind" {
+			continue
+		}
+		source := arguments[index+1]
+		if source == profile || strings.HasPrefix(profile, source+string(filepath.Separator)) {
+			t.Errorf("the command line binds %q, which is or holds the browser profile at %q that the caller said must stay outside", source, profile)
+		}
+	}
+}
+
 func TestAFenceCarriesTheNetworkSettingThroughToEveryCommandItPlans(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")

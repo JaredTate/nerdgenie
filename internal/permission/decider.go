@@ -129,18 +129,20 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 }
 
 // ruleOnSomethingToAskAbout takes a call that needs a yes, which the user has
-// not already answered about in this session, and sees whether a skill holds a
-// standing approval for it before putting it to the user.
+// not already answered about in this session. A run with nobody there to answer
+// stops before anything else is read, because a call that needs a yes and can be
+// given none does not run whoever holds an approval for it. Only after that is a
+// skill's standing approval read, and a call no approval covers goes to the user.
 func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string) contract.PermissionDecision {
-	if approval, standing := decider.useStandingApproval(reduced); standing {
-		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
-	}
 	if request.Unattended {
 		return contract.PermissionDecision{
 			Ruling:      contract.RulingStop,
 			Reason:      fmt.Sprintf("nobody is there to answer, and %q needs a yes first: %s. The task stops and reports instead of waiting.", reduced, why),
 			PreviewText: previewOf(request, reduced),
 		}
+	}
+	if approval, standing := decider.useStandingApproval(reduced); standing {
+		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 	}
 	return contract.PermissionDecision{
 		Ruling:      contract.RulingAsk,

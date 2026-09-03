@@ -39,6 +39,11 @@ func (jobs *Jobs) NextTask(ctx context.Context, now time.Time) (contract.TaskToR
 		if err := jobs.tickSchedule(ctx, jobID, held, now); err != nil {
 			return contract.TaskToRun{}, false, err
 		}
+		// A tick can stop the job it ticked, by filling its list, so where the
+		// job stands is read again before any of its work is handed out.
+		if held.state.State != contract.JobRunning {
+			continue
+		}
 		next, due, err := jobs.taskOf(ctx, jobID, held, now)
 		if err != nil {
 			return contract.TaskToRun{}, false, err

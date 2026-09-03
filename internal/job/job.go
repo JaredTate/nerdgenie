@@ -30,8 +30,9 @@ const (
 	// MaxTasksPerJob is the most tasks one job's list holds. A finished task is
 	// never taken off the list, so a schedule that has ticked this many times has
 	// filled the job, and the job is switched off with a message asking for a
-	// fresh one.
-	MaxTasksPerJob = 1000
+	// fresh one. Two hundred is where a job record stops fitting in the one to
+	// three thousand tokens the design gives it.
+	MaxTasksPerJob = 200
 	// NotepadBytes is the size of the notepad each job carries between its tasks.
 	// The oldest lines are dropped to make room for new ones.
 	NotepadBytes = 16 * 1024

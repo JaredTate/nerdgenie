@@ -16,7 +16,7 @@ import (
 // refusal is one shape of work a job may never carry: a program, the words that
 // make it stop something, and the thing it would stop.
 type refusal struct {
-	// program is the command the segment must start with.
+	// program is the command that does the stopping.
 	program string
 	// verbs are the words that turn the program into one that stops something.
 	// An empty list means the program stops something whatever follows it.
@@ -24,6 +24,11 @@ type refusal struct {
 	// target is the word a later token must hold, and is empty when the program
 	// needs no target to be dangerous.
 	target string
+	// mustLeadTheCommand says the program only counts when it is the first word
+	// of a command. A program that needs neither a verb nor a target is a common
+	// English word as well, and "the reboot of the franchise" is a blog piece
+	// rather than an order to restart the machine.
+	mustLeadTheCommand bool
 }
 
 // refusedWork is the fixed list of work that would stop or restart the agent. A
@@ -35,10 +40,10 @@ var refusedWork = []refusal{
 	{program: "pkill", target: "coeus"},
 	{program: "killall", target: "coeus"},
 	{program: "kill", target: "coeus"},
-	{program: "reboot"},
-	{program: "shutdown"},
-	{program: "halt"},
-	{program: "poweroff"},
+	{program: "reboot", mustLeadTheCommand: true},
+	{program: "shutdown", mustLeadTheCommand: true},
+	{program: "halt", mustLeadTheCommand: true},
+	{program: "poweroff", mustLeadTheCommand: true},
 }
 
 // leadingWords are the words that stand in front of a command without changing
@@ -70,13 +75,19 @@ func checkItCannotRestartTheAgent(text string) error {
 	return nil
 }
 
-// matchesRefusedWork says whether one command is the shape of work being refused:
-// the program first, then one of its verbs, then the thing it would stop.
+// matchesRefusedWork says whether one command is the shape of work being
+// refused: the program, then one of its verbs, then the thing it would stop.
+//
+// A program that carries a verb and a target is looked for anywhere in the
+// command, because "run systemctl restart coeus every morning" is an order
+// however it is worded. A program that needs neither has to be the first word,
+// because it is an ordinary English word as well.
 func matchesRefusedWork(tokens []string, refused refusal) bool {
-	if tokens[0] != refused.program {
+	at := slices.Index(tokens, refused.program)
+	if at < 0 || (refused.mustLeadTheCommand && at != 0) {
 		return false
 	}
-	rest := tokens[1:]
+	rest := tokens[at+1:]
 	if len(refused.verbs) > 0 {
 		at := slices.IndexFunc(rest, func(token string) bool { return slices.Contains(refused.verbs, token) })
 		if at < 0 {

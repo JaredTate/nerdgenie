@@ -298,8 +298,8 @@ func TestTheShapesAModelPlausiblyWritesAreAllTaken(t *testing.T) {
 		t.Fatalf("a line number written as a string was refused: %v", err)
 	}
 	held := keeper.Record()
-	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Goal.StopWhen) != 1 ||
+	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Rules.StopWhen) != 1 ||
 		len(held.Goal.DoneWhen) != 1 || !held.Goal.DoneWhen[0].Done {
-		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.StopWhen, held.Goal.DoneWhen)
+		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Rules.StopWhen, held.Goal.DoneWhen)
 	}
 }

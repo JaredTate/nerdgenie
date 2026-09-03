@@ -48,8 +48,9 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	return answer, nil
 }
 
-// AskSecret asks for a secret on every attached screen, marked so that the
-// screen hides what is typed, and waits for the first screen to send it back.
+// AskSecret asks for a secret on every attached screen, marked with the
+// contract's own MaskInput flag so that the screen hides what is typed, and
+// waits for the first screen to send it back.
 // The secret goes straight to the caller: it is never written into the queue,
 // never published on the event stream, and never sent back out to a screen.
 //
@@ -63,10 +64,10 @@ func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, err
 	defer socket.stopWaitingOnPrompt(id)
 
 	asked, err := socket.writeToScreens(ctx, contract.SocketEnvelope{
-		Type:   contract.SocketAsk,
-		ID:     id,
-		Text:   prompt,
-		Fields: map[string]string{SecretPromptField: SecretPromptValue},
+		Type:      contract.SocketAsk,
+		ID:        id,
+		Text:      prompt,
+		MaskInput: true,
 	})
 	if err != nil {
 		return "", err
@@ -81,21 +82,6 @@ func (socket *Socket) AskSecret(ctx context.Context, prompt string) (string, err
 	}
 	return secret, nil
 }
-
-// The two fields that mark a question as a masked prompt rather than an ordinary
-// question, so that a screen knows to hide what is typed and to answer with a
-// secret message rather than an ordinary one.
-//
-// They belong in internal/contract beside the socket message types, because the
-// terminal screen has to read them and cannot import this package. They are here
-// until the orchestrator moves them.
-const (
-	// SecretPromptField is the name of the field that marks the question.
-	SecretPromptField = "secret"
-	// SecretPromptValue is what that field says when the question is a masked
-	// prompt.
-	SecretPromptValue = "yes"
-)
 
 // waitOnPrompt writes down that someone is waiting for a secret.
 func (socket *Socket) waitOnPrompt(id string, waiting chan string) {

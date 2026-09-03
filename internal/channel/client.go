@@ -252,9 +252,10 @@ func (socket *Socket) answerPrompt(attached *client, envelope contract.SocketEnv
 }
 
 // approvalIn reads which of the two yeses a screen sent: this once, or always
-// for the rest of the session, which the screen says by writing "always".
+// for the rest of the session, which the screen says by putting
+// contract.ApproveAlwaysText in the approve's text.
 func approvalIn(envelope contract.SocketEnvelope) contract.PreviewAnswer {
-	if strings.EqualFold(strings.TrimSpace(envelope.Text), string(contract.AnswerAlways)) {
+	if strings.EqualFold(strings.TrimSpace(envelope.Text), contract.ApproveAlwaysText) {
 		return contract.AnswerAlways
 	}
 	return contract.AnswerOnce

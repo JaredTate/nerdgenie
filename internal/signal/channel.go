@@ -367,8 +367,9 @@ func (channel *Channel) route(ctx context.Context, event Event) {
 }
 
 // offerPairing gives a sender the agent does not know a code and nothing else. A
-// sender who has asked too often, or who arrives while three others are already
-// waiting, is told nothing at all.
+// sender who has already asked within the last ten minutes is told nothing at
+// all, because answering every message would be a reply anybody could ask for
+// again and again.
 func (channel *Channel) offerPairing(ctx context.Context, sender string) {
 	code, offered, err := channel.pairing.Offer(sender)
 	if err != nil || !offered {

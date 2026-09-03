@@ -49,6 +49,7 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/rebuilt_test.go
 cmd/coeus/replay.go
 cmd/coeus/replay_test.go
 cmd/coeus/resuming.go
@@ -442,6 +443,7 @@ internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
 internal/loop/answercloses_test.go
+internal/loop/asknumber_test.go
 internal/loop/bounds_test.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
@@ -1268,6 +1270,7 @@ test/functional/readfile_test.go
 test/functional/recordline_test.go
 test/functional/reliability_test.go
 test/functional/replyproof_test.go
+test/functional/restart_test.go
 test/functional/resume_test.go
 test/functional/sample_test.go
 test/functional/schema_test.go

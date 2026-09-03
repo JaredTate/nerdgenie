@@ -101,6 +101,10 @@ type SocketEnvelope struct {
 	// MaskInput, on an ask, tells the screen to hide what the person types,
 	// because the answer is a secret that comes back in a secret envelope.
 	MaskInput bool `json:"maskInput,omitempty"`
+	// Reset, on a delta, says the partial reply shown so far is withdrawn,
+	// because the call behind it failed and is being tried again; the screen
+	// clears what it drew and the deltas that follow start the reply over.
+	Reset bool `json:"reset,omitempty"`
 }
 
 // ApproveAlwaysText is the text an approve envelope carries when the person

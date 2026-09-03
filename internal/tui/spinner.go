@@ -29,6 +29,12 @@ var spinnerFrames = []string{"·  ", " · ", "  ·", " · "}
 func (screen *Screen) setState(doing programState, detail string) {
 	screen.state = doing
 	screen.detail = detail
+	if doing != stateThinking {
+		// The call is over, so the seconds and the tokens it wrote are no
+		// longer true and the strip stops saying them at once.
+		screen.callStarted = time.Time{}
+		screen.streamed = 0
+	}
 	if screen.busy() {
 		if screen.busySince.IsZero() {
 			screen.busySince = screen.now

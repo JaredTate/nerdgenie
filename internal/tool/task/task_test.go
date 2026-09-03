@@ -340,3 +340,26 @@ func TestARecordWriteMayCarrySeveralSectionsAtOnce(t *testing.T) {
 		t.Errorf("a call that writes nothing was taken")
 	}
 }
+
+// TestTheShapesTheTaskToolRefusesAreNamed covers the edges of the lenient
+// reader: a null list is an empty one, a list that is neither a string nor a
+// list is refused with the shape named, and so is a line number that is not a
+// number.
+func TestTheShapesTheTaskToolRefusesAreNamed(t *testing.T) {
+	tool, _ := newTool(t)
+	for _, broken := range []struct {
+		fields map[string]any
+		named  string
+	}{
+		{map[string]any{"operation": "plan", "plan": nil}, "writes nothing"},
+		{map[string]any{"operation": "plan", "plan": 7}, "list"},
+		{map[string]any{"operation": "done_when", "done_when": nil}, "writes nothing"},
+		{map[string]any{"operation": "pin_result", "line": "one", "result": "r1"}, "whole number"},
+		{map[string]any{"operation": "pin_result", "line": nil, "result": "r1"}, "no done line"},
+	} {
+		_, err := run(t, tool, broken.fields)
+		if err == nil || !strings.Contains(err.Error(), broken.named) {
+			t.Errorf("the call %v was not refused with %q named: %v", broken.fields, broken.named, err)
+		}
+	}
+}

@@ -15,6 +15,12 @@ import (
 // "dev".
 var version = "dev"
 
+// commit is the commit this binary was built from, which the serve prints on its
+// first line so that a person reading a log knows which build is serving. A
+// release build sets it with -ldflags "-X main.commit=<the commit>"; a
+// development build says "unknown".
+var commit = "unknown"
+
 // subcommand is one thing coeus can be asked to do from the command line.
 type subcommand struct {
 	// name is what the user types after "coeus".
@@ -43,6 +49,7 @@ func subcommands() []subcommand {
 		initSubcommand,
 		doctorSubcommand,
 		serveSubcommand,
+		runSubcommand,
 		tuiSubcommand,
 		installSubcommand,
 		uninstallSubcommand,

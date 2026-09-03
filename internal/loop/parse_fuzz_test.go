@@ -59,6 +59,6 @@ func FuzzWhatTheHarnessReadsFromText(f *testing.F) {
 			t.Fatalf("a situation line came out %d letters long, and the cap is %d", len([]rune(line)), MaxSituationLineLetters)
 		}
 		fingerprintOf(contract.ToolCall{Name: doneLine, Input: json.RawMessage(result)})
-		summaryOfResult(contract.ToolTask, result)
+		summaryOfResult(contract.ToolTask, result, false)
 	})
 }

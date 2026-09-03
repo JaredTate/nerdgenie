@@ -35,6 +35,8 @@ type harness struct {
 	builder    loop.ContextBuilder
 	deltaGuard sync.Mutex
 	deltas     []string
+	lineGuard  sync.Mutex
+	lines      []string
 }
 
 // newHarness builds a loop over the fakes, with the tools the test needs and the
@@ -65,8 +67,15 @@ func newHarness(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *har
 
 // options is the dependency set the loop is built from.
 func (built *harness) options() loop.Options {
+	return built.optionsOver(built.model)
+}
+
+// optionsOver is the same dependency set with a model of the test's choosing,
+// which is how a test hands the loop a model that behaves in a way no script
+// can describe.
+func (built *harness) optionsOver(model contract.Model) loop.Options {
 	return loop.Options{
-		Model:      built.model,
+		Model:      model,
 		Tools:      built.tools,
 		Permission: built.rulings,
 		Store:      built.store,
@@ -77,7 +86,22 @@ func (built *harness) options() loop.Options {
 		Skills:     built.skills,
 		Sandbox:    built.sandbox,
 		Deltas:     built.noteDelta,
+		RecordLine: built.noteRecordLine,
 	}
+}
+
+// noteRecordLine records one line about a task or a job changing.
+func (built *harness) noteRecordLine(line string) {
+	built.lineGuard.Lock()
+	defer built.lineGuard.Unlock()
+	built.lines = append(built.lines, line)
+}
+
+// recordLines is every line the loop sent about a task or a job.
+func (built *harness) recordLines() []string {
+	built.lineGuard.Lock()
+	defer built.lineGuard.Unlock()
+	return append([]string(nil), built.lines...)
 }
 
 // noteDelta records one streamed piece of a reply.

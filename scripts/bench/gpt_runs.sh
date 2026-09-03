@@ -2,7 +2,8 @@
 # One clean round of all four harnesses on GPT-5.6 Sol at thinking medium, on
 # the user's ChatGPT/Codex subscription, no API key, each harness driving the
 # model with its own loop: Coeus through `codex exec` as a bare model, opencode
-# through its ChatGPT login, Hermes and OpenClaw through the codex login. One
+# through its ChatGPT login, Hermes and OpenClaw through the codex login, OpenClaw pinned to its own
+# loop rather than its codex runtime. One
 # at a time, every run from a brand-new empty work folder and a brand-new home,
 # no cap of any kind. Nothing is killed by name.
 #
@@ -103,10 +104,28 @@ PY
 }
 
 run_openclaw() {
-  R="$BASE/openclaw-$1"; fresh_work "$R"
+  R="$BASE/openclaw-$1"; fresh_work "$R"; mkdir -p "$R/state"
+  # On a ChatGPT subscription OpenClaw's default is to hand the whole turn to
+  # the codex program (its "codex" runtime), which measures codex, not
+  # OpenClaw. Pinning agentRuntime.id = "openclaw" on the model keeps the turn
+  # in OpenClaw's own loop, per its docs (providers/openai.md, "Implicit agent
+  # runtime"). The pinned config is the user's own config plus that one line;
+  # the kept state folder proves which runtime ran (a codex rollout file means
+  # the codex runtime).
+  python3 - "$R/openclaw.json" "$MODEL" <<'PY'
+import json, sys
+cfg = json.load(open('/home/jared/.openclaw/openclaw.json'))
+models = cfg.setdefault('agents', {}).setdefault('defaults', {}).setdefault('models', {})
+entry = models.get('openai/' + sys.argv[2]) or {}
+entry['agentRuntime'] = {'id': 'openclaw'}
+models['openai/' + sys.argv[2]] = entry
+json.dump(cfg, open(sys.argv[1], 'w'), indent=2)
+PY
+  chmod 600 "$R/openclaw.json"
   s=$(date +%s)
-  ( cd "$R/work" && openclaw agent exec --message-file "$R/work/task.txt" --model "openai/$MODEL" --thinking medium --cwd "$R/work" --timeout 0 --json > "$R/out.json" 2> "$R/err.log" < /dev/null )
+  ( cd "$R/work" && openclaw agent exec --config "$R/openclaw.json" --state-dir "$R/state" --message-file "$R/work/task.txt" --model "openai/$MODEL" --thinking medium --cwd "$R/work" --timeout 0 --json > "$R/out.json" 2> "$R/err.log" < /dev/null )
   echo "exit $? launch_to_exit $(( $(date +%s) - s ))" > "$R/wall.txt"
+  [ "$(find "$R/state" -name 'rollout-*.jsonl' | wc -l)" = 0 ] || echo "WARNING: openclaw ran through the codex program, not its own loop" >> "$R/wall.txt"
   timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness openclaw --run "gpt$1" > "$R/check.json" 2> "$R/check.err"
 }
 

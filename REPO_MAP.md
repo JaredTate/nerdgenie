@@ -28,6 +28,7 @@ ARCHITECTURE.md
 BENCHMARK.md
 CLAUDE.md
 COEUS.md
+GPT_BENCHMARK.md
 LICENSE
 Makefile
 OPUS_BENCHMARK.md
@@ -1264,6 +1265,8 @@ internal/vault/vault_test.go
 scripts/bench/check-tater.mjs
 scripts/bench/countcalls.sh
 scripts/bench/drive.py
+scripts/bench/gpt_report.py
+scripts/bench/gpt_runs.sh
 scripts/bench/opus_report.py
 scripts/bench/opus_runs.sh
 scripts/bench/run-coeus.sh

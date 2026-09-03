@@ -34,16 +34,22 @@ tests, make them pass, install nothing, stop when they pass.
 | | Coeus | opencode | Hermes | OpenClaw |
 |---|---|---|---|---|
 | Login | the `codex` program, logged in to the subscription | opencode's own "ChatGPT Plus/Pro" login | the codex login, which Hermes's `openai-codex` provider reads | the codex login, through OpenClaw's `openai` provider |
-| How the model is called | `codex exec` once per model call, its own tools switched off, Coeus's system prompt in place, tool calls in text; Coeus's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | its own embedded loop, straight to OpenAI's Codex backend |
-| Whose loop | Coeus | opencode | Hermes | OpenClaw |
+| How the model is called | `codex exec` once per model call, its own tools switched off, Coeus's system prompt in place, tool calls in text; Coeus's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | **by default, the codex program** (OpenClaw's "codex" runtime, a wrapper like claude-cli); its own embedded loop only when `agentRuntime.id = "openclaw"` is pinned on the model in its config |
+| Whose loop | Coeus | opencode | Hermes | codex by default; OpenClaw when pinned |
 | Thinking | `think = "medium"` in its config, passed as codex's reasoning effort | `--variant medium` | `--reasoning medium` | `--thinking medium` |
 | Command | `coeus serve` on a fresh home, driven over its socket by `scripts/bench/drive.py` | `opencode run -m openai/gpt-5.6-sol --variant medium --format json "<task>"` | `hermes chat -q "<task>" --provider openai-codex -m gpt-5.6-sol --reasoning medium --yolo --in <work>` | `openclaw agent exec --message-file task.txt --model openai/gpt-5.6-sol --thinking medium --cwd <work> --timeout 0 --json` |
 
-Each was proved with a one-word test call before the round, and the run logs
-confirm the route: Hermes and OpenClaw both have a second mode that hands a
-whole turn to the codex program, the wrapper pattern of the Opus phase, and
-neither used it here (OpenClaw's log shows its embedded runtime, Hermes's
-session shows its own tool calls).
+Each was proved with a one-word test call before the round. Then the kept
+state folder of an OpenClaw run showed a `codex-home` with a codex rollout
+file: on a ChatGPT subscription OpenClaw's default is to hand the whole turn
+to the codex program (its docs: "selecting `openai/*` for an agent model now
+means run this through Codex"), the same wrapper pattern as claude-cli on Opus.
+Its docs also say an explicit `agentRuntime.id: "openclaw"` on the model
+"keeps a Codex-eligible route on OpenClaw", so a further run pinned that and
+kept its state: no rollout file, OpenClaw's own tools (`exec`, `apply_patch`,
+`progress_card`), six assistant turns in its envelope. Both are in the table,
+labelled. Hermes's session shows its own tool calls and seven API calls of its
+own, so Hermes ran its own loop.
 
 
 **Why Coeus's row is not a result.** Coeus's `codex` provider runs `codex exec`
@@ -104,11 +110,11 @@ them, and shown apart where it does.
 | coeus | 1 | **NO, see below** | 1 min 25 s | 1 (codex looped inside it) | 0 of Coeus's | 146,933 | 84,480 | 2,171 | not counted | $0.30 | 0/6 | 0/4 | 0/0 | 0 |
 | opencode | 1 | yes | 44 s | 5 | 5 | 35,620 | 23,936 | 1,721 | 101 | $0.09 | 6/6 | 4/4 | 6/6 | 29 |
 | hermes | 1 | NO, never started | 0 s | 0 | 0 | 0 | 0 | 0 | 0 | $0.00 | 0/6 | 0/4 | 0/0 | 0 |
-| openclaw | 1 | yes | 1 min 11 s | not reported | 3 | last turn only | last turn only | last turn only | not reported | not reported | 6/6 | 4/4 | 6/6 | 27 |
+| openclaw, codex runtime | 1 | yes | 1 min 11 s | not kept | 3 | not kept | not kept | not kept | not kept | not kept | 6/6 | 4/4 | 6/6 | 27 |
 | hermes | 2 | yes | 1 min 39 s | 7 | 13 | 156,659 | 131,072 | 2,052 | 407 | $0.20 | 6/6 | 4/4 | 6/6 | 28 |
-| openclaw | 2 | yes | 1 min 6 s | not reported | 3 | last turn only | last turn only | last turn only | not reported | not reported | 6/6 | 4/4 | 6/6 | 25 |
-| openclaw | 3 | yes | 1 min 10 s | not reported | 3 | last turn only | last turn only | last turn only | not reported | not reported | 6/6 | 4/4 | 6/6 | 25 |
-
+| openclaw, codex runtime | 2 | yes | 1 min 6 s | 4 | 3 | 69,576 | 50,816 | 1,561 | 9 | $0.13 | 6/6 | 4/4 | 6/6 | 25 |
+| openclaw, codex runtime | 3 | yes | 1 min 10 s | not kept | 3 | not kept | not kept | not kept | not kept | not kept | 6/6 | 4/4 | 6/6 | 25 |
+| **openclaw, its own loop** | own-1 | yes | 1 min 33 s | 6 | 5 | 105,945 | 86,144 | 2,022 | 200 | $0.15 | 6/6 | 4/4 | 6/6 | 30 |
 
 ## What the numbers say
 
@@ -124,12 +130,16 @@ them, and shown apart where it does.
    memory guidance, its bundled instructions) and re-sends it every call.
    Cached input is a tenth of the price, so the bill was still only about
    $0.20. Thirteen tool calls, 1 min 39 s.
-4. **OpenClaw finished in about a minute every time, but does not count its
-   own tokens on this path.** Its JSON envelope and its kept state store hold
-   only the last turn (about 18,000 tokens in, 22 out), even with its model
-   transport diagnostics switched on, so its tokens and cost are marked "not
-   reported" rather than guessed. Three runs, 71, 66 and 70 seconds, three
-   green verdicts.
+4. **OpenClaw has two modes here, and the table shows both.** By default it
+   handed the task to the codex program: 66 to 71 seconds, green every time,
+   and the one run whose state was kept shows the codex program's own bill:
+   4 calls, 69,576 tokens in of which 50,816 cached, 1,561 out, about $0.13,
+   with codex's `exec` doing the work. That measures codex with OpenClaw
+   around it. Pinned to its own loop, OpenClaw took 1 min 33 s, six turns,
+   105,945 tokens in of which 86,144 cached, 2,022 out (200 reasoning), about
+   $0.15 at list prices (OpenClaw's own figure says $0.20), with its own
+   `exec` and `apply_patch` tools. That is OpenClaw's harness, and it is the
+   row to compare with the others.
 5. **Coeus is missing for a reason that is Coeus's fault**, explained above,
    with the fix under way.
 6. **Two runs failed for reasons that were the benchmark's fault, not the
@@ -141,7 +151,8 @@ them, and shown apart where it does.
 ## What this comparison can say
 
 On GPT-5.6 Sol the three other harnesses are measured driving the model
-themselves, which is what the Opus phase could not do. When Coeus's Codex
+themselves (OpenClaw only in its pinned own-loop run), which is what the Opus
+phase could not do. When Coeus's Codex
 backend provider lands, this becomes the first four-way, loop-against-loop
 comparison on a frontier cloud model with no API key, and the round is rerun
 in full so all four rows come from the same hour.
@@ -159,8 +170,8 @@ in full so all four rows come from the same hour.
 ## How to reproduce
 
 - `scripts/bench/gpt_runs.sh [round]` runs the four harnesses one at a time
-  from blank folders (Hermes's fresh home needs the codex login copied in, as
-  the second Hermes run did; the script will carry that fix).
+  from blank folders, copies the codex login into Hermes's fresh home, and pins
+  OpenClaw to its own loop with a kept state folder that proves it.
 - `scripts/bench/gpt_report.py --price 4 0.40 20` prints the tables from the
   run folders under `~/work/bench/gpt/`.
 - `scripts/bench/check-tater.mjs` is the judge.

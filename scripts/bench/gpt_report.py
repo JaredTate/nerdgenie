@@ -108,13 +108,37 @@ def hermes(folder):
 
 
 def openclaw(folder):
+    """OpenClaw reports a run total in its JSON envelope only when its own
+    embedded loop ran. When it handed the turn to the codex program (its
+    default on a ChatGPT subscription), the exact per-call usage is in the
+    codex rollout file inside a kept state folder, and the envelope holds
+    only the last turn."""
     envelope = json.load(open(os.path.join(folder, "out.json")))
-    usage = envelope.get("usage") or {}
     summary = envelope.get("toolSummary") or {}
+    rollouts = glob.glob(os.path.join(folder, "state", "**", "rollout-*.jsonl"), recursive=True)
+    if rollouts:
+        calls, tools = [], []
+        for line in open(rollouts[0], errors="replace"):
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            payload = event.get("payload") or {}
+            if not isinstance(payload, dict):
+                continue
+            if payload.get("type") in ("function_call", "custom_tool_call", "local_shell_call"):
+                tools.append(payload.get("name") or payload.get("type"))
+            usage = (payload.get("info") or {}).get("last_token_usage") if payload.get("type") == "token_count" else None
+            if usage:
+                calls.append({"in": usage.get("input_tokens", 0), "cached": usage.get("cached_input_tokens", 0),
+                              "out": usage.get("output_tokens", 0), "reasoning": usage.get("reasoning_output_tokens", 0)})
+        return calls, None, len(tools), ["ran through the codex program (OpenClaw's codex runtime); per call from the codex rollout it left in the kept state folder; tools were codex's: " + ", ".join(sorted(set(tools)))]
+    usage = envelope.get("usage") or {}
     turns = envelope.get("assistantTurns")
+    note = "OpenClaw's own loop; a run total from its JSON envelope" if turns else "envelope holds the last turn only (no assistantTurns), so tokens are not a run total"
     return ([{"in": usage.get("input", 0) + usage.get("cacheRead", 0) + usage.get("cacheWrite", 0),
               "cached": usage.get("cacheRead", 0), "out": usage.get("output", 0), "reasoning": usage.get("reasoningTokens"), "count": turns}],
-            None, summary.get("calls", 0), [f"a run total from its JSON envelope; status {envelope.get('status')}"])
+            None, summary.get("calls", 0), [note + f"; status {envelope.get('status')}; tools " + ", ".join(summary.get("tools") or [])])
 
 
 def load(harness, number, price):
@@ -152,7 +176,7 @@ def main():
     if "--price" in sys.argv:
         at = sys.argv.index("--price")
         price = tuple(float(x) for x in sys.argv[at + 1:at + 4])
-    runs = [r for n in (1, 2, 3) for h in HARNESSES if (r := load(h, n, price))]
+    runs = [r for n in (1, 2, 3, "own-1", "own-2", "own-3") for h in HARNESSES if (r := load(h, n, price))]
     print("## Every run\n")
     print("| Harness | Run | Green | Task in to answer out | Model calls | Tool calls | Tokens in | of which cached | Tokens out | of which reasoning | Cost | Logic | Plays | Tests | game.js |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")

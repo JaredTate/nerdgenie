@@ -38,8 +38,9 @@ type Settings struct {
 	// away from the default under the user's home; the fence must keep it out
 	// wherever it is, because the vault and the browser profile live inside it.
 	// Whoever builds the fence passes the Root of the contract.Home it is
-	// already using, which is what cmd/coeus/serve.go does. Empty means the
-	// default, ~/.coeus, and is only right when COEUS_HOME has not moved it.
+	// already holding, which is what cmd/coeus/serve.go has to do when the
+	// orchestrator wires the fence. Empty means the default, ~/.coeus, and is
+	// only right when COEUS_HOME has not moved it.
 	AgentHome string
 	// OutputCap is the most bytes kept from each of a command's two output
 	// streams. Zero means the tool output cap from the configuration's defaults.

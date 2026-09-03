@@ -62,6 +62,10 @@ type Options struct {
 	// Deltas is where a streamed reply goes as it arrives, and is nil when
 	// nobody is watching.
 	Deltas func(delta string)
+	// ToolLine takes the one dim line the strip draws for the tool call in
+	// flight, such as "▸ read note.txt", and again with what came back once it
+	// has, and is nil when nobody is watching.
+	ToolLine func(line string)
 	// RecordLine takes one line whenever a task or a job is created, started,
 	// finished, or failed, such as "task 3 started · build the game". It is
 	// what a screen draws so that a person can see what the agent is working

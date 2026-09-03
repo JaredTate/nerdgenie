@@ -52,7 +52,9 @@ cmd/coeus/serve_test.go
 cmd/coeus/signal.go
 cmd/coeus/signal_test.go
 cmd/coeus/skillsbox.go
+cmd/coeus/status.go
 cmd/coeus/subcommands_test.go
+cmd/coeus/timedstore.go
 cmd/coeus/tui.go
 cmd/coeus/tui_test.go
 cmd/coeus/uninstall.go
@@ -423,12 +425,14 @@ internal/loop/problems_test.go
 internal/loop/realtools_test.go
 internal/loop/recordline.go
 internal/loop/recordwrite.go
+internal/loop/refused_test.go
 internal/loop/resume_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/situation.go
 internal/loop/stopcancels_test.go
+internal/loop/toolline.go
 internal/loop/turn_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
@@ -1039,6 +1043,7 @@ test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
 test/functional/command_test.go
 test/functional/context_test.go
+test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/loop_test.go
@@ -1050,7 +1055,9 @@ test/functional/serve_test.go
 test/functional/site_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
+test/functional/toolline_test.go
 test/functional/vault_test.go
+test/functional/whilebusy_test.go
 worker/browser/.gitignore
 worker/browser/PROTOCOL.md
 worker/browser/package-lock.json

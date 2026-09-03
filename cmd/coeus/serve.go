@@ -159,6 +159,7 @@ type agent struct {
 
 	lock     *runLock
 	eventLog *log.Log
+	events   contract.Store
 	queue    *channel.Queue
 	secrets  *vault.Vault
 	memories *memory.Memory
@@ -185,6 +186,7 @@ type agent struct {
 	busyGuard  sync.Mutex
 	busy       bool
 	recordLine string
+	toolLine   string
 	holding    int64
 	handedOver bool
 }
@@ -244,6 +246,10 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	if running.eventLog, err = log.Open(ctx, running.home.DatabaseFile()); err != nil {
 		return err
 	}
+	// Everything downstream writes through this rather than through the log
+	// itself, so that an event written by something with no clock of its own
+	// still carries the moment it happened.
+	running.events = timedEvents(running.eventLog, now)
 	running.queue, err = channel.OpenQueue(ctx, running.home.DatabaseFile(), running.settings.Caps.QueuedMessages)
 	if err != nil {
 		return err
@@ -251,11 +257,11 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	if running.secrets, err = vault.Open(running.home, now); err != nil {
 		return err
 	}
-	running.memories, err = memory.Open(ctx, running.home, running.eventLog, now, running.settings.MemoryCaps)
+	running.memories, err = memory.Open(ctx, running.home, running.events, now, running.settings.MemoryCaps)
 	if err != nil {
 		return err
 	}
-	if running.jobs, err = job.Open(ctx, running.home, running.eventLog, now); err != nil {
+	if running.jobs, err = job.Open(ctx, running.home, running.events, now); err != nil {
 		return err
 	}
 	if running.decider, err = permission.New(running.settings, now); err != nil {
@@ -264,7 +270,7 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	running.guard, err = reliability.New(reliability.Settings{
 		Home:         running.home,
 		Clock:        now,
-		Store:        running.eventLog,
+		Store:        running.events,
 		Caps:         running.settings.Caps,
 		BackupFolder: running.settings.BackupPath,
 		Send:         running.sendToTheUser,

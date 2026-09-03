@@ -82,10 +82,14 @@ func (running *run) afterADenial(ctx context.Context, call contract.ToolCall, de
 // runAndRecord runs one tool, writes its result into the record and the log,
 // and checks the result against the stop list.
 func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (contract.ToolResult, *Outcome, error) {
+	running.noteToolLine(toolLineFor(call, "", false))
 	text, failed := running.runOneTool(ctx, call)
-	if _, err := running.keeper.AddResult(ctx, summaryOfResult(call.Name, text), text); err != nil {
+	summary := summaryOfResult(call.Name, text, failed)
+	label, err := running.keeper.AddResult(ctx, summary, text)
+	if err != nil {
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}
+	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
 	result := contract.ToolResult{CallID: call.ID, Text: text, Failed: failed}
 	if failed {
@@ -177,7 +181,13 @@ func (running *run) applyRecordWrite(ctx context.Context, call contract.ToolCall
 
 // summaryOfResult is the one line a result keeps in the record. The record cuts
 // it to the length a line allows, and the whole text stays in the log.
-func summaryOfResult(name string, text string) string {
+func summaryOfResult(name string, text string, failed bool) string {
+	// A call the tool or the record refused is never written down as a change.
+	// It was said as "updated the record: one change" once, and the model went
+	// on believing a write had happened that the record had refused.
+	if failed {
+		return name + " was refused: " + firstLine(text)
+	}
 	if name == contract.ToolTask {
 		return "updated the record: " + fieldsWritten(text)
 	}

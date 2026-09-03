@@ -87,6 +87,32 @@ func (jobs *Jobs) SetMonitor(ctx context.Context, jobID string, watching bool) e
 	return jobs.saveState(ctx, jobID, held, changed)
 }
 
+// KeepRunningWhenItsTasksFail says this job is never paused or switched off for
+// failing, however many of its tasks fail in a row. It is for a job whose work
+// is to report what it finds: the nightly self-check finishes its task as failed
+// on every night it finds a broken skill, which is the check working rather than
+// the check breaking, and a check that switches itself off on the tenth such
+// night goes quiet exactly when it is earning its keep. The failures are still
+// counted and the incidents are still kept, so the user still reads what went
+// wrong.
+//
+// The contract's NewJob has no field for this yet, so a job is told through this
+// type after it is created, as SetMonitor is.
+func (jobs *Jobs) KeepRunningWhenItsTasksFail(ctx context.Context, jobID string) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	held, err := jobs.find(jobID)
+	if err != nil {
+		return err
+	}
+	if held.state.KeepRunning {
+		return nil
+	}
+	changed := held.state
+	changed.KeepRunning = true
+	return jobs.saveState(ctx, jobID, held, changed)
+}
+
 // setState moves a job to where the user has put it and moves its record's own
 // status with it.
 func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.JobState) error {

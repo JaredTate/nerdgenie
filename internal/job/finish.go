@@ -143,8 +143,12 @@ func (jobs *Jobs) afterOneTask(ctx context.Context, jobID string, held *heldJob,
 // stopIfItKeepsFailing pauses a plain job at three failures in a row and
 // switches a scheduled one off at ten. A scheduled job is given the longer rope
 // because a schedule is meant to survive a bad afternoon, and pausing it at three
-// would put the ten out of reach.
+// would put the ten out of reach. A job told to keep running, whose work is to
+// report what it finds, is stopped by neither rule.
 func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *heldJob, report string) error {
+	if held.state.KeepRunning {
+		return nil
+	}
 	failures := held.state.FailuresInARow
 	if held.state.Schedule != nil {
 		if failures < FailuresThatSwitchOff {

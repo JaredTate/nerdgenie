@@ -7,6 +7,47 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
+// theRoundsTheCacheIsMeasuredAt are the three rounds the wave 6 gate review
+// measured finding 17 at, so that its numbers and these can be read side by side.
+var theRoundsTheCacheIsMeasuredAt = []int{10, 20, 30}
+
+// leastSharedPercent is how much of a prompt has to be the same as the last
+// one's for the layout to be doing its job. The gate review asked for eighty per
+// cent and measured thirty-three at round thirty before the tail was built.
+const leastSharedPercent = 80
+
+// TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid is finding 17 of the wave 6
+// gate review, pinned. The review built the fixture at every round and compared
+// each prompt with the one before it: the shared run stopped growing at cache
+// boundary C while the prompt went on growing, so the share fell from forty-eight
+// per cent at round ten to thirty-three at round thirty and would have kept
+// falling. Whatever changes on a call drags everything under it along with it,
+// so the two parts that change on every call — the record's list of results and
+// its budget and cost lines — sit at the tail, under the conversation.
+func TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid(t *testing.T) {
+	for _, round := range theRoundsTheCacheIsMeasuredAt {
+		run := newFixtureRun(t)
+		builder := newGoldenBuilder(t)
+
+		run.playTo(t, round-1)
+		earlier := buildWithTheBudgetSpent(t, builder, run, 101-round,
+			contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500})
+		run.playTo(t, round)
+		later := buildWithTheBudgetSpent(t, builder, run, 100-round,
+			contract.CostLine{InputTokens: 15400, CachedInputTokens: 3900, OutputTokens: 600})
+
+		whole := renderPrompt(later)
+		shared := sharedPrefix(renderPrompt(earlier), whole)
+		share := 100 * len(shared) / len(whole)
+		t.Logf("at round %d the prompt is %d characters and shares %d of them with round %d, which is %d per cent",
+			round, len(whole), len(shared), round-1, share)
+		if share < leastSharedPercent {
+			t.Errorf("at round %d only %d per cent of the prompt is what the last call already said, and the layout has to hold %d;"+
+				" something that changes every call has got in above something that does not", round, share, leastSharedPercent)
+		}
+	}
+}
+
 // TestThePromptTheProviderCanReuseReachesPastTheRecordBody is the layout half of
 // the cache rule, and it came out of the first live run on the local model: every
 // call read about fifteen thousand tokens and the provider reused only about

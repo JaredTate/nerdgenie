@@ -149,6 +149,10 @@ const (
 	// StatusFieldCallStarted is when the call in progress began, written in
 	// RFC 3339 form, so the screen can count the seconds beside the spinner.
 	StatusFieldCallStarted = "callStarted"
+	// StatusFieldRecordLine is one line for the latest change to the record: a
+	// task or a job created, started, finished, or failed, with its id, which
+	// the screen shows once as a pill when the line changes.
+	StatusFieldRecordLine = "recordLine"
 )
 
 // StatusCommandSeparator separates a command's name from its help line inside

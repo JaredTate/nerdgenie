@@ -259,7 +259,12 @@ func TestAMigrationIsAppliedAndWritesDownWhoAppliedIt(t *testing.T) {
 
 func TestAMigrationThatFailsPutsTheBackupBackAndChangesNothing(t *testing.T) {
 	home := aHomeReadyToMigrate(t)
-	settings := MigrateSettings{Home: home, Clock: testkit.NewFakeClock(theTestMoment), Version: "0.8.0"}
+	settings := MigrateSettings{
+		Home: home, Clock: testkit.NewFakeClock(theTestMoment), Version: "0.8.0",
+		// There is no agent in this test and no service manager either, so the
+		// stop is a test's own and this machine's services are left alone.
+		StopTheAgent: func(context.Context) error { return nil },
+	}
 	list := []Migration{
 		aMigrationThatAddsATable(log.SchemaVersion + 1),
 		aMigrationThatFails(log.SchemaVersion + 2),

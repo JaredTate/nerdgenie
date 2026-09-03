@@ -90,9 +90,9 @@ func TestTheAgentRegistersTheCommandsEveryPackageOwns(t *testing.T) {
 		names = append(names, command.Name)
 	}
 	for _, wanted := range []string{
-		"help", "status", "model", "new", "sessions", "approve", "deny",
+		"help", "status", "model", "approve", "deny",
 		"pause", "resume", "undo", "vault", "memory", readyName,
-		"tasks", "stop", "jobs", "cron", "skills",
+		"tasks", "stop", "jobs", "cron", "skills", "screen",
 	} {
 		if !slices.Contains(names, wanted) {
 			t.Errorf("the registry has no /%s command; it holds %v", wanted, names)

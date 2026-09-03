@@ -38,6 +38,9 @@ type Decider struct {
 	guard      sync.Mutex
 	remembered map[string]rememberedAnswer
 	standing   []*standingApproval
+	// yolo says every call that would have asked runs without asking, for this
+	// session only. UseYolo sets it and YoloIsOn reads it.
+	yolo bool
 }
 
 // New builds a permission function from ~/.coeus/config.toml and the clock a
@@ -145,13 +148,18 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 }
 
 // ruleOnSomethingToAskAbout takes a call that needs a yes, which the user has
-// not already answered about in this session. A run with nobody there to answer
-// stops before anything else is read, because a call that needs a yes and can be
-// given none does not run whoever holds an approval for it. A call the user's
-// ask-me-first list caught goes straight to the user, because that list is what
-// the user asked to see first and a skill's standing approval is not the user's
-// word. Only what is left is offered to the standing approvals.
+// not already answered about in this session. While yolo is on, the yes has
+// been given in advance for everything, so the call runs and the ruling says
+// so. Otherwise a run with nobody there to answer stops before anything else is
+// read, because a call that needs a yes and can be given none does not run
+// whoever holds an approval for it. A call the user's ask-me-first list caught
+// goes straight to the user, because that list is what the user asked to see
+// first and a skill's standing approval is not the user's word. Only what is
+// left is offered to the standing approvals.
 func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string, onTheAskMeFirstList bool) contract.PermissionDecision {
+	if decider.YoloIsOn() {
+		return allowedByYolo(request, reduced, why)
+	}
 	if request.Unattended {
 		return contract.PermissionDecision{
 			Ruling:      contract.RulingStop,

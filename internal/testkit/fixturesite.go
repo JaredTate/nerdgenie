@@ -189,7 +189,7 @@ func (site *FixtureSite) show(writer http.ResponseWriter, page string, data any)
 // readTheForm reads the fields a form sent, and answers the visitor itself when
 // they cannot be read at all.
 func readTheForm(writer http.ResponseWriter, request *http.Request) bool {
-	if err := r.ParseForm(); err != nil {
+	if err := request.ParseForm(); err != nil {
 		http.Error(writer, "the form could not be read: "+err.Error(), http.StatusBadRequest)
 		return false
 	}

@@ -19,8 +19,11 @@ const (
 	// fixedProgramRetryAfter is how long to wait when a program says it has hit
 	// a usage limit, which it reports in words rather than in a header.
 	fixedProgramRetryAfter = 60 * time.Second
-	// maxSystemPromptBytes caps the system prompt the claude program is given on
-	// its command line, because a command line has a length limit of its own.
+	// maxSystemPromptBytes caps the system prompt written for one run. Both
+	// programs are handed it in a file rather than on the command line, so the
+	// kernel's limit of 128 kilobytes on one argument is not what this bound is
+	// about; half a megabyte is more system prompt than the largest window this
+	// harness talks to can hold, so a bigger one is a fault further up.
 	maxSystemPromptBytes = 512 << 10
 	// maxProgramErrorBytes caps how much of a program's complaint is kept.
 	maxProgramErrorBytes = 8 << 10
@@ -71,7 +74,7 @@ func (model *commandLineModel) Send(ctx context.Context, request contract.Reques
 	onDelta func(delta string)) (contract.Reply, error) {
 	systemText := renderSystemText(request)
 	if len(systemText) > maxSystemPromptBytes {
-		return contract.Reply{}, fmt.Errorf("the system prompt for the model %q is %d bytes and the program takes at most %d, so shorten the context",
+		return contract.Reply{}, fmt.Errorf("the system prompt for the model %q is %d bytes and this harness sends at most %d, so shorten the context",
 			model.alias.Name, len(systemText), maxSystemPromptBytes)
 	}
 	folder, err := model.scratchFolder()
@@ -102,9 +105,10 @@ func (model *commandLineModel) Send(ctx context.Context, request contract.Reques
 	}, nil
 }
 
-// scratchFolder makes an empty folder under the home's run folder for one run,
-// so that no CLAUDE.md, no project settings, and no hooks from anywhere else can
-// reach the prompt.
+// scratchFolder makes a folder of its own under the home's run folder for one
+// run, holding nothing but that run's system prompt, so that no CLAUDE.md, no
+// project settings, and no hooks from anywhere else can reach the prompt. The
+// whole folder is removed when the call ends.
 func (model *commandLineModel) scratchFolder() (string, error) {
 	root := filepath.Join(model.options.Home.RunFolder(), "cli")
 	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {

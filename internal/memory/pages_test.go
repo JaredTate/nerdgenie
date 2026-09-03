@@ -28,6 +28,12 @@ type aPagedLog struct {
 	// rangeFailure is the error every read of a span fails with when it is set,
 	// which is what a log that breaks part way through a task looks like.
 	rangeFailure error
+	// spans is every span of numbers that has been asked for, in order, which is
+	// how a test sees where a reader started.
+	spans []contract.EventRange
+	// replays is how many times the whole log has been handed out event by
+	// event, which is the work a reader must not do again on every open.
+	replays int
 }
 
 // Append adds one event and gives it the next number.
@@ -60,6 +66,7 @@ func (paged *aPagedLog) ByID(_ context.Context, sequence int64) (contract.Event,
 
 // ByRange returns the events in a span of numbers, cut short at the cap.
 func (paged *aPagedLog) ByRange(_ context.Context, span contract.EventRange) ([]contract.Event, error) {
+	paged.spans = append(paged.spans, span)
 	if paged.rangeFailure != nil {
 		return nil, paged.rangeFailure
 	}
@@ -70,6 +77,7 @@ func (paged *aPagedLog) ByRange(_ context.Context, span contract.EventRange) ([]
 
 // Replay hands every event to a function in order.
 func (paged *aPagedLog) Replay(_ context.Context, hand func(event contract.Event) error) error {
+	paged.replays++
 	for _, event := range paged.events {
 		if err := hand(event); err != nil {
 			return err

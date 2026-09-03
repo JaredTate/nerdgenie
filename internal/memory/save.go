@@ -16,6 +16,12 @@ import (
 // up, so that a memory full of hand-written ids cannot make it spin.
 const maxMintAttempts = 1000
 
+// maxFactsPerBatch is how many facts one save may carry. A save reads a row of
+// the index for every fact in the batch before it writes anything, so a batch
+// with no limit is a read with no limit; the biggest batch anything in Coeus
+// writes is one finished task's capture, which is MaxCapturedFacts.
+const maxFactsPerBatch = 500
+
 // storedFact is one fact ready to be written down, together with the family of
 // file it belongs in.
 type storedFact struct {

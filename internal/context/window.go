@@ -19,16 +19,29 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 
 // messagesFor builds everything below the cache line and applies the one rule of
 // the design: the window is the model's context length, less the output cap,
-// less everything above the cache line, less the record's live part. What is
-// left is filled with the most recent results, in full, newest first.
+// less everything above the cache line, less the parts of the record that can
+// never be dropped. What is left is filled with the most recent results, in
+// full, newest first.
 //
-// The order is the one the instruction text promises the model: the record's
-// live half, the pinned evidence, the recent messages, and the memory hint.
-func (builder *Builder) messagesFor(input BuildInput, live string, request contract.Request) ([]contract.Message, error) {
+// The order is the order of how often each part changes, so that a provider's
+// prompt cache can reuse as much as possible. The record's body, the pinned
+// evidence, the recent messages and the memory hint come first, in the design's
+// own order; then the tail, which is the only part re-read on every call: the
+// list of results, which grows by a line every round, and last of all the two
+// lines of the record's header, which are written anew every time.
+func (builder *Builder) messagesFor(input BuildInput, parts recordParts, request contract.Request) ([]contract.Message, error) {
 	above := EstimateRequestTokens(request)
-	liveRecord := []contract.Message{}
-	if live != "" {
-		liveRecord = append(liveRecord, asUserMessage(recordSecondHalfHeading, live))
+	recordBody := []contract.Message{}
+	if parts.Body != "" {
+		recordBody = append(recordBody, asUserMessage(recordSecondHalfHeading, parts.Body))
+	}
+	recordResults := []contract.Message{}
+	if parts.Results != "" {
+		recordResults = append(recordResults, asUserMessage(recordResultsHeading, parts.Results))
+	}
+	recordHeader := []contract.Message{}
+	if parts.Standing != "" {
+		recordHeader = append(recordHeader, asUserMessage(recordHeaderHeading, parts.Standing))
 	}
 	pinned := []contract.Message{}
 	if len(input.Pinned) > 0 {
@@ -39,7 +52,7 @@ func (builder *Builder) messagesFor(input BuildInput, live string, request contr
 		hint = append(hint, asUserMessage(memoryHintHeading, memoryHintText(input.MemoryHint)))
 	}
 
-	fixed := above + totalTokens(liveRecord)
+	fixed := above + totalTokens(recordBody) + totalTokens(recordResults) + totalTokens(recordHeader)
 	room := input.ContextLength - builder.maxOutputTokens - fixed
 	if room <= 0 {
 		return nil, roomRanOut(fixed, input, builder.maxOutputTokens)
@@ -52,11 +65,13 @@ func (builder *Builder) messagesFor(input BuildInput, live string, request contr
 		return nil, roomRanOut(fixed+totalTokens(hint), input, builder.maxOutputTokens)
 	}
 
-	below := make([]contract.Message, 0, len(liveRecord)+len(pinned)+len(input.Messages)+len(hint))
-	below = append(below, liveRecord...)
+	below := make([]contract.Message, 0, len(recordBody)+len(pinned)+len(input.Messages)+len(hint)+len(recordResults)+len(recordHeader))
+	below = append(below, recordBody...)
 	below = append(below, pinned...)
 	below = append(below, fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)...)
-	return append(below, hint...), nil
+	below = append(below, hint...)
+	below = append(below, recordResults...)
+	return append(below, recordHeader...), nil
 }
 
 // fitNewestFirst keeps as many of the most recent messages as the window holds,

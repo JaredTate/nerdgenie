@@ -43,7 +43,9 @@ const (
 	toolsHeading            = "**Your tools.** The tools you may call are sent with this message, each with its name, what it does, and the fields it takes."
 	jobHeading              = "**The job this task belongs to.** It changes only when one of its tasks finishes."
 	recordFirstHalfHeading  = "**The task record, part one: the goal and the rules.** These change rarely."
-	recordSecondHalfHeading = "**The task record, part two: the header, the work, and the lessons.** These change every turn."
+	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.**"
+	recordResultsHeading    = "**The task record, part three: every result so far.**"
+	recordHeaderHeading     = "**The task record, last of all: where the work stands.**"
 	pinnedHeading           = "**Pinned evidence, kept word for word.** It stays in front of you until it is unpinned."
 	memoryHintHeading       = "**Memory hint.** Up to three lines from a search of what you know."
 )
@@ -148,14 +150,15 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	if err != nil {
 		return contract.Request{}, err
 	}
-	stable, live := splitRecord(input.Record)
+	parts := splitRecord(input.Record)
+	parts.Results = MarkResultLines(builder.boundary, parts.Results)
 
 	request := contract.Request{
-		SystemBlocks:    builder.systemBlocks(persona, input, stable),
+		SystemBlocks:    builder.systemBlocks(persona, input, parts.Stable),
 		Tools:           input.Tools,
 		MaxOutputTokens: builder.maxOutputTokens,
 	}
-	messages, err := builder.messagesFor(input, live, request)
+	messages, err := builder.messagesFor(input, parts, request)
 	if err != nil {
 		return contract.Request{}, err
 	}

@@ -287,7 +287,11 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, command string, number int) {
 		if number < 0 || number >= len(disguises) {
-			t.Skip("the fuzzer picked a disguise number that does not name one of the four")
+			t.Skip("the fuzzer picked a disguise number that does not name one of the disguises")
+		}
+		if firstWord := strings.Fields(command); len(firstWord) > 0 && strings.HasPrefix(firstWord[0], "-") {
+			t.Skip("a command line whose first word is a flag names no program to run, and a program that runs another program" +
+				" would read that flag as one of its own, as xargs reads the -r in \"xargs -r rm\" and runs rm without it")
 		}
 		if decide(t, decider, shellRequest(t, command)).Ruling == contract.RulingAllow {
 			return

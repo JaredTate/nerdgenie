@@ -222,7 +222,7 @@ var oddShellCommands = []struct {
 	command string
 	reduced string
 }{
-	{"rm -rf '/tmp/unclosed", "rm -rf"},
+	{"rm -rf '/tmp/unclosed", "rm -rf (a quote that is never closed)"},
 	{"rm -rf \\", "rm -rf"},
 	{"rm\\ -rf /tmp/x", "rm -rf"},
 	{"rm -rf 'it'\\''s here'", "rm -rf"},

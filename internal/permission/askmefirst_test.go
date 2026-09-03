@@ -23,6 +23,10 @@ var bulkDeleteCalls = []askMeFirstCall{
 	{contract.ToolShell, map[string]any{"command": "rm -r /tmp/x"}, contract.AskFirstBulkDelete},
 	{contract.ToolShell, map[string]any{"command": "rm -fr /tmp/x"}, contract.AskFirstBulkDelete},
 	{contract.ToolShell, map[string]any{"command": "rm -f -r /tmp/x"}, contract.AskFirstBulkDelete},
+	{contract.ToolShell, map[string]any{"command": "rm -v -rf /tmp/x"}, contract.AskFirstBulkDelete},
+	{contract.ToolShell, map[string]any{"command": "rm --force --recursive /tmp/x"}, contract.AskFirstBulkDelete},
+	{contract.ToolShell, map[string]any{"command": "rm -R /tmp/x"}, contract.AskFirstBulkDelete},
+	{contract.ToolShell, map[string]any{"command": "git clean -fdx"}, contract.AskFirstBulkDelete},
 	{contract.ToolShell, map[string]any{"command": "find /tmp -name '*.log' -delete"}, contract.AskFirstBulkDelete},
 	{contract.ToolShell, map[string]any{"command": "git clean -f -d"}, contract.AskFirstBulkDelete},
 	{contract.ToolShell, map[string]any{"command": "git reset --hard origin/main"}, contract.AskFirstBulkDelete},
@@ -56,8 +60,11 @@ var spendMoneyCalls = []askMeFirstCall{
 // leave every one of them alone.
 var nearMisses = []askMeFirstCall{
 	{contract.ToolShell, map[string]any{"command": "rm notes.txt"}, ""},
+	{contract.ToolShell, map[string]any{"command": "rm -f notes.txt"}, ""},
+	{contract.ToolShell, map[string]any{"command": "ls -lart /tmp"}, ""},
 	{contract.ToolShell, map[string]any{"command": "find /tmp -name '*.log'"}, ""},
 	{contract.ToolShell, map[string]any{"command": "git clean -n"}, ""},
+	{contract.ToolShell, map[string]any{"command": "git clean --dry-run"}, ""},
 	{contract.ToolShell, map[string]any{"command": "git reset"}, ""},
 	{contract.ToolShell, map[string]any{"command": "apt install ripgrep"}, ""},
 	{contract.ToolShell, map[string]any{"command": "pseudo-thing --run"}, ""},
@@ -83,16 +90,13 @@ func TestTheShippedListCatchesSpendingMoney(t *testing.T) {
 }
 
 func TestTheShippedListLeavesEveryNearMissAlone(t *testing.T) {
-	book := shippedRulebook(t)
 	decider := newDecider(t, contract.DefaultConfig())
 	for _, call := range nearMisses {
 		request := contract.PermissionRequest{ToolName: call.toolName, Input: jsonInput(t, call.fields)}
 		reduced := permission.Reduce(request)
-		if matched, covered := book.Match(call.toolName, reduced); covered {
-			t.Errorf("the ask-me-first list caught %q, and it is not %q", reduced, matched.Reason)
-		}
 		if decision := decide(t, decider, request); decision.Ruling != contract.RulingAllow {
-			t.Errorf("%q was ruled %q, want %q, because a near miss runs on its own", reduced, decision.Ruling, contract.RulingAllow)
+			t.Errorf("%q was ruled %q because %q, want %q, because a near miss runs on its own",
+				reduced, decision.Ruling, decision.Reason, contract.RulingAllow)
 		}
 	}
 }
@@ -141,38 +145,24 @@ func TestAnEmptyAskMeFirstListStandsForNoRules(t *testing.T) {
 	}
 }
 
-// checkAskMeFirst puts every call to the shipped list and says which entry has to
-// catch it.
+// checkAskMeFirst puts every call to the permission function a fresh install has
+// and says which entry has to catch it. The entry's own name is the reason the
+// ruling carries, because that is what the user is shown, so one ruling answers
+// both questions: that the call asks, and which entry made it ask.
 func checkAskMeFirst(t *testing.T, calls []askMeFirstCall) {
 	t.Helper()
-	book := shippedRulebook(t)
+	decider := newDecider(t, contract.DefaultConfig())
 	for _, call := range calls {
 		request := contract.PermissionRequest{ToolName: call.toolName, Input: jsonInput(t, call.fields)}
 		reduced := permission.Reduce(request)
-		matched, covered := book.Match(call.toolName, reduced)
-		if !covered {
-			t.Errorf("the ask-me-first list let %q through, want the entry %q to catch it", reduced, call.entry)
+		decision := decide(t, decider, request)
+		if decision.Ruling != contract.RulingAsk {
+			t.Errorf("the ask-me-first list ruled %q on %q, want %q, because the entry %q has to catch it",
+				decision.Ruling, reduced, contract.RulingAsk, call.entry)
 			continue
 		}
-		if matched.Reason != call.entry {
-			t.Errorf("%q was caught by the entry %q, want %q", reduced, matched.Reason, call.entry)
-		}
-		if matched.Action != contract.RulingAsk {
-			t.Errorf("%q was ruled %q, and everything on the ask-me-first list asks", reduced, matched.Action)
+		if decision.Reason != call.entry {
+			t.Errorf("%q was caught by the entry %q, want %q", reduced, decision.Reason, call.entry)
 		}
 	}
-}
-
-// shippedRulebook compiles the three entries the ask-me-first list ships with.
-func shippedRulebook(t *testing.T) *permission.Rulebook {
-	t.Helper()
-	rules, err := permission.RulesForAskMeFirst(contract.DefaultAskMeFirst())
-	if err != nil {
-		t.Fatalf("the three shipped ask-me-first entries were refused: %v", err)
-	}
-	book, err := permission.NewRulebook(rules)
-	if err != nil {
-		t.Fatalf("compiling the three shipped ask-me-first entries failed: %v", err)
-	}
-	return book
 }

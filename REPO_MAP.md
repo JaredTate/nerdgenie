@@ -1086,6 +1086,7 @@ internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/7f72ed17f01b6f36
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/ec7528631b9ef93e
+internal/tool/web/testdata/fuzz/FuzzTheResultsPageReader/3ccaab33a166ff15
 internal/tool/web/testdata/fuzz/FuzzTheResultsPageReader/44d5247ff8b126f6
 internal/tool/web/testdata/fuzz/FuzzTheTurnIntoText/5227ce2ede044796
 internal/tool/web/text.go

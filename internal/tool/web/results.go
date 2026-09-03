@@ -65,19 +65,29 @@ func rowsFromResultsPage(page string) string {
 	return strings.TrimSpace(written.String())
 }
 
-// withAnAddress keeps the rows the model could follow. A result link with no
-// address is nothing the model can open, and a page made only of those has no
-// result on it that the reader could find, which is what the model has to be
-// told; the fuzzer found that such a page otherwise read as an empty answer,
-// because a row of nothing is nothing once the ends are trimmed.
+// withAnAddress keeps the rows the model could follow: those whose address is
+// a web address, the only kind the fetch can open. A result link with no
+// address, or with a space or a bare path where one should be, is nothing the
+// model can open, and a page made only of those has no result on it that the
+// reader could find, which is what the model has to be told. The fuzzer found
+// both halves: such a page otherwise read as an empty answer, because a row of
+// nothing is nothing once the ends are trimmed, and an address of one space was
+// then enough to keep the row.
 func withAnAddress(rows []row) []row {
 	kept := rows[:0]
 	for _, one := range rows {
-		if one.address != "" {
+		if isWebAddress(one.address) {
 			kept = append(kept, one)
 		}
 	}
 	return kept
+}
+
+// isWebAddress says whether an address is one the fetch could open, which is
+// one that names its scheme as http or https, however the letters are cased.
+func isWebAddress(address string) bool {
+	lowered := asciiLower(address)
+	return strings.HasPrefix(lowered, "http://") || strings.HasPrefix(lowered, "https://")
 }
 
 // whyNoResultWasRead says why a page came back with no result on it, telling the
@@ -141,7 +151,7 @@ func linkText(page string, from int) (string, int) {
 // realAddress unwraps the redirect a results page wraps its links in, and fills
 // in the scheme when the page left it off.
 func realAddress(written string) string {
-	address := unescape(written)
+	address := strings.TrimSpace(unescape(written))
 	if parsed, err := url.Parse(address); err == nil {
 		if hidden := parsed.Query().Get(redirectParameter); hidden != "" {
 			address = hidden

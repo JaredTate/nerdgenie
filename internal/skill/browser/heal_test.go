@@ -213,8 +213,8 @@ func TestOnlyOneStepOfAReplayIsEverPutToTheModel(t *testing.T) {
 	if len(report.Outcomes) != 2 {
 		t.Fatalf("the replay ran %d steps, and it should stop at the one heal it is allowed:\n%s", len(report.Outcomes), report)
 	}
-	if calls := len(model.Requests()); calls != browser.HealAttempts {
-		t.Errorf("the model was asked %d times, and one replay allows %d", calls, browser.HealAttempts)
+	if calls := len(model.Requests()); calls != 1 {
+		t.Errorf("the model was asked %d times, and one replay asks about one broken step", calls)
 	}
 }
 

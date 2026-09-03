@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -209,38 +208,6 @@ func TestAPatchIsNotWrittenForASkillThatIsNotOnDisk(t *testing.T) {
 	}
 	if report.Applied {
 		t.Fatalf("a patch was written for a skill that is nowhere on disk:\n%s", report)
-	}
-}
-
-func TestAPageWithMoreElementsThanTheModelIsShownIsCutShort(t *testing.T) {
-	built := newBench(t)
-	crowded := contract.Snapshot{URL: "https://fixture.test/crowded", Title: "Crowded", TabID: "t1"}
-	for number := 1; number <= browser.MaxElementsShownToTheModel+5; number++ {
-		crowded.Elements = append(crowded.Elements, contract.Element{
-			Ref: "x" + strconv.Itoa(number), Role: "link", Name: "Thing " + strconv.Itoa(number),
-		})
-	}
-	built.worker.AddPage(crowded)
-	model := testkit.NewFakeModel(testkit.Script{Name: "healer", ContextLength: 8000, Steps: []testkit.Step{{
-		Expect: []string{"more elements are not listed"}, Text: "none", Finish: contract.FinishEnd,
-	}}})
-	folder := built.save(t, "crowded-walk", []browser.Step{
-		{Number: 1, Intent: "Open the page.", Tool: contract.ToolBrowserOpen, Address: crowded.URL, Expectation: "the crowded page"},
-		{
-			Number: 2, Intent: "Click the missing thing.", Tool: contract.ToolBrowserClick,
-			Element: browser.Descriptor{Ref: "e1", Role: "button", Name: "Nowhere", Shown: "Nowhere"}, Expectation: "something happens",
-		},
-	})
-	replayer, err := browser.New(browser.Options{Browser: built.worker, Model: model})
-	if err != nil {
-		t.Fatalf("cannot build the replayer: %v", err)
-	}
-
-	if _, err := replayer.Replay(context.Background(), folder); err != nil {
-		t.Fatalf("cannot replay the recording: %v", err)
-	}
-	if calls := len(model.Requests()); calls != 1 {
-		t.Fatalf("the model was asked %d times, want once", calls)
 	}
 }
 

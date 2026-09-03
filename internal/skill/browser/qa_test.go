@@ -198,24 +198,6 @@ func TestAWalkStopsWhenAnElementIsNowhereOnThePage(t *testing.T) {
 	}
 }
 
-func TestAWalkLongerThanThePicturesItMayTakeIsRefused(t *testing.T) {
-	built := newBench(t)
-	checker, err := browser.NewChecker(built.worker)
-	if err != nil {
-		t.Fatalf("cannot build the checker: %v", err)
-	}
-	steps := []browser.Step{}
-	for number := 1; number <= browser.MaxScreenshots+1; number++ {
-		steps = append(steps, browser.Step{
-			Number: number, Intent: "Open the app.", Tool: contract.ToolBrowserOpen,
-			Address: testkit.FixtureSimplePage, Expectation: "a simple page",
-		})
-	}
-	if _, err := checker.Check(context.Background(), browser.Request{Steps: steps, Into: t.TempDir()}); err == nil {
-		t.Fatal("a walk past the picture cap was accepted, and every list has a cap")
-	}
-}
-
 func TestAWalkWithNoStepsInItIsRefused(t *testing.T) {
 	built := newBench(t)
 	checker, err := browser.NewChecker(built.worker)

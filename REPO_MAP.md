@@ -473,6 +473,7 @@ internal/loop/commands_test.go
 internal/loop/contextbuilder.go
 internal/loop/contextbuilder_test.go
 internal/loop/continued_test.go
+internal/loop/cutoff_test.go
 internal/loop/doc.go
 internal/loop/donecheck.go
 internal/loop/donecheck_test.go
@@ -493,6 +494,7 @@ internal/loop/loop.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
+internal/loop/nobudget_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
@@ -587,6 +589,7 @@ internal/provider/anthropic.go
 internal/provider/anthropic_test.go
 internal/provider/anthropicstream.go
 internal/provider/anthropicwire.go
+internal/provider/calldeadline_test.go
 internal/provider/chain.go
 internal/provider/chain_test.go
 internal/provider/cli.go
@@ -645,6 +648,7 @@ internal/record/logfails_test.go
 internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
+internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go
 internal/record/parsebad_test.go

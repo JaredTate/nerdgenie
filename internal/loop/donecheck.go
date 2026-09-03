@@ -26,8 +26,8 @@ const (
 	// MaxPathsCheckedPerLine is how many file paths one done line may name.
 	MaxPathsCheckedPerLine = 3
 	// MaxResultsNamedInARefusal is how many result labels a refusal lists back
-	// to the model, because a task of a hundred rounds has a hundred results and
-	// a refusal is one line the model reads.
+	// to the model, because a long task has a hundred results and a refusal is
+	// one line the model reads.
 	MaxResultsNamedInARefusal = 12
 )
 

@@ -49,8 +49,10 @@ func TestTheStatusCarriesTheContextMeasureAfterAModelCall(t *testing.T) {
 				field, status.Fields[field], number, status.Fields)
 		}
 	}
-	if status.Fields[contract.StatusFieldBudget] == "" {
-		t.Errorf("the status carries no budget line, so the header has nothing to draw: %v", status.Fields)
+	// The home this test writes sets no budget, and the shipped caps set none,
+	// so the line says so rather than naming a limit nobody set.
+	if budget := status.Fields[contract.StatusFieldBudget]; budget != "no budget" {
+		t.Errorf("the status carries the budget line %q, want \"no budget\", because none is set: %v", budget, status.Fields)
 	}
 }
 

@@ -77,7 +77,7 @@ Packages are listed in build order, and a package may import only packages liste
 - `Desktop`: launch, screenshot, click, type, key, drag, clipboard.
 - `Clock`: now, sleep, ticker.
 - `Store`: the event log's write and read shapes.
-- The record types: one set for both kinds, with a kind field saying task or job. A task's header carries the budget line and the cost line and its work carries plan steps and results (`r7`); a job's header carries the progress line and the next due task and its work carries the task list (`t31`) and the reports of finished tasks (`j4.2`).
+- The record types: one set for both kinds, with a kind field saying task or job. A task's header carries the budget line, which reads `no budget` unless the user set a limit and otherwise names only the limits that are set, with `NoRoundBudget` and `NoTimeBudget` saying which, and the cost line, and its work carries plan steps and results (`r7`); a job's header carries the progress line and the next due task and its work carries the task list (`t31`) and the reports of finished tasks (`j4.2`).
 - The configuration struct with every field and its default, the home folder layout as path helpers with the file modes, and the exit codes (75 restart me, 78 bad configuration).
 - The user-tool protocol: an executable in `~/.coeus/tools/` answers `--describe` with JSON and takes a JSON object on standard input.
 
@@ -224,7 +224,15 @@ behind. That is where a replay reads the round boundary, and it is what took a
 forty-round task with a long ask from three megabytes of checkpoints to a
 hundred kilobytes. `/tasks 17 back 3` therefore steps back three rounds of work.
 
-**The guard, in order.** The budget is checked at the top of every round. **A
+**The guard, in order.** The budget is checked at the top of every round, when
+the user has set one. Coeus puts no cap on its own work unless the user asks for
+one: `rounds_per_task`, `time_per_task` and `time_per_turn` ship at zero, which
+is off, and a task with no budget is never stopped for rounds or for time;
+`budgetIsSpent` and `mayPlayRound` both read a zero as no limit, `loop.New`
+fills in the shipped caps only when it is handed none at all, and the record's
+header then reads `no budget`, or names only the limit that is set. A budget
+the user does set, or a skill sets, still ends the task with the final answer
+the design describes. **A
 stop line is a statement about the world, and the harness only reads the one wall
 it can recognise for itself**: a browser result showing a login form, a
 two-factor prompt, or a captcha stops the task, and the user is told the line of
@@ -330,8 +338,8 @@ rounds writing the same ending again and told the person the budget was used up 
 an answer to a question they had already answered. So `carryOnFromAStop` gives a
 record standing at stopped a fresh round and minute budget, writes it into the
 header, and keeps one line for the situation saying the person asked this task to
-carry on and what it was given. A record standing at waiting is left exactly as
-it is.
+carry on and what it was given, which on the shipped caps is no budget at all. A
+record standing at waiting is left exactly as it is.
 
 **The end.** The done-check refuses to close while `record` says any line has
 nothing behind it, and adds the two checks ordinary code can make: a command a
@@ -351,7 +359,20 @@ channel. **An unattended task and an unattended job offer nothing**: nobody is
 there to answer, so the lesson is kept as a fact and the report says so, rather
 than a preview being shown to nobody for the whole answer deadline. A finished
 task sends its report; a stopped or failed one says what happened and which line
-fired. **A task whose budget ran out sends one report and makes one model call**:
+fired. **A task the person stops asks the model nothing more**: Escape or the
+word stop cancels the call in flight, and `stopForThePerson` asks no review
+questions, which used to be a second model call the stop could not reach, so
+the person pressed Escape twice and waited. **A task cut off mid-turn is still
+marked and reported**: every ending writes its checkpoint, its status and its
+reply under `timeToWrapUp`, the turn's context with its cancellation taken off
+and `WrapUpTime`, ten seconds on the harness's clock, of the ending's own, and
+`play` ends a task whose round could not be finished as failed rather than
+handing the error out of the loop with the record left at running. That is
+from a real run on 3 September, where a turn limit cut a task off, the ending
+failed on the cancelled context with "cannot save checkpoint ... context
+canceled", and the program lost sight of the task: the next message started a
+fresh one and the model said there was no active work. **A task whose budget ran
+out sends one report and makes one model call**:
 the model is asked what it did and what is left with the tools off, and those
 words are the middle of the one stopped report the user reads. A task that
 belongs to a job has its report written into the job through `FinishTask`, sent
@@ -397,7 +418,8 @@ that names the skill a message runs under carries it on as `SkillMatch.Rounds`
 and `SkillMatch.Time`, and `cmd/coeus` fills the budget from that match before
 it hands the task over. `skillbudget_test.go` pins the record's side: a task
 given seven rounds and twelve minutes carries them in its header, less what it
-has spent, and a task given nothing carries the caps.
+has spent, and a task given nothing carries the caps, which ship with no budget,
+so its header reads `no budget`.
 
 ## Signal (built, wave 3)
 
@@ -726,7 +748,7 @@ card arriving above a preview cannot take the preview's three answers with it.
 
 **The order things open in.** The run lock, then SQLite's own quick check on the database, then the event log, the queue, the vault, the memory, the jobs, the permission function, and the reliability guard; then the model, the event stream, the local socket, the working-context builder, the sandbox (the direct runner when the setting is `off`, which is the default, and the bwrap fence when it is `fence`), the browser, the tool registry, the skill store, the turn loop, the command registry, and the router. The event log is opened before the queue, the memory and the jobs, because the log owns the database file's identity. Everything is built on `clock.System()`. The model is the configuration's default alias and then its fallback chain, each through `provider.New` with the key resolved out of the vault, each wrapped in `provider.WithRetries`, all behind `provider.NewChain`.
 
-**The turn loop.** `loop.New` gets the model chain, the shared tool registry, `ToolsForTask` (which builds a registry per task, so the task tool writes that task's record and a label such as `r7` reads that task's results), the permission function, the event log, the clock, `loop.TheWorkingContext(builder)`, the jobs, the memory, the skills, the fence, and the caps. The router's `StartTask` hands a message to `Loop.Run`, filling `loop.Task.ResumeID` when the message carries a task on and `loop.Task.Budget` from the skill whose trigger words the message holds (`taskbudget.go` asks the skills box for the match and takes its rounds and time; no match, or a store that cannot answer, leaves the budget empty, which the loop reads as the caps), or to `Loop.Deliver` when a task is already running; the agent keeps its own busy flag for that rather than reading `Loop.Running`, because `Running` is the record's number and a task has none until its first tool call, so a question answered with no tools would look like an idle agent. `StopTask` is `Loop.Stop`. A goroutine beside the drainer waits on `Jobs.Wait` and calls `RunNextJobTask` whenever nothing is running, resting a second when nothing is due so that work already past its moment cannot turn the wait into a spin.
+**The turn loop.** `loop.New` gets the model chain, the shared tool registry, `ToolsForTask` (which builds a registry per task, so the task tool writes that task's record and a label such as `r7` reads that task's results), the permission function, the event log, the clock, `loop.TheWorkingContext(builder)`, the jobs, the memory, the skills, the fence, and the caps. The router's `StartTask` hands a message to `Loop.Run`, filling `loop.Task.ResumeID` when the message carries a task on and `loop.Task.Budget` from the skill whose trigger words the message holds (`taskbudget.go` asks the skills box for the match and takes its rounds and time; no match, or a store that cannot answer, leaves the budget empty, which the loop reads as the caps, and the caps ship with none), or to `Loop.Deliver` when a task is already running; the agent keeps its own busy flag for that rather than reading `Loop.Running`, because `Running` is the record's number and a task has none until its first tool call, so a question answered with no tools would look like an idle agent. `StopTask` is `Loop.Stop`. A goroutine beside the drainer waits on `Jobs.Wait` and calls `RunNextJobTask` whenever nothing is running, resting a second when nothing is due so that work already past its moment cannot turn the wait into a spin.
 
 **The registry** holds the ten core commands from `command.New(...).All()`, then `/tasks` and `/stop` from the loop, `/jobs` and `/cron` from the job store, `/skills`, `/vault`, `/memory`, `/pair` when `config.toml` names a Signal account, `/clear`, `/think`, and `/readyz`, which answers the one word "ready" and is a slash command rather than anything of its own, so that a health check travels the whole way a person's message travels: in on the socket, into the queue, out through the router.
 
@@ -1045,7 +1067,7 @@ Four ways out, and no others. `Resolve("secret://name")` hands the harness a `co
 
 **The drain marker.** `drain.json` under the run folder tells the loop to finish the task it has and take no new one, which is how the updater of wave 6 stops the agent without cutting a task in half. `Drain.Why` reads the reason out of it and `WhyNoNewTask` puts that reason in front of the person who asked, so a draining agent says what it is doing instead of going quiet. It carries the boot identifier and expires after thirty minutes, so a marker left behind by a machine that has since restarted, or by a writer that crashed, cannot park the agent forever; a marker that cannot be read still means stop, and answers with the plain reason every drain has.
 
-**The deadline.** One type behind both limits: `TurnDeadline` is the fifteen minutes `contract.Caps` gives a turn and `ToolDeadline` the seven minutes it gives a tool call. `Watch` returns a context cancelled when the time is up, with `ErrDeadlineExpired` as its cause, so a caller can tell our limit from the provider's.
+**The deadline.** One type behind both limits: `TurnDeadline` is the `time_per_turn` the user set, and when they set none, which is the shipped default, it is a `NoDeadline`, which never expires and whose watch only follows the context it was given; `ToolDeadline` is the seven minutes `contract.Caps` gives a tool call, and is never off, because a hung command has to be killed. The provider's own whole-call timeout reads the same cap and is off with it, leaving the stall watch as the failure path for a stream that goes quiet, and the socket's answer deadline for a preview reads it too: zero waits for as long as the turn does, and only a length below zero is refused. `Watch` returns a context cancelled when the time is up, with `ErrDeadlineExpired` as its cause, so a caller can tell our limit from the provider's.
 
 **The watchdog feed.** `Ready` sends `READY=1`, which is what a `Type=notify` unit waits for, and `Feed` sends `WATCHDOG=1` at half the interval systemd announced, for the life of the program. Outside systemd there is no interval and no socket, and all of it does nothing, which is what lets the same code run from a terminal.
 

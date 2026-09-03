@@ -7,9 +7,11 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// The two numbers behind the size promise of the design: with a budget of a
-// hundred rounds a record can hold at most a hundred result lines, so it stays
-// small enough that nothing in it is ever squashed or summarized.
+// The two numbers behind the size promise of the design. A task has no round
+// budget unless the user sets one, so the promise is held by checkItStillFits
+// below rather than by any count of rounds: a record stays small enough that
+// nothing in it is ever squashed or summarized, and a task that fills one is a
+// task that should have been a job.
 const (
 	// TokensPerHundredWords is the ratio this package counts tokens with: a
 	// hundred words of plain English are about a hundred and thirty tokens. It
@@ -21,10 +23,10 @@ const (
 	// design promise that the record fits in front of any model.
 	MaxRecordTokens = 3000
 	// MaxSummaryCharacters is the longest the one line a result keeps in the
-	// record may be. It is the bound that makes the promise above hold at the
-	// budget: a hundred rounds can write a hundred result lines and no more, and
-	// each of those lines is this long at most. Nothing is lost by the cut,
-	// because the whole text of every result is in the log.
+	// record may be. It is what lets a record hold about a hundred result lines
+	// inside the size above, because each of those lines is this long at most.
+	// Nothing is lost by the cut, because the whole text of every result is in
+	// the log.
 	MaxSummaryCharacters = 70
 	// MaxAskTokens is the share of a prompt the ask may take before the model is
 	// shown the start of it and told how to read the rest. A quarter leaves room

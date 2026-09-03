@@ -27,6 +27,9 @@ import (
 func (jobs *Jobs) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
+	if jobs.mayStartWork != nil && !jobs.mayStartWork() {
+		return contract.TaskToRun{}, false, nil
+	}
 	if err := jobs.releaseTasksPastTheirBudget(ctx, now); err != nil {
 		return contract.TaskToRun{}, false, err
 	}
@@ -144,8 +147,40 @@ func (jobs *Jobs) releaseTasksPastTheirBudget(ctx context.Context, now time.Time
 // Wait sleeps until there could be work to do, and never for longer than the
 // clamp, so that a job created or changed while the agent waits is picked up
 // within the minute. It returns as soon as the context is done.
+//
+// It also never comes back twice inside RestBetweenWaits. Work that is already
+// past its moment makes the wait nothing at all, and the driver that asks may
+// not be able to take that work yet, because a task of its own is running; with
+// no rest it would ask again as fast as the processor allows and burn a whole
+// core for the length of that task.
 func (jobs *Jobs) Wait(ctx context.Context) error {
-	return jobs.clock.Sleep(ctx, jobs.timeUntilWork(jobs.clock.Now()))
+	if err := jobs.clock.Sleep(ctx, jobs.restStillOwed(jobs.clock.Now())); err != nil {
+		return err
+	}
+	if err := jobs.clock.Sleep(ctx, jobs.timeUntilWork(jobs.clock.Now())); err != nil {
+		return err
+	}
+	jobs.rememberThisWait(jobs.clock.Now())
+	return nil
+}
+
+// restStillOwed is how much of the rest between two waits has not been taken
+// yet, and is nothing at all for the first wait of all.
+func (jobs *Jobs) restStillOwed(now time.Time) time.Duration {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	if jobs.lastWaitEnded.IsZero() {
+		return 0
+	}
+	return RestBetweenWaits - now.Sub(jobs.lastWaitEnded)
+}
+
+// rememberThisWait writes down when a wait came back, which is what the next
+// wait's rest is measured from.
+func (jobs *Jobs) rememberThisWait(now time.Time) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobs.lastWaitEnded = now
 }
 
 // timeUntilWork is how long the store may sleep before something is due: the

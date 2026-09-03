@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // signatureLength is how much of the hash of an error is kept as its signature.
@@ -98,11 +99,26 @@ func appendToNotepad(notepad string, note string) string {
 		if !split || rest == "" {
 			// One line on its own is longer than the whole notepad, so its ending
 			// is kept: a note says what it found at the end of itself.
-			return grown[len(grown)-NotepadBytes:]
+			return theLastBytesWholeLettersFit(grown, NotepadBytes)
 		}
 		grown = rest
 	}
 	return grown
+}
+
+// theLastBytesWholeLettersFit is the end of a piece of text, inside the cap and
+// beginning at a whole letter, because a note cut halfway through an accented
+// letter is a note that is no longer text.
+func theLastBytesWholeLettersFit(text string, keep int) string {
+	if len(text) <= keep {
+		return text
+	}
+	for at := len(text) - keep; at < len(text); at++ {
+		if utf8.RuneStart(text[at]) {
+			return text[at:]
+		}
+	}
+	return ""
 }
 
 // noteIncident counts one failure against the job's incidents and says whether

@@ -43,6 +43,9 @@ type jobState struct {
 	Monitor bool `json:"monitor,omitempty"`
 	// FailuresInARow counts consecutive failed tasks.
 	FailuresInARow int `json:"failuresInARow,omitempty"`
+	// KeepRunning says this job is never paused or switched off for failing,
+	// however many of its tasks fail in a row.
+	KeepRunning bool `json:"keepRunning,omitempty"`
 	// LastRun is when a task of this job last finished.
 	LastRun time.Time `json:"lastRun,omitzero"`
 	// NextRun is when the schedule fires next.

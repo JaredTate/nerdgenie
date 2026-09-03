@@ -16,7 +16,6 @@ import (
 	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/provider"
 	"github.com/JaredTate/coeus/internal/sandbox"
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
@@ -364,56 +363,6 @@ func (running *agent) stopTask(_ context.Context) error {
 	return nil
 }
 
-// openModel builds the model the configuration's default alias names, wrapped in
-// retries, with the fallback chain behind it.
-func (running *agent) openModel(ctx context.Context) (contract.Model, error) {
-	options := provider.Options{Clock: clock.System(), Home: running.home, Log: running.note}
-	models := []contract.Model{}
-
-	for _, name := range append([]string{running.settings.DefaultModel}, running.settings.FallbackChain...) {
-		alias, found := aliasNamed(running.settings, name)
-		if !found {
-			return nil, fmt.Errorf("config.toml names %q as a model to use, and no models block defines it, so add one or change the name", name)
-		}
-		key, err := running.keyFor(ctx, alias)
-		if err != nil {
-			return nil, err
-		}
-		withKey := options
-		withKey.APIKey = key
-		one, err := provider.New(alias, withKey)
-		if err != nil {
-			return nil, err
-		}
-		models = append(models, provider.WithRetries(one, withKey))
-	}
-	return provider.NewChain(models, options)
-}
-
-// aliasNamed finds one model alias in the configuration by its name.
-func aliasNamed(settings contract.Config, name string) (contract.ModelAlias, bool) {
-	for _, alias := range settings.Models {
-		if alias.Name == name {
-			return alias, true
-		}
-	}
-	return contract.ModelAlias{}, false
-}
-
-// keyFor reads a model's API key out of the vault, which is where the key lives
-// and where the model never sees it. An alias with no key reference needs none,
-// which is every local server and both subscription programs.
-func (running *agent) keyFor(ctx context.Context, alias contract.ModelAlias) (string, error) {
-	if alias.KeyReference == "" {
-		return "", nil
-	}
-	found, err := running.secrets.Resolve(ctx, alias.KeyReference)
-	if err != nil {
-		return "", fmt.Errorf("the model alias %q needs the key at %s, and the vault could not give it: %w", alias.Name, alias.KeyReference, err)
-	}
-	return found.Password, nil
-}
-
 // registerCommands fills the one registry with every slash command each package
 // owns, in the order the help listing prints them.
 func (running *agent) registerCommands() error {
@@ -496,56 +445,4 @@ func (running *agent) statusForAScreen() map[string]string {
 		contract.StatusFieldHealthy:  "true",
 		contract.StatusFieldCommands: strings.TrimRight(listed.String(), "\n"),
 	}
-}
-
-// skillsBox holds the skill store once it exists. The tool registry is built
-// before the store, because the store replays through the registry, so the
-// registry is handed this box and the box is filled a moment later. Every method
-// answers plainly while it is empty rather than failing.
-type skillsBox struct {
-	store contract.Skill
-}
-
-// fill puts the real store in the box, which happens once at startup, before
-// anything asks the box a question.
-func (box *skillsBox) fill(store contract.Skill) { box.store = store }
-
-// List is the skills there are, and none while the box is empty.
-func (box *skillsBox) List(ctx context.Context) ([]contract.SkillSummary, error) {
-	if box.store == nil {
-		return nil, nil
-	}
-	return box.store.List(ctx)
-}
-
-// Load is one skill's body.
-func (box *skillsBox) Load(ctx context.Context, name string) (string, error) {
-	if box.store == nil {
-		return "", fmt.Errorf("the skills are not open yet, so %q cannot be loaded", name)
-	}
-	return box.store.Load(ctx, name)
-}
-
-// Run replays one skill.
-func (box *skillsBox) Run(ctx context.Context, name string, arguments string) (string, error) {
-	if box.store == nil {
-		return "", fmt.Errorf("the skills are not open yet, so %q cannot be run", name)
-	}
-	return box.store.Run(ctx, name, arguments)
-}
-
-// Save writes one skill folder.
-func (box *skillsBox) Save(ctx context.Context, name string, files map[string][]byte) error {
-	if box.store == nil {
-		return fmt.Errorf("the skills are not open yet, so %q was not written", name)
-	}
-	return box.store.Save(ctx, name, files)
-}
-
-// Match says whether a message's words fire a saved skill.
-func (box *skillsBox) Match(ctx context.Context, text string) (contract.SkillMatch, error) {
-	if box.store == nil {
-		return contract.SkillMatch{}, nil
-	}
-	return box.store.Match(ctx, text)
 }

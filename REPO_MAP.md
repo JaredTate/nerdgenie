@@ -1226,6 +1226,7 @@ test/functional/readback_test.go
 test/functional/readfile_test.go
 test/functional/recordline_test.go
 test/functional/reliability_test.go
+test/functional/replyproof_test.go
 test/functional/sample_test.go
 test/functional/schema_test.go
 test/functional/serve_test.go

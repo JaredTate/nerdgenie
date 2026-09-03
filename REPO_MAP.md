@@ -404,6 +404,8 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/loop/bounds_test.go
+internal/loop/budgetend_test.go
 internal/loop/calls.go
 internal/loop/commands.go
 internal/loop/commands_test.go
@@ -412,6 +414,7 @@ internal/loop/contextbuilder_test.go
 internal/loop/doc.go
 internal/loop/donecheck.go
 internal/loop/donecheck_test.go
+internal/loop/donecommand_test.go
 internal/loop/endings.go
 internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go
@@ -422,6 +425,7 @@ internal/loop/helpers_test.go
 internal/loop/integration_test.go
 internal/loop/jobs.go
 internal/loop/jobs_test.go
+internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
@@ -429,9 +433,13 @@ internal/loop/more_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
+internal/loop/pinned_test.go
+internal/loop/polling_test.go
 internal/loop/problems_test.go
+internal/loop/question_test.go
 internal/loop/realtools_test.go
 internal/loop/recordline.go
+internal/loop/recordshapes_test.go
 internal/loop/recordwrite.go
 internal/loop/refused_test.go
 internal/loop/resume_test.go
@@ -440,8 +448,14 @@ internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/situation.go
 internal/loop/stopcancels_test.go
+internal/loop/stopline_test.go
+internal/loop/summary_test.go
+internal/loop/taskcall.go
+internal/loop/tooldeadline_test.go
 internal/loop/toolline.go
+internal/loop/toolline_test.go
 internal/loop/turn_test.go
+internal/loop/unattended_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go

@@ -92,3 +92,68 @@ func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing
 		}
 	}
 }
+
+// TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlock
+// pins the one example block "coeus init" writes for a model it does not set up
+// itself: OpenAI's Codex backend on the ChatGPT subscription, reached with the
+// login the codex program keeps, so that Coeus's own loop drives the model. Every
+// line of it is a comment, so the file loads exactly as it did without it, and
+// a person turns it on by uncommenting it. It sits after the codex program's
+// own block, so that the two ways of reaching the same subscription are read
+// together.
+func TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlock(t *testing.T) {
+	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
+	codex := modelChoice{name: contract.CodexProgram, detected: true, alias: contract.ModelAlias{
+		Name: contract.CodexProgram, Provider: contract.ProviderCommandLine, Program: contract.CodexProgram,
+		ModelName: "gpt-5.5", ContextLength: cloudContextLength}}
+	written := configurationText(chosen, []modelChoice{chosen, codex}, []string{"/home/someone/coeus"})
+
+	programLine := strings.Index(written, "\nprogram = \"codex\"\n")
+	if programLine < 0 {
+		t.Fatalf("the configuration has no block for the codex program:\n%s", written)
+	}
+	wanted := []string{
+		"# [[models]]",
+		"# name = \"gpt\"",
+		"# provider = \"codex\"",
+		"# model_name = \"gpt-5.6-sol\"",
+		"# context_length = 400000",
+		"# think = \"medium\"",
+	}
+	last := programLine
+	for _, line := range wanted {
+		at := strings.Index(written, "\n"+line+"\n")
+		if at < 0 {
+			t.Errorf("the configuration has no commented-out line %q:\n%s", line, written)
+			continue
+		}
+		if at < last {
+			t.Errorf("the line %q comes before the one above it or before the codex program's block", line)
+		}
+		last = at
+	}
+	example := written[programLine:]
+	for _, words := range []string{"Codex", "ChatGPT", "login", "own loop", "uncomment"} {
+		if !strings.Contains(example, words) {
+			t.Errorf("the comment on the example block says nothing about %q:\n%s", words, example)
+		}
+	}
+	for _, line := range strings.Split(written, "\n") {
+		if strings.Contains(line, "gpt-5.6-sol") && !strings.HasPrefix(line, "#") {
+			t.Errorf("the line %q is not a comment, and the example block must not change what the file loads as", line)
+		}
+	}
+}
+
+// TestTheCodexExampleIsWrittenWhenNoCodexProgramWasFound pins that the example
+// is part of every file "coeus init" writes, not only of one on a machine with
+// the codex program installed, because the example is how a person learns the
+// provider exists.
+func TestTheCodexExampleIsWrittenWhenNoCodexProgramWasFound(t *testing.T) {
+	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+
+	if !strings.Contains(written, "\n# provider = \"codex\"\n") {
+		t.Errorf("the configuration written without the codex program has no commented-out codex example:\n%s", written)
+	}
+}

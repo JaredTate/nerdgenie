@@ -52,7 +52,7 @@ func (checker settingsChecker) complain(key string, advice string) error {
 }
 
 // checkModelAliases holds the rules every model alias must obey: a provider kind
-// that is one of the three, an address or a program to match it, a model name, a
+// that is one of the four, an address or a program to match it, a model name, a
 // context length above zero, and a key that is a reference rather than a secret.
 func (checker settingsChecker) checkModelAliases() error {
 	if len(checker.settings.Models) == 0 {
@@ -102,7 +102,8 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 
 // checkAliasReach holds the part of an alias that says how to reach the model:
 // an OpenAI-compatible server needs an address, and a command-line provider
-// needs one of the two vendor programs.
+// needs one of the two vendor programs. The Anthropic and codex providers need
+// neither, because each has one backend and the codex login is the program's.
 func (checker settingsChecker) checkAliasReach(where string, alias contract.ModelAlias) error {
 	if alias.Provider == contract.ProviderOpenAI && strings.TrimSpace(alias.BaseAddress) == "" {
 		return checker.complain(where+".base_address",
@@ -354,7 +355,7 @@ func looksLikeAPhoneNumber(account string) bool {
 	return true
 }
 
-// listOfProviderKinds writes the three provider kinds out for an error message.
+// listOfProviderKinds writes the four provider kinds out for an error message.
 func listOfProviderKinds() string {
 	names := []string{}
 	for _, kind := range contract.ProviderKinds() {

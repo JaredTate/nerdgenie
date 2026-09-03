@@ -93,6 +93,21 @@ func TestAScreenshotComesBackAsTheNumberedControlsAndNotAsAPicture(t *testing.T)
 	}
 }
 
+func TestAScreenshotBeforeAnyLaunchNamesTheWindowsAndNumbersNothing(t *testing.T) {
+	tool := computer.New(computer.Settings{Desktop: testkit.NewFakeDesktop()})
+
+	output, err := run(t, tool, map[string]any{
+		"intent": "see the screen", "action": "screenshot", "expectation": "the screen is showing",
+	})
+	if err != nil {
+		t.Fatalf("a screenshot before any launch failed: %v, and looking at the screen needs no application", err)
+	}
+	testkit.Golden(t, "a_screenshot_before_any_launch.txt", []byte(output.Text))
+	if !strings.Contains(output.Text, "launch") {
+		t.Errorf("the answer %q does not tell the model to launch an application before clicking or typing in it", output.Text)
+	}
+}
+
 func TestAnApplicationTheUserHasNotGrantedIsRefused(t *testing.T) {
 	desktop := testkit.NewFakeDesktop()
 	tool := computer.New(computer.Settings{Desktop: desktop})

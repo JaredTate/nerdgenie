@@ -57,6 +57,26 @@ func TestTheFakeDesktopScreenshotHasNumberedMarksOnIt(t *testing.T) {
 	}
 }
 
+func TestTheFakeDesktopScreenshotNeedsNoApplicationAndNamesTheWindows(t *testing.T) {
+	desktop := testkit.NewFakeDesktop()
+
+	picture, err := desktop.Screenshot(context.Background())
+
+	if err != nil {
+		t.Fatalf("taking a screenshot with no application open failed: %v, and looking at the screen needs no application", err)
+	}
+	if picture.PNGBase64 == "" {
+		t.Error("the screenshot has no picture in it")
+	}
+	if len(picture.Marks) != 0 || picture.Application != "" {
+		t.Errorf("the screenshot is of %q with %d marks, want the whole screen with no control numbered, because nothing is open",
+			picture.Application, len(picture.Marks))
+	}
+	if len(picture.Windows) == 0 {
+		t.Error("the screenshot names no window, and the model has to know what it is looking at")
+	}
+}
+
 func TestTheFakeDesktopRecordsEveryAction(t *testing.T) {
 	ctx := context.Background()
 	desktop := testkit.NewFakeDesktop()

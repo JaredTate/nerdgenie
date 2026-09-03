@@ -202,5 +202,6 @@ func aScreenshot() map[string]any {
 		"application": "zenity",
 		"title":       "Coeus fixture window",
 		"hidden":      0,
+		"windows":     []any{"Coeus fixture window", "Firefox"},
 	}
 }

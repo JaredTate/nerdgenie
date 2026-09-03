@@ -102,6 +102,8 @@ type screenshotAnswer struct {
 	Title string `json:"title"`
 	// Hidden is how many controls the worker's cap left out.
 	Hidden int `json:"hidden"`
+	// Windows names every window on the screen by its title.
+	Windows []string `json:"windows"`
 }
 
 // clipboardAnswer is what clipboardGet returns.

@@ -5,9 +5,11 @@ package desktop
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -156,6 +158,35 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 	}
 }
 
+func TestTheRealWorkerPhotographsTheWholeScreenBeforeAnythingIsLaunched(t *testing.T) {
+	command := workerCommand(t)
+	openFixtureWindow(t)
+	desktop := newRealDesktop(t, command)
+	ctx, done := context.WithTimeout(context.Background(), time.Minute)
+	defer done()
+
+	picture, err := desktop.Screenshot(ctx)
+
+	if err != nil {
+		t.Fatalf("taking a screenshot with nothing launched failed: %v, and looking at the screen needs no application", err)
+	}
+	// Through XWayland the driver cannot grab the whole screen, and then the
+	// picture is empty and the names are the answer; on X11 it is a real PNG.
+	switch {
+	case picture.PNGBase64 == "":
+		t.Log("the screen could not be photographed whole on this display, so the screenshot carries the window names and no picture")
+	case !isPNG(picture.PNGBase64):
+		t.Errorf("the picture is %d characters of base64 and does not begin like a PNG, want a real picture of the screen", len(picture.PNGBase64))
+	}
+	if picture.Application != "" || len(picture.Marks) != 0 {
+		t.Errorf("the picture is of %q with %d controls numbered, want the whole screen with none numbered, because no application is granted",
+			picture.Application, len(picture.Marks))
+	}
+	if !slices.Contains(picture.Windows, fixtureTitle) {
+		t.Errorf("the windows on the screen are %q, want the fixture window %q among them", picture.Windows, fixtureTitle)
+	}
+}
+
 func TestTheRealWorkerPutsTextOnTheClipboardAndPutsTheUsersOwnBack(t *testing.T) {
 	command := workerCommand(t)
 	openFixtureWindow(t)
@@ -187,6 +218,15 @@ func TestTheRealWorkerPutsTextOnTheClipboardAndPutsTheUsersOwnBack(t *testing.T)
 	if held != "nine years of DigiByte" {
 		t.Errorf("the clipboard holds %q, want what was put on it", held)
 	}
+}
+
+// isPNG says whether base64 text begins the way a PNG file does.
+func isPNG(pictureBase64 string) bool {
+	if len(pictureBase64) < 12 {
+		return false
+	}
+	head, err := base64.StdEncoding.DecodeString(pictureBase64[:12])
+	return err == nil && len(head) >= 4 && string(head[1:4]) == "PNG"
 }
 
 // numberOf is the number of the mark with that label, when there is one.

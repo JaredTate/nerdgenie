@@ -13,8 +13,9 @@ import {
   maximumPictureLength,
   maximumSettleReadings,
   maximumTypedCharacters,
+  maximumWindowsListed,
 } from "./limits.js"
-import { compareMarks, middleOf, numberTheControls, type Mark, type MarkedControl } from "./marks.js"
+import { compareMarks, middleOf, numberTheControls, oneShortLine, type Mark, type MarkedControl } from "./marks.js"
 import { typingRuns, variedGap, waitFor, type Pacing } from "./pacing.js"
 import { DesktopErrorCode, ProtocolError } from "./wire.js"
 
@@ -56,6 +57,8 @@ export interface ScreenshotResult {
   title: string
   /** How many controls the cap left out. */
   hidden: number
+  /** The windows on the screen, each named by its title, so the model knows what it is looking at. */
+  windows: string[]
 }
 
 /** What `health` returns. */
@@ -143,17 +146,23 @@ export class DesktopSession {
     )
   }
 
-  /** screenshot photographs the granted window and numbers its controls. */
+  /**
+   * screenshot photographs the screen. With an application granted it is that
+   * window with its controls numbered; with none it is the whole screen with no
+   * control numbered, because only the granted application's tree is read and
+   * looking at the screen needs no grant. Either way it names the windows on
+   * the screen, so that the model knows what it is looking at.
+   */
   async screenshot(): Promise<ScreenshotResult> {
-    const granted = this.requireGranted()
+    const windows = namesOf(await this.callDriver(() => this.driver.listWindows()))
+    const granted = this.granted
+    if (!granted) {
+      const picture = await this.screenPicture()
+      return { pngBase64: picture, marks: [], application: "", title: "", hidden: 0, windows }
+    }
     await this.callDriver(() => this.driver.bringToFront(granted.target))
     const reading = await this.readWindow(granted.target, true)
-    if (reading.picture.length > maximumPictureLength) {
-      throw new ProtocolError(
-        DesktopErrorCode.UnreadableWindow,
-        `the picture of the window is too big to send at ${reading.picture.length} characters, so make the window smaller and take it again`,
-      )
-    }
+    refuseABigPicture(reading.picture)
     this.remember(reading)
     return {
       pngBase64: reading.picture,
@@ -161,7 +170,28 @@ export class DesktopSession {
       application: granted.application,
       title: reading.title,
       hidden: reading.hidden,
+      windows,
     }
+  }
+
+  /**
+   * screenPicture photographs the whole screen, or hands back no picture when
+   * the driver cannot take one. On a Wayland desktop the driver reaches the
+   * screen through XWayland, whose root window cannot be grabbed, and the
+   * portal that could take the picture needs the session bus this worker is
+   * deliberately not handed; then the names of the windows are the answer, and
+   * the reason goes in the log rather than failing the call.
+   */
+  private async screenPicture(): Promise<string> {
+    let picture: string
+    try {
+      picture = await this.driver.readScreen()
+    } catch (failure) {
+      this.note(`the screen could not be photographed whole, so the screenshot names the windows and carries no picture: ${saidBy(failure)}`)
+      return ""
+    }
+    refuseABigPicture(picture)
+    return picture
   }
 
   /** click presses the control with that number and checks the expectation. */
@@ -375,6 +405,34 @@ export class DesktopSession {
 /** marksOf is what the model sees of a list of controls. */
 function marksOf(controls: readonly MarkedControl[]): Mark[] {
   return controls.map((control) => control.mark)
+}
+
+/**
+ * namesOf names each window by its title, or by its application when it has no
+ * title, leaves out one that has neither, and stops at the cap.
+ */
+function namesOf(windows: readonly DriverWindow[]): string[] {
+  const names: string[] = []
+  for (const window of windows) {
+    if (names.length >= maximumWindowsListed) {
+      break
+    }
+    const name = oneShortLine(window.title) || oneShortLine(window.application)
+    if (name !== "") {
+      names.push(name)
+    }
+  }
+  return names
+}
+
+/** refuseABigPicture throws rather than sending a picture over the cap. */
+function refuseABigPicture(picture: string): void {
+  if (picture.length > maximumPictureLength) {
+    throw new ProtocolError(
+      DesktopErrorCode.UnreadableWindow,
+      `the picture is too big to send at ${picture.length} characters, so make the window smaller and take it again`,
+    )
+  }
 }
 
 /** sameReading says whether two readings of a window are the same reading. */

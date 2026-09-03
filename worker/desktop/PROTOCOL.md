@@ -74,15 +74,31 @@ that the desktop publishes for screen readers.
   ],
   "application": "zenity",
   "title": "Coeus fixture window",
-  "hidden": 0
+  "hidden": 0,
+  "windows": ["Coeus fixture window", "DigiByte - Firefox"]
 }
 ```
 
-The picture is of the granted application's own window and never of the whole
-desktop, because only the granted application may be read. `hidden` counts the
-controls the cap left out, the way the browser's `belowFold` counts what a
-person would have to scroll to see. The picture is capped at
-`4 MB` of base64 text; a bigger one is refused with -32001 rather than sent.
+With an application granted, the picture is of that application's own window
+and the numbers come from its accessibility tree. With none granted, the picture
+is of the whole screen and no control is numbered, because looking at the screen
+needs no grant but only the granted application's tree is ever read; then
+`application` and `title` are empty. `windows` names every window on the screen
+by its title, or by its application when the title is empty, at most 50 of them
+and each on one line of at most 120 characters, so that the model knows what it
+is looking at and can `launch` the one it wants by that title. `hidden` counts
+the controls the cap left out, the way the browser's `belowFold` counts what a
+person would have to scroll to see. The picture is capped at `4 MB` of base64
+text; a bigger one is refused with -32001 rather than sent.
+
+With nothing granted, `pngBase64` is empty when the display cannot be
+photographed whole. On a Wayland desktop the driver reaches the screen through
+XWayland, whose root window cannot be grabbed, and the portal that could take the
+picture needs the session bus the worker is deliberately not handed (rule seven
+and the screen reader). The window names are the answer then, the worker logs
+why, and the call still succeeds, because the model reads the names and never
+the picture. The windows named are the ones the driver can see, which on a
+Wayland desktop are those running through XWayland.
 
 ### Diff
 
@@ -141,7 +157,7 @@ window whose tree cannot be read at all after the limit.
 | -32602 | The parameters were wrong | Return the message to the model |
 | -32000 | No such mark on the screen | Return the message to the model, with a fresh screenshot in `data` |
 | -32001 | The window could not be read at all after the settle limit | Return the message to the model |
-| -32002 | No application is open | Launch one first |
+| -32002 | No application is open | Launch one first; a screenshot needs none |
 | -32003 | The desktop driver is not available on this machine | Restart the worker and tell the model the desktop was interrupted |
 | -32004 | The application could not be launched or brought forward | Return the message to the model |
 
@@ -169,11 +185,16 @@ message names what was asked for.
 
 ### `screenshot`
 
-Returns the granted application's window as a picture with its controls numbered.
+Returns a picture of the screen with the windows on it named: the granted
+application's window with its controls numbered, or, when no application has
+been launched, the whole screen with no control numbered. It is the one method
+besides `health` that needs no `launch` before it.
 
 Request: `{"jsonrpc":"2.0","id":2,"method":"screenshot","params":{}}`
 
-Response: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"role":"text box","name":"Type here"}],"application":"zenity","title":"Coeus fixture window","hidden":0}}`
+Response: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"role":"text box","name":"Type here"}],"application":"zenity","title":"Coeus fixture window","hidden":0,"windows":["Coeus fixture window"]}}`
+
+Before any launch: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[],"application":"","title":"","hidden":0,"windows":["Coeus fixture window","DigiByte - Firefox"]}}`
 
 ### `click`
 
@@ -248,10 +269,12 @@ to be told.
 
 ## Rules the worker keeps
 
-1. It acts only inside the one application `launch` granted. It never photographs
-   the whole desktop and never reads another window's accessibility tree, because
-   only the granted application may be read and the user's other windows are
-   none of the agent's business.
+1. It acts only inside the one application `launch` granted, and it reads only
+   that application's accessibility tree, because the user's other windows are
+   none of the agent's business. Looking is not acting: with no application
+   granted, `screenshot` photographs the whole screen and names the windows on
+   it by title, so that the model can tell what is there and launch the one it
+   wants; it still numbers no control outside the granted application.
 2. It brings the granted window to the front before every action. Key
    combinations cannot be delivered to a window in the background on this display
    server, and a person focuses the window they are working in.

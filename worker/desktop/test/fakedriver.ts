@@ -37,12 +37,16 @@ export class FakeDriver implements DesktopDriver {
   title = "Coeus fixture window"
   /** The picture the window returns, already encoded as base64 text. */
   picture = "iVBORw0KGgoFAKE"
+  /** The picture of the whole screen, told apart from the window's by its text. */
+  screen = "iVBORw0KGgoWHOLE"
   /** What the clipboard holds. */
   clipboard = ""
   /** The version the driver reports. */
   driverVersion = "0.23.2"
   /** When set, every call fails with this message. */
   brokenWith: string | undefined
+  /** When set, only the whole-screen picture fails with this message, as it does through XWayland. */
+  screenBrokenWith: string | undefined
   /** When set, the tree changes on every reading, so nothing ever settles. */
   restless = false
   /** What launching an application does, by name. */
@@ -82,6 +86,14 @@ export class FakeDriver implements DesktopDriver {
       ? [...this.elements, { element_index: 99, element_token: `s${this.readings}:99`, role: "button", label: `Tick ${this.readings}`, enabled: true, frame: { x: 0, y: 0, w: 10, h: 10 } }]
       : this.elements
     return { title: this.title, elements, pictureBase64: withPicture ? this.picture : "" }
+  }
+
+  async readScreen(): Promise<string> {
+    this.record("read the whole screen")
+    if (this.screenBrokenWith !== undefined) {
+      throw new Error(this.screenBrokenWith)
+    }
+    return this.screen
   }
 
   async click(_target: WindowTarget, token: string, holdMilliseconds: number): Promise<void> {

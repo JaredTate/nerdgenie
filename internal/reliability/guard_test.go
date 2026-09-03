@@ -97,7 +97,9 @@ func TestTheGuardRefusesToStartWhenTheDatabaseWasNotCheckedFirst(t *testing.T) {
 }
 
 func TestTheFirstStartOnAFreshHomeFindsNothingWrong(t *testing.T) {
-	guard, told := aGuard(t, testkit.NewTempHome(t), testkit.NewFakeStore())
+	home := testkit.NewTempHome(t)
+	guard, told := aGuard(t, home, testkit.NewFakeStore())
+	aNewLife(t, home)
 
 	found, err := guard.Start(context.Background())
 	if err != nil {
@@ -122,6 +124,7 @@ func TestAnUncleanExitIsSeenAndTheRepliesThatNeverArrivedAreSentAgain(t *testing
 	home := testkit.NewTempHome(t)
 	store := testkit.NewFakeStore()
 	guard, _ := aGuard(t, home, store)
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("the first start failed: %v", err)
 	}
@@ -132,6 +135,7 @@ func TestAnUncleanExitIsSeenAndTheRepliesThatNeverArrivedAreSentAgain(t *testing
 	// The program is killed here: nothing marks the reply delivered and nothing
 	// takes the sentinel away, which is what the next start finds.
 	afterTheCrash, told := aGuard(t, home, store)
+	aNewLife(t, home)
 
 	found, err := afterTheCrash.Start(context.Background())
 	if err != nil {
@@ -165,6 +169,7 @@ func TestEnoughCrashesInARowStopTheGuardFromStartingATask(t *testing.T) {
 	for range reliability.RestartLimit + 1 {
 		var err error
 		guard, told = aGuard(t, home, store)
+		aNewLife(t, home)
 		if found, err = guard.Start(context.Background()); err != nil {
 			t.Fatalf("starting failed: %v", err)
 		}
@@ -191,6 +196,7 @@ func TestTheUserIsToldOnceThatTheBreakerHasTripped(t *testing.T) {
 
 	for range reliability.RestartLimit + 2 {
 		guard, told := aGuard(t, home, store)
+		aNewLife(t, home)
 		if _, err := guard.Start(context.Background()); err != nil {
 			t.Fatalf("starting failed: %v", err)
 		}
@@ -206,7 +212,9 @@ func TestTheUserIsToldOnceThatTheBreakerHasTripped(t *testing.T) {
 }
 
 func TestADrainStopsNewTasksWithoutStoppingTheProgram(t *testing.T) {
-	guard, _ := aGuard(t, testkit.NewTempHome(t), testkit.NewFakeStore())
+	home := testkit.NewTempHome(t)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("starting failed: %v", err)
 	}
@@ -227,6 +235,7 @@ func TestACleanStopLeavesNothingBehindForTheNextStart(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	store := testkit.NewFakeStore()
 	guard, _ := aGuard(t, home, store)
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("starting failed: %v", err)
 	}
@@ -236,6 +245,7 @@ func TestACleanStopLeavesNothingBehindForTheNextStart(t *testing.T) {
 	}
 
 	next, _ := aGuard(t, home, store)
+	aNewLife(t, home)
 	found, err := next.Start(context.Background())
 	if err != nil {
 		t.Fatalf("the start after a clean stop failed: %v", err)

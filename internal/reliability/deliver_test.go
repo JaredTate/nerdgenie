@@ -61,6 +61,7 @@ func TestAReplyTheGuardCouldNotSendIsSentAgainAfterTheRestart(t *testing.T) {
 	store := testkit.NewFakeStore()
 	nobodyIsListening := errors.New("no screen is attached, so the reply reached nobody")
 	guard := aGuardThatSends(t, home, store, func(context.Context, string, string) error { return nobodyIsListening })
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("the first start failed: %v", err)
 	}
@@ -73,6 +74,7 @@ func TestAReplyTheGuardCouldNotSendIsSentAgainAfterTheRestart(t *testing.T) {
 	// The program is killed here. The reply was written down and never marked
 	// delivered, which is what the next start finds and sends again.
 	afterTheCrash, told := aGuard(t, home, store)
+	aNewLife(t, home)
 	found, err := afterTheCrash.Start(context.Background())
 	if err != nil {
 		t.Fatalf("the start after the crash failed: %v", err)

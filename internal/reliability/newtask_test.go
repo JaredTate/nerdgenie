@@ -6,17 +6,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/reliability"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // tripTheBreaker starts the guard often enough, each time on a home whose
 // sentinel was left behind, that the crash-loop breaker trips.
-func tripTheBreaker(t *testing.T, guard *reliability.Guard) reliability.Startup {
+func tripTheBreaker(t *testing.T, home contract.Home, guard *reliability.Guard) reliability.Startup {
 	t.Helper()
 	found := reliability.Startup{}
 	for range reliability.RestartLimit + 1 {
 		var err error
+		aNewLife(t, home)
 		if found, err = guard.Start(context.Background()); err != nil {
 			t.Fatalf("starting failed: %v", err)
 		}
@@ -28,8 +30,9 @@ func tripTheBreaker(t *testing.T, guard *reliability.Guard) reliability.Startup 
 }
 
 func TestATrippedBreakerSaysInWordsWhyNoTaskIsStarted(t *testing.T) {
-	guard, _ := aGuard(t, testkit.NewTempHome(t), testkit.NewFakeStore())
-	tripTheBreaker(t, guard)
+	home := testkit.NewTempHome(t)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
+	tripTheBreaker(t, home, guard)
 
 	why := guard.WhyNoNewTask()
 
@@ -47,8 +50,9 @@ func TestATrippedBreakerSaysInWordsWhyNoTaskIsStarted(t *testing.T) {
 func TestATrippedBreakerKeepsTellingSystemdThatTheProgramIsAlive(t *testing.T) {
 	listening := aNotifySocket(t, true)
 	clock := testkit.NewFakeClock(startOfTime)
-	guard, _ := aGuardWithClock(t, testkit.NewTempHome(t), testkit.NewFakeStore(), clock)
-	tripTheBreaker(t, guard)
+	home := testkit.NewTempHome(t)
+	guard, _ := aGuardWithClock(t, home, testkit.NewFakeStore(), clock)
+	tripTheBreaker(t, home, guard)
 
 	feeding, stopFeeding := context.WithCancel(context.Background())
 	defer stopFeeding()
@@ -75,7 +79,9 @@ func TestATrippedBreakerKeepsTellingSystemdThatTheProgramIsAlive(t *testing.T) {
 }
 
 func TestADrainSaysWhyNoNewTaskIsStartedAndEndsWhenItIsCancelled(t *testing.T) {
-	guard, _ := aGuard(t, testkit.NewTempHome(t), testkit.NewFakeStore())
+	home := testkit.NewTempHome(t)
+	guard, _ := aGuard(t, home, testkit.NewFakeStore())
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("starting failed: %v", err)
 	}

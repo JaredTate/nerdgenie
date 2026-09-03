@@ -51,7 +51,14 @@ func TestTheHelperWritesAReplyAndWaitsToBeKilled(t *testing.T) {
 		t.Skip("this is the helper process for the kill test, and it only runs when the test starts it")
 	}
 	home := contract.NewHome(filepath.Dir(path))
-	opened, err := log.Open(context.Background(), path)
+	databaseFile, err := reliability.PrepareDatabase(context.Background(), reliability.RecoverySettings{
+		Home:  home,
+		Clock: testkit.NewFakeClock(startOfTime),
+	})
+	if err != nil {
+		t.Fatalf("the helper could not prepare the database: %v", err)
+	}
+	opened, err := log.Open(context.Background(), databaseFile)
 	if err != nil {
 		t.Fatalf("the helper could not open the log: %v", err)
 	}
@@ -102,7 +109,7 @@ func TestAReplyWrittenByAProgramThatWasKilledIsSentAgainWithTheMarker(t *testing
 	guard, err := reliability.New(reliability.Settings{
 		Home:  home,
 		Clock: testkit.NewFakeClock(startOfTime),
-		Store: aRealLog(t, home.DatabaseFile()),
+		Store: aRealLog(t, aNewLife(t, home)),
 		Caps:  contract.DefaultConfig().Caps,
 		Send:  told.send,
 	})
@@ -196,13 +203,15 @@ func TestADamagedDatabaseIsMovedAsideAndTheNewestBackupPutBack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("building the guard failed: %v", err)
 	}
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("the first start failed: %v", err)
 	}
 	overwriteTheMiddle(t, home.DatabaseFile())
 
-	// The sentinel is still there, because nothing marked a clean exit, so this
-	// start is the one that looks at the database.
+	// The sentinel is still there, because nothing marked a clean exit, so the
+	// recovery of this new life is the one that looks at the database.
+	aNewLife(t, home)
 	found, err := guard.Start(context.Background())
 	if err != nil {
 		t.Fatalf("the start after the damage failed: %v", err)
@@ -274,11 +283,13 @@ func TestADamagedDatabaseWithNoBackupToPutBackStillLeavesTheAgentServing(t *test
 	if err != nil {
 		t.Fatalf("building the guard failed: %v", err)
 	}
+	aNewLife(t, home)
 	if _, err := guard.Start(context.Background()); err != nil {
 		t.Fatalf("the first start failed: %v", err)
 	}
 	overwriteTheMiddle(t, home.DatabaseFile())
 
+	aNewLife(t, home)
 	found, err := guard.Start(context.Background())
 
 	if err != nil {

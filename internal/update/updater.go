@@ -204,8 +204,12 @@ func (updater *Updater) Rollback(ctx context.Context) (Outcome, error) {
 
 	binary := filepath.Join(updater.settings.Home.ReleaseFolder(wanted), BinaryName)
 	updater.say(fmt.Sprintf("going back from %s to %s", live, wanted))
+	// The binary to go back to is read before the switch, because after it the
+	// link points at the version being tried, and undoing onto that one would
+	// leave the machine on the very version that would not come up.
+	previous := currentBinary(updater.settings.Home)
 	if err := updater.switchTo(ctx, binary); err != nil {
-		return updater.undo(ctx, outcome, wanted, currentBinary(updater.settings.Home), err)
+		return updater.undo(ctx, outcome, wanted, previous, err)
 	}
 	outcome.To = wanted
 	outcome.Reason = fmt.Sprintf("went back from version %s to version %s by hand", live, wanted)

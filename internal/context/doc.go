@@ -5,14 +5,15 @@
 // built fresh every turn and thrown away afterwards, which is what lets a task
 // be put down for days and picked up on a different model. This package builds
 // it in the order design section 4 lays out, from the part that changes least to
-// the part that changes most: the harness rules and the persona, ending cache
+// the part that changes most: the harness rules and SOUL.md, ending cache
 // boundary A; the tools, ending boundary B; the summary of the job when the task
 // belongs to one; and the record's goal and rules, ending boundary C. Everything
 // above boundary C goes into the system prompt and is byte-identical from one
 // turn to the next, so the provider can reuse it. Everything below it goes into
 // the messages in the design's own order — the record's work and lessons, any
-// pinned evidence, the recent messages and tool results, three lines of memory
-// hint — followed by a tail holding the two parts that change on every call: the
+// pinned evidence, the recent messages and tool results, what the agent knows
+// from USER.md and MEMORY.md, three lines of memory hint — followed by a tail
+// holding the two parts that change on every call: the
 // record's list of results, which grows by a line every round, and the record's
 // header, whose budget line and cost line are written anew every time. The tail
 // exists because a prompt cache keeps what two calls share from the first byte

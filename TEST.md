@@ -174,13 +174,14 @@ not capture a harness's variance — opencode, for one, finished the same task i
 
 ## Fairness limits, stated openly
 
-- **There is no clock cap.** The first runs had a thirty-minute cap that the
-  orchestrator added and the user never asked for; it is gone. Instead every run
-  has the same cap on model calls, set in one place (the bridge on Opus, a
-  watcher on the daemon log on Qwen), and a run that reaches it is recorded as
-  "stopped at the cap", not as a failure at that minute. The number is the
-  user's choice; the runner's default is 150. Each harness keeps its own
-  built-in limits too, because those are part of the harness.
+- **There is no cap of any kind.** The first runs had a thirty-minute cap that
+  the orchestrator added and the user never asked for; it is gone, and so is
+  any cap on model calls. The user's rule is that no harness, and Coeus least
+  of all, is capped on any model. Each harness keeps whatever limits it ships
+  with, because those are part of the harness; Coeus's own task budget (a
+  hundred rounds and an hour by default) is raised to effectively unlimited in
+  the benchmark config so that it cannot act as a cap either, and the result
+  file says so.
 - **One run is not a reliable average.** Where a harness was run more than once,
   both runs are reported and the spread is treated as the point.
 - **All four run on Opus for real,** through the same bridge and the same flags.

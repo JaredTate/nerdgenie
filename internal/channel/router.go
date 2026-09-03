@@ -118,7 +118,7 @@ func (router *Router) runCommand(ctx context.Context, message contract.Inbound, 
 	answer, err := command.Run(ctx, arguments, contract.CommandContext{Channel: where})
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("the %s%s command failed: %w", CommandPrefix, command.Name, err),
+			fmt.Errorf("the %s%s command failed, and the user has been told why: %w", CommandPrefix, command.Name, err),
 			where.Send(ctx, fmt.Sprintf("the %s%s command could not run: %s", CommandPrefix, command.Name, err)))
 	}
 	if strings.TrimSpace(answer) == "" {
@@ -138,7 +138,7 @@ func (router *Router) runSkill(ctx context.Context, message contract.Inbound, na
 	answer, err := router.routes.Skills.Run(ctx, name, text)
 	if err != nil {
 		return errors.Join(
-			fmt.Errorf("the skill %q failed: %w", name, err),
+			fmt.Errorf("the skill %q failed, and the user has been told why: %w", name, err),
 			where.Send(ctx, fmt.Sprintf("the %s skill could not run: %s", name, err)))
 	}
 	if strings.TrimSpace(answer) == "" {

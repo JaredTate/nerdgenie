@@ -841,6 +841,7 @@ internal/skill/testdata/skills/news-headlines/test.md
 internal/testkit/browser.go
 internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
+internal/testkit/browsereventchecks_test.go
 internal/testkit/browserevents.go
 internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go

@@ -20,7 +20,8 @@
 // and the picture is of the whole screen where the display allows one. The
 // first human trial found the model refused a screenshot for that reason, and
 // told to launch something first.
-// Every action inside it that cannot be undone, which is typing into
+//
+// Every action inside a granted application that cannot be undone, which is typing into
 // a field, a drag, and a paste, goes through contract.Permission and gets its
 // own preview of exactly what is about to happen; so does reading the
 // clipboard, because the clipboard belongs to the whole machine rather than to

@@ -78,9 +78,10 @@ func (desktop *Desktop) Launch(ctx context.Context, application string, expectat
 
 // Screenshot returns a picture of the screen. With an application open it is
 // that application's window with its controls numbered; with none open it is
-// the whole screen with no control numbered, because looking at the screen is
-// not acting in an application and needs no grant. Either way it names the
-// windows on the screen, so that the model knows what it is looking at.
+// the whole screen where the display allows one, with no control numbered,
+// because looking at the screen is not acting in an application and needs no
+// grant. Either way it names the windows on the screen, so that the model
+// knows what it is looking at.
 func (desktop *Desktop) Screenshot(ctx context.Context) (contract.DesktopScreenshot, error) {
 	var picture screenshotAnswer
 	if err := desktop.call(ctx, "screenshot", map[string]any{}, &picture); err != nil {

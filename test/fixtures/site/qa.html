@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Report a problem</title>
+  </head>
+  <body>
+    <h1>Report a problem</h1>
+    {{if .Filed}}<h2>Thank you, {{.Filed}}. Your report was filed.</h2>{{end}}
+    <form aria-label="Report a problem" method="post" action="/qa">
+      <p>
+        <label for="reporter">Your name</label>
+        <input id="reporter" name="reporter" type="text" />
+      </p>
+      <p>
+        <label for="what">What happened</label>
+        <textarea id="what" name="what" rows="3" cols="40"></textarea>
+      </p>
+      <p>
+        <label for="area">Which part</label>
+        <select id="area" name="area">
+          <option value="browser">The browser</option>
+          <option value="terminal">The terminal</option>
+        </select>
+      </p>
+      <p><button type="submit">File the report</button></p>
+    </form>
+  </body>
+</html>

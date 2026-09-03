@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sign in to the fixture site</title>
+  </head>
+  <body>
+    <h1>Sign in</h1>
+    {{if .Problem}}<h2>{{.Problem}}</h2>{{end}}
+    <form aria-label="Sign in" method="post" action="/login">
+      <p>
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" />
+      </p>
+      <p>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" />
+      </p>
+      <p>
+        <label for="code">Code</label>
+        <input id="code" name="code" type="text" autocomplete="one-time-code" />
+      </p>
+      <p><button type="submit">Continue</button></p>
+    </form>
+  </body>
+</html>

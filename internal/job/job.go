@@ -45,6 +45,11 @@ const (
 	// TimerClamp is the longest the job store ever sleeps before looking for work
 	// again, however far away the next tick is.
 	TimerClamp = 60 * time.Second
+	// RestBetweenWaits is the shortest time Wait ever takes to come back a second
+	// time. Work already past its moment makes the wait nothing at all, so
+	// without this rest a driver that cannot take that work yet would ask again
+	// as fast as the processor allows.
+	RestBetweenWaits = time.Second
 	// FailuresThatPause is how many tasks may fail in a row before a plain job is
 	// paused, because somebody is there to look at it.
 	FailuresThatPause = 3
@@ -71,16 +76,19 @@ const databaseOptions = "?_pragma=busy_timeout(5000)" +
 // tasks that are running, and the schedules of the ones that have one. It is
 // what internal/contract calls a Job.
 type Jobs struct {
-	home     contract.Home
-	eventLog contract.Store
-	clock    contract.Clock
-	database *sql.DB
-	owner    string
-	guard    sync.Mutex
-	order    []string
-	held     map[string]*heldJob
-	nextJob  int
-	closed   bool
+	home          contract.Home
+	eventLog      contract.Store
+	clock         contract.Clock
+	database      *sql.DB
+	owner         string
+	guard         sync.Mutex
+	order         []string
+	held          map[string]*heldJob
+	nextJob       int
+	closed        bool
+	lastWaitEnded time.Time
+	mayStartWork  func() bool
+	tellTheUser   func(ctx context.Context, text string) error
 }
 
 // The job store is the one real job store, so the compiler is asked to say at
@@ -128,6 +136,35 @@ func Open(ctx context.Context, home contract.Home, eventLog contract.Store, cloc
 		return nil, err
 	}
 	return opened, nil
+}
+
+// OnlyStartWorkWhen sets the question the store asks before it hands out any
+// task at all. It is how the drain marker an update writes and the crash-loop
+// breaker reach the scheduler: cmd/coeus/serve.go passes
+// reliability.Guard.MayStartTask here, and while that says no, NextTask hands
+// out nothing and touches no claim, so an update waits for the running task
+// rather than cutting a forty-round job in half.
+//
+// The question is asked while the store's own lock is held, so it must answer
+// for itself and never call back into the jobs. With none set, work always
+// starts, which is what a test that does not care about draining gets.
+func (jobs *Jobs) OnlyStartWorkWhen(mayStart func() bool) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobs.mayStartWork = mayStart
+}
+
+// TellTheUser sets the way the jobs reach the user, which is the seam
+// reliability.Settings has for the same reason: a job that pauses itself after
+// three failures or switches itself off after ten has stopped working, and a
+// line written into its own record is read only by somebody who already thought
+// to look. cmd/coeus/serve.go passes the same function it gives the guard.
+//
+// With none set nothing is sent, which is what a job store in a test gets.
+func (jobs *Jobs) TellTheUser(send func(ctx context.Context, text string) error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobs.tellTheUser = send
 }
 
 // Close lets go of every connection to the database file. Closing a job store

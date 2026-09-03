@@ -109,7 +109,7 @@ func (tool *Tool) save(ctx context.Context, asked input) (contract.ToolOutput, e
 		files[name] = []byte(held)
 		names = append(names, name)
 	}
-	if err := tool.settings.Skills.Save(ctx, asked.Name, files); err != nil {
+	if err := tool.settings.Skills.Save(ctx, contract.SkillSavedByModel, asked.Name, files); err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot write the skill %q: %w", asked.Name, err)
 	}
 	sort.Strings(names)

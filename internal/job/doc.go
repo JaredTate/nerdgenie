@@ -22,7 +22,8 @@
 // template every time the clock says so, which is why "/cron" is only "/jobs"
 // with the scheduled ones picked out. A tick that fails pushes the next one
 // back, thirty seconds at first and an hour at the furthest; three failed tasks
-// in a row pause a plain job, and ten switch a scheduled one off. A job may
-// never make work that restarts the agent, because a job that restarts the
-// agent starts itself again.
+// in a row pause a plain job, and ten switch a scheduled one off, each with a
+// line to the user saying so, unless the job was told to keep running because
+// its work is to report what it finds. A job may never make work that restarts
+// the agent, because a job that restarts the agent starts itself again.
 package job

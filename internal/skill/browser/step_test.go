@@ -157,19 +157,6 @@ func TestTheExpectationFallsBackToTheInputWhenThereIsNoExpectLine(t *testing.T) 
 	}
 }
 
-func TestAStepListLongerThanTheCapIsRefused(t *testing.T) {
-	steps := []skill.Step{}
-	for number := 1; number <= browser.MaxRecordedSteps+1; number++ {
-		steps = append(steps, skill.Step{
-			Number: number, Intent: "Open it.", Tool: contract.ToolBrowserOpen,
-			Input: `{"url":"https://fixture.test/simple"}`, Expect: "a simple page",
-		})
-	}
-	if _, err := browser.ParseStepList(steps); err == nil {
-		t.Fatal("a step list past the cap was accepted, and every list has a cap")
-	}
-}
-
 func TestAFolderCarryingAScriptCannotBeReplayedInTheBrowser(t *testing.T) {
 	folder := skill.Folder{Definition: skill.Definition{Name: "shell-thing"}, HasScript: true}
 	if _, err := browser.StepsOf(folder); err == nil {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -72,6 +73,13 @@ func newTool(t *testing.T, sandbox contract.Sandbox, permission contract.Permiss
 	})
 }
 
+// theShellPrefix is what a fake sandbox is scripted with: the shell this
+// machine has, and the flags the tool puts in front of every command.
+func theShellPrefix() string {
+	program, arguments := shell.CommandLine("")
+	return strings.TrimSpace(program + " " + strings.Join(arguments[:len(arguments)-1], " "))
+}
+
 // run calls the tool with the fields written as JSON.
 func run(t *testing.T, tool *shell.Tool, fields map[string]any) (contract.ToolOutput, error) {
 	t.Helper()
@@ -103,7 +111,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 
 func TestACommandThatFinishesAtOnceReturnsItsOutput(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardOutput: []byte("alpha\nbeta\n")})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte("alpha\nbeta\n")})
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
 
 	output, err := run(t, tool, map[string]any{"command": "echo alpha; echo beta"})
@@ -116,17 +124,53 @@ func TestACommandThatFinishesAtOnceReturnsItsOutput(t *testing.T) {
 	if len(commands) != 1 {
 		t.Fatalf("the sandbox was asked to run %d commands, want one", len(commands))
 	}
-	if commands[0].Program != "/bin/sh" || len(commands[0].Arguments) != 2 || commands[0].Arguments[0] != "-c" {
-		t.Errorf("the sandbox was asked to run %s %v, want the command through a shell", commands[0].Program, commands[0].Arguments)
+	program, arguments := shell.CommandLine("echo alpha; echo beta")
+	if commands[0].Program != program || !slices.Equal(commands[0].Arguments, arguments) {
+		t.Errorf("the sandbox was asked to run %s %v, want %s %v",
+			commands[0].Program, commands[0].Arguments, program, arguments)
 	}
-	if commands[0].Arguments[1] != "echo alpha; echo beta" {
-		t.Errorf("the shell was given %q, want the command the model wrote", commands[0].Arguments[1])
+	if last := commands[0].Arguments[len(commands[0].Arguments)-1]; last != "echo alpha; echo beta" {
+		t.Errorf("the shell was given %q, want the command the model wrote", last)
+	}
+}
+
+// TestACommandRunsThroughAShellThatTellsTheTruthAboutAPipe pins the shape of
+// the command line brief 6.6 asked for: bash with pipefail set on a machine
+// that has bash, so that the failing command in a pipe reports its own code,
+// and /bin/sh with nothing added on a machine that has not, because dash cannot
+// set pipefail. The model's command itself is handed over untouched either way.
+func TestACommandRunsThroughAShellThatTellsTheTruthAboutAPipe(t *testing.T) {
+	sandbox := testkit.NewFakeSandbox()
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{})
+	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
+
+	written := "node --test tests/ 2>&1 | tail -40"
+	if _, err := run(t, tool, map[string]any{"command": written}); err != nil {
+		t.Fatalf("running a command in a pipe failed: %v", err)
+	}
+	commands := sandbox.Commands()
+	if len(commands) != 1 {
+		t.Fatalf("the sandbox was asked to run %d commands, want one", len(commands))
+	}
+	held := commands[0]
+	if last := held.Arguments[len(held.Arguments)-1]; last != written {
+		t.Errorf("the shell was given %q, want the command the model wrote", last)
+	}
+	flags := strings.Join(held.Arguments[:len(held.Arguments)-1], " ")
+	if strings.HasSuffix(held.Program, "/bash") {
+		if flags != "-o pipefail -c" {
+			t.Errorf("bash was given the flags %q, and without -o pipefail a failing command in a pipe reports 0", flags)
+		}
+		return
+	}
+	if held.Program != "/bin/sh" || flags != "-c" {
+		t.Errorf("the sandbox was asked to run %s %v, want bash with pipefail or /bin/sh with -c", held.Program, held.Arguments)
 	}
 }
 
 func TestACommandThatFailsSaysTheCodeItQuitWith(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardError: []byte("no such file\n"), ExitCode: 2})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardError: []byte("no such file\n"), ExitCode: 2})
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
 
 	output, err := run(t, tool, map[string]any{"command": "cat nothing"})
@@ -138,7 +182,7 @@ func TestACommandThatFailsSaysTheCodeItQuitWith(t *testing.T) {
 
 func TestACommandStillRunningAfterTenSecondsHandsBackAnIdToPollTailAndKill(t *testing.T) {
 	sandbox := newSlowSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardOutput: []byte("done at last\n")})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte("done at last\n")})
 	clock := testkit.NewFakeClock(theMoment)
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), clock)
 
@@ -326,7 +370,7 @@ func waitForRunningCount(t *testing.T, sandbox *slowSandbox, wanted int) {
 
 func TestAResultOverTheCapIsCutWithANote(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{StandardOutput: []byte(strings.Repeat("x", shell.MaxStreamBytes+500))})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte(strings.Repeat("x", shell.MaxStreamBytes+500))})
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
 
 	output, err := run(t, tool, map[string]any{"command": "cat something-enormous"})
@@ -343,7 +387,7 @@ func TestAResultOverTheCapIsCutWithANote(t *testing.T) {
 
 func TestACommandThatTimesOutSaysSo(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.Script("/bin/sh -c", contract.SandboxResult{TimedOut: true, ExitCode: -1})
+	sandbox.Script(theShellPrefix(), contract.SandboxResult{TimedOut: true, ExitCode: -1})
 	tool := newTool(t, sandbox, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
 
 	output, err := run(t, tool, map[string]any{"command": "sleep 10000"})

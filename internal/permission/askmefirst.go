@@ -18,19 +18,22 @@ type AskMeFirstEntry struct {
 	Rules []Rule
 }
 
-// deletePatternsByTool are the readable forms that mean many things are about to
-// go at once: the recursive and forced spellings of rm, a find that deletes what
-// it finds, the two git commands that throw away work, a write or an edit that
-// empties a file over the size, and the browser or desktop intent that says to
-// delete everything.
+// deletePatternsByTool are the forms that mean many things are about to go at
+// once: a recursive rm, a find that deletes what it finds, the two git commands
+// that throw away work, a write or an edit that empties a file over the size,
+// and the browser or desktop intent that says to delete everything.
+//
+// The shell patterns are written against the form with the flags spelled out,
+// which is why each flag is in brackets: they ask which flags a command was
+// given and not which letters were written next to which, so that "rm -v -rf",
+// "rm --force --recursive" and "rm -rf" are all one recursive delete.
 var deletePatternsByTool = []Rule{
-	{Tool: contract.ToolShell, Pattern: "*rm -r*"},
-	{Tool: contract.ToolShell, Pattern: "*rm -fr*"},
-	{Tool: contract.ToolShell, Pattern: "*rm -f -r*"},
-	{Tool: contract.ToolShell, Pattern: "*rm --recursive*"},
-	{Tool: contract.ToolShell, Pattern: "*find*-delete*"},
-	{Tool: contract.ToolShell, Pattern: "*git clean -f*"},
-	{Tool: contract.ToolShell, Pattern: "*git reset --hard*"},
+	{Tool: contract.ToolShell, Pattern: "*rm *[-r]*"},
+	{Tool: contract.ToolShell, Pattern: "*rm *[--recursive]*"},
+	{Tool: contract.ToolShell, Pattern: "*find *[-delete]*"},
+	{Tool: contract.ToolShell, Pattern: "*git clean *[-f]*"},
+	{Tool: contract.ToolShell, Pattern: "*git clean *[--force]*"},
+	{Tool: contract.ToolShell, Pattern: "*git reset *[--hard]*"},
 	{Tool: contract.ToolWrite, Pattern: "*emptying a file of*"},
 	{Tool: contract.ToolEdit, Pattern: "*emptying a file of*"},
 	{Tool: contract.ToolBrowserAct, Pattern: "*delete all*"},
@@ -108,10 +111,11 @@ func askRules(name string, patterns []Rule) []Rule {
 	rules := make([]Rule, 0, len(patterns))
 	for _, pattern := range patterns {
 		rules = append(rules, Rule{
-			Tool:    pattern.Tool,
-			Pattern: pattern.Pattern,
-			Action:  contract.RulingAsk,
-			Reason:  name,
+			Tool:                  pattern.Tool,
+			Pattern:               pattern.Pattern,
+			Action:                contract.RulingAsk,
+			Reason:                name,
+			FromTheAskMeFirstList: true,
 		})
 	}
 	return rules

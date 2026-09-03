@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -28,9 +30,11 @@ const (
 // bound read-only inside the fence, because nothing else is there to run.
 const sandboxPath = "/usr/local/bin:/usr/bin:/bin"
 
-// scratchHomeName is the folder inside the first sandbox root that a command
-// gets as its home directory. The user's real home directory is not inside the
-// fence, and a command that writes to its home has to write somewhere.
+// scratchHomeName is the folder inside the first sandbox root that the fence
+// keeps for its own temporary files. It is not the command's home directory:
+// the first human trial found the model reading $HOME/Desktop, believing the
+// empty answer, and building a whole project in this folder, where nobody would
+// look for it.
 const scratchHomeName = ".coeus-sandbox-home"
 
 // The words the fence uses to tell the helper what the command may reach.
@@ -54,7 +58,10 @@ var freshFolders = []string{"/tmp", "/dev"}
 // that the command line and the helper's options cannot disagree.
 type fencePlan struct {
 	systemFolders    []string
+	resolverFile     string
 	roots            []string
+	userHome         string
+	network          bool
 	helperProgram    string
 	workingDirectory string
 	environment      []string
@@ -75,13 +82,15 @@ func (fence *Fence) planFor(command contract.SandboxCommand) (fencePlan, error) 
 		return fencePlan{}, err
 	}
 
-	scratchHome := filepath.Join(fence.roots[0], scratchHomeName)
 	return fencePlan{
 		systemFolders:    fence.systemFolders,
+		resolverFile:     fence.resolverFile,
 		roots:            fence.roots,
+		userHome:         fence.userHome,
+		network:          fence.network,
 		helperProgram:    fence.helperProgram,
 		workingDirectory: workingDirectory,
-		environment:      allowedEnvironment(scratchHome, os.Getenv("LANG"), os.Getenv("TERM"), command.Environment),
+		environment:      allowedEnvironment(fence.userHome, os.Getenv("LANG"), os.Getenv("TERM"), command.Environment),
 		program:          command.Program,
 		arguments:        command.Arguments,
 	}, nil
@@ -94,10 +103,23 @@ func buildArguments(plan fencePlan) []string {
 	arguments := []string{
 		"--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
 		"--die-with-parent", "--new-session", "--clearenv",
-		"--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+		"--proc", "/proc", "--dev", "/dev",
+		"--size", strconv.Itoa(TemporaryFolderBytes), "--tmpfs", "/tmp",
 	}
+	if !plan.network {
+		arguments = append(arguments, "--unshare-net")
+	}
+
+	// The user's home directory is made fresh and empty before anything is bound
+	// on top of it, so that the roots inside it are all that is there and the SSH
+	// keys, the vault, and the browser profile are missing rather than moved.
+	arguments = append(arguments, "--size", strconv.Itoa(HomeFolderBytes), "--tmpfs", plan.userHome)
+
 	for _, folder := range plan.systemFolders {
 		arguments = append(arguments, "--ro-bind", folder, folder)
+	}
+	if plan.resolverFile != "" {
+		arguments = append(arguments, "--ro-bind", plan.resolverFile, plan.resolverFile)
 	}
 	for _, root := range plan.roots {
 		arguments = append(arguments, "--bind", root, root)
@@ -124,6 +146,9 @@ func helperOptions(plan fencePlan) []string {
 	for _, folder := range plan.systemFolders {
 		options = append(options, readableOption, folder)
 	}
+	if plan.resolverFile != "" {
+		options = append(options, readableOption, plan.resolverFile)
+	}
 	options = append(options, readableOption, plan.helperProgram)
 	for _, root := range plan.roots {
 		options = append(options, writableOption, root)
@@ -131,14 +156,23 @@ func helperOptions(plan fencePlan) []string {
 	for _, folder := range freshFolders {
 		options = append(options, writableOption, folder)
 	}
-	return options
+
+	// The home directory is writable because a command that runs a build writes
+	// to its home, in ~/.npm and ~/.cache and a dozen other names. Inside the
+	// fence it is a temporary folder of a fixed size holding nothing but the
+	// roots, so what is written there is written to nothing of the user's.
+	return append(options, writableOption, plan.userHome)
 }
 
 // allowedEnvironment is the whole environment a sandboxed command sees: a short
 // allow list, then whatever the caller asked for. Nothing else is inherited, so
 // a secret in this program's own environment cannot leak into a command.
-func allowedEnvironment(scratchHome string, language string, terminal string, extra []string) []string {
-	environment := []string{"PATH=" + sandboxPath, "HOME=" + scratchHome}
+//
+// The home directory is the user's own path, not a folder of the fence's, so
+// that "the Desktop" means the same thing to the model as it does to the person
+// who asked. Inside the fence that path holds nothing but the sandbox roots.
+func allowedEnvironment(homeDirectory string, language string, terminal string, extra []string) []string {
+	environment := []string{"PATH=" + sandboxPath, "HOME=" + homeDirectory}
 	if language != "" {
 		environment = append(environment, "LANG="+language)
 	}
@@ -199,6 +233,28 @@ func checkEnvironment(environment []string) error {
 		if strings.ContainsRune(entry, 0) {
 			return fmt.Errorf("the environment entry %q holds a zero byte, and a zero byte hides whatever follows it, so take it out", entry)
 		}
+		if isTheFencesOwnName(name) {
+			return fmt.Errorf("the environment entry %q sets %s, which the fence sets itself, and bwrap gives the command whichever value was written last,"+
+				" so leave %s out and let the fence's own value stand", entry, name, name)
+		}
 	}
 	return nil
+}
+
+// theFencesOwnNames are the environment names the fence writes itself: where a
+// command looks for its programs, and where its home directory is. A caller's
+// entry is written after the fence's, and the last one written wins, so an entry
+// with one of these names is refused rather than quietly taking the fence's
+// place.
+var theFencesOwnNames = []string{"PATH", "HOME"}
+
+// loaderNamePrefix is what every setting the program loader reads begins with,
+// LD_PRELOAD among them. A caller that could set one would choose what every
+// program inside the fence loads before its own code.
+const loaderNamePrefix = "LD_"
+
+// isTheFencesOwnName says whether an environment name belongs to the fence
+// rather than to the caller.
+func isTheFencesOwnName(name string) bool {
+	return slices.Contains(theFencesOwnNames, name) || strings.HasPrefix(name, loaderNamePrefix)
 }

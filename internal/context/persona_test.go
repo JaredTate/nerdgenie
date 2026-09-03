@@ -18,36 +18,62 @@ var smallCaps = contract.MemoryCaps{WorldFactsBytes: 40, UserFactsBytes: 30}
 // not an error: the user has simply not written it yet.
 func TestAHomeWithNoPersonaFilesBuildsAnEmptyPersona(t *testing.T) {
 	home := testkit.NewTempHome(t)
-	text, err := readPersona(home, smallCaps)
+	text, err := readPersona(home)
 	if err != nil {
 		t.Fatalf("a home with no persona files should build an empty persona: %v", err)
 	}
 	if text != "" {
 		t.Errorf("the persona of an empty home reads %q, want nothing at all", text)
 	}
+	known, err := readWhatIsKnown(home, smallCaps)
+	if err != nil {
+		t.Fatalf("a home with no memory files should build nothing known: %v", err)
+	}
+	if known != "" {
+		t.Errorf("what an empty home knows reads %q, want nothing at all", known)
+	}
 }
 
-// TestThePersonaHoldsTheThreeFilesInOrder proves the three files arrive in the
-// order the design puts them in, each under a heading that names the file the
-// user edits.
-func TestThePersonaHoldsTheThreeFilesInOrder(t *testing.T) {
+// TestTheThreeFilesArriveInOrderAndInTheRightHalves proves the three files
+// arrive in the order the design puts them in, each under a heading that names
+// the file the user edits, and that the split of finding 18 holds: SOUL.md, which
+// only the user writes, is the persona; USER.md and MEMORY.md, which the agent
+// writes into with the `memory` tool, are what it knows and go below the cache
+// line.
+func TestTheThreeFilesArriveInOrderAndInTheRightHalves(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	writePersonaFile(t, home.SoulFile(), "I am Coeus.")
 	writePersonaFile(t, home.UserFactsFile(), "Jared runs DigiByte.")
 	writePersonaFile(t, home.WorldFactsFile(), "DigiByte launched in 2014.")
 
-	text, err := readPersona(home, contract.DefaultConfig().MemoryCaps)
+	persona, err := readPersona(home)
 	if err != nil {
 		t.Fatalf("cannot read the persona: %v", err)
 	}
-	for _, wanted := range []string{"I am Coeus.", "Jared runs DigiByte.", "DigiByte launched in 2014."} {
-		if !strings.Contains(text, wanted) {
-			t.Errorf("the persona does not carry %q:\n%s", wanted, text)
+	known, err := readWhatIsKnown(home, contract.DefaultConfig().MemoryCaps)
+	if err != nil {
+		t.Fatalf("cannot read what the agent knows: %v", err)
+	}
+
+	if !strings.Contains(persona, "I am Coeus.") {
+		t.Errorf("the persona does not carry SOUL.md:\n%s", persona)
+	}
+	for _, unwanted := range []string{"Jared runs DigiByte.", "DigiByte launched in 2014."} {
+		if strings.Contains(persona, unwanted) {
+			t.Errorf("the persona carries %q, which the agent rewrites mid-task, so a memory save would move the top of the prompt:\n%s",
+				unwanted, persona)
 		}
 	}
-	soul, user, world := strings.Index(text, "I am"), strings.Index(text, "Jared"), strings.Index(text, "DigiByte launched")
-	if !(soul < user && user < world) {
-		t.Errorf("the three persona files are out of order: SOUL.md at %d, USER.md at %d, MEMORY.md at %d", soul, user, world)
+	for _, wanted := range []string{"Jared runs DigiByte.", "DigiByte launched in 2014."} {
+		if !strings.Contains(known, wanted) {
+			t.Errorf("what the agent knows does not carry %q:\n%s", wanted, known)
+		}
+	}
+	if strings.Contains(known, "I am Coeus.") {
+		t.Errorf("what the agent knows carries SOUL.md, which belongs in the persona:\n%s", known)
+	}
+	if user, world := strings.Index(known, "Jared"), strings.Index(known, "DigiByte launched"); user > world {
+		t.Errorf("USER.md at %d comes after MEMORY.md at %d, and the design puts it first", user, world)
 	}
 }
 
@@ -59,7 +85,7 @@ func TestAPersonaFileOverItsLimitIsCutWithANote(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	writePersonaFile(t, home.WorldFactsFile(), strings.Repeat("fact. ", 100))
 
-	text, err := readPersona(home, smallCaps)
+	text, err := readWhatIsKnown(home, smallCaps)
 	if err != nil {
 		t.Fatalf("cannot read the persona: %v", err)
 	}
@@ -81,7 +107,7 @@ func TestAPersonaFileIsCutOnACharacterBoundary(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	writePersonaFile(t, home.UserFactsFile(), strings.Repeat("日", 40))
 
-	text, err := readPersona(home, smallCaps)
+	text, err := readWhatIsKnown(home, smallCaps)
 	if err != nil {
 		t.Fatalf("cannot read the persona: %v", err)
 	}
@@ -101,8 +127,20 @@ func TestAPersonaFolderThatCannotBeReadIsAnError(t *testing.T) {
 	if err := os.Mkdir(home.SoulFile(), contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot put a folder where SOUL.md belongs: %v", err)
 	}
-	if _, err := readPersona(home, smallCaps); err == nil {
+	if _, err := readPersona(home); err == nil {
 		t.Error("a persona file that cannot be read was passed over in silence")
+	}
+}
+
+// TestAMemoryFileThatCannotBeReadIsAnError proves the same holds for the two
+// files below the cache line, which the reader reached by another road.
+func TestAMemoryFileThatCannotBeReadIsAnError(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	if err := os.Mkdir(home.WorldFactsFile(), contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot put a folder where MEMORY.md belongs: %v", err)
+	}
+	if _, err := readWhatIsKnown(home, smallCaps); err == nil {
+		t.Error("a memory file that cannot be read was passed over in silence")
 	}
 }
 

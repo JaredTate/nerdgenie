@@ -32,6 +32,11 @@ const DrainExpiry = 30 * time.Minute
 // bootIDFile is where Linux publishes an identifier that changes on every boot.
 const bootIDFile = "/proc/sys/kernel/random/boot_id"
 
+// plainDrainReason is what a drain is called when the marker gives no reason of
+// its own, which is the one thing every drain has in common. It reads as the
+// second half of a sentence, as every reason written into the marker does.
+const plainDrainReason = "it is being stopped"
+
 // Drain is the marker that tells the loop to finish the running task and take
 // no new one, which is how the updater stops the agent without cutting a task
 // in half.
@@ -74,21 +79,43 @@ func (drain *Drain) Cancel() error {
 // there but cannot be read counts as a drain, because a marker nobody can read
 // has to mean stop.
 func (drain *Drain) Requested() bool {
+	on, _ := drain.state()
+	return on
+}
+
+// Why is the reason the drain was asked for, for the caller to put in front of
+// whoever asked for a task, and is empty when no drain is on. A marker with no
+// reason in it, and a marker nobody can read, both answer with the plain reason
+// every drain has, because the caller needs one sentence either way.
+func (drain *Drain) Why() string {
+	_, why := drain.state()
+	return why
+}
+
+// state answers both questions from one read of the marker: whether a drain is
+// on, and the reason it was asked for.
+func (drain *Drain) state() (bool, string) {
 	marker := drainMarker{}
 	found, err := readStateFile(drain.path, &marker)
 	if err != nil {
-		return drainFileIsThere(drain.path)
+		if drainFileIsThere(drain.path) {
+			return true, plainDrainReason
+		}
+		return false, ""
 	}
 	if !found {
-		return false
+		return false, ""
 	}
 	if marker.BootID != "" && drain.bootID != "" && marker.BootID != drain.bootID {
-		return false
+		return false, ""
 	}
 	if !marker.RequestedAt.IsZero() && drain.clock.Now().Sub(marker.RequestedAt) > DrainExpiry {
-		return false
+		return false, ""
 	}
-	return true
+	if marker.Reason == "" {
+		return true, plainDrainReason
+	}
+	return true, marker.Reason
 }
 
 // drainFileIsThere says whether the marker exists at all, which is what decides

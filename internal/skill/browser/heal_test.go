@@ -12,7 +12,9 @@ import (
 )
 
 // theRebuiltPage is the fixture page after somebody renamed the link on it, so
-// that no rung of the cascade can find it and only the model can.
+// that no rung of the cascade can find it and only the model can. The link is
+// still a link, because the self-heal never moves a step onto an element of
+// another kind.
 const theRebuiltPage = "https://fixture.test/rebuilt"
 
 // brokenRecording is a walk whose second step points at an element the rebuilt
@@ -35,12 +37,12 @@ func benchWithARebuiltPage(t *testing.T, answer string) (*bench, skill.Folder, *
 	built := newBench(t)
 	built.worker.AddPage(contract.Snapshot{
 		URL: theRebuiltPage, Title: "Onwards", TabID: "t1",
-		Elements: []contract.Element{{Ref: "e9", Role: "button", Name: "Onwards"}},
+		Elements: []contract.Element{{Ref: "e9", Role: "link", Name: "Onwards"}},
 	})
 	built.worker.LinkGoesTo("e9", testkit.FixtureChangedPage)
 
 	model := testkit.NewFakeModel(testkit.Script{Name: "healer", ContextLength: 8000, Steps: []testkit.Step{{
-		Expect: []string{"Follow the link that changes the page.", "the page changed", `e9 button "Onwards"`},
+		Expect: []string{"Follow the link that changes the page.", "the page changed", `e9 link "Onwards"`},
 		Text:   answer,
 		Finish: contract.FinishEnd,
 	}}})
@@ -107,7 +109,7 @@ func TestAnApprovedPatchIsWrittenIntoTheSkillAndItsChangelog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot read the patched skill back: %v", err)
 	}
-	wanted := browser.Descriptor{Ref: "e9", Role: "button", Name: "Onwards", Shown: "Onwards"}
+	wanted := browser.Descriptor{Ref: "e9", Role: "link", Name: "Onwards", Shown: "Onwards"}
 	if steps[1].Element != wanted {
 		t.Errorf("the patched step points at %+v, want %+v", steps[1].Element, wanted)
 	}
@@ -211,8 +213,8 @@ func TestOnlyOneStepOfAReplayIsEverPutToTheModel(t *testing.T) {
 	if len(report.Outcomes) != 2 {
 		t.Fatalf("the replay ran %d steps, and it should stop at the one heal it is allowed:\n%s", len(report.Outcomes), report)
 	}
-	if calls := len(model.Requests()); calls != browser.HealAttempts {
-		t.Errorf("the model was asked %d times, and one replay allows %d", calls, browser.HealAttempts)
+	if calls := len(model.Requests()); calls != 1 {
+		t.Errorf("the model was asked %d times, and one replay asks about one broken step", calls)
 	}
 }
 

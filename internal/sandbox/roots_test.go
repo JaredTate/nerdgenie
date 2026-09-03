@@ -213,3 +213,42 @@ func TestCheckRootsRefusesALinkThatLeadsSomewhereThatMustStayOutside(t *testing.
 		}
 	}
 }
+
+func TestCheckRootsRefusesAPathTheCallerNamedAsOneToKeepOutside(t *testing.T) {
+	userHome := tempUserHome(t)
+	profile := filepath.Join(userHome, "chrome-profile")
+	if err := os.MkdirAll(profile, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder for the test: %v", err)
+	}
+
+	if _, err := checkRoots([]string{profile}, userHome, "", profile); err == nil {
+		t.Error("the browser profile the configuration moved was accepted as a sandbox root, and the cookies in it are the agent's own logins")
+	}
+}
+
+func TestCheckRootsRefusesARootThatHoldsAPathTheCallerNamedAsOneToKeepOutside(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	backups := filepath.Join(work, "backups")
+	if err := os.MkdirAll(backups, contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder for the test: %v", err)
+	}
+
+	_, err := checkRoots([]string{work}, userHome, "", backups)
+	if err == nil {
+		t.Fatalf("the root %q was accepted and it holds the backup folder %q, which the caller said must stay outside", work, backups)
+	}
+	if !strings.Contains(err.Error(), backups) {
+		t.Errorf("the refusal says %q, and it must name the path it was refused for", err)
+	}
+}
+
+func TestCheckRootsStillAcceptsARootBesideThePathTheCallerNamed(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	profile := filepath.Join(userHome, "chrome-profile")
+
+	if _, err := checkRoots([]string{work}, userHome, "", profile); err != nil {
+		t.Errorf("the root %q was refused for the sake of %q, which is beside it rather than inside it: %v", work, profile, err)
+	}
+}

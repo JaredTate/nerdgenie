@@ -20,6 +20,25 @@ type SkillMatch struct {
 	Matched bool
 }
 
+// SkillSource says who saved a skill. It rides with every save, because a skill
+// the model wrote may be a skill a page the model read asked it to write, and
+// such a skill is trusted with less than one a person saved.
+type SkillSource string
+
+const (
+	// SkillSavedByPerson is a skill the person at the screen saved or said yes
+	// to.
+	SkillSavedByPerson SkillSource = "person"
+	// SkillSavedByModel is a skill the model wrote, through its own skill tool
+	// or by learning from a page.
+	SkillSavedByModel SkillSource = "model"
+)
+
+// KnownSkillSource says whether the source is one of the two a save may have.
+func KnownSkillSource(source SkillSource) bool {
+	return source == SkillSavedByPerson || source == SkillSavedByModel
+}
+
 // Skill is a saved procedure for one kind of job, stored as a folder holding a
 // description, the steps or a script, a dry-run test, and a changelog.
 type Skill interface {
@@ -30,8 +49,9 @@ type Skill interface {
 	// Run replays a skill without calling the model, and calls the model only
 	// when a step fails.
 	Run(ctx context.Context, name string, arguments string) (string, error)
-	// Save writes a skill folder, whose files are keyed by their names.
-	Save(ctx context.Context, name string, files map[string][]byte) error
+	// Save writes a skill folder, whose files are keyed by their names, saying
+	// who is saving it.
+	Save(ctx context.Context, source SkillSource, name string, files map[string][]byte) error
 	// Match is what the router calls on every message to see whether a skill's
 	// trigger words fire.
 	Match(ctx context.Context, text string) (SkillMatch, error)

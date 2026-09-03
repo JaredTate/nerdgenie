@@ -12,13 +12,14 @@ import (
 // method answers, and the worker records what it was asked, so that the Go side
 // can be driven through the whole protocol without Node or a screen.
 type scriptedWorker struct {
-	guard    sync.Mutex
-	results  map[string]any
-	failures map[string]*workerFailure
-	rawLines map[string]string
-	silent   map[string]bool
-	asked    []string
-	closed   bool
+	guard       sync.Mutex
+	results     map[string]any
+	failures    map[string]*workerFailure
+	rawLines    map[string]string
+	silent      map[string]bool
+	asked       []string
+	identifiers []int64
+	closed      bool
 
 	requests  *io.PipeWriter
 	responses *io.PipeReader
@@ -34,6 +35,21 @@ func newScriptedWorker() *scriptedWorker {
 		silent:   map[string]bool{},
 		stopped:  make(chan struct{}),
 	}
+	return worker
+}
+
+// workerAnsweringEverything is a scripted worker that answers every method of
+// the protocol the way a healthy one does.
+func workerAnsweringEverything() *scriptedWorker {
+	worker := newScriptedWorker()
+	worker.answer("launch", aDiff(true, ""))
+	worker.answer("screenshot", aScreenshot())
+	worker.answer("click", aDiff(true, ""))
+	worker.answer("type", aDiff(true, ""))
+	worker.answer("press", aDiff(true, ""))
+	worker.answer("drag", aDiff(true, ""))
+	worker.answer("clipboardGet", map[string]any{"text": "nine years of DigiByte"})
+	worker.answer("clipboardSet", map[string]any{"characters": 22})
 	return worker
 }
 
@@ -63,6 +79,16 @@ func (worker *scriptedWorker) staySilent(method string) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.silent[method] = true
+}
+
+// identifiersAsked is the request number of every request the Go side sent, in
+// order, which is what the protocol promises about them.
+func (worker *scriptedWorker) identifiersAsked() []int64 {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	copied := make([]int64, len(worker.identifiers))
+	copy(copied, worker.identifiers)
+	return copied
 }
 
 // methodsAsked is every method the Go side asked for, in order.
@@ -129,6 +155,7 @@ func (worker *scriptedWorker) answerTo(line []byte) (string, bool) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.asked = append(worker.asked, request.Method)
+	worker.identifiers = append(worker.identifiers, request.ID)
 	if worker.silent[request.Method] {
 		return "", false
 	}

@@ -162,7 +162,12 @@ func (nightly *Nightly) Run(ctx context.Context, task contract.TaskToRun) (Repor
 	if task.JobID == "" || task.TaskID == "" {
 		return report, nil
 	}
-	if _, err := nightly.settings.Jobs.FinishTask(ctx, task.JobID, task.TaskID, report.Line, report.Failed > 0); err != nil {
+	// The task is finished and not failed, however many checks failed. What
+	// failed is a skill or a memory the check was built to find, and the line
+	// says so; a run reported as failed counts against the job, and ten nights
+	// of correctly reporting the same broken skill would switch the self-check
+	// off and leave the user hearing nothing at all.
+	if _, err := nightly.settings.Jobs.FinishTask(ctx, task.JobID, task.TaskID, report.Line, false); err != nil {
 		return report, fmt.Errorf("the nightly self-check ran and its report did not reach job %s: %w", task.JobID, err)
 	}
 	return report, nil

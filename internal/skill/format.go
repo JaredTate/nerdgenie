@@ -72,6 +72,7 @@ const (
 const (
 	browserProfileKey   = "browser profile"
 	siteKey             = "site"
+	sourceKey           = "source"
 	dailyLimitKey       = "daily limit"
 	irreversibleStepKey = "irreversible step"
 )
@@ -106,6 +107,11 @@ type Definition struct {
 	Triggers []string
 	// Permissions is what the skill may do.
 	Permissions Permissions
+	// Source is who saved the skill, and is empty for every skill saved before
+	// the store began writing it down. Only the store writes this line, and a
+	// skill the model wrote holds no standing approval until a person has run
+	// it once and said yes.
+	Source contract.SkillSource
 }
 
 // Summary is the name and the one-liner, which is all the prompt ever sees.
@@ -152,7 +158,7 @@ func readDescriptionLine(definition *Definition, section string, line string) er
 		return nil
 	case "permissions":
 		if written := bulletText(line); written != "" {
-			return readPermissionLine(&definition.Permissions, written)
+			return readPermissionLine(definition, written)
 		}
 		return nil
 	default:
@@ -173,7 +179,8 @@ func bulletText(line string) string {
 }
 
 // readPermissionLine reads one "key: value" bullet of the permissions block.
-func readPermissionLine(permissions *Permissions, written string) error {
+func readPermissionLine(definition *Definition, written string) error {
+	permissions := &definition.Permissions
 	key, value, separated := strings.Cut(written, ":")
 	key = strings.ToLower(strings.TrimSpace(key))
 	value = strings.TrimSpace(value)
@@ -182,9 +189,14 @@ func readPermissionLine(permissions *Permissions, written string) error {
 	}
 
 	switch key {
+	case sourceKey:
+		definition.Source = contract.SkillSource(strings.ToLower(value))
 	case browserProfileKey:
 		permissions.BrowserProfile = value
 	case siteKey:
+		if err := checkSite(value); err != nil {
+			return fmt.Errorf("the permissions line %q in %s does not name one website, because %w", written, DescriptionFile, err)
+		}
 		permissions.Sites = append(permissions.Sites, strings.ToLower(value))
 	case dailyLimitKey:
 		limit, err := strconv.Atoi(value)
@@ -199,7 +211,7 @@ func readPermissionLine(permissions *Permissions, written string) error {
 		}
 		permissions.IrreversibleSteps = append(permissions.IrreversibleSteps, number)
 	default:
-		return fmt.Errorf("%s has a permissions line about %q, which is not one of browser profile, site, daily limit, or irreversible step", DescriptionFile, key)
+		return fmt.Errorf("%s has a permissions line about %q, which is not one of source, browser profile, site, daily limit, or irreversible step", DescriptionFile, key)
 	}
 	return nil
 }
@@ -216,6 +228,10 @@ func checkDefinition(definition Definition) error {
 	if runes := []rune(definition.Description); len(runes) > MaxDescriptionRunes {
 		return fmt.Errorf("the description in %s is %d characters and the most allowed is %d, so shorten it to one line", DescriptionFile, len(runes), MaxDescriptionRunes)
 	}
+	if definition.Source != "" && !contract.KnownSkillSource(definition.Source) {
+		return fmt.Errorf("%s for the skill %q says %q saved it, and a skill is saved by the person or by the model, so write one of those or take the line out",
+			DescriptionFile, definition.Name, definition.Source)
+	}
 	if len(definition.Triggers) > MaxTriggers {
 		return fmt.Errorf("%s names %d triggers and the most allowed is %d, so keep the ones that really pick this skill out", DescriptionFile, len(definition.Triggers), MaxTriggers)
 	}
@@ -231,6 +247,11 @@ func checkDefinition(definition Definition) error {
 func checkPermissions(permissions Permissions) error {
 	if len(permissions.Sites) > MaxSites {
 		return fmt.Errorf("the permissions block names %d websites and the most allowed is %d, so name only the sites the skill really visits", len(permissions.Sites), MaxSites)
+	}
+	for _, site := range permissions.Sites {
+		if err := checkSite(site); err != nil {
+			return fmt.Errorf("the permissions block names the website %q, which is not one bare host name, because %w", site, err)
+		}
 	}
 	if permissions.DailyLimit < 1 || permissions.DailyLimit > MaxDailyLimit {
 		return fmt.Errorf("the daily limit is %d and it has to be between 1 and %d, so write a limit in that range", permissions.DailyLimit, MaxDailyLimit)
@@ -273,6 +294,9 @@ func RenderDescriptionFile(definition Definition) []byte {
 		lines = append(lines, "- "+trigger)
 	}
 	lines = append(lines, "", "## Permissions", "")
+	if definition.Source == contract.SkillSavedByModel {
+		lines = append(lines, sourceLine)
+	}
 	if definition.Permissions.BrowserProfile != "" {
 		lines = append(lines, "- "+browserProfileKey+": "+definition.Permissions.BrowserProfile)
 	}

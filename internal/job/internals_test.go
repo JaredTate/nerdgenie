@@ -18,12 +18,59 @@ func FuzzTheRestartGuard(theFuzzer *testing.F) {
 	theFuzzer.Add("tidy the logs; reboot")
 	theFuzzer.Add(`run ["killall", "coeus"]`)
 	theFuzzer.Add("|;&&\\\n\x00")
+	theFuzzer.Add("/sbin/reboot")
+	theFuzzer.Add("bash -c reboot")
+	theFuzzer.Add("timeout 5 reboot")
+	theFuzzer.Add("sh -c 'sh -c \"sh -c reboot\"'")
 
 	theFuzzer.Fuzz(func(t *testing.T, text string) {
 		err := checkItCannotRestartTheAgent(text)
+		if err != nil {
+			return
+		}
 		leading := strings.ToLower(strings.TrimSpace(text))
-		if err == nil && (leading == "reboot" || strings.HasPrefix(leading, "reboot ")) {
-			t.Errorf("a command that begins with the word reboot was accepted: %q", text)
+		for _, restarting := range []string{"reboot", "/sbin/reboot", "sudo reboot", "bash -c reboot", "timeout 5 reboot"} {
+			if leading == restarting || strings.HasPrefix(leading, restarting+" ") {
+				t.Errorf("a command that begins with %q was accepted: %q", restarting, text)
+			}
+		}
+	})
+}
+
+// FuzzTheScheduleParser throws any schedule at the reader that works out when a
+// job next fires. A schedule comes from a model, so its cron expression and its
+// time zone are outside text: the answer is an error or a moment that is really
+// in the future, and never a panic and never a tick in the past that would fire
+// again and again.
+func FuzzTheScheduleParser(theFuzzer *testing.F) {
+	theFuzzer.Add("cron", "0 7 * * 1-5", "America/New_York", int64(0), int64(0))
+	theFuzzer.Add("every", "", "", int64(time.Hour), int64(0))
+	theFuzzer.Add("at", "", "UTC", int64(0), int64(1_800_000_000))
+	theFuzzer.Add("cron", "@every 1h", "", int64(0), int64(0))
+	theFuzzer.Add("cron", "0 0 30 2 *", "", int64(0), int64(0))
+	theFuzzer.Add("", "-- -- -- -- --", "Mars/Olympus", int64(-1), int64(-1))
+
+	now := time.Date(2026, 9, 2, 9, 0, 0, 0, time.UTC)
+	theFuzzer.Fuzz(func(t *testing.T, kind string, expression string, timezone string, every int64, at int64) {
+		schedule := contract.Schedule{
+			Kind:     contract.ScheduleKind(kind),
+			Cron:     expression,
+			Timezone: timezone,
+			Every:    time.Duration(every),
+			At:       time.Unix(at, 0).UTC(),
+		}
+		moment, err := nextRun(schedule, now)
+		if err != nil {
+			if !moment.IsZero() {
+				t.Errorf("the schedule %+v could not be read and still gave the moment %s", schedule, moment)
+			}
+			return
+		}
+		if !moment.IsZero() && !moment.After(now) {
+			t.Errorf("the schedule %+v fires next at %s, which is not after %s, so it would fire again and again", schedule, moment, now)
+		}
+		if _, _, err := afterAFailedTick(schedule, now, 1); err != nil {
+			t.Errorf("the schedule %+v can be read and cannot be pushed back after a failed tick: %v", schedule, err)
 		}
 	})
 }

@@ -10,6 +10,8 @@ package signal
 import (
 	"regexp"
 	"strings"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 const (
@@ -123,7 +125,27 @@ func cutPoint(text string) int {
 	if word := strings.LastIndexAny(window, " \t\n"); word*2 >= end {
 		return word
 	}
-	return end
+	return wholeMarkerCut(text, end)
+}
+
+// wholeMarkerCut moves a cut back to where a redaction marker begins when the
+// cut would land inside one. The reply is redacted before it is split, so the
+// only run the splitter must keep together is the marker the redactor left
+// behind: half of it in each of two messages reads like the words it stands for.
+// A sentence break and a word break are both characters the marker does not
+// hold, so only a cut made in the middle of a run needs this.
+func wholeMarkerCut(text string, cut int) int {
+	marker := contract.RedactedMarker
+	first := cut - len(marker) + 1
+	if first < 1 {
+		first = 1
+	}
+	for at := first; at < cut; at++ {
+		if at+len(marker) > cut && strings.HasPrefix(text[at:], marker) {
+			return at
+		}
+	}
+	return cut
 }
 
 // lastSentenceEnd returns the byte position just after the last sentence that
@@ -152,7 +174,7 @@ func capMessages(messages []string) []string {
 	room := MessageLimit - signalLength(paragraphSeparator+TruncationNote)
 	last := kept[MaxMessagesPerReply-1]
 	if signalLength(last) > room {
-		last = strings.TrimSpace(last[:prefixWithinUnits(last, room)])
+		last = strings.TrimSpace(last[:wholeMarkerCut(last, prefixWithinUnits(last, room))])
 	}
 	kept[MaxMessagesPerReply-1] = last + paragraphSeparator + TruncationNote
 	return kept

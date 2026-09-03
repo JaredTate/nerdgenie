@@ -1,1 +1,2 @@
-the record's pin result is written
+the record's done_when is written
+{"done_when":[{"text":"every version has a page","done":true,"result":"r1"}]}

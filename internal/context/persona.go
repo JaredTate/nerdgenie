@@ -49,19 +49,43 @@ type personaFile struct {
 	limit   int
 }
 
-// readPersona reads the three persona files from disk and joins them into one
-// block of the prompt. They are read on every build rather than remembered,
-// which is what makes a file the user edited by hand take effect on the very
-// next turn.
+// readPersona reads SOUL.md, the file that says who the agent is, and returns it
+// as the persona block of the system prompt. Only this one of the three files is
+// up there, because only the user writes it: the agent's own `memory` tool and
+// its after-action review write into the other two, and a block above cache
+// boundary A that the agent rewrites mid-task costs it the whole prompt
+// underneath. Those two are read by readWhatIsKnown instead.
+//
+// It is read on every build rather than remembered, which is what makes a file
+// the user edited by hand take effect on the very next turn.
+func readPersona(home contract.Home) (string, error) {
+	return readPersonaFiles([]personaFile{
+		{path: home.SoulFile(), heading: soulHeading, limit: SoulBytes},
+	})
+}
+
+// readWhatIsKnown reads USER.md and MEMORY.md, the two files the agent writes
+// into as well as the user. They go below the cache line, near the memory hint
+// they belong with, so that saving one fact in the middle of a task costs only
+// the few lines after it rather than everything under cache boundary A.
+func readWhatIsKnown(home contract.Home, caps contract.MemoryCaps) (string, error) {
+	return readPersonaFiles([]personaFile{
+		{path: home.UserFactsFile(), heading: userHeading, limit: caps.UserFactsBytes},
+		{path: home.WorldFactsFile(), heading: worldHeading, limit: caps.WorldFactsBytes},
+	})
+}
+
+// readPersonaFiles reads a run of persona files from disk and joins them under
+// their headings.
 //
 // A file that is not there is passed over, because a fresh install has none of
 // them. A file that is longer than its limit is cut on a character boundary and
 // a note says which file to shorten. Any other failure to read is returned,
 // because a persona the user wrote and the model never sees is worse than no
 // persona at all.
-func readPersona(home contract.Home, caps contract.MemoryCaps) (string, error) {
+func readPersonaFiles(files []personaFile) (string, error) {
 	parts := []string{}
-	for _, file := range personaFiles(home, caps) {
+	for _, file := range files {
 		content, err := os.ReadFile(file.path)
 		if os.IsNotExist(err) {
 			continue
@@ -76,16 +100,6 @@ func readPersona(home contract.Home, caps contract.MemoryCaps) (string, error) {
 		parts = append(parts, file.heading+"\n"+cutToLimit(text, file.path, file.limit))
 	}
 	return strings.Join(parts, "\n\n"), nil
-}
-
-// personaFiles lists the three files in the order the prompt puts them, each
-// with the limit it is cut at.
-func personaFiles(home contract.Home, caps contract.MemoryCaps) []personaFile {
-	return []personaFile{
-		{path: home.SoulFile(), heading: soulHeading, limit: SoulBytes},
-		{path: home.UserFactsFile(), heading: userHeading, limit: caps.UserFactsBytes},
-		{path: home.WorldFactsFile(), heading: worldHeading, limit: caps.WorldFactsBytes},
-	}
 }
 
 // cutToLimit keeps a persona file inside its size limit and says plainly when it

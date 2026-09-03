@@ -169,7 +169,7 @@ func (theLoop *Loop) offerASkill(ctx context.Context, where contract.Channel, so
 		return nil
 	}
 	body := fmt.Sprintf("# %s\n\nWhat it is for: %s\n\nLearned from %s.\n", name, answer, source)
-	if err := theLoop.options.Skills.Save(ctx, name, map[string][]byte{"SKILL.md": []byte(body)}); err != nil {
+	if err := theLoop.options.Skills.Save(ctx, contract.SkillSavedByPerson, name, map[string][]byte{"SKILL.md": []byte(body)}); err != nil {
 		return fmt.Errorf("cannot save the skill the user approved: %w", err)
 	}
 	return nil

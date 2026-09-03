@@ -65,13 +65,14 @@ build:
 	done
 	@echo "the worker bundles are in bin/workers/browser and bin/workers/desktop"
 
-# The browser and desktop integration tests start a real Chrome and drive the
-# desktop, which puts windows on the screen of whoever runs them, so they live
-# in their own target and an ordinary test run never opens one. The gate and
+# The browser integration tests start a real Chrome, which puts a window on the
+# screen of whoever runs them, so they live in their own target and an ordinary
+# test run never opens one; the desktop's live tests are gated behind
+# COEUS_LIVE_DESKTOP=1 inside the package and run nowhere by accident. The gate and
 # continuous integration run both targets; the browser target asks for headless
 # Chrome through COEUS_HEADLESS_TESTS, which internal/browser honours.
 test:
-	go test -tags integration $$(go list ./... | grep -v '/internal/browser$$' | grep -v '/internal/desktop$$' | grep -v '/test/functional$$')
+	go test -tags integration $$(go list ./... | grep -v '/internal/browser$$' | grep -v '/test/functional$$')
 	go test ./test/functional/...
 	scripts/fuzz.sh 5s
 

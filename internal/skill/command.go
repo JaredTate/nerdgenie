@@ -81,7 +81,7 @@ func (store *Store) runOneSkill(ctx context.Context, arguments string) (string, 
 	if name == "" {
 		return "", fmt.Errorf("skills needs to know which skill to run, so write /skills run and the name of one")
 	}
-	report, err := store.Run(ctx, name, strings.TrimSpace(rest))
+	report, err := store.RunForPerson(ctx, name, strings.TrimSpace(rest))
 	if err != nil {
 		return report, err
 	}

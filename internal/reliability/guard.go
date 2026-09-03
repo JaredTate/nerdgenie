@@ -3,7 +3,6 @@ package reliability
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -53,7 +52,7 @@ type Guard struct {
 	breaker  *Breaker
 	leases   *Leases
 	ledger   *Ledger
-	sentinel *Sentinel
+	sentinel *sentinelFile
 	drain    *Drain
 	watchdog *Watchdog
 }
@@ -78,28 +77,35 @@ func New(settings Settings) (*Guard, error) {
 		breaker:  NewBreaker(settings.Home, settings.Clock),
 		leases:   NewLeases(settings.Clock),
 		ledger:   NewLedger(settings.Store, settings.Clock),
-		sentinel: NewSentinel(settings.Home, settings.Clock),
+		sentinel: newSentinel(settings.Home, settings.Clock),
 		drain:    NewDrain(settings.Home, settings.Clock),
 		watchdog: watchdog,
 	}, nil
 }
 
-// Start does the whole startup sequence in order: see whether the last exit was
-// unclean, check the database before anything opens it, count the crash against
-// the breaker, tell the user if it has tripped, and send again the replies that
-// were written down but never delivered.
+// Start does the rest of the startup sequence, after PrepareDatabase has done
+// the part that cannot wait for the event log: it takes what the recovery found
+// and tells the user about it, counts an unclean start against the breaker,
+// tells the user if it has tripped, and sends again the replies that were
+// written down but never delivered. It refuses to run at all until
+// PrepareDatabase has, because a guard that starts on a database nothing
+// checked is a guard that checks it too late.
 func (guard *Guard) Start(ctx context.Context) (Startup, error) {
 	found := Startup{}
-	unclean, err := guard.sentinel.Start()
-	found.UncleanExit = unclean
+	recovered, err := guard.sentinel.takeWhatThisLifeFound()
 	if err != nil {
 		return found, err
 	}
-
-	if unclean {
-		if err := guard.recoverDatabase(ctx, &found); err != nil {
+	found.UncleanExit = recovered.FollowedAnUncleanExit
+	found.DatabaseMovedTo = recovered.DatabaseMovedTo
+	found.RestoredFrom = recovered.RestoredFrom
+	if said := theRecoveryMessage(recovered); said != "" {
+		if err := guard.settings.Send(ctx, "", said); err != nil {
 			return found, err
 		}
+	}
+
+	if recovered.FollowedAnUncleanExit {
 		if found.BreakerTripped, err = guard.breaker.RecordUncleanStart(); err != nil {
 			return found, err
 		}
@@ -117,19 +123,18 @@ func (guard *Guard) Start(ctx context.Context) (Startup, error) {
 // Stop is the clean exit: the sentinel goes, so the next start knows nothing
 // went wrong, and the crash loop is forgotten.
 func (guard *Guard) Stop() error {
-	return errors.Join(guard.sentinel.MarkExited(), guard.breaker.Clear())
+	return errors.Join(guard.sentinel.markExited(), guard.breaker.Clear())
 }
 
 // MayStartTask says whether the loop may pick up new work. It is false while
 // the breaker is tripped and while a drain is on.
 func (guard *Guard) MayStartTask() bool {
-	return guard.Healthy() && !guard.drain.Requested()
+	return guard.WhyNoNewTask() == ""
 }
 
-// Healthy is what the watchdog feed asks before it tells systemd that the
-// program is alive. A tripped breaker is not healthy: nothing inside the
-// program is going to put a crash loop right, so the feed stops and systemd
-// starts the program again.
+// Healthy says whether the agent is in a crash loop, which is what a screen's
+// health mark shows. A broken breaker file leaves the answer healthy, because a
+// breaker nobody can read must never make a working agent look broken.
 func (guard *Guard) Healthy() bool {
 	tripped, err := guard.breaker.Tripped()
 	return err != nil || !tripped
@@ -162,9 +167,13 @@ func (guard *Guard) Drain() *Drain { return guard.drain }
 func (guard *Guard) Ready() error { return guard.watchdog.Ready() }
 
 // FeedWatchdog keeps telling the service manager that the program is alive
-// until the context ends or the breaker trips.
+// until the context ends. It goes on feeding while the breaker is tripped,
+// because a tripped breaker means the agent answers the user and starts no
+// task: a feed that stopped would have systemd kill the program, the kill would
+// leave the sentinel behind, the next start would count as one more crash, and
+// the task that was killing the program would be picked up again.
 func (guard *Guard) FeedWatchdog(ctx context.Context) error {
-	return guard.watchdog.Feed(ctx, guard.Healthy)
+	return guard.watchdog.Feed(ctx)
 }
 
 // Backup writes one archive of the database, the vault, and the browser
@@ -184,43 +193,6 @@ func (guard *Guard) announceTheBreaker(ctx context.Context) error {
 		return err
 	}
 	return guard.settings.Send(ctx, "", said)
-}
-
-// recoverDatabase checks the database after an unclean exit and, when it is
-// damaged, moves it aside and puts back the newest backup. A recovery that
-// cannot find or read a backup is told to the user rather than raised, because
-// an agent that comes up with an empty database can still be talked to and an
-// agent that refuses to start cannot.
-func (guard *Guard) recoverDatabase(ctx context.Context, found *Startup) error {
-	path := guard.settings.Home.DatabaseFile()
-	broken := CheckDatabase(ctx, path)
-	if broken == nil {
-		return nil
-	}
-	movedTo, err := MoveDatabaseAside(path, guard.settings.Clock.Now())
-	if err != nil {
-		return err
-	}
-	found.DatabaseMovedTo = movedTo
-
-	archive, err := LatestArchive(guard.backupFolder())
-	if err == nil {
-		err = Restore(ctx, RestoreSettings{
-			Home:            guard.settings.Home,
-			Archive:         archive,
-			OnlyTheDatabase: true,
-			Force:           true,
-		})
-	}
-	if err != nil {
-		return guard.settings.Send(ctx, "", fmt.Sprintf(
-			"Coeus found its database damaged (%v) and moved it to %s. It could not put a backup back (%v), so it is starting with an empty one. Everything it was doing is in the file it moved aside.",
-			broken, movedTo, err))
-	}
-	found.RestoredFrom = archive
-	return guard.settings.Send(ctx, "", fmt.Sprintf(
-		"Coeus found its database damaged (%v), moved it to %s, and put back the backup %s. Anything it learned after that backup is only in the file it moved aside.",
-		broken, movedTo, archive))
 }
 
 // backupFolder is where the archives live: what the configuration said, or the

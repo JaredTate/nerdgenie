@@ -85,8 +85,8 @@ func TestASandboxedWriteInsideTheRootSucceeds(t *testing.T) {
 	}
 }
 
-func TestASandboxedNetworkCallReachesALoopbackServer(t *testing.T) {
-	fence, _, _ := aRealFence(t, theToolOutputCap)
+func TestASandboxedNetworkCallReachesALoopbackServerWhenTheFenceHasTheNetwork(t *testing.T) {
+	fence, _, _ := aRealFenceWithTheNetwork(t, theToolOutputCap)
 	search := testkit.NewFakeSearchServer()
 	defer search.Close()
 

@@ -84,8 +84,8 @@ func checkBinds(t *testing.T, arguments []string, plan fencePlan, forbidden []st
 				}
 			}
 		case "--ro-bind":
-			if !slices.Contains(plan.systemFolders, source) && source != plan.helperProgram {
-				t.Errorf("the fence binds %q read-only, and only the system folders and the helper program may be bound read-only", source)
+			if !slices.Contains(plan.systemFolders, source) && source != plan.helperProgram && source != plan.resolverFile {
+				t.Errorf("the fence binds %q read-only, and only the system folders, the helper program, and the resolver settings may be bound read-only", source)
 			}
 		}
 	}

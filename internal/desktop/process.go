@@ -25,6 +25,12 @@ const maximumLogLineLength = 4096
 // driver is another project's program and has no business holding a key, which
 // is rule seven in worker/desktop/PROTOCOL.md. The design is Hermes' sanitized
 // child environment at ~/Code/hermes-agent/tools/computer_use/permissions.py.
+//
+// The desktop's session bus is deliberately not on this list. A program handed
+// it can ask the desktop to bring the accessibility bridge up, and on the
+// development machine that started GNOME's screen reader and it read the screen
+// aloud. So the bus stays behind, and the three settings below are handed on in
+// its place to say no to the bridge in each toolkit's own words.
 var environmentPassedOn = []string{
 	"PATH",
 	"HOME",
@@ -34,7 +40,16 @@ var environmentPassedOn = []string{
 	"XDG_SESSION_TYPE",
 	"XDG_RUNTIME_DIR",
 	"XAUTHORITY",
-	"DBUS_SESSION_BUS_ADDRESS",
+}
+
+// The settings that tell every toolkit the worker or an application it launches
+// may load to leave the accessibility bridge alone. GTK reads NO_AT_BRIDGE and
+// GTK_MODULES, and Qt reads QT_ACCESSIBILITY. They are set rather than passed
+// on, so that what the user's own session says about them cannot change them.
+var environmentSetHere = []string{
+	"NO_AT_BRIDGE=1",
+	"GTK_MODULES=",
+	"QT_ACCESSIBILITY=0",
 }
 
 // ProcessStart returns a Start that runs the desktop worker as a child process,
@@ -118,7 +133,7 @@ func readLog(complaints io.Reader, note func(format string, arguments ...any)) {
 }
 
 // workerEnvironment is the environment the worker is handed, which carries the
-// display it draws on and nothing secret.
+// display it draws on, nothing secret, and nothing that wakes the screen reader.
 func workerEnvironment() []string {
 	handed := []string{}
 	for _, name := range environmentPassedOn {
@@ -126,5 +141,5 @@ func workerEnvironment() []string {
 			handed = append(handed, name+"="+value)
 		}
 	}
-	return handed
+	return append(handed, environmentSetHere...)
 }

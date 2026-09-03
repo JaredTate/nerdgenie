@@ -11,11 +11,24 @@
 // out, and a call carrying such a note is put to the user even when no rule
 // covers it, because a form that hides the end of a command cannot be ruled on.
 // A script handed to a shell is a command line in its own right, so it is
-// reduced as one. The rules come from the user's ask-me-first list, which ships
-// with three entries and which the user may add to or empty; the last rule that
-// matches wins, and a call no rule matches runs on its own. When the answer is
-// to ask, the decision carries a preview of exactly what is about to happen.
-// The user's answer is remembered for the session, a skill may hold a standing
-// approval with a limit and an expiry, and a run with nobody there to answer is
-// ruled stop, so the task reports what it needed rather than waiting forever.
+// reduced as one, and so is a command written behind a program whose one job is
+// to run another program, such as nohup, timeout, xargs or env. The rules come
+// from the user's ask-me-first list, which ships with three entries and which
+// the user may add to or empty; the last rule that matches wins, and a call no
+// rule matches runs on its own. A shell command is matched in a second form as
+// well, with its flags spelled out one to a pair of brackets, so that a rule
+// about a flag holds whatever order the flags were written in; nobody is shown
+// that form. When the answer is to ask, the decision carries a preview of
+// exactly what is about to happen.
+//
+// The order the answers are read in is what keeps the list a list: a rule that
+// refuses, then the answer the user gave in this session, then the ask-me-first
+// list, and only then the standing approval a skill may hold with a limit and an
+// expiry, so that a skill can never hand itself the things the user asked to see
+// first. An approval for a website names the host and the tools that visit one,
+// and covers a call by comparing them, so a subdomain and another port are
+// somewhere else and go to the person; every other approval names a readable
+// form and is matched as a pattern. A run with nobody there to answer is ruled
+// stop before any approval is read, so the task reports what it needed rather
+// than waiting forever.
 package permission

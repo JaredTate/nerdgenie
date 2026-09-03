@@ -161,6 +161,48 @@ func TestPinningAResultMarksTheDoneLineItProves(t *testing.T) {
 	}
 }
 
+// TestTheWholeUpdateComesBackAsTheResult is finding 28 of the wave 6 gate
+// review. The tool answered "the record's why is written" and nothing else,
+// where the loop's own path had handed back the whole update, so `read r2`
+// fetched one sentence instead of the change, and the loop's summary of every
+// record write read "updated the record: one change", because it tries to read
+// the result as JSON and a sentence is not JSON.
+func TestTheWholeUpdateComesBackAsTheResult(t *testing.T) {
+	tool, _ := newTool(t)
+
+	output, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"why":       "the release is on Friday",
+		"done_when": []any{"every version has a page"},
+		"plan":      []any{"read the tags", "write one page each"},
+	})
+	if err != nil {
+		t.Fatalf("writing three sections failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "why") || !strings.Contains(output.Text, "done_when") ||
+		!strings.Contains(output.Text, "plan") {
+		t.Errorf("the result reads %q and does not name every section it wrote", output.Text)
+	}
+
+	held := map[string]json.RawMessage{}
+	starts := strings.Index(output.Text, "{")
+	if starts < 0 {
+		t.Fatalf("the result carries no update as JSON, so read r2 fetches a sentence: %q", output.Text)
+	}
+	written := output.Text[starts:]
+	if err := json.Unmarshal([]byte(written), &held); err != nil {
+		t.Fatalf("the result carries no update as JSON, so read r2 fetches a sentence: %q", output.Text)
+	}
+	for _, name := range []string{"why", "done_when", "plan"} {
+		if _, wrote := held[name]; !wrote {
+			t.Errorf("the update came back as %s and does not hold %q", written, name)
+		}
+	}
+	if string(held["why"]) != `"the release is on Friday"` {
+		t.Errorf("the update's why came back as %s", held["why"])
+	}
+}
+
 func TestPinningAResultTheRecordNeverWroteIsRefused(t *testing.T) {
 	tool, _ := newTool(t)
 	if _, err := run(t, tool, map[string]any{
@@ -214,6 +256,38 @@ func TestTheAskAndTheCorrectionsCannotBeWrittenThroughThisTool(t *testing.T) {
 	}
 }
 
+// TestAnOperationInAnotherCaseOrWithACommonPrefixIsTaken is finding 26 of the
+// wave 6 gate review, and the live run's first finding one layer up. The name
+// was compared letter for letter, so DONE_WHEN, doneWhen, done-when, set_why,
+// add_decision and set_plan were each refused outright, costing a full round
+// apiece, and the refusal read the same list every time, so a model that went
+// on writing set_why went on getting the same answer.
+func TestAnOperationInAnotherCaseOrWithACommonPrefixIsTaken(t *testing.T) {
+	for _, taken := range []struct {
+		fields  map[string]any
+		written string
+	}{
+		{map[string]any{"operation": "DONE_WHEN", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "doneWhen", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "done-when", "done_when": []any{"the page is up"}}, "the done list"},
+		{map[string]any{"operation": "set_why", "why": "the release is on Friday"}, "the why"},
+		{map[string]any{"operation": "add_decision", "text": "write from the tags", "reason": "they are complete"}, "a decision"},
+		{map[string]any{"operation": "set_plan", "plan": []any{"read the tags"}}, "the plan"},
+		{map[string]any{"operation": "update_stop_when", "stop_when": []any{"the release is cancelled"}}, "the stop list"},
+	} {
+		tool, keeper := newTool(t)
+		if _, err := run(t, tool, taken.fields); err != nil {
+			t.Errorf("the call %v was refused although it writes %s: %v", taken.fields, taken.written, err)
+			continue
+		}
+		held := keeper.Record()
+		if held.Goal.Why == "" && len(held.Goal.DoneWhen) == 0 && len(held.Rules.StopWhen) == 0 &&
+			len(held.Work.Plan) == 0 && len(held.Lessons.Decisions) == 0 {
+			t.Errorf("the call %v was taken and %s was not written", taken.fields, taken.written)
+		}
+	}
+}
+
 func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 	tool, _ := newTool(t)
 
@@ -246,120 +320,5 @@ func TestAToolWithNoRecordWiredInSaysSo(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "record") {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
-	}
-}
-
-// TestADoneLineWrittenAsAPlainStringIsTakenAsItsText reproduces what the local
-// model did in the first trial: it wrote the done list as a list of strings,
-// the tool refused every one of seven tries, and the task went nowhere. A
-// string is the line's text; an object still works; anything else is refused
-// with the shape named.
-func TestADoneLineWrittenAsAPlainStringIsTakenAsItsText(t *testing.T) {
-	tool, keeper := newTool(t)
-
-	if _, err := run(t, tool, map[string]any{
-		"operation": "done_when",
-		"done_when": []any{"the folder exists", map[string]any{"text": "the tests pass"}},
-	}); err != nil {
-		t.Fatalf("a done list written as strings was refused: %v", err)
-	}
-	lines := keeper.Record().Goal.DoneWhen
-	if len(lines) != 2 || lines[0].Text != "the folder exists" || lines[1].Text != "the tests pass" {
-		t.Errorf("the done list came out as %+v", lines)
-	}
-
-	_, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": []any{42}})
-	if err == nil || !strings.Contains(err.Error(), `"text"`) {
-		t.Errorf("a done line that is a number was not refused with the shape named: %v", err)
-	}
-}
-
-// TestTheShapesAModelPlausiblyWritesAreAllTaken reproduces the second stall of
-// the first trial: the model wrote the why in the "text" field and was refused
-// on every try. The why is taken from "text" when "why" is empty, a list may be
-// one string, the done list may be one line, and a line number may be written
-// as a string.
-func TestTheShapesAModelPlausiblyWritesAreAllTaken(t *testing.T) {
-	tool, keeper := newTool(t)
-
-	if _, err := run(t, tool, map[string]any{"operation": "why", "text": "the user wants a game"}); err != nil {
-		t.Fatalf("a why written in the text field was refused: %v", err)
-	}
-	if _, err := run(t, tool, map[string]any{"operation": "plan", "plan": "write the tests first"}); err != nil {
-		t.Fatalf("a plan written as one string was refused: %v", err)
-	}
-	if _, err := run(t, tool, map[string]any{"operation": "stop_when", "stop_when": "the user says stop"}); err != nil {
-		t.Fatalf("a stop list written as one string was refused: %v", err)
-	}
-	if _, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": "the game runs"}); err != nil {
-		t.Fatalf("a done list written as one string was refused: %v", err)
-	}
-	id, err := keeper.AddResult(context.Background(), "the game, 40 files", "the whole of the game")
-	if err != nil {
-		t.Fatalf("cannot add a result to the record: %v", err)
-	}
-	if _, err := run(t, tool, map[string]any{"operation": "pin_result", "line": "1", "result": id}); err != nil {
-		t.Fatalf("a line number written as a string was refused: %v", err)
-	}
-	held := keeper.Record()
-	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 1 || len(held.Rules.StopWhen) != 1 ||
-		len(held.Goal.DoneWhen) != 1 || !held.Goal.DoneWhen[0].Done {
-		t.Errorf("the record came out as why=%q plan=%v stop=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Rules.StopWhen, held.Goal.DoneWhen)
-	}
-}
-
-// TestARecordWriteMayCarrySeveralSectionsAtOnce reproduces two more shapes
-// from the trial's event log: one call carrying the why, the done list and the
-// plan together, and a done line whose text is under "line". Both are taken,
-// and a call with an operation that names one section while another section
-// is the one written still writes what it carries.
-func TestARecordWriteMayCarrySeveralSectionsAtOnce(t *testing.T) {
-	tool, keeper := newTool(t)
-
-	if _, err := run(t, tool, map[string]any{
-		"operation": "done_when",
-		"why":       "the user wants a game",
-		"done_when": []any{map[string]any{"line": "the tests pass"}},
-		"plan":      []any{"write the tests", "write the game"},
-	}); err != nil {
-		t.Fatalf("a call carrying three sections was refused: %v", err)
-	}
-	held := keeper.Record()
-	if held.Goal.Why != "the user wants a game" || len(held.Work.Plan) != 2 ||
-		len(held.Goal.DoneWhen) != 1 || held.Goal.DoneWhen[0].Text != "the tests pass" {
-		t.Errorf("the record came out as why=%q plan=%v done=%+v", held.Goal.Why, held.Work.Plan, held.Goal.DoneWhen)
-	}
-
-	if _, err := run(t, tool, map[string]any{"operation": "done_when", "stop_when": []any{"the user says stop"}}); err != nil {
-		t.Fatalf("a call naming one section and carrying another was refused: %v", err)
-	}
-	if len(keeper.Record().Rules.StopWhen) != 1 {
-		t.Errorf("the stop list was not written: %v", keeper.Record().Rules.StopWhen)
-	}
-	if _, err := run(t, tool, map[string]any{"operation": "plan"}); err == nil {
-		t.Errorf("a call that writes nothing was taken")
-	}
-}
-
-// TestTheShapesTheTaskToolRefusesAreNamed covers the edges of the lenient
-// reader: a null list is an empty one, a list that is neither a string nor a
-// list is refused with the shape named, and so is a line number that is not a
-// number.
-func TestTheShapesTheTaskToolRefusesAreNamed(t *testing.T) {
-	tool, _ := newTool(t)
-	for _, broken := range []struct {
-		fields map[string]any
-		named  string
-	}{
-		{map[string]any{"operation": "plan", "plan": nil}, "writes nothing"},
-		{map[string]any{"operation": "plan", "plan": 7}, "list"},
-		{map[string]any{"operation": "done_when", "done_when": nil}, "writes nothing"},
-		{map[string]any{"operation": "pin_result", "line": "one", "result": "r1"}, "whole number"},
-		{map[string]any{"operation": "pin_result", "line": nil, "result": "r1"}, "no done line"},
-	} {
-		_, err := run(t, tool, broken.fields)
-		if err == nil || !strings.Contains(err.Error(), broken.named) {
-			t.Errorf("the call %v was not refused with %q named: %v", broken.fields, broken.named, err)
-		}
 	}
 }

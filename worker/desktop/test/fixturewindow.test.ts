@@ -7,7 +7,8 @@
 // is missing they say so and are skipped, rather than failing a build on a
 // machine that has no screen.
 
-import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process"
+import { spawn, spawnSync, type ChildProcessByStdio } from "node:child_process"
+import type { Readable } from "node:stream"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { CuaDesktopDriver } from "../src/cuadriver.js"
 import { pacingNamed } from "../src/pacing.js"
@@ -28,7 +29,7 @@ if (missing !== "") {
 }
 
 describe.skipIf(missing !== "")("driving a real fixture window", () => {
-  let fixture: ChildProcessWithoutNullStreams
+  let fixture: ChildProcessByStdio<null, Readable, Readable>
   let printed = ""
   let session: DesktopSession
   let marks: Mark[] = []

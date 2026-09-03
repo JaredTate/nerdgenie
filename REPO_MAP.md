@@ -318,12 +318,15 @@ internal/contract/tool.go
 internal/contract/toolnames.go
 internal/contract/usertool.go
 internal/contract/usertool_test.go
+internal/desktop/accessibility_test.go
+internal/desktop/bounds_test.go
 internal/desktop/client.go
 internal/desktop/client_test.go
 internal/desktop/desktop.go
 internal/desktop/desktop_test.go
 internal/desktop/doc.go
 internal/desktop/edges_test.go
+internal/desktop/expectation_test.go
 internal/desktop/fuzz_test.go
 internal/desktop/grant.go
 internal/desktop/integration_test.go
@@ -332,6 +335,7 @@ internal/desktop/process.go
 internal/desktop/process_test.go
 internal/desktop/protocol.go
 internal/desktop/support_test.go
+internal/desktop/wiring_test.go
 internal/job/broken_test.go
 internal/job/claims.go
 internal/job/command.go

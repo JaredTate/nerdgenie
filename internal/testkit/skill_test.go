@@ -143,3 +143,35 @@ func TestTheFakeSkillKeepsTheSkillContract(t *testing.T) {
 		t.Fatalf("the fake skill store does not keep the skill contract: %v", err)
 	}
 }
+
+func TestTheFakeSkillRemembersWhoSavedEachSkill(t *testing.T) {
+	ctx := context.Background()
+	skills := testkit.NewFakeSkill()
+
+	if err := skills.Save(ctx, contract.SkillSavedByModel, "written-by-the-model", map[string][]byte{
+		"SKILL.md": []byte("# written-by-the-model\nWritten by the model.\n"),
+	}); err != nil {
+		t.Fatalf("saving the skill the model wrote failed: %v", err)
+	}
+	if err := skills.Save(ctx, contract.SkillSavedByPerson, "written-by-the-person", map[string][]byte{
+		"SKILL.md": []byte("# written-by-the-person\nWritten by the person.\n"),
+	}); err != nil {
+		t.Fatalf("saving the skill the person saved failed: %v", err)
+	}
+
+	if source := skills.SourceOf("written-by-the-model"); source != contract.SkillSavedByModel {
+		t.Errorf("the fake says %q saved the skill the model wrote, want the model", source)
+	}
+	if source := skills.SourceOf("written-by-the-person"); source != contract.SkillSavedByPerson {
+		t.Errorf("the fake says %q saved the skill the person saved, want the person", source)
+	}
+}
+
+func TestTheFakeSkillRefusesASaveWithNobodySavingIt(t *testing.T) {
+	err := testkit.NewFakeSkill().Save(context.Background(), contract.SkillSource("nobody"), "written-by-nobody", map[string][]byte{
+		"SKILL.md": []byte("# written-by-nobody\nWritten by nobody at all.\n"),
+	})
+	if err == nil {
+		t.Fatal("the fake saved a skill nobody saved, and the real store refuses one, so a test against the fake would be told the wrong thing")
+	}
+}

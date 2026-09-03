@@ -36,6 +36,26 @@ func configurationWhereEveryFetchAsks() contract.Config {
 	return configuration
 }
 
+// theThreeThingsTheListShipsWith are the three entries design section 11 says
+// the ask-me-first list ships with. Not one of them may run without a yes,
+// whatever standing approval a skill holds. They came here from the wave 6
+// security review, whose own test file was taken out of the tree once every
+// finding it named had a fix and a test of its own.
+var theThreeThingsTheListShipsWith = []struct {
+	name    string
+	request func() contract.PermissionRequest
+}{
+	{"deleting many files at once", func() contract.PermissionRequest {
+		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/jared/coeus"}`)}
+	}},
+	{"a command with administrator powers", func() contract.PermissionRequest {
+		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "apt-get install anything", "escalate": true, "reason": "it needs them"}`)}
+	}},
+	{"spending money", func() contract.PermissionRequest {
+		return contract.PermissionRequest{ToolName: contract.ToolWeb, Input: []byte(`{"url": "https://shop.example.com/checkout"}`)}
+	}},
+}
+
 // storeHoldingTheApproval saves the news-reading skill and runs it once, which
 // is what puts its standing approval into the permission function, and hands
 // back the permission function to ask about other calls.

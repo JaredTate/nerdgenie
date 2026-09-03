@@ -115,7 +115,8 @@ func (browser *Browser) startOneWorker(ctx context.Context) error {
 			lastProblem = errors.New("the browser worker started as nothing at all, which is a fault in how it was wired")
 			continue
 		}
-		browser.connection, browser.talker = connection, newClient(connection)
+		browser.events = newEventStream(browser.options.BufferedEvents, browser.options.Note)
+		browser.connection, browser.talker = connection, newClient(connection, browser.events)
 		browser.lastUsed = browser.options.Clock.Now()
 		browser.options.Note("the browser worker started with process id %d", connection.ProcessID)
 		return nil
@@ -205,9 +206,15 @@ func (browser *Browser) stopIfIdle() bool {
 	return true
 }
 
-// stopWorker ends the running worker and forgets it. The caller holds the guard.
+// stopWorker ends the running worker and forgets it, and ends every stream of
+// what the person was doing in its window, because those events belonged to that
+// worker's window and there is no window now. The caller holds the guard.
 func (browser *Browser) stopWorker() error {
 	connection := browser.connection
+	if browser.events != nil {
+		browser.events.closeEveryReader()
+		browser.events = nil
+	}
 	browser.connection, browser.talker, browser.page = nil, nil, ""
 	if browser.stopWatch != nil {
 		browser.stopWatch()

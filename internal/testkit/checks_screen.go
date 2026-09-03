@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -14,8 +15,9 @@ import (
 // it is healthy, it refuses to act before a page is open, a reference that is
 // not on the page is an error, every action returns a fresh snapshot and says
 // whether the page settled, a page that is a wall says so on the snapshot before
-// any action, a dialog action nobody defined is refused, and a login never gives
-// the credentials back.
+// any action, a dialog action nobody defined is refused, the stream of what the
+// person did holds only the three kinds and never what was typed, and a login
+// never gives the credentials back.
 func CheckBrowserWorker(ctx context.Context, worker contract.BrowserWorker) error {
 	health, err := worker.Health(ctx)
 	if err != nil {
@@ -51,7 +53,72 @@ func CheckBrowserWorker(ctx context.Context, worker contract.BrowserWorker) erro
 	if err := checkBrowserDialog(ctx, worker); err != nil {
 		return err
 	}
+	if err := checkBrowserEvents(ctx, worker); err != nil {
+		return err
+	}
 	return checkBrowserLogin(ctx, worker)
+}
+
+// The bounds the event half of the check keeps, because a check that could wait
+// for ever is worse than the fault it is looking for.
+const (
+	// mostEventsChecked is how many events the check reads before it says the
+	// stream never ended.
+	mostEventsChecked = 100
+	// waitForTheStreamToEnd is how long the check waits for a stream to close
+	// after the reader has stopped listening.
+	waitForTheStreamToEnd = 5 * time.Second
+)
+
+// checkBrowserEvents asserts the stream of what the person did in the window:
+// it can be opened, everything that arrives on it is one of the three kinds,
+// what was typed is never on it, and it ends when the reader stops listening.
+func checkBrowserEvents(ctx context.Context, worker contract.BrowserWorker) error {
+	watching, stopWatching := context.WithCancel(ctx)
+	events, err := worker.Events(watching)
+	if err != nil {
+		stopWatching()
+		return fmt.Errorf("the worker would not hand out the stream of what the person did: %w", err)
+	}
+	stopWatching()
+
+	for read := 0; read < mostEventsChecked; read++ {
+		select {
+		case event, open := <-events:
+			if !open {
+				return nil
+			}
+			if err := checkOneBrowserEvent(event); err != nil {
+				return err
+			}
+		case <-time.After(waitForTheStreamToEnd):
+			return errors.New("the event stream stayed open after the reader stopped listening, and it must end with the reader")
+		}
+	}
+	return fmt.Errorf("the event stream sent %d events to a reader that had stopped listening, and it must end with the reader", mostEventsChecked)
+}
+
+// checkOneBrowserEvent holds what every event owes whoever is recording a walk
+// from it.
+func checkOneBrowserEvent(event contract.BrowserEvent) error {
+	if !contract.KnownBrowserEventKind(event.Kind) {
+		return fmt.Errorf("the event stream carried the kind %q, and the three kinds are click, type, and navigate", event.Kind)
+	}
+	switch event.Kind {
+	case contract.BrowserEventType:
+		if event.Text != "" {
+			return errors.New("a typing event carried the text that was typed, and it may carry only how much was typed")
+		}
+	case contract.BrowserEventClick:
+		if event.Ref == "" && event.Text == "" {
+			return errors.New("a click event names neither an element nor its text, so nothing could be written down from it")
+		}
+	case contract.BrowserEventNavigate:
+		if event.Address == "" {
+			return errors.New("a navigation event carries no address, so nothing could be written down from it")
+		}
+	}
+	return nil
 }
 
 // checkBrowserWalls asserts that a page which is a wall says so on the snapshot,

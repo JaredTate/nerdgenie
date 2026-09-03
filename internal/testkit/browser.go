@@ -69,6 +69,7 @@ type FakeBrowserWorker struct {
 	nextProblem browserProblem
 	openDialog  *contract.Dialog
 	answers     []DialogAnswer
+	watchers    []*watcher
 }
 
 // DialogAnswer is one answer a test gave through the Dialog method.
@@ -432,10 +433,12 @@ func (worker *FakeBrowserWorker) DialogAnswers() []DialogAnswer {
 	return append([]DialogAnswer(nil), worker.answers...)
 }
 
-// Close shuts the fixture browser down.
+// Close shuts the fixture browser down, and ends every event stream with it,
+// because a worker that has gone reports nothing more.
 func (worker *FakeBrowserWorker) Close() error {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.closed = true
+	worker.closeEveryWatcher()
 	return nil
 }

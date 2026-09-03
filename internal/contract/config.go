@@ -61,6 +61,10 @@ type Caps struct {
 	// 8192, which every provider sends, because a zero cap is refused on the
 	// wire.
 	OutputTokensPerCall int `toml:"output_tokens_per_call"`
+	// BufferedBrowserEvents is how many of the person's own browser events are
+	// held for a reader that has fallen behind before the oldest are dropped.
+	// Default 256.
+	BufferedBrowserEvents int `toml:"buffered_browser_events"`
 }
 
 // MemoryCaps are the hard size limits on the two persona memory files, which is
@@ -132,14 +136,15 @@ func DefaultConfig() Config {
 		HandoffTimeout: 30 * time.Minute,
 		AskMeFirst:     DefaultAskMeFirst(),
 		Caps: Caps{
-			RoundsPerTask:       100,
-			TimePerTask:         time.Hour,
-			TimePerTool:         7 * time.Minute,
-			TimePerTurn:         15 * time.Minute,
-			QueuedMessages:      100,
-			ToolOutputBytes:     30000,
-			IdenticalCallWindow: 20,
-			OutputTokensPerCall: 8192,
+			RoundsPerTask:         100,
+			TimePerTask:           time.Hour,
+			TimePerTool:           7 * time.Minute,
+			TimePerTurn:           15 * time.Minute,
+			QueuedMessages:        100,
+			ToolOutputBytes:       30000,
+			IdenticalCallWindow:   20,
+			OutputTokensPerCall:   8192,
+			BufferedBrowserEvents: 256,
 		},
 		MemoryCaps: MemoryCaps{
 			WorldFactsBytes: 8000,

@@ -160,3 +160,10 @@ func TestAnEventDoesNotConfuseTheAnswerToACall(t *testing.T) {
 		t.Errorf("the event is %+v, want the click the person made", event)
 	}
 }
+
+func TestTheEventBufferIsTheCapTheDesignGives(t *testing.T) {
+	if DefaultBufferedEvents != contract.DefaultConfig().Caps.BufferedBrowserEvents {
+		t.Errorf("this package holds %d events for a slow reader and the configuration says %d, and they are the same cap",
+			DefaultBufferedEvents, contract.DefaultConfig().Caps.BufferedBrowserEvents)
+	}
+}

@@ -21,8 +21,8 @@ const comparableTaskID = "0"
 // make every replay fail for a reason nobody can fix.
 func comparable(held contract.Record) contract.Record {
 	held.Header.ID = comparableTaskID
-	held.Header.RoundsLeft = 0
-	held.Header.MinutesLeft = 0
+	held.Header.RoundsLeft, held.Header.NoRoundBudget = 0, false
+	held.Header.MinutesLeft, held.Header.NoTimeBudget = 0, false
 	held.Header.Cost = contract.CostLine{}
 	return held
 }

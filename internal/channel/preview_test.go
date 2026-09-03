@@ -202,6 +202,34 @@ func TestCancellingAPreviewRefusesItAtOnce(t *testing.T) {
 	}
 }
 
+// TestAPreviewOnASocketWithNoAnswerDeadlineWaitsAsLongAsTheTurnDoes is the
+// shipped default: with no time_per_turn there is no answer deadline, and a
+// preview nobody has answered after a day is still waiting, until the turn that
+// asked it ends.
+func TestAPreviewOnASocketWithNoAnswerDeadlineWaitsAsLongAsTheTurnDoes(t *testing.T) {
+	harness := newSocketHarnessWith(t, 0)
+	client := harness.attach(t)
+	turn, endTheTurn := context.WithCancel(context.Background())
+	defer endTheTurn()
+	answers := harness.showPreview(turn)
+
+	if shown := client.next(); shown.Type != contract.SocketPreview {
+		t.Fatalf("the screen saw a %s, want a preview", shown.Type)
+	}
+	harness.clock.Advance(24 * time.Hour)
+	select {
+	case got := <-answers:
+		t.Fatalf("the preview was answered %q with %v after a day nobody answered it, and with no deadline it waits for the turn", got.answer, got.err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	endTheTurn()
+	got := waitForPreviewAnswer(t, answers)
+	if got.answer != contract.AnswerReject || got.err == nil {
+		t.Errorf("the preview came back %q with %v once the turn ended, want a no with the turn's own reason", got.answer, got.err)
+	}
+}
+
 func TestAPreviewNobodyAnswersInTimeIsRefused(t *testing.T) {
 	harness := newSocketHarness(t)
 	client := harness.attach(t)

@@ -181,6 +181,14 @@ func TestTheRecordsAreComparedWithoutWhatARunCannotRepeat(t *testing.T) {
 	if difference := differenceBetween(was, now); difference != "" {
 		t.Errorf("two records that differ only in their number and budget were said to differ: %s", difference)
 	}
+	// A recording made under a budget replays on a machine with none, and
+	// whether there was a budget is as much a fact of the run as how much of
+	// it was left.
+	none := aSmallRecord("2", 0)
+	none.Header.NoRoundBudget, none.Header.NoTimeBudget = true, true
+	if difference := differenceBetween(was, none); difference != "" {
+		t.Errorf("a record with a budget and one with none were said to differ: %s", difference)
+	}
 	now.Goal.Why = "for some other reason"
 	if difference := differenceBetween(was, now); !strings.Contains(difference, "some other reason") {
 		t.Errorf("the difference is %q and the why is what changed", difference)

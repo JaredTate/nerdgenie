@@ -10,9 +10,10 @@ import (
 	"github.com/JaredTate/coeus/internal/record"
 )
 
-// The bounds one recording is read inside. A task runs a hundred rounds by
-// default, so anything past these is a log that has gone wrong rather than a
-// task, and the reader says so instead of filling memory.
+// The bounds one recording is read inside. A task has no round budget unless
+// the user sets one, and a task of a few hundred rounds is a long one, so
+// anything past these is a log that has gone wrong rather than a task, and the
+// reader says so instead of filling memory.
 const (
 	// MaxRoundsRead is how many model replies one recording may hold.
 	MaxRoundsRead = 2000
@@ -121,9 +122,13 @@ type reader struct {
 	// started says a round is open, so that the first checkpoint does not close
 	// an empty one.
 	started bool
-	// budget is the budget left on the last checkpoint, which is what tells one
-	// round from the next.
-	budget int
+	// standing is where the record stood on the last checkpoint, which is what
+	// tells one round from the next: the loop saves one checkpoint for every
+	// model call with the task running, so a checkpoint at running that
+	// follows another at running opens a new round. The budget line used to be
+	// read for this, and a task with no budget, which is the default, has none
+	// to read.
+	standing contract.RecordStatus
 	// orient is the last orient line seen, so that an unchanged situation does
 	// not overwrite the round with a line from before it.
 	orient string
@@ -176,12 +181,15 @@ func (reading *reader) takeCheckpoint(event contract.Event) error {
 	// after it. It is taken before the round is closed, so that it lands on the
 	// round that wrote it rather than the one about to start.
 	reading.takeOrient(held)
-	if reading.started && held.Header.RoundsLeft != reading.budget {
+	// The checkpoint an ending or a resume writes stands at some other status
+	// on one side of it, and belongs to the round around it; the one a model
+	// call writes stands at running after running, and opens the next.
+	if reading.started && held.Header.Status == contract.StatusRunning && reading.standing == contract.StatusRunning {
 		if err := reading.closeRound(); err != nil {
 			return err
 		}
 	}
-	reading.budget = held.Header.RoundsLeft
+	reading.standing = held.Header.Status
 	reading.started = true
 	return nil
 }

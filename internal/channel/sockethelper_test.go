@@ -19,9 +19,11 @@ import (
 const aReadWait = 5 * time.Second
 
 // theAnswerDeadline is how long the socket in these tests waits for a screen to
-// answer, which is the shipped time_per_turn: what cmd/coeus/serve.go passes
-// from the user's own configuration.
-var theAnswerDeadline = contract.DefaultConfig().Caps.TimePerTurn
+// answer: the time_per_turn a user who sets one might write, which is what
+// cmd/coeus passes from the user's own configuration. The shipped default is
+// none at all, which the socket reads as waiting for as long as the turn
+// lasts, and that has a test of its own.
+const theAnswerDeadline = 15 * time.Minute
 
 // socketHarness is a listening socket with everything around it a test needs.
 type socketHarness struct {
@@ -38,6 +40,13 @@ type socketHarness struct {
 // framework removes afterwards, because a Unix socket path is far shorter than a
 // file path may be.
 func newSocketHarness(t *testing.T) *socketHarness {
+	t.Helper()
+	return newSocketHarnessWith(t, theAnswerDeadline)
+}
+
+// newSocketHarnessWith is the same harness over the answer deadline the test
+// chooses, which is how a test listens the way the shipped caps do, with none.
+func newSocketHarnessWith(t *testing.T, answerDeadline time.Duration) *socketHarness {
 	t.Helper()
 	folder, err := os.MkdirTemp("", "coeus-socket")
 	if err != nil {
@@ -59,7 +68,7 @@ func newSocketHarness(t *testing.T) *socketHarness {
 		Queue:          harness.queue,
 		Secrets:        harness.secrets,
 		Clock:          harness.clock,
-		AnswerDeadline: theAnswerDeadline,
+		AnswerDeadline: answerDeadline,
 	})
 	if err != nil {
 		t.Fatalf("listening on the socket failed: %v", err)

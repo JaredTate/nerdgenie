@@ -30,10 +30,53 @@ func waitForSleepers(t *testing.T, clock *testkit.FakeClock, wanted int) {
 	t.Fatalf("only %d callers are waiting on the clock after a second, want %d", clock.Sleepers(), wanted)
 }
 
-func TestTheTurnDeadlineRunsOutAtFifteenMinutes(t *testing.T) {
+// capsWithATurnOf is the shipped caps with time_per_turn set, which is the
+// only way a turn gets a deadline at all.
+func capsWithATurnOf(limit time.Duration) contract.Caps {
+	caps := contract.DefaultConfig().Caps
+	caps.TimePerTurn = limit
+	return caps
+}
+
+// TestTheTurnDeadlineIsOffUnlessTheUserSetsOne is the user's rule at the
+// deadline: on the shipped caps a turn has no limit, never runs out, and a
+// watch on it only ends with the context it was given.
+func TestTheTurnDeadlineIsOffUnlessTheUserSetsOne(t *testing.T) {
 	clock := testkit.NewFakeClock(startOfTime)
 	deadline := reliability.TurnDeadline(clock, contract.DefaultConfig().Caps)
 
+	if !deadline.Off() {
+		t.Fatalf("a turn on the shipped caps has a deadline of %s, and the shipped caps set no time per turn", deadline.Remaining())
+	}
+	watched, stop := deadline.Watch(context.Background())
+	clock.Advance(24 * time.Hour)
+	if deadline.Expired() || deadline.Err() != nil {
+		t.Errorf("a turn with no limit ran out after a day: %v", deadline.Err())
+	}
+	if deadline.Remaining() < 24*time.Hour {
+		t.Errorf("a turn with no limit says it has %s left, and it has all the time there is", deadline.Remaining())
+	}
+	select {
+	case <-watched.Done():
+		t.Fatalf("the watched context of a turn with no limit was cancelled: %v", context.Cause(watched))
+	default:
+	}
+	stop()
+	if err := context.Cause(watched); !errors.Is(err, context.Canceled) {
+		t.Errorf("stopping the watch left the context with %v, want it cancelled", err)
+	}
+	if !reliability.ToolDeadline(clock, contract.DefaultConfig().Caps).Expired() == false || reliability.ToolDeadline(clock, contract.DefaultConfig().Caps).Off() {
+		t.Error("the tool deadline is off, and a hung command still has to be killed")
+	}
+}
+
+func TestTheTurnDeadlineRunsOutAtTheFifteenMinutesTheUserSet(t *testing.T) {
+	clock := testkit.NewFakeClock(startOfTime)
+	deadline := reliability.TurnDeadline(clock, capsWithATurnOf(15*time.Minute))
+
+	if deadline.Off() {
+		t.Fatalf("a turn deadline the user set is off")
+	}
 	if deadline.Expired() {
 		t.Fatalf("a turn deadline has already run out at the moment it was made")
 	}

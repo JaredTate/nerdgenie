@@ -48,8 +48,10 @@ type Options struct {
 	// AnswerDeadline is how long a preview or a masked prompt waits for an
 	// answer. It is the user's own time_per_turn, because a question asked
 	// inside a turn cannot usefully outlive the turn that asked it, and it is
-	// required rather than filled in here, because a deadline of this package's
-	// own choosing would quietly ignore what the user set.
+	// never filled in here, because a deadline of this package's own choosing
+	// would quietly ignore what the user set. Zero, which is the shipped
+	// default, means the turn has no limit and the question waits as long as
+	// the turn does; only a length below zero is refused.
 	AnswerDeadline time.Duration
 	// MaxClients is how many screens may be connected at once. Zero means
 	// DefaultMaxClients.
@@ -247,8 +249,8 @@ func (options Options) check() error {
 		return errors.New("the socket needs the vault to redact what it sends, so pass the secret store")
 	case options.Clock == nil:
 		return errors.New("the socket needs a clock to say when a message arrived, so pass the one the rest of the agent reads")
-	case options.AnswerDeadline <= 0:
-		return errors.New("the socket needs to know how long to wait for an answer to a preview or a masked prompt, so pass the user's time_per_turn from the configuration")
+	case options.AnswerDeadline < 0:
+		return errors.New("the socket was told to wait less than no time for an answer to a preview or a masked prompt, so pass the user's time_per_turn from the configuration, which is zero for no limit")
 	}
 	return nil
 }

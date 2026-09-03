@@ -150,22 +150,39 @@ func TestListeningRefusesAPathItCannotUse(t *testing.T) {
 	}
 }
 
-func TestListeningRefusesASocketWithNoAnswerDeadline(t *testing.T) {
+func TestListeningRefusesASocketWithAnAnswerDeadlineBelowZero(t *testing.T) {
 	// A deadline of the package's own choosing would quietly ignore the
-	// time_per_turn the user set, and a question asked inside a turn cannot
-	// usefully outlive the turn that asked it, so the caller has to pass one.
+	// time_per_turn the user set, so the caller passes theirs: zero, the
+	// shipped default, is no limit, and only a length below zero is refused.
 	_, err := Listen(Options{
+		Path:           filepath.Join(t.TempDir(), "coeus.sock"),
+		Stream:         NewStream(StreamOptions{}),
+		Queue:          newTestQueue(t, 10),
+		Secrets:        testkit.NewFakeSecrets(),
+		Clock:          testkit.NewFakeClock(arrived),
+		AnswerDeadline: -time.Minute,
+	})
+	if err == nil {
+		t.Fatal("a socket was opened with a deadline below zero for answering a preview")
+	}
+	if !strings.Contains(err.Error(), "time_per_turn") {
+		t.Errorf("the refusal reads %q, and it has to name the setting the deadline comes from", err)
+	}
+}
+
+func TestListeningTakesASocketWithNoAnswerDeadline(t *testing.T) {
+	socket, err := Listen(Options{
 		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
 		Stream:  NewStream(StreamOptions{}),
 		Queue:   newTestQueue(t, 10),
 		Secrets: testkit.NewFakeSecrets(),
 		Clock:   testkit.NewFakeClock(arrived),
 	})
-	if err == nil {
-		t.Fatal("a socket was opened with no deadline for answering a preview, and it would have used a deadline of its own instead of the user's")
+	if err != nil {
+		t.Fatalf("a socket with no answer deadline, which is the shipped time_per_turn, was refused: %v", err)
 	}
-	if !strings.Contains(err.Error(), "time_per_turn") {
-		t.Errorf("the refusal reads %q, and it has to name the setting the deadline comes from", err)
+	if err := socket.Close(); err != nil {
+		t.Errorf("closing the socket failed: %v", err)
 	}
 }
 

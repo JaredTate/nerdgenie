@@ -71,12 +71,18 @@ func openStreamedCall(ctx context.Context, options Options, modelName, address s
 }
 
 // withCallDeadline gives the call a deadline of its own when the caller brought
-// none, so that no call can hang for ever.
+// none and the configuration's turn cap is on. With the cap off, which is the
+// default, the call has no whole-call limit: the stall watch is what ends a
+// call whose stream has gone quiet, and the turn's own context is what ends
+// one the person stopped.
 func withCallDeadline(ctx context.Context) (context.Context, context.CancelFunc) {
 	if _, has := ctx.Deadline(); has {
 		return context.WithCancel(ctx)
 	}
-	return context.WithTimeout(ctx, callTimeout())
+	if limit := callTimeout(); limit > 0 {
+		return context.WithTimeout(ctx, limit)
+	}
+	return context.WithCancel(ctx)
 }
 
 // readRefusal reads as much of a refusal's body as is worth printing.

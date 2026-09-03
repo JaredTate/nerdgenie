@@ -57,6 +57,7 @@ cmd/coeus/serve_test.go
 cmd/coeus/signal.go
 cmd/coeus/signal_test.go
 cmd/coeus/skillsbox.go
+cmd/coeus/skillsbox_test.go
 cmd/coeus/status.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/timedstore.go
@@ -111,6 +112,7 @@ docs/briefs/wave-6/6.3-updater.md
 docs/briefs/wave-6/6.4-replay-nightly.md
 docs/briefs/wave-6/6.5-security-review-release-check.md
 docs/briefs/wave-6/6.6-what-the-fix-workers-handed-back.md
+docs/briefs/wave-6/6.7-fix-the-wave-6-gate.md
 docs/html/build.ts
 docs/html/coeus-plan.html
 docs/html/coeus.html
@@ -768,6 +770,8 @@ internal/skill/save_test.go
 internal/skill/site.go
 internal/skill/site_internal_test.go
 internal/skill/site_test.go
+internal/skill/source.go
+internal/skill/source_test.go
 internal/skill/steps.go
 internal/skill/store.go
 internal/skill/testdata/broken/no-procedure/CHANGELOG.md

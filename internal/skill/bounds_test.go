@@ -159,11 +159,11 @@ func TestOnlySoManySkillsAreKept(t *testing.T) {
 		name := fmt.Sprintf("skill-%d", number)
 		built.writeFiles(t, name, map[string]string{skill.DescriptionFile: "# " + name + "\n\nOne of very many skills indeed.\n"})
 	}
-	err := built.store.Save(ctx, "one-too-many", filesFor("one-too-many", "The skill that does not fit.", "Do it."))
+	err := built.store.Save(ctx, contract.SkillSavedByPerson, "one-too-many", filesFor("one-too-many", "The skill that does not fit.", "Do it."))
 	if err == nil || !strings.Contains(err.Error(), "one-too-many") {
 		t.Errorf("saving past the cap gave %v, want an error naming the skill that did not fit", err)
 	}
-	if err := built.store.Save(ctx, "skill-0", filesFor("skill-0", "A skill that was already there.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "skill-0", filesFor("skill-0", "A skill that was already there.", "Do it.")); err != nil {
 		t.Errorf("saving over a skill that was already there was refused at the cap: %v", err)
 	}
 }
@@ -173,7 +173,7 @@ func TestOnlySoManyVersionsAreKept(t *testing.T) {
 	ctx := context.Background()
 	for round := range skill.MaxVersions + 3 {
 		files := filesFor("note", fmt.Sprintf("Version number %d of this skill.", round+1), "Do it.")
-		if err := built.store.Save(ctx, "note", files); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", files); err != nil {
 			t.Fatalf("save %d failed: %v", round+1, err)
 		}
 	}
@@ -189,7 +189,7 @@ func TestOnlySoManyVersionsAreKept(t *testing.T) {
 func TestRestoringAVersionWithNothingInItIsRefused(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "A skill with an empty version beside it.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill with an empty version beside it.", "Do it.")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	empty := filepath.Join(built.home.SkillFolder("note"), skill.VersionsFolder, "1")
@@ -209,7 +209,7 @@ func TestAStepWithNoInputRunsWithNothingInIt(t *testing.T) {
 		skill.DescriptionFile: []byte("# bare-step\n\nA skill whose one step takes no input.\n"),
 		skill.StepsFile:       []byte("1. Say nothing in particular.\n   tool: echo\n"),
 	}
-	if err := built.store.Save(ctx, "bare-step", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "bare-step", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	report, err := built.store.Run(ctx, "bare-step", "")
@@ -229,7 +229,7 @@ func TestALongResultIsCutShortInTheReport(t *testing.T) {
 		skill.DescriptionFile: []byte("# long-result\n\nA skill whose one step says a great deal.\n"),
 		skill.StepsFile:       []byte("1. Say a great deal.\n   tool: echo\n"),
 	}
-	if err := built.store.Save(ctx, "long-result", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "long-result", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	report, err := built.store.Run(ctx, "long-result", "")
@@ -255,7 +255,7 @@ func TestAWebsiteIsMatchedByItsHostHoweverItIsWritten(t *testing.T) {
 				"2. Go to a part of the same site.\n   tool: web\n   input: {\"url\": \"https://sport.news.example.com/\"}\n\n" +
 				"3. Search the web, which visits nothing in particular.\n   tool: web\n   input: {\"query\": \"the news\"}\n"),
 	}
-	if err := built.store.Save(ctx, "hosts", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "hosts", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	if _, err := built.store.Run(ctx, "hosts", ""); err != nil {
@@ -285,7 +285,7 @@ func TestAFolderBuiltInMemoryKnowsItIsNotOnDisk(t *testing.T) {
 		t.Errorf("the body is %q, want it to say the procedure is the script", folder.Body)
 	}
 
-	if err := built.store.Save(context.Background(), "scripted", files); err != nil {
+	if err := built.store.Save(context.Background(), contract.SkillSavedByPerson, "scripted", files); err != nil {
 		t.Fatalf("saving the folder failed: %v", err)
 	}
 	saved, err := skill.ReadFolder(built.home.SkillFolder("scripted"))

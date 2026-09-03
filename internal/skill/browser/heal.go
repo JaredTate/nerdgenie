@@ -150,7 +150,7 @@ func (replayer *Replayer) writeThePatch(ctx context.Context, folder skill.Folder
 	}
 	files[skill.StepsFile] = RenderSteps(steps)
 	files[skill.ChangelogFile] = append(endingInANewline(files[skill.ChangelogFile]), []byte("- self-heal: "+patch+"\n")...)
-	return replayer.options.Skills.Save(ctx, folder.Definition.Name, files)
+	return replayer.options.Skills.Save(ctx, contract.SkillSavedByPerson, folder.Definition.Name, files)
 }
 
 // otherFilesOf reads the files of a skill folder that a patch leaves alone, so

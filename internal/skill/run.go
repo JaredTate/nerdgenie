@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -32,6 +31,21 @@ const (
 // what it expected and what it saw, along with the report of the steps that did
 // work, so that the loop can decide whether the model is needed.
 func (store *Store) Run(ctx context.Context, name string, arguments string) (string, error) {
+	return store.runOne(ctx, name, arguments, replayKind{})
+}
+
+// RunForPerson replays a skill the person at the screen asked for by name,
+// which is what "/skills run" calls. It is the same replay, and a yes the person
+// gives one of its steps is what a skill the model wrote waits for before its
+// permissions block becomes standing approvals. A run the model started never
+// counts, because a model that could approve its own skill would be approving
+// itself.
+func (store *Store) RunForPerson(ctx context.Context, name string, arguments string) (string, error) {
+	return store.runOne(ctx, name, arguments, replayKind{person: true})
+}
+
+// runOne is the body of both ways of running a skill.
+func (store *Store) runOne(ctx context.Context, name string, arguments string, how replayKind) (string, error) {
 	folder, err := store.read(name)
 	if err != nil {
 		return "", err
@@ -39,7 +53,7 @@ func (store *Store) Run(ctx context.Context, name string, arguments string) (str
 	if err := store.registerApprovals(folder); err != nil {
 		return "", err
 	}
-	return store.replay(ctx, folder, arguments, false)
+	return store.replay(ctx, folder, arguments, how)
 }
 
 // DryRun replays a skill up to the first step that cannot be undone and stops,
@@ -56,10 +70,19 @@ func (store *Store) DryRun(ctx context.Context, name string) (string, error) {
 	return store.dryRun(ctx, folder)
 }
 
+// replayKind says how a replay was started: whether it is a dry run, which
+// stops before the first step that cannot be undone, and whether the person at
+// the screen started it, whose yes to a step is what lets a skill the model
+// wrote hold a standing approval.
+type replayKind struct {
+	dry    bool
+	person bool
+}
+
 // dryRun replays a folder that may not be on disk yet, which is what the
 // learning paths use before they save anything.
 func (store *Store) dryRun(ctx context.Context, folder Folder) (string, error) {
-	report, err := store.replay(ctx, folder, folder.Plan.Arguments, true)
+	report, err := store.replay(ctx, folder, folder.Plan.Arguments, replayKind{dry: true})
 	if err != nil {
 		return report, err
 	}
@@ -72,7 +95,7 @@ func (store *Store) dryRun(ctx context.Context, folder Folder) (string, error) {
 
 // replay runs the steps in order, checking each one's expectation. A dry run
 // stops before the first step the permissions block says cannot be undone.
-func (store *Store) replay(ctx context.Context, folder Folder, arguments string, dry bool) (string, error) {
+func (store *Store) replay(ctx context.Context, folder Folder, arguments string, how replayKind) (string, error) {
 	steps, err := stepsToReplay(folder)
 	if err != nil {
 		return "", err
@@ -80,7 +103,7 @@ func (store *Store) replay(ctx context.Context, folder Folder, arguments string,
 
 	report := &strings.Builder{}
 	for _, step := range steps {
-		if dry && folder.isIrreversible(step.Number) {
+		if how.dry && folder.isIrreversible(step.Number) {
 			addLine(report, fmt.Sprintf("step %d stops the dry run, because it cannot be undone: %s", step.Number, step.Intent))
 			return report.String(), nil
 		}
@@ -88,7 +111,7 @@ func (store *Store) replay(ctx context.Context, folder Folder, arguments string,
 			return report.String(), fmt.Errorf("step %d of the skill %q is written in words and names no tool, so the model has to carry it out: %s",
 				step.Number, folder.Definition.Name, step.Intent)
 		}
-		output, err := store.runOneStep(ctx, folder, step, arguments)
+		output, err := store.runOneStep(ctx, folder, step, arguments, how)
 		if err != nil {
 			return report.String(), err
 		}
@@ -121,12 +144,12 @@ func stepsToReplay(folder Folder) ([]Step, error) {
 }
 
 // runOneStep rules on one step and then runs it.
-func (store *Store) runOneStep(ctx context.Context, folder Folder, step Step, arguments string) (contract.ToolOutput, error) {
+func (store *Store) runOneStep(ctx context.Context, folder Folder, step Step, arguments string, how replayKind) (contract.ToolOutput, error) {
 	input := json.RawMessage(substituteArguments(step.Input, arguments))
 	if len(input) == 0 {
 		input = json.RawMessage("{}")
 	}
-	if err := store.allowStep(ctx, folder, step, input); err != nil {
+	if err := store.allowStep(ctx, folder, step, input, how); err != nil {
 		return contract.ToolOutput{}, err
 	}
 	tool, found := store.tools.Lookup(step.Tool)
@@ -144,10 +167,10 @@ func (store *Store) runOneStep(ctx context.Context, folder Folder, step Step, ar
 
 // allowStep puts one step through the permissions block, the permission
 // function, and the preview a step that cannot be undone needs, in that order.
-func (store *Store) allowStep(ctx context.Context, folder Folder, step Step, input json.RawMessage) error {
+func (store *Store) allowStep(ctx context.Context, folder Folder, step Step, input json.RawMessage, how replayKind) error {
 	if site, outside := siteOutsideTheBlock(folder.Definition.Permissions, step, input); outside {
 		why := fmt.Sprintf("it visits %s, which the permissions block of this skill does not name", site)
-		return store.askTheUser(ctx, folder, step, why, string(input))
+		return store.askTheUser(ctx, folder, step, why, string(input), how)
 	}
 
 	decision, err := store.permission.Decide(ctx, contract.PermissionRequest{ToolName: step.Tool, Input: input})
@@ -160,19 +183,19 @@ func (store *Store) allowStep(ctx context.Context, folder Folder, step Step, inp
 		return fmt.Errorf("step %d of the skill %q is refused by your rules, so change the rule or the step: %s",
 			step.Number, folder.Definition.Name, decision.Reason)
 	default:
-		if err := store.askTheUser(ctx, folder, step, decision.Reason, decision.PreviewText); err != nil {
+		if err := store.askTheUser(ctx, folder, step, decision.Reason, decision.PreviewText, how); err != nil {
 			return err
 		}
 	}
 	if folder.isIrreversible(step.Number) {
-		return store.askTheUser(ctx, folder, step, "it cannot be undone", string(input))
+		return store.askTheUser(ctx, folder, step, "it cannot be undone", string(input), how)
 	}
 	return nil
 }
 
 // askTheUser shows one step and waits for a yes. With no channel wired it stops
 // and says what it needed, which is what an unattended run gets.
-func (store *Store) askTheUser(ctx context.Context, folder Folder, step Step, why string, body string) error {
+func (store *Store) askTheUser(ctx context.Context, folder Folder, step Step, why string, body string, how replayKind) error {
 	name := folder.Definition.Name
 	if store.ask == nil {
 		return fmt.Errorf("step %d of the skill %q needs your yes, because %s, and there is no screen to ask on, so run the skill yourself",
@@ -191,6 +214,9 @@ func (store *Store) askTheUser(ctx context.Context, folder Folder, step Step, wh
 			return fmt.Errorf("step %d of the skill %q was refused, so the skill stopped there, and you said: %s", step.Number, name, reason)
 		}
 		return fmt.Errorf("step %d of the skill %q was refused, so the skill stopped there and did nothing more", step.Number, name)
+	}
+	if how.person {
+		store.rememberThePersonSaidYes(name)
 	}
 	return nil
 }
@@ -247,18 +273,21 @@ func hostOf(address string) string {
 }
 
 // registerApprovals turns a skill's permissions block into standing approvals
-// in the permission function: for every website the block names, the forms of a
-// visit to that website with the tools the skill's own steps use, each good for
-// the daily limit and running out at midnight. They are registered once a day
-// per skill, so that running a skill twice does not hand it twice its budget.
+// in the permission function: one for each website the block names, covering the
+// tools that visit a website, good for the daily limit and running out at
+// midnight. They are registered once a day per skill, so that running a skill
+// twice does not hand it twice its budget, and a skill the model wrote gets none
+// of them until a person has run it and said yes.
 //
 // The site is checked here as well as where SKILL.md was read, because this is
 // the place a site line turns into permission to act, and a folder can reach it
 // from anywhere a Definition is built.
 func (store *Store) registerApprovals(folder Folder) error {
 	permissions := folder.Definition.Permissions
-	tools := toolsTheStepsVisitWith(folder)
-	if store.standing == nil || len(permissions.Sites) == 0 || len(tools) == 0 {
+	if store.standing == nil || len(permissions.Sites) == 0 {
+		return nil
+	}
+	if store.waitingForAPersonToRunIt(folder) {
 		return nil
 	}
 	now := store.clock.Now()
@@ -270,7 +299,7 @@ func (store *Store) registerApprovals(folder Folder) error {
 		return nil
 	}
 	for _, site := range permissions.Sites {
-		if err := store.registerOneSite(folder, site, tools, now); err != nil {
+		if err := store.registerOneSite(folder, site, now); err != nil {
 			return err
 		}
 	}
@@ -278,40 +307,26 @@ func (store *Store) registerApprovals(folder Folder) error {
 	return nil
 }
 
-// registerOneSite gives the permission function every form of a visit to one
-// website that the skill's steps could make.
-func (store *Store) registerOneSite(folder Folder, site string, tools []string, now time.Time) error {
+// registerOneSite gives the permission function the standing approval for one
+// website: the host as the person typed it, and the tools whose call names the
+// website it goes to, so that the permission function decides by comparing hosts
+// and an approval for a website can never cover a command run on this machine.
+func (store *Store) registerOneSite(folder Folder, site string, now time.Time) error {
 	name := folder.Definition.Name
 	if err := checkSite(site); err != nil {
 		return fmt.Errorf("the skill %q names the website %q in its permissions block, and a standing approval is built from one bare host name, because %w", name, site, err)
 	}
-	for _, form := range approvalFormsFor(site, tools) {
-		approval := permission.StandingApproval{
-			Skill:       name,
-			ReducedForm: form,
-			Limit:       folder.Definition.Permissions.DailyLimit,
-			Expires:     nextMidnight(now),
-		}
-		if err := store.standing.RegisterStandingApproval(approval); err != nil {
-			return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", name, site, err)
-		}
+	approval := permission.StandingApproval{
+		Skill:   name,
+		Host:    site,
+		Tools:   permission.ToolsThatVisitAWebsite(),
+		Limit:   folder.Definition.Permissions.DailyLimit,
+		Expires: nextMidnight(now),
+	}
+	if err := store.standing.RegisterStandingApproval(approval); err != nil {
+		return fmt.Errorf("cannot give the skill %q its standing approval for %s, so check its permissions block: %w", name, site, err)
 	}
 	return nil
-}
-
-// toolsTheStepsVisitWith returns the website-visiting tools a skill's steps
-// name, in the order the steps name them and without repeats. A skill's
-// standing approvals cover only these, because a replay makes no call its steps
-// do not name, and an approval for a tool the skill never uses is authority
-// nobody asked for.
-func toolsTheStepsVisitWith(folder Folder) []string {
-	tools := []string{}
-	for _, step := range folder.Steps {
-		if visitsAWebsite(step.Tool) && !slices.Contains(tools, step.Tool) {
-			tools = append(tools, step.Tool)
-		}
-	}
-	return tools
 }
 
 // nextMidnight is the start of the next day where the machine is, which is when

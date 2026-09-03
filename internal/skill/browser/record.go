@@ -21,8 +21,9 @@ import (
 // one method rather than the whole of contract.Skill, because a recorder that
 // could also list, load, and run skills would be able to do more than it needs.
 type SkillSaver interface {
-	// Save writes a skill folder, whose files are keyed by their names.
-	Save(ctx context.Context, name string, files map[string][]byte) error
+	// Save writes a skill folder, whose files are keyed by their names, saying
+	// who is saving it.
+	Save(ctx context.Context, source contract.SkillSource, name string, files map[string][]byte) error
 }
 
 // Recorder drives a browser and writes down what it did, so that the same
@@ -164,7 +165,7 @@ func (recorder *Recorder) Save(ctx context.Context, saver SkillSaver, definition
 		skill.StepsFile:       RenderSteps(steps),
 		skill.TestFile:        skill.RenderTestFile(definition.Name, skill.DryRunPlan{Arguments: firstAddress(steps)}),
 	}
-	return saver.Save(ctx, definition.Name, files)
+	return saver.Save(ctx, contract.SkillSavedByPerson, definition.Name, files)
 }
 
 // firstAddress is the page the recording opened first, which is what its dry run

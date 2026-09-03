@@ -86,7 +86,7 @@ func TestThePermissionsBlockBecomesStandingApprovals(t *testing.T) {
 	opened := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolBrowserOpen}, "the other site")
 	store, channel, decider := realPermissionHarness(t, fetched, opened)
 	ctx := context.Background()
-	if err := store.Save(ctx, "read-the-news", browsingSkill()); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "read-the-news", browsingSkill()); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -139,7 +139,7 @@ func TestAStepOutsideTheBlockAsksAndRunsWhenTheUserSaysYes(t *testing.T) {
 	opened := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolBrowserOpen}, "the other site")
 	store, channel, _ := realPermissionHarness(t, fetched, opened)
 	ctx := context.Background()
-	if err := store.Save(ctx, "read-the-news", browsingSkill()); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "read-the-news", browsingSkill()); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -160,7 +160,7 @@ func TestTheDailyLimitIsHandedOutOnceADay(t *testing.T) {
 	ctx := context.Background()
 	files := browsingSkill()
 	files[skill.StepsFile] = []byte(readingStep)
-	if err := store.Save(ctx, "read-the-news", files); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "read-the-news", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -181,7 +181,7 @@ func TestAStoreWithNoPlaceToRegisterApprovalsStillRuns(t *testing.T) {
 	ctx := context.Background()
 	files := browsingSkill()
 	files[skill.StepsFile] = []byte(readingStep)
-	if err := built.store.Save(ctx, "read-the-news", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "read-the-news", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	if _, err := built.store.Run(ctx, "read-the-news", ""); err != nil {

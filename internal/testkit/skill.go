@@ -15,6 +15,7 @@ type fakeSkillEntry struct {
 	body     string
 	triggers []string
 	files    map[string][]byte
+	source   contract.SkillSource
 }
 
 // FakeSkill holds skills in memory, matches their trigger words, and records
@@ -52,6 +53,18 @@ func (skills *FakeSkill) Files(name string) map[string][]byte {
 		return nil
 	}
 	return entry.files
+}
+
+// SourceOf is who saved one skill, and is empty for a skill a test put in the
+// store itself rather than saving.
+func (skills *FakeSkill) SourceOf(name string) contract.SkillSource {
+	skills.guard.Lock()
+	defer skills.guard.Unlock()
+	entry, held := skills.entries[name]
+	if !held {
+		return ""
+	}
+	return entry.source
 }
 
 // Runs is the name of every skill that was run, in order.
@@ -97,8 +110,13 @@ func (skills *FakeSkill) Run(_ context.Context, name string, arguments string) (
 	return strings.TrimSpace(entry.summary.Description + " " + arguments), nil
 }
 
-// Save writes a skill folder and makes the skill available at once.
-func (skills *FakeSkill) Save(_ context.Context, name string, files map[string][]byte) error {
+// Save writes a skill folder and makes the skill available at once, remembering
+// who saved it, because the real store marks a skill the model wrote and trusts
+// it with less until a person has run it.
+func (skills *FakeSkill) Save(_ context.Context, source contract.SkillSource, name string, files map[string][]byte) error {
+	if !contract.KnownSkillSource(source) {
+		return fmt.Errorf("the skill %q is being saved by %q, and a save says whether the person or the model is saving, so pass one of those two", name, source)
+	}
 	if name == "" {
 		return fmt.Errorf("a skill needs a name before it can be saved, so give this one a folder name")
 	}
@@ -116,6 +134,7 @@ func (skills *FakeSkill) Save(_ context.Context, name string, files map[string][
 		summary: contract.SkillSummary{Name: name, Description: descriptionIn(files["SKILL.md"])},
 		body:    string(files["SKILL.md"]),
 		files:   files,
+		source:  source,
 	}
 	// Saving over a skill rewrites what the folder holds and nothing else. The
 	// trigger words are what the router matches on, and a save that dropped them

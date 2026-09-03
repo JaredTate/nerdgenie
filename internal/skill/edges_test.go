@@ -49,7 +49,7 @@ func TestAFileWhereASkillFolderShouldBeIsNotASkill(t *testing.T) {
 func TestASkillWithNoChangelogSaysSo(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "A skill whose changelog gets deleted.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill whose changelog gets deleted.", "Do it.")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	if err := os.Remove(filepath.Join(built.home.SkillFolder("note"), skill.ChangelogFile)); err != nil {
@@ -63,7 +63,7 @@ func TestASkillWithNoChangelogSaysSo(t *testing.T) {
 	}
 
 	// Saving it again writes the changelog back, and then it shows.
-	if err := built.store.Save(ctx, "note", filesFor("note", "A skill whose changelog came back.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill whose changelog came back.", "Do it.")); err != nil {
 		t.Fatalf("the second save failed: %v", err)
 	}
 	said, err := runSlash(t, built, "show note")
@@ -79,14 +79,14 @@ func TestASkillCanOnlyBeRemovedSoManyTimes(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
 	for round := range skill.MaxVersions {
-		if err := built.store.Save(ctx, "note", filesFor("note", "A skill saved and removed over and over.", "Do it.")); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill saved and removed over and over.", "Do it.")); err != nil {
 			t.Fatalf("save %d failed: %v", round+1, err)
 		}
 		if _, err := built.store.Remove(ctx, "note"); err != nil {
 			t.Fatalf("removal %d failed: %v", round+1, err)
 		}
 	}
-	if err := built.store.Save(ctx, "note", filesFor("note", "The save that cannot be removed.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "The save that cannot be removed.", "Do it.")); err != nil {
 		t.Fatalf("the last save failed: %v", err)
 	}
 	_, err := built.store.Remove(ctx, "note")
@@ -98,7 +98,7 @@ func TestASkillCanOnlyBeRemovedSoManyTimes(t *testing.T) {
 func TestASkillWithNoTriggersNeverFiresFromAMessage(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "quiet", filesFor("quiet", "A skill with no trigger words at all.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "quiet", filesFor("quiet", "A skill with no trigger words at all.", "Do it.")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	matched, err := built.store.Match(ctx, "quiet please do it")
@@ -119,7 +119,7 @@ func TestAStepWhoseAddressIsNotAnAddressIsStillChecked(t *testing.T) {
 			"1. Go somewhere named by a bare host.\n   tool: web\n   input: {\"url\": \"news.example.com\"}\n\n" +
 				"2. Go somewhere named by something that is not text.\n   tool: web\n   input: {\"url\": 4}\n"),
 	}
-	if err := built.store.Save(ctx, "odd-address", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "odd-address", files); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	_, err := built.store.Run(ctx, "odd-address", "")
@@ -145,7 +145,7 @@ func TestATestFileKeepsItsExpectationWhenItIsWrittenOut(t *testing.T) {
 func TestAToolThatFailsNamesTheStepItFailedIn(t *testing.T) {
 	built := newHarness(t, &failingTool{name: "echo"})
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	_, err := built.store.Run(ctx, "say-two", "")
@@ -166,7 +166,7 @@ func TestTheReportStopsGrowingAtItsCap(t *testing.T) {
 		skill.DescriptionFile: []byte("# many-steps\n\nSays a long thing many times over.\n"),
 		skill.StepsFile:       []byte(steps.String()),
 	}
-	if err := built.store.Save(ctx, "many-steps", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "many-steps", files); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	report, err := built.store.Run(ctx, "many-steps", "")

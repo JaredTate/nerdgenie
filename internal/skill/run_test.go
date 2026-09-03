@@ -28,7 +28,7 @@ func TestATriggerRunsASkillWithTheModelNeverCalled(t *testing.T) {
 	built := newHarness(t, echo)
 	ctx := context.Background()
 	model := testkit.NewFakeModel(testkit.Script{Name: "never-called", ContextLength: 1000})
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -58,7 +58,7 @@ func TestATriggerRunsASkillWithTheModelNeverCalled(t *testing.T) {
 func TestMatchNeedsEveryTriggerAndOnlyOneSkill(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -89,7 +89,7 @@ func TestAMessageThatFiresTwoSkillsFiresNeither(t *testing.T) {
 	ctx := context.Background()
 	for _, name := range []string{"say-two", "say-more"} {
 		files := twoStepSkill(name)
-		if err := built.store.Save(ctx, name, files); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, name, files); err != nil {
 			t.Fatalf("saving the skill %q failed: %v", name, err)
 		}
 	}
@@ -105,7 +105,7 @@ func TestAMessageThatFiresTwoSkillsFiresNeither(t *testing.T) {
 func TestAFolderThatWillNotLoadIsPassedOverByTheListing(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "good", filesFor("good", "A skill that reads perfectly well.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "good", filesFor("good", "A skill that reads perfectly well.", "Do it.")); err != nil {
 		t.Fatalf("saving the good skill failed: %v", err)
 	}
 	built.writeFiles(t, "bad", map[string]string{skill.DescriptionFile: "# bad\n\n## Permissions\n\n- daily limit: not a number\n"})
@@ -126,7 +126,7 @@ func TestAFolderThatWillNotLoadIsPassedOverByTheListing(t *testing.T) {
 func TestAFailedStepSaysWhatItExpectedAndWhatItSaw(t *testing.T) {
 	built := newHarness(t, testkit.NewScriptedTool(contract.ToolSpec{Name: "echo"}, "something else entirely"))
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestAStepWrittenInWordsHandsTheWorkBackToTheModel(t *testing.T) {
 		skill.DescriptionFile: []byte("# in-words\n\nA procedure written out in plain words.\n"),
 		skill.StepsFile:       []byte("1. Look at the page and decide what to do.\n"),
 	}
-	if err := built.store.Save(ctx, "in-words", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "in-words", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	_, err := built.store.Run(ctx, "in-words", "")
@@ -161,7 +161,7 @@ func TestAStepWrittenInWordsHandsTheWorkBackToTheModel(t *testing.T) {
 func TestAToolTheMachineDoesNotHaveIsNamed(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	_, err := built.store.Run(ctx, "say-two", "")
@@ -178,7 +178,7 @@ func TestADryRunStopsBeforeTheStepThatCannotBeUndone(t *testing.T) {
 	files[skill.DescriptionFile] = []byte("# say-two\n\nSays two things back, in the order the steps give.\n\n" +
 		"## Permissions\n\n- daily limit: 5\n- irreversible step: 2\n")
 	files[skill.TestFile] = []byte("arguments: the news\nexpect: the first thing\n")
-	if err := built.store.Save(ctx, "say-two", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -199,7 +199,7 @@ func TestADryRunThatDoesNotSeeWhatItExpectedFails(t *testing.T) {
 	ctx := context.Background()
 	files := twoStepSkill("say-two")
 	files[skill.TestFile] = []byte("arguments: the news\nexpect: something nobody said\n")
-	if err := built.store.Save(ctx, "say-two", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	if _, err := built.store.DryRun(ctx, "say-two"); err == nil {
@@ -214,7 +214,7 @@ func TestAStepThatCannotBeUndoneIsPreviewed(t *testing.T) {
 	files := twoStepSkill("say-two")
 	files[skill.DescriptionFile] = []byte("# say-two\n\nSays two things back, in the order the steps give.\n\n" +
 		"## Permissions\n\n- daily limit: 5\n- irreversible step: 2\n")
-	if err := built.store.Save(ctx, "say-two", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -239,7 +239,7 @@ func TestARefusedStepStopsTheSkill(t *testing.T) {
 	built := newHarness(t, &echoTool{name: "echo"})
 	ctx := context.Background()
 	built.permission.Rule("echo", contract.PermissionDecision{Ruling: contract.RulingDeny, Reason: "a rule of yours refuses it"})
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	_, err := built.store.Run(ctx, "say-two", "")
@@ -256,7 +256,7 @@ func TestAStepThatNeedsAYesStopsWhenThereIsNoScreen(t *testing.T) {
 		t.Fatalf("cannot build a store with no screen: %v", err)
 	}
 	built.permission.Rule("echo", contract.PermissionDecision{Ruling: contract.RulingAsk, Reason: "it wants a yes"})
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	_, err = quiet.Run(ctx, "say-two", "")
@@ -273,7 +273,7 @@ func TestASkillWithAScriptRunsTheScript(t *testing.T) {
 		skill.DescriptionFile: []byte("# scripted\n\nA skill whose procedure is one executable.\n"),
 		skill.ScriptFile:      []byte("#!/bin/sh\necho hello\n"),
 	}
-	if err := built.store.Save(ctx, "scripted", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "scripted", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 

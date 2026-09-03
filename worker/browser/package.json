@@ -17,7 +17,7 @@
     "playwright-core": "1.62.1"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@types/node": "24.13.3",
     "@vitest/coverage-v8": "4.1.11",
     "fast-check": "4.9.0",
     "typescript": "7.0.2",

@@ -1,13 +1,9 @@
-// The way the codex program's sign-in file is read, and the way a token's
-// expiry and account are read out of its claims, were read from Hermes at
-// ~/.hermes/hermes-agent/hermes_cli/auth.py (_import_codex_cli_tokens and
-// _codex_access_token_is_expiring) and
-// ~/.hermes/hermes-agent/agent/auxiliary_client.py, where the account
-// identifier is dug out of the token for the ChatGPT-Account-Id header. That
-// is the installed Hermes; the reference clone at ~/Code/hermes-agent is older
-// than its Codex sign-in and has no copy of it. Hermes then keeps a copy of
-// the tokens and refreshes them itself; this reads the file and nothing more,
-// so that the codex program stays the one owner of the sign-in.
+// The way the codex program's saved login is read, and the two-minute skew that
+// treats a token about to expire as already expired, were borrowed from Hermes
+// Agent's _codex_access_token_is_expiring and _decode_jwt_claims in
+// ~/Code/hermes-agent/hermes_cli/auth.py. Hermes reads the same file to import
+// the login into its own store; Coeus only reads it, every time, and never
+// writes it, because the codex program owns that file and refreshes it itself.
 
 package provider
 
@@ -17,119 +13,139 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 	"time"
 )
 
-// The bound on reading the sign-in file, and the one thing every sign-in
-// failure tells the user to do.
+// The bounds the login read works inside.
 const (
-	// maxCodexLoginBytes caps how much of the sign-in file is read. The real
-	// file is a few kilobytes, and a file a hundred times that size is not
-	// the codex program's.
-	maxCodexLoginBytes = 1 << 20
-	// codexSignInHint is what every sign-in failure ends with, because the
-	// codex program is the one thing that can put the file right.
-	codexSignInHint = "run codex once to sign in and try again"
+	// codexLoginFileLimit is the most the login file may hold. The real file
+	// is a few kilobytes, so anything past a megabyte is not that file.
+	codexLoginFileLimit = 1 << 20
+
+	// codexLoginExpirySkew is how far ahead of its expiry a token is already
+	// treated as expired, so a request never goes out on a token that runs out
+	// in the middle of it. Hermes uses the same two minutes.
+	codexLoginExpirySkew = 2 * time.Minute
 )
 
-// codexLogin is what the provider needs from the sign-in file: the token to
-// send, the account it belongs to, and when it stops working. The token is
-// never written to a log or an error.
+// codexSignInAdvice is what every refusal tells the user to do, because the
+// codex program is the only thing that can sign in or refresh the login.
+const codexSignInAdvice = "run codex once to sign in or refresh"
+
+// codexLogin is what the codex program saved when the user signed in.
 type codexLogin struct {
-	// AccessToken is the bearer token the backend wants on every call.
+	// AccessToken is the bearer token the codex program presents to the backend.
 	AccessToken string
-	// AccountID is the ChatGPT account the token belongs to, which the backend
-	// wants in a header of its own.
+	// AccountID is the ChatGPT account the token was issued for.
 	AccountID string
-	// Expires is when the token stops working, or the zero time when the
-	// token does not say.
+	// Expires is when the token stops working, read from the token itself.
 	Expires time.Time
 }
 
-// codexLoginFile is the shape of the file the codex program writes, as far as
-// this provider reads it.
+// codexLoginFile is the part of the codex program's login file that Coeus
+// reads. The file also holds the sign-in mode, an id token, a refresh token,
+// and the time of the last refresh, none of which Coeus needs.
 type codexLoginFile struct {
-	// Tokens is the object the program keeps its sign-in under.
+	// Tokens holds the two values Coeus needs, under the keys the codex
+	// program writes them with.
 	Tokens struct {
 		AccessToken string `json:"access_token"`
 		AccountID   string `json:"account_id"`
 	} `json:"tokens"`
 }
 
-// codexTokenClaims are the two claims this provider reads out of the token:
-// when it expires, and which account it belongs to.
-type codexTokenClaims struct {
-	// Expiry is the moment the token stops working, as seconds since 1970.
-	Expiry float64 `json:"exp"`
-	// Auth holds the account identifier under the key OpenAI writes it with.
-	Auth struct {
-		ChatGPTAccountID string `json:"chatgpt_account_id"`
-	} `json:"https://api.openai.com/auth"`
-}
-
-// readCodexLogin reads the sign-in the codex program keeps at the path and
-// refuses one that is missing, unreadable, not the program's shape, or expired
-// at the given moment. Every message says what to do, and none carries the
-// token.
+// readCodexLogin reads the codex program's login file at path. It refuses a
+// missing, unreadable, oversized, or malformed file, a file without an access
+// token or an account id, and a token that is expired or within the skew of
+// expiring. No error it returns carries the token, the account id, or any
+// other part of the file.
 func readCodexLogin(path string, now time.Time) (codexLogin, error) {
-	contents, err := readFileUpTo(path, maxCodexLoginBytes)
-	if errors.Is(err, os.ErrNotExist) {
-		return codexLogin{}, fmt.Errorf("the codex sign-in file %s does not exist, so %s", path, codexSignInHint)
-	}
+	contents, err := readCodexLoginFile(path)
 	if err != nil {
-		return codexLogin{}, fmt.Errorf("the codex sign-in file %s could not be read, so check that it is yours to read: %w", path, err)
+		return codexLogin{}, err
 	}
-	file := codexLoginFile{}
+
+	var file codexLoginFile
 	if err := json.Unmarshal(contents, &file); err != nil {
-		return codexLogin{}, fmt.Errorf("the codex sign-in file %s is not the JSON the codex program writes, so %s", path, codexSignInHint)
+		// The decoder's own message can quote a character from the file, so
+		// it is left out rather than wrapped.
+		return codexLogin{}, fmt.Errorf("the codex login file %s is not the JSON the codex program writes; %s", path, codexSignInAdvice)
 	}
-	token := strings.TrimSpace(file.Tokens.AccessToken)
-	if token == "" {
-		return codexLogin{}, fmt.Errorf("the codex sign-in file %s holds no access token, so %s", path, codexSignInHint)
+	if file.Tokens.AccessToken == "" {
+		return codexLogin{}, fmt.Errorf("the codex login file %s holds no access token; %s", path, codexSignInAdvice)
 	}
-	login := codexLogin{AccessToken: token, AccountID: strings.TrimSpace(file.Tokens.AccountID)}
-	claims := claimsOfToken(token)
-	if claims.Expiry > 0 {
-		login.Expires = time.Unix(int64(claims.Expiry), 0).UTC()
-		if !now.Before(login.Expires) {
-			return codexLogin{}, fmt.Errorf("the codex sign-in in %s expired at %s, so %s",
-				path, login.Expires.Format(time.RFC3339), codexSignInHint)
-		}
+	if file.Tokens.AccountID == "" {
+		return codexLogin{}, fmt.Errorf("the codex login file %s holds no account id; %s", path, codexSignInAdvice)
 	}
-	if login.AccountID == "" {
-		login.AccountID = strings.TrimSpace(claims.Auth.ChatGPTAccountID)
+
+	expires, err := codexTokenExpiry(file.Tokens.AccessToken)
+	if err != nil {
+		return codexLogin{}, fmt.Errorf("the access token in the codex login file %s %s; %s", path, err, codexSignInAdvice)
 	}
-	return login, nil
+	if !expires.After(now.Add(codexLoginExpirySkew)) {
+		return codexLogin{}, fmt.Errorf("the access token in the codex login file %s expired at %s or will within %s; %s",
+			path, expires.UTC().Format(time.RFC3339), codexLoginExpirySkew, codexSignInAdvice)
+	}
+
+	return codexLogin{
+		AccessToken: file.Tokens.AccessToken,
+		AccountID:   file.Tokens.AccountID,
+		Expires:     expires,
+	}, nil
 }
 
-// readFileUpTo reads a file whole, but never more than the limit.
-func readFileUpTo(path string, limit int64) ([]byte, error) {
+// readCodexLoginFile reads the whole login file, refusing one larger than the
+// limit rather than reading past it.
+func readCodexLoginFile(path string) ([]byte, error) {
 	file, err := os.Open(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("no codex login file at %s, so the codex program has not signed in on this machine; %s", path, codexSignInAdvice)
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("the codex login file could not be opened: %w; %s", err, codexSignInAdvice)
 	}
 	defer file.Close()
-	return io.ReadAll(io.LimitReader(file, limit))
+
+	contents, err := io.ReadAll(io.LimitReader(file, codexLoginFileLimit+1))
+	if err != nil {
+		return nil, fmt.Errorf("the codex login file %s could not be read: %w; %s", path, err, codexSignInAdvice)
+	}
+	if len(contents) > codexLoginFileLimit {
+		return nil, fmt.Errorf("the codex login file %s is larger than %d bytes, which the codex program never writes; %s", path, codexLoginFileLimit, codexSignInAdvice)
+	}
+	return contents, nil
 }
 
-// claimsOfToken reads the claims out of the middle part of a token, and comes
-// back empty for a token that is not shaped that way, because the backend is
-// the judge of a token this provider cannot read and answers with a refusal
-// that names the problem.
-func claimsOfToken(token string) codexTokenClaims {
-	claims := codexTokenClaims{}
+// codexTokenExpiry reads the expiry out of the access token, which is a JSON
+// web token: three base64url parts joined by dots, the middle one a JSON object
+// whose exp claim is the expiry in Unix seconds. The signature is not checked,
+// because Coeus is not the party the token is meant to convince; it only needs
+// to know when the token runs out. The error it returns finishes the sentence
+// "the access token ..." and never quotes the token.
+func codexTokenExpiry(token string) (time.Time, error) {
 	parts := strings.Split(token, ".")
-	if len(parts) < 2 {
-		return claims
+	if len(parts) != 3 {
+		return time.Time{}, fmt.Errorf("is not the three-part token the codex program saves")
 	}
-	decoded, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(parts[1], "="))
+
+	// The standard leaves the padding off, but a writer that keeps it is
+	// still readable once the padding is stripped.
+	claimsText, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(parts[1], "="))
 	if err != nil {
-		return claims
+		return time.Time{}, fmt.Errorf("has a middle part that is not base64url")
 	}
-	if err := json.Unmarshal(decoded, &claims); err != nil {
-		return codexTokenClaims{}
+
+	var claims struct {
+		Expiry *float64 `json:"exp"`
 	}
-	return claims
+	if err := json.Unmarshal(claimsText, &claims); err != nil {
+		return time.Time{}, fmt.Errorf("has claims that do not decode as a JSON object with a numeric exp")
+	}
+	if claims.Expiry == nil {
+		return time.Time{}, fmt.Errorf("has no exp claim to read an expiry from")
+	}
+	return time.Unix(int64(*claims.Expiry), 0), nil
 }

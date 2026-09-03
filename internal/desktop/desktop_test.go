@@ -64,7 +64,7 @@ func (desk *aDesk) latestWorker(t *testing.T) *scriptedWorker {
 // launched grants the application and opens it.
 func (desk *aDesk) launched(t *testing.T) {
 	t.Helper()
-	if err := desk.desktop.Launch(context.Background(), "zenity"); err != nil {
+	if err := desk.desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
 		t.Fatalf("launching the fixture application failed: %v", err)
 	}
 }
@@ -95,7 +95,7 @@ func TestAnApplicationTheUserHasNotGrantedIsRefused(t *testing.T) {
 	desk := newDesk(t)
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	err := desk.desktop.Launch(context.Background(), "gimp")
+	err := desk.desktop.Launch(context.Background(), "gimp", "an image editor opens")
 
 	if err == nil || !strings.Contains(err.Error(), "gimp") {
 		t.Fatalf("the error is %v, want one naming the application the user refused", err)
@@ -139,10 +139,10 @@ func TestNothingCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
 
 	tries := map[string]func() error{
 		"screenshot":       func() error { _, err := desk.desktop.Screenshot(ctx); return err },
-		"click":            func() error { return desk.desktop.Click(ctx, 1) },
-		"type":             func() error { return desk.desktop.Type(ctx, "hello") },
-		"press":            func() error { return desk.desktop.Press(ctx, "ctrl+s") },
-		"drag":             func() error { return desk.desktop.Drag(ctx, 1, 2) },
+		"click":            func() error { return desk.desktop.Click(ctx, 1, "the text box takes the typing") },
+		"type":             func() error { return desk.desktop.Type(ctx, "hello", "the text box holds the word") },
+		"press":            func() error { return desk.desktop.Press(ctx, "ctrl+s", "the file is saved") },
+		"drag":             func() error { return desk.desktop.Drag(ctx, 1, 2, "the file lands in the folder") },
 		"read a clipboard": func() error { _, err := desk.desktop.Clipboard(ctx); return err },
 		"set a clipboard":  func() error { return desk.desktop.SetClipboard(ctx, "nine years") },
 	}
@@ -183,10 +183,10 @@ func TestAClickAndAKeyPressRunWithoutAPreview(t *testing.T) {
 	desk.launched(t)
 	ctx := context.Background()
 
-	if err := desk.desktop.Click(ctx, 1); err != nil {
+	if err := desk.desktop.Click(ctx, 1, "the text box takes the typing"); err != nil {
 		t.Fatalf("clicking failed: %v", err)
 	}
-	if err := desk.desktop.Press(ctx, "ctrl+s"); err != nil {
+	if err := desk.desktop.Press(ctx, "ctrl+s", "the file is saved"); err != nil {
 		t.Fatalf("pressing a key failed: %v", err)
 	}
 
@@ -200,10 +200,10 @@ func TestEveryActionThatCannotBeUndoneGoesThroughThePermissionFunction(t *testin
 	desk.launched(t)
 	ctx := context.Background()
 
-	if err := desk.desktop.Type(ctx, "nine years of DigiByte"); err != nil {
+	if err := desk.desktop.Type(ctx, "nine years of DigiByte", "the text box holds the post"); err != nil {
 		t.Fatalf("typing failed: %v", err)
 	}
-	if err := desk.desktop.Drag(ctx, 1, 2); err != nil {
+	if err := desk.desktop.Drag(ctx, 1, 2, "the file lands in the folder"); err != nil {
 		t.Fatalf("dragging failed: %v", err)
 	}
 	if err := desk.desktop.SetClipboard(ctx, "nine years of DigiByte"); err != nil {
@@ -233,7 +233,7 @@ func TestAnActionThePermissionFunctionAsksAboutIsPreviewedAndRemembered(t *testi
 		PreviewText: "type \"nine years of DigiByte\" into the granted application",
 	})
 
-	if err := desk.desktop.Type(context.Background(), "nine years of DigiByte"); err != nil {
+	if err := desk.desktop.Type(context.Background(), "nine years of DigiByte", "the text box holds the post"); err != nil {
 		t.Fatalf("typing after the user said yes failed: %v", err)
 	}
 
@@ -255,7 +255,7 @@ func TestAnActionTheUserRefusesIsNotDone(t *testing.T) {
 	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "type something"})
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	err := desk.desktop.Type(context.Background(), "nine years of DigiByte")
+	err := desk.desktop.Type(context.Background(), "nine years of DigiByte", "the text box holds the post")
 
 	if err == nil || !strings.Contains(err.Error(), "refused") {
 		t.Fatalf("the error is %v, want one saying the user refused it", err)
@@ -275,7 +275,7 @@ func TestAnActionThePermissionFunctionDeniesSaysWhy(t *testing.T) {
 		Reason: "the user's rules refuse the desktop",
 	})
 
-	err := desk.desktop.Type(context.Background(), "nine years")
+	err := desk.desktop.Type(context.Background(), "nine years", "the text box holds the words")
 
 	if err == nil || !strings.Contains(err.Error(), "the user's rules refuse the desktop") {
 		t.Fatalf("the error is %v, want one carrying the reason the call was refused", err)
@@ -291,7 +291,7 @@ func TestAnActionThatWouldAskWithNobodyThereStopsTheTask(t *testing.T) {
 		PreviewText: "type something",
 	})
 
-	err := desk.desktop.Type(context.Background(), "nine years")
+	err := desk.desktop.Type(context.Background(), "nine years", "the text box holds the words")
 
 	if err == nil || !strings.Contains(err.Error(), "nobody is there") {
 		t.Fatalf("the error is %v, want one saying the task stops because nobody can answer", err)
@@ -321,7 +321,7 @@ func TestAnExpectationThatWasNotMetIsReportedRatherThanPassedOver(t *testing.T) 
 	desk.launched(t)
 	desk.latestWorker(t).answer("click", aDiff(false, "nothing changed"))
 
-	err := desk.desktop.ClickExpecting(context.Background(), 1, "the dialog closes")
+	err := desk.desktop.Click(context.Background(), 1, "the dialog closes")
 
 	if err == nil || !strings.Contains(err.Error(), "nothing changed") {
 		t.Fatalf("the error is %v, want one saying what happened instead", err)
@@ -336,7 +336,7 @@ func TestAControlThatIsNotOnTheScreenIsReportedWithItsNumber(t *testing.T) {
 		Message: "there is no control numbered 9 on the screen, so take a screenshot and use a number from it",
 	})
 
-	err := desk.desktop.Click(context.Background(), 9)
+	err := desk.desktop.Click(context.Background(), 9, "the dialog closes")
 
 	if err == nil || !strings.Contains(err.Error(), "numbered 9") {
 		t.Fatalf("the error is %v, want the worker's own message about the control", err)
@@ -352,7 +352,7 @@ func TestAWorkerThatDiesIsStartedAgainAndTheModelIsTold(t *testing.T) {
 	first := desk.latestWorker(t)
 	first.refuse("click", &workerFailure{Code: codeDriverUnavailable, Message: "the desktop driver went away"})
 
-	err := desk.desktop.Click(context.Background(), 1)
+	err := desk.desktop.Click(context.Background(), 1, "the dialog closes")
 
 	if err == nil || !strings.Contains(err.Error(), "interrupted") {
 		t.Fatalf("the error is %v, want one saying the desktop was interrupted", err)
@@ -360,7 +360,7 @@ func TestAWorkerThatDiesIsStartedAgainAndTheModelIsTold(t *testing.T) {
 	if !first.wasStopped() {
 		t.Error("the worker that died was not stopped, and it must be stopped by its exact process id")
 	}
-	if err := desk.desktop.Launch(context.Background(), "zenity"); err != nil {
+	if err := desk.desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
 		t.Fatalf("launching again after the restart failed: %v", err)
 	}
 	if *desk.starts != 2 {
@@ -372,9 +372,9 @@ func TestAfterARestartTheApplicationHasToBeOpenedAgain(t *testing.T) {
 	desk := newDesk(t)
 	desk.launched(t)
 	desk.latestWorker(t).refuse("click", &workerFailure{Code: codeDriverUnavailable, Message: "the desktop driver went away"})
-	_ = desk.desktop.Click(context.Background(), 1)
+	_ = desk.desktop.Click(context.Background(), 1, "the dialog closes")
 
-	err := desk.desktop.Click(context.Background(), 1)
+	err := desk.desktop.Click(context.Background(), 1, "the dialog closes")
 
 	if err == nil || !strings.Contains(err.Error(), "launch") {
 		t.Fatalf("the error is %v, want one saying the application has to be opened again", err)
@@ -395,7 +395,7 @@ func TestAWorkerThatSaysItIsUnhealthyIsStoppedAndTheReasonIsGivenBack(t *testing
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "no display") {
 		t.Fatalf("the error is %v, want the reason the worker gave", err)
@@ -418,7 +418,7 @@ func TestAWorkerThatWillNotStartAtAllIsReported(t *testing.T) {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "node is not installed") {
 		t.Fatalf("the error is %v, want the reason the worker could not be started", err)
@@ -458,7 +458,7 @@ func TestTheRealDesktopKeepsTheDesktopContract(t *testing.T) {
 	desk := newDesk(t)
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	if err := testkit.CheckDesktop(context.Background(), desk.desktop); err != nil {
+	if err := testkit.CheckDesktop(context.Background(), withNoExpectation{desk.desktop}); err != nil {
 		t.Fatalf("the desktop does not keep the desktop contract: %v", err)
 	}
 }

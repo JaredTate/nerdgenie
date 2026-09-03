@@ -102,7 +102,7 @@ func newRealDesktop(t *testing.T, command []string) *Desktop {
 // numbers of the text box and the OK button on it.
 func openedFixture(ctx context.Context, t *testing.T, desktop *Desktop) (int, int) {
 	t.Helper()
-	if err := desktop.LaunchExpecting(ctx, fixtureTitle, "a window with a text box opens"); err != nil {
+	if err := desktop.Launch(ctx, fixtureTitle, "a window with a text box opens"); err != nil {
 		t.Fatalf("opening the fixture window through the worker failed: %v", err)
 	}
 	picture, err := desktop.Screenshot(ctx)
@@ -136,20 +136,20 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 	}
 
 	box, confirm := openedFixture(ctx, t, desktop)
-	if err := desktop.ClickExpecting(ctx, box, "the text box takes the typing"); err != nil {
+	if err := desktop.Click(ctx, box, "the text box takes the typing"); err != nil {
 		t.Fatalf("clicking the text box failed: %v", err)
 	}
-	if err := desktop.TypeExpecting(ctx, "nine years of DigiByte", "the text box holds the post"); err != nil {
+	if err := desktop.Type(ctx, "nine years of DigiByte", "the text box holds the post"); err != nil {
 		t.Fatalf("typing into the text box failed: %v", err)
 	}
-	if err := desktop.PressExpecting(ctx, "ctrl+a", "the text is selected"); err != nil && !strings.Contains(err.Error(), "did not happen") {
+	if err := desktop.Press(ctx, "ctrl+a", "the text is selected"); err != nil && !strings.Contains(err.Error(), "did not happen") {
 		t.Fatalf("pressing a key combination failed: %v", err)
 	}
 
 	// Clicking OK closes the window, so zenity prints what was typed into it and
 	// the worker's next reading finds nothing. Either answer is fine; what the
 	// fixture printed is the proof.
-	_ = desktop.ClickExpecting(ctx, confirm, "the dialog closes")
+	_ = desktop.Click(ctx, confirm, "the dialog closes")
 	time.Sleep(1500 * time.Millisecond)
 	if got := strings.TrimSpace(printed.String()); got != "nine years of DigiByte" {
 		t.Errorf("the fixture window reported %q, want exactly what the worker typed into it", got)

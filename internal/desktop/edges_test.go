@@ -42,7 +42,7 @@ func (channel *silentAfterTheGrant) ShowPreview(ctx context.Context, preview con
 func TestAnApplicationWithNoNameIsRefusedBeforeAnybodyIsAsked(t *testing.T) {
 	desk := newDesk(t)
 
-	err := desk.desktop.Launch(context.Background(), "")
+	err := desk.desktop.Launch(context.Background(), "", "a window opens")
 
 	if err == nil || !strings.Contains(err.Error(), "no name") {
 		t.Fatalf("the error is %v, want one saying which application to open", err)
@@ -57,7 +57,7 @@ func TestAnActionThatChangedNothingSaysSoEvenWhenTheWorkerAddedNothing(t *testin
 	desk.launched(t)
 	desk.latestWorker(t).answer("click", aDiff(false, ""))
 
-	err := desk.desktop.Click(context.Background(), 1)
+	err := desk.desktop.Click(context.Background(), 1, "")
 
 	if err == nil || !strings.Contains(err.Error(), "changed nothing") {
 		t.Fatalf("the error is %v, want one saying the action changed nothing", err)
@@ -72,7 +72,7 @@ func TestAPermissionRulingNobodyShipsIsRefusedRatherThanGuessedAt(t *testing.T) 
 	desk.launched(t)
 	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.PermissionRuling("maybe")})
 
-	err := desk.desktop.Type(context.Background(), "nine years")
+	err := desk.desktop.Type(context.Background(), "nine years", "the text box holds the words")
 
 	if err == nil || !strings.Contains(err.Error(), "maybe") {
 		t.Fatalf("the error is %v, want one naming the ruling it did not understand", err)
@@ -109,7 +109,7 @@ func TestAnUnhealthyWorkerThatSaysNothingStillTellsTheUserWhatToRun(t *testing.T
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "cua-driver doctor") {
 		t.Fatalf("the error is %v, want one naming the command that says what is wrong", err)
@@ -206,7 +206,7 @@ func TestADragTheUserRefusesIsNotDone(t *testing.T) {
 	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "drag one control onto another"})
 	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
 
-	err := desk.desktop.Drag(context.Background(), 1, 2)
+	err := desk.desktop.Drag(context.Background(), 1, 2, "the file lands in the folder")
 
 	if err == nil || !strings.Contains(err.Error(), "refused") {
 		t.Fatalf("the error is %v, want one saying the user refused the drag", err)
@@ -285,7 +285,7 @@ func TestTheStartFunctionThatHandsBackNothingIsReported(t *testing.T) {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "wired") {
 		t.Fatalf("the error is %v, want one saying the worker was wired wrongly", err)
@@ -303,7 +303,7 @@ func TestAUserWhoCannotBeAskedIsReportedRatherThanTakenAsAYes(t *testing.T) {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
 
-	err = desktop.Launch(context.Background(), "zenity")
+	err = desktop.Launch(context.Background(), "zenity", "a window with a text box opens")
 
 	if err == nil || !strings.Contains(err.Error(), "could not be asked") {
 		t.Fatalf("the error is %v, want one saying the user could not be asked", err)
@@ -321,7 +321,7 @@ func TestAnActionThePermissionFunctionAsksAboutWithNobodyToAskIsReported(t *test
 	if err != nil {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
-	if err := desktop.Launch(context.Background(), "zenity"); err != nil {
+	if err := desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
 		t.Fatalf("opening the fixture application failed: %v", err)
 	}
 	permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "paste something"})

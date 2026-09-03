@@ -94,11 +94,11 @@ type Config struct {
 	// BrowserProfilePath is the Chrome profile the agent drives. Default is the
 	// "default" profile inside the home folder's browser folder.
 	BrowserProfilePath string `toml:"browser_profile_path"`
-	// Sandbox says whether the shell and the file tools run inside the fence
-	// (bwrap, Landlock, and the roots below) or straight on the machine as the
-	// user, the way Hermes and OpenClaw run on the host by default. It is
-	// "fence" or "off"; empty means the fence. With it off, the only gate is
-	// the permission function and the ask-me-first list, and the vault, the
+	// Sandbox says whether the shell and the file tools run straight on the
+	// machine as the user, the way Hermes and OpenClaw run on the host, or
+	// inside the sandbox (bwrap, Landlock, and the roots below). It is "off"
+	// or "fence"; empty means off, which is the default: the only gate is
+	// then the permission function and the ask-me-first list. The vault, the
 	// browser profile, the backups, and the user's SSH keys stay out of reach
 	// of the file tools either way.
 	Sandbox string `toml:"sandbox"`
@@ -245,7 +245,7 @@ const (
 )
 
 // KnownSandboxMode says whether the value is one the sandbox setting takes;
-// empty is known because it means the default.
+// empty is known because it means the default, off.
 func KnownSandboxMode(value string) bool {
 	return value == "" || value == SandboxFence || value == SandboxOff
 }
@@ -253,7 +253,7 @@ func KnownSandboxMode(value string) bool {
 // SandboxMode is the sandbox setting with its default filled in.
 func (settings Config) SandboxMode() string {
 	if settings.Sandbox == "" {
-		return SandboxFence
+		return SandboxOff
 	}
 	return settings.Sandbox
 }

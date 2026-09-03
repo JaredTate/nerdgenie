@@ -155,3 +155,60 @@ func TestAPageThatIsNotTextIsRefused(t *testing.T) {
 		t.Errorf("the refusal reads %q and does not say what kind of thing the address holds", err)
 	}
 }
+
+func TestEveryRedirectHopGoesThroughTheGuardAndTheRefusalNamesTheHopThatFailed(t *testing.T) {
+	// No test in this package reaches the network, so the host that redirects is
+	// a server on this machine that the settings name by number, which is the one
+	// way past the address check. It stands in for any host the guard lets
+	// through: where a page sends the agent next is checked hop after hop, and
+	// the third hop here is a service on this machine that nothing names.
+	service := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(writer, "<html><body><p>the service on this machine</p></body></html>")
+	}))
+	t.Cleanup(service.Close)
+
+	second := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, service.URL+"/service", http.StatusFound)
+	}))
+	t.Cleanup(second.Close)
+
+	first := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, second.URL+"/onwards", http.StatusFound)
+	}))
+	t.Cleanup(first.Close)
+
+	tool := web.New(web.Settings{
+		AllowedHosts: []string{hostOf(t, first.URL), hostOf(t, second.URL)},
+		Timeout:      10 * time.Second,
+	})
+	_, err := run(t, tool, map[string]any{"action": "fetch", "url": first.URL + "/go"})
+	if err == nil {
+		t.Fatalf("the third hop of a redirect reached a service on this machine")
+	}
+	if !strings.Contains(err.Error(), "this machine") {
+		t.Errorf("the refusal reads %q and does not say why the hop was refused", err)
+	}
+	if !strings.Contains(err.Error(), "redirected") || !strings.Contains(err.Error(), service.URL) {
+		t.Errorf("the refusal reads %q and does not say that a page redirected the agent to %s", err, service.URL)
+	}
+}
+
+func TestARedirectToTheCloudCredentialAddressIsRefusedBeforeItIsAsked(t *testing.T) {
+	away := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request,
+			"http://169.254.169.254/latest/meta-data/iam/security-credentials/", http.StatusFound)
+	}))
+	t.Cleanup(away.Close)
+
+	tool := web.New(web.Settings{AllowedHosts: []string{hostOf(t, away.URL)}, Timeout: 10 * time.Second})
+	_, err := run(t, tool, map[string]any{"action": "fetch", "url": away.URL + "/go"})
+	if err == nil {
+		t.Fatalf("a redirect to the address a cloud machine keeps its credentials behind was followed")
+	}
+	if !strings.Contains(err.Error(), "credentials") {
+		t.Errorf("the refusal reads %q and does not say why the redirect was refused", err)
+	}
+	if !strings.Contains(err.Error(), "redirected") {
+		t.Errorf("the refusal reads %q and does not say that a page sent the agent there", err)
+	}
+}

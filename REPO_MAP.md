@@ -66,6 +66,7 @@ cmd/coeus/signalchannel.go
 cmd/coeus/skillsbox.go
 cmd/coeus/skillsbox_test.go
 cmd/coeus/status.go
+cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/taskcontext.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964

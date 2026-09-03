@@ -978,6 +978,7 @@ internal/tool/loose/loose.go
 internal/tool/loose/loose_test.go
 internal/tool/loose/shapes_test.go
 internal/tool/loose/text.go
+internal/tool/memory/bounds_test.go
 internal/tool/memory/doc.go
 internal/tool/memory/memory.go
 internal/tool/memory/memory_test.go
@@ -1250,6 +1251,7 @@ test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go
 test/functional/toolline_test.go
+test/functional/usertools_test.go
 test/functional/vault_test.go
 test/functional/walk_test.go
 test/functional/whilebusy_test.go

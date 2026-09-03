@@ -157,6 +157,10 @@ const (
 	// task or a job created, started, finished, or failed, with its id, which
 	// the screen shows once as a pill when the line changes.
 	StatusFieldRecordLine = "recordLine"
+	// ReplyLabel is what a done line names as its result when the answer to
+	// the user is its own proof. The harness writes that answer into the record
+	// as a result of its own and points the line at it.
+	ReplyLabel = "reply"
 )
 
 // StatusCommandSeparator separates a command's name from its help line inside

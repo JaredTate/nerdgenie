@@ -197,3 +197,8 @@ The desktop is wired the same night (finding 48): opened beside the browser at s
 For the wave 5 and 6 trial: `docs/TRIAL.md` writes the checklist as commands, `go run ./scripts/fixturesite` serves the fixture site for a person, and `scripts/trial/bad-release.sh` stages a good release and a bad one so the rollback can be watched.
 
 After streaming and the desktop wiring landed: `make live` green again on all three real models (the provider suite 46 seconds, the context fixture 38 seconds, the functional suite 110 seconds), and `make test-browser` green headless on the shared fixture site with the screen reader settings unchanged and no Orca process before or after.
+
+### The turn loop after the wave 6 review
+
+The loop worker's section landed with a test per finding: a stop line the model wrote no longer fires on a tool result that repeats two of its words (the model declares its own stop lines with `stop_now`); polling a long command is no longer "the same call over and over"; a command in backticks in a done line goes through the permission function and the log as the shell call it is; the model can pin evidence in front of itself (`pin_evidence`, four at most); a question without a question mark waits for the person in two calls, not six; an unattended task offers no skill to nobody; fifteen bounds are pinned by literals; a budget that runs out costs one report and one call; a done line only the answer can prove names `reply` and closes when the answer is given; and every tool call runs inside the reliability guard's deadline.
+

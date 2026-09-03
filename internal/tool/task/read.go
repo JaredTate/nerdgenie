@@ -98,6 +98,11 @@ func operationOf(asked input) (string, error) {
 	if strings.TrimSpace(asked.Operation) == "" {
 		return inferredOperation(asked), nil
 	}
+	for _, answeredByTheHarness := range []string{OperationStopNow, OperationPinEvidence, OperationUnpinEvidence} {
+		if plainName(asked.Operation) == plainName(answeredByTheHarness) {
+			return "", fmt.Errorf("the operation %q is answered by the harness before this tool is asked, so this call reached the wrong door; say so in a failure line", asked.Operation)
+		}
+	}
 	known, itIs := theOperations[plainName(asked.Operation)]
 	if !itIs {
 		return "", fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, or pin_result", asked.Operation)

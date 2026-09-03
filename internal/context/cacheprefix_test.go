@@ -58,30 +58,49 @@ func TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid(t *testing.T) {
 // `memory` tool and the after-action review both write into two of them, so a
 // single fact saved in the middle of a task used to rewrite the block that ends
 // cache boundary A and cost the whole prompt under it. What the agent knows
-// belongs below the cache line, where saving a fact costs only the lines after
-// it; only SOUL.md, which nothing but the user writes, stays above.
+// belongs below the cache line; only SOUL.md, which nothing but the user writes,
+// stays above.
+//
+// It is the first thing below that line, and that is a trade worth saying out
+// loud. USER.md and MEMORY.md hold still through almost every task, so up there
+// they are read once and reused on every turn afterwards for nothing. The turn
+// that does save a fact pays for the conversation under them once. The other
+// place to put them is the tail, under the messages, and the tail is read again
+// on every single call, so that would spend their whole size every turn to save
+// one re-read that mostly never happens.
+//
+// So what this test holds is what finding 18 actually asked for: a saved fact
+// never moves the system prompt, and it costs nothing above the block it is in.
 func TestOneMemorySaveDoesNotMoveTheTopOfThePrompt(t *testing.T) {
 	run := newFixtureRun(t)
 	home := roomyHome(t)
 	builder := newTestBuilder(t, Options{Home: home, MaxOutputTokens: contract.DefaultConfig().Caps.OutputTokensPerCall, Boundary: goldenBoundary})
 	run.playTo(t, 20)
 
-	before := renderPrompt(buildWithTheBudgetSpent(t, builder, run, 80,
-		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500}))
+	first := buildWithTheBudgetSpent(t, builder, run, 80,
+		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500})
 	writePersonaFile(t, home.WorldFactsFile(),
 		"DigiByte launched on the tenth of January 2014.\nA DigiByte block is mined about every fifteen seconds.")
-	after := renderPrompt(buildWithTheBudgetSpent(t, builder, run, 80,
-		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500}))
+	second := buildWithTheBudgetSpent(t, builder, run, 80,
+		contract.CostLine{InputTokens: 15200, CachedInputTokens: 3900, OutputTokens: 500})
 
+	before, after := renderPrompt(first), renderPrompt(second)
 	if !strings.Contains(after, "about every fifteen seconds") {
 		t.Fatal("the saved fact never reached the prompt, so this test is not measuring what it says it measures")
 	}
+	if aboveTheCacheLine(first) != aboveTheCacheLine(second) {
+		t.Error("saving one fact rewrote the system prompt, and nothing the agent writes about itself may move what is above the cache line")
+	}
 	shared := sharedPrefix(before, after)
-	share := 100 * len(shared) / len(after)
-	t.Logf("one fact saved mid-task leaves %d characters of %d shared, which is %d per cent", len(shared), len(after), share)
-	if share < leastSharedPercent {
-		t.Errorf("saving one fact left only %d per cent of the prompt where it was, and the layout has to hold %d;"+
-			" what the agent writes about itself is sitting above what it does not", share, leastSharedPercent)
+	t.Logf("one fact saved mid-task leaves %d characters of %d shared, which is %.1f per cent",
+		len(shared), len(after), 100*float64(len(shared))/float64(len(after)))
+	knownAt := strings.Index(before, whatIsKnownHeading)
+	if knownAt < 0 {
+		t.Fatalf("the prompt has no block of what the agent knows in it:\n%s", before)
+	}
+	if len(shared) < knownAt {
+		t.Errorf("saving one fact left only %d characters of the prompt where they were, and what the agent knows does not begin until %d,"+
+			" so the save cost something above the block it is in", len(shared), knownAt)
 	}
 }
 
@@ -230,15 +249,12 @@ func TestARewrittenSituationCostsOnlyTheTail(t *testing.T) {
 
 	before, after := renderPrompt(earlier), renderPrompt(later)
 	shared := sharedPrefix(before, after)
-	tailAt := strings.Index(before, recordSecondHalfHeading)
-	if tailAt < 0 {
-		t.Fatalf("the earlier turn carries no record body, so this test is not measuring what it says it measures:\n%s", before)
-	}
-	t.Logf("a rewritten situation and one new message leave %d of the earlier turn's %d characters shared, and its tail starts at %d",
-		len(shared), len(before), tailAt)
-	if len(shared) < tailAt {
-		t.Errorf("the two turns share only %d characters and the earlier turn's tail does not start until %d,"+
-			" so something written anew every turn is sitting above the conversation", len(shared), tailAt)
+	exceptTheTail := renderPrompt(withoutTheTail(earlier))
+	t.Logf("a rewritten situation and one new message leave %d characters of the earlier turn's %d shared, and all but its tail is %d",
+		len(shared), len(before), len(exceptTheTail))
+	if !strings.HasPrefix(after, exceptTheTail) {
+		t.Errorf("the two turns share only %d characters from the start and everything but the earlier turn's tail is %d,"+
+			" so something written anew every turn is sitting above the conversation", len(shared), len(exceptTheTail))
 	}
 	if !strings.Contains(shared, "the result of round 12,") {
 		t.Error("the shared run does not reach the newest result of the earlier turn, so the provider reads the conversation again on every call")
@@ -246,6 +262,30 @@ func TestARewrittenSituationCostsOnlyTheTail(t *testing.T) {
 	if len(shared) == len(after) {
 		t.Error("the two turns are the same bytes, so the rewritten situation never reached the prompt")
 	}
+}
+
+// withoutTheTail is a request with the blocks the turn writes anew left off, so
+// that what is left is what a provider may still have from the call before.
+func withoutTheTail(request contract.Request) contract.Request {
+	kept := contract.Request{SystemBlocks: request.SystemBlocks, Tools: request.Tools, MaxOutputTokens: request.MaxOutputTokens}
+	for _, message := range request.Messages {
+		if isTail(message) {
+			break
+		}
+		kept.Messages = append(kept.Messages, message)
+	}
+	return kept
+}
+
+// isTail says whether a message is one of the four blocks of the tail: the
+// record's body, its list of results, the memory hint, and its header.
+func isTail(message contract.Message) bool {
+	for _, heading := range []string{recordSecondHalfHeading, recordResultsHeading, memoryHintHeading, recordHeaderHeading} {
+		if strings.HasPrefix(message.Text, heading) {
+			return true
+		}
+	}
+	return false
 }
 
 // TestAPinAddedBetweenTurnsDoesNotMoveTheMessages holds the other half of the

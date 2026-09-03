@@ -50,26 +50,13 @@ Write a file inside the allowed folders. Do not use it to edit part of a file.
   path (string): where to write
 
 === message 1 from the user ===
-**The task record, part two: the work and the lessons.**
+**What you know, from USER.md and MEMORY.md.** These are yours to add to with the `memory` tool.
 
-## Work
-Plan:
-- [ ] 1 read the product notes
-- [ ] 2 read the brand file
-- [ ] 3 confirm the date
-- [ ] 4 draft the post
-- [ ] 5 check the length
-- [ ] 6 open the browser
-- [ ] 7 log in if needed
-- [ ] 8 compose the post
-- [ ] 9 post it
-- [ ] 10 confirm it is up
+**What is true about the user, from USER.md.**
+The user is Jared. He works on DigiByte and prefers short answers.
 
-## Lessons
-Decisions:
-- D1 Lead with the date. Reason: correction C1.
-Failures:
-- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one..
+**What is true about the world, from MEMORY.md.**
+DigiByte launched on the tenth of January 2014.
 
 === message 2 from the assistant ===
 Nothing has been read yet. I will start with the product notes.
@@ -295,21 +282,31 @@ e13 text 228/280 shows the post is inside the limit.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
 === message 43 from the user ===
-**What you know, from USER.md and MEMORY.md.** These are yours to add to with the `memory` tool.
+**The task record, part two: the work and the lessons.**
 
-**What is true about the user, from USER.md.**
-The user is Jared. He works on DigiByte and prefers short answers.
+## Work
+Situation:
+- files changed in this task: none
+- where the work stands: The post is typed. I will check the character counter on the page.
+Plan:
+- [ ] 1 read the product notes
+- [ ] 2 read the brand file
+- [ ] 3 confirm the date
+- [ ] 4 draft the post
+- [ ] 5 check the length
+- [ ] 6 open the browser
+- [ ] 7 log in if needed
+- [ ] 8 compose the post
+- [ ] 9 post it
+- [ ] 10 confirm it is up
 
-**What is true about the world, from MEMORY.md.**
-DigiByte launched on the tenth of January 2014.
+## Lessons
+Decisions:
+- D1 Lead with the date. Reason: correction C1.
+Failures:
+- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one..
 
 === message 44 from the user ===
-**Memory hint.** Up to three lines from a search of what you know.
-
-- Jared posts at 14:00
-- one fact per post
-
-=== message 45 from the user ===
 **The task record, part three: every result so far.**
 
 Results (read any of them in full with `read r7`):
@@ -339,6 +336,12 @@ Results (read any of them in full with `read r7`):
 - r23 typed the draft into the box
 - r24 read the compose dialog, 7 elements
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
+
+=== message 45 from the user ===
+**Memory hint.** Up to three lines from a search of what you know.
+
+- Jared posts at 14:00
+- one fact per post
 
 === message 46 from the user ===
 **The task record, last of all: where the work stands.**

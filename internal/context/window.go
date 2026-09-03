@@ -24,11 +24,23 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 // full, newest first.
 //
 // The order is the order of how often each part changes, so that a provider's
-// prompt cache can reuse as much as possible. The record's body, the pinned
-// evidence, the recent messages and the memory hint come first, in the design's
-// own order; then the tail, which is the only part re-read on every call: the
-// list of results, which grows by a line every round, and last of all the two
-// lines of the record's header, which are written anew every time.
+// prompt cache can reuse as much as possible. First what only grows or barely
+// moves: what the agent knows from USER.md and MEMORY.md, the pinned evidence,
+// and the messages and tool results oldest first, which are only ever appended
+// to. Then the tail, which is everything a turn writes anew: the record's body,
+// whose situation the loop rewrites after every round, the list of results,
+// which grows by a line every round, the memory hint, and last of all the two
+// lines of the record's header.
+//
+// The record's body used to sit above the messages, and a measurement on the
+// local daemon says what that cost. On one Coeus call it reported 18,658 prompt
+// tokens of which 4,322 were reused, which is the system blocks and not one
+// byte more, so 14,336 tokens were read from scratch: forty seconds of prefill
+// for forty-five generated tokens, while opencode on the same model and the
+// same task read about six hundred tokens a call. A block that is rewritten
+// every turn drags everything under it along with it, so a growing,
+// otherwise-identical conversation under the body was thrown away on every
+// call.
 func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known string, request contract.Request) ([]contract.Message, error) {
 	above := EstimateRequestTokens(request)
 	recordBody := []contract.Message{}
@@ -70,13 +82,13 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known s
 	}
 
 	below := make([]contract.Message, 0,
-		len(recordBody)+len(pinned)+len(input.Messages)+len(whatIsKnown)+len(hint)+len(recordResults)+len(recordHeader))
-	below = append(below, recordBody...)
+		len(whatIsKnown)+len(pinned)+len(input.Messages)+len(recordBody)+len(recordResults)+len(hint)+len(recordHeader))
+	below = append(below, whatIsKnown...)
 	below = append(below, pinned...)
 	below = append(below, fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)...)
-	below = append(below, whatIsKnown...)
-	below = append(below, hint...)
+	below = append(below, recordBody...)
 	below = append(below, recordResults...)
+	below = append(below, hint...)
 	return append(below, recordHeader...), nil
 }
 

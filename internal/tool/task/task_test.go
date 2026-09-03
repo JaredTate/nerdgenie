@@ -161,6 +161,48 @@ func TestPinningAResultMarksTheDoneLineItProves(t *testing.T) {
 	}
 }
 
+// TestTheWholeUpdateComesBackAsTheResult is finding 28 of the wave 6 gate
+// review. The tool answered "the record's why is written" and nothing else,
+// where the loop's own path had handed back the whole update, so `read r2`
+// fetched one sentence instead of the change, and the loop's summary of every
+// record write read "updated the record: one change", because it tries to read
+// the result as JSON and a sentence is not JSON.
+func TestTheWholeUpdateComesBackAsTheResult(t *testing.T) {
+	tool, _ := newTool(t)
+
+	output, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"why":       "the release is on Friday",
+		"done_when": []any{"every version has a page"},
+		"plan":      []any{"read the tags", "write one page each"},
+	})
+	if err != nil {
+		t.Fatalf("writing three sections failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "why") || !strings.Contains(output.Text, "done_when") ||
+		!strings.Contains(output.Text, "plan") {
+		t.Errorf("the result reads %q and does not name every section it wrote", output.Text)
+	}
+
+	held := map[string]json.RawMessage{}
+	starts := strings.Index(output.Text, "{")
+	if starts < 0 {
+		t.Fatalf("the result carries no update as JSON, so read r2 fetches a sentence: %q", output.Text)
+	}
+	written := output.Text[starts:]
+	if err := json.Unmarshal([]byte(written), &held); err != nil {
+		t.Fatalf("the result carries no update as JSON, so read r2 fetches a sentence: %q", output.Text)
+	}
+	for _, name := range []string{"why", "done_when", "plan"} {
+		if _, wrote := held[name]; !wrote {
+			t.Errorf("the update came back as %s and does not hold %q", written, name)
+		}
+	}
+	if string(held["why"]) != `"the release is on Friday"` {
+		t.Errorf("the update's why came back as %s", held["why"])
+	}
+}
+
 func TestPinningAResultTheRecordNeverWroteIsRefused(t *testing.T) {
 	tool, _ := newTool(t)
 	if _, err := run(t, tool, map[string]any{

@@ -4,6 +4,9 @@
 #
 #   run-coeus.sh BINARY HOME_FOLDER TASK_FILE [TIMEOUT_MINUTES]
 #
+# With no TIMEOUT_MINUTES, or with zero, the driver waits as long as the program
+# takes: the benchmark puts no wall-clock cap on any harness.
+#
 # The serve's own output goes to HOME_FOLDER/serve.log and the driver's log of
 # every envelope to HOME_FOLDER/drive.log. The serve is stopped by the exact
 # process id recorded at launch, checked by name first, never by pattern.
@@ -11,7 +14,7 @@ set -u
 BINARY="$1"
 HOME_FOLDER="$2"
 TASK="$3"
-MINUTES="${4:-90}"
+MINUTES="${4:-0}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SOCKET="$HOME_FOLDER/run/coeus.sock"
 

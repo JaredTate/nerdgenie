@@ -1256,7 +1256,10 @@ scripts/bench/countcalls.sh
 scripts/bench/drive.py
 scripts/bench/run-coeus.sh
 scripts/bench/tater_cost.mjs
+scripts/bench/tater_result.py
 scripts/bench/tater_run.sh
+scripts/bench/tater_run_test.sh
+scripts/bench/tater_table.mjs
 scripts/coverage.sh
 scripts/fixturesite/doc.go
 scripts/fixturesite/main.go

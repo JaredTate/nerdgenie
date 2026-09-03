@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -62,6 +63,24 @@ type writtenDoneLine struct {
 	UserReply string `json:"user_reply"`
 }
 
+// UnmarshalJSON takes a done line written either as an object or as the bare
+// line in a string, because a model writes the list as strings more often than
+// not, and a refusal there stalls the whole task. Anything else is refused with
+// the shape named.
+func (line *writtenDoneLine) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) > 0 && trimmed[0] == '"' {
+		return json.Unmarshal(trimmed, &line.Text)
+	}
+	type plainDoneLine writtenDoneLine
+	var written plainDoneLine
+	if err := json.Unmarshal(trimmed, &written); err != nil {
+		return errors.New(`a done line is an object with "text" (and "done" with "result" once it is proved), or the line itself as a string`)
+	}
+	*line = writtenDoneLine(written)
+	return nil
+}
+
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Operation says which of the seven this call is.
@@ -105,7 +124,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Fields: []contract.ToolField{
 			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result.", Required: true},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once."},
-			{Name: "done_when", Type: "array", Description: "The whole done list, each line with the result that proves it."},
+			{Name: "done_when", Type: "array", Description: "The whole done list: each line as a string, or as an object with text, done, and the result that proves it."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 			{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 			{Name: "text", Type: "string", Description: "The choice, or the thing that went wrong."},

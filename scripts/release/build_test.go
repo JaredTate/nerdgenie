@@ -70,15 +70,42 @@ func seedNodeCache(t *testing.T, root string) string {
 	return cache
 }
 
+// fakeNpm writes a stand-in for npm that records what it was asked and, for a
+// production install, leaves one dependency behind. A release must not reach the
+// npm registry from a test, and what matters here is that build.sh asks for a
+// tree without the development tools in it and packs whatever npm leaves.
+func fakeNpm(t *testing.T, root string) string {
+	t.Helper()
+	fakes := filepath.Join(root, "fakes")
+	writeExecutable(t, filepath.Join(fakes, "npm"),
+		"#!/bin/sh\nprintf 'npm %s (in %s)\\n' \"$*\" \"$PWD\" >> "+filepath.Join(root, "npm.log")+"\n"+
+			"case \"$1\" in ci) mkdir -p node_modules/a-dependency && echo 'module.exports = 1;' > node_modules/a-dependency/index.js ;; esac\n"+
+			"exit 0\n")
+	return fakes
+}
+
+// npmWasAsked is everything the fake npm was asked to do.
+func npmWasAsked(t *testing.T, root string) string {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(root, "npm.log"))
+	if err != nil {
+		return ""
+	}
+	return string(content)
+}
+
 // buildTheFixtureRelease runs scripts/release/build.sh over the fixture checkout
 // and fails the test when it does not finish cleanly.
 func buildTheFixtureRelease(t *testing.T, root string, arguments ...string) string {
 	t.Helper()
 	cache := seedNodeCache(t, root)
-	environment := cleanEnvironment(root, filepath.Join(root, "no-fakes"),
+	environment := cleanEnvironment(root, fakeNpm(t, root),
 		"COEUS_NODE_CACHE="+cache,
 		"GOFLAGS=-mod=mod",
-		"GOCACHE="+filepath.Join(root, ".gocache"),
+		// One build cache for the whole package, kept outside the fixture, because
+		// a fresh cache per test means compiling the standard library for both
+		// architectures again on every run.
+		"GOCACHE="+filepath.Join(os.TempDir(), "coeus-release-test-build-cache"),
 		"GOPATH="+filepath.Join(root, ".gopath"),
 		"CGO_ENABLED=0",
 	)
@@ -112,6 +139,14 @@ func TestTheReleaseWritesAnArchiveForEachArchitecture(t *testing.T) {
 				t.Errorf("the %s archive holds no path ending %q; it holds %d paths, the first of which is %q",
 					architecture, wanted, len(names), firstName(names))
 			}
+		}
+	}
+
+	asked := npmWasAsked(t, root)
+	for _, worker := range []string{"browser", "desktop"} {
+		if !strings.Contains(asked, "ci --omit=dev") || !strings.Contains(asked, filepath.Join("worker", worker)) {
+			t.Errorf("nothing installed the %s worker's run-time dependencies into the release tree. npm was asked:\n%s",
+				worker, asked)
 		}
 	}
 }

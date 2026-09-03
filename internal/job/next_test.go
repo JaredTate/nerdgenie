@@ -190,3 +190,47 @@ func waitForSleeper(t *testing.T, holding *opened) {
 	}
 	t.Fatal("the job store never went to sleep waiting for work")
 }
+
+func TestWaitRestsBeforeItComesBackSoADriverCannotSpin(t *testing.T) {
+	holding := newJobs(t)
+	jobID := holding.aJob(t, "Do the thing that is already overdue.")
+	holding.aTask(t, jobID, "the task that was due an hour ago", theEpoch().Add(-time.Hour))
+
+	if err := holding.jobs.Wait(t.Context()); err != nil {
+		t.Fatalf("the first wait, with work already overdue, failed: %v", err)
+	}
+	waiting := make(chan error, 1)
+	go func() { waiting <- holding.jobs.Wait(t.Context()) }()
+	waitForTheRest(t, holding, waiting)
+
+	holding.clock.Advance(time.Second)
+
+	select {
+	case err := <-waiting:
+		if err != nil {
+			t.Fatalf("the second wait failed: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("one second of the clock did not end the rest between two waits, and one second is the longest that rest may be")
+	}
+}
+
+// waitForTheRest waits until the store is resting between two waits, and fails
+// the test when the wait came straight back instead. A driver that cannot take
+// the work yet, because a task of its own is running, asks again as fast as the
+// processor allows when the wait comes straight back.
+func waitForTheRest(t *testing.T, holding *opened, waiting <-chan error) {
+	t.Helper()
+	for range 1000 {
+		select {
+		case err := <-waiting:
+			t.Fatalf("the wait came straight back (error %v) although work was already overdue, so a driver that cannot take the work yet spins", err)
+		default:
+		}
+		if holding.clock.Sleepers() > 0 {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("the job store never rested between two waits")
+}

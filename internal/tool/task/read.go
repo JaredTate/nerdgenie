@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,27 +11,154 @@ import (
 // readInput reads the model's arguments and refuses anything this tool could not
 // act on. The rules the record itself keeps are left to the record, so that
 // there is one place they live and one message the model reads them from.
-func readInput(written json.RawMessage) (input, error) {
-	asked := input{}
-	if len(written) > 0 {
-		if err := json.Unmarshal(written, &asked); err != nil {
+func readInput(raw json.RawMessage) (input, error) {
+	held := writtenCall{}
+	if len(bytes.TrimSpace(raw)) > 0 {
+		if err := json.Unmarshal(raw, &held); err != nil {
 			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an operation in it: %w", err)
 		}
 	}
+	asked, err := readFields(held)
+	if err != nil {
+		return input{}, err
+	}
+	operation, err := operationOf(asked)
+	if err != nil {
+		return input{}, err
+	}
+	asked.Operation = operation
+	fillIn(&asked)
+	return asked, check(asked)
+}
+
+// readFields reads every field of the call into the shape this tool acts on,
+// one field at a time and each under both the names a model gives it.
+func readFields(held writtenCall) (input, error) {
+	asked := input{Operation: held.Operation}
+	texts := []struct {
+		raw   json.RawMessage
+		field string
+		into  *string
+	}{
+		{held.Why, "why", &asked.Why},
+		{held.Text, "text", &asked.Text},
+		{held.Reason, "reason", &asked.Reason},
+		{held.Cause, "cause", &asked.Cause},
+		{eitherRaw(held.Result, held.ResultOneWord), "result", &asked.Result},
+	}
+	for _, field := range texts {
+		read, err := readText(field.raw, field.field)
+		if err != nil {
+			return input{}, err
+		}
+		*field.into = read
+	}
+	return asked, readTheRest(held, &asked)
+}
+
+// readTheRest reads the fields that are not one line of text: the three lists,
+// the line number, and the decision and the failure written as objects.
+func readTheRest(held writtenCall, asked *input) error {
+	lists := []struct {
+		raw   json.RawMessage
+		field string
+		into  *[]string
+	}{
+		{eitherRaw(held.StopWhen, held.StopWhenOneWord), "stop_when", &asked.StopWhen},
+		{held.Plan, "plan", &asked.Plan},
+	}
+	for _, list := range lists {
+		read, err := readLines(list.raw, list.field)
+		if err != nil {
+			return err
+		}
+		*list.into = read
+	}
+
+	doneWhen, err := readDoneLines(eitherRaw(held.DoneWhen, held.DoneWhenOneWord), "done_when")
+	if err != nil {
+		return err
+	}
+	asked.DoneWhen = doneWhen
+	if asked.Line, err = readNumber(held.Line, "line"); err != nil {
+		return err
+	}
+	if asked.Decision, err = readPair(held.Decision, "decision"); err != nil {
+		return err
+	}
+	asked.Failure, err = readPair(held.Failure, "failure")
+	return err
+}
+
+// operationOf says which of the seven this call is: the one it names, put in
+// this tool's own spelling, or the one the fields it carries can only mean when
+// it names none.
+func operationOf(asked input) (string, error) {
+	if strings.TrimSpace(asked.Operation) == "" {
+		return inferredOperation(asked), nil
+	}
+	known, itIs := knownOperation(asked.Operation)
+	if !itIs {
+		return "", fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, or pin_result", asked.Operation)
+	}
+	return known, nil
+}
+
+// knownOperation says whether a name is one of the seven, and gives it back in
+// this tool's own spelling.
+func knownOperation(name string) (string, bool) {
+	switch name {
+	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan,
+		OperationDecision, OperationFailure, OperationPinResult:
+		return name, true
+	}
+	return "", false
+}
+
+// inferredOperation is what a call with no operation in it can only mean, read
+// from the fields it carries. The sections come first, because a call carrying
+// any of them writes all of them at once, whatever else it holds.
+func inferredOperation(asked input) string {
+	switch {
+	case asked.Why != "" || len(asked.DoneWhen) > 0 || len(asked.StopWhen) > 0 || len(asked.Plan) > 0:
+		return operationSections
+	case asked.Decision != nil || (asked.Text != "" && asked.Reason != ""):
+		return OperationDecision
+	case asked.Failure != nil || (asked.Text != "" && asked.Cause != ""):
+		return OperationFailure
+	case asked.Line > 0 && strings.TrimSpace(asked.Result) != "":
+		return OperationPinResult
+	default:
+		return operationSections
+	}
+}
+
+// fillIn takes the shapes that mean the same thing and makes them one: a why
+// written under "text", and a decision or a failure written as two loose fields
+// rather than as an object.
+func fillIn(asked *input) {
 	if asked.Operation == OperationWhy && strings.TrimSpace(asked.Why) == "" {
 		asked.Why = asked.Text
 	}
+	if asked.Operation == OperationDecision && asked.Decision == nil {
+		asked.Decision = &writtenPair{Text: asked.Text, Reason: asked.Reason}
+	}
+	if asked.Operation == OperationFailure && asked.Failure == nil {
+		asked.Failure = &writtenPair{Text: asked.Text, Cause: asked.Cause}
+	}
+}
+
+// check holds the rules one call must satisfy before the record ever sees it.
+func check(asked input) error {
 	switch asked.Operation {
-	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan, "":
-		return asked, checkSections(asked)
 	case OperationDecision:
-		return asked, needsText(asked.Text, "a decision is a choice, so write the choice in one line")
+		return needsText(asked.Decision.Text, "a decision is a choice, so write the choice in one line")
 	case OperationFailure:
-		return asked, needsText(asked.Text, "a failure is something that went wrong, so write what went wrong in one line")
+		return needsText(asked.Failure.Text, "a failure is something that went wrong, so write what went wrong in one line")
 	case OperationPinResult:
-		return asked, checkPin(asked)
+		return checkPin(asked)
 	default:
-		return input{}, fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, or pin_result", asked.Operation)
+		return checkSections(asked)
 	}
 }
 
@@ -67,9 +195,12 @@ func checkPin(asked input) error {
 // checkSections refuses a call that writes no section at all, and checks the
 // length of every list it does carry.
 func checkSections(asked input) error {
-	written := 0
+	sections := 0
 	if strings.TrimSpace(asked.Why) != "" {
-		written++
+		sections++
+	}
+	if asked.Decision != nil || asked.Failure != nil {
+		sections++
 	}
 	for _, list := range []struct {
 		held   int
@@ -83,12 +214,12 @@ func checkSections(asked input) error {
 		if list.held == 0 {
 			continue
 		}
-		written++
+		sections++
 		if err := checkList(list.held, list.what, list.advice); err != nil {
 			return err
 		}
 	}
-	if written == 0 {
+	if sections == 0 {
 		return errors.New(`this call writes nothing, so give "why", "done_when", "stop_when", or "plan", one or several at once`)
 	}
 	return nil

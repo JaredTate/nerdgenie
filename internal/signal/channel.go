@@ -182,7 +182,7 @@ func (channel *Channel) Receive(ctx context.Context) (<-chan contract.Inbound, e
 	already := channel.running
 	channel.guard.Unlock()
 	if already {
-		return channel.inbound, nil
+		return channel.streamFor(ctx), nil
 	}
 
 	if channel.daemon != nil {
@@ -190,7 +190,11 @@ func (channel *Channel) Receive(ctx context.Context) (<-chan contract.Inbound, e
 			return nil, err
 		}
 	}
-	running, stop := context.WithCancel(ctx)
+	// The daemon, its event stream, and the quiet watcher live as long as the
+	// channel, not as long as one caller's attach: a reader that goes away
+	// must not take the stream that every other reader and the preview answer
+	// ride on. Close ends them.
+	running, stop := context.WithCancel(context.Background())
 
 	channel.guard.Lock()
 	channel.running = true
@@ -203,7 +207,34 @@ func (channel *Channel) Receive(ctx context.Context) (<-chan contract.Inbound, e
 	quiet := channel.clock.NewTicker(StillWorkingAfter)
 	go func() { _ = channel.stream.Run(running, func(event Event) { channel.route(running, event) }) }()
 	go channel.watchForQuiet(running, quiet)
-	return channel.inbound, nil
+	return channel.streamFor(ctx), nil
+}
+
+// streamFor hands one caller its own stream of the inbound messages, fed from
+// the channel's one queue, and closes it when that caller's context ends, which
+// is what the channel contract promises a reader. The queue itself outlives any
+// one reader, so a second attach after the first was cancelled still works.
+func (channel *Channel) streamFor(ctx context.Context) <-chan contract.Inbound {
+	stream := make(chan contract.Inbound, InboundBacklog)
+	go func() {
+		defer close(stream)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case message, open := <-channel.inbound:
+				if !open {
+					return
+				}
+				select {
+				case stream <- message:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+	return stream
 }
 
 // Send delivers one reply, split into as few messages as Signal's length allows,

@@ -81,6 +81,16 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 	}
 
 	reduced := Reduce(request)
+
+	// The user's own answer for the session outranks every rule, so it is
+	// looked up first, whatever the rulebook would have said.
+	decider.guard.Lock()
+	answered, alreadyAnswered := decider.remembered[rememberedKey(request.ToolName, reduced)]
+	decider.guard.Unlock()
+	if alreadyAnswered {
+		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}, nil
+	}
+
 	matched, covered := decider.book.Match(request.ToolName, reduced)
 	if !covered {
 		return contract.PermissionDecision{
@@ -98,16 +108,9 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 }
 
 // ruleOnSomethingToAskAbout takes a call a rule says to ask about and sees
-// whether the user has already answered a call like it in this session, and
-// then whether a skill holds a standing approval for it.
+// whether a skill holds a standing approval for it; the user's own remembered
+// answers were already looked up by Decide.
 func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, matched Rule, reduced string) contract.PermissionDecision {
-	decider.guard.Lock()
-	answered, alreadyAnswered := decider.remembered[rememberedKey(request.ToolName, reduced)]
-	decider.guard.Unlock()
-
-	if alreadyAnswered {
-		return contract.PermissionDecision{Ruling: answered.ruling, Reason: answered.reason}
-	}
 	if why, standing := decider.useStandingApproval(reduced); standing {
 		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: why}
 	}

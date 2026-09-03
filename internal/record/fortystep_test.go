@@ -64,8 +64,12 @@ func runFixtureRound(t *testing.T, keeper *Keeper, fixture testkit.FortyStepTask
 	if round.ToolName == "" {
 		return
 	}
-	if _, err := keeper.AddResult(ctx, round.ResultSummary, round.ResultText); err != nil {
-		t.Fatalf("cannot add the result of round %d: %v", round.Number, err)
+	// A round's tool result and, when the round wrote to the record, the record
+	// write's own result both get a line, in the order the fixture numbers them.
+	for _, result := range fixture.ResultsOfRound(round.Number) {
+		if _, err := keeper.AddResult(ctx, result.Summary, result.Text); err != nil {
+			t.Fatalf("cannot add the result %s of round %d: %v", result.ID, round.Number, err)
+		}
 	}
 	if round.Number == fixture.StopRound {
 		checkTheStopConditionFires(t, keeper, fixture, round)
@@ -216,7 +220,7 @@ func fixtureRecordAtTheEnd(t *testing.T, fixture testkit.FortyStepTask) contract
 	return contract.Record{
 		Header: contract.Header{
 			Kind: contract.RecordTask, ID: fixture.TaskID, Status: contract.StatusDone,
-			Origin: fixture.Origin, RoundsLeft: 100 - len(results), MinutesLeft: 60,
+			Origin: fixture.Origin, RoundsLeft: 100 - lastRoundWithATool(fixture), MinutesLeft: 60,
 		},
 		Goal: contract.Goal{Ask: fixture.Ask, Why: fixture.Why, DoneWhen: fixtureDoneLines(fixture)},
 		Rules: contract.Rules{
@@ -282,4 +286,16 @@ func TestTheFortyStepRecordStaysSmallAndReadable(t *testing.T) {
 		t.Error("the record after forty rounds does not survive the trip through its text form")
 	}
 
+}
+
+// lastRoundWithATool is the number of the last round that ran a tool, which is
+// the last round the driver spends budget on.
+func lastRoundWithATool(fixture testkit.FortyStepTask) int {
+	last := 0
+	for _, round := range fixture.Rounds {
+		if round.ToolName != "" {
+			last = round.Number
+		}
+	}
+	return last
 }

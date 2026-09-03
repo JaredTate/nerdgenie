@@ -102,7 +102,12 @@ func TestTheCallsTheFakeModelPlaysComeBackUnchanged(t *testing.T) {
 		Tools:    specs,
 	}
 
-	for range task.Rounds {
+	for _, round := range task.Rounds {
+		// Past the stop, the script expects to see the user's reply that let the
+		// task resume, the way the harness would carry it.
+		if round.Number == task.StopRound+1 {
+			request.Messages = append(request.Messages, contract.Message{Role: contract.RoleUser, Text: task.UserReplyAfterStop})
+		}
 		reply, err := model.Send(context.Background(), request, nil)
 		if err != nil {
 			t.Fatalf("the fake model refused the request: %v", err)

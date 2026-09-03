@@ -40,7 +40,7 @@ type run struct {
 	roundsUsed    int
 	failedParses  int
 	doneNudges    int
-	recentCalls   []string
+	recentCalls   []pastCall
 	lastOrient    string
 	browserFact   string
 	commandFact   string

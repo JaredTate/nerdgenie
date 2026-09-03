@@ -9,6 +9,7 @@
 package loop
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -36,6 +37,16 @@ const HarnessStopLineWall = "the harness's own line: a browser page showed a log
 // walls that stop the agent and hand the window to the user.
 var wallWords = []string{"login page", "log in page", "sign in page", "captcha", "two-factor", "two factor"}
 
+// pastCall is one call the detector remembers: what was asked for, and what
+// came back of it once it had run.
+type pastCall struct {
+	// mark is the call's fingerprint: its name and its arguments.
+	mark string
+	// result is the fingerprint of what the call came back with, and is empty
+	// while the call has not run or never ran at all.
+	result string
+}
+
 // budgetIsSpent says why the task's budget is gone, and is empty while it has
 // budget left.
 func (running *run) budgetIsSpent() string {
@@ -59,7 +70,10 @@ func (running *run) spent() time.Duration {
 func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	mark := fingerprintOf(call)
 	streak := 0
-	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at] == mark; at-- {
+	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
+		if streak > 0 && somethingChanged(running.recentCalls[at], running.recentCalls[at+1]) {
+			break
+		}
 		streak++
 	}
 	running.rememberCall(mark)
@@ -74,14 +88,38 @@ func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	return "", false
 }
 
+// somethingChanged says whether two neighbouring calls in the window came back
+// with different results, which is what makes them two calls rather than the
+// same one asked twice. A call that never ran, such as one the detector itself
+// refused, has no result and breaks nothing.
+func somethingChanged(earlier pastCall, later pastCall) bool {
+	return earlier.result != "" && later.result != "" && earlier.result != later.result
+}
+
 // rememberCall keeps one call in the detector's window, which holds the last
 // few calls of the task and no more.
 func (running *run) rememberCall(mark string) {
 	window := running.theLoop.options.Caps.IdenticalCallWindow
-	running.recentCalls = append(running.recentCalls, mark)
+	running.recentCalls = append(running.recentCalls, pastCall{mark: mark})
 	if len(running.recentCalls) > window {
 		running.recentCalls = running.recentCalls[len(running.recentCalls)-window:]
 	}
+}
+
+// noteTheResult writes what the call that has just run came back with into the
+// detector's window, as a fingerprint of a fixed size, because a result may be
+// megabytes and the window holds only what tells two calls apart.
+func (running *run) noteTheResult(text string) {
+	if len(running.recentCalls) == 0 {
+		return
+	}
+	running.recentCalls[len(running.recentCalls)-1].result = fingerprintOfText(text)
+}
+
+// fingerprintOfText is one result in a fixed number of letters, so that two
+// results can be told apart without either being kept.
+func fingerprintOfText(text string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(text)))
 }
 
 // forgetTheCalls empties the detector's window, which is what a message from

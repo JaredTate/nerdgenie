@@ -84,6 +84,7 @@ func (running *run) afterADenial(ctx context.Context, call contract.ToolCall, de
 func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (contract.ToolResult, *Outcome, error) {
 	running.noteToolLine(toolLineFor(call, "", false))
 	text, failed := running.runOneTool(ctx, call)
+	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)
 	label, err := running.keeper.AddResult(ctx, summary, text)
 	if err != nil {

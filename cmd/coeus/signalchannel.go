@@ -37,7 +37,7 @@ func (running *agent) openTheSignalChannel(ctx context.Context) {
 		running.note("Signal is named in config.toml and could not be started, so it is switched off: " + err.Error())
 		return
 	}
-	running.signal = built
+	running.useSignal(built)
 
 	// Receiving is what starts the daemon and the event stream, and it runs for
 	// as long as the program does. Nothing waits on it: a Signal that cannot be
@@ -45,10 +45,28 @@ func (running *agent) openTheSignalChannel(ctx context.Context) {
 	arriving, err := built.Receive(ctx)
 	if err != nil {
 		running.note("Signal could not be reached, so it is switched off until the next start: " + err.Error())
-		running.signal = nil
+		running.useSignal(nil)
 		return
 	}
-	go running.signalMessages(ctx, arriving)
+	running.signalMessages(ctx, arriving)
+}
+
+// useSignal puts the Signal channel where the router and the status can find it.
+// It is written from the goroutine that starts Signal and read from every turn,
+// so it is held under the same lock as everything else the agent changes while
+// it runs.
+func (running *agent) useSignal(built *signalchannel.Channel) {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	running.signal = built
+}
+
+// signalChannel is the Signal channel, or nothing when Signal is switched off or
+// has not come up yet.
+func (running *agent) signalChannel() *signalchannel.Channel {
+	running.busyGuard.Lock()
+	defer running.busyGuard.Unlock()
+	return running.signal
 }
 
 // theSignalProgram is the signal-cli to start, or nothing when it is not on the

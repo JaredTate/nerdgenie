@@ -33,6 +33,7 @@ README.md
 REPO_MAP.md
 THIRD_PARTY.md
 cmd/coeus/askpass.go
+cmd/coeus/askpass_name_test.go
 cmd/coeus/askpass_test.go
 cmd/coeus/backup.go
 cmd/coeus/backup_test.go
@@ -42,6 +43,7 @@ cmd/coeus/doctor.go
 cmd/coeus/fuzz_test.go
 cmd/coeus/init.go
 cmd/coeus/install.go
+cmd/coeus/ledgeredchannel.go
 cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
@@ -65,6 +67,8 @@ cmd/coeus/skillsbox.go
 cmd/coeus/skillsbox_test.go
 cmd/coeus/status.go
 cmd/coeus/subcommands_test.go
+cmd/coeus/taskcontext.go
+cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
 cmd/coeus/timedstore.go
 cmd/coeus/tui.go
 cmd/coeus/tui_test.go
@@ -1148,6 +1152,7 @@ test/fixtures/site/captcha.html
 test/fixtures/site/compose.html
 test/fixtures/site/login.html
 test/fixtures/site/qa.html
+test/functional/boundary_test.go
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
@@ -1156,14 +1161,18 @@ test/functional/context_test.go
 test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
+test/functional/jobs_test.go
 test/functional/loop_test.go
 test/functional/network_test.go
 test/functional/nightly_test.go
 test/functional/permission_test.go
+test/functional/qaskill_test.go
 test/functional/readback_test.go
 test/functional/readfile_test.go
 test/functional/recordline_test.go
+test/functional/reliability_test.go
 test/functional/sample_test.go
+test/functional/schema_test.go
 test/functional/serve_test.go
 test/functional/signal_test.go
 test/functional/site_test.go
@@ -1171,6 +1180,7 @@ test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/toolline_test.go
 test/functional/vault_test.go
+test/functional/walk_test.go
 test/functional/whilebusy_test.go
 test/replays/task_1_test.go
 test/replays/testdata/task-1.json

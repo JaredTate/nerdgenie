@@ -12,6 +12,7 @@ import (
 	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/config"
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/tool/shell"
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
@@ -24,7 +25,7 @@ import (
 // Anything that goes wrong is said on the error output, because whatever
 // appears on the ordinary output is taken by sudo to be the password.
 var askpassSubcommand = subcommand{
-	name: "askpass",
+	name: shell.AskpassSubcommand,
 	help: "Prints the sudo password from the vault, for SUDO_ASKPASS.",
 	run:  printTheSudoPassword,
 }

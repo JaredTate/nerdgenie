@@ -11,13 +11,23 @@ import (
 	"github.com/JaredTate/coeus/internal/browser"
 	"github.com/JaredTate/coeus/internal/channel"
 	"github.com/JaredTate/coeus/internal/clock"
-	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
 	"github.com/JaredTate/coeus/internal/replay"
 	"github.com/JaredTate/coeus/internal/sandbox"
 	"github.com/JaredTate/coeus/internal/skill"
+	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
 	"github.com/JaredTate/coeus/internal/tool"
+)
+
+// The waits the wiring takes when a task is ending. They are short because a
+// person watching the screen is waiting through them.
+const (
+	// aMomentForATaskToEnd is how long a new message waits for a task that is
+	// closing before it is handed to that task instead.
+	aMomentForATaskToEnd = 500 * time.Millisecond
+	// lookAgainAfter is how often that wait looks again.
+	lookAgainAfter = 20 * time.Millisecond
 )
 
 // buildingToolsTakes is how long one task's tool registry may take to build. It
@@ -78,24 +88,18 @@ func (running *agent) openTheModelAndTheScreens() error {
 // registry, and the box is then filled with the store. Nothing asks the box a
 // question until the agent is serving, which is long after it is filled.
 func (running *agent) openTheWorkbench(ctx context.Context) error {
-	builder, err := workingcontext.New(workingcontext.Options{
-		Home:            running.home,
-		MemoryCaps:      running.settings.MemoryCaps,
-		MaxOutputTokens: running.settings.Caps.OutputTokensPerCall,
-	})
-	if err != nil {
-		return err
-	}
-	running.builder = builder
+	running.builder = newPerTaskContext(running.home, running.settings)
 	running.fence = running.openTheFence()
 	running.browser = running.openTheBrowser()
 	running.skillsBox = &skillsBox{}
 
 	walking, stopWalking := withinTheToolWalkLimit(ctx)
 	defer stopWalking()
-	if running.tools, err = tool.New(walking, running.toolSettings("", nil)); err != nil {
+	built, err := tool.New(walking, running.toolSettings("", nil))
+	if err != nil {
 		return err
 	}
+	running.tools = built
 	store, err := skill.New(skill.Options{
 		Home:       running.home,
 		Clock:      clock.System(),
@@ -109,7 +113,21 @@ func (running *agent) openTheWorkbench(ctx context.Context) error {
 	}
 	running.skills = store
 	running.skillsBox.fill(store)
+	running.installTheShippedSkill(ctx, store)
 	return nil
+}
+
+// installTheShippedSkill writes the quality skill into the skills folder when
+// there is no copy of it there. A skill that ships with the program is no use to
+// anybody until it is on disk, and a person who has written their own copy keeps
+// it: the folder is only filled when it is empty of that name.
+func (running *agent) installTheShippedSkill(ctx context.Context, store *skill.Store) {
+	if _, err := store.Load(ctx, browserskill.QASkillName); err == nil {
+		return
+	}
+	if err := browserskill.InstallQASkill(ctx, store); err != nil {
+		running.note("the quality skill could not be installed, so /skills will not list it: " + err.Error())
+	}
 }
 
 // openTheBrowser starts the Go side of the browser when the worker bundle is
@@ -300,7 +318,7 @@ func (running *agent) openTheLoop() error {
 		Permission:   running.decider,
 		Store:        running.events,
 		Clock:        clock.System(),
-		Context:      loop.TheWorkingContext(running.builder),
+		Context:      running.builder,
 		Jobs:         running.jobs,
 		Memory:       running.memories,
 		Skills:       running.skillsBox,
@@ -366,12 +384,11 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	}
 	// Nothing new is started while the guard says no, which is what the
 	// crash-loop breaker and the updater's drain marker both work through. The
-	// program said it would take no new work; it has to mean it.
-	if !running.guard.MayStartTask() {
-		return where.Send(ctx, "I am not starting new work just now: either I have crashed several times in a row and am"+
-			" waiting to settle, or an update has asked me to finish what I have and take nothing new.")
+	// guard says why in its own words, because the reason is the user's to hear.
+	if why := running.guard.WhyNoNewTask(); why != "" {
+		return where.Send(ctx, why)
 	}
-	if !running.takeTheLoop() {
+	if !running.takeTheLoopWithinAMoment() {
 		return running.loop.Deliver(message)
 	}
 
@@ -381,14 +398,47 @@ func (running *agent) startTask(ctx context.Context, message contract.Inbound) e
 	// would happen until the model had answered, which is exactly what the
 	// first human trial found.
 	finished := running.tookTheMessage()
+	// One session runs one turn at a time, and a turn that outlives the turn cap
+	// is stopped: both are the guard's, and both hold whether the work came from
+	// a person or from a job. The channel the task answers on writes every reply
+	// into the log before it sends it, so a crash between the two cannot lose
+	// the answer and the next start sends again what never arrived.
+	session := message.Channel + ":" + message.Sender
+	answering := throughTheLedger(where, running.guard)
 	go func() {
 		defer running.freeTheLoop()
 		defer finished()
-		if _, err := running.loop.Run(context.WithoutCancel(ctx), loop.Task{Message: message, Channel: where}); err != nil {
+		err := running.guard.RunTurn(context.WithoutCancel(ctx), session, func(turn context.Context) error {
+			_, err := running.loop.Run(turn, loop.Task{Message: message, Channel: answering})
+			return err
+		})
+		if err != nil {
 			running.note("a task did not finish: " + err.Error())
 		}
 	}()
 	return nil
+}
+
+// takeTheLoopWithinAMoment takes the loop, waiting a moment for a task that is
+// just ending.
+//
+// A task sends its reply and then takes a little longer to write its record and
+// close, and a person who types the moment the answer appears would otherwise
+// have their message handed to the task that is already over, where nothing
+// would ever read it. The wait is short and bounded: past it the task really is
+// a long one, and the message belongs to it as a correction.
+func (running *agent) takeTheLoopWithinAMoment() bool {
+	waited := time.Duration(0)
+	for {
+		if running.takeTheLoop() {
+			return true
+		}
+		if waited >= aMomentForATaskToEnd {
+			return false
+		}
+		time.Sleep(lookAgainAfter)
+		waited += lookAgainAfter
+	}
 }
 
 // takeTheLoop says this caller may run a task, and says no when one is already

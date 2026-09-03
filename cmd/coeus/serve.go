@@ -17,7 +17,6 @@ import (
 	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/config"
-	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/job"
 	"github.com/JaredTate/coeus/internal/log"
@@ -29,6 +28,7 @@ import (
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/coeus/internal/update"
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
@@ -102,8 +102,13 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 	if err := running.guard.Ready(); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the service manager was not told the program is up: %v\n", err)
 	}
-	if _, err := running.nightly.Register(ctx); err != nil {
+	if nightlyJob, err := running.nightly.Register(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the nightly self-check was not put on the job list: %v\n", err)
+	} else if err := running.jobs.KeepRunningWhenItsTasksFail(ctx, nightlyJob); err != nil {
+		// The self-check is the one job that must outlive its own failures: it
+		// exists to say when something is wrong, and a run of bad nights is
+		// exactly when it is needed most.
+		fmt.Fprintf(problems, "coeus serve: the nightly self-check will stop itself after a run of bad nights: %v\n", err)
 	}
 	if err := running.serve(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: %v\n", err)
@@ -152,6 +157,12 @@ func exitCodeFor(err error) int {
 	if errors.As(err, &problem) {
 		return contract.ExitBadConfiguration
 	}
+	// A database from a newer Coeus is not something a restart will fix, and a
+	// service that tried every five seconds would fill the log and change
+	// nothing.
+	if errors.Is(err, update.ErrDatabaseFromANewerCoeus) {
+		return contract.ExitBadConfiguration
+	}
 	return contract.ExitFailure
 }
 
@@ -176,7 +187,7 @@ type agent struct {
 	stream    *channel.Stream
 	socket    *channel.Socket
 	previews  *waitingPreviews
-	builder   *workingcontext.Builder
+	builder   *perTaskContext
 	fence     contract.Sandbox
 	browser   *browser.Browser
 	tools     *tool.Registry
@@ -261,20 +272,18 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	}
 	running.lock = lock
 
-	// SQLite's own quick check runs before anything opens the file, which is
-	// the one part of the reliability guard's startup that cannot wait for the
-	// guard, because the guard needs the event log the check is guarding.
-	if err := reliability.CheckDatabase(ctx, running.home.DatabaseFile()); err != nil {
-		running.note("the database did not pass its check, and the guard will move it aside: " + err.Error())
+	databaseFile, err := running.theDatabaseToOpen(ctx, now)
+	if err != nil {
+		return err
 	}
-	if running.eventLog, err = log.Open(ctx, running.home.DatabaseFile()); err != nil {
+	if running.eventLog, err = log.Open(ctx, databaseFile); err != nil {
 		return err
 	}
 	// Everything downstream writes through this rather than through the log
 	// itself, so that an event written by something with no clock of its own
 	// still carries the moment it happened.
 	running.events = timedEvents(running.eventLog, now)
-	running.queue, err = channel.OpenQueue(ctx, running.home.DatabaseFile(), running.settings.Caps.QueuedMessages)
+	running.queue, err = channel.OpenQueue(ctx, databaseFile, running.settings.Caps.QueuedMessages)
 	if err != nil {
 		return err
 	}
@@ -299,7 +308,39 @@ func (running *agent) openTheStores(ctx context.Context) error {
 		BackupFolder: running.settings.BackupPath,
 		Send:         running.sendToTheUser,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// The jobs ask the guard before they start anything and tell the user in
+	// their own words when one stops, which is how a job that keeps failing is
+	// something a person hears about rather than something that goes quiet.
+	running.jobs.OnlyStartWorkWhen(running.guard.MayStartTask)
+	running.jobs.TellTheUser(running.sendToTheUserHere)
+	return nil
+}
+
+// theDatabaseToOpen makes the one database file good before anything opens it,
+// and says which path to open.
+//
+// The whole recovery runs first: the check, the moving aside of a database that
+// failed it, and putting the newest archive back. The guard will not start until
+// it has run, because a log opened on a damaged file is a program that cannot
+// say what happened to it. Then the schema is looked at, because an older binary
+// must never open a database a newer Coeus has migrated: it would read the file
+// wrong, and reading a record wrong is worse than not reading it at all.
+func (running *agent) theDatabaseToOpen(ctx context.Context, now contract.Clock) (string, error) {
+	databaseFile, err := reliability.PrepareDatabase(ctx, reliability.RecoverySettings{
+		Home:         running.home,
+		Clock:        now,
+		BackupFolder: running.settings.BackupPath,
+	})
+	if err != nil {
+		return "", err
+	}
+	if err := update.CheckSchema(ctx, databaseFile); err != nil {
+		return "", err
+	}
+	return databaseFile, nil
 }
 
 // sendToTheUser is how the reliability guard reaches whoever is listening: the

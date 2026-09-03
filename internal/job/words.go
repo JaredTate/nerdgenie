@@ -24,8 +24,8 @@ func InPlainWords(schedule contract.Schedule) string {
 	default:
 		said = fmt.Sprintf("on a schedule of the unknown kind %q", schedule.Kind)
 	}
-	if schedule.Timezone != "" {
-		said += " in " + schedule.Timezone
+	if zone := oneLine(schedule.Timezone); zone != "" {
+		said += " in " + zone
 	}
 	return said
 }

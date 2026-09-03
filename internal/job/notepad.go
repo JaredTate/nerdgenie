@@ -95,7 +95,9 @@ func appendToNotepad(notepad string, note string) string {
 	grown := notepad + note + "\n"
 	for len(grown) > NotepadBytes {
 		_, rest, split := strings.Cut(grown, "\n")
-		if !split {
+		if !split || rest == "" {
+			// One line on its own is longer than the whole notepad, so its ending
+			// is kept: a note says what it found at the end of itself.
 			return grown[len(grown)-NotepadBytes:]
 		}
 		grown = rest

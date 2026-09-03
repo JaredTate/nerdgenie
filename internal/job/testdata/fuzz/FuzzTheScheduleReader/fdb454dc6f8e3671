@@ -1,0 +1,6 @@
+go test fuzz v1
+string("0")
+string("")
+string("\n")
+int64(3599999999923)
+int64(-90)

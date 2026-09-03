@@ -34,7 +34,7 @@ func cronInWords(expression string) string {
 		return said
 	}
 	if rest, isEvery := strings.CutPrefix(strings.ToLower(trimmed), "@every "); isEvery {
-		return "every " + strings.TrimSpace(rest)
+		return "every " + oneLine(rest)
 	}
 	fields := strings.Fields(trimmed)
 	if len(fields) != 5 {

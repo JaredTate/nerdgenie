@@ -140,6 +140,28 @@ func checkTheLongAskReadsBackWhole(t *testing.T, built *harness, taskID string, 
 	}
 }
 
+// TestTheTaskListingShowsTheAskAndNotTheStandIn is the other thing the ask by
+// reference could have broken. Every checkpoint but the first stands
+// record.AskHeldElsewhere where the user's words are, and the listing reads the
+// newest checkpoint of each task, so a listing that took the ask from the one in
+// front of it would show the person the stand-in instead of what they asked for.
+func TestTheTaskListingShowsTheAskAndNotTheStandIn(t *testing.T) {
+	built := newHarness(t, aScriptOfRounds(roundsInTheShortTask), theNotesTool(roundsInTheShortTask))
+	asked := "read the notes in the cupboard folder"
+	built.ask(t, asked)
+
+	listed, err := runTasksCommand(t, built, "")
+	if err != nil {
+		t.Fatalf("the tasks command could not list the tasks: %v", err)
+	}
+	if !strings.Contains(listed, asked) {
+		t.Errorf("the listing reads %q, and the person asked %q", listed, asked)
+	}
+	if strings.Contains(listed, record.AskHeldElsewhere) {
+		t.Errorf("the listing reads %q, which is the stand-in a checkpoint carries and never the person's own words", listed)
+	}
+}
+
 // checkpointsInTheLog is every checkpoint the loop saved, in the order it saved
 // them.
 func checkpointsInTheLog(t *testing.T, built *harness) []record.Checkpoint {

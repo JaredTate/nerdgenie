@@ -261,8 +261,8 @@ func (keeper *Keeper) SaveTheRound(ctx context.Context) error {
 //
 // Only the first checkpoint carries the user's ask. The ask is written once and
 // never changes, so every checkpoint after it names the one that holds it and
-// carries a stand-in of its own length instead of a page and a half of the
-// user's pasted specification.
+// carries one short line in its place instead of a page and a half of the user's
+// pasted specification.
 func (keeper *Keeper) save(ctx context.Context) error {
 	number := keeper.checkpoint + 1
 	saving := Checkpoint{Number: number, Text: string(Print(keeper.record)), AskFrom: keeper.askFrom}

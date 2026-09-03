@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
@@ -37,7 +37,7 @@ func TestAnErrorCardAboveAPreviewDoesNotStealTheRejectKey(t *testing.T) {
 	send(screen, contract.SocketEnvelope{Type: contract.SocketError, Text: "the queue is full."})
 	press(screen, 'r')
 
-	if !strings.Contains(screen.View(), "Why not?") {
+	if !strings.Contains(screen.frame(), "Why not?") {
 		t.Fatal("r after an error card did not ask for a reason, and the preview still holds the single keys")
 	}
 	typeWord(screen, "not that account")
@@ -53,7 +53,7 @@ func TestTheFirstFrameIsDrawnAtTheSizeTheTerminalReports(t *testing.T) {
 		Environment: plainEnvironment,
 		Width:       100,
 		Height:      30,
-	}).View()
+	}).frame()
 
 	rows := strings.Split(frame, "\n")
 	if len(rows) != 30 {
@@ -146,7 +146,7 @@ func TestTheNarrowFramesAreDrawnAsTheGoldenFilesHaveThem(t *testing.T) {
 		screen.Update(linkMessage{up: true})
 		send(screen, aFullStatus())
 		aTalkedTranscript(screen)
-		testkit.Golden(t, "narrow-"+strconv.Itoa(width)+"-frame.txt", []byte(screen.View()))
+		testkit.Golden(t, "narrow-"+strconv.Itoa(width)+"-frame.txt", []byte(screen.frame()))
 	}
 }
 
@@ -200,7 +200,7 @@ func TestAHandoffPictureIsReadOffTheDiskOnlyOnce(t *testing.T) {
 	if err := os.Remove(path); err != nil {
 		t.Fatalf("cannot take the test picture away again: %v", err)
 	}
-	if !strings.Contains(screen.View(), "\x1b_G") {
+	if !strings.Contains(screen.frame(), "\x1b_G") {
 		t.Error("the picture is read off the disk on every frame, and it is encoded once when the card is made")
 	}
 }
@@ -215,8 +215,8 @@ func TestAReplyThatCarriesAFileShowsWhereTheFileIs(t *testing.T) {
 	})
 	advance(screen, clock, heartbeatInterval)
 
-	if !strings.Contains(screen.View(), "/tmp/coeus-report.pdf") {
-		t.Errorf("the frame does not say where the file is:\n%s", screen.View())
+	if !strings.Contains(screen.frame(), "/tmp/coeus-report.pdf") {
+		t.Errorf("the frame does not say where the file is:\n%s", screen.frame())
 	}
 }
 

@@ -436,22 +436,38 @@ The socket is itself a `contract.Channel` named `terminal`, so the terminal is a
 subcommand that opens it, which is also what the bare `coeus` command runs. The
 screen is a thin client: it holds only what is on the frame, it draws what the
 running program sends over the local socket, and it sends back what the person
-types. It is built on Bubble Tea, with lipgloss for the border glyphs and the
-colour values, and it imports nothing of Coeus but `internal/contract`,
+types. It is built on Bubble Tea, and on nothing else: the border glyphs and the
+colour values are its own, and it imports nothing of Coeus but `internal/contract`,
 `internal/clock`, `internal/config` (in the subcommand, to find the home folder),
 and `internal/testkit` in its tests.
 
 The drawing is `docs/TUI_DESIGN.md`, line for line: a header, a rule, the
 transcript with its four block kinds, a rule, the input box, and the status
-strip. `View` builds the frame as rows of plain text and adds the colour codes at
-the very last step, which is why `NO_COLOR` renders exactly the same structure
-and why a golden file is readable. Nothing is drawn wider than the terminal: the
+strip. `frame` builds the frame as rows of plain text and adds the colour codes
+at the very last step, which is why `NO_COLOR` renders exactly the same structure
+and why a golden file is readable; `View` is the one line that hands that frame
+to Bubble Tea and asks for the alternate screen. Nothing is drawn wider than the terminal: the
 bubbles wrap, and the header and the status strip drop their right-hand piece
 when it will not fit with a gap in front of it. The transcript is drawn from the
 newest block backwards and stops as soon as it has the rows that fit, so a long
 session costs no more to draw than a short one. `Run` asks the terminal how big
-it is with the `TIOCGWINSZ` request before Bubble Tea paints anything, and falls
-back to eighty by twenty-four, so the very first frame is the right size.
+it is with the `TIOCGWINSZ` request before Bubble Tea paints anything, falls
+back to eighty by twenty-four, and hands that size to Bubble Tea as well, so the
+very first frame is the right size and a screen drawn to something that is not a
+terminal still has a width.
+
+**Why Bubble Tea 2.** Version 1 asked the terminal for its background colour
+while its package was being set up, which happens before any code of ours runs,
+and read the answer one byte at a time with a five-second wait for each byte. On
+a terminal that never answers, that read swallowed whatever the person typed in
+the first seconds, which is what the first human trial found. Version 2 dropped
+the question, and with it the styling library underneath that asked it: neither
+lipgloss nor termenv is in the build any more, so nothing in `bin/coeus` can put
+a blocking question to a terminal again. The proof is
+`TestLettersTypedWhileTheTerminalStaysSilentReachTheInputBox` in
+`internal/tui/pseudoterminal_test.go`, which runs the real screen as a child
+process on a pseudo-terminal that answers nothing, types a word one second in,
+and looks for it on the frame within three seconds.
 
 Every piece of text that goes onto a row has its control characters turned
 into blanks first, so nothing the person types and nothing the program sends
@@ -459,15 +475,15 @@ can move the cursor, repaint the frame, or make a row wider than it measures;
 the only escape codes in a frame are the screen's own colours and the picture
 protocols on a screenshot.
 
-**The look.** `style.go` holds the DigiByte palette as lipgloss colour values —
+**The look.** `style.go` holds the DigiByte palette as six hex digits each —
 a light blue ground behind every row, white letters, a pale blue for the quiet
 parts, DigiByte's own blue for the filled shapes, gold for the card that must be
 answered, red for a failure — and turns each of them into escape codes at
 whatever colour depth the terminal reports, stepping from twenty-four bit through
 the two hundred and fifty-six colour cube to the sixteen ordinary colours and
-down to none. The codes are written here rather than by `lipgloss.Style.Render`
-because a lipgloss renderer reports no colour at all when its writer is not a
-terminal, which every test process is. `View` paints every row out to the
+down to none. The codes are written here rather than by a terminal styling
+library because such a library reports no colour at all when its writer is not a
+terminal, which every test process is. `frame` paints every row out to the
 right-hand edge so the ground has no gaps. `banner.go` draws the `COEUS AGENT`
 wordmark in a five-row block font while the transcript is empty, with the tagline,
 a small filled tag naming the model and what the program is doing, and one line

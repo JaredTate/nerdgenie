@@ -43,7 +43,7 @@ func newTestScreen(width int, height int) (*Screen, *testkit.FakeClock) {
 func TestTheFirstFrameIsDrawnBeforeTheSocketConnects(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 
-	frame := screen.View()
+	frame := screen.frame()
 	testkit.Golden(t, "first-frame.txt", []byte(frame))
 
 	lines := strings.Split(frame, "\n")

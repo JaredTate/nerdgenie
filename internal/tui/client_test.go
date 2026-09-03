@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/testkit"
@@ -271,20 +271,20 @@ func TestSendingWithNoLinkSaysSoRatherThanLosingTheMessage(t *testing.T) {
 
 func TestTheStatusStripTellsTheTruthAboutTheLink(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
-	if !strings.Contains(screen.View(), "connecting") {
+	if !strings.Contains(screen.frame(), "connecting") {
 		t.Error("the first frame does not say the screen is connecting")
 	}
 
 	screen.Update(linkMessage{up: true})
-	if strings.Contains(screen.View(), "connecting") {
+	if strings.Contains(screen.frame(), "connecting") {
 		t.Error("the frame still says connecting after the link came up")
 	}
-	if !strings.Contains(screen.View(), "healthy") {
+	if !strings.Contains(screen.frame(), "healthy") {
 		t.Error("the header does not show a healthy link once the screen has attached")
 	}
 
 	screen.Update(linkMessage{up: false, detail: "the program went away"})
-	frame := screen.View()
+	frame := screen.frame()
 	if !strings.Contains(frame, "disconnected, reconnecting") {
 		t.Error("the status strip does not say the link dropped, and it must say so at once")
 	}

@@ -26,7 +26,7 @@ library.
 | `filippo.io/age` | `internal/vault`, wave 2 | The vault file and the nightly backups are encrypted with age, and the standard library has no file-encryption format, only the primitives underneath one |
 | `github.com/pquerna/otp` | `internal/vault`, wave 2 | Logging in to a site needs a time-based one-time password, and the standard library has no TOTP implementation |
 | `github.com/robfig/cron/v3` | `internal/job`, wave 4 | A job's schedule may be a cron expression, and the standard library has no cron parser |
-| `github.com/charmbracelet/bubbletea`, with `bubbles` and `lipgloss` | `internal/tui`, wave 3 | The terminal screen streams deltas, answers approvals inline, and redraws on resize, and the standard library has no terminal user-interface toolkit |
+| `charm.land/bubbletea/v2` | `internal/tui`, wave 3 | The terminal screen streams deltas, answers approvals inline, and redraws on resize, and the standard library has no terminal user-interface toolkit. Version 2 rather than version 1, and alone rather than with lipgloss, because version 1 asked the terminal for its background colour while its package was being set up — before any code of ours runs — and waited five seconds for each byte of an answer that a terminal need not give, swallowing what the person typed meanwhile (brief 6.6) |
 | `github.com/coreos/go-systemd/v22/daemon` | `internal/reliability`, wave 4 | The service unit has a watchdog line, and feeding the watchdog means talking to the systemd notify socket, which this library does correctly |
 | `github.com/mdp/qrterminal/v3` | `internal/signal`, wave 3 | `coeus signal link` shows the linking URI as a QR code the user scans with a phone, and the standard library cannot draw one |
 

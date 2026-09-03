@@ -90,6 +90,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	if err != nil {
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}
+	running.resultsThisRound++
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
 	result := contract.ToolResult{CallID: call.ID, Text: text, Failed: failed}

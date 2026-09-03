@@ -10,14 +10,14 @@ import (
 )
 
 // endOfTurn is what happens when the model replies with no tool calls. The
-// harness tells a question from an answer by the finish state and a question
-// mark on the last line: a question puts the task into waiting, and an answer
-// goes to the done-check.
+// harness tells a question from an answer by the finish state and by what the
+// reply has behind it: a question puts the task into waiting, and an answer goes
+// to the done-check.
 func (running *run) endOfTurn(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
 	}
-	if isAQuestion(text, why) {
+	if running.isAQuestion(text, why) {
 		outcome, err := running.waitHere(ctx, text)
 		return outcome, false, err
 	}
@@ -49,12 +49,28 @@ func (running *run) backToWork(ctx context.Context, problem string) (Outcome, bo
 }
 
 // isAQuestion says whether the model asked the user something rather than
-// answering them.
-func isAQuestion(text string, why contract.FinishReason) bool {
+// answering them. A question mark on the last line is the plain sign of one, and
+// a model that writes none is read by what it did instead: a reply with no tool
+// calls, an empty done list, and no result written this round has nothing behind
+// it that could close a task, so it is the model asking for something and not
+// the model saying the work is finished.
+func (running *run) isAQuestion(text string, why contract.FinishReason) bool {
 	if why != contract.FinishEnd {
 		return false
 	}
-	return strings.HasSuffix(lastLine(text), "?")
+	if strings.HasSuffix(lastLine(text), "?") {
+		return true
+	}
+	return running.nothingBehindTheReply()
+}
+
+// nothingBehindTheReply says the reply could close nothing: the record holds no
+// done list to prove, and this round wrote no result into it.
+func (running *run) nothingBehindTheReply() bool {
+	if running.keeper == nil {
+		return false
+	}
+	return len(running.keeper.Record().Goal.DoneWhen) == 0 && running.resultsThisRound == 0
 }
 
 // lastLine is the last line of a piece of text with anything on it.

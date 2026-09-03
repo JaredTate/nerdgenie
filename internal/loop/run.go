@@ -29,31 +29,32 @@ const (
 
 // run is one task in flight, with everything that is true only while it runs.
 type run struct {
-	theLoop       *Loop
-	task          Task
-	channel       contract.Channel
-	keeper        *record.Keeper
-	jobSummary    string
-	messages      []contract.Message
-	roundsAllowed int
-	timeAllowed   time.Duration
-	startedAt     time.Time
-	roundsUsed    int
-	failedParses  int
-	doneNudges    int
-	recentCalls   []pastCall
-	lastOrient    string
-	browserFact   string
-	commandFact   string
-	filesChanged  []string
-	hadCorrection bool
-	hadFailure    bool
-	hadStop       bool
-	stopLine      string
-	stopNow       string
-	pinned        []workingcontext.Pin
-	number        string
-	perTask       contract.ToolRegistry
+	theLoop          *Loop
+	task             Task
+	channel          contract.Channel
+	keeper           *record.Keeper
+	jobSummary       string
+	messages         []contract.Message
+	roundsAllowed    int
+	timeAllowed      time.Duration
+	startedAt        time.Time
+	roundsUsed       int
+	failedParses     int
+	doneNudges       int
+	resultsThisRound int
+	recentCalls      []pastCall
+	lastOrient       string
+	browserFact      string
+	commandFact      string
+	filesChanged     []string
+	hadCorrection    bool
+	hadFailure       bool
+	hadStop          bool
+	stopLine         string
+	stopNow          string
+	pinned           []workingcontext.Pin
+	number           string
+	perTask          contract.ToolRegistry
 }
 
 // tools is the registry this task's calls go to: the one built for this task
@@ -247,6 +248,7 @@ func (running *run) play(ctx context.Context) (Outcome, error) {
 // oneRound is one turn of the loop: orient, call, guard, permit, run, update.
 // It returns false when the task has reached an end state.
 func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
+	running.resultsThisRound = 0
 	if spent := running.budgetIsSpent(); spent != "" {
 		outcome, err := running.finalReport(ctx, spent)
 		return outcome, false, err

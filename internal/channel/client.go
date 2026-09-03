@@ -175,9 +175,12 @@ func (socket *Socket) handle(attached *client, envelope contract.SocketEnvelope)
 	case contract.SocketMessage, contract.SocketCommand:
 		return socket.enqueue(attached, envelope)
 	case contract.SocketApprove:
-		return socket.answerPreview(attached, envelope, approvalIn(envelope))
+		return socket.answerPreview(attached, envelope, contract.PreviewAnswerWithReason{Answer: approvalIn(envelope)})
 	case contract.SocketDeny:
-		return socket.answerPreview(attached, envelope, contract.AnswerReject)
+		return socket.answerPreview(attached, envelope, contract.PreviewAnswerWithReason{
+			Answer: contract.AnswerReject,
+			Reason: envelope.Reason,
+		})
 	case contract.SocketSecret:
 		return socket.answerPrompt(attached, envelope)
 	default:
@@ -213,8 +216,11 @@ func (socket *Socket) enqueue(attached *client, envelope contract.SocketEnvelope
 }
 
 // answerPreview hands a screen's approve or deny to whoever is waiting on that
-// preview, and tells the screen when there is nothing waiting under that id.
-func (socket *Socket) answerPreview(attached *client, envelope contract.SocketEnvelope, answer contract.PreviewAnswer) error {
+// preview, and tells the screen when there is nothing waiting under that id. A
+// refusal carries the reason the person typed, in their own words, because that
+// reason is what the model is told and what stops it trying the same thing
+// again.
+func (socket *Socket) answerPreview(attached *client, envelope contract.SocketEnvelope, answer contract.PreviewAnswerWithReason) error {
 	socket.guard.Lock()
 	waiting, held := socket.previews[envelope.ID]
 	socket.guard.Unlock()

@@ -74,7 +74,7 @@ type Socket struct {
 	guard    sync.Mutex
 	clients  map[*client]struct{}
 	watchers map[*watcher]struct{}
-	previews map[string]chan contract.PreviewAnswer
+	previews map[string]chan contract.PreviewAnswerWithReason
 	prompts  map[string]chan string
 	asked    int64
 	closed   bool
@@ -109,7 +109,7 @@ func Listen(options Options) (*Socket, error) {
 		done:     make(chan struct{}),
 		clients:  map[*client]struct{}{},
 		watchers: map[*watcher]struct{}{},
-		previews: map[string]chan contract.PreviewAnswer{},
+		previews: map[string]chan contract.PreviewAnswerWithReason{},
 		prompts:  map[string]chan string{},
 	}, nil
 }

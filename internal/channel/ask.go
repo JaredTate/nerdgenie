@@ -22,7 +22,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	if id == "" {
 		id = socket.nextAskID()
 	}
-	waiting := make(chan contract.PreviewAnswer, 1)
+	waiting := make(chan contract.PreviewAnswerWithReason, 1)
 	if !socket.waitOnPreview(id, waiting) {
 		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, fmt.Errorf("a preview numbered %q is already waiting to be answered, so give this one a number of its own", shortenedText(id))
 	}
@@ -45,7 +45,7 @@ func (socket *Socket) ShowPreview(ctx context.Context, preview contract.Preview)
 	if !answered {
 		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, contextTrouble(ctx)
 	}
-	return contract.PreviewAnswerWithReason{Answer: answer}, nil
+	return answer, nil
 }
 
 // AskSecret asks for a secret on every attached screen, marked with the
@@ -135,7 +135,7 @@ func contextTrouble(ctx context.Context) error {
 // and says no when that number is already taken. A number is what the user
 // answers with, so two previews sharing one would leave one of them waiting for
 // an answer that could never reach it.
-func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswer) bool {
+func (socket *Socket) waitOnPreview(id string, waiting chan contract.PreviewAnswerWithReason) bool {
 	socket.guard.Lock()
 	defer socket.guard.Unlock()
 	if _, taken := socket.previews[id]; taken {

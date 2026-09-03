@@ -237,6 +237,17 @@ and applied through `record`'s rules, and the whole update comes back as the
 result so that `read r2` fetches it. The registry still advertises the tool, and
 that is the seam `serve.go` will close when `internal/tool` lands.
 
+**A done line the answer itself proves.** A task like "reply with exactly three
+words" has one done line that nothing but the answer can prove, and the record
+refuses a line pointing at a result it never wrote, so the live serve of wave 6
+watched such a task fail. A done line whose result is written as `reply` is
+taken by the loop: the rest of the change goes into the record now, the line is
+held back unproved, and the moment the model gives its answer the harness writes
+that answer into the record as a result of its own and points the line at it. A
+refusal from the done-check names the results the record does hold and says that
+`reply` stands for the answer, so a model that pointed at a result nobody wrote
+is told what there is to point at.
+
 **The three operations of the task tool the loop keeps for itself.** `stop_now`
 says a line of the stop list has come true, and is above. `pin_evidence` reads
 the whole text of one result out of the record and keeps it in front of the model

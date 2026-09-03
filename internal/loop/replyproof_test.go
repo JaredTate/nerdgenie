@@ -52,8 +52,7 @@ func TestAResultTheRecordNeverWroteIsRefusedWithTheLabelsItHas(t *testing.T) {
 	built := newHarness(t, []testkit.Step{
 		callStep("Nothing is read yet. I will read the notes.",
 			callFor("c1", "read", `{"path":"notes.md"}`),
-			taskCall("c1t", `{"why":"the user wants the notes read","doneWhen":[`+
-				`{"text":"the notes are read","done":true,"resultId":"r9"}]}`)),
+			taskCall("c1t", `{"why":"the user wants the notes read","doneWhen":["the notes are read"]}`)),
 		answerStep("It is done. What I checked: the notes."),
 		callStep("I will point the line at the result the record really holds.",
 			taskCall("c2t", `{"doneWhen":[{"text":"the notes are read","done":true,"resultId":"r1"}]}`)),
@@ -69,7 +68,7 @@ func TestAResultTheRecordNeverWroteIsRefusedWithTheLabelsItHas(t *testing.T) {
 	if !strings.Contains(said, "The results this task has written are r1") {
 		t.Error("the model pointed a done line at a result that was never written and was never told which results there are")
 	}
-	if !strings.Contains(said, `"reply" names the answer`) {
+	if !strings.Contains(said, `names "reply" as its result`) {
 		t.Error("the model was never told that a line proved by the answer itself points at the reply")
 	}
 }

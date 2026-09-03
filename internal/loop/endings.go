@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/record"
 )
 
 // endOfTurn is what happens when the model replies with no tool calls. The
@@ -25,6 +27,9 @@ func (running *run) endOfTurn(ctx context.Context, text string, why contract.Fin
 		outcome, err := running.answerWithNoRecord(ctx, text)
 		return outcome, false, err
 	}
+	if err := running.theReplyProvesItsLines(ctx, text); err != nil {
+		return Outcome{}, false, err
+	}
 	problem, err := running.doneCheck(ctx)
 	if err != nil {
 		return Outcome{}, false, err
@@ -34,6 +39,33 @@ func (running *run) endOfTurn(ctx context.Context, text string, why contract.Fin
 	}
 	outcome, err := running.finish(ctx, text)
 	return outcome, false, err
+}
+
+// theReplyProvesItsLines writes the answer the model has just given into the
+// record as a result and points at it every done line the model said the answer
+// proves, so that a task whose done list is the answer itself can close on the
+// same proof every other line stands on.
+func (running *run) theReplyProvesItsLines(ctx context.Context, text string) error {
+	if len(running.provedByTheReply) == 0 || strings.TrimSpace(text) == "" {
+		return nil
+	}
+	label, err := running.keeper.AddResult(ctx, "the reply to the user: "+firstLine(text), text)
+	if err != nil {
+		return fmt.Errorf("cannot write the reply of task %s into the record as the result that proves its done list: %w",
+			running.keeper.ID(), err)
+	}
+	lines := slices.Clone(running.keeper.Record().Goal.DoneWhen)
+	for at := range lines {
+		if slices.Contains(running.provedByTheReply, lines[at].Text) {
+			lines[at].Done, lines[at].ResultID = true, label
+		}
+	}
+	running.provedByTheReply = nil
+	if err := running.keeper.Apply(ctx, record.Update{DoneWhen: lines}); err != nil {
+		return fmt.Errorf("cannot point the done lines of task %s at the reply that proves them: %w",
+			running.keeper.ID(), err)
+	}
+	return nil
 }
 
 // backToWork sends the model back with one line naming the rule its done list

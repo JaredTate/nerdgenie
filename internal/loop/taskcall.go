@@ -31,6 +31,20 @@ const (
 // for the work it is doing.
 const MaxResultsPinned = 4
 
+// TheReplyLabel is what a done line points at when the answer to the user is
+// its own proof, such as "reply to the user with exactly three words". It reads
+// like a result label and is not one: the answer has not been given while the
+// line is being written, so the harness holds the line back and writes the
+// answer into the record as the result that proves it once it has been given.
+//
+// This belongs beside the result labels in internal/contract; it lives here
+// until that package is opened.
+const TheReplyLabel = "reply"
+
+// MaxLinesProvedByTheReply is how many done lines may wait on the answer at
+// once, because every list the harness keeps for a task has a cap.
+const MaxLinesProvedByTheReply = 8
+
 // aTaskCall is what the loop reads out of a task call before anything else
 // does: which operation it is and the one piece of text it carries. Everything
 // else in the call belongs to the task tool.
@@ -54,6 +68,9 @@ func (running *run) theLoopsOwnOperation(ctx context.Context, call contract.Tool
 	if err := json.Unmarshal(call.Input, &written); err != nil {
 		return "", false, false
 	}
+	if answer, refused, mine := running.takeTheLinesTheReplyProves(ctx, call); mine {
+		return answer, refused, true
+	}
 	switch written.Operation {
 	case OperationStopNow:
 		answer, refused := running.stopNowAsked(written)
@@ -67,6 +84,43 @@ func (running *run) theLoopsOwnOperation(ctx context.Context, call contract.Tool
 	default:
 		return "", false, false
 	}
+}
+
+// takeTheLinesTheReplyProves answers a record write that names the reply as the
+// proof of a done line. The record refuses a line pointing at a result it never
+// wrote, and the answer is not a result until it has been given, so the harness
+// writes the rest of the change now, holds those lines back, and points them at
+// the answer the moment the model gives it. A write that names the reply nowhere
+// is none of the loop's business and goes to the tool as it always did.
+func (running *run) takeTheLinesTheReplyProves(ctx context.Context, call contract.ToolCall) (string, bool, bool) {
+	if running.keeper == nil {
+		return "", false, false
+	}
+	update, err := readRecordUpdate(call.Input, running.keeper.Record())
+	if err != nil {
+		return "", false, false
+	}
+	waiting := []string{}
+	for at := range update.DoneWhen {
+		if !strings.EqualFold(update.DoneWhen[at].ResultID, TheReplyLabel) {
+			continue
+		}
+		waiting = append(waiting, update.DoneWhen[at].Text)
+		update.DoneWhen[at].Done, update.DoneWhen[at].ResultID = false, ""
+	}
+	if len(waiting) == 0 {
+		return "", false, false
+	}
+	if len(running.provedByTheReply)+len(waiting) > MaxLinesProvedByTheReply {
+		return fmt.Sprintf("%d done lines are already waiting on your answer, which is as many as one task may have, "+
+			"so prove the rest with results.", len(running.provedByTheReply)), true, true
+	}
+	if err := running.keeper.Apply(ctx, update); err != nil {
+		return "the record refused that change: " + err.Error(), true, true
+	}
+	running.provedByTheReply = append(running.provedByTheReply, waiting...)
+	return fmt.Sprintf("The record is written, and %d of its done lines are proved by your answer, "+
+		"so I will write your answer into the record as the result that proves them when you give it.", len(waiting)), false, true
 }
 
 // stopNowAsked takes the line the model says has come true, and refuses a stop
@@ -88,6 +142,9 @@ func (running *run) pinEvidence(ctx context.Context, written aTaskCall) (string,
 	label := strings.TrimSpace(written.Result)
 	if label == "" {
 		return "This call pins nothing, so name the result to pin, such as r7.", true
+	}
+	if running.keeper == nil {
+		return "This task has written no results yet, because nothing has been run, so run something before pinning it.", true
 	}
 	if running.alreadyPinned(label) {
 		return "The result " + label + " is already pinned.", false

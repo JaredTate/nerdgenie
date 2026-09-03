@@ -56,6 +56,7 @@ type run struct {
 	stopLine         string
 	stopNow          string
 	pinned           []workingcontext.Pin
+	provedByTheReply []string
 	number           string
 	perTask          contract.ToolRegistry
 }

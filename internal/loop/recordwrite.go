@@ -23,7 +23,8 @@ var TheTaskToolSpec = contract.ToolSpec{
 		"a decision with its reason, or a failure with its cause.",
 	Fields: []contract.ToolField{
 		{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once."},
-		{Name: "done_when", Type: "array", Description: "The whole done list, each line with the result that proves it."},
+		{Name: "done_when", Type: "array", Description: "The whole done list, each line with the result that proves it. " +
+			"A line only your answer to the user can prove names \"reply\" as its result."},
 		{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 		{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 		{Name: "decision", Type: "object", Description: "A choice, as a text and the reason it was made."},

@@ -31,6 +31,8 @@ func TestEveryBoundOfThisPackageIsTheNumberItSays(t *testing.T) {
 		{"MaxTasksInARow", MaxTasksInARow, 100},
 		{"IdenticalCallsAllowed", IdenticalCallsAllowed, 2},
 		{"MaxResultsPinned", MaxResultsPinned, 4},
+		{"MaxLinesProvedByTheReply", MaxLinesProvedByTheReply, 8},
+		{"MaxResultsNamedInARefusal", MaxResultsNamedInARefusal, 12},
 		{"MaxFilesInTheSituation", MaxFilesInTheSituation, 8},
 		{"MaxSituationLineLetters", MaxSituationLineLetters, 160},
 		{"MaxCommandsCheckedPerLine", MaxCommandsCheckedPerLine, 3},
@@ -46,6 +48,17 @@ func TestEveryBoundOfThisPackageIsTheNumberItSays(t *testing.T) {
 				"so change the test with the bound or change the bound back",
 				bound.name, bound.held, bound.wants)
 		}
+	}
+}
+
+// TestTheLabelOfTheAnswerIsTheWordTheModelIsTold pins the one word a done line
+// names when the answer to the user is its own proof. The task tool's
+// description and the harness's own refusals both say it, so it is a name and
+// not a number, and it changes for nobody.
+func TestTheLabelOfTheAnswerIsTheWordTheModelIsTold(t *testing.T) {
+	if TheReplyLabel != "reply" {
+		t.Errorf("a done line proved by the answer names %q, and the word this package was built around is \"reply\"",
+			TheReplyLabel)
 	}
 }
 

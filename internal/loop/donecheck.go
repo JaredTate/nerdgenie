@@ -25,6 +25,10 @@ const (
 	MaxCommandsCheckedPerLine = 3
 	// MaxPathsCheckedPerLine is how many file paths one done line may name.
 	MaxPathsCheckedPerLine = 3
+	// MaxResultsNamedInARefusal is how many result labels a refusal lists back
+	// to the model, because a task of a hundred rounds has a hundred results and
+	// a refusal is one line the model reads.
+	MaxResultsNamedInARefusal = 12
 )
 
 // doneCheck says what is wrong with the done list, in one line the model can
@@ -34,7 +38,7 @@ const (
 func (running *run) doneCheck(ctx context.Context) (string, error) {
 	held := running.keeper.Record()
 	if err := record.DoneCheck(held); err != nil {
-		return "This task cannot close yet. " + err.Error(), nil
+		return "This task cannot close yet. " + err.Error() + " " + theResultsToNameFrom(held), nil
 	}
 	for _, line := range held.Goal.DoneWhen {
 		problem, err := running.checkOneDoneLine(ctx, line)
@@ -43,6 +47,26 @@ func (running *run) doneCheck(ctx context.Context) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// theResultsToNameFrom names the results this record holds, so that a model
+// whose done line pointed at a result that was never written is told which
+// labels there are rather than guessing again, and says that the answer itself
+// has a label of its own for a line only the answer can prove.
+func theResultsToNameFrom(held contract.Record) string {
+	labels := []string{}
+	for _, one := range held.Work.Results {
+		if len(labels) >= MaxResultsNamedInARefusal {
+			break
+		}
+		labels = append(labels, one.ID)
+	}
+	written := fmt.Sprintf("The results this task has written are %s.", strings.Join(labels, ", "))
+	if len(labels) == 0 {
+		written = "This task has written no results yet."
+	}
+	return written + fmt.Sprintf(" A line that only your answer to the user can prove names %q as its result, "+
+		"and I write your answer into the record as that result when you give it.", TheReplyLabel)
 }
 
 // checkOneDoneLine runs the mechanical checks on one line: a command in

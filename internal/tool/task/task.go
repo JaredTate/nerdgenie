@@ -28,6 +28,13 @@ const (
 	OperationFailure = "failure"
 	// OperationPinResult points one done line at the result that proves it.
 	OperationPinResult = "pin_result"
+	// The three the turn loop answers before this tool is ever asked: the
+	// model declaring one of its own stop lines has come true, and pinning or
+	// unpinning a result so it stays in front of the model. They are named
+	// here so the description tells the model they exist.
+	OperationStopNow       = "stop_now"
+	OperationPinEvidence   = "pin_evidence"
+	OperationUnpinEvidence = "unpin_evidence"
 )
 
 // MaxLines is how many lines one list may hold, because a done list or a plan
@@ -101,9 +108,9 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Description: "Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, " +
 			"a failure with its cause, or a result pinned to the done line it proves.",
 		Fields: []contract.ToolField{
-			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result.", Required: true},
+			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result; or stop_now, pin_evidence, unpin_evidence, which the harness answers at once.", Required: true},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once (the text field is taken for it too)."},
-			{Name: "done_when", Type: "array", Description: "The whole done list: each line as a string, or as an object with text, done, and the result that proves it."},
+			{Name: "done_when", Type: "array", Description: "The whole done list: each line as a string, or as an object with text, done, and the result that proves it; a line only your answer to the user can prove names \"reply\" as its result."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 			{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 			{Name: "text", Type: "string", Description: "The choice, or the thing that went wrong."},

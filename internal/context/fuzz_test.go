@@ -24,13 +24,18 @@ func FuzzThePersonaReaderTakesAnyBytes(f *testing.F) {
 		home := fuzzHome(t, soul, user, world)
 		caps := contract.MemoryCaps{UserFactsBytes: boundedLimit(limit), WorldFactsBytes: boundedLimit(limit)}
 
-		text, err := readPersona(home, caps)
+		persona, err := readPersona(home)
 		if err != nil {
-			t.Fatalf("three ordinary files could not be read: %v", err)
+			t.Fatalf("an ordinary SOUL.md could not be read: %v", err)
 		}
+		known, err := readWhatIsKnown(home, caps)
+		if err != nil {
+			t.Fatalf("two ordinary memory files could not be read: %v", err)
+		}
+		text := persona + known
 		room := SoulBytes + caps.UserFactsBytes + caps.WorldFactsBytes + 3*len(soulHeading) + 3*300
 		if len(text) > room {
-			t.Errorf("the persona came back as %d bytes, and the caps allow at most %d", len(text), room)
+			t.Errorf("the persona and what is known came back as %d bytes together, and the caps allow at most %d", len(text), room)
 		}
 	})
 }

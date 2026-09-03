@@ -46,6 +46,7 @@ const (
 	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.**"
 	recordResultsHeading    = "**The task record, part three: every result so far.**"
 	recordHeaderHeading     = "**The task record, last of all: where the work stands.**"
+	whatIsKnownHeading      = "**What you know, from USER.md and MEMORY.md.** These are yours to add to with the `memory` tool."
 	pinnedHeading           = "**Pinned evidence, kept word for word.** It stays in front of you until it is unpinned."
 	memoryHintHeading       = "**Memory hint.** Up to three lines from a search of what you know."
 )
@@ -104,8 +105,18 @@ type BuildInput struct {
 	MemoryHint []string
 }
 
-// New makes a builder for one task. Everything it takes comes from the
-// configuration and the home folder, and none of it changes while the task runs.
+// New makes a builder. Everything it takes comes from the configuration and the
+// home folder, and none of it changes while the builder lives.
+//
+// The daemon makes one at startup and shares it across every task, so the
+// boundary it makes here is one per process and not, as an earlier draft of this
+// comment said, one per task. That is safe, and it is worth saying why rather
+// than leaving a reader to hope: the boundary is not a secret the wrapper
+// depends on. WrapAsData takes every copy of it out of the text before wrapping,
+// so a page that learned one task's boundary and wrote it back in the next gains
+// nothing, which TestABoundaryLearnedInOneTaskCannotBreakOutOfAnother holds.
+// Making it truly per task needs one line where the daemon builds the loop's
+// dependencies, not a change here.
 func New(options Options) (*Builder, error) {
 	if options.Home.Root == "" {
 		return nil, errors.New("a working context needs the home folder the persona files live in, so pass the home the configuration package built")
@@ -133,9 +144,10 @@ func New(options Options) (*Builder, error) {
 	}, nil
 }
 
-// Boundary is the identifier this task's tool results are marked with. The turn
-// loop reads it so that it can mark a result it hands over outside a built
-// context with the same one.
+// Boundary is the identifier this builder's tool results are marked with. The
+// turn loop reads it so that it can mark a result it hands over outside a built
+// context with the same one. See New for why one boundary serving every task of
+// a run is safe.
 func (builder *Builder) Boundary() string { return builder.boundary }
 
 // Build makes the working context for one call. The same input always builds the
@@ -146,7 +158,11 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	if err := ctx.Err(); err != nil {
 		return contract.Request{}, fmt.Errorf("the turn was given up on before its working context was built: %w", err)
 	}
-	persona, err := readPersona(builder.home, builder.memoryCaps)
+	persona, err := readPersona(builder.home)
+	if err != nil {
+		return contract.Request{}, err
+	}
+	known, err := readWhatIsKnown(builder.home, builder.memoryCaps)
 	if err != nil {
 		return contract.Request{}, err
 	}
@@ -158,7 +174,7 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 		Tools:           input.Tools,
 		MaxOutputTokens: builder.maxOutputTokens,
 	}
-	messages, err := builder.messagesFor(input, parts, request)
+	messages, err := builder.messagesFor(input, parts, known, request)
 	if err != nil {
 		return contract.Request{}, err
 	}

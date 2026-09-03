@@ -29,7 +29,7 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 // own order; then the tail, which is the only part re-read on every call: the
 // list of results, which grows by a line every round, and last of all the two
 // lines of the record's header, which are written anew every time.
-func (builder *Builder) messagesFor(input BuildInput, parts recordParts, request contract.Request) ([]contract.Message, error) {
+func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known string, request contract.Request) ([]contract.Message, error) {
 	above := EstimateRequestTokens(request)
 	recordBody := []contract.Message{}
 	if parts.Body != "" {
@@ -47,12 +47,16 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, request
 	if len(input.Pinned) > 0 {
 		pinned = append(pinned, asUserMessage(pinnedHeading, pinnedText(input.Pinned, builder.boundary)))
 	}
+	whatIsKnown := []contract.Message{}
+	if known != "" {
+		whatIsKnown = append(whatIsKnown, asUserMessage(whatIsKnownHeading, known))
+	}
 	hint := []contract.Message{}
 	if len(input.MemoryHint) > 0 {
 		hint = append(hint, asUserMessage(memoryHintHeading, memoryHintText(input.MemoryHint)))
 	}
 
-	fixed := above + totalTokens(recordBody) + totalTokens(recordResults) + totalTokens(recordHeader)
+	fixed := above + totalTokens(recordBody) + totalTokens(whatIsKnown) + totalTokens(recordResults) + totalTokens(recordHeader)
 	room := input.ContextLength - builder.maxOutputTokens - fixed
 	if room <= 0 {
 		return nil, roomRanOut(fixed, input, builder.maxOutputTokens)
@@ -65,10 +69,12 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, request
 		return nil, roomRanOut(fixed+totalTokens(hint), input, builder.maxOutputTokens)
 	}
 
-	below := make([]contract.Message, 0, len(recordBody)+len(pinned)+len(input.Messages)+len(hint)+len(recordResults)+len(recordHeader))
+	below := make([]contract.Message, 0,
+		len(recordBody)+len(pinned)+len(input.Messages)+len(whatIsKnown)+len(hint)+len(recordResults)+len(recordHeader))
 	below = append(below, recordBody...)
 	below = append(below, pinned...)
 	below = append(below, fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)...)
+	below = append(below, whatIsKnown...)
 	below = append(below, hint...)
 	below = append(below, recordResults...)
 	return append(below, recordHeader...), nil

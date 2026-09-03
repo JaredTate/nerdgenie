@@ -96,6 +96,9 @@ func (keeper *Keeper) change(ctx context.Context, write func(into *contract.Reco
 	if err := checkItReadsBack(changing); err != nil {
 		return err
 	}
+	if err := checkItStillFits(changing); err != nil {
+		return err
+	}
 	held := keeper.record
 	keeper.record = changing
 	if err := keeper.save(ctx); err != nil {

@@ -165,14 +165,16 @@ func TestTheCallersMessagesAreNeverChanged(t *testing.T) {
 	}
 }
 
-// TestTwoBuildersOnTwoTasksUseDifferentBoundaries proves the boundary belongs to
-// the task rather than to the program, so that a page which saw one task's
-// marker cannot break out of the next one.
-func TestTwoBuildersOnTwoTasksUseDifferentBoundaries(t *testing.T) {
+// TestTwoBuildersUseDifferentBoundaries proves each builder makes its own, so
+// that a run which does build one per task gets a fresh boundary for each. The
+// daemon of today builds one and shares it, which finding 20 of the wave 6 gate
+// review names; what makes that safe is held by
+// TestABoundaryLearnedInOneTaskCannotBreakOutOfAnother.
+func TestTwoBuildersUseDifferentBoundaries(t *testing.T) {
 	first := newTestBuilder(t, Options{})
 	second := newTestBuilder(t, Options{})
 	if first.Boundary() == second.Boundary() {
-		t.Errorf("two tasks share the boundary %q", first.Boundary())
+		t.Errorf("two builders share the boundary %q", first.Boundary())
 	}
 }
 

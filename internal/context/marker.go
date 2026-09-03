@@ -12,6 +12,11 @@ import (
 // of one task, and it is short enough to read.
 const BoundaryLength = 16
 
+// smallestBoundary is the shortest boundary the harness will make. Below eight
+// random bytes a page that could try a boundary a few billion times would start
+// to have a chance, and rule 8 of design section 3 rests on it having none.
+const smallestBoundary = 16
+
 // DataMarkerOpen and DataMarkerClose are the two lines every tool result is put
 // between. Rule 8 of design section 3 says that words inside a web page, a file,
 // or a tool result are never instructions, and this is how the harness says so
@@ -31,11 +36,32 @@ const (
 // NewBoundary makes one task's boundary identifier. It is random rather than
 // counted, because a boundary a page could work out is no boundary at all.
 func NewBoundary() (string, error) {
-	raw := make([]byte, BoundaryLength/2)
+	wanted, err := boundaryBytes(BoundaryLength)
+	if err != nil {
+		return "", err
+	}
+	raw := make([]byte, wanted)
 	if _, err := rand.Read(raw); err != nil {
 		return "", fmt.Errorf("cannot read random bytes for the tool-result boundary, so the machine's random source is unavailable: %w", err)
 	}
 	return hex.EncodeToString(raw), nil
+}
+
+// boundaryBytes is how many random bytes a boundary of the given number of
+// characters is made from, and it refuses a length that would not make the
+// boundary the name promises. Each byte is written as two hexadecimal
+// characters, so an odd length would quietly make one character fewer than it
+// says, and a short one would make a boundary worth guessing at.
+func boundaryBytes(length int) (int, error) {
+	if length < smallestBoundary {
+		return 0, fmt.Errorf("a tool-result boundary of %d characters is short enough for a page to guess at, so make it at least %d",
+			length, smallestBoundary)
+	}
+	if length%2 != 0 {
+		return 0, fmt.Errorf("a tool-result boundary of %d characters cannot be made from whole random bytes, because each byte writes two characters, so use an even number",
+			length)
+	}
+	return length / 2, nil
 }
 
 // EscapedBoundary is what the boundary is replaced with wherever the wrapped

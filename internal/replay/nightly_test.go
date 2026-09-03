@@ -194,6 +194,46 @@ func TestTheNightlyCheckNamesWhatFailed(t *testing.T) {
 	}
 }
 
+// twelveNights is more than the ten failures in a row that switch a scheduled
+// job off for good, which is what a self-check reporting a genuinely broken
+// skill every night would otherwise reach.
+const twelveNights = 12
+
+func TestASkillThatIsBrokenEveryNightDoesNotSwitchTheSelfCheckOff(t *testing.T) {
+	ctx := context.Background()
+	built := newNightlyHarness(t, twentyFacts())
+	built.addSkill("post")
+	built.dryRunsThatFail["post"] = true
+	if _, err := built.nightly.Register(ctx); err != nil {
+		t.Fatalf("cannot register the nightly job: %v", err)
+	}
+
+	for night := 1; night <= twelveNights; night++ {
+		report, err := built.nightly.Run(ctx, built.fireTheSchedule(t))
+		if err != nil {
+			t.Fatalf("night %d of the self-check did not finish: %v", night, err)
+		}
+		if !strings.Contains(report.Line, "post") {
+			t.Fatalf("night %d did not name the skill that is broken: %q", night, report.Line)
+		}
+	}
+
+	listed, err := built.jobs.List(ctx)
+	if err != nil {
+		t.Fatalf("cannot list the jobs: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("the job store holds %d jobs rather than the one nightly job", len(listed))
+	}
+	if listed[0].State != contract.JobRunning {
+		t.Errorf("after %d nights of correctly reporting a broken skill the nightly job is %q, and a check that goes quiet is worse than no check at all",
+			twelveNights, listed[0].State)
+	}
+	if sent := built.channel.Sent(); len(sent) != twelveNights {
+		t.Errorf("the user heard on %d of the %d nights", len(sent), twelveNights)
+	}
+}
+
 func TestTheNightlyCheckSaysSoWhenThereIsNothingToCheck(t *testing.T) {
 	ctx := context.Background()
 	built := newNightlyHarness(t, testkit.NewFakeMemory())

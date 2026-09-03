@@ -561,6 +561,7 @@ internal/provider/cliarguments.go
 internal/provider/clioutput.go
 internal/provider/cliprompt.go
 internal/provider/clisystemprompt_test.go
+internal/provider/codexflags_test.go
 internal/provider/deltas.go
 internal/provider/doc.go
 internal/provider/errors.go

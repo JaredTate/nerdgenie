@@ -165,6 +165,7 @@ func (running *agent) openTheBrowser() *browser.Browser {
 		Codes:          running.secrets,
 		Clock:          clock.System(),
 		HandoffTimeout: running.settings.HandoffTimeout,
+		BufferedEvents: running.settings.Caps.BufferedBrowserEvents,
 		Note:           running.noteLine,
 	})
 	if err != nil {

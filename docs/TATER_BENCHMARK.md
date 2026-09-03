@@ -1,5 +1,8 @@
 # The Tater Benchmark — four coding harnesses, one local model
 
+> The Opus 4.8 figures in this file were superseded on 2026-09-03 by the nine
+> clean runs in `OPUS_BENCHMARK.md` at the repository root.
+
 This is an honest, apples-to-apples comparison of four coding harnesses building
 the same small program with the same local model on the same graphics card,
 judged by the same independent checker. It measures both how fast and cheap each

@@ -242,7 +242,18 @@ turn. **This is a deliberate reading of design section 3, rule 4**, which says
 the same call is not run twice: the forty-step fixture, which is the design's own
 example task, reads the same page twice in a row on purpose at rounds twenty-nine
 and thirty, and a browser agent that cannot re-read a page is useless, so the rule
-is applied to a run rather than to any repeat. A message from the user, a stop,
+is applied to a run rather than to any repeat. **A second rule sits beside the
+first, and it is blind to results**: the same call with the same arguments, made
+`SameCallHardCap` (six) times in a row whatever each came back with, is refused
+on the seventh with a line saying how many times it was made, that the answers
+did not change what the model did next, and that the model should wait longer
+before asking again or read the result it already has, and the ninth ends the
+turn the way the first rule does. The first human trial is why: the model ran one
+shell command that launched Chrome thirteen times in a row, and every answer
+carried a new process id, so to the first rule no two of them were the same call.
+Both rules count a run, so a different call in between clears both: reading a page
+again after each click, or running the tests after each edit, is ordinary work
+however many times it happens. A message from the user, a stop,
 and a resume all clear the run, because the world has changed. Every call then
 goes to `contract.Permission`; a ruling of ask shows the preview through the
 channel and remembers the answer, a ruling of stop ends an unattended task with a

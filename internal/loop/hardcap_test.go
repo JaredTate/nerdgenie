@@ -93,7 +93,7 @@ func TestTheSeventhSameCallIsRefusedWhateverItAnswered(t *testing.T) {
 
 // TestPastTheHardCapPlusTwoTheTurnEnds proves the second rule ends the turn the
 // way the first one does: the seventh and eighth calls are refused, and the
-// ninth ends the turn without another word to the model.
+// ninth ends the turn with the same stopped report the first rule sends.
 func TestPastTheHardCapPlusTwoTheTurnEnds(t *testing.T) {
 	launching := launchesWithNewProcessIDs(loop.SameCallHardCap + 3)
 	built := newHarness(t, launchSteps(loop.SameCallHardCap+3), launching)
@@ -106,9 +106,8 @@ func TestPastTheHardCapPlusTwoTheTurnEnds(t *testing.T) {
 	if outcome.Status != contract.StatusStopped {
 		t.Errorf("the task ended %q, want stopped, because the model asked for the same thing nine times", outcome.Status)
 	}
-	if built.model.StepsLeft() != 1 {
-		t.Errorf("the model has %d steps left, want the one answer it never got to give, because nothing runs after the turn ends",
-			built.model.StepsLeft())
+	if !sentSomethingLike(built.channel.Sent(), "the same thing over and over") {
+		t.Errorf("the user was sent %v, and a task the detector ended says so in its report", built.channel.Sent())
 	}
 }
 

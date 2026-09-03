@@ -31,7 +31,7 @@ for worker in $workers; do
 	# npm ci wipes and rebuilds node_modules from the lock file, so it is only
 	# worth running when the lock file has moved on since the last one.
 	if [ ! -f "$folder/node_modules/.package-lock.json" ] ||
-		[ "$folder/package-lock.json" -nt "$folder/node_modules/.package-lock.json" ]; then
+		[ -n "$(find "$folder/package-lock.json" -newer "$folder/node_modules/.package-lock.json" 2>/dev/null)" ]; then
 		say "installing the $worker worker's dependencies"
 		(cd "$folder" && npm ci --no-audit --no-fund >/dev/null)
 	fi

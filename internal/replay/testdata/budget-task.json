@@ -20,7 +20,7 @@
     "Kind": "checkpoint",
     "Body": {
       "number": 1,
-      "text": "# task 1   running   from terminal   budget left: 1 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\n\n## Rules\n\n## Work\n\n## Lessons\n"
+      "text": "# task 1   running   from terminal   budget left: 1 rounds\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"count the files in the notes folder\"\n\n## Rules\n\n## Work\n\n## Lessons\n"
     }
   },
   {
@@ -109,7 +109,7 @@
     "Kind": "checkpoint",
     "Body": {
       "number": 2,
-      "text": "# task 1   running   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"(the ask is in the checkpoint this one names)\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n",
+      "text": "# task 1   running   from terminal   budget left: 0 rounds\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"(the ask is in the checkpoint this one names)\"\nWhy: the user wants a count\nDone when:\n- [ ] the files are counted\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I am starting on the notes folder.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n\n## Lessons\n",
       "askFrom": 1
     }
   },
@@ -198,7 +198,7 @@
     "Kind": "checkpoint",
     "Body": {
       "number": 3,
-      "text": "# task 1   stopped   from terminal   budget left: 0 rounds, 60 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"(the ask is in the checkpoint this one names)\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I have the count and now want the names.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n",
+      "text": "# task 1   stopped   from terminal   budget left: 0 rounds\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"(the ask is in the checkpoint this one names)\"\nWhy: the user wants a count\nDone when:\n- [x] the files are counted -\u003e r3\n\n## Rules\n\n## Work\nSituation:\n- files changed in this task: none\n- where the work stands: I have the count and now want the names.\nPlan:\n- [ ] 1 read the folder\n- [ ] 2 name the files\nResults (read any of them in full with `read r7`):\n- r1 search: three files\n- r2 updated the record: done_when, plan, why\n- r3 search: notes.md, list.md, plan.md\n- r4 updated the record: done_when\n\n## Lessons\n",
       "askFrom": 1
     }
   },

@@ -3,6 +3,7 @@ package loop_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
@@ -62,7 +63,14 @@ func TestThePickedUpTaskKeepsTheBudgetItHadLeft(t *testing.T) {
 		answerStep("Nothing is left to do. Shall I stop?"),
 	}, scriptedTool("read", "the notes"))
 
-	waiting := built.ask(t, "post the anniversary tweet")
+	// The task runs under a budget of its own, because the caps set none and
+	// a task with no budget has nothing a wait could buy.
+	first := built.task("post the anniversary tweet")
+	first.Budget = loop.Budget{Rounds: 10, Time: time.Hour}
+	waiting, err := built.loop.Run(t.Context(), first)
+	if err != nil {
+		t.Fatalf("the loop could not run the task: %v", err)
+	}
 	before := built.held(t, waiting.TaskID).Header.RoundsLeft
 
 	answered := built.task("the DigiByte account")

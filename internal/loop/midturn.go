@@ -25,7 +25,7 @@ var theWordsThatMeanStop = []string{"stop", "halt", "cancel", "abort", "quit", "
 func (running *run) readDelivered(ctx context.Context) (Outcome, bool, error) {
 	for _, message := range running.theLoop.takeDelivered() {
 		if meansStop(message.Text) {
-			outcome, err := running.stopHere(ctx, "the user said to stop")
+			outcome, err := running.stopForThePerson(ctx, "the user said to stop")
 			return outcome, false, err
 		}
 		if err := running.takeTheCorrection(ctx, message); err != nil {

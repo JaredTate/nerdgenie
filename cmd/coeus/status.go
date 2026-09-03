@@ -98,10 +98,22 @@ func (running *agent) commandList() string {
 }
 
 // budgetLine says in plain words what one task may spend, which is the caps the
-// configuration set.
+// configuration set: "no budget" unless the user set one, which is the shipped
+// default, and otherwise the rounds, the time, or both, the way the record's
+// own header says it.
 func (running *agent) budgetLine() string {
 	caps := running.settings.Caps
-	return fmt.Sprintf("%d rounds, %s per task", caps.RoundsPerTask, plainDuration(caps.TimePerTask))
+	parts := []string{}
+	if caps.RoundsPerTask > 0 {
+		parts = append(parts, fmt.Sprintf("%d rounds", caps.RoundsPerTask))
+	}
+	if caps.TimePerTask > 0 {
+		parts = append(parts, plainDuration(caps.TimePerTask))
+	}
+	if len(parts) == 0 {
+		return "no budget"
+	}
+	return strings.Join(parts, ", ") + " per task"
 }
 
 // plainDuration writes a length of time the way a person says it.

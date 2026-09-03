@@ -36,6 +36,13 @@ const (
 	labelFailures    = "Failures:"
 )
 
+// The two ways a task header says what is left to spend: the budget left on the
+// limits the task has, or that it has none, which is the default.
+const (
+	labelBudget   = "budget left: "
+	fieldNoBudget = "no budget"
+)
+
 // The small pieces of punctuation the format is built from.
 const (
 	headerGap   = "   "
@@ -124,8 +131,25 @@ func printHeader(header contract.Header) []string {
 		}
 		return []string{strings.Join(parts, headerGap)}
 	}
-	parts = append(parts, fmt.Sprintf("budget left: %d rounds, %d minutes", header.RoundsLeft, header.MinutesLeft))
+	parts = append(parts, printBudget(header))
 	return []string{strings.Join(parts, headerGap), printCostLine(header.Cost)}
+}
+
+// printBudget writes what a task has left to spend: "no budget" when neither
+// limit is set, which is the default, and otherwise the rounds, the minutes, or
+// both, in that order.
+func printBudget(header contract.Header) string {
+	left := []string{}
+	if !header.NoRoundBudget {
+		left = append(left, fmt.Sprintf("%d rounds", header.RoundsLeft))
+	}
+	if !header.NoTimeBudget {
+		left = append(left, fmt.Sprintf("%d minutes", header.MinutesLeft))
+	}
+	if len(left) == 0 {
+		return fieldNoBudget
+	}
+	return labelBudget + strings.Join(left, ", ")
 }
 
 // printCostLine writes what the last turn cost, in thousands of tokens to one

@@ -38,12 +38,19 @@ func aNewLife(t *testing.T, home contract.Home) string {
 // tests that move time while a turn is running.
 func aGuardWithClock(t *testing.T, home contract.Home, store *testkit.FakeStore, clock *testkit.FakeClock) (*reliability.Guard, *sender) {
 	t.Helper()
+	return aGuardWithCaps(t, home, store, clock, contract.DefaultConfig().Caps)
+}
+
+// aGuardWithCaps is a guard over the caps the test chooses, which is how a
+// test gives a turn the deadline the shipped caps do not.
+func aGuardWithCaps(t *testing.T, home contract.Home, store *testkit.FakeStore, clock *testkit.FakeClock, caps contract.Caps) (*reliability.Guard, *sender) {
+	t.Helper()
 	told := &sender{}
 	guard, err := reliability.New(reliability.Settings{
 		Home:  home,
 		Clock: clock,
 		Store: store,
-		Caps:  contract.DefaultConfig().Caps,
+		Caps:  caps,
 		Send:  told.send,
 	})
 	if err != nil {
@@ -264,8 +271,8 @@ func TestTheGuardHandsTheLoopItsLeaseAndItsTwoDeadlines(t *testing.T) {
 	}
 	defer lease.Release()
 
-	if want := contract.DefaultConfig().Caps.TimePerTurn; guard.TurnDeadline().Remaining() != want {
-		t.Errorf("the turn deadline is %s, want the %s the caps give a turn", guard.TurnDeadline().Remaining(), want)
+	if !guard.TurnDeadline().Off() {
+		t.Errorf("the turn deadline is %s, and the shipped caps give a turn no limit at all", guard.TurnDeadline().Remaining())
 	}
 	if want := contract.DefaultConfig().Caps.TimePerTool; guard.ToolDeadline().Remaining() != want {
 		t.Errorf("the tool deadline is %s, want the %s the caps give a tool", guard.ToolDeadline().Remaining(), want)

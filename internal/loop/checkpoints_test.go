@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/loop"
 	"github.com/JaredTate/coeus/internal/record"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
@@ -62,13 +64,18 @@ func TestOneCheckpointIsSavedForEveryModelCall(t *testing.T) {
 }
 
 // TestTheCheckpointOfARoundIsSavedBeforeItsToolsRun pins where in a round the
-// checkpoint goes. The replay reads the round boundary off the budget line of
-// each checkpoint, so the checkpoint has to carry the budget of the round whose
-// tools are about to run, not the one that has just finished.
+// checkpoint goes: after the model call and before the tools run, so that the
+// checkpoint carries the budget of the round whose tools are about to run, not
+// the one that has just finished. The task runs under a budget of its own here,
+// because the caps set none and a task with no budget has no count to read.
 func TestTheCheckpointOfARoundIsSavedBeforeItsToolsRun(t *testing.T) {
 	built := newHarness(t, aScriptOfRounds(roundsInTheShortTask), theNotesTool(roundsInTheShortTask))
 
-	built.ask(t, "read the notes")
+	task := built.task("read the notes")
+	task.Budget = loop.Budget{Rounds: 10, Time: time.Hour}
+	if _, err := built.loop.Run(t.Context(), task); err != nil {
+		t.Fatalf("the loop could not run the task: %v", err)
+	}
 
 	saved := checkpointsInTheLog(t, built)
 	budgets := []int{}

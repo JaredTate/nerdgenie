@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -51,23 +50,6 @@ type pastCall struct {
 	// result is the fingerprint of what the call came back with, and is empty
 	// while the call has not run or never ran at all.
 	result string
-}
-
-// budgetIsSpent says why the task's budget is gone, and is empty while it has
-// budget left.
-func (running *run) budgetIsSpent() string {
-	if running.roundsUsed >= running.roundsAllowed {
-		return fmt.Sprintf("the budget of %d rounds is used up", running.roundsAllowed)
-	}
-	if running.spent() >= running.timeAllowed {
-		return fmt.Sprintf("the budget of %s is used up", running.timeAllowed)
-	}
-	return ""
-}
-
-// spent is how long this task has been running on the harness's clock.
-func (running *run) spent() time.Duration {
-	return running.theLoop.options.Clock.Now().Sub(running.startedAt)
 }
 
 // detectorRefuses says whether this call is one the model has already made over

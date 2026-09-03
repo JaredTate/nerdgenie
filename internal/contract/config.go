@@ -45,15 +45,22 @@ type ModelAlias struct {
 }
 
 // Caps are the limits from the design that keep the agent from running away.
-// Every one of them is a hard stop, not a target.
+// Every one of them is a hard stop, not a target. The three budgets, the rounds
+// and the time of a task and the time of a turn, are off unless the user sets
+// them: a zero, which is the default, means no limit, because Coeus puts no cap
+// on its own work unless the user asks for one. The rest are always on.
 type Caps struct {
-	// RoundsPerTask is the tool-round budget of a task. Default 100.
+	// RoundsPerTask is the tool-round budget of a task. Default 0, which is no
+	// limit; a number above zero stops the task after that many rounds.
 	RoundsPerTask int `toml:"rounds_per_task"`
-	// TimePerTask is the wall-clock budget of a task. Default one hour.
+	// TimePerTask is the wall-clock budget of a task. Default 0, which is no
+	// limit; a length of time above zero stops the task when it is used up.
 	TimePerTask time.Duration `toml:"time_per_task"`
-	// TimePerTool is how long one tool may run. Default seven minutes.
+	// TimePerTool is how long one tool may run before it is killed. Default
+	// seven minutes. It is a safety limit and not a budget, so it is never off.
 	TimePerTool time.Duration `toml:"time_per_tool"`
-	// TimePerTurn is how long one turn may take. Default fifteen minutes.
+	// TimePerTurn is how long one turn may take. Default 0, which is no limit;
+	// a length of time above zero stops the turn when it is used up.
 	TimePerTurn time.Duration `toml:"time_per_turn"`
 	// QueuedMessages is how many messages may wait in the queue. Default 100.
 	QueuedMessages int `toml:"queued_messages"`
@@ -149,11 +156,10 @@ func DefaultConfig() Config {
 		DefaultModel:   LocalModelAlias,
 		HandoffTimeout: 30 * time.Minute,
 		AskMeFirst:     DefaultAskMeFirst(),
+		// The three budgets are left at zero, which is off: no rounds per
+		// task, no time per task, and no time per turn until the user sets one.
 		Caps: Caps{
-			RoundsPerTask:         100,
-			TimePerTask:           time.Hour,
 			TimePerTool:           7 * time.Minute,
-			TimePerTurn:           15 * time.Minute,
 			QueuedMessages:        100,
 			ToolOutputBytes:       30000,
 			IdenticalCallWindow:   20,

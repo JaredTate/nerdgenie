@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/reliability"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
@@ -56,7 +55,10 @@ func TestTwoMessagesOnOneSessionRunOneTurnAtATime(t *testing.T) {
 			return nil
 		})
 	}()
-	waitForSleepers(t, clock, 2)
+	// The one sleeper is the second turn waiting for the lease: the first turn
+	// has no deadline watcher on the clock, because a turn has no limit unless
+	// the user sets one.
+	waitForSleepers(t, clock, 1)
 	clock.Advance(reliability.LeaseWait + time.Millisecond)
 
 	select {
@@ -108,7 +110,8 @@ func TestATurnOnAnotherSessionRunsBesideTheOneAlreadyRunning(t *testing.T) {
 
 func TestATurnIsStoppedWhenItRunsPastTheTurnLimit(t *testing.T) {
 	clock := testkit.NewFakeClock(startOfTime)
-	guard, _ := aGuardWithClock(t, testkit.NewTempHome(t), testkit.NewFakeStore(), clock)
+	turnLimit := 15 * time.Minute
+	guard, _ := aGuardWithCaps(t, testkit.NewTempHome(t), testkit.NewFakeStore(), clock, capsWithATurnOf(turnLimit))
 	whyItStopped := make(chan error, 1)
 
 	turn := make(chan error, 1)
@@ -120,7 +123,7 @@ func TestATurnIsStoppedWhenItRunsPastTheTurnLimit(t *testing.T) {
 		})
 	}()
 	waitForSleepers(t, clock, 1)
-	clock.Advance(contract.DefaultConfig().Caps.TimePerTurn)
+	clock.Advance(turnLimit)
 
 	select {
 	case cause := <-whyItStopped:
@@ -128,7 +131,7 @@ func TestATurnIsStoppedWhenItRunsPastTheTurnLimit(t *testing.T) {
 			t.Fatalf("the turn was stopped because %v, want our own turn limit", cause)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatalf("the turn ran past the %s a turn is given and was never stopped", contract.DefaultConfig().Caps.TimePerTurn)
+		t.Fatalf("the turn ran past the %s the user gave a turn and was never stopped", turnLimit)
 	}
 	if err := <-turn; !errors.Is(err, reliability.ErrDeadlineExpired) {
 		t.Errorf("running the turn came back with %v, want the turn limit it ran past", err)

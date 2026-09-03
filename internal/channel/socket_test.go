@@ -300,9 +300,11 @@ func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
 			Secrets: whole.Secrets, AnswerDeadline: whole.AnswerDeadline,
 		},
-		"the answer deadline": {
+		// No answer deadline at all is the shipped time_per_turn and is taken;
+		// one below zero is what nobody can have meant.
+		"an answer deadline below zero": {
 			Path: whole.Path, Stream: whole.Stream, Queue: whole.Queue,
-			Secrets: whole.Secrets, Clock: whole.Clock,
+			Secrets: whole.Secrets, Clock: whole.Clock, AnswerDeadline: -time.Second,
 		},
 	}
 	for what, options := range missing {

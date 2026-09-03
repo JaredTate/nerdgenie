@@ -146,6 +146,7 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	written.WriteString("# profile, your cloud credentials, and your keys.\n")
 	fmt.Fprintf(written, "sandbox_roots = %s\n", quotedList(roots))
 
+	written.WriteString(capsBlock())
 	for _, choice := range aliasesToWrite(chosen, found) {
 		written.WriteString(aliasBlock(choice))
 	}
@@ -184,6 +185,23 @@ func codexExampleBlock() string {
 	fmt.Fprintf(written, "# context_length = %d\n", codexExampleContextLength)
 	fmt.Fprintf(written, "# think = %s\n", quoted(string(contract.ThinkMedium)))
 	return written.String()
+}
+
+// capsBlock is the [caps] table of the file, with every budget written as a
+// comment: the three are off unless the user sets one, because Coeus puts no
+// cap on its own work, and a person who wants one takes the "#" off the line.
+// The table header is written out so that an uncommented line lands in the
+// right table rather than at the top level, where the loader would refuse it.
+func capsBlock() string {
+	return "\n# How much one task may spend before Coeus stops it and reports what is\n" +
+		"# left. All three are off unless you set them: Coeus puts no cap on its own\n" +
+		"# work. To turn one on, take the \"#\" off its line and give it a number above\n" +
+		"# zero, such as the ones shown. A command that hangs is still killed after\n" +
+		"# time_per_tool, seven minutes, which is a safety limit and not a budget.\n" +
+		"[caps]\n" +
+		"# rounds_per_task = 100\n" +
+		"# time_per_task = \"1h\"\n" +
+		"# time_per_turn = \"15m\"\n"
 }
 
 // fallbackNames are the models to try when the chosen one cannot be reached:

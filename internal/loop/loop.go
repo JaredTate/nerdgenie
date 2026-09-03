@@ -182,7 +182,10 @@ func New(options Options) (*Loop, error) {
 			return nil, fmt.Errorf("the turn loop needs %s, so pass one in its options", needed.name)
 		}
 	}
-	if options.Caps.RoundsPerTask <= 0 {
+	// A caller that passed no caps at all gets the shipped ones. A zero in any
+	// one budget is not that: it is the user's own way of saying that budget
+	// is off, and it is left alone.
+	if options.Caps == (contract.Caps{}) {
 		options.Caps = contract.DefaultConfig().Caps
 	}
 	return &Loop{options: options}, nil
@@ -282,8 +285,11 @@ func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, error) {
 	theLoop.noteRecordLine(RecordLineOf(running.number, task.FromJob, "started", task.Message.Text))
 	outcome, err := running.play(ctx)
 	// A task saves one checkpoint per model call, and its last round has no call
-	// after it to save what that round left behind, so the ending saves it here.
-	if saving := running.saveTheRound(ctx); saving != nil && err == nil {
+	// after it to save what that round left behind, so the ending saves it here,
+	// under the ending's own context, because the turn's may be cancelled.
+	wrappingUp, done := running.timeToWrapUp(ctx)
+	defer done()
+	if saving := running.saveTheRound(wrappingUp); saving != nil && err == nil {
 		return outcome, saving
 	}
 	if err == nil {

@@ -86,7 +86,8 @@ func (options Options) client() *http.Client {
 
 // callTimeout is how long one whole call may take when the caller's context
 // carries no deadline of its own. It is the turn cap from the configuration's
-// defaults, which is fifteen minutes.
+// defaults, which is off, so a call has no whole-call limit unless a turn cap
+// is set; a stream that goes quiet is still ended by the stall watch.
 func callTimeout() time.Duration {
 	return contract.DefaultConfig().Caps.TimePerTurn
 }

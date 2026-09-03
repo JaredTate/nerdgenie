@@ -50,7 +50,6 @@ func TestDefaultConfigCarriesTheCapsFromTheDesign(t *testing.T) {
 		got  int
 		want int
 	}{
-		{"rounds per task", caps.RoundsPerTask, 100},
 		{"queued messages", caps.QueuedMessages, 100},
 		{"identical-call window", caps.IdenticalCallWindow, 20},
 		{"tool output bytes", caps.ToolOutputBytes, 30000},
@@ -61,19 +60,27 @@ func TestDefaultConfigCarriesTheCapsFromTheDesign(t *testing.T) {
 		}
 	}
 
-	durations := []struct {
-		what string
-		got  time.Duration
-		want time.Duration
-	}{
-		{"time per task", caps.TimePerTask, time.Hour},
-		{"time per tool", caps.TimePerTool, 7 * time.Minute},
-		{"time per turn", caps.TimePerTurn, 15 * time.Minute},
+	if caps.TimePerTool != 7*time.Minute {
+		t.Errorf("the cap on time per tool is %s, want 7m0s: a hung command is still killed, because that is a safety limit and not a budget",
+			caps.TimePerTool)
 	}
-	for _, check := range durations {
-		if check.got != check.want {
-			t.Errorf("the cap on %s is %s, want %s", check.what, check.got, check.want)
-		}
+}
+
+// TestTheThreeBudgetsAreOffUnlessTheUserSetsThem is the user's rule: Coeus puts
+// no cap on its own work unless the user asks for one. The round budget, the
+// task time, and the turn time all default to zero, which the loop, the record,
+// and the status line read as no limit at all.
+func TestTheThreeBudgetsAreOffUnlessTheUserSetsThem(t *testing.T) {
+	caps := contract.DefaultConfig().Caps
+
+	if caps.RoundsPerTask != 0 {
+		t.Errorf("the default round budget is %d, want 0, which is no limit", caps.RoundsPerTask)
+	}
+	if caps.TimePerTask != 0 {
+		t.Errorf("the default time per task is %s, want 0, which is no limit", caps.TimePerTask)
+	}
+	if caps.TimePerTurn != 0 {
+		t.Errorf("the default time per turn is %s, want 0, which is no limit", caps.TimePerTurn)
 	}
 }
 

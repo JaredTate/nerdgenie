@@ -17,8 +17,9 @@ import (
 )
 
 // MaxCheckpoints is the most checkpoints of one record this package will read
-// back. A task saves one per round and a hundred rounds is its budget, so
-// anything past this is a log that has gone wrong rather than a record.
+// back. A task saves one per round, and a record fills its size at about a
+// hundred results, so anything past this is a log that has gone wrong rather
+// than a record.
 const MaxCheckpoints = 10000
 
 // Load reloads a record from its latest checkpoint. A task waiting on the user

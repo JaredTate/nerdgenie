@@ -54,6 +54,8 @@ func fuzzSeeds() []string {
 		"\n",
 		"# job 1   done   0 of 0 tasks done\n\n## Goal\nAsk: \"run it\"\n\n## Rules\n\n## Work\n\n## Lessons\n",
 		bare,
+		"# task 1   running   no budget\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"do the thing\"\n\n## Rules\n\n## Work\n\n## Lessons\n",
+		"# task 1   running   budget left: 3 minutes\nthis turn: 0.0k tokens in, 0.0k of them cached, 0.0k out\n\n## Goal\nAsk: \"do the thing\"\n\n## Rules\n\n## Work\n\n## Lessons\n",
 		insertIntoGoal(bare, "Done when:\n- [ ] a line with an arrow in it -> and no result\n"),
 		insertIntoGoal(bare, "Done when:\n- [ ] a line ->\n- [x] a proven line -> r1\n"),
 		insertIntoGoal(bare, "Done when:\n- [ ] a -> ->\n"),

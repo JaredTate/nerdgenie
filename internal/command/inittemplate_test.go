@@ -61,6 +61,39 @@ func TestTheShippedConfigurationSaysTheSandboxIsOffAndWhatTheFenceWouldDo(t *tes
 	}
 }
 
+// TestTheShippedConfigurationWritesTheBudgetsCommentedOut is the user's rule in
+// the file "coeus init" writes: the three budgets are off unless set, so each
+// is written as a comment a person can uncomment, under a [caps] header so that
+// the uncommented line lands in the right table, with a comment above saying
+// they are off and how to turn one on.
+func TestTheShippedConfigurationWritesTheBudgetsCommentedOut(t *testing.T) {
+	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+
+	caps := strings.Index(written, "[caps]\n")
+	models := strings.Index(written, "[[models]]\n")
+	if caps < 0 || models < 0 || caps > models {
+		t.Fatalf("the [caps] table is at %d and the first model block at %d, and the table has to come first so that its keys stay in it:\n%s", caps, models, written)
+	}
+	block := written[caps:models]
+	for _, line := range []string{"# rounds_per_task = 100\n", "# time_per_task = \"1h\"\n", "# time_per_turn = \"15m\"\n"} {
+		if !strings.Contains(block, line) {
+			t.Errorf("the caps table does not carry the commented line %q:\n%s", line, block)
+		}
+	}
+	for _, key := range []string{"\nrounds_per_task", "\ntime_per_task", "\ntime_per_turn"} {
+		if strings.Contains(written, key) {
+			t.Errorf("the shipped configuration sets %q, and every budget is off unless the person turns it on", strings.TrimSpace(key))
+		}
+	}
+	above := written[:caps]
+	for _, words := range []string{"off unless you set them", "no cap on its own", "time_per_tool"} {
+		if !strings.Contains(above, words) {
+			t.Errorf("the comment above the caps table does not say %q:\n%s", words, above)
+		}
+	}
+}
+
 // TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt pins the
 // think setting in the file "coeus init" writes: every model block carries it,
 // empty, with a comment above it naming the levels, so that a person can turn

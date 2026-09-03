@@ -114,18 +114,25 @@ func (socket *Socket) stopWaitingOnPrompt(id string) {
 }
 
 // waitForAnswer waits for one answer from a screen and gives up when the
-// deadline passes or the caller's context is cancelled, so that no question ever
-// waits for ever. It says whether an answer arrived.
+// deadline passes or the caller's context is cancelled, so that no question
+// outlives the turn that asked it. A deadline of zero is no deadline: the
+// question then waits for as long as the caller's context lives, which is how
+// long the turn does. It says whether an answer arrived.
 func waitForAnswer[Answer any](ctx context.Context, clock contract.Clock, deadline time.Duration, waiting <-chan Answer) (Answer, bool) {
 	var nothing Answer
 
 	timing, stopTiming := context.WithCancel(ctx)
 	defer stopTiming()
-	late := make(chan struct{})
-	go func() {
-		defer close(late)
-		_ = clock.Sleep(timing, deadline)
-	}()
+	// A nil channel is never ready, which is what a wait with no deadline
+	// selects on in place of the timer.
+	var late chan struct{}
+	if deadline > 0 {
+		late = make(chan struct{})
+		go func() {
+			defer close(late)
+			_ = clock.Sleep(timing, deadline)
+		}()
+	}
 
 	select {
 	case answer := <-waiting:

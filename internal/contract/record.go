@@ -53,10 +53,18 @@ type Header struct {
 	Status RecordStatus
 	// Origin is the channel the ask came in on, such as "Signal".
 	Origin string
-	// RoundsLeft is the task's remaining tool rounds, and is unused on a job.
+	// RoundsLeft is the task's remaining tool rounds. It is unused on a job, and
+	// on a task with no round budget, which NoRoundBudget says.
 	RoundsLeft int
-	// MinutesLeft is the task's remaining minutes, and is unused on a job.
+	// NoRoundBudget says the task has no round budget, which is the default
+	// unless the user set one: the header then reads "no budget" or names only
+	// the minutes, and RoundsLeft is zero.
+	NoRoundBudget bool
+	// MinutesLeft is the task's remaining minutes. It is unused on a job, and on
+	// a task with no time budget, which NoTimeBudget says.
 	MinutesLeft int
+	// NoTimeBudget says the task has no time budget, the same way.
+	NoTimeBudget bool
 	// Cost is the task's cost line for this turn, and is unused on a job.
 	Cost CostLine
 	// TasksDone is the first half of a job's progress line, and is unused on a

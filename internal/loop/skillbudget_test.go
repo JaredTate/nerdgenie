@@ -45,19 +45,21 @@ func TestASkillsBudgetIsTheBudgetLineOfTheRecord(t *testing.T) {
 
 // TestATaskUnderNoSkillIsBudgetedByTheCaps is the other half of the rule: a
 // zero budget means the caps in the configuration, which is what every task
-// that no skill claims runs on.
+// that no skill claims runs on. The caps ship with no budget at all, so such a
+// task carries none.
 func TestATaskUnderNoSkillIsBudgetedByTheCaps(t *testing.T) {
 	built := newHarness(t, scriptThatPins(), scriptedTool("read", theBrandRule))
 
 	outcome := built.ask(t, "write the post")
 
 	held := built.held(t, outcome.TaskID)
-	caps := contract.DefaultConfig().Caps
-	if held.Header.RoundsLeft != caps.RoundsPerTask-2 {
-		t.Errorf("the record has %d rounds left after two calls on the caps, want %d", held.Header.RoundsLeft, caps.RoundsPerTask-2)
+	if caps := contract.DefaultConfig().Caps; caps.RoundsPerTask != 0 || caps.TimePerTask != 0 {
+		t.Fatalf("the caps ship with a budget of %d rounds and %s, and this test is written for none", caps.RoundsPerTask, caps.TimePerTask)
 	}
-	if held.Header.MinutesLeft != int(caps.TimePerTask/time.Minute) {
-		t.Errorf("the record has %d minutes left with no time spent, want the cap of %d",
-			held.Header.MinutesLeft, int(caps.TimePerTask/time.Minute))
+	if !held.Header.NoRoundBudget || !held.Header.NoTimeBudget {
+		t.Errorf("the record's header is %+v, want no budget, because the caps set none", held.Header)
+	}
+	if printed := string(record.Print(held)); !strings.Contains(printed, "   no budget\n") {
+		t.Errorf("the printed header does not say the task has no budget:\n%s", printed)
 	}
 }

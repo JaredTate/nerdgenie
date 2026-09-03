@@ -133,13 +133,14 @@ func TestEveryFieldSetToAnImpossibleValueIsRefusedWithItsKeyAndItsLine(t *testin
 // leaves the agent no room to work at all.
 func impossibleCaps() []badField {
 	return []badField{
-		{"no rounds in a task", "\n[caps]\nrounds_per_task = 0 " + theMarker + "\n", "caps.rounds_per_task"},
+		{"rounds in a task below zero", "\n[caps]\nrounds_per_task = -1 " + theMarker + "\n", "caps.rounds_per_task"},
 		{"no queued messages", "\n[caps]\nqueued_messages = -1 " + theMarker + "\n", "caps.queued_messages"},
 		{"no room in a tool result", "\n[caps]\ntool_output_bytes = 0 " + theMarker + "\n", "caps.tool_output_bytes"},
 		{"no window for repeated calls", "\n[caps]\nidentical_call_window = 0 " + theMarker + "\n", "caps.identical_call_window"},
-		{"no time for a task", "\n[caps]\ntime_per_task = \"0s\" " + theMarker + "\n", "caps.time_per_task"},
+		{"time running backwards for a task", "\n[caps]\ntime_per_task = \"-1h\" " + theMarker + "\n", "caps.time_per_task"},
+		{"no time for a tool", "\n[caps]\ntime_per_tool = \"0s\" " + theMarker + "\n", "caps.time_per_tool"},
 		{"time running backwards for a tool", "\n[caps]\ntime_per_tool = \"-1m\" " + theMarker + "\n", "caps.time_per_tool"},
-		{"no time for a turn", "\n[caps]\ntime_per_turn = 0 " + theMarker + "\n", "caps.time_per_turn"},
+		{"time running backwards for a turn", "\n[caps]\ntime_per_turn = \"-1m\" " + theMarker + "\n", "caps.time_per_turn"},
 		{"no room for world facts", "\n[memory_caps]\nworld_facts_bytes = 0 " + theMarker + "\n", "memory_caps.world_facts_bytes"},
 		{"no room for user facts", "\n[memory_caps]\nuser_facts_bytes = -8 " + theMarker + "\n", "memory_caps.user_facts_bytes"},
 		{"no time for a handoff", "\nhandoff_timeout = \"0s\" " + theMarker + "\n", "handoff_timeout"},

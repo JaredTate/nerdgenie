@@ -178,10 +178,9 @@ not capture a harness's variance — opencode, for one, finished the same task i
   the orchestrator added and the user never asked for; it is gone, and so is
   any cap on model calls. The user's rule is that no harness, and Coeus least
   of all, is capped on any model. Each harness keeps whatever limits it ships
-  with, because those are part of the harness; Coeus's own task budget (a
-  hundred rounds and an hour by default) is raised to effectively unlimited in
-  the benchmark config so that it cannot act as a cap either, and the result
-  file says so.
+  with, because those are part of the harness; Coeus's own task budget is off
+  unless a user sets one, and the benchmark config sets none, so it cannot act
+  as a cap either, and the result file says so.
 - **One run is not a reliable average.** Where a harness was run more than once,
   both runs are reported and the spread is treated as the point.
 - **All four run on Opus for real,** through the same bridge and the same flags.

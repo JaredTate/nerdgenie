@@ -177,7 +177,7 @@ func TestACommandStillRunningAfterTenSecondsHandsBackAnIdToPollTailAndKill(t *te
 	}
 
 	sandbox.Release()
-	waitUntilFinished(t, tool)
+	waitUntilFinished(t, tool, shell.FirstProcessID)
 
 	tailed, err := run(t, tool, map[string]any{"action": "tail", "id": shell.FirstProcessID})
 	if err != nil {
@@ -202,10 +202,10 @@ func waitForSleepers(t *testing.T, clock *testkit.FakeClock, wanted int) {
 }
 
 // waitUntilFinished waits until polling says the command has finished.
-func waitUntilFinished(t *testing.T, tool *shell.Tool) {
+func waitUntilFinished(t *testing.T, tool *shell.Tool, id string) {
 	t.Helper()
 	for range 500 {
-		polled, err := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
+		polled, err := run(t, tool, map[string]any{"action": "poll", "id": id})
 		if err == nil && !strings.Contains(polled.Text, "still running") {
 			return
 		}
@@ -222,7 +222,7 @@ func TestKillingARunningCommandStopsIt(t *testing.T) {
 	go func() { _, _ = run(t, tool, map[string]any{"command": "sleep 30"}) }()
 	waitForSleepers(t, clock, 1)
 	clock.Advance(shell.YieldAfter)
-	waitForRunning(t, tool)
+	waitForRunning(t, tool, shell.FirstProcessID)
 
 	killed, err := run(t, tool, map[string]any{"action": "kill", "id": shell.FirstProcessID})
 	if err != nil {
@@ -231,14 +231,14 @@ func TestKillingARunningCommandStopsIt(t *testing.T) {
 	if !strings.Contains(killed.Text, shell.FirstProcessID) {
 		t.Errorf("killing the command said %q and did not name it", killed.Text)
 	}
-	waitUntilFinished(t, tool)
+	waitUntilFinished(t, tool, shell.FirstProcessID)
 }
 
 // waitForRunning waits until the tool knows about the first command.
-func waitForRunning(t *testing.T, tool *shell.Tool) {
+func waitForRunning(t *testing.T, tool *shell.Tool, id string) {
 	t.Helper()
 	for range 500 {
-		if _, err := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID}); err == nil {
+		if _, err := run(t, tool, map[string]any{"action": "poll", "id": id}); err == nil {
 			return
 		}
 		time.Sleep(2 * time.Millisecond)

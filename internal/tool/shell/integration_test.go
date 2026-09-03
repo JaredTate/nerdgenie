@@ -56,9 +56,9 @@ func TestARealCommandRunsPollsAndIsKilled(t *testing.T) {
 	go func() { _, _ = run(t, tool, map[string]any{"command": "sleep 30"}) }()
 	waitForSleepers(t, clock, 1)
 	clock.Advance(shell.YieldAfter)
-	waitForRunning(t, tool)
+	waitForRunning(t, tool, "p2")
 
-	polled, err := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
+	polled, err := run(t, tool, map[string]any{"action": "poll", "id": "p2"})
 	if err != nil {
 		t.Fatalf("polling a real running command failed: %v", err)
 	}
@@ -66,13 +66,12 @@ func TestARealCommandRunsPollsAndIsKilled(t *testing.T) {
 		t.Errorf("polling a real running command said %q", polled.Text)
 	}
 
-	if _, err := run(t, tool, map[string]any{"action": "kill", "id": shell.FirstProcessID}); err != nil {
+	killedAt := time.Now()
+	if _, err := run(t, tool, map[string]any{"action": "kill", "id": "p2"}); err != nil {
 		t.Fatalf("killing a real running command failed: %v", err)
 	}
-	waitUntilFinished(t, tool)
-
-	started := time.Now()
-	if time.Since(started) > 30*time.Second {
-		t.Errorf("the killed command was waited on rather than stopped")
+	waitUntilFinished(t, tool, "p2")
+	if time.Since(killedAt) > 25*time.Second {
+		t.Errorf("the killed command was waited out rather than stopped, which took %s", time.Since(killedAt))
 	}
 }

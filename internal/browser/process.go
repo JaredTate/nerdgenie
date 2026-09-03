@@ -57,6 +57,16 @@ var environmentPassedOn = []string{
 // when the caller's own environment sets it to something else.
 const bridgeOff = "NO_AT_BRIDGE=1"
 
+// headlessVariable is the name `make test-browser` sets so that a test run does
+// not put a Chrome window on the screen of whoever is running it. Nothing else
+// sets it: design section 11 says a logged-in account is only safe in a window
+// the user can see, so an ordinary run always opens the visible window.
+const headlessVariable = "COEUS_HEADLESS_TESTS"
+
+// headlessFlag is what the worker is asked for when that name is set. The worker
+// turns it into Chrome's own --headless=new.
+const headlessFlag = "--headless"
+
 // ProcessStart returns a Start that runs the browser worker as a child process,
 // such as `node bin/workers/browser/main.js`. The profile folder is the agent's
 // own Chrome profile and never the user's daily one; it is made with mode 0700
@@ -77,14 +87,25 @@ func ProcessStart(command []string, profile string, pacing Pacing, note func(for
 		note = func(string, ...any) {}
 	}
 
-	whole := append([]string{}, command...)
-	whole = append(whole, "--profile", profile, "--pacing", string(pacing))
+	whole := workerArguments(command, profile, pacing)
 	return func(ctx context.Context) (*Connection, error) {
 		if err := makeProfileFolder(profile); err != nil {
 			return nil, err
 		}
 		return startProcess(ctx, whole, note)
 	}, nil
+}
+
+// workerArguments is the whole command the worker is started with: the program
+// and the arguments the caller gave, then the profile folder and the pacing, and
+// then the headless flag when the tests have asked for a browser with no window.
+func workerArguments(command []string, profile string, pacing Pacing) []string {
+	whole := append([]string{}, command...)
+	whole = append(whole, "--profile", profile, "--pacing", string(pacing))
+	if os.Getenv(headlessVariable) != "" {
+		whole = append(whole, headlessFlag)
+	}
+	return whole
 }
 
 // makeProfileFolder makes the agent's own Chrome profile folder, readable by

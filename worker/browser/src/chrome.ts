@@ -4,7 +4,9 @@
  * The rules from PROTOCOL.md: the real Chrome binary, its own profile folder and
  * never the user's daily one, a loopback DevTools port with a token made fresh for
  * each launch, and an attach over the Chrome DevTools Protocol. The window is
- * visible on the machine's own display; there is no headless mode.
+ * visible on the machine's own display; the only headless mode is the one the
+ * project's own tests ask for with --headless, so that a test run puts no window
+ * on the screen of whoever is running it.
  *
  * The launch, the readiness wait, and the stopping ladder are borrowed from
  * OpenClaw's Chrome launcher at
@@ -49,19 +51,25 @@ export interface RunningChrome {
 export interface LaunchOptions {
   profile: string;
   chromePath?: string | undefined;
+  /** Run Chrome with no window at all. Only the tests ask for this. */
+  headless?: boolean | undefined;
   log: Logger;
 }
 
 /**
  * The flags Chrome is launched with, and why each one is there.
  *
- * There is deliberately no headless flag: a logged-in account is only safe in a
- * window the user can see. There is no proxy flag either, so Chrome uses the
- * machine's own network settings, which is what "the user's own connection"
- * means in the design.
+ * A real run has no headless flag: a logged-in account is only safe in a window
+ * the user can see. The tests are the one exception, because a test run must not
+ * put windows on the screen of whoever is running it, and they ask for it by
+ * name through `make test-browser`. There is no proxy flag either, so Chrome
+ * uses the machine's own network settings, which is what "the user's own
+ * connection" means in the design.
  */
-function launchArguments(profile: string): string[] {
+export function launchArguments(profile: string, headless = false): string[] {
   return [
+    // No window at all, and no graphics card to draw one with. Tests only.
+    ...(headless ? ["--headless=new", "--disable-gpu"] : []),
     // Its own profile folder, never the user's daily one.
     `--user-data-dir=${profile}`,
     // Let the operating system pick a free port and tell us which one.
@@ -174,7 +182,7 @@ export async function launchChrome(options: LaunchOptions): Promise<RunningChrom
   await rm(join(options.profile, "DevToolsActivePort"), { force: true });
 
   const binary = options.chromePath ?? "google-chrome";
-  const child = spawn(binary, launchArguments(options.profile), {
+  const child = spawn(binary, launchArguments(options.profile, options.headless ?? false), {
     stdio: ["ignore", "ignore", "pipe"],
   });
   const keep = { tail: "" };

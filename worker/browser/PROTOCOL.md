@@ -256,7 +256,9 @@ Response: `{"jsonrpc":"2.0","id":11,"result":{"healthy":true,"chromeVersion":"15
    each launch, and attaches over the Chrome DevTools Protocol.
 2. The window is visible on the machine's own display. There is no headless mode
    for a logged-in account, no proxy, no cookie copying between browsers, and no
-   captcha solving.
+   captcha solving. The one exception is the `--headless` option, which the
+   project's own tests pass through `make test-browser` so that a test run puts
+   no window on the screen of whoever is running it. Nothing else passes it.
 3. It moves the mouse along a curve, holds a click for a human length of time,
    types one key at a time with small variations in speed, scrolls in steps, and
    pauses between actions.

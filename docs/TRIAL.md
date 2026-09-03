@@ -1,0 +1,58 @@
+# The human trial: what to run, in order
+
+This is the checklist from `docs/WORK_PLAN.md` written as commands, for the person sitting at the development machine. Every trial runs on the local Qwen 3.8 through the llama-server daemon on port 19091, which is the `local` alias a fresh install ships with. Check it first:
+
+```
+curl -s http://127.0.0.1:19091/health
+```
+
+It must answer `{"status":"ok"}`. If it does not, start it with the command in `CLAUDE.md` and wait for that answer.
+
+## 1. Install on a clean account, run init, get to the first reply
+
+From the repository, build a release and install it into a throwaway home so nothing touches your own:
+
+```
+make release
+export HOME=/tmp/coeus-clean && mkdir -p $HOME
+sh scripts/install.sh --from dist --no-signal -- --yes --model local
+coeus doctor
+```
+
+Then, in one terminal, `coeus serve`; in another, `coeus`. Type a question. The first frame must be there at once, the reply must stream, and nothing should need a document. Put your `HOME` back afterwards.
+
+For the trials below, the repository build is enough: `make build`, then `COEUS_HOME=/tmp/coeus-trial/.coeus bin/coeus serve` in one window and `COEUS_HOME=/tmp/coeus-trial/.coeus bin/coeus` in another.
+
+## 2. The terminal screen
+
+Watch for: the first frame at once and at the terminal's real size; streaming visible while a reply is written; a preview card you answer with `a`, `A`, or `r` (ask it to write a file in the working folder to get one); a masked prompt that never echoes (`/vault add` asks for a secret); Escape stops a reply or a task; no flicker on resize; `/` opens the palette; `/tasks` and `/jobs` show the record.
+
+## 3. Signal
+
+```
+coeus signal link
+```
+
+Follow what it prints on your phone. Then, from the phone, send the number a message; the agent answers with a pairing code that you confirm with `/pair <code>` in the terminal. Have one conversation from the phone that needs a preview, and approve it from the phone.
+
+## 4. The browser
+
+Serve the fixture site in a third window:
+
+```
+go run ./scripts/fixturesite
+```
+
+It prints its address and the one credential it accepts. Store that credential with `/vault add fixture <address> 127.0.0.1 jared` (it asks for the password on a masked prompt), then ask the agent to sign in at the address and post "hello from coeus" on the compose page. Watch the Chrome window: it must be visible, the pacing must look human, the post must be previewed before it is sent, and when you ask the agent to open the site's `/captcha` page it must hand the browser to you rather than guess.
+
+## 5. Jobs, the desktop, and a bad release
+
+A scheduled job: `/cron` lists them; ask the agent for "a job that writes the time to clock.txt in the working folder every two minutes" and watch `/jobs` and the file.
+
+The desktop: ask the agent to "open the text editor and type hello". The computer tool asks before the first action on an application; approve it and watch.
+
+A bad release rolled back: this one needs the real service, so install it first (`make install`, which runs `coeus install` on your own home, then `systemctl --user status coeus.service`). Then `scripts/trial/bad-release.sh` builds a good release and a bad one whose binary exits at once, and prints the two `coeus update --from` commands. Run the good one, then the bad one, and watch the agent come back on the good version within sixty seconds with a line saying so. `coeus uninstall` removes the service afterwards and keeps your home.
+
+## Writing the notes
+
+Everything confusing, slow, or ugly goes under the wave's section in `docs/PROGRESS.md`, in your words. The orchestrator turns each note into a brief.

@@ -855,6 +855,7 @@ internal/testkit/clock_test.go
 internal/testkit/desktop.go
 internal/testkit/desktop_test.go
 internal/testkit/doc.go
+internal/testkit/fixturesite.go
 internal/testkit/fixturesite_test.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
@@ -1178,6 +1179,9 @@ internal/vault/totp_test.go
 internal/vault/vault.go
 internal/vault/vault_test.go
 scripts/coverage.sh
+scripts/fixturesite/doc.go
+scripts/fixturesite/main.go
+scripts/fixturesite/main_test.go
 scripts/fuzz.sh
 scripts/gate/coverage_test.go
 scripts/gate/fixture_test.go

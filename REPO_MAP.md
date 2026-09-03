@@ -30,6 +30,7 @@ CLAUDE.md
 COEUS.md
 LICENSE
 Makefile
+OPUS_BENCHMARK.md
 README.md
 REPO_MAP.md
 TEST.md
@@ -1263,6 +1264,8 @@ internal/vault/vault_test.go
 scripts/bench/check-tater.mjs
 scripts/bench/countcalls.sh
 scripts/bench/drive.py
+scripts/bench/opus_report.py
+scripts/bench/opus_runs.sh
 scripts/bench/run-coeus.sh
 scripts/bench/tater_cost.mjs
 scripts/bench/tater_result.py

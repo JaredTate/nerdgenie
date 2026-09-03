@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// ProviderKind names how a model is reached. There are three: two wire
+// ProviderKind names how a model is reached. There are four: three wire
 // protocols, and the vendor's own command-line program.
 type ProviderKind string
 
@@ -19,6 +19,10 @@ const (
 	// covers OpenAI itself, llama-server, LM Studio, Ollama, and every cloud
 	// gateway.
 	ProviderOpenAI ProviderKind = "openai"
+	// ProviderCodex is OpenAI's Responses API on the ChatGPT subscription, read
+	// through the sign-in the codex program keeps, so that a machine with no API
+	// key can still drive a GPT model with the harness's own tools.
+	ProviderCodex ProviderKind = "codex"
 	// ProviderCommandLine runs the vendor's own command-line program on the
 	// user's subscription, which is how the two cloud models are reached on a
 	// machine with no API keys. The program returns text and nothing else, so a
@@ -36,15 +40,15 @@ const (
 	CodexProgram = "codex"
 )
 
-// ProviderKinds returns the three ways a model can be reached.
+// ProviderKinds returns the four ways a model can be reached.
 func ProviderKinds() []ProviderKind {
-	return []ProviderKind{ProviderAnthropic, ProviderOpenAI, ProviderCommandLine}
+	return []ProviderKind{ProviderAnthropic, ProviderOpenAI, ProviderCodex, ProviderCommandLine}
 }
 
-// KnownProviderKind says whether the kind is one of the three.
+// KnownProviderKind says whether the kind is one of the four.
 func KnownProviderKind(kind ProviderKind) bool {
 	switch kind {
-	case ProviderAnthropic, ProviderOpenAI, ProviderCommandLine:
+	case ProviderAnthropic, ProviderOpenAI, ProviderCodex, ProviderCommandLine:
 		return true
 	default:
 		return false

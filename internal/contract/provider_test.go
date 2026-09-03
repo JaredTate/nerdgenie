@@ -7,15 +7,16 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-func TestThereAreThreeProviderKindsAndTheThirdRunsAProgram(t *testing.T) {
+func TestThereAreFourProviderKindsAndTheLastRunsAProgram(t *testing.T) {
 	kinds := contract.ProviderKinds()
 
-	if len(kinds) != 3 {
-		t.Fatalf("there are %d provider kinds, want three: the Anthropic API, the OpenAI-compatible API, and a command-line program", len(kinds))
+	if len(kinds) != 4 {
+		t.Fatalf("there are %d provider kinds, want four: the Anthropic API, the OpenAI-compatible API, the Codex backend, and a command-line program", len(kinds))
 	}
 	wanted := map[contract.ProviderKind]bool{
 		contract.ProviderAnthropic:   true,
 		contract.ProviderOpenAI:      true,
+		contract.ProviderCodex:       true,
 		contract.ProviderCommandLine: true,
 	}
 	for _, kind := range kinds {
@@ -38,6 +39,7 @@ func TestTheProviderKindsAreWrittenTheWayTheConfigurationFileWritesThem(t *testi
 	}{
 		{contract.ProviderAnthropic, "anthropic"},
 		{contract.ProviderOpenAI, "openai"},
+		{contract.ProviderCodex, "codex"},
 		{contract.ProviderCommandLine, "cli"},
 	}
 	for _, test := range tests {

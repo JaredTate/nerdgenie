@@ -467,6 +467,7 @@ internal/permission/decider.go
 internal/permission/decider_test.go
 internal/permission/doc.go
 internal/permission/evasion_test.go
+internal/permission/flags.go
 internal/permission/fuzz_test.go
 internal/permission/integration_test.go
 internal/permission/nestedshell.go
@@ -484,6 +485,7 @@ internal/permission/shellwords.go
 internal/permission/standing.go
 internal/permission/standing_test.go
 internal/permission/unattended_test.go
+internal/permission/wrappers.go
 internal/provider/anthropic.go
 internal/provider/anthropic_test.go
 internal/provider/anthropicstream.go

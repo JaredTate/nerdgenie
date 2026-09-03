@@ -80,7 +80,9 @@ func rulesFromConfiguration(written []contract.PermissionRule) []Rule {
 // After those, a call no rule covers is allowed, because the agent runs on its
 // own by default, unless its readable form is not the whole story, and then it
 // is put to the user, because a form that leaves something out cannot be ruled
-// on.
+// on. The rules are matched against the readable form and, for a shell command,
+// against the same form with its flags spelled out, so that a rule about a flag
+// holds however the flag was written.
 func (decider *Decider) Decide(ctx context.Context, request contract.PermissionRequest) (contract.PermissionDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return contract.PermissionDecision{}, fmt.Errorf("the turn was stopped before the %s call could be ruled on: %w", request.ToolName, err)

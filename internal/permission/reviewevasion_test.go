@@ -64,7 +64,6 @@ func TestAFlagThatTakesAValueDoesNotHideTheSubcommand(t *testing.T) {
 	}
 }
 
-
 func TestADeleteRunThroughAWrapperStillAsks(t *testing.T) {
 	decider := newDecider(t, contract.DefaultConfig())
 

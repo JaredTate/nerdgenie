@@ -39,7 +39,6 @@ func theSkillAPageAskedFor() map[string][]byte {
 	}
 }
 
-// theThreeThingsTheListShipsWith are the three entries design section 11 says
 // the ask-me-first list ships with. Not one of them may run without a yes.
 var theThreeThingsTheListShipsWith = []struct {
 	name    string

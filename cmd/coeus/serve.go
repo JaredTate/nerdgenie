@@ -28,6 +28,7 @@ import (
 	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/coeus/internal/update"
 	"github.com/JaredTate/coeus/internal/vault"
 )
 
@@ -151,6 +152,12 @@ func exitCodeFor(err error) int {
 	if errors.As(err, &problem) {
 		return contract.ExitBadConfiguration
 	}
+	// A database from a newer Coeus is not something a restart will fix, and a
+	// service that tried every five seconds would fill the log and change
+	// nothing.
+	if errors.Is(err, update.ErrDatabaseFromANewerCoeus) {
+		return contract.ExitBadConfiguration
+	}
 	return contract.ExitFailure
 }
 
@@ -271,6 +278,12 @@ func (running *agent) openTheStores(ctx context.Context) error {
 		BackupFolder: running.settings.BackupPath,
 	})
 	if err != nil {
+		return err
+	}
+	// An older binary never opens a database a newer Coeus has migrated: it
+	// would read the file wrong, and reading a record wrong is worse than not
+	// reading it at all.
+	if err := update.CheckSchema(ctx, databaseFile); err != nil {
 		return err
 	}
 	if running.eventLog, err = log.Open(ctx, databaseFile); err != nil {

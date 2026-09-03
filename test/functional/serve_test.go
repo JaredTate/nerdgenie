@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"testing"
@@ -85,6 +86,7 @@ type runningAgent struct {
 	work     string
 	model    *testkit.FakeProviderServer
 	saidPath string
+	wait     func() error
 }
 
 // startTheAgent starts the agent against a script that needs to know nothing
@@ -129,21 +131,37 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 
 	stopped := make(chan error, 1)
 	go func() { stopped <- started.Wait() }()
+	// The child is waited for once and the answer kept, because a test that
+	// asks how it ended and the cleanup that stops it are both waiting on it.
+	ended := make(chan error, 1)
+	waitFor := func() error {
+		select {
+		case err := <-stopped:
+			ended <- err
+			return err
+		case err := <-ended:
+			ended <- err
+			return err
+		}
+	}
 	t.Cleanup(func() {
 		// The child is signalled by the exact process identifier the operating
 		// system gave this run of it, so that nothing else on the machine can be
 		// caught by the same stop.
 		_ = started.Process.Signal(syscall.SIGTERM)
 		select {
-		case <-stopped:
+		case err := <-stopped:
+			ended <- err
 		case <-time.After(15 * time.Second):
 			_ = started.Process.Kill()
 		}
 		t.Logf("what coeus serve said:\n%s", whatItSaid(saidPath))
 	})
 
-	waitForTheSocket(t, home, saidPath)
-	return runningAgent{program: program, home: home, work: work, model: model, saidPath: saidPath}
+	if !waitingIsSkipped(andAlso) {
+		waitForTheSocket(t, home, saidPath)
+	}
+	return runningAgent{program: program, home: home, work: work, model: model, saidPath: saidPath, wait: waitFor}
 }
 
 // buildTheBinary compiles cmd/coeus into a folder of this test's own, so that
@@ -376,4 +394,19 @@ func writeASkillOfTheirOwn(t *testing.T, home contract.Home, name string, says s
 			t.Fatalf("writing %s of the skill failed: %v", called, err)
 		}
 	}
+}
+
+// doNotWaitForTheSocket says a test expects the agent to stop rather than serve,
+// so the starter must not wait thirty seconds for a socket that never opens. It
+// is passed as one of the changes to the home, and changes nothing itself.
+func doNotWaitForTheSocket(contract.Home, string) {}
+
+// waitingIsSkipped says whether one of the changes was doNotWaitForTheSocket.
+func waitingIsSkipped(andAlso []func(home contract.Home, work string)) bool {
+	for _, change := range andAlso {
+		if reflect.ValueOf(change).Pointer() == reflect.ValueOf(doNotWaitForTheSocket).Pointer() {
+			return true
+		}
+	}
+	return false
 }

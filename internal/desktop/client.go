@@ -16,6 +16,11 @@ import (
 // for that and the marks beside it.
 const maximumResponseBytes = 8 << 20
 
+// responseReaderBytes is how much of an answer the reader holds at once. One
+// answer line carries a whole window's controls, and sixty-four kilobytes reads
+// almost every one of them in a single go; a longer line is read in parts.
+const responseReaderBytes = 64 * 1024
+
 // Connection is one running desktop worker: where its requests go, where its
 // answers come from, how to stop it, and the exact process identifier, which is
 // the only thing this package ever kills.
@@ -43,7 +48,7 @@ type client struct {
 func newClient(connection *Connection) *client {
 	return &client{
 		connection: connection,
-		reader:     bufio.NewReaderSize(connection.Responses, 64*1024),
+		reader:     bufio.NewReaderSize(connection.Responses, responseReaderBytes),
 	}
 }
 

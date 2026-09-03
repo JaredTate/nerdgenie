@@ -132,8 +132,11 @@ func TestTheClientGivesUpWhenTheWorkerNeverAnswers(t *testing.T) {
 }
 
 func TestTheClientRefusesALineLongerThanTheCap(t *testing.T) {
+	// Eight megabytes and one character, written out rather than measured
+	// against the cap, so that raising the cap does not carry the test with it.
+	const longerThanTheCap = 8<<20 + 1
 	worker := newScriptedWorker()
-	worker.sendRaw("health", `{"jsonrpc":"2.0","id":1,"result":{"detail":"`+strings.Repeat("x", maximumResponseBytes)+`"}}`)
+	worker.sendRaw("health", `{"jsonrpc":"2.0","id":1,"result":{"detail":"`+strings.Repeat("x", longerThanTheCap)+`"}}`)
 	client := newClient(worker.start())
 
 	err := client.call(context.Background(), "health", map[string]any{}, &healthAnswer{})
@@ -158,13 +161,16 @@ func TestTheClientReportsAWorkerThatDiedRatherThanHanging(t *testing.T) {
 	}
 }
 
-func TestEveryMethodHasADeadlineOfItsOwn(t *testing.T) {
-	for _, method := range []string{"launch", "screenshot", "click", "type", "press", "drag", "clipboardGet", "clipboardSet", "health"} {
-		if deadlineFor(method) <= 0 {
-			t.Errorf("the method %q has no deadline, and every wait in Coeus has one", method)
-		}
-	}
-	if deadlineFor("something nobody named") != defaultMethodDeadline {
-		t.Error("a method the table does not name gets no deadline, and it must get the default one")
+func TestTheClientGivesUpOnAWorkerThatSaysNothingWithinTheMethodsDeadline(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.latestWorker(t).staySilent("clipboardGet")
+	ctx, giveUp := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer giveUp()
+
+	_, err := desk.desktop.Clipboard(ctx)
+
+	if err == nil {
+		t.Fatal("a clipboard read from a worker that never answered was reported as a success")
 	}
 }

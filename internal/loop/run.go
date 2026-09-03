@@ -156,7 +156,11 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 		return nil, err
 	}
 	running.remember(contract.Message{Role: contract.RoleUser, Text: task.Message.Text})
-	if err := theLoop.logEvent(ctx, running.taskID(), contract.EventMessage, task.Message); err != nil {
+	// The ask is written under the number the task has just taken rather than
+	// under the record's, which does not exist until the first tool call, so
+	// that the one event saying which screen the task came from is the task's
+	// own. A restart reads it back to know whose task is waiting.
+	if err := theLoop.logEvent(ctx, running.number, contract.EventMessage, task.Message); err != nil {
 		return nil, err
 	}
 	return running, nil

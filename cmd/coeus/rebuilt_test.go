@@ -42,6 +42,14 @@ func aTaskInTheLog(t *testing.T, store contract.Store, number string, from contr
 	if err != nil {
 		t.Fatalf("cannot start the record of task %s: %v", number, err)
 	}
+	// A record cannot close while a done line has nothing behind it, so a task
+	// that ended done is given one line the person's own reply proves.
+	if standing == contract.StatusDone {
+		proved := []contract.DoneLine{{Text: "the ask is answered", Done: true, UserReply: "yes, it is"}}
+		if err := keeper.Apply(ctx, record.Update{DoneWhen: proved}); err != nil {
+			t.Fatalf("cannot write the done list of task %s: %v", number, err)
+		}
+	}
 	if err := keeper.SetStatus(ctx, standing); err != nil {
 		t.Fatalf("cannot set task %s to %s: %v", number, standing, err)
 	}

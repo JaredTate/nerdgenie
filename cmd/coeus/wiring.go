@@ -40,7 +40,7 @@ func (running *agent) openTheFront(ctx context.Context) error {
 	if err := running.registerCommands(); err != nil {
 		return err
 	}
-	return running.openTheRouter()
+	return running.openTheRouter(ctx)
 }
 
 // openTheModelAndTheScreens opens the model the configuration names, the event
@@ -355,11 +355,17 @@ func (running *agent) sendToTheUserHere(ctx context.Context, text string) error 
 // openTheRouter gives the router the five things it needs from the rest of the
 // program.
 //
-// The memory of what each screen's newest task was doing is made here and read
-// by nothing but the one function that starts a task, which is the only place a
-// message can be handed to a task that is already under way.
-func (running *agent) openTheRouter() error {
-	lastTasks := newScreenTasks()
+// The memory of what each screen's newest task was doing is rebuilt here out of
+// the event log, so that a restart forgets nothing a person could pick up, and
+// is read by nothing but the one function that starts a task, which is the only
+// place a message can be handed to a task that is already under way. A log the
+// rebuild cannot read is noted and the agent starts with an empty memory, so the
+// next message from each screen starts a fresh task rather than nothing at all.
+func (running *agent) openTheRouter(ctx context.Context) error {
+	lastTasks, err := rememberedFromTheLog(ctx, running.events)
+	if err != nil {
+		running.note("the memory of what each screen was last doing could not be rebuilt from the log, so the next message from each screen starts a fresh task: " + err.Error())
+	}
 	built, err := channel.NewRouter(channel.Routes{
 		RunCommand:  running.registry.Run,
 		FindChannel: running.channelNamed,

@@ -54,7 +54,7 @@ func (running *agent) startTask(ctx context.Context, lastTasks *screenTasks, mes
 	// a person or from a job. The channel the task answers on writes every reply
 	// into the log before it sends it, so a crash between the two cannot lose
 	// the answer and the next start sends again what never arrived.
-	session := message.Channel + ":" + message.Sender
+	session := screenOf(message)
 	carryOn := lastTasks.taskToCarryOn(session, message.Text)
 	budget := running.budgetForTheMessage(ctx, message)
 	answering := throughTheLedger(where, running.guard)

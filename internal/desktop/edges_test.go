@@ -100,6 +100,54 @@ func TestAnUnhealthyWorkerThatSaysNothingStillTellsTheUserWhatToRun(t *testing.T
 	}
 }
 
+func TestReadingTheClipboardGoesThroughThePermissionFunctionAndItsPreview(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{
+		Ruling:      contract.RulingAsk,
+		Reason:      "the clipboard holds whatever the user copied last, which is often a password",
+		PreviewText: "read what is on your clipboard",
+	})
+
+	held, err := desk.desktop.Clipboard(context.Background())
+
+	if err != nil {
+		t.Fatalf("reading the clipboard after the user said yes failed: %v", err)
+	}
+	if held != "nine years of DigiByte" {
+		t.Errorf("the clipboard holds %q, want what the worker said was on it", held)
+	}
+	requests := desk.permission.Requests()
+	if len(requests) != 1 || requests[0].ToolName != contract.ToolComputer {
+		t.Fatalf("the permission function was asked about %+v, want the one clipboard read", requests)
+	}
+	previews := desk.channel.Previews()
+	if len(previews) != 2 || !strings.Contains(previews[1].Body, "read what is on your clipboard") {
+		t.Errorf("the user was shown %+v, want the grant and a preview of the clipboard read", previews)
+	}
+}
+
+func TestAClipboardReadTheUserRefusesHandsBackNothing(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	desk.permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "read your clipboard"})
+	desk.channel.AnswerPreviewsWith(contract.AnswerReject)
+
+	held, err := desk.desktop.Clipboard(context.Background())
+
+	if err == nil || !strings.Contains(err.Error(), "refused") {
+		t.Fatalf("the error is %v, want one saying the user refused the clipboard read", err)
+	}
+	if held != "" {
+		t.Errorf("the clipboard read handed back %q after the user refused it, and it must hand back nothing", held)
+	}
+	for _, asked := range desk.latestWorker(t).methodsAsked() {
+		if asked == "clipboardGet" {
+			t.Error("the worker was asked for the clipboard after the user refused, and it must not have been")
+		}
+	}
+}
+
 func TestTheClipboardReportsAWorkerThatWillNotAnswer(t *testing.T) {
 	desk := newDesk(t)
 	ctx := context.Background()

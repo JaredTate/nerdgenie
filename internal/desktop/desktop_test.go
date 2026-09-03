@@ -146,11 +146,13 @@ func TestNothingCanBeDoneBeforeAnApplicationIsOpen(t *testing.T) {
 	ctx := context.Background()
 
 	tries := map[string]func() error{
-		"screenshot": func() error { _, err := desk.desktop.Screenshot(ctx); return err },
-		"click":      func() error { return desk.desktop.Click(ctx, 1) },
-		"type":       func() error { return desk.desktop.Type(ctx, "hello") },
-		"press":      func() error { return desk.desktop.Press(ctx, "ctrl+s") },
-		"drag":       func() error { return desk.desktop.Drag(ctx, 1, 2) },
+		"screenshot":       func() error { _, err := desk.desktop.Screenshot(ctx); return err },
+		"click":            func() error { return desk.desktop.Click(ctx, 1) },
+		"type":             func() error { return desk.desktop.Type(ctx, "hello") },
+		"press":            func() error { return desk.desktop.Press(ctx, "ctrl+s") },
+		"drag":             func() error { return desk.desktop.Drag(ctx, 1, 2) },
+		"read a clipboard": func() error { _, err := desk.desktop.Clipboard(ctx); return err },
+		"set a clipboard":  func() error { return desk.desktop.SetClipboard(ctx, "nine years") },
 	}
 	for name, run := range tries {
 		err := run()

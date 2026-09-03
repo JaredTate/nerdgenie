@@ -28,16 +28,77 @@ func aSubcommandReturning(name string, code int) subcommand {
 	}
 }
 
-func TestRunningWithNoArgumentsPrintsTheListAndSaysTheCommandLineWasWrong(t *testing.T) {
+func TestRunningWithNoArgumentsOpensTheTerminalScreen(t *testing.T) {
+	opened := false
+	table := []subcommand{
+		versionSubcommand,
+		{
+			name: tuiName,
+			help: "Opens the terminal screen.",
+			run: func(_ []string, _ io.Writer, _ io.Writer) int {
+				opened = true
+				return contract.ExitOK
+			},
+		},
+	}
 	var output, problems bytes.Buffer
 
-	code := run(theRealTable(), nil, &output, &problems)
+	code := run(table, nil, &output, &problems)
 
-	if code != contract.ExitUsage {
-		t.Errorf("running with no arguments returned %d, want %d", code, contract.ExitUsage)
+	if !opened {
+		t.Errorf("typing coeus on its own did not open the terminal screen; it printed:\n%s", output.String())
 	}
-	if !strings.Contains(output.String(), "version") {
-		t.Errorf("the printed list does not hold the version subcommand:\n%s", output.String())
+	if code != contract.ExitOK {
+		t.Errorf("typing coeus on its own returned %d, want %d", code, contract.ExitOK)
+	}
+}
+
+func TestTheBareCommandNamesASubcommandThatIsReallyInTheTable(t *testing.T) {
+	for _, command := range theRealTable() {
+		if command.name == tuiName {
+			return
+		}
+	}
+	t.Errorf("the bare coeus command runs %q, and no subcommand in the table has that name", tuiName)
+}
+
+func TestTheTableHoldsEverySubcommandThisFolderWrote(t *testing.T) {
+	wanted := []string{
+		"version", helpName, "init", "doctor", "serve", tuiName,
+		"install", "uninstall", "signal", "askpass", "sandbox-entry",
+	}
+	inTheTable := map[string]bool{}
+	for _, command := range theRealTable() {
+		inTheTable[command.name] = true
+	}
+
+	for _, name := range wanted {
+		if !inTheTable[name] {
+			t.Errorf("the subcommand table has no %q, so a subcommand somebody wrote can never be typed", name)
+		}
+	}
+}
+
+func TestAHiddenSubcommandStillRunsButIsNotInTheListing(t *testing.T) {
+	hiddenNames := []string{}
+	for _, command := range theRealTable() {
+		if command.hidden {
+			hiddenNames = append(hiddenNames, command.name)
+		}
+	}
+	if len(hiddenNames) == 0 {
+		t.Fatal("no subcommand is hidden, and the sandbox helper is not one a person types")
+	}
+
+	var output, problems bytes.Buffer
+	run(theRealTable(), []string{helpName}, &output, &problems)
+	for _, name := range hiddenNames {
+		if strings.Contains(output.String(), name) {
+			t.Errorf("the listing offers %q, which nobody is meant to type:\n%s", name, output.String())
+		}
+		if _, found := lookUp(theRealTable(), name); !found {
+			t.Errorf("the hidden subcommand %q cannot be run at all", name)
+		}
 	}
 }
 
@@ -50,6 +111,9 @@ func TestTheHelpSubcommandPrintsEverySubcommandWithItsHelpLine(t *testing.T) {
 		t.Errorf("the help subcommand returned %d, want %d", code, contract.ExitOK)
 	}
 	for _, command := range theRealTable() {
+		if command.hidden {
+			continue
+		}
 		if !strings.Contains(output.String(), command.name) {
 			t.Errorf("the list does not hold %q:\n%s", command.name, output.String())
 		}
@@ -197,6 +261,9 @@ func TestTheHelpListingGivesEachSubcommandOneRowAndNoMore(t *testing.T) {
 	run(theRealTable(), []string{"help"}, &output, &problems)
 
 	for _, command := range theRealTable() {
+		if command.hidden {
+			continue
+		}
 		if rows := rowsNaming(output.String(), command.name); rows != 1 {
 			t.Errorf("the listing gives %q %d rows, want one:\n%s", command.name, rows, output.String())
 		}

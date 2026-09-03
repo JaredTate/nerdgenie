@@ -24,13 +24,44 @@ type subcommand struct {
 	// run does the work and returns the exit code, which is always one of the
 	// codes in internal/contract.
 	run func(arguments []string, output io.Writer, problems io.Writer) int
+	// hidden keeps a subcommand out of the listing. It is set on the helper the
+	// program starts for itself, which nobody is meant to type.
+	hidden bool
 }
 
 // subcommands is the whole table. A worker who adds a subcommand writes a new
 // file in this folder holding one subcommand value, and the orchestrator adds
 // that value to this list; no worker edits this file.
+//
+// The order is the order the help listing prints: the things a person does
+// before there is anything to talk to, then the program and its screen, then the
+// service, then Signal, and last the two helpers the program runs for itself.
 func subcommands() []subcommand {
-	return []subcommand{versionSubcommand, helpSubcommand()}
+	return []subcommand{
+		versionSubcommand,
+		helpSubcommand(),
+		initSubcommand,
+		doctorSubcommand,
+		serveSubcommand,
+		tuiSubcommand,
+		installSubcommand,
+		uninstallSubcommand,
+		signalSubcommand,
+		askpassSubcommand,
+		hiddenFrom(sandboxEntrySubcommand),
+	}
+}
+
+// tuiName is the subcommand the bare "coeus" command runs, which is the terminal
+// screen. Somebody who types the program's name with nothing after it wants to
+// talk to the agent, not to read a list.
+const tuiName = "tui"
+
+// hiddenFrom returns the same subcommand with the listing turned off, which is
+// how a helper the program starts for itself stays out of the help.
+func hiddenFrom(command subcommand) subcommand {
+	command.hidden = true
+	return command
 }
 
 // helpName is what the user types to see the list of subcommands.
@@ -64,8 +95,7 @@ func main() {
 // says the configuration is wrong and a restart would fail the same way.
 func run(table []subcommand, arguments []string, output io.Writer, problems io.Writer) int {
 	if len(arguments) == 0 {
-		writeHelp(table, output)
-		return contract.ExitUsage
+		arguments = []string{tuiName}
 	}
 
 	asked := arguments[0]
@@ -73,14 +103,24 @@ func run(table []subcommand, arguments []string, output io.Writer, problems io.W
 		asked = helpName
 	}
 
-	for _, command := range table {
-		if command.name == asked {
-			return command.run(arguments[1:], output, problems)
-		}
+	if command, found := lookUp(table, asked); found {
+		return command.run(arguments[1:], output, problems)
 	}
 
 	fmt.Fprintf(problems, "coeus: there is no subcommand named %q. Run \"coeus help\" for the list.\n", asked)
 	return contract.ExitUsage
+}
+
+// lookUp finds one subcommand in the table by the word the user typed. A hidden
+// subcommand is found here like any other, because hiding it keeps it out of the
+// listing rather than out of the program.
+func lookUp(table []subcommand, name string) (subcommand, bool) {
+	for _, command := range table {
+		if command.name == name {
+			return command, true
+		}
+	}
+	return subcommand{}, false
 }
 
 // writeHelp prints every subcommand with its one help line.
@@ -93,6 +133,9 @@ func writeHelp(table []subcommand, output io.Writer) {
 
 	listing := tabwriter.NewWriter(output, 0, 0, 2, ' ', 0)
 	for _, command := range table {
+		if command.hidden {
+			continue
+		}
 		fmt.Fprintf(listing, "  %s\t%s\n", command.name, command.help)
 	}
 	if err := listing.Flush(); err != nil {

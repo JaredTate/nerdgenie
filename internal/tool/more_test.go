@@ -122,7 +122,7 @@ func TestAPathWhoseLinksGoRoundInCirclesIsRefused(t *testing.T) {
 	if err := os.Symlink(circling, circling); err != nil {
 		t.Fatalf("cannot make the link that points at itself: %v", err)
 	}
-	check := tool.NewPathCheck(tool.WorkArea{Roots: []string{root}, UserHome: userHome})
+	check := tool.NewPathCheck([]string{root}, userHome, "")
 
 	// A link that points at itself resolves to nothing, so the path is judged as
 	// it was written, which is inside the root and therefore allowed. What must

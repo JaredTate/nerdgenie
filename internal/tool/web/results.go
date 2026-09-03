@@ -51,7 +51,7 @@ type row struct {
 // result, the address it really points at with the page's own redirect
 // unwrapped, and the line of text under it.
 func rowsFromResultsPage(page string) string {
-	found := readRows(page)
+	found := withAnAddress(readRows(page))
 	if len(found) == 0 {
 		return whyNoResultWasRead(page)
 	}
@@ -63,6 +63,21 @@ func rowsFromResultsPage(page string) string {
 		fmt.Fprintf(written, "%s\n%s\n%s\n\n", one.title, one.address, one.snippet)
 	}
 	return strings.TrimSpace(written.String())
+}
+
+// withAnAddress keeps the rows the model could follow. A result link with no
+// address is nothing the model can open, and a page made only of those has no
+// result on it that the reader could find, which is what the model has to be
+// told; the fuzzer found that such a page otherwise read as an empty answer,
+// because a row of nothing is nothing once the ends are trimmed.
+func withAnAddress(rows []row) []row {
+	kept := rows[:0]
+	for _, one := range rows {
+		if one.address != "" {
+			kept = append(kept, one)
+		}
+	}
+	return kept
 }
 
 // whyNoResultWasRead says why a page came back with no result on it, telling the
@@ -112,13 +127,15 @@ func addRow(rows []row, tag string, text string) []row {
 	return rows
 }
 
-// linkText reads the words inside a link and says where the text after it starts.
+// linkText reads the words inside a link, on one line because a row is three
+// lines and a title that broke across several would break the shape the model
+// reads rows by, and says where the text after the link starts.
 func linkText(page string, from int) (string, int) {
 	end := strings.Index(page[from:], "</a>")
 	if end < 0 {
 		return "", len(page)
 	}
-	return strings.TrimSpace(unescape(HTMLToText(page[from : from+end]))), from + end + 4
+	return oneLine(unescape(HTMLToText(page[from : from+end]))), from + end + 4
 }
 
 // realAddress unwraps the redirect a results page wraps its links in, and fills

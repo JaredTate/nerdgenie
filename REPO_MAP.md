@@ -1075,6 +1075,7 @@ internal/tool/web/doc.go
 internal/tool/web/fetch.go
 internal/tool/web/fuzz_test.go
 internal/tool/web/results.go
+internal/tool/web/results_fuzz_test.go
 internal/tool/web/resultspage_test.go
 internal/tool/web/search.go
 internal/tool/web/testdata/a_fetched_page.txt

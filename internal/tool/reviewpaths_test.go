@@ -45,7 +45,7 @@ func TestTheCheckHandsBackThePathWithItsLinksFollowed(t *testing.T) {
 		t.Fatalf("cannot make the link: %v", err)
 	}
 
-	check := tool.NewPathCheck(tool.WorkArea{Roots: []string{work}, UserHome: userHome, AgentHome: agentHome})
+	check := tool.NewPathCheck([]string{work}, userHome, agentHome)
 	allowed, err := check(link)
 	if err != nil {
 		t.Fatalf("the check refused a link that leads inside the work folder: %v", err)
@@ -79,7 +79,7 @@ func TestTheConfiguredBrowserProfileStaysOutsideTheFence(t *testing.T) {
 		t.Errorf("the sandbox root %s holds the configured browser profile %s and was allowed, so a sandboxed command can read the cookies"+
 			" that are the agent's logins; the configured profile has to join the paths that must stay outside the fence", work, profile)
 	}
-	if _, err := tool.NewPathCheck(tool.WorkArea{Roots: []string{work}, UserHome: userHome, AgentHome: agentHome, AlsoOutside: []string{profile}})(cookies); err == nil {
+	if _, err := tool.NewPathCheck([]string{work}, userHome, agentHome, profile)(cookies); err == nil {
 		t.Errorf("the file tools may read %s, and the model never reads the cookies that are the agent's logins", cookies)
 	}
 }

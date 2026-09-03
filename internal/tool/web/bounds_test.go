@@ -178,3 +178,22 @@ func TestAResultsPageWithLinksThatNeverCloseStillReads(t *testing.T) {
 		t.Errorf("a results page whose links never close read as %q", output.Text)
 	}
 }
+
+// The fuzzer found this one: a result link with no address, no words and no end
+// made a row of nothing, and the whole answer trimmed to an empty string, so the
+// model was handed nothing at all rather than a sentence.
+func TestAResultLinkWithNoAddressIsNoResultRatherThanAnEmptyAnswer(t *testing.T) {
+	addressless := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(writer, "<a ClAss=result__a>")
+	}))
+	t.Cleanup(addressless.Close)
+
+	tool := web.New(web.Settings{ResultsPageAddress: addressless.URL + "/html/"})
+	output, err := run(t, tool, map[string]any{"action": "search", "query": "anything"})
+	if err != nil {
+		t.Fatalf("searching a page whose one result link has no address failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
+		t.Errorf("a result link with no address read as %q, and the model cannot follow a result that leads nowhere", output.Text)
+	}
+}

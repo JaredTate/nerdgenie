@@ -19,7 +19,7 @@ func workRoot(t *testing.T) (tool.PathCheck, string, string) {
 	if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("cannot make the work folder %s: %v", root, err)
 	}
-	return tool.NewPathCheck(tool.WorkArea{Roots: []string{root}, UserHome: userHome}), root, userHome
+	return tool.NewPathCheck([]string{root}, userHome, ""), root, userHome
 }
 
 func TestAPathInsideARootIsAllowed(t *testing.T) {
@@ -74,7 +74,7 @@ func TestALinkOutOfARootIsRefused(t *testing.T) {
 
 func TestThePathsTheSandboxMustNeverReachAreRefusedEvenInsideARoot(t *testing.T) {
 	userHome := t.TempDir()
-	check := tool.NewPathCheck(tool.WorkArea{Roots: []string{userHome}, UserHome: userHome})
+	check := tool.NewPathCheck([]string{userHome}, userHome, "")
 
 	for _, forbidden := range contract.ExcludedFromSandbox(userHome, "") {
 		if _, err := check(filepath.Join(forbidden, "anything")); err == nil {
@@ -83,18 +83,18 @@ func TestThePathsTheSandboxMustNeverReachAreRefusedEvenInsideARoot(t *testing.T)
 	}
 }
 
-func TestAPathThatIsNotAWholePathIsRefusedWhenThereIsNoFolderToTakeItFrom(t *testing.T) {
+func TestAPathThatIsNotAWholePathIsRefused(t *testing.T) {
 	check, _, _ := workRoot(t)
 
 	for _, written := range []string{"", "notes/today.md", "   "} {
 		if _, err := check(written); err == nil {
-			t.Errorf("the path %q was allowed, and this check was given no folder to take such a path from", written)
+			t.Errorf("the path %q was allowed, and a tool has no working directory to read it against", written)
 		}
 	}
 }
 
 func TestWithNoRootsConfiguredEveryPathIsRefused(t *testing.T) {
-	check := tool.NewPathCheck(tool.WorkArea{UserHome: t.TempDir()})
+	check := tool.NewPathCheck(nil, t.TempDir(), "")
 
 	_, err := check("/tmp/anything")
 	if err == nil {

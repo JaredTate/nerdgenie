@@ -136,10 +136,11 @@ func (running *agent) runDueJobs(ctx context.Context) {
 			return
 		}
 		found := false
-		// Nothing is started while a task is already running, and the rest at
-		// the end of the round is taken either way: the job store's own wait
-		// comes back at once for a moment already past, so a round that skipped
-		// the rest would spin a whole core for as long as the task ran.
+		// Nothing is started while a task is already running or while the guard
+		// says no, and the rest at the end of the round is taken either way: the
+		// job store's own wait comes back at once for a moment already past, so
+		// a round that skipped the rest would spin a whole core for as long as
+		// the task ran.
 		if !running.loopIsBusy() && running.guard.WhyNoNewTask() == "" {
 			started, err := running.runWhatIsDue(ctx)
 			if err != nil {

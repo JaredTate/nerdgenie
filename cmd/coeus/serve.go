@@ -102,8 +102,13 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 	if err := running.guard.Ready(); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the service manager was not told the program is up: %v\n", err)
 	}
-	if _, err := running.nightly.Register(ctx); err != nil {
+	if nightlyJob, err := running.nightly.Register(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: the nightly self-check was not put on the job list: %v\n", err)
+	} else if err := running.jobs.KeepRunningWhenItsTasksFail(ctx, nightlyJob); err != nil {
+		// The self-check is the one job that must outlive its own failures: it
+		// exists to say when something is wrong, and a run of bad nights is
+		// exactly when it is needed most.
+		fmt.Fprintf(problems, "coeus serve: the nightly self-check will stop itself after a run of bad nights: %v\n", err)
 	}
 	if err := running.serve(ctx); err != nil {
 		fmt.Fprintf(problems, "coeus serve: %v\n", err)
@@ -267,23 +272,8 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	}
 	running.lock = lock
 
-	// The whole recovery runs before anything opens the file: the check, the
-	// moving aside of a database that failed it, and putting the newest archive
-	// back. It hands back the path to open, and the guard will not start until
-	// it has run, because a log opened on a damaged file is a program that
-	// cannot say what happened to it.
-	databaseFile, err := reliability.PrepareDatabase(ctx, reliability.RecoverySettings{
-		Home:         running.home,
-		Clock:        now,
-		BackupFolder: running.settings.BackupPath,
-	})
+	databaseFile, err := running.theDatabaseToOpen(ctx, now)
 	if err != nil {
-		return err
-	}
-	// An older binary never opens a database a newer Coeus has migrated: it
-	// would read the file wrong, and reading a record wrong is worse than not
-	// reading it at all.
-	if err := update.CheckSchema(ctx, databaseFile); err != nil {
 		return err
 	}
 	if running.eventLog, err = log.Open(ctx, databaseFile); err != nil {
@@ -318,7 +308,39 @@ func (running *agent) openTheStores(ctx context.Context) error {
 		BackupFolder: running.settings.BackupPath,
 		Send:         running.sendToTheUser,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// The jobs ask the guard before they start anything and tell the user in
+	// their own words when one stops, which is how a job that keeps failing is
+	// something a person hears about rather than something that goes quiet.
+	running.jobs.OnlyStartWorkWhen(running.guard.MayStartTask)
+	running.jobs.TellTheUser(running.sendToTheUserHere)
+	return nil
+}
+
+// theDatabaseToOpen makes the one database file good before anything opens it,
+// and says which path to open.
+//
+// The whole recovery runs first: the check, the moving aside of a database that
+// failed it, and putting the newest archive back. The guard will not start until
+// it has run, because a log opened on a damaged file is a program that cannot
+// say what happened to it. Then the schema is looked at, because an older binary
+// must never open a database a newer Coeus has migrated: it would read the file
+// wrong, and reading a record wrong is worse than not reading it at all.
+func (running *agent) theDatabaseToOpen(ctx context.Context, now contract.Clock) (string, error) {
+	databaseFile, err := reliability.PrepareDatabase(ctx, reliability.RecoverySettings{
+		Home:         running.home,
+		Clock:        now,
+		BackupFolder: running.settings.BackupPath,
+	})
+	if err != nil {
+		return "", err
+	}
+	if err := update.CheckSchema(ctx, databaseFile); err != nil {
+		return "", err
+	}
+	return databaseFile, nil
 }
 
 // sendToTheUser is how the reliability guard reaches whoever is listening: the

@@ -225,8 +225,17 @@ func said(seen string) string {
 	return seen
 }
 
-// marksOf turns the protocol's marks into the contract's own.
+// MaxMarksKept is how many numbered controls one screenshot hands back. The
+// model reads every one of them as a line of its own context, so a window with
+// more controls than this would fill a small model's whole window with buttons.
+const MaxMarksKept = 200
+
+// marksOf turns the protocol's marks into the contract's own, keeping no more
+// than the model can read.
 func marksOf(sent []mark) []contract.DesktopMark {
+	if len(sent) > MaxMarksKept {
+		sent = sent[:MaxMarksKept]
+	}
 	marks := make([]contract.DesktopMark, 0, len(sent))
 	for _, one := range sent {
 		marks = append(marks, contract.DesktopMark{Number: one.Number, Role: one.Role, Name: one.Name})

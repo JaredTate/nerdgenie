@@ -5,9 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
+
+// MaxApplicationNameRunes is how long an application's name may be. It is a
+// program's name or a window's title, and the user reads it in a preview, so a
+// name longer than a line is a name nobody can judge.
+const MaxApplicationNameRunes = 120
+
+// MaxGrantedApplications is how many applications one session may grant. A task
+// works in one application or two, and twenty is far past what a person would
+// say yes to in one sitting, so anything beyond it is a task that has gone wrong.
+const MaxGrantedApplications = 20
 
 // grant asks the user for the one application the agent may use, once per
 // session. Design section 10 says the user grants access to an application once
@@ -16,6 +27,13 @@ import (
 func (desktop *Desktop) grant(ctx context.Context, application string) error {
 	if application == "" {
 		return errors.New("the desktop was asked to open an application with no name, so say which one")
+	}
+	if letters := utf8.RuneCountInString(application); letters > MaxApplicationNameRunes {
+		return fmt.Errorf("the application name is %d characters long and the most that may be asked for is %d, so name the program itself,"+
+			" such as gedit, or the title of its window", letters, MaxApplicationNameRunes)
+	}
+	if err := desktop.roomToGrantOneMore(application); err != nil {
+		return err
 	}
 	desktop.guard.Lock()
 	already := desktop.granted[application]
@@ -43,6 +61,18 @@ func (desktop *Desktop) grant(ctx context.Context, application string) error {
 	desktop.guard.Unlock()
 	desktop.options.Note("the user granted the desktop application %q for this session", application)
 	return nil
+}
+
+// roomToGrantOneMore refuses an application the session has no room to keep, so
+// that the list of granted applications cannot grow without a limit.
+func (desktop *Desktop) roomToGrantOneMore(application string) error {
+	desktop.guard.Lock()
+	defer desktop.guard.Unlock()
+	if desktop.granted[application] || len(desktop.granted) < MaxGrantedApplications {
+		return nil
+	}
+	return fmt.Errorf("this session has already granted %d applications, which is all it keeps, so finish in one of those or start a new task",
+		MaxGrantedApplications)
 }
 
 // permit puts one action that cannot be undone to the permission function, and

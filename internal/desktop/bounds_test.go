@@ -90,6 +90,24 @@ func TestEveryByteCapAndEveryWaitIsTheNumberItIsMeantToBe(t *testing.T) {
 			want: 4096,
 			why:  "one line of the worker's own log, which is a sentence and a stack line, never a picture",
 		},
+		{
+			name: "MaxMarksKept",
+			got:  MaxMarksKept,
+			want: 200,
+			why:  "the model reads every mark as a line of its context, and two hundred lines is a long window already",
+		},
+		{
+			name: "MaxGrantedApplications",
+			got:  MaxGrantedApplications,
+			want: 20,
+			why:  "a task works in one application or two, and twenty is far past what a person would grant in one session",
+		},
+		{
+			name: "MaxApplicationNameRunes",
+			got:  MaxApplicationNameRunes,
+			want: 120,
+			why:  "an application name is a program's name or a window's title, and the user reads it in a preview",
+		},
 	}
 	for _, number := range numbers {
 		if number.got != number.want {

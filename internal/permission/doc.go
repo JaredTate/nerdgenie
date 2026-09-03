@@ -25,6 +25,10 @@
 // refuses, then the answer the user gave in this session, then the ask-me-first
 // list, and only then the standing approval a skill may hold with a limit and an
 // expiry, so that a skill can never hand itself the things the user asked to see
-// first. A run with nobody there to answer is ruled stop before any approval is
-// read, so the task reports what it needed rather than waiting forever.
+// first. An approval for a website names the host and the tools that visit one,
+// and covers a call by comparing them, so a subdomain and another port are
+// somewhere else and go to the person; every other approval names a readable
+// form and is matched as a pattern. A run with nobody there to answer is ruled
+// stop before any approval is read, so the task reports what it needed rather
+// than waiting forever.
 package permission

@@ -160,7 +160,7 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 		}
 	}
 	if !onTheAskMeFirstList {
-		if approval, standing := decider.useStandingApproval(reduced); standing {
+		if approval, standing := decider.useStandingApproval(request, reduced); standing {
 			return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
 		}
 	}

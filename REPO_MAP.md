@@ -487,6 +487,8 @@ internal/permission/rules_test.go
 internal/permission/shellwords.go
 internal/permission/standing.go
 internal/permission/standing_test.go
+internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a-command-line-that-starts-with-a-flag
+internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a-subshell-round-an-unclosed-quote
 internal/permission/unattended_test.go
 internal/permission/wrappers.go
 internal/provider/anthropic.go

@@ -132,6 +132,7 @@ var theAddressesAWebsiteApprovalIsPutTo = []struct {
 	{"https://api.example.com/", false},
 	{"https://example.com:8443/", false},
 	{"https://evil.net/?go=https://example.com/", false},
+	{"ht tp://example.com/", false},
 }
 
 func TestAWebsiteApprovalCoversThatOneSiteAndNothingBeside(t *testing.T) {
@@ -150,23 +151,52 @@ func TestAWebsiteApprovalCoversThatOneSiteAndNothingBeside(t *testing.T) {
 	}
 }
 
+// theToolsThatVisitTheSite are one call to the same site through each tool whose
+// call says which site it goes to. The login names its site as a bare host name,
+// which is how a person writes one.
+func theToolsThatVisitTheSite(t *testing.T) []contract.PermissionRequest {
+	t.Helper()
+	return []contract.PermissionRequest{
+		aVisitTo(t, "https://example.com/prices"),
+		{ToolName: contract.ToolBrowserOpen, Input: jsonInput(t, map[string]any{"url": "https://example.com/prices", "intent": "read the prices"})},
+		{ToolName: contract.ToolBrowserRead, Input: jsonInput(t, map[string]any{"url": "https://example.com/prices", "intent": "read the prices"})},
+		{ToolName: contract.ToolBrowserLogin, Input: jsonInput(t, map[string]any{"site": "example.com"})},
+	}
+}
+
 func TestOneWebsiteApprovalServesEveryToolThatVisitsTheSite(t *testing.T) {
 	configuration := aUserWhoAsksAboutOneCompanysSites()
-	configuration.PermissionRules = append(configuration.PermissionRules,
-		contract.PermissionRule{Tool: contract.ToolBrowserOpen, Pattern: "*example.com*", Action: contract.RulingAsk})
+	for _, toolName := range permission.ToolsThatVisitAWebsite() {
+		configuration.PermissionRules = append(configuration.PermissionRules,
+			contract.PermissionRule{Tool: toolName, Pattern: "*example.com*", Action: contract.RulingAsk})
+	}
 	decider := newDecider(t, configuration)
 	registerStanding(t, decider, aWebsiteApproval("example.com", 10))
 
-	opened := contract.PermissionRequest{
-		ToolName: contract.ToolBrowserOpen,
-		Input:    jsonInput(t, map[string]any{"url": "https://example.com/prices", "intent": "read the prices"}),
+	for _, request := range theToolsThatVisitTheSite(t) {
+		decision := decide(t, decider, request)
+		if decision.Ruling != contract.RulingAllow {
+			t.Errorf("the %s call to the site was ruled %q because %q, want %q; one approval covers the site for every tool that visits it,"+
+				" which is what makes the cap on approvals a cap on sites", request.ToolName, decision.Ruling, decision.Reason, contract.RulingAllow)
+		}
 	}
-	if decision := decide(t, decider, opened); decision.Ruling != contract.RulingAllow {
-		t.Errorf("opening the site in the browser was ruled %q because %q, want %q; one approval covers the site for every tool that visits it,"+
-			" which is what makes the cap on approvals a cap on sites", decision.Ruling, decision.Reason, contract.RulingAllow)
+}
+
+func TestAWebsiteApprovalCoversNoCallThatNamesNoSite(t *testing.T) {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWeb, Pattern: "*", Action: contract.RulingAsk},
 	}
-	if decision := decide(t, decider, aVisitTo(t, "https://example.com/prices")); decision.Ruling != contract.RulingAllow {
-		t.Errorf("fetching the same page was ruled %q, want %q", decision.Ruling, contract.RulingAllow)
+	decider := newDecider(t, configuration)
+	registerStanding(t, decider, aWebsiteApproval("example.com", 10))
+
+	searched := contract.PermissionRequest{
+		ToolName: contract.ToolWeb,
+		Input:    jsonInput(t, map[string]any{"query": "the prices at example.com"}),
+	}
+	if decision := decide(t, decider, searched); decision.Ruling != contract.RulingAsk {
+		t.Errorf("a search that names no address was ruled %q because %q, want %q; an approval for a website covers a call to that website",
+			decision.Ruling, decision.Reason, contract.RulingAsk)
 	}
 }
 
@@ -228,6 +258,15 @@ var badStandingApprovals = []struct {
 	}},
 	{contract.ToolShell, permission.StandingApproval{
 		Skill: "a-skill", Tools: []string{contract.ToolShell}, Host: "example.com",
+		Limit: 1, Expires: theTestTime.Add(time.Hour),
+	}},
+	{"example..com", permission.StandingApproval{
+		Skill: "a-skill", Tools: permission.ToolsThatVisitAWebsite(), Host: "example..com",
+		Limit: 1, Expires: theTestTime.Add(time.Hour),
+	}},
+	{"longer than a host name", permission.StandingApproval{
+		Skill: "a-skill", Tools: permission.ToolsThatVisitAWebsite(),
+		Host:  strings.Repeat("a", permission.MaxHostRunes+1) + ".com",
 		Limit: 1, Expires: theTestTime.Add(time.Hour),
 	}},
 }

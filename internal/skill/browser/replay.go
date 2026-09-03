@@ -261,8 +261,13 @@ func (replayer *Replayer) askAboutAStepThatCannotBeUndone(ctx context.Context, f
 // marksAsIrreversible says whether the skill's permissions block names this step
 // as one that cannot be undone.
 func marksAsIrreversible(folder skill.Folder, number int) bool {
-	for _, marked := range folder.Definition.Permissions.IrreversibleSteps {
-		if marked == number {
+	return holdsNumber(folder.Definition.Permissions.IrreversibleSteps, number)
+}
+
+// holdsNumber says whether the list of step numbers holds this one.
+func holdsNumber(numbers []int, wanted int) bool {
+	for _, number := range numbers {
+		if number == wanted {
 			return true
 		}
 	}

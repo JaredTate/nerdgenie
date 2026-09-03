@@ -78,9 +78,9 @@ func TestTheDescriptorSaysWhatItPointsAtInPlainWords(t *testing.T) {
 
 func TestAStepThatCannotBeReplayedIsRefusedBySayingWhy(t *testing.T) {
 	cases := []struct {
-		name    string
-		step    skill.Step
-		wanted  string
+		name   string
+		step   skill.Step
+		wanted string
 	}{
 		{
 			name:   "a tool this package does not drive",

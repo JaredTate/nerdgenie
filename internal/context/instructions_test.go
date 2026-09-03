@@ -40,6 +40,22 @@ func TestTheInstructionTextIsSmallEnoughToRideInEveryPrompt(t *testing.T) {
 	}
 }
 
+// TestTheInstructionTextSaysSeveralCallsMayRideInOneReply is the loop half of
+// brief 6.6. The repair package has always read a list of calls out of one
+// reply, and the loop has always run them in order, and nothing in the text
+// ever told the model it could write one, so a model that asks for one tool a
+// round pays a whole call for every step that could have ridden with the one
+// before it. The text has to say so in one short sentence, and say when: only
+// when the calls do not depend on each other.
+func TestTheInstructionTextSaysSeveralCallsMayRideInOneReply(t *testing.T) {
+	for _, said := range []string{"several tools in one reply", "do not depend on each other"} {
+		if !strings.Contains(InstructionText, said) {
+			t.Errorf("the instruction text does not say %q, so the model is never told it may ask for several tools at once",
+				said)
+		}
+	}
+}
+
 // instructionTextInTheDesign reads the block quote under section 5 of the design
 // and takes the quote marks off, which leaves exactly the text the model is sent.
 func instructionTextInTheDesign(t *testing.T) string {

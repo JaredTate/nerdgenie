@@ -37,7 +37,7 @@ const anthropicPublicAddress = "https://api.anthropic.com"
 const anthropicVersion = "2023-06-01"
 
 // Options are what every provider in this package needs from the harness. They
-// are the same for all three kinds, so that the fallback chain can build a list
+// are the same for all four kinds, so that the fallback chain can build a list
 // of models from one set of them.
 type Options struct {
 	// OnReset is called by the retry wrapper and the fallback chain before a
@@ -50,9 +50,11 @@ type Options struct {
 	// control it. There is no default, because a provider that read the real
 	// clock would make its tests wait.
 	Clock contract.Clock
-	// APIKey is the key the two wire protocols send, already resolved from the
-	// vault by the caller. It is empty for a local server that needs none and
-	// for a command-line program signed in to a subscription.
+	// APIKey is the key the Anthropic and OpenAI-compatible providers send,
+	// already resolved from the vault by the caller. It is empty for a local
+	// server that needs none, for the Codex backend, which is signed in
+	// through the codex program's own file, and for a command-line program
+	// signed in to a subscription.
 	APIKey string
 	// HTTPClient is the client the two wire protocols call through. When it is
 	// nil the package makes its own, with no whole-call timeout of its own,
@@ -118,11 +120,13 @@ func New(alias contract.ModelAlias, options Options) (contract.Model, error) {
 		return newAnthropicModel(alias, options), nil
 	case contract.ProviderOpenAI:
 		return newOpenAIModel(alias, options)
+	case contract.ProviderCodex:
+		return newCodexModel(alias, options), nil
 	case contract.ProviderCommandLine:
 		return newCommandLineModel(alias, options)
 	default:
-		return nil, fmt.Errorf("the model alias %q names the provider kind %q, and the three kinds are %q, %q, and %q",
-			alias.Name, alias.Provider, contract.ProviderAnthropic, contract.ProviderOpenAI, contract.ProviderCommandLine)
+		return nil, fmt.Errorf("the model alias %q names the provider kind %q, and the four kinds are %q, %q, %q, and %q",
+			alias.Name, alias.Provider, contract.ProviderAnthropic, contract.ProviderOpenAI, contract.ProviderCodex, contract.ProviderCommandLine)
 	}
 }
 

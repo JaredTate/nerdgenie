@@ -19,6 +19,7 @@ func FuzzTheLoaderNeverPanics(f *testing.F) {
 	f.Add("default_model = \"local\"\n")
 	f.Add("[caps]\nrounds_per_task = 100\ntime_per_task = \"1h\"\n")
 	f.Add("[[models]]\nname = \"local\"\nprovider = \"openai\"\nbase_address = \"http://127.0.0.1:19091/v1\"\nmodel_name = \"local-coder\"\ncontext_length = 262144\n")
+	f.Add("[[models]]\nname = \"gpt\"\nprovider = \"codex\"\nmodel_name = \"gpt-5.6-sol\"\ncontext_length = 400000\nthink = \"medium\"\n")
 	f.Add("handoff_timeout = 1800000000000\n")
 	f.Add("[[[models]]]\n")
 	f.Add("default_model = \n")

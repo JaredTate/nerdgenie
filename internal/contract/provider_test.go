@@ -7,20 +7,21 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-func TestThereAreThreeProviderKindsAndTheThirdRunsAProgram(t *testing.T) {
+func TestThereAreFourProviderKindsAndTheLastTwoRunOnASubscription(t *testing.T) {
 	kinds := contract.ProviderKinds()
 
-	if len(kinds) != 3 {
-		t.Fatalf("there are %d provider kinds, want three: the Anthropic API, the OpenAI-compatible API, and a command-line program", len(kinds))
+	if len(kinds) != 4 {
+		t.Fatalf("there are %d provider kinds, want four: the Anthropic API, the OpenAI-compatible API, a command-line program, and the Codex backend", len(kinds))
 	}
 	wanted := map[contract.ProviderKind]bool{
 		contract.ProviderAnthropic:   true,
 		contract.ProviderOpenAI:      true,
 		contract.ProviderCommandLine: true,
+		contract.ProviderCodex:       true,
 	}
 	for _, kind := range kinds {
 		if !wanted[kind] {
-			t.Errorf("the provider kind %q is not one of the three", kind)
+			t.Errorf("the provider kind %q is not one of the four", kind)
 		}
 		if !contract.KnownProviderKind(kind) {
 			t.Errorf("the provider kind %q is listed but not recognised", kind)
@@ -39,6 +40,7 @@ func TestTheProviderKindsAreWrittenTheWayTheConfigurationFileWritesThem(t *testi
 		{contract.ProviderAnthropic, "anthropic"},
 		{contract.ProviderOpenAI, "openai"},
 		{contract.ProviderCommandLine, "cli"},
+		{contract.ProviderCodex, "codex"},
 	}
 	for _, test := range tests {
 		if string(test.kind) != test.want {
@@ -63,6 +65,27 @@ func TestACommandLineAliasNamesAProgramAndNeedsNoAddressOrKey(t *testing.T) {
 	}
 	if alias.BaseAddress != "" || alias.KeyReference != "" {
 		t.Error("a command-line alias carries an address or a key, and it needs neither because it runs the vendor's own program")
+	}
+}
+
+// TestACodexAliasNeedsNoAddressNoProgramAndNoKey pins the fourth provider kind:
+// OpenAI's Codex backend on the ChatGPT subscription, reached with the login the
+// codex program keeps. It has one backend, so there is no address to write; Coeus
+// drives it with its own loop, so there is no program to run; and the login is
+// the subscription's, so there is no key.
+func TestACodexAliasNeedsNoAddressNoProgramAndNoKey(t *testing.T) {
+	alias := contract.ModelAlias{
+		Name:          "gpt",
+		Provider:      contract.ProviderCodex,
+		ModelName:     "gpt-5.6-sol",
+		ContextLength: 400000,
+	}
+
+	if !contract.KnownProviderKind(alias.Provider) {
+		t.Errorf("the provider kind %q is not recognised", alias.Provider)
+	}
+	if alias.BaseAddress != "" || alias.Program != "" || alias.KeyReference != "" {
+		t.Error("a codex alias carries an address, a program, or a key, and it needs none of them because the backend is fixed and the login is the codex program's")
 	}
 }
 

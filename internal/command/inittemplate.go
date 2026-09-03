@@ -149,6 +149,40 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	for _, choice := range aliasesToWrite(chosen, found) {
 		written.WriteString(aliasBlock(choice))
 	}
+	written.WriteString(codexExampleBlock())
+	return written.String()
+}
+
+// The codex example block "coeus init" writes at the end of every file: the
+// model it names and the window it is given. GPT-5.6 Sol answers a 400,000
+// token window on the Codex backend.
+const (
+	// codexExampleAlias is the short name the example block gives the model.
+	codexExampleAlias = "gpt"
+	// codexExampleModel is what the Codex backend calls the model.
+	codexExampleModel = "gpt-5.6-sol"
+	// codexExampleContextLength is the window the example block writes.
+	codexExampleContextLength = 400000
+)
+
+// codexExampleBlock is one more [[models]] block, written entirely as comments,
+// for OpenAI's Codex backend on the ChatGPT subscription. "coeus init" cannot
+// set it up itself yet, so the example is how a person learns the provider
+// exists and turns it on in one edit. Every line is a comment, so the file
+// loads exactly as it would without the block.
+func codexExampleBlock() string {
+	written := &strings.Builder{}
+	written.WriteString("\n# One more model you can add: OpenAI's Codex backend on the ChatGPT\n")
+	written.WriteString("# subscription, reached with the login the codex program keeps on this\n")
+	written.WriteString("# machine, so that Coeus's own loop drives the model rather than handing the\n")
+	written.WriteString("# turn to the program. No key and no address are needed. To turn it on,\n")
+	written.WriteString("# uncomment the lines below and name \"" + codexExampleAlias + "\" in default_model or fallback_chain.\n")
+	written.WriteString("# [[models]]\n")
+	fmt.Fprintf(written, "# name = %s\n", quoted(codexExampleAlias))
+	fmt.Fprintf(written, "# provider = %s\n", quoted(string(contract.ProviderCodex)))
+	fmt.Fprintf(written, "# model_name = %s\n", quoted(codexExampleModel))
+	fmt.Fprintf(written, "# context_length = %d\n", codexExampleContextLength)
+	fmt.Fprintf(written, "# think = %s\n", quoted(string(contract.ThinkMedium)))
 	return written.String()
 }
 
@@ -192,7 +226,8 @@ func aliasBlock(choice modelChoice) string {
 	written.WriteString("# The short name you call this model by.\n")
 	fmt.Fprintf(written, "name = %s\n", quoted(alias.Name))
 	written.WriteString("# How it is reached: \"anthropic\", \"openai\" for any OpenAI-compatible\n")
-	written.WriteString("# server, or \"cli\" for the vendor's own program on your subscription.\n")
+	written.WriteString("# server, \"cli\" for the vendor's own program on your subscription, or\n")
+	written.WriteString("# \"codex\" for OpenAI's Codex backend through the codex program's login.\n")
 	fmt.Fprintf(written, "provider = %s\n", quoted(string(alias.Provider)))
 	if alias.BaseAddress != "" {
 		written.WriteString("# The address of the server that answers it.\n")

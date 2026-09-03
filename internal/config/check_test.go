@@ -242,6 +242,16 @@ func impossibleModelAliases() []badField {
 			"models.0.program",
 		},
 		{
+			"a codex alias that does not say which model",
+			"\ndefault_model = \"gpt\"\n\n[[models]]\nname = \"gpt\"\nprovider = \"codex\"\nmodel_name = \"\" " + theMarker + "\ncontext_length = 400000\n",
+			"models.0.model_name",
+		},
+		{
+			"a codex alias that holds no tokens",
+			"\ndefault_model = \"gpt\"\n\n[[models]]\nname = \"gpt\"\nprovider = \"codex\"\nmodel_name = \"gpt-5.6-sol\"\ncontext_length = 0 " + theMarker + "\n",
+			"models.0.context_length",
+		},
+		{
 			"an alias asked to think at a level nobody offers",
 			strings.Replace(oneGoodAlias, `context_length = 262144`, "context_length = 262144\nthink = \"hardest\" "+theMarker, 1),
 			"models.0.think",

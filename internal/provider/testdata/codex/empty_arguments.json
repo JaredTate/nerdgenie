@@ -1,0 +1,51 @@
+{
+  "model": "gpt-5.5",
+  "instructions": "Follow the harness rules.",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [{"type": "input_text", "text": "List the folder."}]
+    },
+    {
+      "type": "function_call",
+      "call_id": "call_1",
+      "name": "list",
+      "arguments": "{}"
+    },
+    {
+      "type": "function_call",
+      "call_id": "call_2",
+      "name": "list",
+      "arguments": "{}"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_1",
+      "output": "doc.go\nmain.go"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_2",
+      "output": ""
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": [{"type": "input_text", "text": "Now count them."}]
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "list",
+      "description": "List the working folder.",
+      "parameters": {"type": "object", "properties": {}, "required": []},
+      "strict": false
+    }
+  ],
+  "tool_choice": "auto",
+  "parallel_tool_calls": true,
+  "stream": true,
+  "store": false
+}

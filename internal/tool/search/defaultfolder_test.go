@@ -1,11 +1,24 @@
 package search_test
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/tool/search"
 )
+
+// allowedUnder is the check a tool in these tests is given: a path is allowed
+// when it is inside the one folder the test works in.
+func allowedUnder(root string) func(path string) (string, error) {
+	return func(path string) (string, error) {
+		if !strings.HasPrefix(filepath.Clean(path), root) {
+			return "", fmt.Errorf("the path %s is outside the folder the agent may work in, which is %s", path, root)
+		}
+		return filepath.Clean(path), nil
+	}
+}
 
 func TestASearchWithNoFolderLooksInTheFolderTheAgentWorksIn(t *testing.T) {
 	bothWays(t, func(t *testing.T, tool *search.Tool, root string) {

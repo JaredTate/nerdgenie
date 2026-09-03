@@ -36,6 +36,31 @@ func TestTheBoundsOfThisPackageAreTheNumbersTheyAreWrittenDownAs(t *testing.T) {
 	}
 }
 
+func TestTheTextRungLooksForFourCharactersAndNotThree(t *testing.T) {
+	page := contract.Snapshot{URL: "https://fixture.test/simple", Title: "A simple page", Elements: []contract.Element{
+		{Ref: "e3", Role: "textbox", Name: "Note"},
+	}}
+	if _, _, found := browser.FindElement(page, browser.Descriptor{Role: "textbox", Shown: "Not"}); found {
+		t.Error("three characters of recorded text found an element, and four is the shortest text worth looking for")
+	}
+	if _, _, found := browser.FindElement(page, browser.Descriptor{Role: "textbox", Shown: "Note"}); !found {
+		t.Error("four characters of recorded text found nothing, and four is the shortest text worth looking for")
+	}
+}
+
+func TestTheTextRungTakesHalfOfANameAndNotLess(t *testing.T) {
+	page := contract.Snapshot{URL: "https://fixture.test/simple", Title: "A simple page", Elements: []contract.Element{
+		{Ref: "e1", Role: "button", Name: "Basketful"},
+	}}
+	if _, _, found := browser.FindElement(page, browser.Descriptor{Role: "link", Shown: "Basket"}); !found {
+		t.Error("text making up six characters of a name of nine was refused, and half of a name is enough")
+	}
+	page.Elements[0].Name = "Basketfuls and barrows"
+	if _, _, found := browser.FindElement(page, browser.Descriptor{Role: "link", Shown: "Basket"}); found {
+		t.Error("text making up six characters of a name of twenty-two was taken, and half of a name is the least")
+	}
+}
+
 func TestARecordingOfFiftyOneStepsIsRefused(t *testing.T) {
 	steps := []skill.Step{}
 	for number := 1; number <= 51; number++ {

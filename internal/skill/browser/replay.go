@@ -302,19 +302,37 @@ func FindElement(page contract.Snapshot, wanted Descriptor) (string, string, boo
 }
 
 // findByText is the last rung: the text the element showed when the step was
-// recorded, looked for inside the name of anything on the page now.
+// recorded, looked for inside the name of anything on the page now. Two things
+// keep the rung from finding whatever it likes. Text shorter than a word is not
+// looked for at all, because two letters sit inside almost any name. And an
+// element whose role has changed is taken only when the recorded text makes up
+// most of its name, so that a page renaming a link from "Change the page" to
+// "Change the page now" is still followed while a link called "Delete" is not
+// followed onto the button called "Delete my account".
 func findByText(page contract.Snapshot, wanted Descriptor) (string, string, bool) {
 	shown := strings.ToLower(strings.TrimSpace(wanted.Shown))
 	if shown == "" {
 		shown = strings.ToLower(strings.TrimSpace(wanted.Name))
 	}
-	if shown == "" {
+	if len([]rune(shown)) < shortestTextToLookFor {
 		return "", "", false
 	}
 	for _, element := range page.Elements {
-		if strings.Contains(strings.ToLower(element.Name), shown) {
+		if strings.Contains(strings.ToLower(element.Name), shown) && strings.EqualFold(element.Role, wanted.Role) {
+			return element.Ref, "the text it showed", true
+		}
+	}
+	for _, element := range page.Elements {
+		name := strings.ToLower(element.Name)
+		if strings.Contains(name, shown) && mostOfTheName(shown, name) {
 			return element.Ref, "the text it showed", true
 		}
 	}
 	return "", "", false
+}
+
+// mostOfTheName says whether the recorded text makes up enough of the name it
+// was found inside for the two to be the same thing.
+func mostOfTheName(shown string, name string) bool {
+	return len([]rune(shown))*100 >= len([]rune(name))*leastOfTheNameOutOfAHundred
 }

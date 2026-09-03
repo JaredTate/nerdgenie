@@ -37,8 +37,10 @@ const (
 	OperationUnpinEvidence = "unpin_evidence"
 )
 
-// MaxLines is how many lines one list may hold, because a done list or a plan
-// longer than this is a job rather than a task.
+// MaxLines is how many lines one list may hold, because a stop list or a plan
+// longer than this is a job rather than a task. The done list has a tighter
+// rule of its own in the record, record.MaxDoneLines, and this tool hands the
+// record's refusal back word for word.
 const MaxLines = 50
 
 // Records is the record this tool writes through, which is the keeper in
@@ -110,7 +112,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Fields: []contract.ToolField{
 			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result; or stop_now, pin_evidence, unpin_evidence, which the harness answers at once.", Required: true},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once (the text field is taken for it too)."},
-			{Name: "done_when", Type: "array", Description: "The whole done list: each line as a string, or as an object with text, done, and the result that proves it; a line only your answer to the user can prove names \"reply\" as its result."},
+			{Name: "done_when", Type: "array", Description: "The whole done list, at most five lines: each line as a string, or as an object with text, done, and the result that proves it; a line only your answer to the user can prove names \"reply\" as its result. More than five lines is a job."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 			{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 			{Name: "text", Type: "string", Description: "The choice, or the thing that went wrong."},

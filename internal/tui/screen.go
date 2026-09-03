@@ -124,6 +124,10 @@ type Screen struct {
 	lastTool      string
 	plan          string
 	jobs          string
+	job           string
+	jobAsk        string
+	jobTask       string
+	jobTasks      string
 
 	blocks     []block
 	scrollBack int

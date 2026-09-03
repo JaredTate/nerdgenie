@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -27,6 +28,33 @@ func aStatusWithAPlan() contract.SocketEnvelope {
 			"[x] a draft under 280 characters is written\n" +
 			"[ ] the tweet is posted",
 		statusFieldJobs: "3",
+	}}
+}
+
+// aStatusWithAJob is what the program says while the running task belongs to a
+// job: the same status, with the job's number, its ask, which of its tasks is
+// running, and its task list one task per line with a mark on every task that
+// is done.
+func aStatusWithAJob() contract.SocketEnvelope {
+	status := aStatusWithAPlan()
+	status.Fields[contract.StatusFieldJob] = "4"
+	status.Fields[contract.StatusFieldJobAsk] = "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end."
+	status.Fields[contract.StatusFieldJobTask] = "t19"
+	status.Fields[contract.StatusFieldJobTasks] = "[x] t17 post the anniversary tweet\n" +
+		"[ ] t19 draft the blog piece\n" +
+		"[ ] t22 post for day two"
+	return status
+}
+
+// aStatusWithNoJob is what the program says once the job's tasks are over: the
+// job fields sent empty, and the count of jobs waiting.
+func aStatusWithNoJob() contract.SocketEnvelope {
+	return contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+		contract.StatusFieldJob:      "",
+		contract.StatusFieldJobAsk:   "",
+		contract.StatusFieldJobTask:  "",
+		contract.StatusFieldJobTasks: "",
+		statusFieldJobs:              "3",
 	}}
 }
 
@@ -140,6 +168,80 @@ func TestThePanelSaysNothingTheProgramHasNotSaid(t *testing.T) {
 	}
 }
 
+// TestThePanelShowsTheJobTheRunningTaskBelongsTo is the third group of the
+// panel as the Tetris trial wanted it: the job's number and its ask, one line
+// per task with its mark, its label and its title, the running task pointed
+// at, and how far the job has got, in place of the count of jobs.
+func TestThePanelShowsTheJobTheRunningTaskBelongsTo(t *testing.T) {
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	send(screen, aStatusWithAJob())
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	for _, wanted := range []string{
+		"job 4",
+		"Run the DigiByte annivers",
+		"  [x] t17 post the annive",
+		string(currentTaskGlyph) + " [ ] t19 draft the blog",
+		"  [ ] t22 post for day tw",
+		"1 of 3 tasks done",
+	} {
+		if !strings.Contains(panel, wanted) {
+			t.Errorf("the panel does not draw %q:\n%s", wanted, panel)
+		}
+	}
+	if strings.Contains(panel, "3 jobs") {
+		t.Errorf("the panel counts the jobs while it is showing one:\n%s", panel)
+	}
+	if strings.Count(panel, string(currentTaskGlyph)) != 1 {
+		t.Errorf("the panel points at %d tasks, want the one that is running:\n%s", strings.Count(panel, string(currentTaskGlyph)), panel)
+	}
+}
+
+// TestThePanelGoesBackToTheCountOfJobsWhenTheJobIsOver holds that the job
+// gives way to today's line once the program says no job's task is running.
+func TestThePanelGoesBackToTheCountOfJobsWhenTheJobIsOver(t *testing.T) {
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	send(screen, aStatusWithAJob())
+	send(screen, aStatusWithNoJob())
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if !strings.Contains(panel, "3 jobs") {
+		t.Errorf("the panel does not count the jobs once the job is over:\n%s", panel)
+	}
+	for _, unwanted := range []string{"job 4", "t17", "tasks done"} {
+		if strings.Contains(panel, unwanted) {
+			t.Errorf("the panel still says %q about a job that is over:\n%s", unwanted, panel)
+		}
+	}
+}
+
+// TestThePanelDrawsOnlySoManyTasksOfALongJob bounds the list: a job of two
+// hundred tasks is not the whole screen.
+func TestThePanelDrawsOnlySoManyTasksOfALongJob(t *testing.T) {
+	status := aStatusWithAJob()
+	listed := []string{}
+	for at := range maxJobTasks + 5 {
+		listed = append(listed, "[ ] t"+strconv.Itoa(at+1)+" task number "+strconv.Itoa(at+1))
+	}
+	status.Fields[contract.StatusFieldJobTasks] = strings.Join(listed, "\n")
+	status.Fields[contract.StatusFieldJobTask] = "t1"
+	screen, _ := newTestScreen(120, 60)
+	screen.Update(linkMessage{up: true})
+	send(screen, status)
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if drawn := strings.Count(panel, "] t"); drawn != maxJobTasks {
+		t.Errorf("the panel draws %d tasks of a job of %d, want %d:\n%s", drawn, maxJobTasks+5, maxJobTasks, panel)
+	}
+	for _, wanted := range []string{"and 5 more tasks", "0 of " + strconv.Itoa(maxJobTasks+5) + " tasks done"} {
+		if !strings.Contains(panel, wanted) {
+			t.Errorf("the panel does not say %q:\n%s", wanted, panel)
+		}
+	}
+}
+
 func TestThePanelIsDrawnAsTheGoldenFilesHaveIt(t *testing.T) {
 	quiet, _ := newTestScreen(120, 36)
 	quiet.link = &recordingLink{}
@@ -158,4 +260,11 @@ func TestThePanelIsDrawnAsTheGoldenFilesHaveIt(t *testing.T) {
 	send(working, contract.SocketEnvelope{Type: contract.SocketReply, Text: "Where I stand: the notes are read, drafting next."})
 	send(working, aToolLine("▸ read memory/product.md · 2,100 characters · r3"))
 	testkit.Golden(t, "panel-task-120x36.txt", []byte(working.frame()))
+
+	inAJob, _ := newTestScreen(120, 36)
+	inAJob.link = &recordingLink{}
+	inAJob.Update(linkMessage{up: true})
+	send(inAJob, aStatusWithAJob())
+	send(inAJob, contract.SocketEnvelope{Type: contract.SocketReply, Text: "Where I stand: the tweet is up, drafting the blog piece next."})
+	testkit.Golden(t, "panel-job-120x36.txt", []byte(inAJob.frame()))
 }

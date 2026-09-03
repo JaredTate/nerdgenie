@@ -1,0 +1,36 @@
+ coeus · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                            ● healthy 
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+                                                                                            │ opus                      
+                                                                                            │ ctx 12.4k / 262k · 5%     
+                                                                                            │ 6.1k in 0.4k out · $0.04  
+                                                                                            │                           
+                                                                                            │ task 17 running           
+                                                                                            │ ✓ the product notes are   
+                                                                                            │   read                    
+                                                                                            │ ✓ a draft under 280       
+                                                                                            │   characters is written   
+                                                                                            │ · the tweet is posted     
+                                                                                            │                           
+                                                                                            │ job 4                     
+                                                                                            │ Run the DigiByte annivers 
+                                                                                            │   [x] t17 post the annive 
+                                                                                            │ ▸ [ ] t19 draft the blog  
+                                                                                            │   [ ] t22 post for day tw 
+                                                                                            │ 1 of 3 tasks done         
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+ ╭───────────────────────────────────────────────────────────────╮                          │                           
+ │ Where I stand: the tweet is up, drafting the blog piece next. │                          │                           
+ ╰───────────────────────────────────────────────────────────────╯                          │                           
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ › _                                                                                                                    
+ thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 

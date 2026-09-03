@@ -77,6 +77,7 @@ cmd/coeus/skillsbox.go
 cmd/coeus/skillsbox_test.go
 cmd/coeus/starting.go
 cmd/coeus/status.go
+cmd/coeus/status_test.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/taskbudget.go
@@ -313,6 +314,7 @@ internal/context/cacheprefix_test.go
 internal/context/cost.go
 internal/context/cost_test.go
 internal/context/doc.go
+internal/context/donelist_test.go
 internal/context/estimate.go
 internal/context/estimate_test.go
 internal/context/fixturechecks_test.go
@@ -356,6 +358,7 @@ internal/contract/home_test.go
 internal/contract/identifier.go
 internal/contract/identifier_test.go
 internal/contract/job.go
+internal/contract/jobtasklines_test.go
 internal/contract/known_test.go
 internal/contract/memory.go
 internal/contract/model.go
@@ -517,6 +520,7 @@ internal/loop/resume_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
+internal/loop/runningjob_test.go
 internal/loop/situation.go
 internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
@@ -656,6 +660,7 @@ internal/record/checkpoint_test.go
 internal/record/doc.go
 internal/record/donecheck.go
 internal/record/donecheck_test.go
+internal/record/donelist_test.go
 internal/record/errors.go
 internal/record/fortystep_test.go
 internal/record/fuzz_test.go
@@ -1120,6 +1125,7 @@ internal/tool/spill.go
 internal/tool/spill_test.go
 internal/tool/task/bounds_test.go
 internal/tool/task/doc.go
+internal/tool/task/donelist_test.go
 internal/tool/task/fortystep_test.go
 internal/tool/task/read.go
 internal/tool/task/shapes.go
@@ -1354,6 +1360,7 @@ test/functional/desktop_test.go
 test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
+test/functional/jobpanel_test.go
 test/functional/jobs_test.go
 test/functional/livefixture_test.go
 test/functional/livehome_test.go

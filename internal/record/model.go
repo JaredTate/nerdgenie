@@ -35,6 +35,15 @@ type Update struct {
 	Failure *NewFailure
 }
 
+// MaxDoneLines is how many lines a task's done list may hold. A task is one
+// sitting of work, and five things that must be true at its end is what one
+// sitting can prove; an ask that needs more is a job, with one task per line.
+// The record refuses the sixth line rather than leaving the call to the model,
+// because whether an ask is too big for one task was the model's judgment
+// before, and a small model never said yes. A job's own done list is not held
+// to this, because a job is made of many sittings.
+const MaxDoneLines = 5
+
 // NewDecision is a choice the model made, with the reason it must carry so that
 // the model does not argue with itself later.
 type NewDecision struct {
@@ -158,11 +167,16 @@ func applyWhy(into *contract.Record, update Update) error {
 	return nil
 }
 
-// applyDoneWhen holds the rule that a done line marked done names the result that
-// proves it, or the user's reply that stands for one.
+// applyDoneWhen holds two rules: a task's done list holds at most MaxDoneLines
+// lines, and a done line marked done names the result that proves it, or the
+// user's reply that stands for one.
 func applyDoneWhen(into *contract.Record, update Update) error {
 	if update.DoneWhen == nil {
 		return nil
+	}
+	if into.Header.Kind == contract.RecordTask && len(update.DoneWhen) > MaxDoneLines {
+		return fmt.Errorf("this done list has %d lines and a task's holds at most %d, so %w",
+			len(update.DoneWhen), MaxDoneLines, ErrDoneListTooLong)
 	}
 	for _, line := range update.DoneWhen {
 		if line.Text == "" {

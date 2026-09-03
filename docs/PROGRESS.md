@@ -166,6 +166,8 @@ The person's acceptance test is a two-thousand-word prompt asking for a complete
 2. The model wrote the why in the `text` field; refused three times. Fixed the same way: the why is taken from `text`, a list may be one string, the done list one line, a line number a string.
 3. The record was built correctly (why, done list, stop list) and the model moved to shell calls. It read `$HOME` inside the fence, which is a scratch folder, and built the project there instead of on the person's Desktop, which was a sandbox root. The fence's home must be the user's real home path with only the roots present under it; the sandbox worker holds it with an integration test.
 
+Run 3 kept going: after the record, the model wrote the engine and its tests, ran them, and worked the failures down by hand, one edit and one test run at a time; at forty-five tool calls its whole engine suite passed (fifty-one tests, none skipped), and it went on to write the hazard tests before the code. About forty seconds per call on the local model, half of it re-reading context that the tail layout now keeps cached.
+
 Also found on the way and assigned: no tool line reaches the screen, so tool calls are invisible; every checkpoint and tool result event carries a zero time; a read-only command such as `/status` from a second screen gets no answer while the model is busy; a failed record write is summarised as a change; `browseract` cannot yet carry a scroll step although the worker and the contract can.
 
 ### The security review (brief 6.5)

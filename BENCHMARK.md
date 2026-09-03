@@ -89,6 +89,53 @@ about $0.24, level with OpenClaw. The other difference is nine tool calls
 against five: Coeus's model writes the record (why, done list, plan) through
 the `task` tool, which is the point of Coeus and costs a few hundred tokens.
 
+### Every call, from the primary sources
+
+So the columns can be added up by hand. OpenClaw and Hermes rows come from the
+Claude Code session file each run left behind, one row per unique model call.
+Coeus rows come from its driver log, cumulative counters differenced per call
+(Coeus counts fresh, cache write and cache read together as "in"). Prices per
+million tokens: fresh $5, one-hour cache write $10, cache read $0.50, output $25.
+
+| Run | Call | Fresh | Cache write | Cache read | Out | Tokens in | Cost |
+|---|---|---|---|---|---|---|---|
+| Coeus | 1 | 0 | 4,916 | 0 | 2,273 | 4,916 | $0.106 |
+| Coeus | 2 | 0 | 9,134 | 0 | 542 | 9,134 | $0.105 |
+| Coeus | 3 | 0 | 10,753 | 0 | 71 | 10,753 | $0.109 |
+| **Coeus** | **total** | 0 | 24,803 | 0 | 2,886 | **24,803** | **$0.32** (Claude Code's own figures: $0.33) |
+| OpenClaw 1 | 1 | 2 | 10,403 | 31,632 | 1,885 | 42,037 | $0.167 |
+| OpenClaw 1 | 2 | 2 | 2,214 | 42,035 | 118 | 44,251 | $0.046 |
+| OpenClaw 1 | 3 | 2 | 307 | 44,249 | 59 | 44,558 | $0.027 |
+| **OpenClaw 1** | **total** | 6 | 12,924 | 117,916 | 2,062 | **130,846** | **$0.24** |
+| OpenClaw 2 | 1 | 2 | 10,425 | 31,632 | 1,737 | 42,059 | $0.164 |
+| OpenClaw 2 | 2 | 2 | 1,999 | 42,057 | 120 | 44,058 | $0.044 |
+| OpenClaw 2 | 3 | 2 | 307 | 44,056 | 41 | 44,365 | $0.026 |
+| **OpenClaw 2** | **total** | 6 | 12,731 | 117,745 | 1,898 | **130,482** | **$0.23** |
+| Hermes | 1 | 2 | 6,442 | 10,029 | 1,887 | 16,473 | $0.117 |
+| Hermes | 2 | 2 | 2,149 | 16,471 | 120 | 18,622 | $0.033 |
+| Hermes | 3 | 2 | 307 | 18,620 | 40 | 18,929 | $0.013 |
+| **Hermes** | **total** | 6 | 8,898 | 45,120 | 2,047 | **54,024** | **$0.16** |
+
+Two things the per-call rows show that the totals hide:
+
+- **Why 130,000 tokens cost less than 25,000.** OpenClaw's calls each carry
+  about 42,000 tokens of Claude Code's own prompt (its system prompt plus
+  OpenClaw's 33 tool definitions). Calls 2 and 3 read nearly all of it from
+  cache at fifty cents a million. Coeus's calls carry 5,000 to 11,000 tokens
+  and read none of it from cache, so every token is at the ten-dollar write
+  price. 117,916 × $0.50 is $0.06; 24,803 × $10 is $0.25.
+- **OpenClaw and Hermes started warm; Coeus started cold.** On call 1, before
+  the run had written anything, OpenClaw read 31,632 tokens from cache and
+  Hermes read 10,029. Those were left in Anthropic's one-hour cache by an
+  earlier run of the same program on this machine (a test call, and the first
+  Hermes run). Coeus's prefix never repeats, so it can never start warm. Priced
+  as if every run started cold (call 1's reads charged as writes), the costs
+  are: **Coeus $0.32, OpenClaw $0.54, Hermes $0.26.** Priced as they ran, with
+  a warm cache for the two that can have one: **Coeus $0.32, OpenClaw $0.24,
+  Hermes $0.16.** Both readings are true; the second is what a person running
+  several tasks in an hour would pay, and Coeus cannot have it until its prefix
+  is made cacheable, at which point it lands at about $0.23.
+
 ### The first runs: the program's default effort, and why they misled
 
 The first Coeus run, before the `think` setting existed, took 2 min 43 s, nine

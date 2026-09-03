@@ -37,6 +37,8 @@ cmd/coeus/askpass_name_test.go
 cmd/coeus/askpass_test.go
 cmd/coeus/backup.go
 cmd/coeus/backup_test.go
+cmd/coeus/clear.go
+cmd/coeus/clear_test.go
 cmd/coeus/commands.go
 cmd/coeus/desktop.go
 cmd/coeus/doc.go
@@ -243,6 +245,7 @@ internal/command/initialize.go
 internal/command/initialize_test.go
 internal/command/initmenu_test.go
 internal/command/initmodels.go
+internal/command/initskill_test.go
 internal/command/initsteps.go
 internal/command/inittemplate.go
 internal/command/inittemplate_test.go
@@ -458,6 +461,7 @@ internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
+internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go
@@ -1110,6 +1114,7 @@ internal/tui/banner.go
 internal/tui/behaviour_test.go
 internal/tui/bubble.go
 internal/tui/card.go
+internal/tui/clear_test.go
 internal/tui/client.go
 internal/tui/client_test.go
 internal/tui/context_test.go
@@ -1131,12 +1136,16 @@ internal/tui/messages.go
 internal/tui/monitor_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
+internal/tui/panel.go
+internal/tui/panel_test.go
 internal/tui/pictures.go
 internal/tui/pseudoterminal_test.go
 internal/tui/record_test.go
+internal/tui/repeat_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go
+internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go
 internal/tui/size.go
@@ -1158,6 +1167,8 @@ internal/tui/testdata/fuzz/FuzzTheFrameStaysInsideTheTerminal/761ef5c109d348f4
 internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
+internal/tui/testdata/panel-idle-120x36.txt
+internal/tui/testdata/panel-task-120x36.txt
 internal/tui/testdata/themed-banner-120x40.txt
 internal/tui/testdata/themed-banner-80x24.txt
 internal/tui/testdata/themed-conversation-120x40.txt
@@ -1256,6 +1267,7 @@ test/functional/boundary_test.go
 test/functional/browserflows_integration_test.go
 test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
+test/functional/clear_test.go
 test/functional/command_test.go
 test/functional/context_test.go
 test/functional/desktop_test.go

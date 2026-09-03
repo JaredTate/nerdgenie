@@ -162,7 +162,7 @@ func (shown card) titleStyle() style {
 // cardLines draws a card as the rows of its box: a single-line frame in the dim
 // colour with the title in the top rule and the answers on the last line inside.
 func (screen *Screen) cardLines(shown card) []string {
-	outer := screen.width - 2*marginColumns
+	outer := screen.transcriptColumns() - 2*marginColumns
 	if outer < 8 {
 		outer = 8
 	}

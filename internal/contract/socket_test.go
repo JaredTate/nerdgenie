@@ -168,3 +168,28 @@ func TestAScreenCanCancelAPromptAndAPreviewAnswerCarriesItsReason(t *testing.T) 
 		t.Errorf("a preview answer did not hold its reason: %+v", answer)
 	}
 }
+
+func TestAReplyCanTellTheScreenToClearItsTranscript(t *testing.T) {
+	sent := contract.SocketEnvelope{Type: contract.SocketReply, Clear: true, Text: "cleared: the next message starts a fresh task"}
+	line := bytes.Buffer{}
+	if err := contract.EncodeSocketEnvelope(&line, sent); err != nil {
+		t.Fatalf("encoding the reply failed: %v", err)
+	}
+	read, err := contract.DecodeSocketEnvelope(line.Bytes())
+	if err != nil {
+		t.Fatalf("decoding the reply failed: %v", err)
+	}
+	if !read.Clear {
+		t.Error("the reply lost the word that tells the screen to empty its transcript")
+	}
+	if strings.Contains(line.String(), "clear") == false {
+		t.Errorf("the line %q does not carry the clear field by name", line.String())
+	}
+	plain := bytes.Buffer{}
+	if err := contract.EncodeSocketEnvelope(&plain, contract.SocketEnvelope{Type: contract.SocketReply, Text: "hello"}); err != nil {
+		t.Fatalf("encoding a plain reply failed: %v", err)
+	}
+	if strings.Contains(plain.String(), "clear") {
+		t.Errorf("a plain reply %q carries the clear field, and a field that is off is left out of the line", plain.String())
+	}
+}

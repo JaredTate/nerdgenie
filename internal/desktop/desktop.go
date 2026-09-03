@@ -192,12 +192,8 @@ func (desktop *Desktop) Health(ctx context.Context) (Health, error) {
 		return Health{}, err
 	}
 	desktop.options.Note("the desktop worker reports driver %s on %s", health.DriverVersion, health.Display)
-	return Health{
-		Healthy:       health.Healthy,
-		DriverVersion: health.DriverVersion,
-		Display:       health.Display,
-		Detail:        health.Detail,
-	}, nil
+	// The two shapes carry the same fields; only the wire tags differ.
+	return Health(health), nil
 }
 
 // Close stops the worker. Closing a desktop that is already closed is harmless.

@@ -74,7 +74,7 @@ func TestTheClientKnowsWhichFailuresMeanTheWorkerMustBeRestarted(t *testing.T) {
 			t.Errorf("the code %d does not ask for a restart, and the protocol's table says it must", code)
 		}
 	}
-	for _, code := range []int{codeNoSuchMark, codeBadParameters, codeNoApplicationOpen, codeLaunchFailed} {
+	for _, code := range []int{codeNoSuchMark, codeBadParameters, codeNoSuchMethod, codeUnreadableWindow, codeNoApplicationOpen, codeLaunchFailed} {
 		if (&workerFailure{Code: code}).needsRestart() {
 			t.Errorf("the code %d asks for a restart, and the protocol's table says the model just hears about it", code)
 		}

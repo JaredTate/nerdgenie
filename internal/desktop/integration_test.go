@@ -64,10 +64,9 @@ func openFixtureWindow(t *testing.T) *bytes.Buffer {
 	return printed
 }
 
-func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
-	command := workerCommand(t)
-	printed := openFixtureWindow(t)
-
+// newRealDesktop builds the Go side over the real worker started from command.
+func newRealDesktop(t *testing.T, command []string) *Desktop {
+	t.Helper()
 	start, err := ProcessStart(command, func(format string, arguments ...any) { t.Logf(format, arguments...) })
 	if err != nil {
 		t.Fatalf("building the start function failed: %v", err)
@@ -82,26 +81,21 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("building the desktop failed: %v", err)
 	}
-	defer func() {
+	t.Cleanup(func() {
 		if err := desktop.Close(); err != nil {
 			t.Errorf("closing the desktop failed: %v", err)
 		}
-	}()
-	ctx, done := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer done()
+	})
+	return desktop
+}
 
-	health, err := desktop.Health(ctx)
-	if err != nil {
-		t.Fatalf("asking the real worker whether it is healthy failed: %v", err)
-	}
-	if !health.Healthy || health.DriverVersion == "" {
-		t.Fatalf("the worker reports %+v, want a healthy worker naming its driver", health)
-	}
-
+// openedFixture opens the fixture window through the worker and returns the
+// numbers of the text box and the OK button on it.
+func openedFixture(ctx context.Context, t *testing.T, desktop *Desktop) (int, int) {
+	t.Helper()
 	if err := desktop.LaunchExpecting(ctx, fixtureTitle, "a window with a text box opens"); err != nil {
 		t.Fatalf("opening the fixture window through the worker failed: %v", err)
 	}
-
 	picture, err := desktop.Screenshot(ctx)
 	if err != nil {
 		t.Fatalf("taking a screenshot of the fixture window failed: %v", err)
@@ -114,7 +108,25 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 	if !ok || !alsoOK {
 		t.Fatalf("the marks are %+v, want the text box and the OK button of the fixture window", picture.Marks)
 	}
+	return box, confirm
+}
 
+func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
+	command := workerCommand(t)
+	printed := openFixtureWindow(t)
+	desktop := newRealDesktop(t, command)
+	ctx, done := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer done()
+
+	health, err := desktop.Health(ctx)
+	if err != nil {
+		t.Fatalf("asking the real worker whether it is healthy failed: %v", err)
+	}
+	if !health.Healthy || health.DriverVersion == "" {
+		t.Fatalf("the worker reports %+v, want a healthy worker naming its driver", health)
+	}
+
+	box, confirm := openedFixture(ctx, t, desktop)
 	if err := desktop.ClickExpecting(ctx, box, "the text box takes the typing"); err != nil {
 		t.Fatalf("clicking the text box failed: %v", err)
 	}
@@ -136,22 +148,7 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 }
 
 func TestTheRealWorkerPutsTextOnTheClipboardAndPutsTheUsersOwnBack(t *testing.T) {
-	command := workerCommand(t)
-
-	start, err := ProcessStart(command, nil)
-	if err != nil {
-		t.Fatalf("building the start function failed: %v", err)
-	}
-	desktop, err := New(Options{
-		Start:      start,
-		Channel:    testkit.NewFakeChannel("terminal"),
-		Permission: testkit.NewFakePermission(contract.RulingAllow),
-		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
-	})
-	if err != nil {
-		t.Fatalf("building the desktop failed: %v", err)
-	}
-	defer func() { _ = desktop.Close() }()
+	desktop := newRealDesktop(t, workerCommand(t))
 	ctx, done := context.WithTimeout(context.Background(), time.Minute)
 	defer done()
 

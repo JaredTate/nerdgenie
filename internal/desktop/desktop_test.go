@@ -15,7 +15,6 @@ import (
 // aDesk is one desktop under test, with everything a test wants to look at.
 type aDesk struct {
 	desktop    *Desktop
-	worker     *scriptedWorker
 	channel    *testkit.FakeChannel
 	permission *testkit.FakePermission
 	starts     *int

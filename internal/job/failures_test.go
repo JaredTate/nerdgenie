@@ -71,6 +71,32 @@ func TestTenFailuresInARowSwitchAScheduledJobOffAndSayWhy(t *testing.T) {
 	}
 }
 
+// TestAJobToldToKeepRunningIsNeverStoppedForFailing is the nightly self-check's
+// night after night. Its task fails whenever it finds a broken skill, which is
+// the check working rather than the check breaking, so ten such nights must not
+// switch the check off and leave the user hearing nothing.
+func TestAJobToldToKeepRunningIsNeverStoppedForFailing(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aScheduledJob(t, "Check yourself every night: ask the memory twenty questions and run every skill's dry run.",
+		contract.Schedule{Kind: contract.ScheduleCron, Cron: "0 4 * * *"})
+	taskID := holding.aTask(t, jobID, "Run the nightly self-check.", time.Time{})
+	if err := holding.jobs.KeepRunningWhenItsTasksFail(ctx, jobID); err != nil {
+		t.Fatalf("cannot tell job %s to keep running: %v", jobID, err)
+	}
+
+	for night := 1; night <= 12; night++ {
+		holding.finish(t, jobID, taskID, "nightly self-check: 0 passed, 1 failed; these failed: the skill post-the-update", true)
+		if state := holding.summaryOf(t, jobID).State; state != contract.JobRunning {
+			t.Fatalf("after %d nights of correctly reporting a broken skill the job is %q, and a check that switches itself off goes quiet exactly when it is working",
+				night, state)
+		}
+	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 12 {
+		t.Errorf("twelve failed nights were counted as %d, and a job that keeps running still counts what went wrong", failures)
+	}
+}
+
 func TestResumeStartsAPausedJobAgainAndForgetsTheFailuresBehindIt(t *testing.T) {
 	holding := newJobs(t)
 	ctx := t.Context()

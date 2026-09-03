@@ -57,7 +57,7 @@ Packages are listed in build order, and a package may import only packages liste
 | `internal/replay` | Re-run any logged task as a test, and the nightly self-check | 6, built |
 | `cmd/coeus` | The binary; one file per subcommand; `main.go` and `serve.go` are the orchestrator's | 0 skeleton, built |
 | `worker/browser` | The TypeScript browser worker | 5, built |
-| `worker/desktop` | The TypeScript desktop worker | 6, built |
+| `worker/desktop` | The TypeScript desktop worker | 6, built | A reply's pieces stream to every attached screen through `Socket.SendDelta` (`deltas.go`): each piece is redacted together with everything before it, the last sixty-four runes wait in case they are the start of a secret, pieces are gathered for thirty milliseconds, a secret recognised inside text already shown withdraws it with a reset delta, and `ResetDelta` withdraws the partial reply when the provider tries a call again (brief 6.8).
 
 ## The contracts (built, wave 0)
 

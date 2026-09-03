@@ -188,3 +188,7 @@ Two numbers from the context builder after the layout change: consecutive rounds
 
 `make live` on main, the two live suites that exist (the provider contract test and the context builder's forty-step fixture) against all three real models: green, with the context suite taking 98 seconds on the local model. The functional suite against the real models, which `CLAUDE.md` promises under the same target, is not built yet; a worker was started for it and cut off by the session limit, and it resumes when the limit lifts. The loop and file-tool sections of brief 6.7 merged after their workers were cut off; what each still owes is written in the orchestrator's memory and in the wiring worker's list.
 
+### Streaming to the screen, 2026-09-03
+
+With the workers locked out by the session limit, the orchestrator built brief 6.8 itself, tests first in each package: the provider streams each attempt's words as they arrive and calls a reset before the next attempt's first word (`Options.OnReset`); the channel's `SendDelta` redacts across pieces with a held tail of sixty-four runes, gathers pieces for thirty milliseconds, and withdraws shown text the instant a secret is recognised inside it; the screen takes a withdrawn reply down; the wiring fills the loop's `Deltas` and the provider's reset. The functional suite proves pieces of the answer reach the screen before the reply and are the start of it.
+

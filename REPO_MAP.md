@@ -58,6 +58,7 @@ cmd/coeus/update_test.go
 cmd/coeus/version.go
 docs/COEUS_PLAN.md
 docs/DEPENDENCIES.md
+docs/EXTENDING.md
 docs/HARNESS_V2.md
 docs/PROGRESS.md
 docs/TUI_DESIGN.md
@@ -131,6 +132,8 @@ docs/research/coeus-plan-review.md
 docs/research/harness-v2-review.md
 docs/research/work-plan-final-review.md
 docs/research/work-plan-review.md
+examples/tools/wordcount/README.md
+examples/tools/wordcount/wordcount
 go.mod
 go.sum
 internal/browser/browser.go
@@ -1026,6 +1029,7 @@ test/functional/browserflows_test.go
 test/functional/browserworker_integration_test.go
 test/functional/command_test.go
 test/functional/context_test.go
+test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/loop_test.go
 test/functional/permission_test.go

@@ -16,11 +16,17 @@ func FuzzReadRecordUpdate(f *testing.F) {
 	f.Add(`{"doneWhen":["a",{"text":"b","done":true,"resultId":"r1"}]}`)
 	f.Add(`{"tasks":[{"taskId":"t3","text":"post","dueAt":"today"}]}`)
 	f.Add(`{"decision":{"text":"go","reason":"why"},"failure":{"text":"no","cause":"why"}}`)
+	f.Add(`{"operation":"pin_result","line":1,"result":"r1"}`)
+	f.Add(`{"operation":"decision","text":"go","reason":"why"}`)
 	f.Add(`[]`)
 	f.Add(``)
 
+	// The record the reader is given holds one done line, so that the operation
+	// which points a line at its result has a line to point at.
+	held := contract.Record{Goal: contract.Goal{DoneWhen: []contract.DoneLine{{Text: "the notes are read"}}}}
+
 	f.Fuzz(func(t *testing.T, arguments string) {
-		update, err := readRecordUpdate(json.RawMessage(arguments))
+		update, err := readRecordUpdate(json.RawMessage(arguments), held)
 		if err != nil {
 			if !strings.Contains(err.Error(), "task tool") && !strings.Contains(err.Error(), "record") {
 				t.Fatalf("the refusal reads %q, and it must say what to write instead", err)

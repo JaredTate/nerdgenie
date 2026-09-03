@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -41,6 +42,9 @@ var TheTaskToolSpec = contract.ToolSpec{
 // object is left alone, so that a model that adds a field of its own is not
 // refused over it.
 type recordWrite struct {
+	// Operation is which of the task tool's operations this call is, and is
+	// empty on a call that simply writes the sections it carries.
+	Operation string `json:"operation"`
 	// Why is the one line on why the user wants this.
 	Why string `json:"why"`
 	// DoneWhen is the whole done list.
@@ -59,6 +63,36 @@ type recordWrite struct {
 	Decision *pairWrite `json:"decision"`
 	// Failure is one thing that went wrong with the cause it must carry.
 	Failure *pairWrite `json:"failure"`
+	// Text is the choice, or the thing that went wrong, when the operation says
+	// which of the two it is instead of the field name saying it.
+	Text string `json:"text"`
+	// Reason is why a choice was made.
+	Reason string `json:"reason"`
+	// Cause is why something went wrong.
+	Cause string `json:"cause"`
+	// Line is which done line to point at a result, counting from one.
+	Line wholeNumber `json:"line"`
+	// Result is the result to point that line at, such as "r7".
+	Result string `json:"result"`
+}
+
+// wholeNumber is a number a model may write as a number or as a string holding
+// one, which is how the shipping task tool reads the same field.
+type wholeNumber int
+
+// UnmarshalJSON takes a number or a quoted number, and nothing else.
+func (number *wholeNumber) UnmarshalJSON(raw []byte) error {
+	trimmed := strings.Trim(strings.TrimSpace(string(raw)), `"`)
+	if trimmed == "" || trimmed == "null" {
+		*number = 0
+		return nil
+	}
+	read, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return errors.New("a line number is written as a whole number, counting from one")
+	}
+	*number = wholeNumber(read)
+	return nil
 }
 
 // doneLineWrite is one line of the done list. A model may write it as plain
@@ -96,27 +130,56 @@ func (line *doneLineWrite) UnmarshalJSON(raw []byte) error {
 		return nil
 	}
 	var object struct {
-		Text      string `json:"text"`
-		Done      bool   `json:"done"`
-		ResultID  string `json:"resultId"`
-		UserReply string `json:"userReply"`
+		Text string `json:"text"`
+		Done bool   `json:"done"`
+		// ResultID and Result are the two names for the result that proves the
+		// line: the one the forty-step fixture writes and the one the shipping
+		// task tool writes.
+		ResultID string `json:"resultId"`
+		Result   string `json:"result"`
+		// UserReply and UserReplyWritten are the same two names for the user's
+		// own words standing in for a result.
+		UserReply        string `json:"userReply"`
+		UserReplyWritten string `json:"user_reply"`
 	}
 	if err := json.Unmarshal(raw, &object); err != nil {
 		return fmt.Errorf("a done line is a line of text, or an object with a text and the result that proves it: %w", err)
 	}
 	line.DoneLine = contract.DoneLine{
-		Text: object.Text, Done: object.Done, ResultID: object.ResultID, UserReply: object.UserReply,
+		Text: object.Text, Done: object.Done,
+		ResultID:  firstWritten(object.ResultID, object.Result),
+		UserReply: firstWritten(object.UserReply, object.UserReplyWritten),
 	}
 	return nil
 }
 
+// firstWritten takes whichever of two names for the same thing the model used.
+func firstWritten(first string, second string) string {
+	if first != "" {
+		return first
+	}
+	return second
+}
+
 // readRecordUpdate turns the arguments of a task call into the update the
-// record takes, and says what to write instead when it can read nothing.
-func readRecordUpdate(arguments json.RawMessage) (record.Update, error) {
+// record takes, and says what to write instead when it can read nothing. The
+// record it is given is the record as it stands, which the operation that points
+// a done line at its result writes back with that one line changed.
+func readRecordUpdate(arguments json.RawMessage, held contract.Record) (record.Update, error) {
 	written := recordWrite{}
 	if err := json.Unmarshal(arguments, &written); err != nil {
 		return record.Update{}, fmt.Errorf("the arguments of the task tool do not read as an object: %w. %s",
 			err, whatTheTaskToolTakes())
+	}
+	switch written.Operation {
+	case operationPinResult:
+		return pinTheResultToItsLine(written, held)
+	case operationDecision:
+		written.Decision = &pairWrite{Text: written.Text, Reason: written.Reason}
+	case operationFailure:
+		written.Failure = &pairWrite{Text: written.Text, Cause: written.Cause}
+	case operationWhy:
+		written.Why = firstWritten(written.Why, written.Text)
 	}
 	update := record.Update{
 		Why:      written.Why,
@@ -139,6 +202,42 @@ func readRecordUpdate(arguments json.RawMessage) (record.Update, error) {
 		return record.Update{}, errors.New("that record write says nothing this record can hold. " + whatTheTaskToolTakes())
 	}
 	return update, nil
+}
+
+// The operations of the shipping task tool that change what the fields of a
+// call mean. The rest write the sections they carry, which is what a call with
+// no operation at all does, so they need no name here.
+const (
+	// operationWhy sets the one line on why the user wants this, and may write
+	// it in the text field rather than the why field.
+	operationWhy = "why"
+	// operationDecision adds one choice, with its text and reason written flat.
+	operationDecision = "decision"
+	// operationFailure adds one failure, with its text and cause written flat.
+	operationFailure = "failure"
+	// operationPinResult points one done line at the result that proves it.
+	operationPinResult = "pin_result"
+)
+
+// pinTheResultToItsLine marks one done line proven and points it at the result
+// that proves it, by writing the whole done list back with that one line
+// changed, which is what the shipping task tool does with the same call.
+func pinTheResultToItsLine(written recordWrite, held contract.Record) (record.Update, error) {
+	lines := held.Goal.DoneWhen
+	if written.Line < 1 || int(written.Line) > len(lines) {
+		return record.Update{}, fmt.Errorf(
+			"there is no done line numbered %d in this record, whose done list has %d lines in it, so number one it holds",
+			written.Line, len(lines))
+	}
+	if strings.TrimSpace(written.Result) == "" {
+		return record.Update{}, errors.New(
+			"this call names no result, so give the label of the result in this record that proves the line, such as r7")
+	}
+	changed := slices.Clone(lines)
+	changed[written.Line-1].Done = true
+	changed[written.Line-1].ResultID = written.Result
+	changed[written.Line-1].UserReply = ""
+	return record.Update{DoneWhen: changed}, nil
 }
 
 // eitherWay takes whichever of the two ways of writing a list the model used.

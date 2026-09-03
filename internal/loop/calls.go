@@ -175,7 +175,7 @@ func (running *run) underTheTimeLimit(ctx context.Context, tool contract.Tool, c
 // that holds one, so the loop applies the write itself through record's rules
 // and hands the whole update back as the result, where "read r2" can fetch it.
 func (running *run) applyRecordWrite(ctx context.Context, call contract.ToolCall) (string, bool) {
-	update, err := readRecordUpdate(call.Input)
+	update, err := readRecordUpdate(call.Input, running.keeper.Record())
 	if err != nil {
 		return err.Error(), true
 	}

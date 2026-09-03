@@ -37,6 +37,21 @@ func newScriptedWorker() *scriptedWorker {
 	return worker
 }
 
+// workerAnsweringEverything is a scripted worker that answers every method of
+// the protocol the way a healthy one does.
+func workerAnsweringEverything() *scriptedWorker {
+	worker := newScriptedWorker()
+	worker.answer("launch", aDiff(true, ""))
+	worker.answer("screenshot", aScreenshot())
+	worker.answer("click", aDiff(true, ""))
+	worker.answer("type", aDiff(true, ""))
+	worker.answer("press", aDiff(true, ""))
+	worker.answer("drag", aDiff(true, ""))
+	worker.answer("clipboardGet", map[string]any{"text": "nine years of DigiByte"})
+	worker.answer("clipboardSet", map[string]any{"characters": 22})
+	return worker
+}
+
 // answer says what one method returns.
 func (worker *scriptedWorker) answer(method string, result any) {
 	worker.guard.Lock()

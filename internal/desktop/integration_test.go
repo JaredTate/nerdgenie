@@ -157,9 +157,15 @@ func TestTheRealWorkerDrivesAFixtureWindowOnThisMachine(t *testing.T) {
 }
 
 func TestTheRealWorkerPutsTextOnTheClipboardAndPutsTheUsersOwnBack(t *testing.T) {
-	desktop := newRealDesktop(t, workerCommand(t))
+	command := workerCommand(t)
+	openFixtureWindow(t)
+	desktop := newRealDesktop(t, command)
 	ctx, done := context.WithTimeout(context.Background(), time.Minute)
 	defer done()
+
+	// The clipboard belongs to the whole machine, so it goes through the same
+	// door as every other desktop action and an application has to be open.
+	openedFixture(ctx, t, desktop)
 
 	theirs, err := desktop.Clipboard(ctx)
 	if err != nil {

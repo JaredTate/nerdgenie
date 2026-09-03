@@ -34,15 +34,7 @@ func newDesk(t *testing.T) *aDesk {
 		guard.Lock()
 		defer guard.Unlock()
 		starts++
-		worker := newScriptedWorker()
-		worker.answer("launch", aDiff(true, ""))
-		worker.answer("screenshot", aScreenshot())
-		worker.answer("click", aDiff(true, ""))
-		worker.answer("type", aDiff(true, ""))
-		worker.answer("press", aDiff(true, ""))
-		worker.answer("drag", aDiff(true, ""))
-		worker.answer("clipboardGet", map[string]any{"text": "nine years of DigiByte"})
-		worker.answer("clipboardSet", map[string]any{"characters": 22})
+		worker := workerAnsweringEverything()
 		workers = append(workers, worker)
 		return worker.start(), nil
 	}

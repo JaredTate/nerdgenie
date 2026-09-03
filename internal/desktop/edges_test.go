@@ -23,6 +23,22 @@ func (channel silentChannel) ShowPreview(context.Context, contract.Preview) (con
 	return contract.PreviewAnswerWithReason{}, errors.New("the terminal has gone, so nobody can be shown anything")
 }
 
+// silentAfterTheGrant answers the grant and then cannot reach the user at all,
+// which is what happens when the terminal goes away part way through a task.
+type silentAfterTheGrant struct {
+	*testkit.FakeChannel
+	shown int
+}
+
+// ShowPreview answers the first preview and none after it.
+func (channel *silentAfterTheGrant) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
+	channel.shown++
+	if channel.shown == 1 {
+		return channel.FakeChannel.ShowPreview(ctx, preview)
+	}
+	return contract.PreviewAnswerWithReason{}, errors.New("the terminal has gone, so nobody can be shown anything")
+}
+
 func TestAnApplicationWithNoNameIsRefusedBeforeAnybodyIsAsked(t *testing.T) {
 	desk := newDesk(t)
 
@@ -297,13 +313,16 @@ func TestAUserWhoCannotBeAskedIsReportedRatherThanTakenAsAYes(t *testing.T) {
 func TestAnActionThePermissionFunctionAsksAboutWithNobodyToAskIsReported(t *testing.T) {
 	permission := testkit.NewFakePermission(contract.RulingAllow)
 	desktop, err := New(Options{
-		Start:      func(context.Context) (*Connection, error) { return newScriptedWorker().start(), nil },
-		Channel:    silentChannel{FakeChannel: testkit.NewFakeChannel("terminal")},
+		Start:      func(context.Context) (*Connection, error) { return workerAnsweringEverything().start(), nil },
+		Channel:    &silentAfterTheGrant{FakeChannel: testkit.NewFakeChannel("terminal")},
 		Permission: permission,
 		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
 	})
 	if err != nil {
 		t.Fatalf("building the desktop failed: %v", err)
+	}
+	if err := desktop.Launch(context.Background(), "zenity"); err != nil {
+		t.Fatalf("opening the fixture application failed: %v", err)
 	}
 	permission.Rule(contract.ToolComputer, contract.PermissionDecision{Ruling: contract.RulingAsk, PreviewText: "paste something"})
 

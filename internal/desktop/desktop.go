@@ -155,8 +155,19 @@ func (desktop *Desktop) DragExpecting(ctx context.Context, fromMark int, toMark 
 	return desktop.act(ctx, "drag", map[string]any{"fromMark": fromMark, "toMark": toMark, "expectation": expectation}, expectation)
 }
 
-// Clipboard reads what is on the machine's clipboard.
+// Clipboard reads what is on the machine's clipboard. The clipboard belongs to
+// the whole machine and not to the granted window, and it holds whatever the
+// user copied last, which is often a password out of a password manager. So the
+// read goes through the same door as every other desktop action: an application
+// has to be open, and the permission function rules on it.
 func (desktop *Desktop) Clipboard(ctx context.Context) (string, error) {
+	if err := desktop.requireOpen(); err != nil {
+		return "", err
+	}
+	intent := "read what is on the machine's clipboard, which is whatever the user copied last"
+	if err := desktop.permit(ctx, intent, "the clipboard", ""); err != nil {
+		return "", err
+	}
 	var held clipboardAnswer
 	if err := desktop.call(ctx, "clipboardGet", map[string]any{}, &held); err != nil {
 		return "", err
@@ -167,6 +178,9 @@ func (desktop *Desktop) Clipboard(ctx context.Context) (string, error) {
 // SetClipboard puts text on the machine's clipboard. Pasting cannot be undone,
 // so it goes through the permission function first.
 func (desktop *Desktop) SetClipboard(ctx context.Context, text string) error {
+	if err := desktop.requireOpen(); err != nil {
+		return err
+	}
 	if err := desktop.permit(ctx, "put text on the machine's clipboard, ready to paste", "the clipboard", text); err != nil {
 		return err
 	}

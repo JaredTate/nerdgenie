@@ -21,6 +21,12 @@ default_threshold=90
 tui_threshold=70
 roots=(./internal/... ./scripts/... ./cmd/...)
 
+# internal/browser has to be measured like every other package, and measuring it
+# runs its integration tests, which start a real Chrome. Ask for the one with no
+# window, so that running the gate never puts a browser window on the screen of
+# whoever is running it. internal/browser is the only package that reads this.
+export COEUS_HEADLESS_TESTS=1
+
 # The packages that must be measured. Every one of them gets a row below, and a
 # package with no row fails the gate.
 packages="$(go list "${roots[@]}")"

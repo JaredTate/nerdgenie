@@ -631,8 +631,17 @@ scripts/stylecheck/doc.go
 scripts/stylecheck/main.go
 scripts/stylecheck/main_test.go
 test/fixtures/forty-step/task.json
+test/fixtures/site/captcha.html
+test/fixtures/site/compose.html
+test/fixtures/site/login.html
+test/fixtures/site/qa.html
+test/functional/browserflows_integration_test.go
+test/functional/browserflows_test.go
+test/functional/browserworker_integration_test.go
+test/functional/fixturesite_test.go
 test/functional/permission_test.go
 test/functional/sample_test.go
+test/functional/site_test.go
 test/functional/vault_test.go
 worker/browser/.gitignore
 worker/browser/PROTOCOL.md

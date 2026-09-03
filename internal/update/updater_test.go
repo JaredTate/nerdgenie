@@ -152,8 +152,12 @@ func TestAReleaseThatDoesNotComeUpGoesBackToTheVersionThatWasRunning(t *testing.
 	if !service.running(t) {
 		t.Errorf("the version that was working was not started again:\n%s", service.told(t))
 	}
-	if waited := clock.Now().Sub(startOfTime); waited > update.ReadyDeadline+update.ReadyPoll {
-		t.Errorf("the rollback took %s of the agent's time, which is past the %s deadline", waited, update.ReadyDeadline)
+	// The literal is the rule of design section 11 as a person reads it: a
+	// minute for the new version to come up, and one more question after the
+	// minute is up. Held against the constants themselves it would pass for any
+	// deadline at all, an hour included.
+	if waited := clock.Now().Sub(startOfTime); waited > 62*time.Second {
+		t.Errorf("the rollback took %s of the agent's time, and the rule is a minute of waiting and one last question", waited)
 	}
 	if !strings.Contains(err.Error(), "0.7.0") {
 		t.Errorf("the report does not name the version that failed: %v", err)

@@ -22,6 +22,26 @@ func TestAnOpenThatCallsTheAddressSomethingElseStillGoesThere(t *testing.T) {
 	}
 }
 
+func TestAnAddressThatIsNotAWebAddressIsRefusedWithWhatToWriteInstead(t *testing.T) {
+	written := map[string]string{
+		"file:///etc/passwd":       "web address",
+		"https://":                 "host",
+		"https://%zz-not-a-parse/": "web address",
+		"   ":                      "web address",
+	}
+	for address, says := range written {
+		tool, _ := newTool(t)
+		_, err := run(t, tool, map[string]any{"intent": "read the page", "url": address})
+		if err == nil {
+			t.Errorf("the browser was sent to %q", address)
+			continue
+		}
+		if !strings.Contains(err.Error(), says) {
+			t.Errorf("the refusal for %q reads %q and does not say %q", address, err, says)
+		}
+	}
+}
+
 func TestAnOpenWithNoAddressNamesTheFieldToWrite(t *testing.T) {
 	tool, _ := newTool(t)
 

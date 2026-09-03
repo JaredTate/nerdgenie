@@ -192,6 +192,8 @@ internal/browser/wiring_test.go
 internal/channel/ask.go
 internal/channel/channel.go
 internal/channel/client.go
+internal/channel/deltas.go
+internal/channel/deltas_test.go
 internal/channel/doc.go
 internal/channel/fuzz_test.go
 internal/channel/integration_test.go
@@ -1235,6 +1237,7 @@ test/functional/signal_test.go
 test/functional/site_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
+test/functional/streaming_test.go
 test/functional/toolline_test.go
 test/functional/vault_test.go
 test/functional/walk_test.go

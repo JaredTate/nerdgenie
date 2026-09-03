@@ -19,7 +19,7 @@ func (running *agent) openModel(ctx context.Context) (contract.Model, error) {
 // behind it. It takes the settings rather than reading the agent's own, so that
 // "/model" can build a chain for another alias without changing anything else.
 func openTheChain(ctx context.Context, running *agent, settings contract.Config) (contract.Model, error) {
-	options := provider.Options{Clock: clock.System(), Home: running.home, Log: running.note}
+	options := provider.Options{Clock: clock.System(), Home: running.home, Log: running.note, OnReset: running.withdrawStreamedReply}
 	models := []contract.Model{}
 
 	for _, name := range append([]string{settings.DefaultModel}, settings.FallbackChain...) {

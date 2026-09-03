@@ -8,6 +8,10 @@ import "github.com/JaredTate/coeus/internal/contract"
 func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 	switch envelope.Type {
 	case contract.SocketDelta:
+		if envelope.Reset {
+			screen.withdrawReply()
+			return
+		}
 		screen.pending += envelope.Text
 	case contract.SocketReply:
 		screen.finishReply(envelope.Text)
@@ -96,6 +100,16 @@ func (screen *Screen) flushDeltas() {
 		screen.streaming = true
 	}
 	screen.pending = ""
+}
+
+// withdrawReply takes the partial reply off the screen, because the call
+// behind it failed and is being tried again; the pieces that follow start the
+// reply over in the same block.
+func (screen *Screen) withdrawReply() {
+	screen.pending = ""
+	if open := screen.openReply(); open != nil {
+		open.text = ""
+	}
 }
 
 // finishReply closes the reply that was being streamed. The program's finished

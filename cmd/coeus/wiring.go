@@ -298,18 +298,9 @@ func thisProgramOrEmpty() string {
 	return found
 }
 
-// openTheLoop builds the turn loop over everything the agent owns.
-//
-// Deltas are not asked for, and that is a decision rather than an omission. Both
-// provider.WithRetries and provider.NewChain hold an attempt's text back until
-// that attempt has succeeded, so a delta today is not live text: the whole answer
-// arrives in one lump a moment before the reply. The two then travel to a screen
-// by different paths, deltas on the event stream and the reply straight out of
-// the channel, and nothing orders those two paths against each other. Measured
-// against the real local model on this machine, the reply won every time, and the
-// terminal screen, which reads a delta arriving after a reply as the start of a
-// new answer, drew the same answer twice. Live text becomes possible the day a
-// channel's reply rides the same event stream its deltas do.
+// openTheLoop builds the turn loop over everything the agent owns. The
+// reply's pieces go to the screens through the socket as the model writes them,
+// and a retry withdraws them, which is brief 6.8.
 func (running *agent) openTheLoop() error {
 	built, err := loop.New(loop.Options{
 		Model:        running.model,
@@ -326,6 +317,7 @@ func (running *agent) openTheLoop() error {
 		Caps:         running.settings.Caps,
 		ToolLine:     running.noteToolLine,
 		RecordLine:   running.noteRecordLine,
+		Deltas:       running.streamReplyPiece,
 	})
 	if err != nil {
 		return err

@@ -85,7 +85,21 @@ func SplitReply(text string) []string {
 	if building != "" {
 		messages = append(messages, building)
 	}
-	return capMessages(messages)
+	return capMessages(withoutEmptyPieces(messages))
+}
+
+// withoutEmptyPieces drops every piece that holds nothing a person could see,
+// because signal-cli refuses an empty message and a piece of nothing but line
+// ends is one; the pieces that remain are trimmed at both ends.
+func withoutEmptyPieces(pieces []string) []string {
+	kept := pieces[:0]
+	for _, piece := range pieces {
+		piece = strings.TrimSpace(piece)
+		if piece != "" {
+			kept = append(kept, piece)
+		}
+	}
+	return kept
 }
 
 // breakLongParagraph cuts one paragraph that is longer than a message into

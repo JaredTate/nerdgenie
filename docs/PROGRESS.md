@@ -222,3 +222,8 @@ Two findings came with it. GPT failed the one-tool task about half the time beca
 The browser worker now reports a person's own clicks, typing lengths, and navigations over the protocol, and `/walk record` writes them down until `/walk stop`.
 
 A message now carries on the task that is waiting for it: an answer to the model's question resumes the same task, and "continue" picks up one stopped at its budget or by Escape, one task back per screen and never further (three functional tests and eight unit tests, `cmd/coeus/resuming.go`).
+
+### The loop's last brief 6.6 items
+
+The model may ask for several tools in one reply (the instruction text says so in one sentence and the forty-step fixture's round 39 does it); one checkpoint is saved per model call and only the first carries the ask, so a forty-round task with a two-thousand-word ask writes 105 kilobytes of checkpoints where it wrote 3.1 megabytes; an answer that asks nothing closes a task that wrote no done list, with the answer as its one done line; and a stopped task the person continues gets a fresh budget while a waiting one keeps what it had. The fuzzer found the Signal splitter could hand signal-cli an empty piece for a reply of line ends; every piece now holds something a person can see.
+

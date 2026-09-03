@@ -9,15 +9,30 @@ import (
 )
 
 // Approve is the "/approve" command: it answers one waiting preview or question
-// with yes, for that one call and nothing more.
+// with yes, for that one call and nothing more, or for every call like it for
+// the rest of the session when the word "always" follows the id.
+//
+// The terminal shows those two answers as buttons; over Signal there is nothing
+// but this command, so the word has to be typeable or a Signal user could never
+// say "always" at all.
 func (commands *Commands) Approve() contract.Command {
 	return contract.Command{
 		Name: "approve",
-		Help: "Answers a waiting preview or question with yes: /approve 3.",
+		Help: "Answers a waiting preview or question with yes: /approve 3, or /approve 3 always for the rest of the session.",
 		Run: func(ctx context.Context, arguments string, _ contract.CommandContext) (string, error) {
-			previewID, _ := SplitLine(arguments)
+			previewID, rest := SplitLine(arguments)
 			if previewID == "" {
 				return askWhichOne("approve"), nil
+			}
+			if rest != "" && rest != contract.ApproveAlwaysText {
+				return fmt.Sprintf("the only word that may follow the id is %q, so write /approve %s or /approve %s %s.",
+					contract.ApproveAlwaysText, previewID, previewID, contract.ApproveAlwaysText), nil
+			}
+			if rest == contract.ApproveAlwaysText {
+				if err := commands.answer(ctx, previewID, contract.AnswerAlways, ""); err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("%s is approved, and so is every call like it for the rest of this session.", previewID), nil
 			}
 			if err := commands.answer(ctx, previewID, contract.AnswerOnce, ""); err != nil {
 				return "", err

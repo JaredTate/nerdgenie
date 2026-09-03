@@ -49,7 +49,7 @@ func NewPathCheck(roots []string, userHome string, agentHome string) PathCheck {
 		if err := outsideEvery(resolved, excluded); err != nil {
 			return "", err
 		}
-		return wanted, nil
+		return resolved, nil
 	}
 }
 

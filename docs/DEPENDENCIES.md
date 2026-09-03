@@ -74,3 +74,21 @@ Pinned to exact versions for the same reason, and
 | `@vitest/coverage-v8` | 4.1.11 | Measures the line coverage the seventy percent floor in `docs/WORK_PLAN.md` Part 1 is checked against, and fails `npm test` under it |
 | `fast-check` | 4.9.0 | The property tests throw any expectation, any key combination, any accessibility tree, and any bytes on standard input at the worker, and Vitest has no property testing of its own |
 | `@types/node` | 24.13.3 | The worker reads standard input, writes standard output, and starts processes, and those types are not in TypeScript itself. The same version the browser worker uses |
+
+## The Node runtime a release carries (wave 6, brief 6.2)
+
+The two workers are TypeScript, so an install needs Node to run them. Asking a
+new user to install Node first would put a second thing between them and their
+first reply, so `make release` bundles one instead: `scripts/release/node.sh`
+downloads the official Linux build for each architecture from `nodejs.org`,
+checks it against a checksum written down in that script, keeps only `bin/node`
+out of it, and puts that in the archive at `node/bin/node`.
+
+| Download | Version | Why it is here |
+|---|---|---|
+| `node-v24.18.0-linux-x64.tar.xz` and `node-v24.18.0-linux-arm64.tar.xz` | 24.18.0 | The workers are Node programs, and a release that carried no runtime would only run for someone who had already installed Node. It is the official build from `nodejs.org`, pinned by SHA-256 in `scripts/release/node.sh`, cached under `~/.cache/coeus-release` so it is fetched once per machine, and stripped to the one program: npm, the C headers, and the documentation are all left behind |
+
+This is not a library anything imports, and nothing in `go.mod` or either
+`package.json` changes because of it. Raising the version means fetching the new
+checksums from `https://nodejs.org/dist/v<version>/SHASUMS256.txt`, writing them
+into `scripts/release/node.sh`, and changing the version in this row.

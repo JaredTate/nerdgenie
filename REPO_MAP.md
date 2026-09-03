@@ -37,6 +37,7 @@ cmd/coeus/askpass_name_test.go
 cmd/coeus/askpass_test.go
 cmd/coeus/backup.go
 cmd/coeus/backup_test.go
+cmd/coeus/clear.go
 cmd/coeus/clear_test.go
 cmd/coeus/commands.go
 cmd/coeus/desktop.go

@@ -116,7 +116,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 // runOneTool finds the tool and runs it under the tool time limit, and says
 // whether what came back is a result or an error.
 func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (string, bool) {
-	if answer, refused, mine := running.theLoopsOwnOperation(call); mine {
+	if answer, refused, mine := running.theLoopsOwnOperation(ctx, call); mine {
 		return answer, refused
 	}
 	tool, found := running.tools().Lookup(call.Name)

@@ -27,8 +27,9 @@ var TheTaskToolSpec = contract.ToolSpec{
 		{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 		{Name: "decision", Type: "object", Description: "A choice, as a text and the reason it was made."},
 		{Name: "failure", Type: "object", Description: "Something that went wrong, as a text and its cause."},
-		{Name: "operation", Type: "string", Description: "Write \"stop_now\" to say that one line of the stop list has come true."},
-		{Name: "text", Type: "string", Description: "With \"stop_now\", the line of the stop list that has come true."},
+		{Name: "operation", Type: "string", Description: "One of stop_now, pin_evidence, unpin_evidence, or left out to write the record."},
+		{Name: "text", Type: "string", Description: "With stop_now, the line of the stop list that has come true."},
+		{Name: "result", Type: "string", Description: "With pin_evidence or unpin_evidence, the result to pin or unpin, such as r7."},
 	},
 	Classes: []contract.PermissionClass{contract.ClassWrite},
 }

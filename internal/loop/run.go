@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/record"
 	"github.com/JaredTate/coeus/internal/repair"
@@ -50,6 +51,7 @@ type run struct {
 	hadStop       bool
 	stopLine      string
 	stopNow       string
+	pinned        []workingcontext.Pin
 	number        string
 	perTask       contract.ToolRegistry
 }
@@ -309,6 +311,7 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 		JobSummary:    running.jobSummary,
 		Messages:      running.messages,
 		Tools:         running.specs(),
+		Pinned:        running.pinned,
 		ToolsOff:      toolsOff,
 		MemoryHint:    running.memoryHint(ctx),
 	})

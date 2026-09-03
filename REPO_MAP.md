@@ -175,6 +175,8 @@ internal/browser/client.go
 internal/browser/client_test.go
 internal/browser/doc.go
 internal/browser/edges_test.go
+internal/browser/events.go
+internal/browser/events_test.go
 internal/browser/fields.go
 internal/browser/fuzz_test.go
 internal/browser/handoff.go
@@ -305,6 +307,7 @@ internal/context/testdata/prompt-24k.txt
 internal/context/window.go
 internal/context/window_test.go
 internal/contract/browser.go
+internal/contract/browserevent_test.go
 internal/contract/channel.go
 internal/contract/clock.go
 internal/contract/command.go
@@ -560,6 +563,7 @@ internal/provider/cliarguments.go
 internal/provider/clioutput.go
 internal/provider/cliprompt.go
 internal/provider/clisystemprompt_test.go
+internal/provider/codexflags_test.go
 internal/provider/deltas.go
 internal/provider/doc.go
 internal/provider/errors.go
@@ -802,6 +806,8 @@ internal/skill/browser/step.go
 internal/skill/browser/step_test.go
 internal/skill/browser/walk.go
 internal/skill/browser/walk_test.go
+internal/skill/browser/walkrecord.go
+internal/skill/browser/walkrecord_test.go
 internal/skill/browser/writeqa_test.go
 internal/skill/command.go
 internal/skill/command_test.go
@@ -839,6 +845,9 @@ internal/skill/testdata/skills/news-headlines/test.md
 internal/testkit/browser.go
 internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
+internal/testkit/browsereventchecks_test.go
+internal/testkit/browserevents.go
+internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
@@ -982,6 +991,7 @@ internal/tool/loose/loose.go
 internal/tool/loose/loose_test.go
 internal/tool/loose/shapes_test.go
 internal/tool/loose/text.go
+internal/tool/memory/bounds_test.go
 internal/tool/memory/doc.go
 internal/tool/memory/memory.go
 internal/tool/memory/memory_test.go
@@ -1104,6 +1114,7 @@ internal/tui/monitor_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
 internal/tui/pictures.go
+internal/tui/pseudoterminal_test.go
 internal/tui/record_test.go
 internal/tui/report.go
 internal/tui/screen.go
@@ -1234,6 +1245,9 @@ test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/jobs_test.go
+test/functional/livefixture_test.go
+test/functional/livehome_test.go
+test/functional/livetask_test.go
 test/functional/loop_test.go
 test/functional/network_test.go
 test/functional/nightly_test.go
@@ -1253,6 +1267,7 @@ test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go
 test/functional/toolline_test.go
+test/functional/usertools_test.go
 test/functional/vault_test.go
 test/functional/walk_test.go
 test/functional/whilebusy_test.go
@@ -1268,6 +1283,7 @@ worker/browser/src/batch-methods.ts
 worker/browser/src/chrome.ts
 worker/browser/src/diff.ts
 worker/browser/src/errors.ts
+worker/browser/src/events.ts
 worker/browser/src/expectation.ts
 worker/browser/src/limits.ts
 worker/browser/src/lines.ts
@@ -1279,6 +1295,7 @@ worker/browser/src/page-bridge.ts
 worker/browser/src/page-script.ts
 worker/browser/src/params.ts
 worker/browser/src/pdf.ts
+worker/browser/src/person-script.ts
 worker/browser/src/redact.ts
 worker/browser/src/refs.ts
 worker/browser/src/session.ts
@@ -1322,6 +1339,7 @@ worker/browser/test/pages/signed-in.html
 worker/browser/test/pages/stale-ref.html
 worker/browser/test/pages/two-factor.html
 worker/browser/test/pages/type-echo.html
+worker/browser/test/person-events.test.ts
 worker/browser/test/process.test.ts
 worker/browser/test/properties.test.ts
 worker/browser/test/redact.test.ts

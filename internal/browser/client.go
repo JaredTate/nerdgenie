@@ -33,18 +33,59 @@ type Connection struct {
 // client speaks worker/browser/PROTOCOL.md over one connection. It sends one
 // request at a time and waits for its answer, because a browser has one window
 // and the protocol says so in its first paragraph.
+//
+// One reader takes every line the worker sends, rather than each call reading
+// its own answer, because the worker also sends lines nobody asked for: the
+// events saying what the person did in the window. Those arrive between calls as
+// well as during one, and a reader that only ran while a call was outstanding
+// would leave a person's clicks sitting in the pipe until the agent next did
+// something.
 type client struct {
 	guard      sync.Mutex
 	connection *Connection
-	reader     *bufio.Reader
 	lastID     int64
+	// answers holds the one line a waiting call is about to read. It has room
+	// for one because the protocol allows one request at a time.
+	answers chan []byte
+	// whyItStopped is why the reader gave up, written before answers is closed
+	// and read only after, which is what makes it safe to read without a lock.
+	whyItStopped error
+	events       *eventStream
 }
 
-// newClient wraps one connection in the protocol.
-func newClient(connection *Connection) *client {
-	return &client{
+// newClient wraps one connection in the protocol and starts reading its lines.
+func newClient(connection *Connection, events *eventStream) *client {
+	talker := &client{
 		connection: connection,
-		reader:     bufio.NewReaderSize(connection.Responses, 64*1024),
+		answers:    make(chan []byte, 1),
+		events:     events,
+	}
+	go talker.readEveryLine(bufio.NewReaderSize(connection.Responses, 64*1024))
+	return talker
+}
+
+// readEveryLine reads what the worker sends until the connection ends: an event
+// goes to whoever is watching, and an answer goes to the call waiting for it. It
+// ends by closing the answers, so that a call waiting on a worker that has gone
+// is told rather than left waiting.
+func (talker *client) readEveryLine(reader *bufio.Reader) {
+	defer close(talker.answers)
+	for {
+		line, err := readLine(reader)
+		if err != nil {
+			talker.whyItStopped = err
+			return
+		}
+		if event, isEvent := eventInLine(line); isEvent {
+			talker.events.deliver(event)
+			continue
+		}
+		select {
+		case talker.answers <- line:
+		default:
+			// Nothing asked for this line, so it is an answer to a call that has
+			// already given up. Holding it would hand it to the next call.
+		}
 	}
 }
 
@@ -56,6 +97,7 @@ func (talker *client) call(ctx context.Context, method string, params any, resul
 	talker.guard.Lock()
 	defer talker.guard.Unlock()
 
+	talker.forgetAnyStaleAnswer()
 	talker.lastID++
 	identifier := talker.lastID
 	if err := talker.send(identifier, method, params); err != nil {
@@ -85,24 +127,24 @@ func (talker *client) send(identifier int64, method string, params any) error {
 	return nil
 }
 
-// waitForLine reads one answer line, or gives up when the deadline passes.
-func (talker *client) waitForLine(ctx context.Context, method string) ([]byte, error) {
-	type reading struct {
-		line []byte
-		err  error
-	}
-	read := make(chan reading, 1)
-	go func() {
-		line, err := readLine(talker.reader)
-		read <- reading{line: line, err: err}
-	}()
-
+// forgetAnyStaleAnswer throws away an answer to a call that has already given
+// up, so that the next call is never handed the answer to the last one.
+func (talker *client) forgetAnyStaleAnswer() {
 	select {
-	case answer := <-read:
-		if answer.err != nil {
-			return nil, fmt.Errorf("the answer to %s could not be read from the browser worker: %w", method, answer.err)
+	case <-talker.answers:
+	default:
+	}
+}
+
+// waitForLine takes the next answer the reader picked up, or gives up when the
+// deadline passes.
+func (talker *client) waitForLine(ctx context.Context, method string) ([]byte, error) {
+	select {
+	case line, open := <-talker.answers:
+		if !open {
+			return nil, fmt.Errorf("the answer to %s could not be read from the browser worker: %w", method, talker.whyItStopped)
 		}
-		return answer.line, nil
+		return line, nil
 	case <-ctx.Done():
 		return nil, fmt.Errorf("the browser worker did not answer %s in time, so it is being started again: %w", method, ctx.Err())
 	}

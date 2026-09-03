@@ -8,7 +8,14 @@
 import { ERROR_CODES, WorkerError } from "./errors.js";
 import { MAX_LINE_BYTES } from "./limits.js";
 import { checkParams } from "./params.js";
-import { METHOD_NAMES, type JsonRpcResponse, type MethodName, type WorkerRequest } from "./types.js";
+import {
+  METHOD_NAMES,
+  type EventNotification,
+  type JsonRpcResponse,
+  type MethodName,
+  type PersonEvent,
+  type WorkerRequest,
+} from "./types.js";
 
 /** Either a request the worker should run, or the response to send instead. */
 export type ParsedLine =
@@ -121,4 +128,13 @@ export function parseLine(line: string): ParsedLine {
  */
 export function formatResponse(response: JsonRpcResponse): string {
   return `${JSON.stringify(response)}\n`;
+}
+
+/**
+ * Write one event as one line. It is a notification and carries no id at all,
+ * which is what tells the Go side that it answers no request of its own.
+ */
+export function formatEvent(event: PersonEvent): string {
+  const notification: EventNotification = { jsonrpc: "2.0", method: "event", params: event };
+  return `${JSON.stringify(notification)}\n`;
 }

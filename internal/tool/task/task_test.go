@@ -322,3 +322,27 @@ func TestAToolWithNoRecordWiredInSaysSo(t *testing.T) {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
 	}
 }
+
+// TestTheOperationsTheLoopAnswersAreNamedToTheModelAndRefusedHere covers the
+// three operations the turn loop answers before this tool is asked: the
+// description names them, so the model learns they exist, and a call that
+// somehow reaches the tool with one of them is refused naming the harness.
+func TestTheOperationsTheLoopAnswersAreNamedToTheModelAndRefusedHere(t *testing.T) {
+	tool, _ := newTool(t)
+	spec := tool.Spec()
+	words := ""
+	for _, field := range spec.Fields {
+		words += field.Description + " "
+	}
+	for _, name := range []string{"stop_now", "pin_evidence", "unpin_evidence", "\"reply\""} {
+		if !strings.Contains(words, name) {
+			t.Errorf("the description says nothing about %s", name)
+		}
+	}
+	for _, operation := range []string{"stop_now", "pin_evidence", "unpin_evidence"} {
+		_, err := run(t, tool, map[string]any{"operation": operation, "line": 1, "result": "r1"})
+		if err == nil || !strings.Contains(err.Error(), "harness") {
+			t.Errorf("the operation %s reached the tool and was not refused naming the harness: %v", operation, err)
+		}
+	}
+}

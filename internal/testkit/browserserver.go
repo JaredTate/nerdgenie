@@ -136,21 +136,48 @@ func (server *BrowserProtocolServer) accept() {
 }
 
 // serve answers every line one caller sends, until the caller goes quiet for
-// longer than the idle timeout or sends a line longer than the cap.
+// longer than the idle timeout or sends a line longer than the cap. What the
+// person did in the window goes the other way at the same time, as the event
+// notifications worker/browser/PROTOCOL.md rule 7 describes.
 func (server *BrowserProtocolServer) serve(connection net.Conn) {
 	defer connection.Close()
+	caller := &oneCaller{server: server, connection: connection}
+	watching, stopWatching := context.WithCancel(context.Background())
+	defer stopWatching()
+	if events, err := server.worker.Events(watching); err == nil {
+		go caller.sendEvents(events)
+	}
+
 	lines := bufio.NewScanner(connection)
 	lines.Buffer(make([]byte, 0, 64*1024), MaxProtocolLine)
-
 	for {
 		if err := connection.SetDeadline(time.Now().Add(server.idleWait())); err != nil {
 			return
 		}
 		if !lines.Scan() {
-			server.sayWhyTheLineWasNotRead(connection, lines.Err())
+			caller.sayWhyTheLineWasNotRead(lines.Err())
 			return
 		}
-		if !server.write(connection, server.answer(lines.Bytes())) {
+		if !caller.write(server.answer(lines.Bytes())) {
+			return
+		}
+	}
+}
+
+// oneCaller is one connection to the server. It exists because two things write
+// to a connection now, the answers and the event notifications, and a line from
+// one must never land in the middle of a line from the other.
+type oneCaller struct {
+	server     *BrowserProtocolServer
+	connection net.Conn
+	guard      sync.Mutex
+}
+
+// sendEvents passes on what the person did in the window until the stream ends
+// or the caller has gone.
+func (caller *oneCaller) sendEvents(events <-chan contract.BrowserEvent) {
+	for event := range events {
+		if !caller.write(map[string]any{"jsonrpc": "2.0", "method": "event", "params": event}) {
 			return
 		}
 	}
@@ -159,24 +186,26 @@ func (server *BrowserProtocolServer) serve(connection net.Conn) {
 // sayWhyTheLineWasNotRead answers a caller whose line could not be read at all,
 // which the protocol calls a parse error. A caller that simply went away or went
 // quiet gets nothing, because there is nobody left to tell.
-func (server *BrowserProtocolServer) sayWhyTheLineWasNotRead(connection net.Conn, err error) {
+func (caller *oneCaller) sayWhyTheLineWasNotRead(err error) {
 	if !errors.Is(err, bufio.ErrTooLong) {
 		return
 	}
-	server.write(connection, protocolFailure(nil, CodeParseError,
+	caller.write(protocolFailure(nil, CodeParseError,
 		fmt.Sprintf("that request line is longer than the %d byte cap, so send a smaller one", MaxProtocolLine), nil))
 }
 
-// write sends one answer and says whether the caller is still there.
-func (server *BrowserProtocolServer) write(connection net.Conn, answer map[string]any) bool {
+// write sends one line and says whether the caller is still there.
+func (caller *oneCaller) write(answer map[string]any) bool {
+	caller.guard.Lock()
+	defer caller.guard.Unlock()
 	written, err := json.Marshal(answer)
 	if err != nil {
 		return false
 	}
-	if err := connection.SetWriteDeadline(time.Now().Add(server.idleWait())); err != nil {
+	if err := caller.connection.SetWriteDeadline(time.Now().Add(caller.server.idleWait())); err != nil {
 		return false
 	}
-	_, err = connection.Write(append(written, '\n'))
+	_, err = caller.connection.Write(append(written, '\n'))
 	return err == nil
 }
 

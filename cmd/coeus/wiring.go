@@ -96,6 +96,13 @@ func (running *agent) openTheWorkbench(ctx context.Context) error {
 
 	walking, stopWalking := withinTheToolWalkLimit(ctx)
 	defer stopWalking()
+	// The user's own tools are asked what they are once, here, and every
+	// registry after this one takes the answer rather than asking again.
+	userTools, err := tool.LoadUserTools(walking, running.toolSettings("", nil))
+	if err != nil {
+		return err
+	}
+	running.userTools = userTools
 	built, err := tool.New(walking, running.toolSettings("", nil))
 	if err != nil {
 		return err
@@ -158,6 +165,7 @@ func (running *agent) openTheBrowser() *browser.Browser {
 		Codes:          running.secrets,
 		Clock:          clock.System(),
 		HandoffTimeout: running.settings.HandoffTimeout,
+		BufferedEvents: running.settings.Caps.BufferedBrowserEvents,
 		Note:           running.noteLine,
 	})
 	if err != nil {
@@ -238,6 +246,7 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 	settings := tool.Settings{
 		Configuration: running.settings,
 		Home:          running.home,
+		UserTools:     running.userTools,
 		UserHome:      userHomeOrEmpty(),
 		TaskID:        taskID,
 		Note:          running.note,

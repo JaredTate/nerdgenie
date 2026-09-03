@@ -9,14 +9,19 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Page } from "playwright-core";
 import { formatResponse, parseLine } from "../src/wire.js";
 import { startWorker, type BrowserWorker } from "../src/worker.js";
-import type { JsonRpcResponse } from "../src/types.js";
+import type { JsonRpcResponse, PersonEvent } from "../src/types.js";
 
 /** A worker under test, with a throwaway profile folder that is removed at the end. */
 export interface TestWorker {
   profile: string;
   logLines: string[];
+  /** Every event the worker reported about what the person did in the window. */
+  events: PersonEvent[];
+  /** The page the worker is on, which a test acts on the way a person would. */
+  personsPage(): Page;
   send(method: string, params?: Record<string, unknown>): Promise<JsonRpcResponse>;
   /** Send a request and give back the result, failing the test on an error response. */
   result(method: string, params?: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -46,16 +51,25 @@ async function removeWhenChromeHasLetGo(folder: string): Promise<void> {
   }
 }
 
-/** Start a worker with a throwaway profile folder and no waiting between actions. */
+/**
+ * Start a worker with a throwaway profile folder and no waiting between actions.
+ *
+ * COEUS_HEADLESS_TESTS asks for a Chrome with no window, which is the same name
+ * `make test-browser` sets, so that a test run on a machine somebody is using
+ * puts no window on their screen.
+ */
 export async function startTestWorker(): Promise<TestWorker> {
   const profile = await mkdtemp(join(tmpdir(), "coeus-browser-test-"));
   const logLines: string[] = [];
+  const events: PersonEvent[] = [];
   let worker: BrowserWorker;
   try {
     worker = await startWorker({
       profile,
       pacing: "fast",
+      headless: process.env["COEUS_HEADLESS_TESTS"] !== undefined,
       log: (line) => logLines.push(line),
+      onEvent: (event) => events.push(event),
     });
   } catch (problem) {
     await rm(profile, { recursive: true, force: true });
@@ -80,6 +94,8 @@ export async function startTestWorker(): Promise<TestWorker> {
   return {
     profile,
     logLines,
+    events,
+    personsPage: () => worker.session.currentPage(),
     send,
     async result(method, params) {
       const response = await send(method, params);

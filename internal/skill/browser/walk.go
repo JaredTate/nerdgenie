@@ -39,15 +39,20 @@ type WalkOptions struct {
 	// Home is where the skill folders are read from and where the pictures of a
 	// visual check are written.
 	Home contract.Home
+	// watching is the recording running between /walk record and /walk stop.
+	// WalkCommand puts it here, so that the two commands share one of them.
+	watching *recording
 }
 
-// WalkCommand is the /walk command: record what the browser is showing as a
-// walk, replay a walk with no model call, or walk one and photograph every step.
-// The orchestrator registers this value in serve.go beside the skills command.
+// WalkCommand is the /walk command: record a walk by watching what you do in
+// the browser, stop the recording and save it, replay a walk with no model call,
+// or walk one and photograph every step. The orchestrator registers this value
+// in serve.go beside the skills command.
 func WalkCommand(options WalkOptions) contract.Command {
+	options.watching = &recording{}
 	return contract.Command{
 		Name: "walk",
-		Help: "record, replay, or check a browser walk: /walk record|replay|check <name>",
+		Help: "record, stop, replay, or check a browser walk: /walk record|stop|replay|check <name>",
 		Run: func(ctx context.Context, arguments string, where contract.CommandContext) (string, error) {
 			return options.run(ctx, arguments, where)
 		},
@@ -60,13 +65,15 @@ func (options WalkOptions) run(ctx context.Context, arguments string, where cont
 	name := strings.TrimSpace(rest)
 	switch word {
 	case "":
-		return theThreeForms, nil
+		return theFourForms, nil
+	case "stop":
+		return options.stopAndSave(ctx)
 	case "record", "replay", "check":
 		if name == "" {
 			return "", fmt.Errorf("/walk %s needs the name of a walk, such as /walk %s shop-checkout", word, word)
 		}
 	default:
-		return "", fmt.Errorf("walk does not know the word %q, so use /walk record, /walk replay, or /walk check with a name", word)
+		return "", fmt.Errorf("walk does not know the word %q, so use /walk record, /walk stop, /walk replay, or /walk check", word)
 	}
 	if options.Browser == nil {
 		return "", errors.New("the browser tools are switched off, so there is no browser to walk in; install Node and the browser worker bundle and start the agent again")
@@ -87,10 +94,11 @@ func (options WalkOptions) run(ctx context.Context, arguments string, where cont
 	return options.replay(ctx, folder, where)
 }
 
-// theThreeForms is what /walk on its own answers, because the three things it
-// does are worth naming in the terminal rather than only in the help listing.
-const theThreeForms = `A walk is a browser procedure saved as a skill. There are three things to do with one:
-  /walk record <name>  writes the page the browser is on down as the first step of a new walk
+// theFourForms is what /walk on its own answers, because the four things it does
+// are worth naming in the terminal rather than only in the help listing.
+const theFourForms = `A walk is a browser procedure saved as a skill. There are four things to do with one:
+  /walk record <name>  watches the browser window and writes down everything you click, type, and open
+  /walk stop           stops watching and saves what you did as the walk
   /walk replay <name>  walks a saved recording again, with no model call unless a step has moved
   /walk check <name>   walks it and photographs every step, saying what each one showed`
 
@@ -105,36 +113,6 @@ func (options WalkOptions) readTheWalk(name string) (skill.Folder, error) {
 		return skill.Folder{}, fmt.Errorf("the skill %q is not a browser walk: %w", name, err)
 	}
 	return folder, nil
-}
-
-// record writes the page the browser is on down as the first step of a new walk.
-// It is the first step and not the whole walk because nothing in the browser
-// worker reports a person's own clicks: the harness can write down what it does
-// itself, and a person adds the rest of the steps by hand or lets the agent take
-// them in a task, where they are recorded as they happen.
-func (options WalkOptions) record(ctx context.Context, name string) (string, error) {
-	if options.Skills == nil {
-		return "", errors.New("the /walk command has no skill store behind it, so there is nowhere to save the walk")
-	}
-	page, err := options.Browser.Read(ctx, contract.ReadOptions{})
-	if err != nil {
-		return "", fmt.Errorf("there is no page open in the browser to record, so open one first: %w", err)
-	}
-	recorder, err := NewRecorder(options.Browser)
-	if err != nil {
-		return "", err
-	}
-	expectation := "the page " + page.Title + " is on the screen"
-	if _, err := recorder.Open(ctx, "Open "+page.URL+".", page.URL, expectation); err != nil {
-		return "", err
-	}
-	if err := recorder.Save(ctx, options.Skills, definitionOfARecordedWalk(name, page)); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("I wrote the page %s down as step 1 of the walk %q. I cannot see your own clicks in the browser, "+
-		"so add the rest of the steps to %s, or let the agent take them in a task, where they are recorded as they happen. "+
-		"Then /walk replay %s walks it again and /walk check %s photographs every step.",
-		page.URL, name, filepath.Join(options.Home.SkillFolder(name), skill.StepsFile), name, name), nil
 }
 
 // definitionOfARecordedWalk is the SKILL.md a recorded walk starts life with: it

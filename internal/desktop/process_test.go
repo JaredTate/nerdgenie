@@ -91,3 +91,33 @@ func TestTheWorkerIsHandedAnEnvironmentWithNoSecretsInIt(t *testing.T) {
 		t.Errorf("the worker was handed %v, want the display it has to draw on", handed)
 	}
 }
+
+// TestTheWorkerOutlivesTheCallThatStartedIt pins the fix for the desktop worker
+// dying with the first tool call: the worker lives across calls, so the context
+// of the call that happened to start it must not end its process. Only Stop, by
+// the exact process id, ends it.
+func TestTheWorkerOutlivesTheCallThatStartedIt(t *testing.T) {
+	start, err := ProcessStart([]string{"/bin/sh", "-c", "exec cat"}, func(string, ...any) {})
+	if err != nil {
+		t.Fatalf("building the start function failed: %v", err)
+	}
+	firstCall, callEnded := context.WithCancel(context.Background())
+	connection, err := start(firstCall)
+	if err != nil {
+		t.Fatalf("starting the worker failed: %v", err)
+	}
+	callEnded()
+	time.Sleep(100 * time.Millisecond)
+	if err := syscall.Kill(connection.ProcessID, 0); err != nil {
+		t.Fatalf("the worker with process id %d died when the call that started it ended (%v), and it must live until Stop", connection.ProcessID, err)
+	}
+	if _, err := connection.Requests.Write([]byte("still here\n")); err != nil {
+		t.Fatalf("writing to the worker after the first call ended failed: %v", err)
+	}
+	if err := connection.Stop(); err != nil {
+		t.Fatalf("stopping the worker failed: %v", err)
+	}
+	if syscall.Kill(connection.ProcessID, 0) == nil {
+		t.Fatalf("the worker with process id %d is still alive after Stop", connection.ProcessID)
+	}
+}

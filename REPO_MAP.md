@@ -791,6 +791,7 @@ internal/tui/testdata/conversation-120x40.txt
 internal/tui/testdata/conversation-80x24.txt
 internal/tui/testdata/example-frame.txt
 internal/tui/testdata/first-frame.txt
+internal/tui/testdata/fuzz/FuzzTheFrameStaysInsideTheTerminal/761ef5c109d348f4
 internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/themed-banner-120x40.txt

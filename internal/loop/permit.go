@@ -87,11 +87,11 @@ func refusedBecause(call contract.ToolCall, reason string) string {
 // decision is on the record.
 func (running *run) logRuling(ctx context.Context, call contract.ToolCall, decision contract.PermissionDecision) error {
 	return running.theLoop.logEvent(ctx, running.taskID(), contract.EventPermissionDecision, struct {
-		Tool    string                  `json:"tool"`
-		Call    string                  `json:"call"`
+		Tool    string                    `json:"tool"`
+		Call    string                    `json:"call"`
 		Ruling  contract.PermissionRuling `json:"ruling"`
-		Reason  string                  `json:"reason"`
-		Preview string                  `json:"preview,omitempty"`
+		Reason  string                    `json:"reason"`
+		Preview string                    `json:"preview,omitempty"`
 	}{
 		Tool: call.Name, Call: call.ID, Ruling: decision.Ruling,
 		Reason: decision.Reason, Preview: decision.PreviewText,

@@ -28,28 +28,27 @@ const (
 
 // run is one task in flight, with everything that is true only while it runs.
 type run struct {
-	theLoop        *Loop
-	task           Task
-	channel        contract.Channel
-	keeper         *record.Keeper
-	jobSummary     string
-	messages       []contract.Message
-	roundsAllowed  int
-	timeAllowed    time.Duration
-	startedAt      time.Time
-	roundsUsed     int
-	failedParses   int
-	doneNudges     int
-	recentCalls    []string
-	repeatsRefused int
-	lastOrient     string
-	browserFact    string
-	commandFact    string
-	filesChanged   []string
-	hadCorrection  bool
-	hadFailure     bool
-	hadStop        bool
-	stopLine       string
+	theLoop       *Loop
+	task          Task
+	channel       contract.Channel
+	keeper        *record.Keeper
+	jobSummary    string
+	messages      []contract.Message
+	roundsAllowed int
+	timeAllowed   time.Duration
+	startedAt     time.Time
+	roundsUsed    int
+	failedParses  int
+	doneNudges    int
+	recentCalls   []string
+	lastOrient    string
+	browserFact   string
+	commandFact   string
+	filesChanged  []string
+	hadCorrection bool
+	hadFailure    bool
+	hadStop       bool
+	stopLine      string
 }
 
 // newRun sets one task up: its budget, its record if it is being resumed, the

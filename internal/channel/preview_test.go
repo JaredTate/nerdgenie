@@ -20,6 +20,7 @@ var aPreview = contract.Preview{
 // previewResult is what one call to ShowPreview came back with.
 type previewResult struct {
 	answer contract.PreviewAnswer
+	reason string
 	err    error
 }
 
@@ -29,7 +30,7 @@ func (harness *socketHarness) showPreview(ctx context.Context) chan previewResul
 	answers := make(chan previewResult, 1)
 	go func() {
 		answer, err := harness.socket.ShowPreview(ctx, aPreview)
-		answers <- previewResult{answer: answer.Answer, err: err}
+		answers <- previewResult{answer: answer.Answer, reason: answer.Reason, err: err}
 	}()
 	return answers
 }
@@ -117,6 +118,41 @@ func TestAPreviewIsDeniedOverTheSocket(t *testing.T) {
 	if got.answer != contract.AnswerReject {
 		t.Errorf("the preview was answered %q, want %q", got.answer, contract.AnswerReject)
 	}
+	if got.reason != "not on the live server" {
+		t.Errorf("the refusal carried the reason %q, want the words the person typed", got.reason)
+	}
+}
+
+func TestTheReasonTypedWithARefusalReachesTheCallerAndAnApprovalCarriesNone(t *testing.T) {
+	harness := newSocketHarness(t)
+	client := harness.attach(t)
+
+	// The reason is the whole point of a refusal: the model is told why in the
+	// user's own words, so that it tries another way rather than the same way.
+	refused := harness.showPreview(context.Background())
+	shown := client.next()
+	client.send(contract.SocketEnvelope{
+		Type:   contract.SocketDeny,
+		ID:     shown.ID,
+		Reason: "never touch the web server while the shop is open",
+	})
+	got := <-refused
+	if got.err != nil {
+		t.Fatalf("showing the preview failed: %v", got.err)
+	}
+	if got.answer != contract.AnswerReject {
+		t.Fatalf("the preview was answered %q, want %q", got.answer, contract.AnswerReject)
+	}
+	if got.reason != "never touch the web server while the shop is open" {
+		t.Errorf("the refusal reached the caller with the reason %q, want the words the person typed", got.reason)
+	}
+
+	approved := harness.showPreview(context.Background())
+	shown = client.next()
+	client.send(contract.SocketEnvelope{Type: contract.SocketApprove, ID: shown.ID})
+	if answer := <-approved; answer.reason != "" {
+		t.Errorf("an approval carried the reason %q, and only a refusal has one", answer.reason)
+	}
 }
 
 func TestAPreviewNobodyAnswersInTimeIsRefused(t *testing.T) {
@@ -181,7 +217,7 @@ func TestAPreviewWithNoNumberOfItsOwnIsGivenOne(t *testing.T) {
 			Title: "post to X",
 			Body:  "Coeus can now book flights.",
 		})
-		answers <- previewResult{answer: answer.Answer, err: err}
+		answers <- previewResult{answer: answer.Answer, reason: answer.Reason, err: err}
 	}()
 
 	shown := client.next()

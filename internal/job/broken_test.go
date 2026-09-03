@@ -1,6 +1,7 @@
 package job_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 
 func TestEveryCallSaysSoWhenTheDatabaseHasGoneRatherThanPretending(t *testing.T) {
 	holding := newJobs(t)
-	ctx := t.Context()
 	jobID := holding.aJob(t, "Do a long thing.")
 	taskID := holding.aTask(t, jobID, "the one task", time.Time{})
 	if _, due := holding.nextTask(t, theEpoch()); !due {
@@ -26,10 +26,27 @@ func TestEveryCallSaysSoWhenTheDatabaseHasGoneRatherThanPretending(t *testing.T)
 		t.Fatalf("cannot close the event log: %v", err)
 	}
 
-	for _, call := range []struct {
-		name string
-		make func() error
-	}{
+	for _, call := range everyCallOn(holding, jobID, taskID) {
+		t.Run(call.name, func(t *testing.T) {
+			if err := call.make(); err == nil {
+				t.Errorf("%s worked with no database behind it, and it must say what is wrong", call.name)
+			}
+		})
+	}
+}
+
+// oneCall is one thing a caller can ask a job store to do, so that the same
+// question can be put to every one of them.
+type oneCall struct {
+	name string
+	make func() error
+}
+
+// everyCallOn is every call that writes something down, each made against a job
+// store whose database has gone.
+func everyCallOn(holding *opened, jobID string, taskID string) []oneCall {
+	ctx := context.Background()
+	return []oneCall{
 		{"listing the jobs", func() error { _, err := holding.jobs.List(ctx); return err }},
 		{"asking for the next task", func() error { _, _, err := holding.jobs.NextTask(ctx, theEpoch()); return err }},
 		{"finishing a task", func() error {
@@ -67,12 +84,6 @@ func TestEveryCallSaysSoWhenTheDatabaseHasGoneRatherThanPretending(t *testing.T)
 			_, err := holding.jobs.CronCommand().Run(ctx, "", contract.CommandContext{})
 			return err
 		}},
-	} {
-		t.Run(call.name, func(t *testing.T) {
-			if err := call.make(); err == nil {
-				t.Errorf("%s worked with no database behind it, and it must say what is wrong", call.name)
-			}
-		})
 	}
 }
 

@@ -101,7 +101,9 @@ func TestTheToolRegistryCheckCatchesARegistryThatBreaksOnePromise(t *testing.T) 
 type agreeableSkillStore struct{ *testkit.FakeSkill }
 
 // Save accepts a folder with no files.
-func (agreeableSkillStore) Save(context.Context, string, map[string][]byte) error { return nil }
+func (agreeableSkillStore) Save(context.Context, contract.SkillSource, string, map[string][]byte) error {
+	return nil
+}
 
 // forgetfulSkillStore saves a skill and then does not list it.
 type forgetfulSkillStore struct{ *testkit.FakeSkill }

@@ -53,7 +53,7 @@ func (store *Store) LearnFromPage(ctx context.Context, name string, page string)
 	if _, err := store.dryRun(ctx, folder); err != nil {
 		return contract.SkillSummary{}, fmt.Errorf("the skill learned from the page about %q did not pass its own dry run, so nothing was saved: %w", name, err)
 	}
-	if err := store.Save(ctx, name, files); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByModel, name, files); err != nil {
 		return contract.SkillSummary{}, err
 	}
 	return folder.Definition.Summary(), nil
@@ -244,7 +244,7 @@ func (store *Store) offer(ctx context.Context, name string, files map[string][]b
 	if answer.Answer == contract.AnswerReject {
 		return false, nil
 	}
-	if err := store.Save(ctx, name, files); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, name, files); err != nil {
 		return false, err
 	}
 	return true, nil

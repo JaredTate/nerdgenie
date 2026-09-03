@@ -24,7 +24,7 @@ func TestTheTemporaryHomeIsRealOnDiskAndHoldsWhatTheFakesWrite(t *testing.T) {
 
 	// A skill folder written through the contract lands where the layout says.
 	skills := testkit.NewFakeSkill()
-	if err := skills.Save(ctx, "post-to-x", map[string][]byte{
+	if err := skills.Save(ctx, contract.SkillSavedByPerson, "post-to-x", map[string][]byte{
 		"SKILL.md": []byte("# post-to-x\nPosts one message to X.\n"),
 	}); err != nil {
 		t.Fatalf("saving a skill failed: %v", err)

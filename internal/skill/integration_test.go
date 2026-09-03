@@ -43,10 +43,10 @@ func TestASkillGoesThroughItsWholeLifeOnARealDisk(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	if err := store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
-	if err := store.Save(ctx, "say-two", filesFor("say-two", "A second version of the same skill.", "Do nothing at all.")); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "say-two", filesFor("say-two", "A second version of the same skill.", "Do nothing at all.")); err != nil {
 		t.Fatalf("the second save failed: %v", err)
 	}
 	if _, err := store.Rollback(ctx, "say-two"); err != nil {
@@ -84,7 +84,7 @@ func TestTheFilesASkillWritesHaveTheModesTheLayoutCallsFor(t *testing.T) {
 		skill.DescriptionFile: []byte("# scripted\n\nA skill whose procedure is one executable.\n"),
 		skill.ScriptFile:      []byte("#!/bin/sh\necho hello\n"),
 	}
-	if err := store.Save(context.Background(), "scripted", files); err != nil {
+	if err := store.Save(context.Background(), contract.SkillSavedByPerson, "scripted", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 

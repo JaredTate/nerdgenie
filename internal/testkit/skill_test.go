@@ -67,7 +67,7 @@ func TestTheFakeSkillSavesAFolderAndThenListsIt(t *testing.T) {
 	ctx := context.Background()
 	skills := testkit.NewFakeSkill()
 
-	err := skills.Save(ctx, "check-the-blog", map[string][]byte{
+	err := skills.Save(ctx, contract.SkillSavedByPerson, "check-the-blog", map[string][]byte{
 		"SKILL.md": []byte("# check-the-blog\nChecks the blog is up.\n"),
 	})
 	if err != nil {
@@ -92,7 +92,7 @@ func TestSavingOverASkillKeepsItsBodyAndItsTriggerWords(t *testing.T) {
 	skills.Add(contract.SkillSummary{Name: "post-to-x", Description: "Posts one message to X."},
 		"open x.com, click compose, type, post", "post to x")
 
-	err := skills.Save(ctx, "post-to-x", map[string][]byte{
+	err := skills.Save(ctx, contract.SkillSavedByPerson, "post-to-x", map[string][]byte{
 		"SKILL.md": []byte("# post-to-x\nPosts one message to X.\n\nOpen x.com, click compose, type, post.\n"),
 	})
 
@@ -119,7 +119,7 @@ func TestTheDescriptionIsTheLineUnderTheHeadingNotTheHeading(t *testing.T) {
 	ctx := context.Background()
 	skills := testkit.NewFakeSkill()
 
-	err := skills.Save(ctx, "post-to-x", map[string][]byte{
+	err := skills.Save(ctx, contract.SkillSavedByPerson, "post-to-x", map[string][]byte{
 		"SKILL.md": []byte("# post-to-x\nPosts one message to X.\n"),
 	})
 

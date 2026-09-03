@@ -43,12 +43,14 @@ func (box *skillsBox) Run(ctx context.Context, name string, arguments string) (s
 	return box.store.Run(ctx, name, arguments)
 }
 
-// Save writes one skill folder.
-func (box *skillsBox) Save(ctx context.Context, name string, files map[string][]byte) error {
+// Save writes one skill folder, handing on who is saving it: the model when the
+// call came through the model's own skill tool, the person when it came from
+// the screen.
+func (box *skillsBox) Save(ctx context.Context, source contract.SkillSource, name string, files map[string][]byte) error {
 	if box.store == nil {
 		return fmt.Errorf("the skills are not open yet, so %q was not written", name)
 	}
-	return box.store.Save(ctx, name, files)
+	return box.store.Save(ctx, source, name, files)
 }
 
 // Match says whether a message's words fire a saved skill.

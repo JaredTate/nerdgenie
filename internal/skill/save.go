@@ -31,7 +31,10 @@ const changelogDateLayout = time.RFC3339
 // recording the change in the changelog. A folder that gives only a SKILL.md is
 // completed with the other three files, so that everything the store saves can
 // afterwards be loaded and run.
-func (store *Store) Save(_ context.Context, name string, files map[string][]byte) error {
+func (store *Store) Save(_ context.Context, source contract.SkillSource, name string, files map[string][]byte) error {
+	if !contract.KnownSkillSource(source) {
+		return fmt.Errorf("the skill %q is being saved by %q, and a save says whether the person or the model is saving, so pass one of those two", name, source)
+	}
 	if err := CheckName(name); err != nil {
 		return err
 	}
@@ -43,6 +46,7 @@ func (store *Store) Save(_ context.Context, name string, files map[string][]byte
 	}
 
 	whole := completeFolder(name, files, store.changelogOnDisk(name))
+	whole[DescriptionFile] = withSourceMark(whole[DescriptionFile], source)
 	folder, err := ParseFolder(whole)
 	if err != nil {
 		return err
@@ -59,6 +63,9 @@ func (store *Store) Save(_ context.Context, name string, files map[string][]byte
 		return err
 	}
 	if err := store.writeFolder(name, whole); err != nil {
+		return err
+	}
+	if err := store.forgetThePersonSaidYes(name); err != nil {
 		return err
 	}
 	return store.recordChange(name, savedEntry(kept))

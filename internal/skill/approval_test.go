@@ -64,7 +64,7 @@ func storeHoldingTheApproval(t *testing.T) *permission.Decider {
 	store, _, decider := realPermissionHarnessWith(t, configurationWhereEveryFetchAsks(),
 		testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolWeb}, "today's story"))
 	ctx := context.Background()
-	if err := store.Save(ctx, "read-the-story", theSkillThatReadsTheNews()); err != nil {
+	if err := store.Save(ctx, contract.SkillSavedByPerson, "read-the-story", theSkillThatReadsTheNews()); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	if _, err := store.Run(ctx, "read-the-story", ""); err != nil {

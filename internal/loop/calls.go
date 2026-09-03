@@ -91,6 +91,12 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	if failed {
 		result.Text = text + "\n" + ThreeOptions
 	}
+	// The record write is the harness's own words coming back, and a stop list
+	// written into the record would otherwise fire on itself the moment the
+	// model wrote it. Only what a tool found in the world is checked.
+	if call.Name == contract.ToolTask {
+		return result, nil, nil
+	}
 	if line := running.stopLineFiredBy(call.Name, text); line != "" {
 		ended, err := running.stopHere(ctx, line)
 		return result, &ended, err

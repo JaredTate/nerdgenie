@@ -68,6 +68,37 @@ func (run *fixtureRun) playRound(t *testing.T, round testkit.FortyStepRound) {
 		contract.Message{Role: contract.RoleAssistant, Text: round.Orient, ToolCalls: calls},
 		contract.Message{Role: contract.RoleUser, ToolResults: run.resultsOfRound(t, round, calls)},
 	)
+	run.writeSituation(t, round)
+}
+
+// writeSituation writes the few facts the harness checks for itself, as the turn
+// loop writes them after every round in internal/loop/calls.go: the last command
+// and how it went, and the model's own last orient line. They are written here
+// because a fixture whose situation never changes measures a prompt no running
+// task ever sends, and it was exactly this rewriting that the first live
+// measurement found breaking the cache.
+func (run *fixtureRun) writeSituation(t *testing.T, round testkit.FortyStepRound) {
+	t.Helper()
+	facts := []string{"files changed in this task: none"}
+	if round.ToolName == "shell" {
+		facts = append(facts, "last command: "+asText(round.ToolInput["command"])+", exit 0")
+	}
+	if round.Orient != "" {
+		facts = append(facts, "where the work stands: "+round.Orient)
+	}
+	if err := run.keeper.SetSituation(t.Context(), facts); err != nil {
+		t.Fatalf("cannot write the situation at round %d: %v", round.Number, err)
+	}
+}
+
+// asText is one of a round's arguments as a line of text, or nothing when the
+// round did not write that argument.
+func asText(written any) string {
+	text, isText := written.(string)
+	if !isText {
+		return ""
+	}
+	return text
 }
 
 // applyUpdate writes the model's half of the record for one round.

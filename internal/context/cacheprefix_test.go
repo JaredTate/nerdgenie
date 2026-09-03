@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // theRoundsTheCacheIsMeasuredAt are the three rounds the wave 6 gate review
@@ -15,6 +16,10 @@ var theRoundsTheCacheIsMeasuredAt = []int{10, 20, 30}
 // one's for the layout to be doing its job. The gate review asked for eighty per
 // cent and measured thirty-three at round thirty before the tail was built.
 const leastSharedPercent = 80
+
+// lastSharedResult is the result of round twenty of the fixture, which is the
+// newest thing two rounds that follow each other have in common.
+const lastSharedResult = "e13 text 228/280 shows the post is inside the limit."
 
 // TestMostOfEveryPromptIsWhatTheLastOneAlreadySaid is finding 17 of the wave 6
 // gate review, pinned. The review built the fixture at every round and compared
@@ -80,22 +85,25 @@ func TestOneMemorySaveDoesNotMoveTheTopOfThePrompt(t *testing.T) {
 	}
 }
 
-// TestThePromptTheProviderCanReuseReachesPastTheRecordBody is the layout half of
-// the cache rule, and it came out of the first live run on the local model: every
-// call read about fifteen thousand tokens and the provider reused only about
-// thirty-nine hundred of them, so each turn re-read eleven thousand tokens and
-// took forty seconds. The cause was where the record's header sat. The budget
-// line and the cost line change on every single call, and they were the first
-// thing under the cache line, ahead of the goal, the plan and the results, so
-// nothing below the system prompt could ever be reused.
+// TestThePromptTheProviderCanReuseReachesTheEndOfTheConversation is the layout
+// half of the cache rule, and it came out of the first live run on the local
+// model: every call read about fifteen thousand tokens and the provider reused
+// only about thirty-nine hundred of them, so each turn re-read eleven thousand
+// tokens and took forty seconds. The cause was where the record's header sat.
+// The budget line and the cost line change on every single call, and they were
+// the first thing under the cache line, ahead of the goal, the plan and the
+// results, so nothing below the system prompt could ever be reused. The second
+// live run found the record's body doing the same thing to the conversation,
+// which is what TestARewrittenSituationCostsOnlyTheTail holds.
 //
 // This builds the same task on two rounds that follow each other and measures
 // what the two prompts share from the first byte. That shared run is what a
 // provider may reuse, and it has to reach the instructions, the tool
-// descriptions and the whole record body down to the list of results, which only
-// grows. The two lines that change every call belong at the very end, after
-// every result.
-func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
+// descriptions, what the agent knows, and the whole conversation down to the
+// last result the two rounds have in common. Everything a turn writes anew --
+// the record's body, its list of results, the memory hint and its header --
+// belongs after all of that.
+func TestThePromptTheProviderCanReuseReachesTheEndOfTheConversation(t *testing.T) {
 	run := newFixtureRun(t)
 	builder := newGoldenBuilder(t)
 
@@ -112,11 +120,13 @@ func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
 		InstructionText,
 		"Read a file, a folder, or a past result by its id.",
 		"Write a file inside the allowed folders.",
-		"## Goal", "## Rules", "## Work", "Plan:", "- [ ] 10 confirm it is up",
+		"## Goal", "## Rules",
+		// What the agent knows, which is the first thing under the cache line.
+		"The user is Jared",
 		// The result of round twenty, which is the last thing the two rounds
 		// have in common. Reaching it means the shared run covers the whole
-		// conversation, not only the record's body.
-		"e13 text 228/280 shows the post is inside the limit.",
+		// conversation.
+		lastSharedResult,
 	} {
 		if !strings.Contains(shared, wanted) {
 			t.Errorf("two rounds that follow each other share only %d bytes from the start, and that run does not reach %q,"+
@@ -133,8 +143,12 @@ func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
 			}
 		}
 		prompt := renderPrompt(request)
-		if strings.LastIndex(prompt, resultListLabel) < strings.LastIndex(prompt, memoryHintHeading) {
-			t.Errorf("at %s the list of results comes before the memory hint, and the list grows every round,"+
+		if strings.LastIndex(prompt, recordSecondHalfHeading) < strings.LastIndex(prompt, lastSharedResult) {
+			t.Errorf("at %s the record's body comes before the conversation, and its situation is rewritten every turn,"+
+				" so every message under it is read again on every call", name)
+		}
+		if strings.LastIndex(prompt, memoryHintHeading) < strings.LastIndex(prompt, resultListLabel) {
+			t.Errorf("at %s the memory hint comes before the list of results, and the list grows every round,"+
 				" so everything under it is read again on every call", name)
 		}
 		if strings.LastIndex(prompt, "budget left:") < strings.LastIndex(prompt, resultListLabel) {
@@ -177,4 +191,156 @@ func firstLineOf(text string) string {
 		return line[:80] + "..."
 	}
 	return line
+}
+
+// TestARewrittenSituationCostsOnlyTheTail is the finding the first benchmark
+// against opencode turned up, on the local daemon: a Coeus call read 18,658
+// prompt tokens and the daemon reused only 4,322 of them, which is the system
+// blocks and not one byte more, so 14,336 tokens were read from scratch and one
+// call spent forty seconds of prefill on forty-five words of reply. opencode, on
+// the same model and the same task, read about six hundred tokens a call.
+//
+// The cause was where the record's body sat. The body holds the Work section,
+// whose Situation the turn loop rewrites after every single round, and it was
+// the first message under the cache line, ahead of the whole conversation. So
+// the growing, otherwise identical message history under it was thrown away on
+// every call. Everything that is written anew every turn belongs in the tail,
+// under the messages, and everything that only grows at its end belongs above
+// it.
+//
+// This builds two turns whose only difference is a rewritten situation and one
+// new message, and measures what the two prompts share from the first byte. The
+// shared run has to cover everything the earlier turn sent except its tail.
+func TestARewrittenSituationCostsOnlyTheTail(t *testing.T) {
+	builder := newTestBuilder(t, Options{})
+	input := sampleInput()
+	input.ContextLength = 200000
+	input.Messages = roundsOfConversation(12, 1200)
+
+	earlier, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the earlier turn: %v", err)
+	}
+	input.Record.Work.Situation = []string{"last command: go test ./..., exit 1", "where the work stands: reading the failing test"}
+	input.Messages = append(input.Messages, contract.Message{Role: contract.RoleAssistant, Text: "Reading the failing test."})
+	later, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the later turn: %v", err)
+	}
+
+	before, after := renderPrompt(earlier), renderPrompt(later)
+	shared := sharedPrefix(before, after)
+	tailAt := strings.Index(before, recordSecondHalfHeading)
+	if tailAt < 0 {
+		t.Fatalf("the earlier turn carries no record body, so this test is not measuring what it says it measures:\n%s", before)
+	}
+	t.Logf("a rewritten situation and one new message leave %d of the earlier turn's %d characters shared, and its tail starts at %d",
+		len(shared), len(before), tailAt)
+	if len(shared) < tailAt {
+		t.Errorf("the two turns share only %d characters and the earlier turn's tail does not start until %d,"+
+			" so something written anew every turn is sitting above the conversation", len(shared), tailAt)
+	}
+	if !strings.Contains(shared, "the result of round 12,") {
+		t.Error("the shared run does not reach the newest result of the earlier turn, so the provider reads the conversation again on every call")
+	}
+	if len(shared) == len(after) {
+		t.Error("the two turns are the same bytes, so the rewritten situation never reached the prompt")
+	}
+}
+
+// TestAPinAddedBetweenTurnsDoesNotMoveTheMessages holds the other half of the
+// order. Pinned evidence changes only when somebody pins something, so it sits
+// above the conversation, where a pin costs its own text and rewrites nothing:
+// every message is still there, in the same order, byte for byte, and the tail
+// is still under them.
+func TestAPinAddedBetweenTurnsDoesNotMoveTheMessages(t *testing.T) {
+	builder := newTestBuilder(t, Options{})
+	input := sampleInput()
+	input.ContextLength = 200000
+	input.Messages = roundsOfConversation(12, 1200)
+
+	before, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the turn before the pin: %v", err)
+	}
+	input.Pinned = []Pin{{ID: "r6", Text: "the draft post, 236 characters"}}
+	after, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the turn after the pin: %v", err)
+	}
+
+	if !strings.Contains(testkit.WholeRequestText(after), "the draft post, 236 characters") {
+		t.Fatal("the pin never reached the prompt, so this test is not measuring what it says it measures")
+	}
+	if was, is := conversationText(before), conversationText(after); was != is {
+		t.Errorf("pinning one thing rewrote the conversation:\n--- before ---\n%s\n--- after ---\n%s", was, is)
+	}
+	whole := renderPrompt(after)
+	if strings.Index(whole, "the draft post, 236 characters") > strings.Index(whole, "the result of round 1,") {
+		t.Error("the pinned evidence is under the conversation, and it changes only when something is pinned")
+	}
+	if strings.LastIndex(whole, "the result of round 12,") > strings.Index(whole, recordSecondHalfHeading) {
+		t.Error("the conversation runs past the start of the tail, and the tail is what is written anew every turn")
+	}
+}
+
+// TestTheTailRunsFromTheRecordBodyToTheHeader pins the order of the tail itself.
+// Under the conversation come the record's body, then its list of results, which
+// grows by a line every round, then the memory hint, and last of all the header,
+// whose budget line and cost line are written anew on every single call.
+func TestTheTailRunsFromTheRecordBodyToTheHeader(t *testing.T) {
+	builder := newTestBuilder(t, Options{})
+	input := sampleInput()
+	input.MemoryHint = []string{"Jared posts at 14:00", "one fact per post"}
+
+	request, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the working context: %v", err)
+	}
+	whole := renderPrompt(request)
+	at := -1
+	for _, wanted := range []string{
+		"Reading the product notes.", recordSecondHalfHeading, resultListLabel, memoryHintHeading, "budget left:",
+	} {
+		found := strings.LastIndex(whole, wanted)
+		if found < 0 {
+			t.Fatalf("the working context is missing %q:\n%s", firstLineOf(wanted), whole)
+		}
+		if found < at {
+			t.Errorf("%q comes before what should be above it in the prompt", firstLineOf(wanted))
+		}
+		at = found
+	}
+	last := request.Messages[len(request.Messages)-1]
+	if !strings.Contains(last.Text, "budget left:") {
+		t.Errorf("the record's header is not the last thing the model reads:\n%s", last.Text)
+	}
+}
+
+// conversationText is the messages the caller handed over, rendered in order,
+// with the blocks this package writes around them left out. Two turns whose
+// conversations render the same have had nothing rewritten, dropped or moved.
+func conversationText(request contract.Request) string {
+	kept := []contract.Message{}
+	for _, message := range request.Messages {
+		if isABlockThisPackageWrote(message) {
+			continue
+		}
+		kept = append(kept, message)
+	}
+	return renderPrompt(contract.Request{Messages: kept})
+}
+
+// isABlockThisPackageWrote says whether a message is one of the named blocks the
+// builder puts around the conversation rather than a message of the task itself.
+func isABlockThisPackageWrote(message contract.Message) bool {
+	for _, heading := range []string{
+		recordSecondHalfHeading, recordResultsHeading, recordHeaderHeading,
+		whatIsKnownHeading, pinnedHeading, memoryHintHeading,
+	} {
+		if strings.HasPrefix(message.Text, heading) {
+			return true
+		}
+	}
+	return false
 }

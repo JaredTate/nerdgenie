@@ -83,25 +83,30 @@ func TestTheRecordIsSplitAcrossTheCacheLine(t *testing.T) {
 	if strings.Contains(system, "## Work") {
 		t.Errorf("the record's work is above the cache line, and it changes every turn:\n%s", system)
 	}
-	first := request.Messages[0]
-	if first.Role != contract.RoleUser || !strings.Contains(first.Text, "## Work") {
-		t.Errorf("the record's body is not the first thing below the cache line: %+v", first)
+	whole := testkit.WholeRequestText(request)
+	if !strings.Contains(whole, "## Work") {
+		t.Errorf("the record's work is nowhere below the cache line:\n%s", whole)
+	}
+	if strings.Index(whole, "## Work") < strings.Index(whole, "Reading the product notes.") {
+		t.Errorf("the record's body comes before the conversation, and its situation is rewritten every turn:\n%s", whole)
 	}
 	last := request.Messages[len(request.Messages)-1]
 	if !strings.Contains(last.Text, "this turn:") {
 		t.Errorf("the record's header, which is written anew on every call, is not the last thing below the cache line:\n%s", last.Text)
 	}
-	if strings.Contains(first.Text, "this turn:") {
-		t.Errorf("the record's header is still ahead of the work, where it costs the provider the whole body:\n%s", first.Text)
+	if strings.Contains(request.Messages[0].Text, "this turn:") {
+		t.Errorf("the record's header is still at the front, where it costs the provider everything under it:\n%s", request.Messages[0].Text)
 	}
 }
 
-// TestTheMessagesRunFromTheRecordToTheBudgetLine proves the order below the
-// cache line runs from what changes least to what changes most: the record's
-// body, the pinned evidence, the recent messages, the memory hint, and last of
-// all the two lines of the record's header, which are written anew every call.
-func TestTheMessagesRunFromTheRecordToTheBudgetLine(t *testing.T) {
+// TestTheMessagesRunFromWhatIsKnownToTheBudgetLine proves the order below the
+// cache line runs from what changes least to what changes most: what the agent
+// knows, the pinned evidence, the recent messages, and then the tail, which is
+// everything a turn writes anew — the record's body, its list of results, the
+// memory hint, and last of all the two lines of the record's header.
+func TestTheMessagesRunFromWhatIsKnownToTheBudgetLine(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
+	writePersonaFile(t, builder.home.UserFactsFile(), "The user is Jared.")
 	input := sampleInput()
 	input.Pinned = []Pin{{ID: "r6", Text: "the draft post, 236 characters"}}
 	input.MemoryHint = []string{"Jared posts at 14:00", "one fact per post"}
@@ -111,7 +116,10 @@ func TestTheMessagesRunFromTheRecordToTheBudgetLine(t *testing.T) {
 		t.Fatalf("cannot build the working context: %v", err)
 	}
 	whole := testkit.WholeRequestText(request)
-	order := []string{"## Work", "the draft post, 236 characters", "Reading the product notes.", "Jared posts at 14:00", "budget left:"}
+	order := []string{
+		"The user is Jared.", "the draft post, 236 characters", "Reading the product notes.",
+		"## Work", "Jared posts at 14:00", "budget left:",
+	}
 	at := -1
 	for _, wanted := range order {
 		found := strings.Index(whole, wanted)

@@ -25,6 +25,10 @@ func TestEveryNamedSizeIsTheNumberItIsMeantToBe(t *testing.T) {
 			"sixteen hexadecimal characters is eight random bytes, which nothing the agent reads can guess in the life of one task"},
 		{"MaxInstructionWords", MaxInstructionWords, 500,
 			"design section 5 says the instruction text is under five hundred words, and this is that promise held to"},
+		{"MaxSkillsInPrompt", MaxSkillsInPrompt, 20,
+			"the store holds two hundred skills, and twenty lines is as much of that as may ride above the cache line on every call"},
+		{"MaxSkillLineRunes", MaxSkillLineRunes, 200,
+			"a skill's one-line description is capped at two hundred characters in the store, so its line in the prompt is capped at the same"},
 	} {
 		if check.is != check.want {
 			t.Errorf("%s is %d and it is meant to be %d: %s", check.name, check.is, check.want, check.why)

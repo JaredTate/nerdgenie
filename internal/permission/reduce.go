@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -74,13 +75,6 @@ var commandShapes = map[string]commandShape{
 	"pip":            {words: 2},
 	"systemctl":      {words: 2},
 	"yarn":           {words: 2},
-}
-
-// sudoFlagsWithAValue are the sudo flags that take the next word as their value.
-// They are skipped in pairs so that the program sudo will run is found.
-var sudoFlagsWithAValue = []string{
-	"-u", "-g", "-p", "-C", "-h", "-U", "-r", "-t",
-	"--user", "--group", "--prompt", "--host", "--role", "--type",
 }
 
 // mainFieldsByTool names the input field that says what a call will actually do,
@@ -183,7 +177,7 @@ func reduceOneCommand(words []string, depth int) (string, string) {
 	if flag, script, handed := scriptHandedToAShell(words); handed {
 		return reduceNestedShell(prefix+words[0]+" "+flag, script, depth)
 	}
-	return prefix + wordsThatDefineTheCommand(words), ""
+	return prefix + wordsThatDefineTheCommand(withoutTheValuesOfFlags(words)), ""
 }
 
 // wordsThatDefineTheCommand keeps the program, the subcommand words the shape
@@ -254,15 +248,9 @@ func withoutEnvironmentAssignments(words []string) []string {
 // withoutSudoFlags drops sudo's own flags, and the value of a flag that takes
 // one, so that the program sudo will run is the first word left.
 func withoutSudoFlags(words []string) []string {
+	takeAValue := flagsThatTakeAValue[sudoProgram]
 	for len(words) > 0 && isFlag(words[0]) {
-		takesValue := false
-		for _, flag := range sudoFlagsWithAValue {
-			if words[0] == flag {
-				takesValue = true
-				break
-			}
-		}
-		if takesValue && len(words) > 1 {
+		if slices.Contains(takeAValue, words[0]) && len(words) > 1 {
 			words = words[2:]
 			continue
 		}

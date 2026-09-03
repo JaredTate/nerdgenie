@@ -64,19 +64,6 @@ func TestAFlagThatTakesAValueDoesNotHideTheSubcommand(t *testing.T) {
 	}
 }
 
-// commandsRunThroughAWrapper hand the real command to a program that runs it.
-// The reducer reads the wrapper and stops, so the delete inside is never seen.
-var commandsRunThroughAWrapper = []struct {
-	name    string
-	command string
-}{
-	{"a delete run under nohup", "nohup rm -rf /home/jared/coeus"},
-	{"a delete given a time limit", "timeout 60 rm -rf /home/jared/coeus"},
-	{"a delete run through xargs", "echo /home/jared/coeus | xargs rm -rf"},
-	{"a delete run through busybox", "busybox rm -rf /home/jared/coeus"},
-	{"a delete run through env with a flag", "env -i sh -c 'rm -rf /home/jared/coeus'"},
-	{"a delete handed to su", "su -c 'rm -rf /home/jared/coeus'"},
-}
 
 func TestADeleteRunThroughAWrapperStillAsks(t *testing.T) {
 	decider := newDecider(t, contract.DefaultConfig())

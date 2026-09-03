@@ -185,7 +185,10 @@ func (store *Store) askTheUser(ctx context.Context, folder Folder, step Step, wh
 	if err != nil {
 		return fmt.Errorf("cannot ask you about step %d of the skill %q, so check the screen you are on: %w", step.Number, name, err)
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
+		if reason := strings.TrimSpace(answer.Reason); reason != "" {
+			return fmt.Errorf("step %d of the skill %q was refused, so the skill stopped there, and you said: %s", step.Number, name, reason)
+		}
 		return fmt.Errorf("step %d of the skill %q was refused, so the skill stopped there and did nothing more", step.Number, name)
 	}
 	return nil

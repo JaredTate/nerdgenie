@@ -241,7 +241,7 @@ func (store *Store) offer(ctx context.Context, name string, files map[string][]b
 	if err != nil {
 		return false, fmt.Errorf("cannot offer to save the skill %q, so check the screen you are on: %w", name, err)
 	}
-	if answer == contract.AnswerReject {
+	if answer.Answer == contract.AnswerReject {
 		return false, nil
 	}
 	if err := store.Save(ctx, name, files); err != nil {

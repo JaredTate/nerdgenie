@@ -218,10 +218,13 @@ func TestAStepThatCannotBeUndoneIsPreviewed(t *testing.T) {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
-	built.channel.AnswerPreviewsWith(contract.AnswerReject)
+	built.channel.AnswerPreviewsWithReason("that post would go to the wrong account")
 	_, err := built.store.Run(ctx, "say-two", "the news")
 	if err == nil || !strings.Contains(err.Error(), "was refused") {
 		t.Errorf("running with the preview refused gave %v, want the run to stop there", err)
+	}
+	if !strings.Contains(err.Error(), "the wrong account") {
+		t.Errorf("the refusal is %q, want the words the user gave with it", err)
 	}
 	previews := built.channel.Previews()
 	if len(previews) != 1 || !strings.Contains(previews[0].Title, "cannot be undone") {

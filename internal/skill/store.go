@@ -18,7 +18,7 @@ import (
 // is the one function cmd/coeus/serve.go wires to the channel the user is on,
 // and it carries both the offers to save a new skill and the yes a step that
 // cannot be undone needs.
-type AskFunc func(ctx context.Context, preview contract.Preview) (contract.PreviewAnswer, error)
+type AskFunc func(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error)
 
 // StandingApprover is the part of the permission function a skill needs: a
 // place to register the standing approvals its permissions block grants. The

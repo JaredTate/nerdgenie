@@ -72,7 +72,9 @@ func LoadUserTools(ctx context.Context, settings Settings) ([]contract.Tool, err
 	folder := settings.Home.ToolsFolder()
 	entries, err := os.ReadDir(folder)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil
+		// An empty answer rather than none, so that a program which asked once
+		// and found no tools folder does not have every task look again.
+		return []contract.Tool{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the tools folder %s, so check that it is a folder the agent may read: %w", folder, err)

@@ -182,6 +182,27 @@ func TestAnArchiveThatIsNotAReleaseIsRefused(t *testing.T) {
 	}
 }
 
+func TestAnArchiveHoldingTheSameFileTwiceIsRefused(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	folder := t.TempDir()
+	twice := aPackedRelease(t,
+		[]tar.Header{
+			{Name: BinaryName, Mode: 0o755, Size: 2, Typeflag: tar.TypeReg},
+			{Name: BinaryName, Mode: 0o755, Size: 2, Typeflag: tar.TypeReg},
+		},
+		[]string{"hi", "no"})
+	manifest := aReleaseHolding(t, folder, "0.7.0", twice)
+
+	_, err := installRelease(context.Background(), home, Source{Address: folder}, manifest, runtime.GOARCH)
+
+	if err == nil {
+		t.Fatalf("an archive that writes the same file twice was unpacked")
+	}
+	if !strings.Contains(err.Error(), BinaryName) {
+		t.Errorf("the refusal does not name the file that arrived twice: %v", err)
+	}
+}
+
 func TestAnArchiveWithTooManyEntriesIsRefused(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	folder := t.TempDir()

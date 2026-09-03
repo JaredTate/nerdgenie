@@ -18,6 +18,9 @@ type fakeService struct {
 	record string
 	// state is the file holding what the service is doing now.
 	state string
+	// refusal is the file whose presence makes every call fail, which is how a
+	// test sees what happens when the service manager will not do as it is told.
+	refusal string
 }
 
 // aMachineWithAService gives a test its own home folder and a systemctl of its
@@ -27,12 +30,14 @@ func aMachineWithAService(t *testing.T) (contract.Home, *fakeService) {
 	home := testkit.NewTempHome(t)
 	folder := t.TempDir()
 	service := &fakeService{
-		record: filepath.Join(folder, "told.txt"),
-		state:  filepath.Join(folder, "state.txt"),
+		record:  filepath.Join(folder, "told.txt"),
+		state:   filepath.Join(folder, "state.txt"),
+		refusal: filepath.Join(folder, "refuse.txt"),
 	}
 	script := "#!/bin/sh\n" +
 		"echo \"$*\" >> " + service.record + "\n" +
 		"if [ -f " + filepath.Join(home.RunFolder(), "drain.json") + " ]; then echo drained >> " + service.record + "; fi\n" +
+		"if [ -f " + service.refusal + " ]; then echo 'the service manager refused' >&2; exit 1; fi\n" +
 		"[ \"$1\" = --user ] && shift\n" +
 		"case \"$1\" in\n" +
 		"  stop) echo inactive > " + service.state + " ;;\n" +
@@ -52,6 +57,15 @@ func aMachineWithAService(t *testing.T) (contract.Home, *fakeService) {
 	t.Setenv("PATH", folder)
 	t.Setenv("COEUS_RECORD", filepath.Join(folder, "program.txt"))
 	return home, service
+}
+
+// refuse makes every later call to the service manager fail, the way a manager
+// that has lost the unit does.
+func (service *fakeService) refuse(t *testing.T) {
+	t.Helper()
+	if err := os.WriteFile(service.refusal, []byte("no"), 0o644); err != nil {
+		t.Fatalf("telling the fake service manager to refuse failed: %v", err)
+	}
 }
 
 // told is every line the fake service manager wrote down.

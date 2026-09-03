@@ -160,6 +160,33 @@ func TestAReleaseThatDoesNotComeUpGoesBackToTheVersionThatWasRunning(t *testing.
 	}
 }
 
+func TestAReleaseThatCannotBringTheDatabaseForwardGoesBack(t *testing.T) {
+	home, service := aMachineWithAService(t)
+	oldBinary := anInstalledRelease(t, home, "0.6.0", aWorkingProgram)
+	address := t.TempDir()
+	aRelease(t, address, "0.7.0", aProgramThatFailsItsMigration)
+	clock := testkit.NewFakeClock(startOfTime)
+	keepTheClockMoving(t, clock)
+
+	outcome, err := anUpdater(t, home, clock, address, "0.6.0").Install(context.Background(), "")
+
+	if err == nil {
+		t.Fatalf("a release whose migration failed was left in place")
+	}
+	if !outcome.RolledBack {
+		t.Errorf("the update reports %+v rather than a rollback", outcome)
+	}
+	if linkPointsAt(t, home) != oldBinary {
+		t.Errorf("the current link points at %s rather than back at %s", linkPointsAt(t, home), oldBinary)
+	}
+	if !service.running(t) {
+		t.Errorf("the version that was working was not started again:\n%s", service.told(t))
+	}
+	if !strings.Contains(err.Error(), "database") {
+		t.Errorf("the report does not say the database step is what failed: %v", err)
+	}
+}
+
 func TestNothingHappensWhenTheVersionOnOfferIsTheOneRunning(t *testing.T) {
 	home, service := aMachineWithAService(t)
 	anInstalledRelease(t, home, "0.7.0", aWorkingProgram)

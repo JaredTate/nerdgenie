@@ -58,9 +58,12 @@ func Migrations() []Migration { return nil }
 
 // SchemaVersion is the schema version this program understands: where the
 // migrations end, or the version internal/log created when there are none.
-func SchemaVersion() int {
+func SchemaVersion() int { return highestVersion(Migrations()) }
+
+// highestVersion is where a list of migrations leaves the schema.
+func highestVersion(list []Migration) int {
 	version := log.SchemaVersion
-	for _, migration := range Migrations() {
+	for _, migration := range list {
 		if migration.To > version {
 			version = migration.To
 		}

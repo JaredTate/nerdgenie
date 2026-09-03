@@ -117,6 +117,15 @@ func TestAManifestThatIsWrongIsRefusedWithAReason(t *testing.T) {
 	}
 }
 
+func TestAChecksumThatIsTheRightLengthButNotHexadecimalIsRefused(t *testing.T) {
+	written := `{"version":"0.7.0","architectures":["amd64"],
+		"checksums":{"coeus-0.7.0-amd64.tar.gz":"` + strings.Repeat("z", 64) + `"}}`
+
+	if _, err := update.ParseManifest([]byte(written)); err == nil {
+		t.Errorf("a checksum of sixty-four letters that are not digits was accepted")
+	}
+}
+
 func TestAManifestLongerThanTheCapIsRefused(t *testing.T) {
 	_, err := update.ParseManifest([]byte(strings.Repeat("x", update.MaxManifestBytes+1)))
 

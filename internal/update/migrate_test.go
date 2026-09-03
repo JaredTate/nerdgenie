@@ -60,6 +60,17 @@ func TestTheSchemaVersionIsTheHighestMigrationOrTheOneTheLogMade(t *testing.T) {
 	}
 }
 
+func TestALaterListOfMigrationsRaisesTheSchemaVersion(t *testing.T) {
+	list := []Migration{{To: log.SchemaVersion + 1}, {To: log.SchemaVersion + 2}}
+
+	if highest := highestVersion(list); highest != log.SchemaVersion+2 {
+		t.Errorf("a list ending at %d says the schema version is %d", log.SchemaVersion+2, highest)
+	}
+	if highest := highestVersion(nil); highest != log.SchemaVersion {
+		t.Errorf("an empty list says the schema version is %d rather than the %d the log made", highest, log.SchemaVersion)
+	}
+}
+
 func TestADatabaseFromANewerCoeusIsRefusedWithTheVersionToUse(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	aDatabaseAtVersion(t, home.DatabaseFile(), SchemaVersion()+1, "0.9.0")

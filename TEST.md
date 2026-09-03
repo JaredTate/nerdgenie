@@ -186,6 +186,16 @@ not capture a harness's variance — opencode, for one, finished the same task i
   both runs are reported and the spread is treated as the point.
 - **All four run on Opus for real,** through the same bridge and the same flags.
 
+## Where the results live
+
+- `OPUS_BENCHMARK.md`: nine runs on Opus 4.8, three per harness, through each
+  harness's own subscription path (Coeus's loop against Claude Code's).
+- `GPT_BENCHMARK.md`: GPT-5.6 Sol on the ChatGPT subscription, all four
+  harnesses driving the model with their own loops.
+- `QWEN_BENCHMARK.md`: the local Qwen 3.8 on the two cards, all four harnesses
+  on shipped defaults, the loop-against-loop comparison.
+- `BENCHMARK.md`: the index and the older first-day notes.
+
 ## Where the pieces live
 
 - The task: `~/work/bench/canonical/task.txt`

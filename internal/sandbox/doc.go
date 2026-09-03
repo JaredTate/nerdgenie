@@ -9,10 +9,12 @@
 // running systemd-resolved, and the configured sandbox roots bound read-write at
 // their own paths. The command itself runs under a bound on how many processes
 // it may start and how much address space it may map, so that one line of shell
-// cannot take the machine down. The
-// network is left alone, because the agent's tools need it. Nothing else is
-// bound, so the agent's own home folder, the vault, the browser profile, and the
-// user's SSH keys are not there to be read.
+// cannot take the machine down. The command also gets a network namespace of its own, empty, so that it reaches
+// neither the internet nor any service on this machine, unless the caller sets
+// Settings.Network, which the shell tool does because a build and a package
+// install both fetch what they need. Nothing else is bound, so the agent's own
+// home folder, the vault, the browser profile, and the user's SSH keys are not
+// there to be read.
 //
 // A root is held as the folder its links lead to. bwrap binds the folder a link
 // leads to, and Landlock hangs its rule on the same folder, so a fence built

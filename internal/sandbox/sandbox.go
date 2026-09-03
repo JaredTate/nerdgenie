@@ -42,6 +42,12 @@ type Settings struct {
 	// orchestrator wires the fence. Empty means the default, ~/.coeus, and is
 	// only right when COEUS_HOME has not moved it.
 	AgentHome string
+	// Network says whether commands inside this fence reach the network. It is
+	// false by default, and a fence built that way has a network namespace of
+	// its own with nothing in it, so a command cannot reach the internet or any
+	// service on this machine. The shell tool asks for it, because a build and a
+	// package install both fetch what they need; nothing else does.
+	Network bool
 	// OutputCap is the most bytes kept from each of a command's two output
 	// streams. Zero means the tool output cap from the configuration's defaults.
 	OutputCap int
@@ -59,6 +65,7 @@ type Fence struct {
 	systemFolders []string
 	resolverFile  string
 	userHome      string
+	network       bool
 	outputCap     int
 	helperProgram string
 
@@ -99,6 +106,7 @@ func New(settings Settings) (*Fence, error) {
 		systemFolders: systemFolders,
 		resolverFile:  resolverFileToBind(resolverFilePath, systemFolders),
 		userHome:      settings.UserHome,
+		network:       settings.Network,
 		outputCap:     outputCap,
 		helperProgram: helperProgram,
 		probe:         probeForANamespace,

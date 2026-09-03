@@ -19,11 +19,11 @@ import (
 // belongs to nobody who minds being asked about it.
 const theNameToLookUp = "example.com"
 
-func TestANameResolvesInsideTheFence(t *testing.T) {
+func TestANameResolvesInsideTheFenceWhenItHasTheNetwork(t *testing.T) {
 	if said, err := outsideTheFence("getent hosts " + theNameToLookUp); err != nil {
 		t.Skipf("this machine cannot look %s up itself, so the fence cannot be measured against it: %v (it said %q)", theNameToLookUp, err, said)
 	}
-	fence, _, _ := aRealFence(t, theToolOutputCap)
+	fence, _, _ := aRealFenceWithTheNetwork(t, theToolOutputCap)
 
 	said := insideTheFence(t, fence, "getent hosts "+theNameToLookUp+" || echo 'no name resolution inside the fence'")
 

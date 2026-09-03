@@ -57,6 +57,7 @@ type fencePlan struct {
 	systemFolders    []string
 	resolverFile     string
 	roots            []string
+	network          bool
 	helperProgram    string
 	workingDirectory string
 	environment      []string
@@ -82,6 +83,7 @@ func (fence *Fence) planFor(command contract.SandboxCommand) (fencePlan, error) 
 		systemFolders:    fence.systemFolders,
 		resolverFile:     fence.resolverFile,
 		roots:            fence.roots,
+		network:          fence.network,
 		helperProgram:    fence.helperProgram,
 		workingDirectory: workingDirectory,
 		environment:      allowedEnvironment(scratchHome, os.Getenv("LANG"), os.Getenv("TERM"), command.Environment),
@@ -99,6 +101,9 @@ func buildArguments(plan fencePlan) []string {
 		"--die-with-parent", "--new-session", "--clearenv",
 		"--proc", "/proc", "--dev", "/dev",
 		"--size", strconv.Itoa(TemporaryFolderBytes), "--tmpfs", "/tmp",
+	}
+	if !plan.network {
+		arguments = append(arguments, "--unshare-net")
 	}
 	for _, folder := range plan.systemFolders {
 		arguments = append(arguments, "--ro-bind", folder, folder)

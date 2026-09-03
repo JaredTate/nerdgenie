@@ -40,10 +40,38 @@ func TestNewFenceKeepsTheCleanedRootsAndFillsInTheDefaults(t *testing.T) {
 	if len(fence.systemFolders) == 0 {
 		t.Error("the fence found no system folders to bind read-only, and every Linux machine has some")
 	}
+	if fence.network {
+		t.Error("a fence whose settings said nothing about the network got the network, and the fence is closed until a caller opens it")
+	}
 	for _, folder := range fence.systemFolders {
 		if _, err := os.Stat(folder); err != nil {
 			t.Errorf("the fence would bind %q, which is not on this machine: %v", folder, err)
 		}
+	}
+}
+
+func TestAFenceCarriesTheNetworkSettingThroughToEveryCommandItPlans(t *testing.T) {
+	userHome := tempUserHome(t)
+	work := filepath.Join(userHome, "work")
+	helper := filepath.Join(work, "coeus")
+	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("cannot write the stand-in helper program: %v", err)
+	}
+
+	fence, err := New(Settings{Roots: []string{work}, UserHome: userHome, HelperProgram: helper, Network: true})
+	if err != nil {
+		t.Fatalf("cannot build a fence with the network: %v", err)
+	}
+	if !fence.network {
+		t.Fatal("the fence was asked for the network and did not keep the setting")
+	}
+
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true"})
+	if err != nil {
+		t.Fatalf("planning a command failed: %v", err)
+	}
+	if !plan.network {
+		t.Error("the fence has the network and the plan for one of its commands does not, so the command line would unshare it anyway")
 	}
 }
 

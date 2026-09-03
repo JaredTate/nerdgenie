@@ -59,7 +59,7 @@ func TestTheCommandLineSetsTheMarkerThatTellsTheHelperTheFenceStartedIt(t *testi
 	t.Fatalf("the command line never sets %s, and the helper refuses to run without it", FenceMarkerVariable)
 }
 
-func TestTheCommandLineUnsharesEveryNamespaceButTheNetwork(t *testing.T) {
+func TestTheCommandLineUnsharesEveryNamespaceTheFenceKeepsToItself(t *testing.T) {
 	arguments := buildArguments(theFixturePlan())
 
 	for _, wanted := range []string{"--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--die-with-parent", "--new-session", "--clearenv"} {
@@ -67,8 +67,23 @@ func TestTheCommandLineUnsharesEveryNamespaceButTheNetwork(t *testing.T) {
 			t.Errorf("the command line is missing %s", wanted)
 		}
 	}
-	if slices.Contains(arguments, "--unshare-net") {
-		t.Error("the command line unshares the network, and the agent's tools need the network")
+}
+
+func TestTheCommandLineUnsharesTheNetworkUnlessTheCallerAsksForIt(t *testing.T) {
+	arguments := buildArguments(theFixturePlan())
+
+	if !slices.Contains(arguments, "--unshare-net") {
+		t.Error("the command line leaves the network alone, so a sandboxed command reaches every service on this machine; " +
+			"the fence gets a network namespace of its own unless the caller asks for the network")
+	}
+}
+
+func TestTheCommandLineLeavesTheNetworkAloneWhenTheCallerAsksForIt(t *testing.T) {
+	plan := theFixturePlan()
+	plan.network = true
+
+	if slices.Contains(buildArguments(plan), "--unshare-net") {
+		t.Error("the caller asked for the network and the command line unshares it anyway, so a build that fetches its dependencies cannot run")
 	}
 }
 

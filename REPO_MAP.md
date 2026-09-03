@@ -150,6 +150,8 @@ internal/browser/process_test.go
 internal/browser/protocol.go
 internal/browser/screen.go
 internal/browser/support_test.go
+internal/browser/wiring.go
+internal/browser/wiring_test.go
 internal/channel/ask.go
 internal/channel/channel.go
 internal/channel/client.go

@@ -2,6 +2,8 @@
 
 This document records how the code is put together and what each wave built. It is read by every worker before starting a brief and updated by any worker whose brief changes a package's job, its interface, or its dependencies. The orchestrator adds a wave section at the end of every wave. The design this code implements is `docs/COEUS_PLAN.md`; when the two disagree, the design is the intent and this document is the fact, and the orchestrator reconciles them at the wave gate.
 
+The four extension points of design section 6 — a chat service, a tool, a skill, and a model provider — have a guide of their own in `docs/EXTENDING.md`, which says for each one the contract to implement in `internal/contract`, the fake and the contract check in `internal/testkit`, where the new file goes, and a worked example.
+
 Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `internal/sandbox`, `internal/vault`, and the `coeus askpass` subcommand are built as well, ahead of the rest of wave 2, because each depends on nothing but `contract` and `testkit`. Everything else below describes what will exist once its wave is done, and is marked planned until then.
 
 Wave 0 is built: `internal/contract`, `internal/testkit`, `internal/lint`, the repository-map generator and its drift test, the skeleton of `cmd/coeus`, `worker/browser/PROTOCOL.md`, and the forty-step fixture. `worker/browser` itself is built too, ahead of its wave, because it depends on nothing but that document. Everything else below describes what will exist once its wave is done, and is marked planned until then.

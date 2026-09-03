@@ -26,7 +26,24 @@ const (
 	// each of those lines is this long at most. Nothing is lost by the cut,
 	// because the whole text of every result is in the log.
 	MaxSummaryCharacters = 70
+	// MaxAskTokens is the share of a prompt the ask may take before the model is
+	// shown the start of it and told how to read the rest. A quarter leaves room
+	// for the work, the lessons and the results beside it.
+	//
+	// The ask is the user's own words, so it is never cut or rewritten where it
+	// is kept: MaxRecordTokens counts everything in a record except the ask, and
+	// this is the ask's own rule, held only in what the model is shown.
+	MaxAskTokens = MaxRecordTokens / 4
 )
+
+// AskLabel is what the model writes to read the whole ask back, the way it reads
+// a past result with `read r7`. The read tool routes it to the record.
+const AskLabel = "ask"
+
+// AskCutNote opens the one line that stands where the rest of a long ask would
+// be. It is the words a reader can search a prompt for, and the line that
+// follows says how much more there is and how to fetch it.
+const AskCutNote = "[the ask goes on:"
 
 // cutToOneLine keeps a result's summary to the one line a record holds for it,
 // and says plainly that it was cut.
@@ -50,14 +67,27 @@ func EstimateTokens(text string) int {
 // the record past the size it is promised to stay under is refused before it
 // lands, and the refusal names the longest part so that there is something to do
 // about it.
+// The ask is left out of the count on purpose. It is the user's own words, it is
+// never cut or rewritten in storage, and a task whose ask alone filled the
+// record would otherwise be a task that could record nothing at all, which is
+// worse than a task that is slow. The ask has its own rule instead, in
+// askForTheModel, held only in what the model is shown.
 func checkItStillFits(held contract.Record) error {
-	counted := EstimateTokens(string(Print(held)))
+	counted := EstimateTokens(string(Print(withoutTheAsk(held))))
 	if counted <= MaxRecordTokens {
 		return nil
 	}
 	name, cost := longestPartOf(held)
-	return fmt.Errorf("%w: it would be about %d tokens and the limit is %d, and its longest part is the %s at about %d",
+	return fmt.Errorf("%w: everything in it but the ask would be about %d tokens and the limit is %d, and its longest part is the %s at about %d",
 		ErrRecordTooLarge, counted, MaxRecordTokens, name, cost)
+}
+
+// withoutTheAsk is the record with a one-word ask in place of the user's, so
+// that the size of everything else can be measured on its own. It stands in
+// rather than being emptied because a record with no ask does not print.
+func withoutTheAsk(held contract.Record) contract.Record {
+	held.Goal.Ask = "-"
+	return held
 }
 
 // longestPartOf names the part of a record with the most words in it, and says
@@ -69,7 +99,6 @@ func longestPartOf(held contract.Record) (string, int) {
 		name string
 		text string
 	}{
-		{"ask", held.Goal.Ask},
 		{"why", held.Goal.Why},
 		{"done list", linesOfDone(held.Goal.DoneWhen)},
 		{"stop list", strings.Join(held.Rules.StopWhen, "\n")},

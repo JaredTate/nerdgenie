@@ -555,6 +555,7 @@ internal/provider/support_test.go
 internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
 internal/provider/wire_test.go
 internal/record/agreement_test.go
+internal/record/ask_test.go
 internal/record/bounds_test.go
 internal/record/checkpoint.go
 internal/record/checkpoint_test.go

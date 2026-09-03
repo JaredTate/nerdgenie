@@ -6,6 +6,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
 // TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges proves the record is cut
@@ -70,6 +71,35 @@ func TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges(t *testing.T) {
 		if strings.Contains(parts.Standing, unwanted) {
 			t.Errorf("the standing piece carries %q, which would then be re-read on every call:\n%s", unwanted, parts.Standing)
 		}
+	}
+}
+
+// TestAnAskTooLongForEveryPromptArrivesWithAPointerToTheRest proves the working
+// context reads the record through the printer meant for the model. An ask is
+// the user's own words and is never cut where it is stored, but a pasted
+// specification cannot ride in front of the model on every call, so what arrives
+// is its first quarter and one line saying how to read the whole of it.
+func TestAnAskTooLongForEveryPromptArrivesWithAPointerToTheRest(t *testing.T) {
+	builder := newTestBuilder(t, Options{})
+	input := sampleInput()
+	held := input.Record
+	held.Goal.Ask = "Build the release pipeline. " + strings.Repeat("one more sentence of the specification. ", 400)
+	input.Record = held
+
+	request, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the working context: %v", err)
+	}
+
+	whole := testkit.WholeRequestText(request)
+	if strings.Contains(whole, held.Goal.Ask) {
+		t.Error("a pasted specification is in front of the model whole, on every call of the task")
+	}
+	if !strings.Contains(whole, "Build the release pipeline.") {
+		t.Errorf("the start of the ask never reached the prompt:\n%s", whole)
+	}
+	if !strings.Contains(whole, record.AskCutNote) {
+		t.Error("nothing in the prompt says the ask was shortened or how to read the rest of it")
 	}
 }
 

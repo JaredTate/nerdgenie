@@ -90,6 +90,10 @@ func Entry(arguments []string, progress io.Writer) error {
 // becomeTheCommand replaces this program with the command, keeping the
 // restrictions that were just applied and dropping the fence marker so that the
 // command never sees it.
+//
+// The resource bounds are set last of all, because they bind this program too,
+// and its own runtime has to be free to ask the kernel for memory and for
+// threads right up to the moment it becomes the command.
 func becomeTheCommand(request entryRequest) error {
 	program, err := programToBecome(request.program)
 	if err != nil {
@@ -100,7 +104,11 @@ func becomeTheCommand(request entryRequest) error {
 	// which is what a shell would have given it and what it prints in its own
 	// messages.
 	whole := append([]string{request.program}, request.arguments...)
-	if err := syscall.Exec(program, whole, environmentWithoutMarker()); err != nil {
+	environment := environmentWithoutMarker()
+	if err := setResourceLimits(syscall.Setrlimit); err != nil {
+		return err
+	}
+	if err := syscall.Exec(program, whole, environment); err != nil {
 		return fmt.Errorf("the sandbox cannot start %q inside the fence, so check that the program is in a folder the fence allows: %w", request.program, err)
 	}
 	return nil

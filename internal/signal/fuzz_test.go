@@ -3,6 +3,8 @@ package signal
 import (
 	"strings"
 	"testing"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 func FuzzDecodeEvent(f *testing.F) {
@@ -91,9 +93,22 @@ func FuzzSplitReply(f *testing.F) {
 	f.Add(strings.Repeat("a", 3000))
 	f.Add("one.\n\ntwo.\n\nthree.")
 	f.Add(strings.Repeat("\U0001F600", 3000))
+	f.Add(strings.Repeat("a", MessageLimit-len(contract.RedactedMarker)/2) + contract.RedactedMarker + " and the rest.")
 
 	f.Fuzz(func(t *testing.T, reply string) {
 		pieces := SplitReply(reply)
+		// The reply is redacted before it is split, so a cut that lands inside
+		// a marker sends half of one in each of two messages. Below the cap
+		// nothing is thrown away, so every marker that went in comes out whole.
+		if len(pieces) < MaxMessagesPerReply {
+			whole := 0
+			for _, piece := range pieces {
+				whole += strings.Count(piece, contract.RedactedMarker)
+			}
+			if want := strings.Count(reply, contract.RedactedMarker); whole != want {
+				t.Errorf("%d whole redaction markers came out of a reply holding %d, so a cut landed inside one: %q", whole, want, reply)
+			}
+		}
 		if len(pieces) > MaxMessagesPerReply {
 			t.Errorf("a reply became %d messages, and the cap is %d", len(pieces), MaxMessagesPerReply)
 		}

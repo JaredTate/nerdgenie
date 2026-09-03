@@ -6,49 +6,109 @@ import (
 
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/coeus/internal/testkit"
 )
 
-// TestTheRecordSplitsAtTheCacheLine proves the record is cut into the half that
-// rarely changes and the half that changes every turn, and that the header goes
-// with the changing half, because the budget and the cost line are written anew
-// on every turn and nothing above the cache line may move.
-func TestTheRecordSplitsAtTheCacheLine(t *testing.T) {
-	held := sampleRecord()
-	stable, live := splitRecord(held)
+// TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges proves the record is cut
+// into four: the goal and the rules, which rarely change and go above the cache
+// line; the work and the lessons, which change when the model edits its plan or
+// its lists; the list of results, which grows by a line every round; and the
+// header, which carries the budget left and the cost of the last call and is
+// written anew every turn. The order is what a prompt cache can reuse, so no
+// piece may carry another one's lines.
+func TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges(t *testing.T) {
+	parts := splitRecord(sampleRecord())
 
-	if !strings.HasPrefix(stable, "## Goal") {
-		t.Errorf("the stable half does not start at the goal:\n%s", stable)
+	if !strings.HasPrefix(parts.Stable, "## Goal") {
+		t.Errorf("the stable piece does not start at the goal:\n%s", parts.Stable)
 	}
 	for _, wanted := range []string{"Post a tweet", "Corrections:", "Stop and tell the user if:"} {
-		if !strings.Contains(stable, wanted) {
-			t.Errorf("the stable half is missing %q:\n%s", wanted, stable)
+		if !strings.Contains(parts.Stable, wanted) {
+			t.Errorf("the stable piece is missing %q:\n%s", wanted, parts.Stable)
 		}
 	}
-	for _, unwanted := range []string{"## Work", "## Lessons", "budget left", "this turn:"} {
-		if strings.Contains(stable, unwanted) {
-			t.Errorf("the stable half carries %q, which changes every turn:\n%s", unwanted, stable)
+	for _, unwanted := range []string{"## Work", "## Lessons", "budget left", "this turn:", "r3"} {
+		if strings.Contains(parts.Stable, unwanted) {
+			t.Errorf("the stable piece carries %q, which changes as the task runs:\n%s", unwanted, parts.Stable)
 		}
 	}
 
-	if !strings.HasPrefix(live, "# task 17") {
-		t.Errorf("the live half does not start at the header:\n%s", live)
+	if !strings.HasPrefix(parts.Body, "## Work") {
+		t.Errorf("the body does not start at the work:\n%s", parts.Body)
 	}
-	for _, wanted := range []string{"this turn:", "budget left", "## Work", "## Lessons", "r3"} {
-		if !strings.Contains(live, wanted) {
-			t.Errorf("the live half is missing %q:\n%s", wanted, live)
+	for _, wanted := range []string{"## Work", "Plan:", "## Lessons"} {
+		if !strings.Contains(parts.Body, wanted) {
+			t.Errorf("the body is missing %q:\n%s", wanted, parts.Body)
 		}
 	}
-	if strings.Contains(live, "## Goal") {
-		t.Errorf("the live half carries the goal, which belongs above the cache line:\n%s", live)
+	for _, unwanted := range []string{"## Goal", "budget left", "this turn:", "r3 read memory/product.md"} {
+		if strings.Contains(parts.Body, unwanted) {
+			t.Errorf("the body carries %q, which does not change at the same pace as the work:\n%s", unwanted, parts.Body)
+		}
+	}
+
+	if !strings.HasPrefix(parts.Results, "Results (") {
+		t.Errorf("the list of results does not start at its own label:\n%s", parts.Results)
+	}
+	if !strings.Contains(parts.Results, "r3 read memory/product.md") {
+		t.Errorf("the list of results is missing the one result this record holds:\n%s", parts.Results)
+	}
+	for _, unwanted := range []string{"## Work", "## Lessons", "budget left"} {
+		if strings.Contains(parts.Results, unwanted) {
+			t.Errorf("the list of results carries %q, which changes at another pace:\n%s", unwanted, parts.Results)
+		}
+	}
+
+	if !strings.HasPrefix(parts.Standing, "# task 17") {
+		t.Errorf("the standing piece does not start at the header:\n%s", parts.Standing)
+	}
+	for _, wanted := range []string{"budget left", "this turn:"} {
+		if !strings.Contains(parts.Standing, wanted) {
+			t.Errorf("the standing piece is missing %q:\n%s", wanted, parts.Standing)
+		}
+	}
+	for _, unwanted := range []string{"## Goal", "## Work", "## Lessons"} {
+		if strings.Contains(parts.Standing, unwanted) {
+			t.Errorf("the standing piece carries %q, which would then be re-read on every call:\n%s", unwanted, parts.Standing)
+		}
 	}
 }
 
-// TestTheTwoHalvesHoldTheWholeRecord proves the split loses nothing: every line
-// the printer wrote is in one half or the other.
-func TestTheTwoHalvesHoldTheWholeRecord(t *testing.T) {
+// TestAnAskTooLongForEveryPromptArrivesWithAPointerToTheRest proves the working
+// context reads the record through the printer meant for the model. An ask is
+// the user's own words and is never cut where it is stored, but a pasted
+// specification cannot ride in front of the model on every call, so what arrives
+// is its first quarter and one line saying how to read the whole of it.
+func TestAnAskTooLongForEveryPromptArrivesWithAPointerToTheRest(t *testing.T) {
+	builder := newTestBuilder(t, Options{})
+	input := sampleInput()
+	held := input.Record
+	held.Goal.Ask = "Build the release pipeline. " + strings.Repeat("one more sentence of the specification. ", 400)
+	input.Record = held
+
+	request, err := builder.Build(t.Context(), input)
+	if err != nil {
+		t.Fatalf("cannot build the working context: %v", err)
+	}
+
+	whole := testkit.WholeRequestText(request)
+	if strings.Contains(whole, held.Goal.Ask) {
+		t.Error("a pasted specification is in front of the model whole, on every call of the task")
+	}
+	if !strings.Contains(whole, "Build the release pipeline.") {
+		t.Errorf("the start of the ask never reached the prompt:\n%s", whole)
+	}
+	if !strings.Contains(whole, record.AskCutNote) {
+		t.Error("nothing in the prompt says the ask was shortened or how to read the rest of it")
+	}
+}
+
+// TestTheFourPiecesHoldTheWholeRecord proves the split loses nothing: every line
+// the printer wrote is in one piece or another.
+func TestTheFourPiecesHoldTheWholeRecord(t *testing.T) {
 	held := sampleRecord()
-	stable, live := splitRecord(held)
-	together := live + "\n" + stable
+	parts := splitRecord(held)
+	together := strings.Join([]string{parts.Standing, parts.Stable, parts.Body, parts.Results}, "\n")
 
 	for _, line := range strings.Split(strings.TrimSpace(string(record.Print(held))), "\n") {
 		if strings.TrimSpace(line) == "" {
@@ -60,13 +120,28 @@ func TestTheTwoHalvesHoldTheWholeRecord(t *testing.T) {
 	}
 }
 
+// TestAWorkSectionWithNoResultsYetIsHandedBackWhole proves the early rounds of a
+// task, when nothing has been run, keep their work in one piece rather than
+// growing an empty list beside it.
+func TestAWorkSectionWithNoResultsYetIsHandedBackWhole(t *testing.T) {
+	held := sampleRecord()
+	held.Work.Results = nil
+
+	parts := splitRecord(held)
+	if parts.Results != "" {
+		t.Errorf("a record with no results built a list anyway:\n%s", parts.Results)
+	}
+	if !strings.Contains(parts.Body, "## Lessons") {
+		t.Errorf("the body lost the lessons when there were no results to cut out:\n%s", parts.Body)
+	}
+}
+
 // TestARecordThatHasNotBeenMadeYetSplitsIntoNothing proves the first turn of a
 // task, before any tool has run and before a record exists, builds no record
-// halves at all rather than two empty ones.
+// pieces at all rather than four empty ones.
 func TestARecordThatHasNotBeenMadeYetSplitsIntoNothing(t *testing.T) {
-	stable, live := splitRecord(contract.Record{})
-	if stable != "" || live != "" {
-		t.Errorf("a record that does not exist yet split into %q and %q, want nothing at all", stable, live)
+	if parts := splitRecord(contract.Record{}); parts != (recordParts{}) {
+		t.Errorf("a record that does not exist yet split into %+v, want nothing at all", parts)
 	}
 }
 

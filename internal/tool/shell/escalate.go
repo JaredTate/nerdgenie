@@ -81,7 +81,8 @@ func (tool *Tool) runWithSudo(ctx context.Context, command string) (contract.San
 		return contract.SandboxResult{}, err
 	}
 
-	running := exec.CommandContext(ctx, sudoProgram, "-A", "--", shellProgram, "-c", command)
+	program, arguments := CommandLine(command)
+	running := exec.CommandContext(ctx, sudoProgram, append([]string{"-A", "--", program}, arguments...)...)
 	running.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	running.Dir = tool.settings.WorkingDirectory
 	running.Env = []string{

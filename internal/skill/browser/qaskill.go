@@ -89,5 +89,5 @@ func InstallQASkill(ctx context.Context, saver SkillSaver) error {
 	if saver == nil {
 		return errors.New("the quality skill has no skill store to install into, so pass the store to save through")
 	}
-	return saver.Save(ctx, QASkillName, ShippedQASkill())
+	return saver.Save(ctx, contract.SkillSavedByPerson, QASkillName, ShippedQASkill())
 }

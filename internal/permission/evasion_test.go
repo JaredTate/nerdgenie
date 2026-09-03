@@ -181,6 +181,35 @@ func TestACommandThatBuildsItselfWhileItRunsSaysSoAndAsks(t *testing.T) {
 	}
 }
 
+// commandsWithAQuoteTheyNeverClose leave a quote open, so where one word ends
+// and the next begins is a guess: everything after the quote, the characters
+// that end one command and start another among them, is read as more of the same
+// word. The fuzzer found the second of these by putting a subshell round the
+// first, and the swallowed bracket turned "/sudo" into a program named "sudo )",
+// which nothing on the ask-me-first list knows.
+var commandsWithAQuoteTheyNeverClose = []string{
+	`/sudo"`,
+	`( /sudo" )`,
+	`rm -rf '/tmp/unclosed`,
+	`echo "hello`,
+	`( rm -rf "/tmp/x )`,
+}
+
+func TestACommandWithAQuoteItNeverClosesSaysSoAndAsks(t *testing.T) {
+	decider := newDecider(t, contract.DefaultConfig())
+
+	for _, command := range commandsWithAQuoteTheyNeverClose {
+		reduced := permission.Reduce(shellRequest(t, command))
+		if !strings.HasSuffix(reduced, "(a quote that is never closed)") {
+			t.Errorf("the readable form of %q is %q, and it has to say that a quote was never closed", command, reduced)
+		}
+		if decision := decide(t, decider, shellRequest(t, command)); decision.Ruling != contract.RulingAsk {
+			t.Errorf("%q was ruled %q, want %q, because nothing here can say where one word ends and the next begins",
+				command, decision.Ruling, contract.RulingAsk)
+		}
+	}
+}
+
 // bracketsThatBuildNothing look like a substitution and are not one, so the
 // permission function has to leave every one of them alone.
 var bracketsThatBuildNothing = []string{
@@ -201,14 +230,50 @@ func TestBracketsThatBuildNothingStillRunOnTheirOwn(t *testing.T) {
 	}
 }
 
-// disguises are the four wrappings the gate review hid a command inside: a
-// nested shell, a pipe, a subshell, and a long prefix. Wrapping a command may
-// never make it easier to run than the command on its own.
+// disguises are the wrappings a command has been hidden inside: the four the
+// wave 1 gate review used, which are a nested shell, a pipe, a subshell and a
+// long prefix, and then one for each program the wave 6 security review found
+// that runs another program. Wrapping a command may never make it easier to run
+// than the command on its own.
 var disguises = []func(string) string{
-	func(command string) string { return "sh -c '" + strings.ReplaceAll(command, "'", `'\''`) + "'" },
+	func(command string) string { return "sh -c '" + insideSingleQuotes(command) + "'" },
 	func(command string) string { return "echo hello | " + command },
 	func(command string) string { return "( " + command + " )" },
 	func(command string) string { return strings.Repeat("echo hello; ", 40) + command },
+	func(command string) string { return "nohup " + command },
+	func(command string) string { return "timeout 60 " + command },
+	func(command string) string { return "nice -n 10 " + command },
+	func(command string) string { return "setsid " + command },
+	func(command string) string { return "stdbuf -oL " + command },
+	func(command string) string { return "busybox " + command },
+	func(command string) string { return "env -i " + command },
+	func(command string) string { return "doas " + command },
+	func(command string) string { return "sudo -u nobody " + command },
+	func(command string) string { return "su -c '" + insideSingleQuotes(command) + "'" },
+	func(command string) string { return "echo /home/jared/coeus | xargs " + command },
+}
+
+// insideSingleQuotes writes a command so that a shell handed it between single
+// quotes runs the command that went in, quotes and all.
+func insideSingleQuotes(command string) string {
+	return strings.ReplaceAll(command, "'", `'\''`)
+}
+
+// commandsRunThroughAWrapper hand the real command to a program that runs it,
+// and they seed the fuzzer because a wrapper is the shape of disguise the
+// reducer has to read through. The wave 6 security review wrote this table, and
+// it lives here now because the review's own test file left the tree once every
+// finding it named had a fix and a test of its own.
+var commandsRunThroughAWrapper = []struct {
+	name    string
+	command string
+}{
+	{"a delete run under nohup", "nohup rm -rf /home/jared/coeus"},
+	{"a delete given a time limit", "timeout 60 rm -rf /home/jared/coeus"},
+	{"a delete run through xargs", "echo /home/jared/coeus | xargs rm -rf"},
+	{"a delete run through busybox", "busybox rm -rf /home/jared/coeus"},
+	{"a delete run through env with a flag", "env -i sh -c 'rm -rf /home/jared/coeus'"},
+	{"a delete handed to su", "su -c 'rm -rf /home/jared/coeus'"},
 }
 
 func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
@@ -224,8 +289,13 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 			}
 		}
 	}
+	for _, wrapped := range commandsRunThroughAWrapper {
+		f.Add(wrapped.command, 0)
+	}
 	f.Add("sudo apt install ripgrep", 0)
 	f.Add("find /tmp -name '*.log' -delete", 0)
+	f.Add("rm --force --recursive /home/jared/coeus", 4)
+	f.Add("git -C /tmp reset --hard", 5)
 
 	decider, err := permission.New(contract.DefaultConfig(), testkit.NewFakeClock(theTestTime))
 	if err != nil {
@@ -234,7 +304,11 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, command string, number int) {
 		if number < 0 || number >= len(disguises) {
-			t.Skip("the fuzzer picked a disguise number that does not name one of the four")
+			t.Skip("the fuzzer picked a disguise number that does not name one of the disguises")
+		}
+		if firstWord := strings.Fields(command); len(firstWord) > 0 && strings.HasPrefix(firstWord[0], "-") {
+			t.Skip("a command line whose first word is a flag names no program to run, and a program that runs another program" +
+				" would read that flag as one of its own, as xargs reads the -r in \"xargs -r rm\" and runs rm without it")
 		}
 		if decide(t, decider, shellRequest(t, command)).Ruling == contract.RulingAllow {
 			return

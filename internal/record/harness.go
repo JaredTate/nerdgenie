@@ -238,10 +238,17 @@ func markTaskDone(into *contract.Record, taskID string, reportID string) {
 // Read brings back the whole text of a result by its label, which is the third
 // tier of the design: the line stays in the record, the text stays in the log,
 // and only the copy in the model's window ever leaves.
+//
+// AskLabel is read the same way and answered from the record itself rather than
+// the log, because the ask is written once at the start and never changes. It is
+// what the note beside a shortened ask tells the model to call.
 func (keeper *Keeper) Read(ctx context.Context, id string) (string, error) {
+	if id == AskLabel {
+		return keeper.record.Goal.Ask, nil
+	}
 	if _, valid := ResultNumber(keeper.record.Header, id); !valid {
-		return "", fmt.Errorf("%q is not a label this %s writes, so read one such as %q: %w",
-			id, keeper.Kind(), nextResultID(keeper.record.Header, 0), ErrNoSuchResult)
+		return "", fmt.Errorf("%q is not a label this %s writes, so read one such as %q or %q: %w",
+			id, keeper.Kind(), nextResultID(keeper.record.Header, 0), AskLabel, ErrNoSuchResult)
 	}
 	events, err := keeper.store.ByTask(ctx, keeper.LogKey())
 	if err != nil {

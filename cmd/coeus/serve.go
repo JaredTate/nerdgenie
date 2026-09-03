@@ -26,6 +26,7 @@ import (
 	"github.com/JaredTate/coeus/internal/permission"
 	"github.com/JaredTate/coeus/internal/reliability"
 	"github.com/JaredTate/coeus/internal/replay"
+	signalchannel "github.com/JaredTate/coeus/internal/signal"
 	"github.com/JaredTate/coeus/internal/skill"
 	"github.com/JaredTate/coeus/internal/tool"
 	"github.com/JaredTate/coeus/internal/vault"
@@ -159,7 +160,7 @@ func exitCodeFor(err error) int {
 type agent struct {
 	home     contract.Home
 	settings contract.Config
-	note     func(line string)
+	sayLine  func(line string)
 
 	lock     *runLock
 	eventLog *log.Log
@@ -188,8 +189,11 @@ type agent struct {
 
 	watched *watchedModel
 
+	signal *signalchannel.Channel
+
 	busyGuard  sync.Mutex
 	busy       bool
+	modelInUse string
 	recordLine string
 	toolLine   string
 	holding    int64
@@ -209,7 +213,7 @@ func openAgent(ctx context.Context, home contract.Home, note func(line string)) 
 		return nil, err
 	}
 
-	running := &agent{home: home, settings: settings, note: note, previews: newWaitingPreviews()}
+	running := &agent{home: home, settings: settings, sayLine: note, previews: newWaitingPreviews()}
 	if err := running.openTheStores(ctx); err != nil {
 		return nil, errors.Join(err, running.close())
 	}
@@ -217,6 +221,21 @@ func openAgent(ctx context.Context, home contract.Home, note func(line string)) 
 		return nil, errors.Join(err, running.close())
 	}
 	return running, nil
+}
+
+// note writes one line about what the agent is doing, through the vault's
+// redactor once there is one.
+//
+// A note from a provider, a worker, or the tool registry can carry a key, and a
+// log is read by whoever can read the machine. The vault is opened a few lines
+// into startup, and nothing that has seen a secret has run before then.
+func (running *agent) note(line string) {
+	if running.secrets != nil {
+		line = running.secrets.Redact(line)
+	}
+	if running.sayLine != nil {
+		running.sayLine(line)
+	}
 }
 
 // makeHomeFolders makes every folder of the layout that is not there yet, so
@@ -293,154 +312,24 @@ func (running *agent) sendToTheUser(ctx context.Context, named string, text stri
 	if !found {
 		return fmt.Errorf("there is no channel named %q to tell the user on, so the message was not sent", named)
 	}
+	// A send with nobody attached is not a delivery. The socket answers with no
+	// error when no screen is listening, and the delivery ledger reads that as
+	// the reply having reached the user, so every reply the last run never
+	// delivered would be thrown away at startup, before a screen has had a
+	// chance to attach.
+	if named == contract.TerminalChannelName && running.socket.Attached() == 0 {
+		return fmt.Errorf("no screen is attached, so %q reached nobody and is still owed to the user", shortened(text))
+	}
 	return where.Send(ctx, text)
 }
 
-// serve takes connections on the socket, drains the queue beside it, and runs
-// the jobs that fall due, until the context is done.
-func (running *agent) serve(ctx context.Context) error {
-	working := make(chan struct{}, 3)
-	for _, work := range []func(context.Context){running.drain, running.runDueJobs, running.feedTheWatchdog} {
-		go func() {
-			defer func() { working <- struct{}{} }()
-			work(ctx)
-		}()
+// shortened is the first few words of a message, for an error that names what
+// could not be sent without repeating the whole of it.
+func shortened(text string) string {
+	if len(text) <= 60 {
+		return text
 	}
-
-	err := running.socket.Serve(ctx)
-	<-working
-	<-working
-	<-working
-	return err
-}
-
-// feedTheWatchdog keeps telling the service manager that the program is alive
-// for as long as it is. On a machine that started the program by hand there is
-// no watchdog to feed and this returns at once.
-func (running *agent) feedTheWatchdog(ctx context.Context) {
-	if err := running.guard.FeedWatchdog(ctx); err != nil && ctx.Err() == nil {
-		running.note("the service manager is no longer being told the program is alive: " + err.Error())
-	}
-}
-
-// drain takes every message off the queue and hands it to the router, waiting on
-// the queue's own nudge in between rather than asking again and again.
-func (running *agent) drain(ctx context.Context) {
-	for ctx.Err() == nil {
-		if running.takeWhatIsWaiting(ctx) {
-			continue
-		}
-		select {
-		case <-ctx.Done():
-		case <-running.queue.Arrived():
-		}
-	}
-}
-
-// takeWhatIsWaiting routes up to one pass of queued messages and says whether it
-// stopped at the bound, which means more are waiting and the caller should come
-// straight back rather than wait for a nudge.
-func (running *agent) takeWhatIsWaiting(ctx context.Context) bool {
-	for taken := 0; taken < maxMessagesInOnePass; taken++ {
-		queued, held, err := running.queue.Take(ctx)
-		if err != nil {
-			running.note("a message could not be taken off the queue: " + err.Error())
-			return false
-		}
-		if !held {
-			return false
-		}
-		running.holdTheMessage(queued.Sequence)
-		if _, err := running.router.Route(ctx, queued.Message); err != nil {
-			running.note("a message was not answered: " + err.Error())
-		}
-		// A message that started a task is finished by the task, whenever that
-		// ends; everything else is finished here and now.
-		if running.stillHolding() {
-			running.finishTheMessage(queued.Sequence)
-		}
-	}
-	return true
-}
-
-// holdTheMessage says which message the drainer is working on, so that a task
-// started from it can take it over and finish it when the task ends.
-func (running *agent) holdTheMessage(sequence int64) {
-	running.busyGuard.Lock()
-	defer running.busyGuard.Unlock()
-	running.holding = sequence
-	running.handedOver = false
-}
-
-// tookTheMessage hands the message the drainer is holding to the task that is
-// about to run, and gives back the function that finishes it.
-func (running *agent) tookTheMessage() func() {
-	running.busyGuard.Lock()
-	sequence := running.holding
-	running.handedOver = true
-	running.busyGuard.Unlock()
-	return func() { running.finishTheMessage(sequence) }
-}
-
-// stillHolding says the drainer still owns the message it took, which is true
-// for everything but a message that started a task.
-func (running *agent) stillHolding() bool {
-	running.busyGuard.Lock()
-	defer running.busyGuard.Unlock()
-	return !running.handedOver
-}
-
-// finishTheMessage marks one message done, so that a restart does not hand it
-// out again.
-func (running *agent) finishTheMessage(sequence int64) {
-	if err := running.queue.Done(context.Background(), sequence); err != nil {
-		running.note("a finished message could not be marked done: " + err.Error())
-	}
-}
-
-// runDueJobs runs the task a job has due whenever nothing else is running. The
-// job store says how long there is until the next moment worth looking at, and a
-// pass that finds nothing rests, so that work already past its moment cannot
-// turn the wait into a spin.
-func (running *agent) runDueJobs(ctx context.Context) {
-	for ctx.Err() == nil {
-		if err := running.jobs.Wait(ctx); err != nil {
-			return
-		}
-		if running.loop.Running() != "" {
-			continue
-		}
-		found, err := running.runWhatIsDue(ctx)
-		if err != nil {
-			running.note("a scheduled task did not finish: " + err.Error())
-		}
-		if !found {
-			if err := clock.System().Sleep(ctx, restBetweenJobChecks); err != nil {
-				return
-			}
-		}
-	}
-}
-
-// runWhatIsDue runs the task a job has due now. A task the nightly self-check
-// owns is run by the check itself: it asks the memory its own questions and dry
-// runs the skills, and handing it to the model instead would spend a whole task
-// asking a model to do what the harness can do for nothing.
-func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
-	due, there, err := running.jobs.NextTask(ctx, clock.System().Now())
-	if err != nil {
-		return false, fmt.Errorf("cannot ask the jobs which task is due now: %w", err)
-	}
-	if !there {
-		return false, nil
-	}
-	if running.nightly.Handles(due) {
-		if _, err := running.nightly.Run(ctx, due); err != nil {
-			return true, fmt.Errorf("the nightly self-check did not finish: %w", err)
-		}
-		return true, nil
-	}
-	return running.loop.RunNextJobTask(ctx, running.userChannel())
+	return text[:57] + "..."
 }
 
 // close puts down everything the agent opened, in the reverse order it was

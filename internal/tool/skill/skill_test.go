@@ -97,6 +97,23 @@ func TestSavingASkillWritesItsFolder(t *testing.T) {
 	}
 }
 
+func TestASkillSavedThroughThisToolIsSavedByTheModel(t *testing.T) {
+	tool, skills := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"action": "save",
+		"name":   "water-the-plants",
+		"files":  map[string]any{"SKILL.md": "# water-the-plants\nWaters the plants.\n"},
+	}); err != nil {
+		t.Fatalf("saving a skill failed: %v", err)
+	}
+
+	if source := skills.SourceOf("water-the-plants"); source != contract.SkillSavedByModel {
+		t.Errorf("the store was told %q saved the skill, want the model, because this tool is the model's own hand"+
+			" and a skill it wrote may have been asked for by a page the model read", source)
+	}
+}
+
 func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 	tool, _ := newTool(t)
 

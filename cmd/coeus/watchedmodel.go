@@ -37,6 +37,7 @@ type watchedModel struct {
 	streamed   int
 	lastHeld   int
 	tokensIn   int
+	cachedIn   int
 	tokensOut  int
 	moneySoFar float64
 }
@@ -47,10 +48,36 @@ func newWatchedModel(under contract.Model, clock contract.Clock, changed func())
 }
 
 // Name is the alias of the model in use.
-func (watched *watchedModel) Name() string { return watched.under.Name() }
+func (watched *watchedModel) Name() string { return watched.model().Name() }
 
 // ContextLength is how many tokens the model holds on one call.
-func (watched *watchedModel) ContextLength() int { return watched.under.ContextLength() }
+func (watched *watchedModel) ContextLength() int { return watched.model().ContextLength() }
+
+// use points this at another chain, which is what "/model" does. The session's
+// own counts are kept, because they are the session's and not the model's.
+func (watched *watchedModel) use(under contract.Model) {
+	watched.guard.Lock()
+	defer watched.guard.Unlock()
+	watched.under = under
+}
+
+// model is the chain in use right now.
+func (watched *watchedModel) model() contract.Model {
+	watched.guard.Lock()
+	defer watched.guard.Unlock()
+	return watched.under
+}
+
+// costSoFar is what this session has spent, which "/status" prints.
+func (watched *watchedModel) costSoFar() contract.CostLine {
+	watched.guard.Lock()
+	defer watched.guard.Unlock()
+	return contract.CostLine{
+		InputTokens:       watched.tokensIn,
+		CachedInputTokens: watched.cachedIn,
+		OutputTokens:      watched.tokensOut,
+	}
+}
 
 // Send makes the call, counting the moment it began and what it wrote, and adds
 // what it cost to the session once it has answered.
@@ -59,7 +86,7 @@ func (watched *watchedModel) Send(ctx context.Context, request contract.Request,
 	watched.callBegins()
 	defer watched.callEnds()
 
-	reply, err := watched.under.Send(ctx, request, watched.counting(onDelta))
+	reply, err := watched.model().Send(ctx, request, watched.counting(onDelta))
 	if err == nil {
 		watched.callCost(reply.Usage)
 	}
@@ -102,6 +129,7 @@ func (watched *watchedModel) callCost(spent contract.Usage) {
 	watched.guard.Lock()
 	watched.lastHeld = spent.InputTokens
 	watched.tokensIn += spent.InputTokens
+	watched.cachedIn += spent.CachedInputTokens
 	watched.tokensOut += spent.OutputTokens
 	watched.moneySoFar += spent.CostUSD
 	watched.guard.Unlock()

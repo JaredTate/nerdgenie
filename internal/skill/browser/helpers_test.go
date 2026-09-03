@@ -77,7 +77,7 @@ func (built *bench) save(t *testing.T, name string, steps []browser.Step, irreve
 		skill.StepsFile:       browser.RenderSteps(steps),
 		skill.TestFile:        skill.RenderTestFile(name, skill.DryRunPlan{Arguments: testkit.FixtureSimplePage}),
 	}
-	if err := built.store.Save(context.Background(), name, files); err != nil {
+	if err := built.store.Save(context.Background(), contract.SkillSavedByPerson, name, files); err != nil {
 		t.Fatalf("cannot save the recording %q: %v", name, err)
 	}
 	return built.load(t, name)

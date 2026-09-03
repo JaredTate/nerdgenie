@@ -57,15 +57,10 @@ func New(options Options) (*Desktop, error) {
 	return &Desktop{options: options, granted: map[string]bool{}}, nil
 }
 
-// Launch opens an application, or brings it forward if it is already open. The
-// user grants an application once per session, through a preview on the channel.
-func (desktop *Desktop) Launch(ctx context.Context, application string) error {
-	return desktop.LaunchExpecting(ctx, application, "")
-}
-
-// LaunchExpecting opens an application and checks what the model said it
-// expected to see. Launch is this with no expectation.
-func (desktop *Desktop) LaunchExpecting(ctx context.Context, application string, expectation string) error {
+// Launch opens an application, or brings it forward if it is already open, and
+// checks what the model said it expected to see. The user grants an application
+// once per session, through a preview on the channel.
+func (desktop *Desktop) Launch(ctx context.Context, application string, expectation string) error {
 	if err := desktop.grant(ctx, application); err != nil {
 		return err
 	}
@@ -93,27 +88,19 @@ func (desktop *Desktop) Screenshot(ctx context.Context) (contract.DesktopScreens
 	return contract.DesktopScreenshot{PNGBase64: picture.PNGBase64, Marks: marksOf(picture.Marks)}, nil
 }
 
-// Click clicks the control with that number.
-func (desktop *Desktop) Click(ctx context.Context, mark int) error {
-	return desktop.ClickExpecting(ctx, mark, "")
-}
-
-// ClickExpecting clicks the control and checks what the model expected to happen.
-func (desktop *Desktop) ClickExpecting(ctx context.Context, mark int, expectation string) error {
+// Click clicks the control with that number and checks what the model expected
+// to happen.
+func (desktop *Desktop) Click(ctx context.Context, mark int, expectation string) error {
 	if err := desktop.requireOpen(); err != nil {
 		return err
 	}
 	return desktop.act(ctx, "click", map[string]any{"mark": mark, "expectation": expectation}, expectation)
 }
 
-// Type types text at human pacing. Typing into a field cannot be undone, so it
-// goes through the permission function first.
-func (desktop *Desktop) Type(ctx context.Context, text string) error {
-	return desktop.TypeExpecting(ctx, text, "")
-}
-
-// TypeExpecting types text and checks what the model expected to happen.
-func (desktop *Desktop) TypeExpecting(ctx context.Context, text string, expectation string) error {
+// Type types text at human pacing and checks what the model expected to happen.
+// Typing into a field cannot be undone, so it goes through the permission
+// function first.
+func (desktop *Desktop) Type(ctx context.Context, text string, expectation string) error {
 	if err := desktop.requireOpen(); err != nil {
 		return err
 	}
@@ -124,27 +111,19 @@ func (desktop *Desktop) TypeExpecting(ctx context.Context, text string, expectat
 	return desktop.act(ctx, "type", map[string]any{"text": text, "expectation": expectation}, expectation)
 }
 
-// Press presses a key combination, such as "ctrl+s".
-func (desktop *Desktop) Press(ctx context.Context, keys string) error {
-	return desktop.PressExpecting(ctx, keys, "")
-}
-
-// PressExpecting presses a key combination and checks what the model expected.
-func (desktop *Desktop) PressExpecting(ctx context.Context, keys string, expectation string) error {
+// Press presses a key combination, such as "ctrl+s", and checks what the model
+// expected to happen.
+func (desktop *Desktop) Press(ctx context.Context, keys string, expectation string) error {
 	if err := desktop.requireOpen(); err != nil {
 		return err
 	}
 	return desktop.act(ctx, "press", map[string]any{"keys": keys, "expectation": expectation}, expectation)
 }
 
-// Drag drags from one numbered control to another. A drag cannot be undone, so
-// it goes through the permission function first.
-func (desktop *Desktop) Drag(ctx context.Context, fromMark int, toMark int) error {
-	return desktop.DragExpecting(ctx, fromMark, toMark, "")
-}
-
-// DragExpecting drags and checks what the model expected to happen.
-func (desktop *Desktop) DragExpecting(ctx context.Context, fromMark int, toMark int, expectation string) error {
+// Drag drags from one numbered control to another and checks what the model
+// expected to happen. A drag cannot be undone, so it goes through the permission
+// function first.
+func (desktop *Desktop) Drag(ctx context.Context, fromMark int, toMark int, expectation string) error {
 	if err := desktop.requireOpen(); err != nil {
 		return err
 	}
@@ -155,8 +134,19 @@ func (desktop *Desktop) DragExpecting(ctx context.Context, fromMark int, toMark 
 	return desktop.act(ctx, "drag", map[string]any{"fromMark": fromMark, "toMark": toMark, "expectation": expectation}, expectation)
 }
 
-// Clipboard reads what is on the machine's clipboard.
+// Clipboard reads what is on the machine's clipboard. The clipboard belongs to
+// the whole machine and not to the granted window, and it holds whatever the
+// user copied last, which is often a password out of a password manager. So the
+// read goes through the same door as every other desktop action: an application
+// has to be open, and the permission function rules on it.
 func (desktop *Desktop) Clipboard(ctx context.Context) (string, error) {
+	if err := desktop.requireOpen(); err != nil {
+		return "", err
+	}
+	intent := "read what is on the machine's clipboard, which is whatever the user copied last"
+	if err := desktop.permit(ctx, intent, "the clipboard", ""); err != nil {
+		return "", err
+	}
 	var held clipboardAnswer
 	if err := desktop.call(ctx, "clipboardGet", map[string]any{}, &held); err != nil {
 		return "", err
@@ -167,6 +157,9 @@ func (desktop *Desktop) Clipboard(ctx context.Context) (string, error) {
 // SetClipboard puts text on the machine's clipboard. Pasting cannot be undone,
 // so it goes through the permission function first.
 func (desktop *Desktop) SetClipboard(ctx context.Context, text string) error {
+	if err := desktop.requireOpen(); err != nil {
+		return err
+	}
 	if err := desktop.permit(ctx, "put text on the machine's clipboard, ready to paste", "the clipboard", text); err != nil {
 		return err
 	}
@@ -232,8 +225,17 @@ func said(seen string) string {
 	return seen
 }
 
-// marksOf turns the protocol's marks into the contract's own.
+// MaxMarksKept is how many numbered controls one screenshot hands back. The
+// model reads every one of them as a line of its own context, so a window with
+// more controls than this would fill a small model's whole window with buttons.
+const MaxMarksKept = 200
+
+// marksOf turns the protocol's marks into the contract's own, keeping no more
+// than the model can read.
 func marksOf(sent []mark) []contract.DesktopMark {
+	if len(sent) > MaxMarksKept {
+		sent = sent[:MaxMarksKept]
+	}
 	marks := make([]contract.DesktopMark, 0, len(sent))
 	for _, one := range sent {
 		marks = append(marks, contract.DesktopMark{Number: one.Number, Role: one.Role, Name: one.Name})

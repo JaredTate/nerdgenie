@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 )
@@ -92,17 +93,24 @@ func withQuery(address string, query string, pairs ...string) string {
 	return address + "?" + values.Encode()
 }
 
-// hostOf is the host and port of an address, and nothing at all when the address
-// is not one.
-func hostOf(address string) string {
-	if strings.TrimSpace(address) == "" {
+// hostAndPortOf is the host and port of an address, with the port its scheme is
+// served on filled in when the address leaves the port out, and nothing at all
+// when the address is not one. The allowed hosts hold a host and a port
+// together, never a bare name, because a bare name on that list would be
+// reachable on every port of whatever machine answers for it.
+func hostAndPortOf(address string) string {
+	parsed, err := url.Parse(strings.TrimSpace(address))
+	if err != nil || parsed.Hostname() == "" {
 		return ""
 	}
-	parsed, err := url.Parse(address)
-	if err != nil {
+	port := parsed.Port()
+	if port == "" {
+		port = defaultPortFor(parsed.Scheme)
+	}
+	if port == "" {
 		return ""
 	}
-	return parsed.Host
+	return net.JoinHostPort(parsed.Hostname(), port)
 }
 
 // oneLine puts text on a single line, because a row of results is one line.

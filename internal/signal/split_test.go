@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/JaredTate/coeus/internal/contract"
 )
 
 func TestSplitReplyKeepsAShortReplyWhole(t *testing.T) {
@@ -134,6 +136,27 @@ func TestSignalLengthCountsTheWayTheProtocolDoes(t *testing.T) {
 	}
 }
 
+func TestSplitReplyNeverCutsARedactionMarkerInHalf(t *testing.T) {
+	// The reply is redacted before it is split, so the run a cut must not land
+	// inside is the marker the redactor left behind. Half a marker in each of
+	// two messages reads like the words it stands for.
+	before := strings.Repeat("a", MessageLimit-len(contract.RedactedMarker)/2)
+	reply := before + contract.RedactedMarker + " and that is the end of it."
+
+	pieces := SplitReply(reply)
+	if len(pieces) < 2 {
+		t.Fatalf("the reply became %d messages, and this test needs one long enough to be split in two", len(pieces))
+	}
+	whole := 0
+	for _, piece := range pieces {
+		whole += strings.Count(piece, contract.RedactedMarker)
+	}
+	if whole != 1 {
+		t.Errorf("%d whole markers survived the split, want one, so the cut landed inside %q: the first message ends %q and the second begins %q",
+			whole, contract.RedactedMarker, lastFew(pieces[0]), firstFew(pieces[1]))
+	}
+}
+
 // lastFew returns the tail of a message, for an error that has to show where a
 // cut landed without printing two thousand characters.
 func lastFew(piece string) string {
@@ -142,4 +165,14 @@ func lastFew(piece string) string {
 		return piece
 	}
 	return "..." + string(letters[len(letters)-40:])
+}
+
+// firstFew returns the head of a message, for the same reason lastFew returns
+// its tail.
+func firstFew(piece string) string {
+	letters := []rune(piece)
+	if len(letters) <= 40 {
+		return piece
+	}
+	return string(letters[:40]) + "..."
 }

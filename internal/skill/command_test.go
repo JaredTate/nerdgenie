@@ -31,7 +31,7 @@ func TestTheSkillsCommandListsWhatThereIs(t *testing.T) {
 		t.Errorf("the listing is %q, want it to say there are none and how one is made", said)
 	}
 
-	if err := built.store.Save(ctx, "note", filesFor("note", "Files a note away under its date.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "Files a note away under its date.", "Do it.")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	said, err = runSlash(t, built, "")
@@ -46,7 +46,7 @@ func TestTheSkillsCommandListsWhatThereIs(t *testing.T) {
 func TestTheSkillsCommandShowsOneSkillWithItsChangelog(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "Files a note away under its date.", "Do the one thing.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "Files a note away under its date.", "Do the one thing.")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -68,7 +68,7 @@ func TestTheSkillsCommandShowsOneSkillWithItsChangelog(t *testing.T) {
 func TestTheSkillsCommandRunsOneSkill(t *testing.T) {
 	built := newHarness(t, &echoTool{name: "echo"})
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "say-two", twoStepSkill("say-two")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", twoStepSkill("say-two")); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestTheSkillsCommandRollsBackAndRemoves(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
 	for _, description := range []string{"The first description of this skill.", "The second description of this skill."} {
-		if err := built.store.Save(ctx, "note", filesFor("note", description, "Do it.")); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", description, "Do it.")); err != nil {
 			t.Fatalf("saving the skill failed: %v", err)
 		}
 	}
@@ -125,7 +125,7 @@ func TestTheSkillsCommandSaysWhenARunHadNothingToReport(t *testing.T) {
 		skill.DescriptionFile: []byte("# quiet\n\nA skill whose dry run stops at once.\n\n## Permissions\n\n- irreversible step: 1\n"),
 		skill.StepsFile:       []byte("1. Do the thing that cannot be undone.\n   tool: echo\n   input: {\"say\": \"done\"}\n"),
 	}
-	if err := built.store.Save(ctx, "quiet", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "quiet", files); err != nil {
 		t.Fatalf("saving the skill failed: %v", err)
 	}
 	built.channel.AnswerPreviewsWith(contract.AnswerReject)

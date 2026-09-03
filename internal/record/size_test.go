@@ -1,6 +1,7 @@
 package record
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -38,6 +39,41 @@ func TestARecordFilledToTheBudgetStaysUnderThreeThousandTokens(t *testing.T) {
 	}
 	if held := keeper.Record(); len(held.Work.Results) != 100 {
 		t.Errorf("the filled record holds %d results, and a hundred rounds were spent", len(held.Work.Results))
+	}
+}
+
+// TestARecordIsRefusedTheChangeThatWouldTakeItPastItsSize is finding 22 of the
+// wave 6 gate review. MaxRecordTokens was documented as "the size a record never
+// passes" and nothing anywhere enforced it: a long ask, a handful of corrections
+// and the hundred result lines the budget allows came to about 3,305 tokens and
+// not one write was refused. A record over its size is worse than a slow one,
+// because the working-context builder then refuses the whole prompt with
+// ErrNoRoomForTheRecord and the loop turns that into a task that cannot run at
+// all. So the promise is now a rule, checked where every other rule is checked.
+func TestARecordIsRefusedTheChangeThatWouldTakeItPastItsSize(t *testing.T) {
+	keeper := recordFilledToTheBudget(t)
+	ctx := t.Context()
+
+	var err error
+	for round := range 200 {
+		summary := fmt.Sprintf("round %d ", 101+round) + strings.Repeat("summary word ", 20)
+		if _, err = keeper.AddResult(ctx, summary, "the whole text of the result, which lives in the log"); err != nil {
+			break
+		}
+	}
+	if err == nil {
+		t.Fatalf("three hundred results were written into a record promised to stay under %d tokens, and it now counts as %d",
+			MaxRecordTokens, EstimateTokens(keeper.Text()))
+	}
+	if !errors.Is(err, ErrRecordTooLarge) {
+		t.Fatalf("the write was refused, but not for its size: %v", err)
+	}
+	t.Logf("the refusal reads: %v", err)
+	if !strings.Contains(err.Error(), "results") {
+		t.Errorf("the refusal does not name the part to shorten, so nobody knows what to do about it: %v", err)
+	}
+	if counted := EstimateTokens(keeper.Text()); counted > MaxRecordTokens {
+		t.Errorf("the refused change was written anyway: the record counts as %d tokens and the limit is %d", counted, MaxRecordTokens)
 	}
 }
 

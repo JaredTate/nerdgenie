@@ -3,10 +3,13 @@
  * per line to standard output, and put everything else on standard error.
  *
  * Run it as
- *   node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast]
+ *   node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast] [--headless]
  *
  * `--pacing fast` exists only for the tests, which cannot wait for human pacing.
- * The Go side never passes it.
+ * `--headless` exists only for the tests as well, so that a test run puts no
+ * Chrome window on the screen of whoever is running it. In a real run the window
+ * is always visible, because a logged-in account is only safe in a window the
+ * user can see.
  */
 import { ERROR_CODES } from "./errors.js";
 import { createLineReader } from "./lines.js";
@@ -21,6 +24,7 @@ interface Settings {
   profile: string;
   chromePath: string | undefined;
   pacing: Pacing;
+  headless: boolean;
 }
 
 /** The exit code for a command line the worker could not make sense of. */
@@ -30,16 +34,21 @@ const BAD_COMMAND_LINE = 2;
 const BROWSER_WOULD_NOT_START = 1;
 
 const HOW_TO_RUN =
-  "Run it as: node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast]";
+  "Run it as: node worker/browser/dist/main.js --profile <folder> [--chrome <path>] [--pacing human|fast] [--headless]";
 
 /** Read the command line, or say exactly what was wrong with it. */
 export function readSettings(argv: readonly string[]): Settings | string {
   let profile = "";
   let chromePath: string | undefined;
   let pacing: Pacing = "human";
+  let headless = false;
   for (let at = 0; at < argv.length; at += 1) {
     const name = argv[at];
     const value = argv[at + 1];
+    if (name === "--headless") {
+      headless = true;
+      continue;
+    }
     if (name === "--profile" || name === "--chrome" || name === "--pacing") {
       if (value === undefined) {
         return `The ${name} option needs a value after it. ${HOW_TO_RUN}`;
@@ -61,7 +70,7 @@ export function readSettings(argv: readonly string[]): Settings | string {
   if (profile === "") {
     return `The --profile option is required, and it must never be the user's daily Chrome profile. ${HOW_TO_RUN}`;
   }
-  return { profile, chromePath, pacing };
+  return { profile, chromePath, pacing, headless };
 }
 
 /** Write one response, and nothing else, to standard output. */

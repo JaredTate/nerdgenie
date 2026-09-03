@@ -28,8 +28,8 @@ const SentinelFileName = "lifecycle.json"
 // and awkward to copy.
 const asideTimeLayout = "2006-01-02T150405Z"
 
-// Sentinel is the file that says a life of the program is running.
-type Sentinel struct {
+// sentinelFile is the file that says a life of the program is running.
+type sentinelFile struct {
 	path  string
 	clock contract.Clock
 }
@@ -40,34 +40,53 @@ type sentinelBody struct {
 	ProcessID int `json:"processID"`
 	// StartedAt is when that life began.
 	StartedAt time.Time `json:"startedAt"`
+	// Found is what the recovery saw before the database was opened, kept here
+	// until the guard starts, because the recovery runs before there is any
+	// channel to tell the user on.
+	Found recovery `json:"found,omitzero"`
 }
 
-// NewSentinel returns the sentinel for one home folder.
-func NewSentinel(home contract.Home, clock contract.Clock) *Sentinel {
-	return &Sentinel{path: filepath.Join(home.RunFolder(), SentinelFileName), clock: clock}
+// newSentinel returns the sentinel for one home folder.
+func newSentinel(home contract.Home, clock contract.Clock) *sentinelFile {
+	return &sentinelFile{path: filepath.Join(home.RunFolder(), SentinelFileName), clock: clock}
 }
 
-// Start writes the sentinel for this life of the program and says whether the
-// last life ended uncleanly, which is true whenever the file was still there. A
-// file that cannot be understood counts as unclean too, because something was
-// there and no exit path took it away.
-func (sentinel *Sentinel) Start() (bool, error) {
-	unclean := sentinel.leftBehind()
-	written := sentinelBody{ProcessID: os.Getpid(), StartedAt: sentinel.clock.Now()}
-	if err := writeStateFile(sentinel.path, written); err != nil {
-		return unclean, err
+// startThisLife writes the sentinel for this life of the program, carrying what
+// the recovery found so that the guard can tell the user about it.
+func (sentinel *sentinelFile) startThisLife(found recovery) error {
+	return writeStateFile(sentinel.path, sentinelBody{
+		ProcessID: os.Getpid(),
+		StartedAt: sentinel.clock.Now(),
+		Found:     found,
+	})
+}
+
+// takeWhatThisLifeFound hands the guard what the recovery saw and clears it from
+// the file, so that it is acted on once. It refuses a sentinel this program did
+// not write, because that means the database was opened before anything checked
+// it, which is the one order that loses everything written afterwards.
+func (sentinel *sentinelFile) takeWhatThisLifeFound() (recovery, error) {
+	body := sentinelBody{}
+	there, err := readStateFile(sentinel.path, &body)
+	if err != nil {
+		return recovery{}, err
 	}
-	return unclean, nil
+	if !there || body.ProcessID != os.Getpid() {
+		return recovery{}, errors.New("the database was not checked before it was opened, so call reliability.PrepareDatabase first and open the database at the path it hands back")
+	}
+	found := body.Found
+	body.Found = recovery{}
+	return found, writeStateFile(sentinel.path, body)
 }
 
-// MarkExited takes the sentinel away, which is what makes the next start a
+// markExited takes the sentinel away, which is what makes the next start a
 // clean one. It is called on every path out of the program.
-func (sentinel *Sentinel) MarkExited() error {
+func (sentinel *sentinelFile) markExited() error {
 	return removeStateFile(sentinel.path)
 }
 
 // leftBehind says whether a sentinel from an earlier life is still there.
-func (sentinel *Sentinel) leftBehind() bool {
+func (sentinel *sentinelFile) leftBehind() bool {
 	_, err := os.Stat(sentinel.path)
 	return err == nil
 }

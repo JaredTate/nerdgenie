@@ -209,6 +209,13 @@ func TestAJobCanNeverBeMadeToRestartTheAgent(t *testing.T) {
 	if err == nil {
 		t.Error("a scheduled job was created whose every tick would restart the agent")
 	}
+	_, err = holding.jobs.Create(ctx, contract.NewJob{
+		Ask: "Watch how much memory is being used and systemctl restart coeus when it gets high.",
+		Why: "because the machine has been running out",
+	})
+	if err == nil {
+		t.Error("a job was created whose ask names work that restarts the agent, and the ask is what the model reads at the top of every one of that job's tasks")
+	}
 	err = holding.jobs.Update(ctx, jobID, record.Update{Tasks: []record.NewJobTask{{TaskID: "t99", Text: "reboot the machine"}}})
 	if err == nil {
 		t.Error("the model wrote a task list holding work that would restart the agent")

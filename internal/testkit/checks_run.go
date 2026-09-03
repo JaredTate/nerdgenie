@@ -163,19 +163,24 @@ func CheckToolRegistry(_ context.Context, registry contract.ToolRegistry) error 
 }
 
 // CheckSkill asserts what every skill store promises: a skill that is not there
-// is an error, a save with no files is refused, and a saved skill is listed
-// afterwards.
+// is an error, a save with no files is refused, a save says whether the person
+// or the model is saving and is refused when it says neither, and a saved skill
+// is listed afterwards.
 func CheckSkill(ctx context.Context, skills contract.Skill) error {
 	if _, err := skills.Load(ctx, "no-such-skill"); err == nil {
 		return errors.New("loading a skill that is not there returned no error, and it must name what is missing")
 	}
-	if err := skills.Save(ctx, "contract-check", nil); err == nil {
+	if err := skills.Save(ctx, contract.SkillSavedByPerson, "contract-check", nil); err == nil {
 		return errors.New("saving a skill with no files returned no error, and a skill folder needs a SKILL.md")
 	}
+	if err := skills.Save(ctx, contract.SkillSource("nobody"), "contract-check", theContractChecksSkillFolder("contract-check")); err == nil {
+		return errors.New("saving a skill that nobody saved returned no error, and every save says whether the person or the model is saving")
+	}
+	if err := skills.Save(ctx, contract.SkillSavedByModel, "contract-check-by-the-model", theContractChecksSkillFolder("contract-check-by-the-model")); err != nil {
+		return fmt.Errorf("saving a skill the model wrote failed: %w", err)
+	}
 
-	err := skills.Save(ctx, "contract-check", map[string][]byte{
-		"SKILL.md": []byte("# contract-check\nWritten by the contract check.\n"),
-	})
+	err := skills.Save(ctx, contract.SkillSavedByPerson, "contract-check", theContractChecksSkillFolder("contract-check"))
 	if err != nil {
 		return fmt.Errorf("saving a skill folder failed: %w", err)
 	}
@@ -190,6 +195,14 @@ func CheckSkill(ctx context.Context, skills contract.Skill) error {
 		}
 	}
 	return errors.New("a skill was saved and then was not in the listing")
+}
+
+// theContractChecksSkillFolder is the smallest folder a skill store will take,
+// which is the one the contract check saves three times over.
+func theContractChecksSkillFolder(name string) map[string][]byte {
+	return map[string][]byte{
+		"SKILL.md": []byte("# " + name + "\nWritten by the contract check.\n"),
+	}
 }
 
 // CheckJob asserts what every job store promises: a job needs an ask, a job that

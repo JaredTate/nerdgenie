@@ -2,6 +2,7 @@ package replay_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -145,6 +146,41 @@ func TestReadRefusesATaskWithNoCheckpoints(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "checkpoint") {
 		t.Errorf("the error is %q and it must say that the task saved no checkpoint", err)
+	}
+}
+
+// aLogThatCutTheReadShort is the event log when a task holds more events than
+// one read returns: the events it could hand back, and beside them the paging
+// advice internal/log gives, which is advice for a caller that means to read on
+// and not for a person who asked for a replay.
+type aLogThatCutTheReadShort struct {
+	*testkit.FakeStore
+}
+
+// ByTask hands back what it read and says the read stopped short, word for word
+// as the real log says it.
+func (cutShort aLogThatCutTheReadShort) ByTask(ctx context.Context, taskID string) ([]contract.Event, error) {
+	events, err := cutShort.FakeStore.ByTask(ctx, taskID)
+	if err != nil {
+		return events, err
+	}
+	return events, fmt.Errorf("this read of the log at %s stopped at %d events, which is all one read returns, so read the rest in pages with ByRange starting after event %d",
+		"/home/somebody/.coeus/coeus.db", len(events), len(events))
+}
+
+func TestReadSaysATaskIsTooLongToReplayRatherThanPassingOnThePagingAdvice(t *testing.T) {
+	made := runScript(t, twoRoundScript())
+
+	_, err := replay.Read(context.Background(), aLogThatCutTheReadShort{made.store}, made.outcome.TaskID)
+
+	if err == nil {
+		t.Fatal("a task whose events did not fit in one read was replayed as though the whole of it had been read")
+	}
+	if !strings.Contains(err.Error(), "too long to replay") {
+		t.Errorf("the error is %q and it must say that the task is too long to replay", err)
+	}
+	if !strings.Contains(err.Error(), made.outcome.TaskID) {
+		t.Errorf("the error is %q and it must name the task that cannot be replayed", err)
 	}
 }
 

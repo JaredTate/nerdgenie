@@ -75,3 +75,22 @@ func TestARealCommandRunsPollsAndIsKilled(t *testing.T) {
 		t.Errorf("the killed command was waited out rather than stopped, which took %s", time.Since(killedAt))
 	}
 }
+
+// TestAFailingCommandPipedIntoAnotherReportsTheFailingCode is what brief 6.6
+// carried over from the human trial: the model wrote "node --test tests/ 2>&1 |
+// tail -40", the tests failed, and the tool said "finished with exit code 0",
+// because the code a pipe reports is the code of its last command. The command
+// runs through bash with pipefail set, so the failing command's own code comes
+// back. This test really runs the command, because the point of it is what the
+// shell on this machine does rather than what the tool asked for.
+func TestAFailingCommandPipedIntoAnotherReportsTheFailingCode(t *testing.T) {
+	tool := newTool(t, runningSandbox{}, testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
+
+	output, err := run(t, tool, map[string]any{"command": "exit 7 | cat"})
+	if err != nil {
+		t.Fatalf("running a failing command in a pipe failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "exit code 7") {
+		t.Errorf("a command that quit with 7 into a pipe said %q, and the model would read that as a run that passed", output.Text)
+	}
+}

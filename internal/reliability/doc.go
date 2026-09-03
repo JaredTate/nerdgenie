@@ -17,13 +17,20 @@
 // task it has and take no new one, which is how the updater of wave 6 stops the
 // agent without cutting a task in half. The deadline is the one primitive behind
 // both the fifteen-minute turn limit and the seven-minute tool limit. The
-// watchdog feed tells systemd that the program is alive, and stops telling it
-// when the breaker has tripped. And Backup and Restore write and read one
-// age-encrypted archive of the database, the vault, and the browser profile.
+// watchdog feed tells systemd that the program is alive for as long as the
+// program is running. And Backup and Restore write and read one age-encrypted
+// archive of the database, the vault, and the browser profile.
 //
-// Guard is the one type serve.go wires: it holds all eight, does the whole
-// startup sequence in order, and hands the loop the lease, the deadlines, and
-// the ledger. Everything in here reads the time from contract.Clock and never
-// from the machine, so every mechanism is tested by moving a fake clock rather
-// than by waiting.
+// PrepareDatabase is what runs first, before any package opens the database. It
+// does the whole recovery and hands back the path to open, and Guard.Start
+// refuses to run until it has, because a handle taken before the recovery still
+// points at the file the recovery moved aside.
+//
+// Guard is the one type serve.go wires: it holds all eight and hands the rest of
+// the program one call for each of them. WhyNoNewTask is the sentence to send
+// whoever asked for work when no task will be started, RunTurn runs one turn
+// under the session's lease and the turn deadline, and Deliver writes a reply
+// down, sends it, and marks it delivered. Everything in here reads the time from
+// contract.Clock and never from the machine, so every mechanism is tested by
+// moving a fake clock rather than by waiting.
 package reliability

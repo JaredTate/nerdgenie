@@ -86,7 +86,7 @@ func TestTheWatchdogIsFedAtHalfTheIntervalSystemdAnnounced(t *testing.T) {
 	}
 	feeding, stopFeeding := context.WithCancel(context.Background())
 	defer stopFeeding()
-	go func() { _ = watchdog.Feed(feeding, func() bool { return true }) }()
+	go func() { _ = watchdog.Feed(feeding) }()
 
 	arrived := ""
 	for range 100 {
@@ -101,32 +101,45 @@ func TestTheWatchdogIsFedAtHalfTheIntervalSystemdAnnounced(t *testing.T) {
 	}
 }
 
-func TestTheWatchdogStopsBeingFedWhenTheProgramIsNotHealthy(t *testing.T) {
+func TestTheWatchdogIsFedTwiceForEveryIntervalSystemdAnnounced(t *testing.T) {
 	listening := aNotifySocket(t, true)
 	clock := testkit.NewFakeClock(startOfTime)
 	watchdog, err := reliability.NewWatchdog(clock)
 	if err != nil {
 		t.Fatalf("building the watchdog failed: %v", err)
 	}
-	stopped := make(chan error, 1)
-	go func() { stopped <- watchdog.Feed(context.Background(), func() bool { return false }) }()
+	feeding, stopFeeding := context.WithCancel(context.Background())
+	defer stopFeeding()
+	go func() { _ = watchdog.Feed(feeding) }()
+	waitForTheFirstFeed(t, clock, listening)
 
+	clock.Advance(2 * watchdogInterval)
+
+	fed := 0
+	for whatArrived(t, listening, 200*time.Millisecond) != "" {
+		fed++
+	}
+	if fed != 4 {
+		t.Errorf("systemd was told the program is alive %d times in %s, want 4: once every %s, which is half the %s it announced, and a feed at a third of the interval would be six",
+			fed, 2*watchdogInterval, watchdogInterval/2, watchdogInterval)
+	}
+}
+
+// waitForTheFirstFeed moves the clock until the feed answers, so that the test
+// knows the feed's own ticker exists, and then takes everything already sent
+// off the socket.
+func waitForTheFirstFeed(t *testing.T, clock *testkit.FakeClock, listening net.PacketConn) {
+	t.Helper()
 	for range 100 {
 		clock.Advance(watchdogInterval / 2)
-		select {
-		case err := <-stopped:
-			if err != nil {
-				t.Fatalf("the feed stopped with %v, want it to stop quietly so that systemd restarts the program", err)
-			}
-			if arrived := whatArrived(t, listening, 50*time.Millisecond); arrived != "" {
-				t.Errorf("the service manager was told %q by a program that is not healthy", arrived)
+		if whatArrived(t, listening, 20*time.Millisecond) != "" {
+			for whatArrived(t, listening, 100*time.Millisecond) != "" {
+				continue
 			}
 			return
-		default:
 		}
-		time.Sleep(time.Millisecond)
 	}
-	t.Fatalf("the feed never stopped although the program said it was not healthy")
+	t.Fatalf("the feed never told the service manager that the program is alive")
 }
 
 func TestTheFeedEndsWithTheContextItWasGiven(t *testing.T) {
@@ -138,7 +151,7 @@ func TestTheFeedEndsWithTheContextItWasGiven(t *testing.T) {
 	}
 	feeding, stopFeeding := context.WithCancel(context.Background())
 	stopped := make(chan error, 1)
-	go func() { stopped <- watchdog.Feed(feeding, func() bool { return true }) }()
+	go func() { stopped <- watchdog.Feed(feeding) }()
 	stopFeeding()
 
 	select {
@@ -166,19 +179,7 @@ func TestOutsideSystemdTheWatchdogDoesNothingAndSaysSo(t *testing.T) {
 	if err := watchdog.Ready(); err != nil {
 		t.Errorf("saying the program is ready outside systemd failed: %v", err)
 	}
-	if err := watchdog.Feed(context.Background(), func() bool { return true }); err != nil {
+	if err := watchdog.Feed(context.Background()); err != nil {
 		t.Errorf("feeding a watchdog that is not there failed: %v", err)
-	}
-}
-
-func TestTheWatchdogNeedsSomethingToAskAboutHealth(t *testing.T) {
-	aNotifySocket(t, true)
-	watchdog, err := reliability.NewWatchdog(testkit.NewFakeClock(startOfTime))
-	if err != nil {
-		t.Fatalf("building the watchdog failed: %v", err)
-	}
-
-	if err := watchdog.Feed(context.Background(), nil); err == nil {
-		t.Errorf("the feed was started with no way of asking whether the program is healthy")
 	}
 }

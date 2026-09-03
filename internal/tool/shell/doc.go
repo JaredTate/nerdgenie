@@ -13,5 +13,11 @@
 // a written reason and ask for administrator powers, which puts the whole
 // command in front of the user as a preview, and only once that is approved does
 // it run outside the fence through sudo, which reads the password from a helper
-// program rather than from anything the model can see.
+// program rather than from anything the model can see; a ruling that is not
+// exactly allow runs nothing, whatever else it says.
+//
+// Every command goes through bash with pipefail set wherever bash is on the
+// machine, so that a failing command in a pipe reports its own code rather than
+// the code of the last command in the pipe, and through /bin/sh where there is
+// no bash.
 package shell

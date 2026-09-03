@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -126,5 +127,32 @@ func TestTheWorkerIsHandedTheDisplayAndNothingSecret(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("the worker was handed %v, and it needs the display to draw its window on", handed)
+	}
+}
+
+// A test run must not put a Chrome window on the screen of whoever is running
+// it, so `make test-browser` sets COEUS_HEADLESS_TESTS and the worker is asked
+// for a browser with no window. Nothing else sets that name, so an ordinary run
+// still opens the visible window design section 11 asks for: a logged-in account
+// is only safe in a window the user can see.
+func TestChromeIsAskedToGoHeadlessOnlyWhenTheTestsAskForIt(t *testing.T) {
+	command := []string{"node", "main.js"}
+	profile := "/tmp/a-profile"
+
+	t.Setenv(headlessVariable, "")
+	ordinary := workerArguments(command, profile, PacingHuman)
+	if slices.Contains(ordinary, headlessFlag) {
+		t.Errorf("an ordinary run starts the worker with %v, and %s is in it; the browser the person uses has a window they can see",
+			ordinary, headlessFlag)
+	}
+
+	t.Setenv(headlessVariable, "1")
+	underTest := workerArguments(command, profile, PacingFast)
+	if !slices.Contains(underTest, headlessFlag) {
+		t.Errorf("with %s set the worker is started with %v, and %s is not in it, so a test run opens a Chrome window on the person's screen",
+			headlessVariable, underTest, headlessFlag)
+	}
+	if underTest[0] != "node" || underTest[1] != "main.js" {
+		t.Errorf("the worker is started with %v, and the program and its own arguments have to come first", underTest)
 	}
 }

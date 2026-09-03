@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/skill"
 )
 
@@ -23,7 +24,7 @@ func TestSaveCompletesAFolderThatOnlyGaveTheDescription(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
 	files := map[string][]byte{skill.DescriptionFile: []byte("# bare\n\nA skill saved with nothing but its description.\n")}
-	if err := built.store.Save(ctx, "bare", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "bare", files); err != nil {
 		t.Fatalf("saving a folder with only a description failed: %v", err)
 	}
 
@@ -56,7 +57,7 @@ func TestSaveRefusesWhatItCannotWrite(t *testing.T) {
 		{"a description file that says nothing", "quiet", map[string][]byte{skill.DescriptionFile: []byte("# quiet\n")}},
 	}
 	for _, test := range cases {
-		if err := built.store.Save(ctx, test.name, test.files); err == nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, test.name, test.files); err == nil {
 			t.Errorf("saving with %s was allowed, and it must be refused", test.what)
 		}
 	}
@@ -65,10 +66,10 @@ func TestSaveRefusesWhatItCannotWrite(t *testing.T) {
 func TestASecondSaveKeepsTheCopyItReplaced(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "The first description of this skill.", "Do the first thing.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "The first description of this skill.", "Do the first thing.")); err != nil {
 		t.Fatalf("the first save failed: %v", err)
 	}
-	if err := built.store.Save(ctx, "note", filesFor("note", "The second description of this skill.", "Do the second thing.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "The second description of this skill.", "Do the second thing.")); err != nil {
 		t.Fatalf("the second save failed: %v", err)
 	}
 
@@ -88,10 +89,10 @@ func TestASecondSaveKeepsTheCopyItReplaced(t *testing.T) {
 func TestRollbackRestoresThePreviousVersionAndTheChangelogRecordsBoth(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "The first description of this skill.", "Do the first thing.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "The first description of this skill.", "Do the first thing.")); err != nil {
 		t.Fatalf("the first save failed: %v", err)
 	}
-	if err := built.store.Save(ctx, "note", filesFor("note", "The second description of this skill.", "Do the second thing.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "The second description of this skill.", "Do the second thing.")); err != nil {
 		t.Fatalf("the second save failed: %v", err)
 	}
 
@@ -122,7 +123,7 @@ func TestARollbackCanItselfBeRolledBack(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
 	for _, description := range []string{"The first description of this skill.", "The second description of this skill."} {
-		if err := built.store.Save(ctx, "note", filesFor("note", description, "Do the thing.")); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", description, "Do the thing.")); err != nil {
 			t.Fatalf("the save failed: %v", err)
 		}
 	}
@@ -143,7 +144,7 @@ func TestRollbackRefusesWhatItCannotDo(t *testing.T) {
 	if _, err := built.store.Rollback(ctx, "no-such-skill"); err == nil {
 		t.Error("rolling back a skill that is not there was allowed, and it must be refused")
 	}
-	if err := built.store.Save(ctx, "once", filesFor("once", "A skill saved only one time ever.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "once", filesFor("once", "A skill saved only one time ever.", "Do it.")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 	_, err := built.store.Rollback(ctx, "once")
@@ -155,7 +156,7 @@ func TestRollbackRefusesWhatItCannotDo(t *testing.T) {
 func TestRemoveKeepsTheFolderUnderARemovedName(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "note", filesFor("note", "A skill about to be removed here.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill about to be removed here.", "Do it.")); err != nil {
 		t.Fatalf("the save failed: %v", err)
 	}
 
@@ -179,7 +180,7 @@ func TestRemovingASkillTwiceKeepsBothFolders(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
 	for range 2 {
-		if err := built.store.Save(ctx, "note", filesFor("note", "A skill saved and removed twice.", "Do it.")); err != nil {
+		if err := built.store.Save(ctx, contract.SkillSavedByPerson, "note", filesFor("note", "A skill saved and removed twice.", "Do it.")); err != nil {
 			t.Fatalf("the save failed: %v", err)
 		}
 		if _, err := built.store.Remove(ctx, "note"); err != nil {
@@ -196,14 +197,14 @@ func TestRemovingASkillTwiceKeepsBothFolders(t *testing.T) {
 func TestASaveThatSwapsStepsForAScriptLeavesNoStepsBehind(t *testing.T) {
 	built := newHarness(t)
 	ctx := context.Background()
-	if err := built.store.Save(ctx, "swap", filesFor("swap", "A skill that starts out with steps.", "Do it.")); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "swap", filesFor("swap", "A skill that starts out with steps.", "Do it.")); err != nil {
 		t.Fatalf("the first save failed: %v", err)
 	}
 	files := map[string][]byte{
 		skill.DescriptionFile: []byte("# swap\n\nA skill that ends up with a script.\n"),
 		skill.ScriptFile:      []byte("#!/bin/sh\necho hello\n"),
 	}
-	if err := built.store.Save(ctx, "swap", files); err != nil {
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "swap", files); err != nil {
 		t.Fatalf("the second save failed: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(built.home.SkillFolder("swap"), skill.StepsFile)); !os.IsNotExist(err) {

@@ -1,7 +1,7 @@
 // The pairing rules were borrowed from Hermes' pairing store at
 // ~/Code/hermes-agent/gateway/pairing.py, which is where the hour a code lives,
-// the three pending codes, the one request per sender every ten minutes, the
-// five wrong tries before a lockout, and the salted hash come from, and from
+// the cap on the codes waiting, the one request per sender every ten minutes,
+// the five wrong tries before a lockout, and the salted hash come from, and from
 // OpenClaw's pairing store at ~/Code/openclaw/src/pairing/pairing-store.ts,
 // which is where the idea of consuming the pending request on approval comes
 // from. The Go here is written fresh, and unlike either reference it compares
@@ -25,8 +25,14 @@ import (
 const (
 	// PairingCodeLifetime is how long a code is good for.
 	PairingCodeLifetime = time.Hour
-	// MaxPendingCodes is how many codes may be waiting to be approved at once.
-	MaxPendingCodes = 3
+	// MaxPendingCodes is how many senders may have a code waiting at once. One
+	// sender holds one code, and a sender who arrives when the list is full
+	// makes room by pushing out the code that has waited longest, so that no
+	// number of strangers can hold every slot and leave the owner's own phone
+	// with silence. The cap is the same as the number of senders the
+	// ten-minute rule remembers, because the two lists hold the same people,
+	// and it is what keeps a stream of strangers from filling the file.
+	MaxPendingCodes = MaxRememberedRequests
 	// PairingRequestInterval is how long one sender must wait between requests.
 	PairingRequestInterval = 10 * time.Minute
 	// MaxWrongTries is how many wrong codes are allowed before the door shuts.
@@ -86,9 +92,9 @@ func NewPairing(home contract.Home, clock contract.Clock) (*Pairing, error) {
 }
 
 // Offer gives one sender a fresh pairing code. The second result is false when
-// the sender is due nothing and must be told nothing: the door is shut after too
-// many wrong tries, the sender already asked within the last ten minutes, or
-// three other people are already waiting.
+// the sender already asked within the last ten minutes, which is the only reason
+// a sender is told nothing at all: what other senders have done is never a reason
+// to leave this one in silence.
 func (pairing *Pairing) Offer(sender string) (string, bool, error) {
 	if sender == "" {
 		return "", false, errors.New("cannot offer a pairing code to nobody, so pass the sender the daemon reported")
@@ -99,19 +105,17 @@ func (pairing *Pairing) Offer(sender string) (string, bool, error) {
 	now := pairing.clock.Now()
 	pairing.forgetWhatHasRunOut(now)
 
-	if now.Before(pairing.state.LockedUntil) {
-		return "", false, nil
-	}
+	// The lockout after too many wrong codes is not looked at here. It shuts the
+	// door on typing codes, which is where the guessing happens; a sender who is
+	// handed a code guesses nothing, and refusing to hand one out would let one
+	// person's wrong codes silence everybody's pairing for an hour.
 	if asked, known := pairing.state.LastRequest[sender]; known && now.Sub(asked) < PairingRequestInterval {
 		return "", false, nil
 	}
-	// The time is written down before the cap is looked at, so that a sender
-	// turned away because three others are waiting still has to wait ten minutes
-	// before asking again.
 	pairing.rememberRequest(sender, now)
 	waiting := pairing.pendingIndexFor(sender)
-	if waiting < 0 && len(pairing.state.Pending) >= MaxPendingCodes {
-		return "", false, pairing.saveCodes()
+	if waiting < 0 {
+		pairing.makeRoomForOneMoreCode()
 	}
 
 	code, entry, err := newPendingCode(sender, now)
@@ -235,6 +239,22 @@ func (pairing *Pairing) rememberRequest(sender string, now time.Time) {
 		delete(pairing.state.LastRequest, oldest)
 	}
 	pairing.state.LastRequest[sender] = now
+}
+
+// makeRoomForOneMoreCode drops the codes that have waited longest until there is
+// room for one more sender, so that a sender who arrives when the list is full is
+// never the one turned away. Each pass drops one code, so the loop ends. The
+// caller holds the lock.
+func (pairing *Pairing) makeRoomForOneMoreCode() {
+	for len(pairing.state.Pending) >= MaxPendingCodes {
+		oldest := 0
+		for at, entry := range pairing.state.Pending {
+			if entry.Created.Before(pairing.state.Pending[oldest].Created) {
+				oldest = at
+			}
+		}
+		pairing.state.Pending = append(pairing.state.Pending[:oldest], pairing.state.Pending[oldest+1:]...)
+	}
 }
 
 // forgetWhatHasRunOut drops codes older than an hour, requests older than the

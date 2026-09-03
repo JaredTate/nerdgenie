@@ -35,6 +35,12 @@ const (
 	// buildsItselfNote says the command works out part of what it will run
 	// while it runs, as a command substitution or a pair of backticks does.
 	buildsItselfNote = "(builds part of itself at run time)"
+	// unclosedQuoteNote says a quote was opened and never closed, so where one
+	// word ends and the next begins is a guess. Everything after such a quote,
+	// the characters that end one command and start another among them, is read
+	// as more of the same word, and the program's own name can come out of it
+	// carrying text that was never part of it.
+	unclosedQuoteNote = "(a quote that is never closed)"
 )
 
 // commandSeparators are the characters that end one command and start another:
@@ -63,7 +69,8 @@ func commandWords(command string) ([][]string, string) {
 		}
 		splitter.read(letter)
 	}
-	return splitter.done(), splitter.notWholeStory
+	segments := splitter.done()
+	return segments, splitter.notWholeStory
 }
 
 // lineSplitter reads a command line one character at a time and collects the
@@ -188,7 +195,13 @@ func (splitter *lineSplitter) endSegment() {
 }
 
 // done finishes whatever is still being built and returns every command found.
+// A quote still open at the end of the line means the words are not the whole
+// story, because a shell reading the same line would not end it where this
+// reader did.
 func (splitter *lineSplitter) done() [][]string {
+	if splitter.quote != 0 {
+		splitter.markNotWholeStory(unclosedQuoteNote)
+	}
 	splitter.endSegment()
 	return splitter.segments
 }

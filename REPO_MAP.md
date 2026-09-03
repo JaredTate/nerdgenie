@@ -32,6 +32,7 @@ GPT_BENCHMARK.md
 LICENSE
 Makefile
 OPUS_BENCHMARK.md
+QWEN_BENCHMARK.md
 README.md
 REPO_MAP.md
 TEST.md
@@ -1235,6 +1236,7 @@ internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
 internal/tui/testdata/panel-idle-120x36.txt
+internal/tui/testdata/panel-job-120x36.txt
 internal/tui/testdata/panel-task-120x36.txt
 internal/tui/testdata/scrolled-up-80x24.txt
 internal/tui/testdata/themed-banner-120x40.txt

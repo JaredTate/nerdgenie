@@ -139,6 +139,39 @@ func TestMoreStandingApprovalsThanTheCapAreRefused(t *testing.T) {
 	}
 }
 
+// theShippedEntriesAndACallEachCatches is one call for each of the three entries
+// the ask-me-first list ships with. A skill's standing approval is not the user's
+// yes, so it may not cover any of them, however wide the readable form it names.
+var theShippedEntriesAndACallEachCatches = []struct {
+	entry    string
+	toolName string
+	fields   map[string]any
+}{
+	{contract.AskFirstBulkDelete, contract.ToolShell, map[string]any{"command": "rm -rf /home/jared/coeus"}},
+	{contract.AskFirstSudo, contract.ToolShell, map[string]any{"command": "sudo apt install ripgrep"}},
+	{contract.AskFirstSpendMoney, contract.ToolWeb, map[string]any{"url": "https://shop.example.com/checkout"}},
+}
+
+func TestAStandingApprovalNeverCoversTheAskMeFirstList(t *testing.T) {
+	for _, one := range theShippedEntriesAndACallEachCatches {
+		decider := newDecider(t, contract.DefaultConfig())
+		registerStanding(t, decider, permission.StandingApproval{
+			Skill:       "tidy-up",
+			ReducedForm: "*",
+			Limit:       1000,
+			Expires:     theTestTime.Add(time.Hour),
+		})
+		request := contract.PermissionRequest{ToolName: one.toolName, Input: jsonInput(t, one.fields)}
+
+		decision := decide(t, decider, request)
+		if decision.Ruling != contract.RulingAsk {
+			t.Errorf("%s: %q was ruled %q because %q, want %q; the ask-me-first list is read before any standing approval,"+
+				" so a skill cannot hand itself the three things the user always sees first",
+				one.entry, permission.Reduce(request), decision.Ruling, decision.Reason, contract.RulingAsk)
+		}
+	}
+}
+
 // registerStanding gives the permission function one standing approval and fails
 // the test when it will not take it.
 func registerStanding(t *testing.T, decider *permission.Decider, approval permission.StandingApproval) {

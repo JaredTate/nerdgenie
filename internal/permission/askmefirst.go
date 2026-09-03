@@ -108,10 +108,11 @@ func askRules(name string, patterns []Rule) []Rule {
 	rules := make([]Rule, 0, len(patterns))
 	for _, pattern := range patterns {
 		rules = append(rules, Rule{
-			Tool:    pattern.Tool,
-			Pattern: pattern.Pattern,
-			Action:  contract.RulingAsk,
-			Reason:  name,
+			Tool:                  pattern.Tool,
+			Pattern:               pattern.Pattern,
+			Action:                contract.RulingAsk,
+			Reason:                name,
+			FromTheAskMeFirstList: true,
 		})
 	}
 	return rules

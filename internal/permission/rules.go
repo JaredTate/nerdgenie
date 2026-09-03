@@ -35,6 +35,10 @@ type Rule struct {
 	Action contract.PermissionRuling
 	// Reason says why this rule is here.
 	Reason string
+	// FromTheAskMeFirstList says the rule is one of the entries the user asked
+	// to see first, which is the one thing a skill's standing approval may
+	// never cover.
+	FromTheAskMeFirstList bool
 }
 
 // Rulebook is a list of rules, compiled once, ready to be matched against a call.

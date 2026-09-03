@@ -10,22 +10,44 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
+// aUserWhoAsksAboutOneCompanysSites is a user who wrote one rule of their own:
+// ask me before anything goes to that company. A standing approval is held
+// against a rule like this one, because the ask-me-first list the harness ships
+// is read before every approval and no approval ever covers it.
+func aUserWhoAsksAboutOneCompanysSites() contract.Config {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWeb, Pattern: "*example.com*", Action: contract.RulingAsk},
+	}
+	return configuration
+}
+
+// aVisitTo is one call to a page, which is the kind of call a skill's
+// permissions block holds a standing approval for.
+func aVisitTo(t *testing.T, address string) contract.PermissionRequest {
+	t.Helper()
+	return contract.PermissionRequest{
+		ToolName: contract.ToolWeb,
+		Input:    jsonInput(t, map[string]any{"url": address}),
+	}
+}
+
 func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       2,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	for use := 1; use <= 2; use++ {
 		decision := decide(t, decider, request)
 		if decision.Ruling != contract.RulingAllow {
 			t.Fatalf("use %d of the standing approval was ruled %q, want %q", use, decision.Ruling, contract.RulingAllow)
 		}
-		if !strings.Contains(decision.Reason, "clear-the-build-folder") {
+		if !strings.Contains(decision.Reason, "read-the-news") {
 			t.Errorf("the reason is %q, and it has to name the skill that holds the approval", decision.Reason)
 		}
 	}
@@ -37,17 +59,17 @@ func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
 
 func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 	clock := testkit.NewFakeClock(theTestTime)
-	decider, err := permission.New(contract.DefaultConfig(), clock)
+	decider, err := permission.New(aUserWhoAsksAboutOneCompanysSites(), clock)
 	if err != nil {
 		t.Fatalf("building the permission function failed: %v", err)
 	}
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	if decision := decide(t, decider, request); decision.Ruling != contract.RulingAllow {
 		t.Fatalf("before the expiry the call was ruled %q, want %q", decision.Ruling, contract.RulingAllow)
@@ -61,29 +83,29 @@ func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 }
 
 func TestAStandingApprovalCoversOnlyTheFormItNames(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
 
-	decision := decide(t, decider, shellRequest(t, "git reset --hard origin/main"))
+	decision := decide(t, decider, aVisitTo(t, "https://other.example.com/today"))
 	if decision.Ruling != contract.RulingAsk {
 		t.Errorf("a call the standing approval does not name was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
 	}
 }
 
 func TestARejectionTheUserGaveBeatsAStandingApproval(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	if err := decider.Remember(request, contract.AnswerReject, "not that folder"); err != nil {
 		t.Fatalf("remembering the rejection failed: %v", err)

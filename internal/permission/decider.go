@@ -99,9 +99,9 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 	case covered && matched.Action == contract.RulingAllow:
 		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
 	case covered:
-		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced)), nil
+		return decider.ruleOnSomethingToAskAbout(request, reduced, reasonOf(matched, reduced), matched.FromTheAskMeFirstList), nil
 	case note != "":
-		return decider.ruleOnSomethingToAskAbout(request, reduced, whyTheFormLeavesSomethingOut(note, reduced)), nil
+		return decider.ruleOnSomethingToAskAbout(request, reduced, whyTheFormLeavesSomethingOut(note, reduced), false), nil
 	default:
 		return contract.PermissionDecision{
 			Ruling: contract.RulingAllow,
@@ -131,9 +131,11 @@ func whyTheFormLeavesSomethingOut(note string, reduced string) string {
 // ruleOnSomethingToAskAbout takes a call that needs a yes, which the user has
 // not already answered about in this session. A run with nobody there to answer
 // stops before anything else is read, because a call that needs a yes and can be
-// given none does not run whoever holds an approval for it. Only after that is a
-// skill's standing approval read, and a call no approval covers goes to the user.
-func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string) contract.PermissionDecision {
+// given none does not run whoever holds an approval for it. A call the user's
+// ask-me-first list caught goes straight to the user, because that list is what
+// the user asked to see first and a skill's standing approval is not the user's
+// word. Only what is left is offered to the standing approvals.
+func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionRequest, reduced string, why string, onTheAskMeFirstList bool) contract.PermissionDecision {
 	if request.Unattended {
 		return contract.PermissionDecision{
 			Ruling:      contract.RulingStop,
@@ -141,8 +143,10 @@ func (decider *Decider) ruleOnSomethingToAskAbout(request contract.PermissionReq
 			PreviewText: previewOf(request, reduced),
 		}
 	}
-	if approval, standing := decider.useStandingApproval(reduced); standing {
-		return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
+	if !onTheAskMeFirstList {
+		if approval, standing := decider.useStandingApproval(reduced); standing {
+			return contract.PermissionDecision{Ruling: contract.RulingAllow, Reason: approval}
+		}
 	}
 	return contract.PermissionDecision{
 		Ruling:      contract.RulingAsk,

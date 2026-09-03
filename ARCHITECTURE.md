@@ -294,8 +294,15 @@ two minutes is dropped and opened again at once. Every wait is measured on
 
 **Pairing.** A sender the agent does not know gets an eight-character code drawn
 without bias from thirty-two characters that cannot be mistaken for each other,
-and nothing else. Codes live one hour, three may be waiting at once, one sender
-may ask once every ten minutes, and five wrong tries shut the door for an hour.
+and nothing else. Codes live one hour and one sender may ask once every ten
+minutes, which is the only reason a sender is told nothing at all. At most
+`MaxPendingCodes` codes wait at once, the same number of senders the ten-minute
+rule remembers, and a sender who arrives when the list is full pushes out the
+code that has waited longest rather than being turned away, so that no number of
+strangers can hold every slot and leave the owner's own phone in silence. Five
+wrong codes shut the door for an hour, and that door is the typing of codes,
+where a guess happens: a code is still handed out to a sender who asks while it
+is shut, or one person's wrong codes would silence everybody's pairing.
 They are kept salted and hashed in `~/.coeus/signal/pairing.json`, mode 0600,
 written to a file beside it and moved into place, and compared with
 `subtle.ConstantTimeCompare` against every waiting entry rather than stopping at
@@ -309,10 +316,13 @@ may pair the next one from their phone.
 `signal`. Inbound messages come only from paired senders and only from direct
 conversations, because a reply to a group message would go to the wrong place. A
 reply goes to whoever last wrote, and to the account itself when nobody has
-written yet; it is split at paragraph breaks into as few messages as fit Signal's
-two-thousand-unit length, never in the middle of a sentence while a sentence
-break is available, capped at ten messages with a note on the last one, and sent
-with a typing indicator around it. A preview arrives as the actual text with the
+written yet; the whole reply goes through the redactor **before** it is split,
+never each message after, because the redactor looks for whole values and a
+secret lying across a seam matches neither half; it is then split at paragraph
+breaks into as few messages as fit Signal's two-thousand-unit length, never in
+the middle of a sentence while a sentence break is available and never inside the
+`[redacted]` marker the redactor left, capped at ten messages with a note on the
+last one, and sent with a typing indicator around it. A preview arrives as the actual text with the
 three answers explained once, and waits `PreviewTimeout`, thirty minutes, for
 `approve`, `always`, or `deny`. A handoff arrives through `SendFile` with its
 screenshot. `AskSecret` always returns `contract.ErrNoMaskedPrompt`, because

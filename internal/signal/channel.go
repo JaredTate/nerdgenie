@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,18 +31,12 @@ const (
 	StillWorkingAfter = 5 * time.Minute
 	// StillWorkingNote is what that one message says.
 	StillWorkingNote = "I am still working on that. I will send the result when it is done."
-	// PreviewTimeout is how long a preview waits for an answer before it counts
-	// as refused.
-	PreviewTimeout = 30 * time.Minute
 	// DefaultDaemonHost is where signal-cli serves when nothing else says.
 	DefaultDaemonHost = "127.0.0.1"
 	// DefaultDaemonPort is the port signal-cli serves on when nothing else says.
 	DefaultDaemonPort = 8420
 	// MaxAttachmentsPerMessage is how many files from one message are saved.
 	MaxAttachmentsPerMessage = 10
-	// previewInstructions is the one line that explains the three answers, said
-	// once with every preview and nowhere else.
-	previewInstructions = "Reply \"approve\" to allow this once, \"always\" to allow every one like it, or \"deny\" to refuse."
 )
 
 // Channel is the Signal channel: everything a user says over Signal comes in
@@ -271,41 +264,6 @@ func (channel *Channel) SendFile(ctx context.Context, path string, caption strin
 	return channel.client.Send(ctx, channel.recipient(), caption, []string{path})
 }
 
-// ShowPreview sends what is about to happen as the message itself, explains the
-// three answers once, and waits for one of them.
-func (channel *Channel) ShowPreview(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error) {
-	// The answer is waited for before the preview is sent, never after, because
-	// somebody reading fast can reply before a send has finished returning.
-	answers := make(chan contract.PreviewAnswer, 1)
-	channel.guard.Lock()
-	channel.waiting = answers
-	channel.guard.Unlock()
-	defer channel.forgetPreview(answers)
-
-	shown := strings.TrimSpace(preview.Title + "\n\n" + preview.Body + "\n\n" + previewInstructions)
-	if err := channel.client.Send(ctx, channel.recipient(), shown, nil); err != nil {
-		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, err
-	}
-
-	waited, stopWaiting := context.WithCancel(ctx)
-	defer stopWaiting()
-	expired := make(chan struct{})
-	go func() {
-		if err := channel.clock.Sleep(waited, PreviewTimeout); err == nil {
-			close(expired)
-		}
-	}()
-
-	select {
-	case answer := <-answers:
-		return contract.PreviewAnswerWithReason{Answer: answer}, nil
-	case <-expired:
-		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, fmt.Errorf("nobody answered the preview %q within %v, so it counts as refused", preview.ID, PreviewTimeout)
-	case <-ctx.Done():
-		return contract.PreviewAnswerWithReason{Answer: contract.AnswerReject}, ctx.Err()
-	}
-}
-
 // AskSecret always refuses, because Signal shows what is typed to anybody
 // looking at the phone and keeps it in the conversation afterwards.
 func (channel *Channel) AskSecret(context.Context, string) (string, error) {
@@ -376,50 +334,6 @@ func (channel *Channel) offerPairing(ctx context.Context, sender string) {
 		return
 	}
 	_ = channel.client.Send(ctx, sender, PairingMessage(code), nil)
-}
-
-// answerPreview hands one of the three words to whatever is waiting for it, and
-// says whether the message was that answer rather than something for the agent.
-func (channel *Channel) answerPreview(text string) bool {
-	answer, isAnswer := readPreviewAnswer(text)
-	if !isAnswer {
-		return false
-	}
-	channel.guard.Lock()
-	defer channel.guard.Unlock()
-	if channel.waiting == nil {
-		return false
-	}
-	select {
-	case channel.waiting <- answer:
-	default:
-	}
-	channel.waiting = nil
-	return true
-}
-
-// readPreviewAnswer turns one of the three words into the answer it stands for.
-func readPreviewAnswer(text string) (contract.PreviewAnswer, bool) {
-	switch strings.ToLower(strings.TrimSpace(text)) {
-	case "approve":
-		return contract.AnswerOnce, true
-	case "always":
-		return contract.AnswerAlways, true
-	case "deny":
-		return contract.AnswerReject, true
-	default:
-		return "", false
-	}
-}
-
-// forgetPreview takes the waiting answer away, unless something else is already
-// waiting on a newer one.
-func (channel *Channel) forgetPreview(answers chan contract.PreviewAnswer) {
-	channel.guard.Lock()
-	defer channel.guard.Unlock()
-	if channel.waiting == answers {
-		channel.waiting = nil
-	}
 }
 
 // recipient is who a reply goes to: the last person who wrote, and the account

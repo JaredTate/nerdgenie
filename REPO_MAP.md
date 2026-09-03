@@ -692,6 +692,7 @@ internal/signal/link_test.go
 internal/signal/pairing.go
 internal/signal/pairing_test.go
 internal/signal/pairingfile.go
+internal/signal/preview.go
 internal/signal/reviewredaction_test.go
 internal/signal/split.go
 internal/signal/split_test.go

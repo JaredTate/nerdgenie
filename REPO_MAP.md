@@ -374,6 +374,7 @@ internal/desktop/lifecycle.go
 internal/desktop/process.go
 internal/desktop/process_test.go
 internal/desktop/protocol.go
+internal/desktop/screenshot_test.go
 internal/desktop/support_test.go
 internal/desktop/wiring_test.go
 internal/job/bounds_test.go
@@ -987,6 +988,7 @@ internal/tool/computer/looseinput_test.go
 internal/tool/computer/pinnedbounds_test.go
 internal/tool/computer/read.go
 internal/tool/computer/testdata/a_screenshot.txt
+internal/tool/computer/testdata/a_screenshot_before_any_launch.txt
 internal/tool/computer/testdata/the_actions.txt
 internal/tool/doc.go
 internal/tool/edit/doc.go

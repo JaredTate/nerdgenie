@@ -97,7 +97,12 @@ func saveSignalAccount(home contract.Home, account string) error {
 func replaceOrAddSetting(existing string, key string, line string) string {
 	lines := strings.Split(existing, "\n")
 	for at, one := range lines {
-		if keyOfSettingLine(one) == key {
+		// The key is matched the way the reader matches it, which folds case.
+		// A file holding "sIgnal_aCcount" already sets this setting, and a
+		// second line spelled the ordinary way would leave two keys that both
+		// mean it; which of them the reader then believes changes from run to
+		// run, so the one already there is the one to replace.
+		if strings.EqualFold(keyOfSettingLine(one), key) {
 			lines[at] = line
 			return strings.TrimLeft(strings.Join(lines, "\n"), "\n") + "\n"
 		}

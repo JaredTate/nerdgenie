@@ -7,6 +7,7 @@ import (
 
 	"github.com/JaredTate/coeus/internal/channel"
 	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/coeus/internal/loop"
 )
 
 // statusForAScreen is what a screen is told the moment it attaches and on every
@@ -94,6 +95,12 @@ func (running *agent) tellTheScreens() {
 // noteRecordLine remembers the newest line about a task or a job and tells the
 // screens at once, so that a person sees work start and finish as it happens.
 func (running *agent) noteRecordLine(line string) {
+	// A task beginning is where the data boundary is rolled, so that no two
+	// tasks ever mark their tool results the same way. This is the one place
+	// that fires for a message and for a job's task alike.
+	if running.builder != nil && strings.Contains(line, " started"+loop.RecordLineSeparator) {
+		running.builder.startingATask()
+	}
 	running.busyGuard.Lock()
 	running.recordLine = onOneLine(line)
 	running.busyGuard.Unlock()

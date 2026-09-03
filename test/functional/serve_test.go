@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
+	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
@@ -356,5 +357,23 @@ func addSettingToTheHome(t *testing.T, home contract.Home, line string) {
 	written := strings.Replace(string(held), "\n[[models]]", "\n"+line+"\n\n[[models]]", 1)
 	if err := os.WriteFile(home.ConfigFile(), []byte(written), contract.DataFileMode); err != nil {
 		t.Fatalf("writing the configuration back failed: %v", err)
+	}
+}
+
+// writeASkillOfTheirOwn puts one skill folder in the home, as a person who had
+// already written that skill would have. It is built from the shipped one with
+// its words changed, so that the store can read it and the test is about whose
+// copy survives rather than about the file format.
+func writeASkillOfTheirOwn(t *testing.T, home contract.Home, name string, says string) {
+	t.Helper()
+	folder := home.SkillFolder(name)
+	if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
+		t.Fatalf("making the skill folder failed: %v", err)
+	}
+	for called, held := range browserskill.ShippedQASkill() {
+		written := strings.Replace(string(held), "Walks an app step by step", says, 1)
+		if err := os.WriteFile(filepath.Join(folder, called), []byte(written), contract.DataFileMode); err != nil {
+			t.Fatalf("writing %s of the skill failed: %v", called, err)
+		}
 	}
 }

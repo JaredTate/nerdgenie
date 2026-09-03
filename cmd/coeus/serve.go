@@ -17,7 +17,6 @@ import (
 	"github.com/JaredTate/coeus/internal/clock"
 	"github.com/JaredTate/coeus/internal/command"
 	"github.com/JaredTate/coeus/internal/config"
-	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/job"
 	"github.com/JaredTate/coeus/internal/log"
@@ -176,7 +175,7 @@ type agent struct {
 	stream    *channel.Stream
 	socket    *channel.Socket
 	previews  *waitingPreviews
-	builder   *workingcontext.Builder
+	builder   *perTaskContext
 	fence     contract.Sandbox
 	browser   *browser.Browser
 	tools     *tool.Registry

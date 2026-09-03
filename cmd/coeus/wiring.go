@@ -194,6 +194,17 @@ func (running *agent) openTheFence() contract.Sandbox {
 		UserHome:  userHome,
 		AgentHome: running.home.Root,
 		OutputCap: running.settings.Caps.ToolOutputBytes,
+		// The fence unshares the network unless it is told otherwise, and the
+		// shell tool is how the agent installs a package, clones a repository,
+		// and calls an interface on this machine, so the agent's own fence
+		// keeps its network. What a command may reach is ruled on by the
+		// permission function and bounded by the roots, rather than by taking
+		// the network away from every command there is.
+		Network: true,
+		// The browser profile is the agent's own logins and the backups are its
+		// whole history, so neither may sit inside a folder a command can read,
+		// wherever the configuration has put them.
+		AlsoOutside: []string{running.settings.BrowserProfilePath, running.settings.BackupPath},
 	})
 	if err != nil {
 		running.note("no sandbox could be built, so the shell tool will refuse rather than run loose: " + err.Error())

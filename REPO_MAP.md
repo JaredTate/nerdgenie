@@ -1121,6 +1121,7 @@ test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/loop_test.go
+test/functional/network_test.go
 test/functional/nightly_test.go
 test/functional/permission_test.go
 test/functional/readfile_test.go

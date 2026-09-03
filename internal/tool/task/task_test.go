@@ -248,3 +248,28 @@ func TestAToolWithNoRecordWiredInSaysSo(t *testing.T) {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
 	}
 }
+
+// TestADoneLineWrittenAsAPlainStringIsTakenAsItsText reproduces what the local
+// model did in the first trial: it wrote the done list as a list of strings,
+// the tool refused every one of seven tries, and the task went nowhere. A
+// string is the line's text; an object still works; anything else is refused
+// with the shape named.
+func TestADoneLineWrittenAsAPlainStringIsTakenAsItsText(t *testing.T) {
+	tool, keeper := newTool(t)
+
+	if _, err := run(t, tool, map[string]any{
+		"operation": "done_when",
+		"done_when": []any{"the folder exists", map[string]any{"text": "the tests pass"}},
+	}); err != nil {
+		t.Fatalf("a done list written as strings was refused: %v", err)
+	}
+	lines := keeper.Record().Goal.DoneWhen
+	if len(lines) != 2 || lines[0].Text != "the folder exists" || lines[1].Text != "the tests pass" {
+		t.Errorf("the done list came out as %+v", lines)
+	}
+
+	_, err := run(t, tool, map[string]any{"operation": "done_when", "done_when": []any{42}})
+	if err == nil || !strings.Contains(err.Error(), `"text"`) {
+		t.Errorf("a done line that is a number was not refused with the shape named: %v", err)
+	}
+}

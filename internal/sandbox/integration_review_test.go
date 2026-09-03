@@ -168,3 +168,15 @@ func TestTheFilterRefusesANewUserNamespaceHoweverItIsAskedFor(t *testing.T) {
 		}
 	}
 }
+
+// TestAProgramInsideTheFenceCanReadTheKernelsOwnFolders holds what the fourth
+// Tetris run found: /proc was mounted but every read of it was refused, so
+// Node counted zero processors and vitest waited forever for workers it never
+// started. The kernel's own folders are readable inside the fence.
+func TestAProgramInsideTheFenceCanReadTheKernelsOwnFolders(t *testing.T) {
+	fence, _, _ := aRealFence(t, theToolOutputCap)
+	said := insideTheFence(t, fence, "head -c 40 /proc/cpuinfo >/dev/null && ls /proc/self >/dev/null && cat /proc/self/status | head -1 && echo READABLE")
+	if !strings.Contains(said, "READABLE") {
+		t.Errorf("a program inside the fence cannot read /proc: %q", said)
+	}
+}

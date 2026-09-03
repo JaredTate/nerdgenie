@@ -1,0 +1,43 @@
+#!/bin/sh
+# wordcount is the worked example of a user's own tool, and the whole of the
+# user-tool protocol in internal/contract/usertool.go is in these few lines:
+# answer --describe with a JSON tool specification, and otherwise read one JSON
+# object from standard input and print the result as plain text.
+#
+# Copy this file into ~/.coeus/tools/, make it executable, and restart the agent.
+# docs/EXTENDING.md section 2 is the guide it goes with.
+
+set -eu
+
+# description is the plain-English line the model reads on every call. It must
+# stay under forty words, which is the cap internal/contract enforces, and it
+# says when to use the tool and when not to.
+description="Counts the words in a line of text. Use it when the model needs a number rather than the text itself. Do not use it to read a file; the read tool does that."
+
+if [ "${1:-}" = "--describe" ]; then
+	cat <<DESCRIBED
+{
+  "name": "wordcount",
+  "description": "$description",
+  "fields": [
+    {
+      "name": "text",
+      "type": "string",
+      "description": "The text whose words are counted.",
+      "required": true
+    }
+  ],
+  "classes": ["R"]
+}
+DESCRIBED
+	exit 0
+fi
+
+# Everything else is a call. The model's arguments arrive as one JSON object on
+# standard input, and this reads the one field the specification declares.
+# Anything the field does not hold is not this tool's business, so a missing or
+# empty text counts as no words rather than as a failure.
+arguments=$(cat)
+text=$(printf '%s' "$arguments" | sed -n 's/.*"text"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+printf '%s\n' "$text" | wc -w | tr -d ' '

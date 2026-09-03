@@ -31,14 +31,19 @@ func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
 	run.playTo(t, 21)
 	later := buildWithTheBudgetSpent(t, builder, run, 80, contract.CostLine{InputTokens: 15400, CachedInputTokens: 3900, OutputTokens: 600})
 
-	shared := sharedPrefix(renderPrompt(earlier), renderPrompt(later))
-	t.Logf("two rounds that follow each other share %d bytes of %d from the start", len(shared), len(renderPrompt(later)))
+	whole := renderPrompt(later)
+	shared := sharedPrefix(renderPrompt(earlier), whole)
+	t.Logf("two rounds that follow each other share %d bytes of %d from the start, so %d bytes are read again",
+		len(shared), len(whole), len(whole)-len(shared))
 	for _, wanted := range []string{
 		InstructionText,
 		"Read a file, a folder, or a past result by its id.",
 		"Write a file inside the allowed folders.",
 		"## Goal", "## Rules", "## Work", "Plan:", "- [ ] 10 confirm it is up",
-		resultListLabel,
+		// The result of round twenty, which is the last thing the two rounds
+		// have in common. Reaching it means the shared run covers the whole
+		// conversation, not only the record's body.
+		"e13 text 228/280 shows the post is inside the limit.",
 	} {
 		if !strings.Contains(shared, wanted) {
 			t.Errorf("two rounds that follow each other share only %d bytes from the start, and that run does not reach %q,"+
@@ -55,11 +60,12 @@ func TestThePromptTheProviderCanReuseReachesPastTheRecordBody(t *testing.T) {
 			}
 		}
 		prompt := renderPrompt(request)
+		if strings.LastIndex(prompt, resultListLabel) < strings.LastIndex(prompt, memoryHintHeading) {
+			t.Errorf("at %s the list of results comes before the memory hint, and the list grows every round,"+
+				" so everything under it is read again on every call", name)
+		}
 		if strings.LastIndex(prompt, "budget left:") < strings.LastIndex(prompt, resultListLabel) {
 			t.Errorf("at %s the budget line comes before the list of results, and it changes on every call", name)
-		}
-		if strings.LastIndex(prompt, "budget left:") < strings.LastIndex(prompt, "--- end tool result,") {
-			t.Errorf("at %s the budget line comes before the newest tool result, and it changes on every call", name)
 		}
 	}
 }

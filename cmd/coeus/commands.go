@@ -35,6 +35,7 @@ func (running *agent) registerCommands(lastTasks *screenTasks) error {
 		PendingPreviews: running.previews.list,
 		Answer:          running.previews.answer,
 		Channels:        running.everyChannel,
+		YoloIsOn:        running.decider.YoloIsOn,
 	})
 
 	all := append(onlyTheOnesThatWork(core.All()),
@@ -49,6 +50,7 @@ func (running *agent) registerCommands(lastTasks *screenTasks) error {
 		running.memories.Command(),
 		running.clearCommand(lastTasks),
 		running.thinkCommand(),
+		running.yoloCommand(),
 		readyCommand())
 	if running.settings.SignalAccount != "" {
 		all = append(all, signalchannel.PairCommand(running.pairingStore()))

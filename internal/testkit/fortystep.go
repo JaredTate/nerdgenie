@@ -269,9 +269,10 @@ func (round FortyStepRound) results(before int) []FortyStepResult {
 }
 
 // ResultsOfRound is what one round's tool calls produced, in order and with the
-// labels they carry in the whole list: the round's own tool result, and the
-// record write when the round made one. A harness driving the fixture adds these
-// as it goes, and ends with exactly the list ToolResults returns.
+// labels they carry in the whole list: the round's own tool result, one for each
+// further tool it asked for in the same reply, and the record write when the
+// round made one. A harness driving the fixture adds these as it goes, and ends
+// with exactly the list ToolResults returns.
 func (task FortyStepTask) ResultsOfRound(number int) []FortyStepResult {
 	before := 0
 	for _, round := range task.Rounds {

@@ -63,8 +63,11 @@ func TestAMaskedPromptComesBackWithTheSecretAndLeavesItNowhereElse(t *testing.T)
 	if asked.Type != contract.SocketAsk {
 		t.Fatalf("the screen saw a %s, want a question", asked.Type)
 	}
-	if asked.Fields[SecretPromptField] != SecretPromptValue {
-		t.Errorf("the question arrived with the fields %v, and it has to be marked a masked prompt so the screen hides what is typed", asked.Fields)
+	if !asked.MaskInput {
+		t.Error("the question arrived without the mask-input flag, and it has to be marked a masked prompt so the screen hides what is typed")
+	}
+	if len(asked.Fields) != 0 {
+		t.Errorf("the question arrived carrying the fields %v, and a masked prompt says so with the flag rather than a field of its own", asked.Fields)
 	}
 	if asked.ID == "" {
 		t.Fatal("the question arrived without a number, and there is no way to answer it")

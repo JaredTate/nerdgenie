@@ -86,7 +86,7 @@ func TestApprovingWithAlwaysIsTheAnswerForTheWholeSession(t *testing.T) {
 	client.send(contract.SocketEnvelope{
 		Type: contract.SocketApprove,
 		ID:   shown.ID,
-		Text: string(contract.AnswerAlways),
+		Text: contract.ApproveAlwaysText,
 	})
 
 	got := <-answers

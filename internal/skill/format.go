@@ -185,6 +185,9 @@ func readPermissionLine(permissions *Permissions, written string) error {
 	case browserProfileKey:
 		permissions.BrowserProfile = value
 	case siteKey:
+		if err := checkSite(value); err != nil {
+			return fmt.Errorf("the permissions line %q in %s does not name one website, because %w", written, DescriptionFile, err)
+		}
 		permissions.Sites = append(permissions.Sites, strings.ToLower(value))
 	case dailyLimitKey:
 		limit, err := strconv.Atoi(value)
@@ -231,6 +234,11 @@ func checkDefinition(definition Definition) error {
 func checkPermissions(permissions Permissions) error {
 	if len(permissions.Sites) > MaxSites {
 		return fmt.Errorf("the permissions block names %d websites and the most allowed is %d, so name only the sites the skill really visits", len(permissions.Sites), MaxSites)
+	}
+	for _, site := range permissions.Sites {
+		if err := checkSite(site); err != nil {
+			return fmt.Errorf("the permissions block names the website %q, which is not one bare host name, because %w", site, err)
+		}
 	}
 	if permissions.DailyLimit < 1 || permissions.DailyLimit > MaxDailyLimit {
 		return fmt.Errorf("the daily limit is %d and it has to be between 1 and %d, so write a limit in that range", permissions.DailyLimit, MaxDailyLimit)

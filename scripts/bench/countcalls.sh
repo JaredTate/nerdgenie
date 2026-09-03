@@ -33,5 +33,15 @@ largest=$(grep -oP 'prompt eval time =\s+[\d.]+ ms /\s+\K\d+' "$SLICE" |
 average=$(awk -v prompt="$prompt" -v calls="$calls" \
   'BEGIN { if (calls > 0) printf "%d", prompt / calls + 0.5; else print 0 }')
 
-printf 'model calls: %s\nprompt tokens read: %s\nprompt tokens read per call on average: %s\nlargest single prefill: %s\ngenerated tokens: %s\nlargest context: %s\nlines now: %s\n' \
-  "$calls" "$prompt" "$average" "$largest" "$generated" "$context" "$(wc -l < "$LOG")"
+# The full prompt a call was sent is its end-of-call context ("stop processing:
+# n_tokens") minus what that call generated. Summed over the calls this is the
+# total input tokens, cached and uncached both, which is the number an API would
+# bill as input if it re-sent the whole prompt every call with no caching. The
+# generated tokens are the total output. The same reconstruction is used for
+# every harness, since all four speak to this one daemon.
+ntokens_sum=$(grep -oP 'stop processing: n_tokens = \K\d+' "$SLICE" |
+  awk '{ total += $1 } END { print total + 0 }')
+total_input=$(awk -v n="$ntokens_sum" -v g="$generated" 'BEGIN { print n - g }')
+
+printf 'model calls: %s\nprompt tokens read: %s\nprompt tokens read per call on average: %s\nlargest single prefill: %s\ngenerated tokens: %s\ntotal input tokens: %s\ntotal output tokens: %s\nlargest context: %s\nlines now: %s\n' \
+  "$calls" "$prompt" "$average" "$largest" "$generated" "$total_input" "$generated" "$context" "$(wc -l < "$LOG")"

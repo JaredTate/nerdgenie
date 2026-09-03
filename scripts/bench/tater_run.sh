@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# tater_run.sh HARNESS RUN
+# tater_run.sh HARNESS RUN [CARD]
+#
+# CARD is "a" (port 19091, Vulkan1) or "b" (port 19093, Vulkan2); default "a".
+# Both cards run the byte-identical daemon (same model file, 262144 context, same
+# sampling), so a run on either is apples-to-apples. Never run two harnesses on
+# the same card at once.
 #
 # Runs one harness once on a fresh, empty, git-initialised folder against the
 # byte-identical canonical task, then measures it the same way as every other
@@ -15,11 +20,17 @@ set -u
 
 HARNESS="$1"
 RUN="$2"
+CARD="${3:-a}"
+
+case "$CARD" in
+  a) LOG=/home/jared/llm/logs/19091.log; PORT=19091; PROVIDER=turbo-a; OC_CONFIG=/home/jared/.config/opencode/opencode.json; OCLAW_MODEL=vllm/local-coder;;
+  b) LOG=/home/jared/llm/logs/19093.log; PORT=19093; PROVIDER=turbo-b; OC_CONFIG=/home/jared/llm/bench/oc-19093.json; OCLAW_MODEL=vllm-b/local-coder;;
+  *) echo "unknown card: $CARD (use a or b)"; exit 2;;
+esac
 
 REPO=/home/jared/Code/coeus/.claude/worktrees/agent-a58b1fa4b2964028f
 BIN="$REPO/bin/coeus"
 BENCH=/home/jared/work/bench/tater
-LOG=/home/jared/llm/logs/19091.log
 TASK=/home/jared/work/bench/canonical/task.txt
 WORK="$BENCH/$HARNESS-$RUN"
 HOMEDIR="$BENCH/$HARNESS-$RUN-home"
@@ -58,14 +69,17 @@ PY
     CMD=(bash "$REPO/scripts/bench/run-coeus.sh" "$BIN" "$HOMEDIR" "$WORK/task.txt" 28)
     ;;
   opencode)
-    CMD=(bash -c 'cd "$1" && OPENCODE_CONFIG=/home/jared/.config/opencode/opencode.json /home/jared/.opencode/bin/opencode run "$(cat task.txt)"' _ "$WORK")
+    CMD=(bash -c 'cd "$1" && OPENCODE_CONFIG="$2" /home/jared/.opencode/bin/opencode run "$(cat task.txt)"' _ "$WORK" "$OC_CONFIG")
     ;;
   hermes)
-    CMD=(hermes chat -q "$(cat "$WORK/task.txt")" --provider turbo-a -m local-coder --reasoning low --yolo --max-turns 250 --in "$WORK")
+    CMD=(hermes chat -q "$(cat "$WORK/task.txt")" --provider "$PROVIDER" -m local-coder --reasoning low --yolo --max-turns 250 --in "$WORK")
     ;;
   openclaw)
-    cp -a /home/jared/.openclaw "/home/jared/.openclaw.tater.bak" 2>/dev/null || true
-    CMD=(openclaw agent exec --message-file "$WORK/task.txt" --model vllm/local-coder --cwd "$WORK" --timeout 1740)
+    # OpenClaw's default tool mode sends a GBNF grammar for structured tool
+    # calls that this llama-server build rejects ("failed to parse grammar"), so
+    # it is run in its documented local-model mode: code mode (the model writes
+    # code instead of grammar-constrained tool JSON) with the lean tool surface.
+    CMD=(openclaw agent exec --message-file "$WORK/task.txt" --model "$OCLAW_MODEL" --code-mode code --local-model-lean --cwd "$WORK" --timeout 1740)
     ;;
   *)
     echo "unknown harness: $HARNESS" | tee "$RESULT.txt"; exit 2;;
@@ -79,7 +93,7 @@ status=$?
 ended=$(date +%s)
 
 {
-  echo "harness: $HARNESS  run: $RUN"
+  echo "harness: $HARNESS  run: $RUN  card: $CARD (port $PORT)  daemon log: $LOG"
   printf 'command:'; printf ' %q' "${CMD[@]}"; printf '\n'
   echo "exit status: $status  (124 = 30m SIGTERM cap, 137 = SIGKILL after cap)"
   echo "wall seconds: $((ended - started))"

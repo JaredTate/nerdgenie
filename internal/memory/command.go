@@ -85,17 +85,18 @@ func (memory *Memory) showWhatMatches(ctx context.Context, words string) (string
 
 // withdrawFact supersedes a fact with a note saying the user withdrew it. The
 // old fact is not deleted: it stays searchable and every result says that
-// something later replaced it.
+// something later replaced it. The note names the withdrawn fact and never
+// copies its words, because a copy would be a live fact holding exactly what the
+// user asked the agent to stop repeating.
 func (memory *Memory) withdrawFact(ctx context.Context, id string) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("memory needs to know which fact to forget, so write /memory forget %s", "<id>")
 	}
-	withdrawn, _, err := factRow(ctx, memory.database, id)
-	if err != nil {
+	if _, _, err := factRow(ctx, memory.database, id); err != nil {
 		return "", err
 	}
-	err = memory.Save(ctx, []contract.Fact{{
-		Text:       "the user withdrew this: " + withdrawn.Text,
+	err := memory.Save(ctx, []contract.Fact{{
+		Text:       "the user withdrew the fact " + id + ", so what it said is no longer true",
 		Source:     "the user",
 		Supersedes: id,
 	}})

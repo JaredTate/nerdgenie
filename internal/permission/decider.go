@@ -87,7 +87,7 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 	}
 
 	reduced, note := reduceCall(request)
-	matched, covered := decider.book.Match(request.ToolName, reduced)
+	matched, covered := decider.book.Match(request.ToolName, formsToMatchOn(request.ToolName, reduced)...)
 	if covered && matched.Action == contract.RulingDeny {
 		return contract.PermissionDecision{Ruling: matched.Action, Reason: reasonOf(matched, reduced)}, nil
 	}
@@ -108,6 +108,17 @@ func (decider *Decider) Decide(ctx context.Context, request contract.PermissionR
 			Reason: fmt.Sprintf("no rule on your ask-me-first list covers %q, so it runs", reduced),
 		}, nil
 	}
+}
+
+// formsToMatchOn returns the forms the rules are matched against: the readable
+// form the user sees and, for a shell command, the same form with its flags
+// spelled out, so that a rule about a flag holds however the flag was written.
+// Nothing but a shell command has flags, so nothing else has a second form.
+func formsToMatchOn(toolName string, reduced string) []string {
+	if toolName != contract.ToolShell {
+		return []string{reduced}
+	}
+	return []string{reduced, flagsSpelledOut(reduced)}
 }
 
 // answerAlreadyGiven returns the answer the user gave earlier in this session

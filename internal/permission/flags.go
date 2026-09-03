@@ -59,3 +59,53 @@ func withoutTheValuesOfFlags(words []string) []string {
 	}
 	return kept
 }
+
+// flagsSpelledOut rewrites a readable form as the second form the rules match
+// on: the same commands, each with its flags moved to the end and written one to
+// a pair of brackets, spelled out, in order and without repeats. Matching flags
+// as text asks which letters were written next to which; matching this form asks
+// only which flags the command was given, so "rm -v -rf" and "rm --force
+// --recursive" answer the same question as "rm -rf" does. Nobody is shown this
+// form; the readable form is still what the user reads and the log records.
+func flagsSpelledOut(readable string) string {
+	commands := strings.Split(readable, " | ")
+	written := make([]string, 0, len(commands))
+	for _, command := range commands {
+		written = append(written, oneCommandWithItsFlagsSpelledOut(command))
+	}
+	return strings.Join(written, " | ")
+}
+
+// oneCommandWithItsFlagsSpelledOut writes one command of a readable form with
+// its flags spelled out after the words that name the command.
+func oneCommandWithItsFlagsSpelledOut(command string) string {
+	named := []string{}
+	flags := []string{}
+	for _, word := range strings.Fields(command) {
+		if isFlag(word) {
+			flags = append(flags, spellingsOfAFlag(word)...)
+			continue
+		}
+		named = append(named, word)
+	}
+	slices.Sort(flags)
+	return strings.TrimSpace(strings.Join(named, " ") + " " + strings.Join(slices.Compact(flags), ""))
+}
+
+// spellingsOfAFlag returns the ways one flag word may be read: the flag as it
+// was written, without any value written after an equals sign, and, when it is
+// one dash with several letters, each of those letters on its own, because
+// "-rf" is "-r" and "-f" and nothing tells that apart from find's "-delete",
+// which is one flag with one dash. Reading a flag both ways can only make the
+// harness ask about more calls, never about fewer.
+func spellingsOfAFlag(word string) []string {
+	name, _, _ := strings.Cut(word, "=")
+	spellings := []string{"[" + name + "]"}
+	if strings.HasPrefix(name, "--") {
+		return spellings
+	}
+	for _, letter := range name[1:] {
+		spellings = append(spellings, "[-"+string(letter)+"]")
+	}
+	return spellings
+}

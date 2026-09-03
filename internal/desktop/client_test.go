@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -39,8 +40,11 @@ func TestTheClientNumbersItsRequestsAndMatchesTheAnswers(t *testing.T) {
 		}
 	}
 
-	if client.lastID != 3 {
-		t.Errorf("the client used %d request numbers for three calls, want 3", client.lastID)
+	// The worker saw what went over the wire, which is the only thing the
+	// protocol promises: three requests, numbered one, two and three in order,
+	// so that no answer can ever be taken for another request's.
+	if numbers := worker.identifiersAsked(); !slices.Equal(numbers, []int64{1, 2, 3}) {
+		t.Errorf("the worker was asked under the request numbers %v, want 1, 2 and 3 in order", numbers)
 	}
 }
 
@@ -67,16 +71,32 @@ func TestTheClientTurnsTheWorkersRefusalIntoAnErrorThatCarriesItsCode(t *testing
 	}
 }
 
-func TestTheClientKnowsWhichFailuresMeanTheWorkerMustBeRestarted(t *testing.T) {
-	restarting := []int{codeParseError, codeInvalidRequest, codeDriverUnavailable}
-	for _, code := range restarting {
-		if !(&workerFailure{Code: code}).needsRestart() {
-			t.Errorf("the code %d does not ask for a restart, and the protocol's table says it must", code)
+func TestTheThreeCodesThatMeanTheWorkerIsBrokenStartItAgainAndTheRestDoNot(t *testing.T) {
+	for _, code := range []int{codeParseError, codeInvalidRequest, codeDriverUnavailable} {
+		desk := newDesk(t)
+		desk.launched(t)
+		first := desk.latestWorker(t)
+		first.refuse("click", &workerFailure{Code: code, Message: "the worker is broken"})
+
+		_ = desk.desktop.Click(context.Background(), 1, "the dialog closes")
+
+		if !first.wasStopped() {
+			t.Errorf("the code %d left the worker running, and the protocol's table says a worker that answers with it is started again", code)
 		}
 	}
 	for _, code := range []int{codeNoSuchMark, codeBadParameters, codeNoSuchMethod, codeUnreadableWindow, codeNoApplicationOpen, codeLaunchFailed} {
-		if (&workerFailure{Code: code}).needsRestart() {
-			t.Errorf("the code %d asks for a restart, and the protocol's table says the model just hears about it", code)
+		desk := newDesk(t)
+		desk.launched(t)
+		first := desk.latestWorker(t)
+		first.refuse("click", &workerFailure{Code: code, Message: "the model asked for something that is not there"})
+
+		err := desk.desktop.Click(context.Background(), 1, "the dialog closes")
+
+		if first.wasStopped() {
+			t.Errorf("the code %d stopped the worker, and the protocol's table says the model simply hears about it", code)
+		}
+		if err == nil || !strings.Contains(err.Error(), "not there") {
+			t.Errorf("the code %d gave the model %v, want the worker's own message", code, err)
 		}
 	}
 }

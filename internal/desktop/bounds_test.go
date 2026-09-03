@@ -1,6 +1,9 @@
 package desktop
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,5 +100,55 @@ func TestEveryByteCapAndEveryWaitIsTheNumberItIsMeantToBe(t *testing.T) {
 	// enough for Node to close its streams and short enough that nobody waits.
 	if killGracePeriod != 2*time.Second {
 		t.Errorf("a worker is given %s to go quietly before it is made to go, want 2s", killGracePeriod)
+	}
+}
+
+func TestOnlyAsManyMarksAsTheModelCanReadComeBack(t *testing.T) {
+	desk := newDesk(t)
+	desk.launched(t)
+	crowded := []any{}
+	for number := 1; number <= 50_000; number++ {
+		crowded = append(crowded, map[string]any{"number": number, "role": "button", "name": "OK"})
+	}
+	desk.latestWorker(t).answer("screenshot", map[string]any{"pngBase64": "iVBORw0KGgoFAKE", "marks": crowded})
+
+	picture, err := desk.desktop.Screenshot(context.Background())
+
+	if err != nil {
+		t.Fatalf("taking a screenshot of a crowded window failed: %v", err)
+	}
+	if len(picture.Marks) != 200 {
+		t.Errorf("a window with fifty thousand controls came back with %d marks, want 200: every one of them is printed into the model's"+
+			" context, and a window that crowded would fill a small model's whole window", len(picture.Marks))
+	}
+}
+
+func TestOnlyAsManyApplicationsAsAPersonWouldGrantAreKept(t *testing.T) {
+	desk := newDesk(t)
+	ctx := context.Background()
+	for number := 1; number <= 20; number++ {
+		name := fmt.Sprintf("application-%d", number)
+		if err := desk.desktop.Launch(ctx, name, "a window opens"); err != nil {
+			t.Fatalf("granting %s failed: %v", name, err)
+		}
+	}
+
+	err := desk.desktop.Launch(ctx, "one-application-too-many", "a window opens")
+
+	if err == nil || !strings.Contains(err.Error(), "20") {
+		t.Fatalf("the twenty-first application gave %v, want an error naming how many one session may grant", err)
+	}
+}
+
+func TestAnApplicationNameLongerThanThePreviewCanShowIsRefused(t *testing.T) {
+	desk := newDesk(t)
+
+	err := desk.desktop.Launch(context.Background(), strings.Repeat("z", 5000), "a window opens")
+
+	if err == nil || !strings.Contains(err.Error(), "120") {
+		t.Fatalf("a name of five thousand characters gave %v, want an error saying how long a name may be", err)
+	}
+	if shown := len(desk.channel.Previews()); shown != 0 {
+		t.Errorf("the user was shown %d previews of a name that long, want none: the preview is a sentence a person reads", shown)
 	}
 }

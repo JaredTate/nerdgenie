@@ -12,13 +12,14 @@ import (
 // method answers, and the worker records what it was asked, so that the Go side
 // can be driven through the whole protocol without Node or a screen.
 type scriptedWorker struct {
-	guard    sync.Mutex
-	results  map[string]any
-	failures map[string]*workerFailure
-	rawLines map[string]string
-	silent   map[string]bool
-	asked    []string
-	closed   bool
+	guard       sync.Mutex
+	results     map[string]any
+	failures    map[string]*workerFailure
+	rawLines    map[string]string
+	silent      map[string]bool
+	asked       []string
+	identifiers []int64
+	closed      bool
 
 	requests  *io.PipeWriter
 	responses *io.PipeReader
@@ -78,6 +79,16 @@ func (worker *scriptedWorker) staySilent(method string) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.silent[method] = true
+}
+
+// identifiersAsked is the request number of every request the Go side sent, in
+// order, which is what the protocol promises about them.
+func (worker *scriptedWorker) identifiersAsked() []int64 {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	copied := make([]int64, len(worker.identifiers))
+	copy(copied, worker.identifiers)
+	return copied
 }
 
 // methodsAsked is every method the Go side asked for, in order.
@@ -144,6 +155,7 @@ func (worker *scriptedWorker) answerTo(line []byte) (string, bool) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	worker.asked = append(worker.asked, request.Method)
+	worker.identifiers = append(worker.identifiers, request.ID)
 	if worker.silent[request.Method] {
 		return "", false
 	}

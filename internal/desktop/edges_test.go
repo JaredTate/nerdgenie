@@ -3,6 +3,7 @@ package desktop
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"syscall"
 	"testing"
@@ -213,11 +214,48 @@ func TestADragTheUserRefusesIsNotDone(t *testing.T) {
 	}
 }
 
-func TestAProcessIDIsZeroWhenNoWorkerIsRunning(t *testing.T) {
+func TestAWorkerIsStoppedByTheExactProcessIDItWasStartedWith(t *testing.T) {
+	notes := []string{}
+	worker := workerAnsweringEverything()
+	worker.refuse("click", &workerFailure{Code: codeDriverUnavailable, Message: "the desktop driver went away"})
+	desktop, err := New(Options{
+		Start:      func(context.Context) (*Connection, error) { return worker.start(), nil },
+		Channel:    testkit.NewFakeChannel("terminal"),
+		Permission: testkit.NewFakePermission(contract.RulingAllow),
+		Clock:      testkit.NewFakeClock(time.Unix(0, 0).UTC()),
+		Note:       func(format string, arguments ...any) { notes = append(notes, fmt.Sprintf(format, arguments...)) },
+	})
+	if err != nil {
+		t.Fatalf("building the desktop failed: %v", err)
+	}
+	if err := desktop.Launch(context.Background(), "zenity", "a window with a text box opens"); err != nil {
+		t.Fatalf("launching the fixture application failed: %v", err)
+	}
+
+	_ = desktop.Click(context.Background(), 1, "the dialog closes")
+
+	// The scripted worker hands back process id 4242, and the note has to name
+	// that one, because an exact process id is the only thing this package ever
+	// kills.
+	var named bool
+	for _, note := range notes {
+		if strings.Contains(note, "was stopped") && strings.Contains(note, "4242") {
+			named = true
+		}
+	}
+	if !named {
+		t.Errorf("the notes are %v, want one naming the exact process id of the worker that was stopped", notes)
+	}
+}
+
+func TestClosingADesktopThatNeverStartedAWorkerIsHarmless(t *testing.T) {
 	desk := newDesk(t)
 
-	if pid := desk.desktop.workerProcessID(); pid != 0 {
-		t.Errorf("the process id with no worker running is %d, want zero", pid)
+	if err := desk.desktop.Close(); err != nil {
+		t.Fatalf("closing a desktop that never started a worker failed: %v", err)
+	}
+	if *desk.starts != 0 {
+		t.Errorf("closing a desktop started %d workers, and it must start none", *desk.starts)
 	}
 }
 

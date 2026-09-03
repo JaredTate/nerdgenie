@@ -33,7 +33,7 @@ func aTurnWithOneScriptedReply(t *testing.T, script testkit.Script) (*firstTurn,
 
 	where := testkit.NewFakeChannel(contract.TerminalChannelName)
 	eventLog := testkit.NewFakeStore()
-	stream := channel.NewStream()
+	stream := channel.NewStream(channel.StreamOptions{})
 	t.Cleanup(stream.Close)
 
 	settings := contract.DefaultConfig()

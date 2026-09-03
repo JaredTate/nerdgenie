@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -189,14 +188,18 @@ func (running *agent) openTheFront(ctx context.Context) error {
 		return err
 	}
 	running.model = model
-	running.stream = channel.NewStream()
+	running.stream = channel.NewStream(channel.StreamOptions{
+		Clock:  clock.System(),
+		Status: running.statusForAScreen,
+	})
 
 	running.socket, err = channel.Listen(channel.Options{
-		Path:    running.home.SocketFile(),
-		Stream:  running.stream,
-		Queue:   running.queue,
-		Secrets: running.secrets,
-		Clock:   clock.System(),
+		Path:           running.home.SocketFile(),
+		Stream:         running.stream,
+		Queue:          running.queue,
+		Secrets:        running.secrets,
+		Clock:          clock.System(),
+		AnswerDeadline: running.settings.Caps.TimePerTurn,
 	})
 	if err != nil {
 		return err
@@ -223,14 +226,38 @@ func (running *agent) openTheFront(ctx context.Context) error {
 		channels: running.channelNamed,
 	}
 	running.router, err = channel.NewRouter(channel.Routes{
-		FindCommand: running.registry.Lookup,
+		RunCommand:  running.registry.Run,
 		FindChannel: running.channelNamed,
 		// This is the one line the orchestrator changes the day internal/loop
 		// lands: loop.New(...).StartTask goes here and firstturn.go goes away.
 		StartTask: running.turn.StartTask,
+		StopTask:  stopNothingYet,
 		Skills:    noSkillsYet{},
 	})
 	return err
+}
+
+// statusForAScreen is what a screen is told the moment it attaches and on every
+// heartbeat: which model is in use, that nothing is running, that the agent is
+// answering for itself, and the command list the palette is filled from.
+func (running *agent) statusForAScreen() map[string]string {
+	listed := strings.Builder{}
+	for _, one := range running.registry.All() {
+		listed.WriteString(channel.CommandPrefix + one.Name + contract.StatusCommandSeparator + one.Help + "\n")
+	}
+	return map[string]string{
+		contract.StatusFieldModel:    running.model.Name(),
+		contract.StatusFieldState:    contract.StateIdle,
+		contract.StatusFieldHealthy:  "true",
+		contract.StatusFieldCommands: strings.TrimRight(listed.String(), "\n"),
+	}
+}
+
+// stopNothingYet answers the stop the terminal's Escape key falls back to. There
+// is no turn loop to stop yet, so it says so plainly rather than pretending
+// something was stopped.
+func stopNothingYet(_ context.Context) error {
+	return errors.New("there is no task running to stop, because the turn loop is not built yet")
 }
 
 // openModel builds the model the configuration's default alias names, wrapped in
@@ -413,40 +440,6 @@ func (running *agent) close() error {
 		problems = append(problems, running.lock.release())
 	}
 	return errors.Join(problems...)
-}
-
-// runLock is the file that stops a second copy of the agent from running on one
-// home folder. The lock is held by the operating system on the open file, so a
-// copy that is killed outright still lets the next one start.
-type runLock struct {
-	path string
-	file *os.File
-}
-
-// takeRunLock takes the lock, refusing when another copy of the agent holds it.
-func takeRunLock(path string) (*runLock, error) {
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, contract.SecretFileMode)
-	if err != nil {
-		return nil, fmt.Errorf("cannot open the lock file %s, so check that the run folder is there and this account can write in it: %w", path, err)
-	}
-	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		_ = file.Close()
-		return nil, fmt.Errorf("another copy of coeus is already running on this home folder, because something holds the lock file %s, so stop that one first: %w", path, err)
-	}
-
-	// The number of the process holding the lock is written into the file, so
-	// that a person who finds the file can see which process to stop.
-	if err := file.Truncate(0); err == nil {
-		_, _ = file.WriteAt([]byte(strconv.Itoa(os.Getpid())+"\n"), 0)
-	}
-	return &runLock{path: path, file: file}, nil
-}
-
-// release gives the lock up. The file itself is left where it is, because
-// removing it would take the lock away from whoever opened it next.
-func (lock *runLock) release() error {
-	unlocked := syscall.Flock(int(lock.file.Fd()), syscall.LOCK_UN)
-	return errors.Join(unlocked, lock.file.Close())
 }
 
 // noSkillsYet is the skill store the router asks about every message that is not

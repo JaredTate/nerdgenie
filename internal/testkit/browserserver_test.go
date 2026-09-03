@@ -254,6 +254,31 @@ func TestAnActThatAbortsStillReturnsTheDiffsOfTheStepsThatRan(t *testing.T) {
 	}
 }
 
+func TestAnActBatchOverTheWireTakesAScrollStep(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	server := testkit.NewBrowserProtocolServer(t, worker)
+
+	callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"`+testkit.FixtureSimplePage+`"}}`)
+	answer := callProtocol(t, server.SocketPath(),
+		`{"jsonrpc":"2.0","id":2,"method":"act","params":{"steps":[`+
+			`{"method":"scroll","direction":"down","amount":3,"expectation":"more of the page shows"},`+
+			`{"method":"press","key":"Enter","expectation":"the form is submitted"}]}}`)
+
+	if failure, isFailure := answer["error"].(map[string]any); isFailure {
+		t.Fatalf("a batch holding a scroll step was refused: %+v", failure)
+	}
+	result, carried := answer["result"].(map[string]any)
+	if !carried {
+		t.Fatalf("the batch answered without a result: %+v", answer)
+	}
+	diffs, listed := result["diffs"].([]any)
+	if !listed || len(diffs) != 2 {
+		t.Errorf("the batch carried %v, want one diff for the scroll and one for the press", result["diffs"])
+	}
+}
+
 // errorOf reads the error object off one protocol answer, failing the test when
 // the answer carried none.
 func errorOf(t *testing.T, answer map[string]any) map[string]any {

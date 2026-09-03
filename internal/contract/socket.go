@@ -136,6 +136,23 @@ const (
 	StatusFieldCommands = "commands"
 	// StatusFieldHealthy is "true" when the program answered its health check.
 	StatusFieldHealthy = "healthy"
+	// StatusFieldContextTokens is how many tokens the last model call held in
+	// its context, which the header measures against the window.
+	StatusFieldContextTokens = "contextTokens"
+	// StatusFieldContextWindow is how many tokens the model can hold on one
+	// call, from the model's ContextLength.
+	StatusFieldContextWindow = "contextWindow"
+	// StatusFieldStreamed is how many tokens the call in progress has written
+	// so far, sent while the state is thinking so the screen can show that the
+	// model is alive.
+	StatusFieldStreamed = "streamed"
+	// StatusFieldCallStarted is when the call in progress began, written in
+	// RFC 3339 form, so the screen can count the seconds beside the spinner.
+	StatusFieldCallStarted = "callStarted"
+	// StatusFieldRecordLine is one line for the latest change to the record: a
+	// task or a job created, started, finished, or failed, with its id, which
+	// the screen shows once as a pill when the line changes.
+	StatusFieldRecordLine = "recordLine"
 )
 
 // StatusCommandSeparator separates a command's name from its help line inside

@@ -148,10 +148,30 @@ func TestABatchStopsAtTheStepThatFails(t *testing.T) {
 	}
 
 	if _, err := worker.Act(ctx, []contract.ActStep{{Method: "somersault", Expectation: "nothing"}}); err == nil {
-		t.Error("a batch step with a method nobody defined was accepted, want an error naming the three")
+		t.Error("a batch step with a method nobody defined was accepted, want an error naming the four")
 	}
 	if _, err := worker.Act(ctx, []contract.ActStep{{Method: "click", Ref: "e999", Expectation: "nothing"}}); err == nil {
 		t.Error("a batch step pointing at an element that is not there was accepted, want an error")
+	}
+}
+
+func TestABatchCarriesAScrollStep(t *testing.T) {
+	ctx := context.Background()
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	if _, err := worker.Open(ctx, testkit.FixtureSimplePage); err != nil {
+		t.Fatalf("opening the page failed: %v", err)
+	}
+
+	diffs, err := worker.Act(ctx, []contract.ActStep{
+		{Method: "scroll", Direction: contract.ScrollDown, Amount: 3, Expectation: "more of the page shows"},
+		{Method: "press", Key: "Enter", Expectation: "the form is submitted"},
+	})
+	if err != nil {
+		t.Fatalf("a batch holding a scroll step was refused: %v", err)
+	}
+	if len(diffs) != 2 {
+		t.Errorf("a batch of a scroll and a press gave %d diffs, want one for each step", len(diffs))
 	}
 }
 

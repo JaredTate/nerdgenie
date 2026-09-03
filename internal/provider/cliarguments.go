@@ -71,6 +71,11 @@ func (model *commandLineModel) codexArguments(folder, systemText string) ([]stri
 		"--skip-git-repo-check",
 		"--ephemeral",
 		"--ignore-user-config",
+		// The program's own shell tools are off, as the claude side's are: the
+		// harness's tools are the only way a model changes anything, so every
+		// change goes past the permission function and into the log.
+		"--disable", "shell_tool",
+		"--disable", "unified_exec",
 		"-c", "model_instructions_file=" + path,
 	}, nil
 }

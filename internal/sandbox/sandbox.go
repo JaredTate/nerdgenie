@@ -60,9 +60,14 @@ type Fence struct {
 	outputCap     int
 	helperProgram string
 
-	// The answer to whether bwrap can really make a user namespace here, asked
-	// once and then remembered, because asking it starts a process and the
-	// answer does not change while the agent is running.
+	// probe asks whether bwrap can really make a user namespace here. New puts
+	// the real probe here; it is a field so that a test can count how many times
+	// it is asked, which is the only way to see that the answer is remembered.
+	probe func() error
+
+	// The answer that probe gave, asked once and then remembered, because asking
+	// it starts a process and the answer does not change while the agent is
+	// running.
 	probeGuard  sync.Mutex
 	probed      bool
 	probeReason error
@@ -92,6 +97,7 @@ func New(settings Settings) (*Fence, error) {
 		userHome:      settings.UserHome,
 		outputCap:     outputCap,
 		helperProgram: helperProgram,
+		probe:         probeForANamespace,
 	}, nil
 }
 

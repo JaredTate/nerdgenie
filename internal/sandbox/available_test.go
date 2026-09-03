@@ -53,7 +53,7 @@ func TestAvailabilityIsNotFooledByAModuleNameThatMerelyContainsLandlock(t *testi
 }
 
 func TestAvailableOnThisMachineReadsTheRealPathAndTheRealKernel(t *testing.T) {
-	fence := &Fence{}
+	fence, _ := aFenceForTesting(t)
 
 	// The result depends on the machine, so the test asserts only that the
 	// answer is one of the two shapes the caller has to handle.

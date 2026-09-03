@@ -212,10 +212,10 @@ runs), in an isolated fresh home with an empty record.
 | Coeus on | model calls | total input | total output | wall | finished green? | game.js | cost |
 |---|---|---|---|---|---|---|---|
 | local Qwen 3.8 (card A) | 62 | 1,154,460 | 9,568 | 13.8 min | yes (6/6, plays) | 38 lines | free locally; $1.89–$6.01 projected at Opus rates |
-| real Opus 4.8 (`claude -p`) | ~17 | 44,442 | 9,564 | 3.0 min | yes (6/6, plays) | 27 lines | **$0.71 actual** |
+| real Opus 4.8 (`claude -p`) | 5 | 44,442 | 9,564 | 3.0 min | yes (6/6, plays) | 27 lines | **$0.71 actual** |
 
 Same harness, same task, both finished green. The strong model just needs far
-fewer rounds: **~17 calls against 62**, **44K input tokens against 1.15M**, and
+fewer rounds: **5 calls against 62**, **44K input tokens against 1.15M**, and
 **3 minutes against 13.8** — and it costs 71 cents. This is the point of Coeus's
 model-agnostic design: the *same* operations-order record carried a tiny local
 model to a correct answer slowly and for free, and a frontier model to the same

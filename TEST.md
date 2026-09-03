@@ -52,9 +52,18 @@ result we read off:
   `enable_thinking: false`). Thinking-off is enforced below the harness, where no
   harness can change it — confirmed by zero `<think>` blocks in either card's
   log. When two harnesses run at once, each is alone on its own card.
-- **A fresh, empty start.** Every run gets a new empty folder and, for Coeus, a
-  brand-new home with an empty record and empty memory. Nothing carries over
-  between runs, so no agent can read another's earlier work.
+- **A fresh, empty start, for every harness.** Every run gets a new empty work
+  folder and a brand-new home folder for the harness: a fresh `COEUS_HOME` for
+  Coeus, fresh `XDG_*` folders and config for opencode, a fresh `HERMES_HOME`
+  outside `~/.hermes` for Hermes, and a fresh `OPENCLAW_HOME` and config for
+  OpenClaw. No memory files, no past sessions, no skills learned earlier, no
+  instruction files in or above the work folder. The first Qwen runs did not do
+  this for the three other harnesses (Hermes, for one, ran with the user's own
+  memory, skills, past sessions and persona), so those numbers are indicative
+  only and every harness is rerun.
+- **The thinking setting.** On Opus every harness runs at effort `medium`. On
+  Qwen thinking is off at the daemon for everyone (above). Coeus has a `/think`
+  command and a `think` setting per model for this.
 - **The judge.** Our own checker (`scripts/bench/check-tater.mjs`) decides pass
   or fail — never the agent's own tests. It checks the game logic six ways (a win
   in a row, a column, a diagonal, a draw, an illegal move on a taken cell, and no
@@ -96,23 +105,63 @@ model.
 
 ## The Opus 4.8 comparison
 
-To show the same harness on a strong model versus a weak one, Coeus was also run
-once on Opus 4.8 through `claude -p` on the user's subscription (no API key, no
-graphics card, a fresh isolated home). This measures how many fewer rounds a
-strong model needs for the identical task. The other three harnesses are wired to
-the local endpoint and cannot reach Opus headless without an API key, so for them
-the Opus column is the priced projection only, said plainly — not a real run.
+The same four harnesses are also run on Opus 4.8, and this time all four are
+real runs, not projections. There are no API keys on this machine and none are
+wanted, so Opus is reached the way a person on a Claude subscription reaches it:
+through the `claude` program, one `claude -p` call per model call. Coeus has a
+provider that does exactly this. The other three harnesses only speak the
+OpenAI-style HTTP API, so a small local program called the bridge
+(`scripts/bench/bridge/`) accepts their HTTP request and makes one `claude -p`
+call with the identical command line. Every harness, Coeus included, goes
+through the bridge for the main run, so the model, its settings, the way tools
+are described, and the way tokens are counted are the same for all four. One
+extra Coeus run uses its own provider directly, as a cross-check that the bridge
+changes nothing.
+
+What is pinned on every call, and verified with real calls before the runs:
+
+- The model is `claude-opus-4-8`, named on the command line, never a default.
+- Effort is `medium` for every harness (`--effort medium`).
+- The program's own tools are off, no MCP servers, no session saved, safe mode
+  so the user's own Claude Code settings are ignored, and each call runs in a
+  scratch folder holding nothing but that call's system prompt, so no CLAUDE.md,
+  memory, or project settings can reach the prompt.
+- Tool calls are written in one text form (`<tool_call>{...}</tool_call>`),
+  because `claude -p` has no tool interface; the bridge and Coeus use the same
+  form and the same parser.
+- The program sometimes makes a tiny Haiku side call of its own (about a tenth of
+  a cent). It is logged separately and left out of the Opus token columns.
+
+One honest limit of this path: only the system prompt gets cached between
+calls. The growing conversation is one block of text and never matches the
+cache, so every harness pays full price for what it re-sends. That is equal for
+all four, and it is harsher on a harness that re-sends a long transcript than a
+real API with caching would be. Cache reads and writes are logged per call so
+the difference can be seen.
 
 ## How a run is driven, per harness
 
-- **Coeus:** `coeus serve` on a fresh home, its socket driven with the task, then
-  stopped by the exact process id recorded at launch.
-- **opencode:** its own `run` command, task read from the file, pointed at the
-  local daemon.
-- **Hermes:** `hermes chat -q` with the task, reasoning low, pointed at the local
-  daemon (it stops at its own built-in 250-turn limit).
-- **OpenClaw:** its headless `agent exec` in the local-model code-mode its docs
-  prescribe.
+One script, `scripts/bench/tater_run.sh <phase> <harness> <label> [card]`,
+drives every run in either phase (`opus` or `qwen`) from a fresh state, records
+the exact command and environment, and never kills anything by name. In the Opus
+phase all four harnesses run at the same time, each on its own bridge port with
+its own log. In the Qwen phase two run at a time, one per graphics card, and the
+daemon is restarted before every run so its prompt cache is cold.
+
+- **Coeus:** `coeus serve` on a fresh home, its socket driven with the task by
+  `scripts/bench/drive.py`, stopped by the exact process id recorded at launch.
+- **opencode:** `opencode run` in the work folder, JSON output kept.
+- **Hermes:** `hermes chat -q` with the task, its own default limits.
+- **OpenClaw:** its headless `agent exec` in its normal tool mode with the lean
+  flag, JSON envelope kept. Code mode is not used: on Qwen it looped forever
+  writing shell commands into a tool that only takes JavaScript.
+
+Tokens are counted the same way for all four: on Opus from the bridge log (a
+line per call with uncached input, cache writes, cache reads, output, cost and
+latency, which also separates model time from harness time); on Qwen from the
+daemon's own log with `scripts/bench/countcalls.sh`. Each harness's own usage
+report is kept beside those numbers as a cross-check. Quality comes from
+`scripts/bench/check-tater.mjs` after the harness has exited.
 
 ## What the results are for
 
@@ -125,18 +174,22 @@ not capture a harness's variance — opencode, for one, finished the same task i
 
 ## Fairness limits, stated openly
 
-- **A safety timeout was added by the orchestrator, not requested by the user.**
-  It was applied so a non-converging run could not tie up the machine forever. A
-  run stopped by it is recorded as "did not finish," not as a failure at that
-  exact minute. Hermes instead stopped at its own 250-turn limit; that is the
-  harness's own setting, not the timeout.
+- **There is no clock cap.** The first runs had a thirty-minute cap that the
+  orchestrator added and the user never asked for; it is gone. Instead every run
+  has the same cap on model calls, set in one place (the bridge on Opus, a
+  watcher on the daemon log on Qwen), and a run that reaches it is recorded as
+  "stopped at the cap", not as a failure at that minute. The number is the
+  user's choice; the runner's default is 150. Each harness keeps its own
+  built-in limits too, because those are part of the harness.
 - **One run is not a reliable average.** Where a harness was run more than once,
   both runs are reported and the spread is treated as the point.
-- **Only Coeus was run on Opus for real.** The rest are projections.
+- **All four run on Opus for real,** through the same bridge and the same flags.
 
 ## Where the pieces live
 
 - The task: `~/work/bench/canonical/task.txt`
 - The checker and counting scripts: `scripts/bench/`
 - The full results, tables, screenshots, and verdict: `docs/TATER_BENCHMARK.md`
-- The raw per-run logs: `~/work/bench/tater/`
+- The raw per-run logs: `~/work/bench/tater/` for the first Qwen runs, and
+  `~/work/bench/tater2/<phase>-<harness>-<label>/` for every run from here on
+- The bridge that carries the three other harnesses to Opus: `scripts/bench/bridge/`

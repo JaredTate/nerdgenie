@@ -45,6 +45,37 @@ func TestTheCascadeFindsNothingWhenTheDescriptorPointsAtNothingThere(t *testing.
 	}
 }
 
+// thePageOfNearMisses holds the two elements the reviewer's probes resolved to
+// wrongly: a link whose name happens to hold two letters of a button's name, and
+// a button whose name begins with the word a link was called.
+func thePageOfNearMisses() contract.Snapshot {
+	return contract.Snapshot{URL: "https://fixture.test/settings", Title: "Settings", Elements: []contract.Element{
+		{Ref: "e1", Role: "link", Name: "Cookie settings"},
+		{Ref: "e2", Role: "button", Name: "Delete my account"},
+	}}
+}
+
+func TestTheTextRungLooksForNothingShorterThanFourCharacters(t *testing.T) {
+	ref, foundBy, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "button", Name: "OK", Shown: "OK"})
+	if found {
+		t.Errorf("a step recorded on the button OK resolved to %s by %s, and two letters sit inside almost any name", ref, foundBy)
+	}
+}
+
+func TestTheTextRungRefusesANameFarLongerThanTheTextWhenTheRolesDisagree(t *testing.T) {
+	ref, foundBy, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "link", Name: "Delete", Shown: "Delete"})
+	if found {
+		t.Errorf("a step recorded on the link Delete resolved to %s by %s, which is the button that closes the account", ref, foundBy)
+	}
+}
+
+func TestTheTextRungTakesANameFarLongerThanTheTextWhenTheRolesAgree(t *testing.T) {
+	ref, _, found := browser.FindElement(thePageOfNearMisses(), browser.Descriptor{Role: "button", Name: "Delete", Shown: "Delete"})
+	if !found || ref != "e2" {
+		t.Errorf("a step recorded on a button called Delete found %q, want the button whose name begins with the word", ref)
+	}
+}
+
 func TestADescriptorWithOnlyARoleSaysSo(t *testing.T) {
 	if said := (browser.Descriptor{Role: "button"}).String(); said != "the button" {
 		t.Errorf("the descriptor says %q, want the role on its own", said)

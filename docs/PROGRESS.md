@@ -147,3 +147,31 @@ Subcommand values for the table in `cmd/coeus/main.go`: `sandboxEntrySubcommand`
 ### Human trial
 
 None until wave 3.
+
+## Waves 2 to 6: everything merged, the first human trial, and the security review
+
+Every brief from waves 2 to 6 has a package on `main`: 61 packages under `internal/`, 131717 lines of Go of which 71722 are tests (2471 test functions), and 10005 lines of TypeScript in the two workers. The real turn loop is wired into `coeus serve` with the tools, the skills, the jobs, the memory, the record, and the browser worker; `make build` builds the two worker bundles; the coverage gate at the last green run had every package above ninety percent (the terminal screen at 91.0%, its floor is seventy) except `cmd/coeus` at 58.4%, which the gate does not count and the wiring brief must raise.
+
+### The first human trial, on the local Qwen 3.8, 2026-09-02
+
+The person opened the screen against `coeus serve` on the local model and typed a message; the reply came back through the real loop. Their notes, in their words, are brief 3.7 (`docs/briefs/wave-3/3.7-fix-the-first-trial.md`): no context measure in the header ("needs to look like opencode does that"), Escape does not interrupt the model, nothing shows the model is alive while it thinks, no browser tools, and how to see jobs and tasks. Causes found: the wiring sends only the model, task, state, health and command list in the status, so the header had nothing to draw; Escape sent stop only while a task ran and a plain reply is not a task; the worker bundles were not built. Four status fields and a record line were added to the contract for it, tests first, and the screen and wiring workers hold the rest.
+
+Two things the trial cost that were not the product. The desktop worker was blamed for waking the GNOME screen reader; the security review traced it to the browser integration tests starting a real Chrome with the session bus, which brings up the accessibility bridge. The screen reader setting is now locked off through dconf on this machine, Chrome is started with `NO_AT_BRIDGE=1` and no session bus, and the browser and desktop integration tests left `make test` for their own target that runs Chrome headless. And the orchestrator closed two terminal windows it had opened by killing a parent pid that turned out to be the terminal server, which closed every terminal on the desktop; the rule is now in its memory.
+
+### Driving the Tetris prompt through the socket
+
+The person's acceptance test is a two-thousand-word prompt asking for a complete Tetris game with tests, built on the Desktop and played in Chrome. The orchestrator drives it through a socket script that attaches, sends the prompt, answers previews, and logs every envelope, so the model's tool calling can be read from the event log. Three runs so far:
+
+1. The model wrote the done list as a list of strings; the task tool refused every one of seven identical tries, and the summary the record kept said "updated the record: one change" each time. Fixed in `internal/tool/task`, tests first: a done line may be a plain string, and a refusal names the shape.
+2. The model wrote the why in the `text` field; refused three times. Fixed the same way: the why is taken from `text`, a list may be one string, the done list one line, a line number a string.
+3. The record was built correctly (why, done list, stop list) and the model moved to shell calls. It read `$HOME` inside the fence, which is a scratch folder, and built the project there instead of on the person's Desktop, which was a sandbox root. The fence's home must be the user's real home path with only the roots present under it; the sandbox worker holds it with an integration test.
+
+Also found on the way and assigned: no tool line reaches the screen, so tool calls are invisible; every checkpoint and tool result event carries a zero time; a read-only command such as `/status` from a second screen gets no answer while the model is busy; a failed record write is summarised as a change; `browseract` cannot yet carry a scroll step although the worker and the contract can.
+
+### The security review (brief 6.5)
+
+Twenty-three findings in `docs/SECURITY_REVIEW.md`, with a failing test for each. One critical: a page could save a skill whose `site:` line held a star, which became a standing approval matching every call, including the three shipped ask-me-first entries. Fixed in `internal/skill` (a site is a bare host name, the pattern is escaped and anchored, an approval covers only browser calls on that host). The rest are held by one worker per package: permission (standing approvals never outrank the ask-me-first list or the unattended stop; flags before `-rf`; wrappers such as `nohup`, `xargs`, `env -i sh -c`), sandbox (limits, loopback, user namespaces, PATH and HOME, DNS), the web guard (every non-public range, allow-listed hosts still checked, redirects), the browser profile outside the fence, results marked as data in the working context, Signal (a secret split across messages, per-sender pairing lockout), and the askpass helper under sudo. The fix branches carry the review's failing tests, so they merge together once all pass, and `main` stays green.
+
+### Live results
+
+Not yet run for waves 2 to 6 beyond the provider contract test and the context builder's live test, both green on all three models at the wave 1 gate. The whole `make live` runs at the wave 6 gate.

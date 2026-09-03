@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -73,11 +74,95 @@ func (line *writtenDoneLine) UnmarshalJSON(data []byte) error {
 		return json.Unmarshal(trimmed, &line.Text)
 	}
 	type plainDoneLine writtenDoneLine
-	var written plainDoneLine
+	var written struct {
+		plainDoneLine
+		// Line, Item and Description are the other names a model gives the text.
+		Line        string `json:"line"`
+		Item        string `json:"item"`
+		Description string `json:"description"`
+	}
 	if err := json.Unmarshal(trimmed, &written); err != nil {
 		return errors.New(`a done line is an object with "text" (and "done" with "result" once it is proved), or the line itself as a string`)
 	}
-	*line = writtenDoneLine(written)
+	*line = writtenDoneLine(written.plainDoneLine)
+	for _, other := range []string{written.Line, written.Item, written.Description} {
+		if line.Text == "" {
+			line.Text = other
+		}
+	}
+	return nil
+}
+
+// writtenLines is a list the model may write as a JSON list of strings or as
+// one string, which happens often enough that refusing it stalls the task.
+type writtenLines []string
+
+// UnmarshalJSON takes a list of strings or one string.
+func (lines *writtenLines) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if string(trimmed) == "null" {
+		*lines = nil
+		return nil
+	}
+	if len(trimmed) > 0 && trimmed[0] == '"' {
+		var one string
+		if err := json.Unmarshal(trimmed, &one); err != nil {
+			return err
+		}
+		*lines = writtenLines{one}
+		return nil
+	}
+	var many []string
+	if err := json.Unmarshal(trimmed, &many); err != nil {
+		return errors.New("a list is written as a JSON list of strings, one line each, or as one string")
+	}
+	*lines = many
+	return nil
+}
+
+// writtenDoneLines is the done list as the model writes it: a list of lines,
+// or one line on its own.
+type writtenDoneLines []writtenDoneLine
+
+// UnmarshalJSON takes a list of done lines or one done line.
+func (lines *writtenDoneLines) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if string(trimmed) == "null" {
+		*lines = nil
+		return nil
+	}
+	if len(trimmed) > 0 && trimmed[0] == '[' {
+		var many []writtenDoneLine
+		if err := json.Unmarshal(trimmed, &many); err != nil {
+			return err
+		}
+		*lines = many
+		return nil
+	}
+	var one writtenDoneLine
+	if err := one.UnmarshalJSON(trimmed); err != nil {
+		return err
+	}
+	*lines = writtenDoneLines{one}
+	return nil
+}
+
+// writtenNumber is a whole number the model may write as a number or as a
+// string holding one.
+type writtenNumber int
+
+// UnmarshalJSON takes a number or a quoted number.
+func (number *writtenNumber) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.Trim(bytes.TrimSpace(data), `"`)
+	if string(trimmed) == "null" || len(trimmed) == 0 {
+		*number = 0
+		return nil
+	}
+	parsed, err := strconv.Atoi(string(trimmed))
+	if err != nil {
+		return errors.New("a line number is written as a whole number, counting from one")
+	}
+	*number = writtenNumber(parsed)
 	return nil
 }
 
@@ -88,11 +173,11 @@ type input struct {
 	// Why is the one line on why the user wants this.
 	Why string `json:"why"`
 	// DoneWhen is the whole done list.
-	DoneWhen []writtenDoneLine `json:"done_when"`
+	DoneWhen writtenDoneLines `json:"done_when"`
 	// StopWhen is the whole stop list.
-	StopWhen []string `json:"stop_when"`
+	StopWhen writtenLines `json:"stop_when"`
 	// Plan is the whole plan, one line per step.
-	Plan []string `json:"plan"`
+	Plan writtenLines `json:"plan"`
 	// Text is the choice or the thing that went wrong.
 	Text string `json:"text"`
 	// Reason is why a choice was made.
@@ -100,7 +185,7 @@ type input struct {
 	// Cause is why something went wrong.
 	Cause string `json:"cause"`
 	// Line is which done line to pin a result to, counting from one.
-	Line int `json:"line"`
+	Line writtenNumber `json:"line"`
 	// Result is the result to pin, such as r7.
 	Result string `json:"result"`
 }
@@ -123,7 +208,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			"a failure with its cause, or a result pinned to the done line it proves.",
 		Fields: []contract.ToolField{
 			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result.", Required: true},
-			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once."},
+			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once (the text field is taken for it too)."},
 			{Name: "done_when", Type: "array", Description: "The whole done list: each line as a string, or as an object with text, done, and the result that proves it."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 			{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
@@ -166,14 +251,8 @@ func said(operation string) string {
 // shape the model can write a record in.
 func (tool *Tool) updateFor(asked input) (record.Update, error) {
 	switch asked.Operation {
-	case OperationWhy:
-		return record.Update{Why: asked.Why}, nil
-	case OperationDoneWhen:
-		return record.Update{DoneWhen: doneLines(asked.DoneWhen)}, nil
-	case OperationStopWhen:
-		return record.Update{StopWhen: asked.StopWhen}, nil
-	case OperationPlan:
-		return record.Update{Plan: asked.Plan}, nil
+	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan, "":
+		return sectionsUpdate(asked), nil
 	case OperationDecision:
 		return record.Update{Decision: &record.NewDecision{Text: asked.Text, Reason: asked.Reason}}, nil
 	case OperationFailure:
@@ -187,7 +266,7 @@ func (tool *Tool) updateFor(asked input) (record.Update, error) {
 // proves it, by writing the whole done list back with that one line changed.
 func (tool *Tool) pinResult(asked input) (record.Update, error) {
 	lines := tool.settings.Records.Record().Goal.DoneWhen
-	if asked.Line < 1 || asked.Line > len(lines) {
+	if asked.Line < 1 || int(asked.Line) > len(lines) {
 		return record.Update{}, fmt.Errorf("there is no done line numbered %d, and the done list has %d lines in it",
 			asked.Line, len(lines))
 	}
@@ -206,4 +285,21 @@ func doneLines(written []writtenDoneLine) []contract.DoneLine {
 		})
 	}
 	return lines
+}
+
+// sectionsUpdate turns every section the call carries into one update, so a
+// model that writes the why, the done list and the plan together is taken at
+// its word rather than told to make three calls.
+func sectionsUpdate(asked input) record.Update {
+	update := record.Update{Why: strings.TrimSpace(asked.Why)}
+	if len(asked.DoneWhen) > 0 {
+		update.DoneWhen = doneLines([]writtenDoneLine(asked.DoneWhen))
+	}
+	if len(asked.StopWhen) > 0 {
+		update.StopWhen = []string(asked.StopWhen)
+	}
+	if len(asked.Plan) > 0 {
+		update.Plan = []string(asked.Plan)
+	}
+	return update
 }

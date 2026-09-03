@@ -65,7 +65,11 @@ func (model *openAIModel) ContextLength() int { return model.contextLength }
 // Send makes one call and streams the reply back.
 func (model *openAIModel) Send(ctx context.Context, request contract.Request,
 	onDelta func(delta string)) (contract.Reply, error) {
-	body, err := json.Marshal(model.buildBody(request))
+	shaped, err := model.buildBody(request)
+	if err != nil {
+		return contract.Reply{}, err
+	}
+	body, err := json.Marshal(shaped)
 	if err != nil {
 		return contract.Reply{}, fmt.Errorf("the request to the model %q could not be written as JSON: %w", model.alias.Name, err)
 	}
@@ -92,19 +96,23 @@ func (model *openAIModel) address() string {
 // buildBody turns one harness request into the body the API reads. There are no
 // cache markers here: OpenAI and llama-server both reuse a prompt's prefix on
 // their own, so a boundary has no form to take on this wire.
-func (model *openAIModel) buildBody(request contract.Request) openAIBody {
+func (model *openAIModel) buildBody(request contract.Request) (openAIBody, error) {
+	outputTokens, err := outputTokensFor(request, model.alias.Name)
+	if err != nil {
+		return openAIBody{}, err
+	}
 	body := openAIBody{
 		Model:               model.alias.ModelName,
 		Messages:            openAIMessages(request),
 		Stream:              true,
 		StreamOptions:       openAIStreamOptions{IncludeUsage: true},
 		Tools:               openAITools(request),
-		MaxCompletionTokens: request.MaxOutputTokens,
+		MaxCompletionTokens: outputTokens,
 	}
 	if model.thinkingOff {
 		body.ChatTemplateKwargs = map[string]any{"enable_thinking": false}
 	}
-	return body
+	return body, nil
 }
 
 // openAIMessages puts the joined system prompt at the top and then walks the

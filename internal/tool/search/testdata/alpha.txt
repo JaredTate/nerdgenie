@@ -1,0 +1,5 @@
+/root/alpha.go
+/root/notes/alpha.md
+/root/alpha.go:3:func alpha() int {
+/root/beta.go:4: return alpha() + 1
+/root/notes/alpha.md:3:The alpha note.

@@ -1,6 +1,7 @@
 package job_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +69,72 @@ func TestTenFailuresInARowSwitchAScheduledJobOffAndSayWhy(t *testing.T) {
 	}
 	if held.Header.Status != contract.StatusStopped {
 		t.Errorf("the switched-off job's record reads %q, want %q", held.Header.Status, contract.StatusStopped)
+	}
+}
+
+// TestAJobToldToKeepRunningIsNeverStoppedForFailing is the nightly self-check's
+// night after night. Its task fails whenever it finds a broken skill, which is
+// the check working rather than the check breaking, so ten such nights must not
+// switch the check off and leave the user hearing nothing.
+func TestAJobToldToKeepRunningIsNeverStoppedForFailing(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aScheduledJob(t, "Check yourself every night: ask the memory twenty questions and run every skill's dry run.",
+		contract.Schedule{Kind: contract.ScheduleCron, Cron: "0 4 * * *"})
+	taskID := holding.aTask(t, jobID, "Run the nightly self-check.", time.Time{})
+	if err := holding.jobs.KeepRunningWhenItsTasksFail(ctx, jobID); err != nil {
+		t.Fatalf("cannot tell job %s to keep running: %v", jobID, err)
+	}
+
+	for night := 1; night <= 12; night++ {
+		holding.finish(t, jobID, taskID, "nightly self-check: 0 passed, 1 failed; these failed: the skill post-the-update", true)
+		if state := holding.summaryOf(t, jobID).State; state != contract.JobRunning {
+			t.Fatalf("after %d nights of correctly reporting a broken skill the job is %q, and a check that switches itself off goes quiet exactly when it is working",
+				night, state)
+		}
+	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 12 {
+		t.Errorf("twelve failed nights were counted as %d, and a job that keeps running still counts what went wrong", failures)
+	}
+}
+
+// TestAJobThatStopsForFailingTellsTheUser holds brief 4.4 to its word: three
+// failures pause the job with a message and ten switch it off with a message. A
+// failure written into the job's own record is invisible until somebody thinks
+// to type /jobs, which is exactly what nobody does when a job has quietly
+// stopped.
+func TestAJobThatStopsForFailingTellsTheUser(t *testing.T) {
+	holding := newJobs(t)
+	said := []string{}
+	holding.jobs.TellTheUser(func(_ context.Context, text string) error {
+		said = append(said, text)
+		return nil
+	})
+	plain := holding.aJob(t, "Do a long thing.")
+	plainTask := holding.aTask(t, plain, "the task that keeps failing", time.Time{})
+	scheduled := holding.aScheduledJob(t, "Post every hour.",
+		contract.Schedule{Kind: contract.ScheduleEvery, Every: time.Hour})
+	scheduledTask := holding.aTask(t, scheduled, "the tick that keeps failing", time.Time{})
+
+	for range job.FailuresThatPause {
+		holding.finish(t, plain, plainTask, "the site answered 500", true)
+	}
+	for range job.FailuresThatSwitchOff {
+		holding.finish(t, scheduled, scheduledTask, "the site answered 500", true)
+	}
+
+	if len(said) != 2 {
+		t.Fatalf("the user was sent %d messages, want the one for the paused job and the one for the job switched off: %q", len(said), said)
+	}
+	for _, want := range []string{"job " + plain, "paused", "the site answered 500", "/jobs " + plain} {
+		if !strings.Contains(said[0], want) {
+			t.Errorf("the message about the paused job is %q, and it does not say %q", said[0], want)
+		}
+	}
+	for _, want := range []string{"job " + scheduled, "switched off", "/cron run " + scheduled} {
+		if !strings.Contains(said[1], want) {
+			t.Errorf("the message about the job switched off is %q, and it does not say %q", said[1], want)
+		}
 	}
 }
 

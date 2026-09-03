@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -111,6 +112,63 @@ func TestANoteLongerThanTheWholeNotepadIsCutToFitIt(t *testing.T) {
 	kept := appendToNotepad("", strings.Repeat("x", NotepadBytes*2))
 
 	if len(kept) != NotepadBytes {
+		t.Errorf("one very long note left %d bytes on the notepad, and the cap is %d", len(kept), NotepadBytes)
+	}
+}
+
+func TestTheRestartGuardReadsAProgramByItsNameHoweverTheCommandIsWritten(t *testing.T) {
+	for _, refused := range []string{
+		"reboot",
+		"sudo reboot",
+		"systemctl --user stop coeus",
+		"pkill coeus",
+		"echo hi && shutdown -h now",
+		"coeus update",
+		"sudo -n reboot",
+		"bash -c reboot",
+		"sh -c 'reboot'",
+		"/sbin/reboot",
+		"/usr/bin/pkill coeus",
+		"/bin/systemctl --user stop coeus",
+		"nice -n 5 reboot",
+		"timeout 5 reboot",
+		"xargs reboot",
+		"/usr/local/bin/coeus update",
+	} {
+		if err := checkItCannotRestartTheAgent(refused); err == nil {
+			t.Errorf("the work %q was allowed, and it stops or restarts the agent", refused)
+		}
+	}
+	for _, allowed := range []string{
+		"write a blog piece about the reboot of the franchise",
+		"read /sbin/reboot and say in one line what it does",
+		"restart the conversation with the user",
+		"check that systemctl is installed",
+	} {
+		if err := checkItCannotRestartTheAgent(allowed); err != nil {
+			t.Errorf("ordinary work was refused as work that restarts the agent: %q: %v", allowed, err)
+		}
+	}
+}
+
+func TestATitleAndANotepadAreShortenedOnLettersAndNotOnBytes(t *testing.T) {
+	accented := strings.Repeat("é", titleWidth-20)
+
+	shortened := cutTo(accented, titleWidth)
+
+	if !utf8.ValidString(shortened) {
+		t.Errorf("a title of %d accented letters came back as %d bytes that are not text at all", titleWidth-20, len(shortened))
+	}
+	if letters := utf8.RuneCountInString(shortened); letters > titleWidth {
+		t.Errorf("a title was shortened to %d letters, and the column holds %d", letters, titleWidth)
+	}
+
+	kept := appendToNotepad("", strings.Repeat("é", NotepadBytes))
+
+	if !utf8.ValidString(kept) {
+		t.Error("a note longer than the whole notepad was cut in the middle of a letter")
+	}
+	if len(kept) > NotepadBytes {
 		t.Errorf("one very long note left %d bytes on the notepad, and the cap is %d", len(kept), NotepadBytes)
 	}
 }

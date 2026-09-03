@@ -338,6 +338,7 @@ internal/desktop/process.go
 internal/desktop/process_test.go
 internal/desktop/protocol.go
 internal/desktop/support_test.go
+internal/job/bounds_test.go
 internal/job/broken_test.go
 internal/job/claims.go
 internal/job/command.go

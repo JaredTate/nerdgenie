@@ -176,6 +176,58 @@ func TestATaskThisProcessHoldsIsNotOfferedToAnother(t *testing.T) {
 	}
 }
 
+// TestTwoStoresReachingForOneTaskTogetherClaimItOnce goes straight at the claim
+// itself, which the two tests above never do: each of them reads the claims
+// table first and passes over a task somebody holds, so the one line that
+// decides who won, the deadline in the claim's WHERE clause, is never asked. The
+// real race is two processes that both find an empty claims table and then both
+// insert, and this is that race.
+func TestTwoStoresReachingForOneTaskTogetherClaimItOnce(t *testing.T) {
+	ctx := t.Context()
+	home, first := openTheRealThing(t)
+	jobID, err := first.Create(ctx, contract.NewJob{Ask: "Do the one task twice over.", Why: "to prove it cannot be"})
+	if err != nil {
+		t.Fatalf("cannot create the job: %v", err)
+	}
+	taskID, err := first.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the one task both processes want"})
+	if err != nil {
+		t.Fatalf("cannot add the task: %v", err)
+	}
+	second := reopenIn(t, home)
+	second.owner = "the other process"
+
+	now := time.Now()
+	together := make(chan bool, 2)
+	start := make(chan struct{})
+	for _, reaching := range []*Jobs{first, second} {
+		go func() {
+			<-start
+			won, err := reaching.claim(ctx, jobID, taskID, now)
+			if err != nil {
+				t.Errorf("reaching for task %s of job %s failed: %v", taskID, jobID, err)
+			}
+			together <- won
+		}()
+	}
+	close(start)
+
+	won := 0
+	for range 2 {
+		if <-together {
+			won++
+		}
+	}
+	if won != 1 {
+		t.Fatalf("%d of the two stores claimed task %s of job %s, and one task claimed twice is one task run twice", won, taskID, jobID)
+	}
+	if again, err := second.claim(ctx, jobID, taskID, now.Add(TaskBudget-time.Second)); err != nil || again {
+		t.Errorf("the claim was taken again a second before the budget ran out (claimed %v, error %v)", again, err)
+	}
+	if again, err := second.claim(ctx, jobID, taskID, now.Add(TaskBudget)); err != nil || !again {
+		t.Errorf("the claim was not taken once the budget had run out (claimed %v, error %v), and a task whose process died is nobody's", again, err)
+	}
+}
+
 func TestAWholeJobOnTheRealDatabaseSurvivesARestart(t *testing.T) {
 	ctx := t.Context()
 	home, jobs := openTheRealThing(t)

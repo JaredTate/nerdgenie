@@ -13,6 +13,10 @@ import (
 // is read down the left-hand side, so a long ask is cut rather than wrapped.
 const titleWidth = 100
 
+// cutMark is what stands at the end of a piece of text that was too long for its
+// column, so that a reader knows there is more of it.
+const cutMark = "..."
+
 // JobsCommand returns the "/jobs" slash command, which the orchestrator
 // registers in serve.go. On its own it lists every job with its progress and
 // what it does; with a number it prints that job's record in full.
@@ -220,10 +224,16 @@ func widest(sofar int, text string) int {
 	return sofar
 }
 
-// cutTo shortens a piece of text to fit a column, saying that it was cut.
+// cutTo shortens a piece of text to fit a column, saying that it was cut. It
+// counts letters rather than bytes, because a title cut halfway through an
+// accented letter is a title that is no longer text.
 func cutTo(text string, width int) string {
-	if len(text) <= width {
+	letters := []rune(text)
+	if len(letters) <= width {
 		return text
 	}
-	return text[:width-3] + "..."
+	if width <= len(cutMark) {
+		return string(letters[:max(width, 0)])
+	}
+	return string(letters[:width-len(cutMark)]) + cutMark
 }

@@ -47,6 +47,14 @@ type card struct {
 	// answered is what the person said, once they have said it, which is what
 	// stops a card that has been dealt with from taking the keys again.
 	answered bool
+	// number is this card's own count on the screen it was shown on, which is
+	// how the screen finds the card that holds the single keys whatever else has
+	// arrived above it since.
+	number int
+	// drawn is the screenshot already turned into the escape sequence this
+	// terminal draws a picture with, encoded once when the card was made rather
+	// than again on every frame.
+	drawn string
 }
 
 // answersLine is the last line inside the box: the single keys that answer this
@@ -111,8 +119,8 @@ func (screen *Screen) cardLines(shown card) []string {
 
 	// A picture is drawn under the box rather than inside it, because the
 	// terminal, not this screen, decides how many rows an inline picture takes.
-	if picture, canDraw := screen.picture(shown, inner); canDraw {
-		drawn = append(drawn, picture)
+	if shown.drawn != "" {
+		drawn = append(drawn, shown.drawn)
 	}
 	return drawn
 }
@@ -121,10 +129,7 @@ func (screen *Screen) cardLines(shown card) []string {
 // cannot draw a picture inline, the path of the screenshot instead.
 func (screen *Screen) cardBodyLines(shown card, inner int) []string {
 	lines := wrapText(shown.body, inner)
-	if shown.picture == "" {
-		return lines
-	}
-	if _, canDraw := screen.picture(shown, inner); canDraw {
+	if shown.picture == "" || shown.drawn != "" {
 		return lines
 	}
 	lines = append(lines, "open this file to see the page:")
@@ -132,13 +137,8 @@ func (screen *Screen) cardBodyLines(shown card, inner int) []string {
 }
 
 // picture is the screenshot drawn inline, and says false when there is none or
-// the terminal cannot draw one.
-func (screen *Screen) picture(shown card, inner int) (string, bool) {
-	if shown.picture == "" {
-		return "", false
-	}
-	return screen.pictureLine(shown.picture, inner)
-}
+// the terminal cannot draw one. The bytes were read and encoded when the card
+// was made, so a card sitting on the screen costs nothing to draw again.
 
 // cardTopRow draws the top of the box, with the title sitting in the rule.
 func (screen *Screen) cardTopRow(shown card, outer int) string {

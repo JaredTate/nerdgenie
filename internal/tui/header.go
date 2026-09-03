@@ -19,21 +19,21 @@ func (screen *Screen) headerRow() string {
 		line.addSpan(piece)
 	}
 	if screen.width >= narrowWidth {
-		mark := screen.healthMark()
-		line.padTo(screen.width - marginColumns - displayWidth(mark.text))
-		line.addSpan(mark)
+		line.addRightPiece(screen.healthMark(), screen.width)
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
 }
 
-// headerParts are the pieces between the wordmark and the health dot. Before the
-// link is made there is only one of them, and it says so.
+// headerParts are the pieces between the wordmark and the health dot. A link
+// that is not there is said in so many words first, and everything the program
+// last reported is kept behind it, because a person whose link dropped still
+// wants to know which model was running and what the session had cost.
 func (screen *Screen) headerParts() []span {
-	if !screen.attached {
-		return []span{{style: styleDim, text: "connecting"}}
-	}
 	parts := []span{}
+	if !screen.attached {
+		parts = append(parts, span{style: styleError, text: screen.linkWords()})
+	}
 	if screen.modelAlias != "" {
 		parts = append(parts, span{style: styleDim, text: screen.modelAlias})
 	}
@@ -44,6 +44,16 @@ func (screen *Screen) headerParts() []span {
 		parts = append(parts, span{style: styleDim, text: cost})
 	}
 	return parts
+}
+
+// linkWords is what the header says about a link that is not there: it is still
+// connecting when the screen has never reached the program, and it dropped when
+// a link that was up went away.
+func (screen *Screen) linkWords() string {
+	if screen.everAttached {
+		return "disconnected"
+	}
+	return "connecting"
 }
 
 // taskWords is the task and its state, such as "task 17 running", or empty when

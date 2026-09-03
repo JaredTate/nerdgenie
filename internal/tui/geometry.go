@@ -17,6 +17,10 @@ const (
 	// widestTranscript is the widest the transcript ever wraps, however wide the
 	// terminal is, because a very long line is hard to read.
 	widestTranscript = 100
+	// minimumGap is the smallest run of blanks allowed between the left-hand
+	// words of a one-line row and the piece sitting on its right-hand end, so
+	// that the two never read as one long word.
+	minimumGap = 2
 	// smallestWidth and smallestHeight are the smallest frame the screen draws.
 	// A terminal smaller than this gets this frame and clips it, which is better
 	// than arithmetic that goes negative.
@@ -80,6 +84,20 @@ func (line *row) blanks(columns int) {
 // padTo widens the row with blanks until it is the given number of columns.
 func (line *row) padTo(columns int) {
 	line.blanks(columns - line.width)
+}
+
+// addRightPiece puts one piece on the right-hand end of a row, with a real gap
+// in front of it, and drops it altogether when there is not room for both the
+// piece and the gap. docs/TUI_DESIGN.md says a narrow terminal degrades by
+// dropping the right-hand side, and a piece glued onto the words beside it reads
+// as one long word and is then cut in half by the edge of the terminal.
+func (line *row) addRightPiece(piece span, width int) {
+	room := width - marginColumns - displayWidth(piece.text)
+	if room < line.width+minimumGap {
+		return
+	}
+	line.padTo(room)
+	line.addSpan(piece)
 }
 
 // keepWithin shortens the row so that it fits in a number of columns, dropping

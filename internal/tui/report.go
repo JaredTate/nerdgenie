@@ -24,6 +24,7 @@ var reportedStates = map[string]programState{
 // the screen alone, and a field the screen does not know is ignored.
 func (screen *Screen) readStatus(fields map[string]string) {
 	screen.attached = true
+	screen.everAttached = true
 
 	setIfSent(fields, contract.StatusFieldModel, &screen.modelAlias)
 	setIfSent(fields, contract.StatusFieldTask, &screen.taskID)

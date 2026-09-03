@@ -74,8 +74,7 @@ func (screen *Screen) statusRow() string {
 	}
 	hints := screen.keyHints()
 	if hints != "" && screen.width >= narrowWidth {
-		line.padTo(screen.width - marginColumns - displayWidth(hints))
-		line.add(styleDim, hints)
+		line.addRightPiece(span{style: styleDim, text: hints}, screen.width)
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)

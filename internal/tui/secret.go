@@ -58,11 +58,12 @@ func (screen *Screen) sendSecret() {
 	screen.tell(envelope)
 }
 
-// cancelSecret tells the program that the person said no, so that it is not left
-// waiting for an answer that will never come.
+// cancelSecret withdraws from the masked prompt, so that the program is not left
+// waiting out its whole deadline for an answer that will never come. It is a
+// cancel rather than a no because the person refused nothing; they closed a box.
 func (screen *Screen) cancelSecret() {
 	envelope := contract.SocketEnvelope{
-		Type:   contract.SocketDeny,
+		Type:   contract.SocketCancel,
 		ID:     screen.secretID,
 		Reason: "the person closed the prompt without entering the secret",
 	}

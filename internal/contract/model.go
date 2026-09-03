@@ -139,6 +139,11 @@ type Request struct {
 	ToolsOff bool
 	// MaxOutputTokens caps the reply.
 	MaxOutputTokens int
+	// Think is how hard the model is asked to think on this call, which is the
+	// level the person chose with "/think" this session. It is empty when
+	// nobody has chosen one, and then the level on the model alias in
+	// config.toml stands.
+	Think Think
 }
 
 // FinishReason says why the model stopped writing.

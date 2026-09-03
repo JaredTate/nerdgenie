@@ -48,6 +48,7 @@ func (running *agent) registerCommands(lastTasks *screenTasks) error {
 		vault.NewCommand(running.secrets),
 		running.memories.Command(),
 		running.clearCommand(lastTasks),
+		running.thinkCommand(),
 		readyCommand())
 	if running.settings.SignalAccount != "" {
 		all = append(all, signalchannel.PairCommand(running.pairingStore()))

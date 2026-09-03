@@ -82,16 +82,25 @@ func (model *anthropicModel) buildBody(request contract.Request) (anthropicBody,
 	if err != nil {
 		return anthropicBody{}, err
 	}
+	level := thinkFor(request, model.alias)
+	if err := CheckThink(model.alias, level); err != nil {
+		return anthropicBody{}, err
+	}
 	tools := anthropicTools(request)
 	markers := 0
-	return anthropicBody{
+	body := anthropicBody{
 		Model:     model.alias.ModelName,
 		MaxTokens: outputTokens,
 		Stream:    true,
 		System:    anthropicSystem(request, len(tools) > 0, &markers),
 		Messages:  anthropicMessages(request.Messages),
 		Tools:     markLastTool(tools, request, &markers),
-	}, nil
+	}
+	if asksForThinking(level) {
+		body.Thinking = &anthropicThinking{Type: "adaptive"}
+		body.OutputConfig = &anthropicOutputConfig{Effort: string(level)}
+	}
+	return body, nil
 }
 
 // anthropicSystem turns the system blocks into text blocks, putting a cache

@@ -30,13 +30,15 @@ type openAIModel struct {
 	// contextLength is the window the model really has, which is the configured
 	// one unless a local server reported a smaller one at construction.
 	contextLength int
-	// thinkingOff says to send the thinking-off hint, which only a local server
-	// that was found to understand it is given.
-	thinkingOff bool
+	// takesTheThinkingHint says the server answered the probe the way
+	// llama-server does, so it understands being told in its chat template
+	// whether to think, which no other server does.
+	takesTheThinkingHint bool
 }
 
 // newOpenAIModel returns the model an OpenAI-compatible alias names, probing a
-// local server once for its real window and its thinking-off hint.
+// local server once for its real window and for whether it understands being
+// told in its chat template whether to think.
 func newOpenAIModel(alias contract.ModelAlias, options Options) (*openAIModel, error) {
 	if alias.BaseAddress == "" {
 		return nil, fmt.Errorf("the model alias %q names no base address, so add the address of the server, such as %q",
@@ -47,7 +49,7 @@ func newOpenAIModel(alias contract.ModelAlias, options Options) (*openAIModel, e
 	if !answered {
 		return model, nil
 	}
-	model.thinkingOff = true
+	model.takesTheThinkingHint = true
 	if found.contextLength > 0 && found.contextLength < alias.ContextLength {
 		options.note("the server at %s holds %d tokens, not the %d in config.toml, so the smaller window is used",
 			alias.BaseAddress, found.contextLength, alias.ContextLength)
@@ -101,6 +103,10 @@ func (model *openAIModel) buildBody(request contract.Request) (openAIBody, error
 	if err != nil {
 		return openAIBody{}, err
 	}
+	level := thinkFor(request, model.alias)
+	if err := CheckThink(model.alias, level); err != nil {
+		return openAIBody{}, err
+	}
 	body := openAIBody{
 		Model:               model.alias.ModelName,
 		Messages:            openAIMessages(request),
@@ -109,8 +115,11 @@ func (model *openAIModel) buildBody(request contract.Request) (openAIBody, error
 		Tools:               openAITools(request),
 		MaxCompletionTokens: outputTokens,
 	}
-	if model.thinkingOff {
-		body.ChatTemplateKwargs = map[string]any{"enable_thinking": false}
+	if asksForThinking(level) {
+		body.ReasoningEffort = string(level)
+	}
+	if model.takesTheThinkingHint {
+		body.ChatTemplateKwargs = map[string]any{"enable_thinking": asksForThinking(level)}
 	}
 	return body, nil
 }

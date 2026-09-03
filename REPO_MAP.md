@@ -31,6 +31,7 @@ LICENSE
 Makefile
 README.md
 REPO_MAP.md
+TEST.md
 THIRD_PARTY.md
 cmd/coeus/askpass.go
 cmd/coeus/askpass_name_test.go
@@ -80,6 +81,7 @@ cmd/coeus/taskbudget_test.go
 cmd/coeus/taskcontext.go
 cmd/coeus/taskcontext_test.go
 cmd/coeus/testdata/fuzz/FuzzTheSettingWriterNeverBreaksTheConfiguration/a6204b2c5e51d964
+cmd/coeus/think_test.go
 cmd/coeus/timedstore.go
 cmd/coeus/tui.go
 cmd/coeus/tui_test.go
@@ -355,6 +357,7 @@ internal/contract/socket.go
 internal/contract/socket_test.go
 internal/contract/store.go
 internal/contract/store_test.go
+internal/contract/think_test.go
 internal/contract/tool.go
 internal/contract/toolnames.go
 internal/contract/usertool.go
@@ -507,6 +510,7 @@ internal/loop/stopline_test.go
 internal/loop/summary_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/think_test.go
 internal/loop/tooldeadline_test.go
 internal/loop/toolline.go
 internal/loop/toolline_test.go
@@ -607,6 +611,8 @@ internal/provider/stream.go
 internal/provider/stream_test.go
 internal/provider/support_test.go
 internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
+internal/provider/think_test.go
+internal/provider/thinkwire_test.go
 internal/provider/wire_test.go
 internal/record/agreement_test.go
 internal/record/ask_test.go
@@ -1323,6 +1329,7 @@ test/functional/skilllist_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go
+test/functional/think_test.go
 test/functional/toolline_test.go
 test/functional/usertools_test.go
 test/functional/vault_test.go

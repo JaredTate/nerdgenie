@@ -131,6 +131,35 @@ type Loop struct {
 	running     string
 	highest     int
 	counted     bool
+	thinkModel  string
+	thinkLevel  contract.Think
+}
+
+// UseThink sets how hard one model is asked to think, for the rest of the
+// session, which is what the "/think" command does. The level rides on every
+// call the loop makes from here on, so it reaches the provider without the
+// model being built again.
+//
+// It is kept against the name of the model it was chosen for, and only one is
+// kept, because a person chooses a level for the model they are talking to.
+// After "/model" switches to another one, that model's own level from
+// config.toml stands rather than the one chosen for the model before it.
+func (theLoop *Loop) UseThink(modelAlias string, level contract.Think) {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	theLoop.thinkModel = modelAlias
+	theLoop.thinkLevel = level
+}
+
+// thinkFor is the level chosen this session for one model, and is empty both
+// when nobody has chosen one and when the one chosen was for another model.
+func (theLoop *Loop) thinkFor(modelAlias string) contract.Think {
+	theLoop.guard.Lock()
+	defer theLoop.guard.Unlock()
+	if theLoop.thinkModel != modelAlias {
+		return contract.ThinkDefault
+	}
+	return theLoop.thinkLevel
 }
 
 // New builds a loop and says which dependency is missing when one is.

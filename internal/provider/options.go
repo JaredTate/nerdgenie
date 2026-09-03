@@ -142,5 +142,5 @@ func checkAlias(alias contract.ModelAlias, options Options) error {
 		return fmt.Errorf("the model alias %q reports a window of %d tokens, so set its context length to how many tokens the model holds",
 			alias.Name, alias.ContextLength)
 	}
-	return nil
+	return CheckThink(alias, alias.Think)
 }

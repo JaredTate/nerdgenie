@@ -14,7 +14,7 @@ import (
 // function or the log. The claude side already runs with no tools of its own.
 func TestTheCodexProgramsOwnToolsAreSwitchedOff(t *testing.T) {
 	model := &commandLineModel{alias: contract.ModelAlias{Name: "codex", ModelName: "gpt-5.5", Program: "codex"}}
-	arguments, err := model.codexArguments(t.TempDir(), "the instructions")
+	arguments, err := model.codexArguments(t.TempDir(), "the instructions", contract.ThinkDefault)
 	if err != nil {
 		t.Fatalf("building the codex command line failed: %v", err)
 	}

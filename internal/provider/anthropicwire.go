@@ -64,9 +64,31 @@ type anthropicTool struct {
 	Cache *cacheControl `json:"cache_control,omitempty"`
 }
 
-// anthropicBody is the whole request. It carries no sampling fields and no
-// thinking field, because Opus 4.8 rejects the first and the second is a
-// deliberate omission until a real user needs it.
+// anthropicThinking asks the Messages API to let the model think before it
+// answers. The only type this harness sends is "adaptive", where the model
+// decides for itself how long to think and the effort below says how far it may
+// go; the older shape, "enabled" with a token budget, is refused by every model
+// Coeus talks to.
+//
+// The shape was read from the Claude API reference on this machine, at
+// /tmp/claude-1000/bundled-skills/2.1.259/e40adf0c7c495fe3df7108386b7e2dd8/claude-api/curl/examples.md,
+// under "Extended Thinking".
+type anthropicThinking struct {
+	// Type is always "adaptive".
+	Type string `json:"type"`
+}
+
+// anthropicOutputConfig carries how much effort the model may spend on one
+// call. The same reference file writes it as output_config.effort, and the
+// levels it takes are the ones Coeus offers above "off".
+type anthropicOutputConfig struct {
+	// Effort is the think level, such as "high".
+	Effort string `json:"effort"`
+}
+
+// anthropicBody is the whole request. It carries no sampling fields, because
+// Opus 4.8 rejects them, and no thinking field at all until somebody asks for
+// one, so that a model whose thinking is on by default is left as it is.
 type anthropicBody struct {
 	// Model is what the server calls the model.
 	Model string `json:"model"`
@@ -81,4 +103,11 @@ type anthropicBody struct {
 	// Tools is what the model may ask for, and is left out when the harness has
 	// switched the tools off.
 	Tools []anthropicTool `json:"tools,omitempty"`
+	// Thinking asks for adaptive thinking, and is left out when the think level
+	// is off or empty, which is how Coeus called this API before the level
+	// existed.
+	Thinking *anthropicThinking `json:"thinking,omitempty"`
+	// OutputConfig carries the effort that goes with the thinking, and is left
+	// out beside it.
+	OutputConfig *anthropicOutputConfig `json:"output_config,omitempty"`
 }

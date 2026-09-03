@@ -77,13 +77,17 @@ func (model *commandLineModel) Send(ctx context.Context, request contract.Reques
 		return contract.Reply{}, fmt.Errorf("the system prompt for the model %q is %d bytes and this harness sends at most %d, so shorten the context",
 			model.alias.Name, len(systemText), maxSystemPromptBytes)
 	}
+	level := thinkFor(request, model.alias)
+	if err := CheckThink(model.alias, level); err != nil {
+		return contract.Reply{}, err
+	}
 	folder, err := model.scratchFolder()
 	if err != nil {
 		return contract.Reply{}, err
 	}
 	defer os.RemoveAll(folder)
 
-	arguments, err := model.argumentsFor(folder, systemText)
+	arguments, err := model.argumentsFor(folder, systemText, level)
 	if err != nil {
 		return contract.Reply{}, err
 	}

@@ -48,8 +48,13 @@ var theLimitsACommandMustHave = []struct {
 	line string
 }{
 	{"how many processes it may start", "process"},
-	{"how much memory it may map", "vmemory"},
 }
+
+// The bound on memory is deliberately not in the list above: Node's engine and
+// Go's runtime reserve tens of gigabytes of virtual space they never touch, and
+// a four-gigabyte address-space bound made a test runner abort inside the fence
+// on the first live run. The process count and the two folder sizes bound what
+// one command can take; memory itself is bounded by the machine.
 
 func TestASandboxedCommandCannotExhaustTheMachine(t *testing.T) {
 	fence, _, _ := aRealFence(t, theToolOutputCap)

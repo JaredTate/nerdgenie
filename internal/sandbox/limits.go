@@ -16,11 +16,6 @@ const (
 	// parallel build and far short of the hundred and seventy thousand the
 	// machine itself allows, which is what a fork bomb needs.
 	MostProcesses = 512
-	// MostAddressSpaceBytes is how much address space one sandboxed command may
-	// map. Four gigabytes is more than a compiler asks for and little enough
-	// that a loop that allocates until it is stopped cannot take the machine's
-	// memory with it.
-	MostAddressSpaceBytes = 4 << 30
 	// TemporaryFolderBytes is the size of the fresh /tmp the fence makes. A
 	// tmpfs asked for with no size is half the machine's memory, and a command
 	// can fill it a byte at a time, so it is always asked for with one.
@@ -33,13 +28,14 @@ const (
 	HomeFolderBytes = 1 << 30
 )
 
-// The numbers the kernel knows these two bounds by. The process count is
-// written out because Go's syscall package does not name it, and both numbers
-// are the same on every architecture Linux runs on.
-const (
-	processCountResource = 6
-	addressSpaceResource = syscall.RLIMIT_AS
-)
+// The number the kernel knows the process bound by. It is written out because
+// Go's syscall package does not name it, and it is the same on every
+// architecture Linux runs on. There is no bound on address space on purpose:
+// Node's engine and Go's runtime reserve tens of gigabytes of virtual space they
+// never touch, and a four-gigabyte bound made a test runner abort inside the
+// fence on the first live run. Memory is bounded by the machine, the process
+// count, and the two folder sizes.
+const processCountResource = 6
 
 // theBoundsOnOneCommand is what the helper sets on itself just before it becomes
 // the command. Each carries the words a person needs when the kernel refuses it.
@@ -49,7 +45,6 @@ var theBoundsOnOneCommand = []struct {
 	value    uint64
 }{
 	{name: "how many processes it may start", resource: processCountResource, value: MostProcesses},
-	{name: "how much address space it may map", resource: addressSpaceResource, value: MostAddressSpaceBytes},
 }
 
 // setResourceLimits binds this program, and with it the command it is about to

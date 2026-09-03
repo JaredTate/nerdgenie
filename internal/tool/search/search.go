@@ -76,7 +76,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			"Give a regular expression, or a name pattern such as *.md. Use read for a file you can already name.",
 		Fields: []contract.ToolField{
 			{Name: "pattern", Type: "string", Description: "A regular expression, or a name pattern such as *.md.", Required: true},
-			{Name: "path", Type: "string", Description: "The whole path of the folder or file to search.", Required: true},
+			{Name: "path", Type: "string", Description: "The path of the folder or file to search, taken from the folder the agent works in unless it starts at the root or at ~.", Required: true},
 		},
 		Classes: []contract.PermissionClass{contract.ClassRead},
 	}
@@ -129,7 +129,7 @@ func (tool *Tool) folderToSearch(asked input) (string, error) {
 	if strings.TrimSpace(tool.settings.DefaultFolder) != "" {
 		return tool.settings.DefaultFolder, nil
 	}
-	return "", errors.New("this call names no folder to search and this tool has no folder to fall back on, so give the whole path of the folder or the file")
+	return "", errors.New("this call names no folder to search and this tool has no folder to fall back on, so give the path of the folder or the file")
 }
 
 // The names a model writes for the two fields this tool needs. The first of each

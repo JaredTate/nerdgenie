@@ -20,6 +20,26 @@ const (
 // when it wraps a link in a redirect of its own.
 const redirectParameter = "uddg"
 
+// The two lines a results page with no result on it comes back as. A page that
+// arrived and held nothing the reader could use is not the same thing as a web
+// with nothing on it, and the model has to be able to tell them apart: the first
+// is worth trying other words for, and the second never will be.
+const (
+	// noResultRead is what a page the reader found no result on comes back as.
+	noResultRead = "the results page came back but no result could be read from it, so try other words"
+	// humanCheckAsked is what the page a search site answers a plain program
+	// with comes back as: a page asking whoever searched to prove they are a
+	// person, which no wording of the query will get past.
+	humanCheckAsked = "the search site answered with a page asking for a human check rather than with results, so search " +
+		"another way: set search_server_address in config.toml to a search server of your own, or open the site with the browser tools"
+)
+
+// marksOfAHumanCheck are the words the page asking for a human check carries,
+// in small letters. The first is the name that page marks its own parts with and
+// the second is the sentence it shows the person, so that a change to either one
+// still leaves the page recognised.
+var marksOfAHumanCheck = []string{"anomaly-modal", "confirm this search was made by a human"}
+
 // row is one result read off a results page.
 type row struct {
 	title   string
@@ -33,7 +53,7 @@ type row struct {
 func rowsFromResultsPage(page string) string {
 	found := readRows(page)
 	if len(found) == 0 {
-		return "nothing was found"
+		return whyNoResultWasRead(page)
 	}
 	written := &strings.Builder{}
 	for at, one := range found {
@@ -43,6 +63,18 @@ func rowsFromResultsPage(page string) string {
 		fmt.Fprintf(written, "%s\n%s\n%s\n\n", one.title, one.address, one.snippet)
 	}
 	return strings.TrimSpace(written.String())
+}
+
+// whyNoResultWasRead says why a page came back with no result on it, telling the
+// page that asks for a human check apart from a page that simply holds nothing.
+func whyNoResultWasRead(page string) string {
+	lowered := asciiLower(page)
+	for _, mark := range marksOfAHumanCheck {
+		if strings.Contains(lowered, mark) {
+			return humanCheckAsked
+		}
+	}
+	return noResultRead
 }
 
 // readRows walks the links on a results page and builds one row per result.

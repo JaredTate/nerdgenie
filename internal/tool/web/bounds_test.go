@@ -72,7 +72,7 @@ func TestASearchServerThatAnswersNonsenseSaysSo(t *testing.T) {
 	}
 }
 
-func TestAResultsPageWithNoRowsOnItSaysNothingWasFound(t *testing.T) {
+func TestAResultsPageWithNoResultOnItSaysNoResultCouldBeRead(t *testing.T) {
 	bare := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(writer, "<html><body><p>no results today</p></body></html>")
 	}))
@@ -83,8 +83,8 @@ func TestAResultsPageWithNoRowsOnItSaysNothingWasFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("searching a page with no rows on it failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "nothing was found") {
-		t.Errorf("a search that found nothing said %q", output.Text)
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
+		t.Errorf("a search that found nothing said %q, and the model cannot tell the page apart from an empty web", output.Text)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestAResultsPageWithLinksThatNeverCloseStillReads(t *testing.T) {
 	if err != nil {
 		t.Fatalf("searching a broken results page failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "nothing was found") {
+	if !strings.Contains(output.Text, "no result could be read from it, so try other words") {
 		t.Errorf("a results page whose links never close read as %q", output.Text)
 	}
 }

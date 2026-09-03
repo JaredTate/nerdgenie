@@ -41,7 +41,7 @@ func newTool(t *testing.T, ripgrep string) (*search.Tool, string) {
 			t.Fatalf("cannot write %s: %v", name, err)
 		}
 	}
-	allowed := tool.NewPathCheck([]string{root}, filepath.Dir(root), "")
+	allowed := tool.NewPathCheck(tool.WorkArea{Roots: []string{root}, WorkingFolder: root, UserHome: filepath.Dir(root)})
 	return search.New(search.Settings{Allowed: allowed, Ripgrep: ripgrep}), root
 }
 

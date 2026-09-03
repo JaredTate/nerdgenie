@@ -32,7 +32,7 @@ type Settings struct {
 
 // input is what the model writes when it calls this tool.
 type input struct {
-	// Path is the whole path of the file to change.
+	// Path is the path of the file to change.
 	Path string `json:"path"`
 	// Old is the text to replace, quoted from the file.
 	Old string `json:"old"`
@@ -61,7 +61,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Description: "Replaces one span of text in a file with another, inside the folders the agent may work in. " +
 			"Quote enough lines to name one place. Use write to replace a whole file.",
 		Fields: []contract.ToolField{
-			{Name: "path", Type: "string", Description: "The whole path of the file to change.", Required: true},
+			{Name: "path", Type: "string", Description: "The path of the file to change, taken from the folder the agent works in unless it starts at the root or at ~.", Required: true},
 			{Name: "old", Type: "string", Description: "The text to replace, quoted from the file.", Required: true},
 			{Name: "new", Type: "string", Description: "What to put in its place.", Required: true},
 		},
@@ -130,10 +130,10 @@ func readInput(written json.RawMessage) (input, error) {
 		return input{}, err
 	}
 	if !wrotePath {
-		return input{}, fields.Missing("path", "the whole path of the file to change")
+		return input{}, fields.Missing("path", "the path of the file to change")
 	}
 	if strings.TrimSpace(path) == "" {
-		return input{}, errors.New("this call names no file to change, so give the whole path of the file")
+		return input{}, errors.New("this call names no file to change, so give the path of the file")
 	}
 	if !wroteOld {
 		return input{}, fields.Missing("old", "the text to replace, quoted from the file")

@@ -322,9 +322,10 @@ secret lying across a seam matches neither half; it is then split at paragraph
 breaks into as few messages as fit Signal's two-thousand-unit length, never in
 the middle of a sentence while a sentence break is available and never inside the
 `[redacted]` marker the redactor left, capped at ten messages with a note on the
-last one, and sent with a typing indicator around it. A preview arrives as the actual text with the
-three answers explained once, and waits `PreviewTimeout`, thirty minutes, for
-`approve`, `always`, or `deny`. A handoff arrives through `SendFile` with its
+last one, and sent with a typing indicator around it. A preview, in
+`signal/preview.go`, arrives as the actual text with the three answers explained
+once, and waits `PreviewTimeout`, thirty minutes, for `approve`, `always`, or
+`deny`. A handoff arrives through `SendFile` with its
 screenshot. `AskSecret` always returns `contract.ErrNoMaskedPrompt`, because
 Signal cannot hide what is typed. One "still working" note is sent five minutes
 into a task that has said nothing, and only one. Inbound photos and files are

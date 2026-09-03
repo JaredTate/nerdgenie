@@ -59,7 +59,7 @@ func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFl
 		}
 		fmt.Fprintf(ask.output, "%v\n", err)
 	}
-	return nil, fmt.Errorf("no folder Coeus may work in was given in %d tries, so nothing was set up", maxTriesPerQuestion)
+	return nil, fmt.Errorf("no folder Coeus may work in was given in %d tries%s", maxTriesPerQuestion, pickUpThere)
 }
 
 // expandFolders turns every answer into a full path.
@@ -209,7 +209,7 @@ func (setup Setup) askSignal(ctx context.Context, ask *asker, chosen initFlags) 
 	if !ask.canAsk() {
 		return true, nil
 	}
-	return ask.yesOrNo(ctx, "signal-cli is installed. Should the closing lines say how to link Signal?\nThis only changes what is printed; nothing is switched on or off.", true)
+	return ask.yesOrNo(ctx, "signal-cli is installed. Should the closing lines say how to link Signal? This only changes what is printed.", true)
 }
 
 // writeConfiguration writes config.toml from the template this package owns.

@@ -234,7 +234,8 @@ func (running *run) memoryHint(ctx context.Context) []string {
 	if running.theLoop.options.Memory == nil {
 		return nil
 	}
-	hint, err := running.theLoop.options.Memory.Hint(ctx, running.task.Message.Text+" "+running.lastOrient)
+	asked := strings.TrimSpace(running.task.Message.Text + " " + running.lastOrient)
+	hint, err := running.theLoop.options.Memory.Hint(ctx, asked)
 	if err != nil {
 		return nil
 	}

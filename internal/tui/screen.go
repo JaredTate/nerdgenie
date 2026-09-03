@@ -44,6 +44,10 @@ type Options struct {
 	// Dialer opens the link to the running program. A screen built without one
 	// draws its frame and never connects, which is what the drawing tests use.
 	Dialer Dialer
+	// Size reports how big the terminal is and whether it would say. Run uses it
+	// to draw the very first frame at the real size; a caller that leaves it out
+	// gets the terminal the frame is written to, asked directly.
+	Size func() (width int, height int, known bool)
 	// Width and Height are the size to draw the first frame at, before the
 	// terminal has said how big it really is.
 	Width, Height int
@@ -56,6 +60,7 @@ type Options struct {
 // Run draws the screen on the terminal and does not return until the person
 // quits or the terminal goes away.
 func Run(options Options) error {
+	options.Width, options.Height = firstFrameSize(options)
 	screen := New(options)
 	defer screen.Close()
 
@@ -91,17 +96,21 @@ type Screen struct {
 	busySince    time.Time
 	spinnerSince time.Time
 
-	state      programState
-	detail     string
-	attached   bool
-	modelAlias string
-	taskID     string
-	taskState  string
-	tokensIn   string
-	tokensOut  string
-	money      string
-	budget     string
-	lastHealth time.Time
+	state        programState
+	detail       string
+	attached     bool
+	everAttached bool
+	modelAlias   string
+	taskID       string
+	taskState    string
+	tokensIn     string
+	tokensOut    string
+	money        string
+	budget       string
+	budgetTask   string
+	budgetNow    int
+	budgetMost   int
+	lastHealth   time.Time
 
 	blocks     []block
 	scrollBack int
@@ -118,6 +127,9 @@ type Screen struct {
 	commands    []contract.Command
 	paletteOpen bool
 	quitArmed   bool
+
+	cardsShown int
+	waitingFor int
 }
 
 // heartbeatInterval is how often the screen wakes itself up. It is the thirty
@@ -195,6 +207,7 @@ func (screen *Screen) Close() {
 func (screen *Screen) linkChanged(change linkMessage) {
 	if change.up {
 		screen.attached = true
+		screen.everAttached = true
 		screen.lastHealth = screen.now
 		screen.setState(stateIdle, "")
 		return
@@ -267,7 +280,21 @@ func (screen *Screen) View() string {
 	rows = append(rows, screen.ruleRow())
 	rows = append(rows, input...)
 	rows = append(rows, screen.statusRow())
+	for at, drawn := range rows {
+		rows[at] = screen.paintToTheEdge(drawn)
+	}
 	return strings.Join(rows, "\n")
+}
+
+// paintToTheEdge fills the rest of a row out to the right-hand edge of the
+// terminal, so that the ground the frame is drawn on runs the whole width of
+// every row and there are no unpainted gaps down the right-hand side.
+func (screen *Screen) paintToTheEdge(drawn string) string {
+	gap := screen.width - displayWidth(drawn)
+	if gap <= 0 {
+		return drawn
+	}
+	return drawn + screen.colors.wrap(styleNormal, strings.Repeat(" ", gap))
 }
 
 // resize takes the terminal's new size, which re-wraps everything on the next
@@ -278,10 +305,16 @@ func (screen *Screen) resize(width int, height int) {
 }
 
 // focusedCard is the card waiting for an answer, or nothing when the keys belong
-// to the input box.
+// to the input box. The card is found by the number it was given when it was
+// shown rather than by walking back through the transcript, because anything at
+// all may arrive above it, and an error card that landed on top of a preview
+// used to take the preview's three answers away with it.
 func (screen *Screen) focusedCard() *card {
+	if screen.waitingFor == 0 {
+		return nil
+	}
 	for at := len(screen.blocks) - 1; at >= 0; at-- {
-		if screen.blocks[at].kind != blockCard {
+		if screen.blocks[at].kind != blockCard || screen.blocks[at].shown.number != screen.waitingFor {
 			continue
 		}
 		if screen.blocks[at].shown.takesKeys() {

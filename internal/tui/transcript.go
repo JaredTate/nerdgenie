@@ -116,52 +116,30 @@ func (screen *Screen) blockLines(item block) []string {
 	return nil
 }
 
-// personLines draws a message the person typed, with the two-column accent bar
-// down its left side.
+// personLines draws a message the person typed: a filled bubble leaning against
+// the right-hand edge of the frame, with the thick left edge that the design
+// drew as a bar beside the message kept as the bubble's own edge.
 func (screen *Screen) personLines(text string) []string {
-	drawn := []string{}
-	for _, wrapped := range wrapText(text, screen.transcriptWidth()) {
+	lines := []row{}
+	for _, wrapped := range wrapText(text, screen.bubbleWidth()-bubbleFrame) {
 		line := row{}
-		line.blanks(marginColumns)
-		line.add(styleAccent, string(personBarGlyph))
-		line.add(styleNormal, " "+wrapped)
-		drawn = append(drawn, line.render(screen.colors))
+		line.add(styleChip, wrapped)
+		lines = append(lines, line)
 	}
-	return drawn
+	return screen.bubbleRows(lines, personBubble())
 }
 
-// replyLines draws what the agent wrote back: indented two columns, no bar, and
-// markdown rendered lightly.
+// replyLines draws what the agent wrote back: an outlined bubble against the
+// left-hand edge, with markdown rendered lightly inside it.
 func (screen *Screen) replyLines(text string) []string {
-	drawn := []string{}
-	for _, line := range markdownRows(text, screen.transcriptWidth()) {
-		full := row{}
-		full.blanks(marginColumns + gutterColumns)
-		for _, piece := range line.spans {
-			full.addSpan(piece)
-		}
-		drawn = append(drawn, full.render(screen.colors))
-	}
-	return drawn
+	return screen.bubbleRows(markdownRows(text, screen.bubbleWidth()-bubbleFrame), agentBubble())
 }
 
-// toolLines draws one tool call as one dim line under the arrow. The line holds
-// the tool, its main argument, and a short summary, and never the result text,
-// which "/tasks 17" and "read r3" show on purpose.
+// toolLines draws one tool call as a small filled pill holding the tool, its
+// main argument, and a short summary, and never the result text, which
+// "/tasks 17" and "read r3" show on purpose.
 func (screen *Screen) toolLines(text string) []string {
-	drawn := []string{}
-	for number, wrapped := range wrapText(text, screen.transcriptWidth()-2) {
-		line := row{}
-		line.blanks(marginColumns + gutterColumns)
-		if number == 0 {
-			line.add(styleDim, string(toolArrowGlyph)+" ")
-		} else {
-			line.blanks(2)
-		}
-		line.add(styleDim, wrapped)
-		drawn = append(drawn, line.render(screen.colors))
-	}
-	return drawn
+	return screen.pillRows(text)
 }
 
 // visibleTranscript is the rows of the transcript that fit in the space it has,
@@ -171,6 +149,9 @@ func (screen *Screen) toolLines(text string) []string {
 func (screen *Screen) visibleTranscript(height int) []string {
 	if height < 1 {
 		return []string{}
+	}
+	if len(screen.blocks) == 0 {
+		return screen.bannerRows(height)
 	}
 	gathered := screen.transcriptRows(height + screen.scrollBack)
 	screen.scrollBack = min(screen.scrollBack, max(len(gathered)-height, 0))

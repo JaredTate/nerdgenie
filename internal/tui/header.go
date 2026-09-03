@@ -19,21 +19,21 @@ func (screen *Screen) headerRow() string {
 		line.addSpan(piece)
 	}
 	if screen.width >= narrowWidth {
-		mark := screen.healthMark()
-		line.padTo(screen.width - marginColumns - displayWidth(mark.text))
-		line.addSpan(mark)
+		line.addRightPiece(screen.healthMark(), screen.width)
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
 }
 
-// headerParts are the pieces between the wordmark and the health dot. Before the
-// link is made there is only one of them, and it says so.
+// headerParts are the pieces between the wordmark and the health dot. A link
+// that is not there is said in so many words first, and everything the program
+// last reported is kept behind it, because a person whose link dropped still
+// wants to know which model was running and what the session had cost.
 func (screen *Screen) headerParts() []span {
-	if !screen.attached {
-		return []span{{style: styleDim, text: "connecting"}}
-	}
 	parts := []span{}
+	if !screen.attached {
+		parts = append(parts, screen.linkPiece())
+	}
 	if screen.modelAlias != "" {
 		parts = append(parts, span{style: styleDim, text: screen.modelAlias})
 	}
@@ -44,6 +44,17 @@ func (screen *Screen) headerParts() []span {
 		parts = append(parts, span{style: styleDim, text: cost})
 	}
 	return parts
+}
+
+// linkPiece is what the header says about a link that is not there. A screen
+// that has never reached the program is still connecting, which is ordinary and
+// is drawn quietly; a link that was up and went away is a failure and is drawn
+// in the error colour.
+func (screen *Screen) linkPiece() span {
+	if screen.everAttached {
+		return span{style: styleError, text: "disconnected"}
+	}
+	return span{style: styleDim, text: "connecting"}
 }
 
 // taskWords is the task and its state, such as "task 17 running", or empty when
@@ -64,8 +75,8 @@ func (screen *Screen) taskWords() string {
 // taskStyle draws a running task in the accent colour and every other state
 // plainly, so that the eye finds the one thing that is happening.
 func (screen *Screen) taskStyle() style {
-	if screen.taskState == "running" {
-		return styleAccent
+	if screen.taskRunning() {
+		return styleBold
 	}
 	return styleNormal
 }

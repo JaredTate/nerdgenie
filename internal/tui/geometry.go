@@ -17,6 +17,10 @@ const (
 	// widestTranscript is the widest the transcript ever wraps, however wide the
 	// terminal is, because a very long line is hard to read.
 	widestTranscript = 100
+	// minimumGap is the smallest run of blanks allowed between the left-hand
+	// words of a one-line row and the piece sitting on its right-hand end, so
+	// that the two never read as one long word.
+	minimumGap = 2
 	// smallestWidth and smallestHeight are the smallest frame the screen draws.
 	// A terminal smaller than this gets this frame and clips it, which is better
 	// than arithmetic that goes negative.
@@ -36,6 +40,8 @@ const (
 	moreGlyph      = '▼'
 	filledDotGlyph = '●'
 	hollowDotGlyph = '○'
+	barFullGlyph   = '▰'
+	barEmptyGlyph  = '▱'
 )
 
 // span is one run of text drawn in one style. A row is built out of spans, so
@@ -56,8 +62,10 @@ type row struct {
 	width int
 }
 
-// add puts one piece of text on the end of the row.
+// add puts one piece of text on the end of the row, with the control characters
+// taken out of it first.
 func (line *row) add(chosen style, text string) {
+	text = withoutControls(text)
 	if text == "" {
 		return
 	}
@@ -65,21 +73,68 @@ func (line *row) add(chosen style, text string) {
 	line.width += displayWidth(text)
 }
 
+// withoutControls turns every control character in a piece of text into one
+// blank. Everything the person types and everything the program sends is drawn
+// through this, because a screen that passes an escape character straight to the
+// terminal lets whoever wrote it move the cursor, repaint the frame, or hide
+// what it did, and because a row holding a stray escape is no longer as wide as
+// it measures. The escape codes the screen draws its own colours with are added
+// after this, when the row is rendered.
+func withoutControls(text string) string {
+	if !strings.ContainsFunc(text, isControl) {
+		return text
+	}
+	return strings.Map(func(letter rune) rune {
+		if isControl(letter) {
+			return ' '
+		}
+		return letter
+	}, text)
+}
+
+// isControl says whether a character is one the terminal reads as an
+// instruction rather than drawing: the thirty-three control characters and the
+// delete character.
+func isControl(letter rune) bool {
+	return letter < ' ' || letter == 0x7f
+}
+
 // addSpan puts an already-styled piece of text on the end of the row.
 func (line *row) addSpan(piece span) {
 	line.add(piece.style, piece.text)
 }
 
-// blanks puts a run of spaces on the end of the row.
+// blanks puts a run of spaces on the end of the row, drawn on the plain ground.
 func (line *row) blanks(columns int) {
+	line.padWith(styleNormal, columns)
+}
+
+// padWith puts a run of spaces on the end of the row drawn in one style, so that
+// a filled shape such as a pill or a bubble is filled to its own edge rather
+// than showing the ground through its padding.
+func (line *row) padWith(chosen style, columns int) {
 	if columns > 0 {
-		line.add(styleNormal, strings.Repeat(" ", columns))
+		line.add(chosen, strings.Repeat(" ", columns))
 	}
 }
 
 // padTo widens the row with blanks until it is the given number of columns.
 func (line *row) padTo(columns int) {
 	line.blanks(columns - line.width)
+}
+
+// addRightPiece puts one piece on the right-hand end of a row, with a real gap
+// in front of it, and drops it altogether when there is not room for both the
+// piece and the gap. docs/TUI_DESIGN.md says a narrow terminal degrades by
+// dropping the right-hand side, and a piece glued onto the words beside it reads
+// as one long word and is then cut in half by the edge of the terminal.
+func (line *row) addRightPiece(piece span, width int) {
+	room := width - marginColumns - displayWidth(piece.text)
+	if room < line.width+minimumGap {
+		return
+	}
+	line.padTo(room)
+	line.addSpan(piece)
 }
 
 // keepWithin shortens the row so that it fits in a number of columns, dropping
@@ -119,12 +174,17 @@ func (line row) render(colors theme) string {
 }
 
 // trimTrailingBlanks drops the spaces on the end of a row, and the spans that
-// were nothing but spaces.
+// were nothing but spaces. Only blanks on the plain ground are dropped: a blank
+// drawn in any other style is paint, such as the right-hand end of a filled
+// pill, and dropping it would leave the shape open.
 func trimTrailingBlanks(spans []span) []span {
 	kept := make([]span, len(spans))
 	copy(kept, spans)
 	for len(kept) > 0 {
 		last := len(kept) - 1
+		if kept[last].style != styleNormal {
+			break
+		}
 		trimmed := strings.TrimRight(kept[last].text, " ")
 		if trimmed != "" {
 			kept[last].text = trimmed

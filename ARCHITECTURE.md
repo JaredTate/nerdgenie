@@ -242,46 +242,74 @@ The socket is itself a `contract.Channel` named `terminal`, so the terminal is a
 
 `serve.go` supplies the router's five things — `RunCommand`, `FindChannel`, `StartTask`, `StopTask`, and the skill store — the stream's two, the clock and the `Status` function, and the socket's six: the path, the stream, the queue, the vault, the clock, and the answer deadline. Nothing crossing the socket is named in this package any more: the terminal channel's name, the masked-prompt flag, the word for "always", the status field names, the state words, and the command separator are all `contract`'s, so the terminal screen reads them without importing anything of this package's, and a command that may run only in the terminal is checked against one spelling rather than two.
 
-## The terminal screen (built, wave 3)
+## The terminal screen (built, wave 3; reworked, brief 3.6)
 
 `internal/tui` is the terminal screen, and `cmd/coeus/tui.go` is the `tui`
 subcommand that opens it, which is also what the bare `coeus` command runs. The
 screen is a thin client: it holds only what is on the frame, it draws what the
 running program sends over the local socket, and it sends back what the person
-types. It is built on Bubble Tea, and it imports nothing of Coeus but
-`internal/contract`, `internal/clock`, `internal/config` (in the subcommand, to
-find the home folder), and `internal/testkit` in its tests.
+types. It is built on Bubble Tea, with lipgloss for the border glyphs and the
+colour values, and it imports nothing of Coeus but `internal/contract`,
+`internal/clock`, `internal/config` (in the subcommand, to find the home folder),
+and `internal/testkit` in its tests.
 
 The drawing is `docs/TUI_DESIGN.md`, line for line: a header, a rule, the
 transcript with its four block kinds, a rule, the input box, and the status
 strip. `View` builds the frame as rows of plain text and adds the colour codes at
 the very last step, which is why `NO_COLOR` renders exactly the same structure
 and why a golden file is readable. Nothing is drawn wider than the terminal: the
-transcript wraps, and the header and the status strip are cut. The transcript is
-drawn from the newest block backwards and stops as soon as it has the rows that
-fit, so a long session costs no more to draw than a short one.
+bubbles wrap, and the header and the status strip drop their right-hand piece
+when it will not fit with a gap in front of it. The transcript is drawn from the
+newest block backwards and stops as soon as it has the rows that fit, so a long
+session costs no more to draw than a short one. `Run` asks the terminal how big
+it is with the `TIOCGWINSZ` request before Bubble Tea paints anything, and falls
+back to eighty by twenty-four, so the very first frame is the right size.
+
+Every piece of text that goes onto a row has its control characters turned
+into blanks first, so nothing the person types and nothing the program sends
+can move the cursor, repaint the frame, or make a row wider than it measures;
+the only escape codes in a frame are the screen's own colours and the picture
+protocols on a screenshot.
+
+**The look.** `style.go` holds the DigiByte palette as lipgloss colour values —
+a light blue ground behind every row, white letters, a pale blue for the quiet
+parts, DigiByte's own blue for the filled shapes, gold for the card that must be
+answered, red for a failure — and turns each of them into escape codes at
+whatever colour depth the terminal reports, stepping from twenty-four bit through
+the two hundred and fifty-six colour cube to the sixteen ordinary colours and
+down to none. The codes are written here rather than by `lipgloss.Style.Render`
+because a lipgloss renderer reports no colour at all when its writer is not a
+terminal, which every test process is. `View` paints every row out to the
+right-hand edge so the ground has no gaps. `banner.go` draws the `COEUS AGENT`
+wordmark in a five-row block font while the transcript is empty; `bubble.go`
+draws the person's filled bubble leaning right, the agent's outlined bubble
+leaning left, and a tool call as a small filled pill.
 
 Time comes from `contract.Clock` and reaches the screen as one heartbeat every
 thirty milliseconds. That heartbeat does three things: it moves the screen's idea
 of the time on, it flushes the deltas that have arrived since the last one into
 the reply block, and it lets the spinner decide whether it is still due. The
 spinner appears only after five hundred milliseconds of waiting and stays at
-least three seconds once it has appeared.
+least three seconds once it has appeared. Those numbers, the hundred-column wrap,
+the five-row input box and the ten-second health window are pinned as literals in
+a test rather than measured against themselves.
 
 `Client` is the link. It dials through a `Dialer`, sends `attach`, reads
 envelopes into Bubble Tea messages, and dials again on a wait that doubles from a
 quarter of a second to ten seconds, saying so in the status strip the whole time.
 `UnixDialer` is the real one, on `contract.Home.SocketFile`. A socket line past
 one megabyte is thrown away and shown as an error card, and so is a line that is
-not a message the two sides agree on; neither closes the link.
+not a message the two sides agree on; neither closes the link. A link that goes
+away leaves the model, the task and the cost in the header and changes only the
+word for the link itself.
 
 **What the screen reads on the socket.** Every name on the wire comes from
 `internal/contract`, so that the screen and `internal/channel` cannot disagree
 about a spelling. A masked prompt is an `ask` with `MaskInput` set, the title of
 the request in `Title`; there is no message type for asking a secret, because
 `secret` travels only from the screen to the program. A `status` message fills the
-header, the status strip, the tool lines, the health dot, and the command palette
-from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
+header, the status strip, the tool lines, the health dot, the budget bar and the
+command palette from the fields `contract.StatusFieldModel`, `StatusFieldTask`,
 `StatusFieldTaskState`, `StatusFieldTokensIn`, `StatusFieldTokensOut`,
 `StatusFieldCost`, `StatusFieldBudget`, `StatusFieldState`, `StatusFieldTool`,
 `StatusFieldToolLine`, `StatusFieldHealthy`, and `StatusFieldCommands`, the last
@@ -292,10 +320,19 @@ words the strip draws are the design's, so `StateUsingTool` reads as "using read
 and `StateWaitingForYou` as "waiting for you". A field or a state word the screen
 does not know changes nothing on the frame, a field that is not sent leaves what
 is on the screen alone, and a status message with no `StatusFieldHealthy` counts
-as the program answering for itself. Going the other way, an approve carrying
-`contract.ApproveAlwaysText` means every call like this one for the rest of the
-session and an approve carrying no text means this one call, and a deny carries
-the person's reason in `Reason`.
+as the program answering for itself. The budget line is read for its first
+number, and the fullest report seen since this task started is what the bar in
+the status strip is measured against. A `reply` that carries `Attachments` names
+each file as a pill.
+
+Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
+call like this one for the rest of the session and an approve carrying no text
+means this one call; a deny carries the person's reason in `Reason`; and
+`contract.SocketCancel` with an id is what Escape at a card or at a masked prompt
+sends, because the person refused nothing and the program must stop waiting at
+once rather than sitting out its whole deadline. The card that holds the single
+keys is remembered by the number it was given when it was shown, so that an error
+card arriving above a preview cannot take the preview's three answers with it.
 
 ## The commands and the four subcommands (built, wave 3, brief 3.3)
 

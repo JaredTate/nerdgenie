@@ -1,0 +1,24 @@
+ coeus · opus · task 17 running · 6.1k in 0.4k out · $0.04          
+ ────────────────────────────────────────────────────────────────── 
+                                                                    
+                                                                    
+   ╭──────────────────────────────────────────────────────────────╮ 
+   ▎ Post a tweet about the DigiByte anniversary. Use the product │ 
+   ▎ notes and keep it under 280 characters.                      │ 
+   ╰──────────────────────────────────────────────────────────────╯ 
+                                                                    
+ ╭───────────────────────────────────────────────────╮              
+ │ Where I stand: the notes are read, drafting next. │              
+ ╰───────────────────────────────────────────────────╯              
+    ▸ read memory/product.md · 2,100 characters · r3                
+                                                                    
+ ┌ Ask me first ──────────────────────────────────────────────────┐ 
+ │ browser_click e7 "Post"                                        │ 
+ │                                                                │ 
+ │ [ a ] approve once                                             │ 
+ │ [ A ] always this session                                      │ 
+ │ [ r ] reject with a reason                                     │ 
+ └────────────────────────────────────────────────────────────────┘ 
+ ────────────────────────────────────────────────────────────────── 
+ › _                                                                
+ thinking · 86 rounds, 51 min left ▰▰▰▰                             

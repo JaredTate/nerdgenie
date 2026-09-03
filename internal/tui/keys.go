@@ -64,10 +64,14 @@ func (screen *Screen) pressedWhileThePaletteIsOpen(key tea.KeyMsg) bool {
 // false only for the keys that still belong to the screen as a whole, such as
 // scrolling, so that stray typing never lands in a box the person cannot use.
 func (screen *Screen) pressedWhileACardWaits(key tea.KeyMsg) bool {
-	if key.Type == tea.KeyPgUp || key.Type == tea.KeyPgDown {
+	switch key.Type {
+	case tea.KeyPgUp, tea.KeyPgDown:
 		return false
-	}
-	if key.Type != tea.KeyRunes {
+	case tea.KeyEsc:
+		screen.withdrawFromCard()
+		return true
+	case tea.KeyRunes:
+	default:
 		return true
 	}
 	switch string(key.Runes) {

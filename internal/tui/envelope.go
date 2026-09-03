@@ -11,6 +11,7 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 		screen.pending += envelope.Text
 	case contract.SocketReply:
 		screen.finishReply(envelope.Text)
+		screen.showFiles(envelope.Attachments)
 	case contract.SocketPreview:
 		screen.showCard(cardFrom(envelope, cardPreview, previewTitle))
 	case contract.SocketAsk:
@@ -26,6 +27,26 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 	case contract.SocketError:
 		screen.flushDeltas()
 		screen.showTrouble(troubleWords(envelope))
+	}
+}
+
+// maxFilesNamed is how many of a reply's files the transcript names, because a
+// reply carrying a thousand of them must not fill the screen.
+const maxFilesNamed = 20
+
+// showFiles puts one dim line in the transcript for each file the program sent
+// to the terminal, because a file whose path is nowhere on the screen is a file
+// the person cannot go and open.
+func (screen *Screen) showFiles(paths []string) {
+	for at, path := range paths {
+		if at >= maxFilesNamed {
+			screen.remember(block{kind: blockTool, text: "and more files, which the log lists in full"})
+			return
+		}
+		if path == "" {
+			continue
+		}
+		screen.remember(block{kind: blockTool, text: "file · " + path})
 	}
 }
 

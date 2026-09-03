@@ -3,11 +3,40 @@ package tui
 import "github.com/JaredTate/coeus/internal/contract"
 
 // showCard puts a card in the transcript, gives it the keys, and says in the
-// status strip that the work has stopped and is waiting for the person.
+// status strip that the work has stopped and is waiting for the person. The
+// screenshot on a handoff is read and encoded here, once, rather than on every
+// frame the card is drawn in.
 func (screen *Screen) showCard(shown card) {
 	screen.flushDeltas()
+	screen.cardsShown++
+	shown.number = screen.cardsShown
+	if shown.picture != "" {
+		shown.drawn, _ = screen.pictureLine(shown.picture, screen.transcriptWidth())
+	}
+	if shown.takesKeys() {
+		screen.waitingFor = shown.number
+	}
 	screen.remember(block{kind: blockCard, shown: shown})
 	screen.setState(stateWaitingForYou, "")
+}
+
+// withdrawFromCard tells the program that the person walked away from the card
+// on the screen, so that nothing is left waiting for an answer that will never
+// come. internal/contract calls this a cancel rather than a no, because the
+// person refused nothing; they closed a box.
+func (screen *Screen) withdrawFromCard() {
+	shown := screen.focusedCard()
+	if shown == nil {
+		return
+	}
+	shown.answered = true
+	identifier := shown.id
+	screen.waitingFor = 0
+	screen.askingWhyNot = false
+	screen.input.clear()
+	screen.setState(stateIdle, "")
+	screen.remember(block{kind: blockTool, text: "walked away without answering"})
+	screen.tell(contract.SocketEnvelope{Type: contract.SocketCancel, ID: identifier})
 }
 
 // askWhyNot moves the keys to the input box so that the person can say why they
@@ -25,6 +54,7 @@ func (screen *Screen) answerCard(answer contract.PreviewAnswer, reason string) {
 		return
 	}
 	shown.answered = true
+	screen.waitingFor = 0
 	screen.askingWhyNot = false
 	screen.input.clear()
 	screen.setState(stateIdle, "")
@@ -72,10 +102,10 @@ func answerWords(answer contract.PreviewAnswer, reason string) string {
 // waiting for them.
 func (screen *Screen) answerTheQuestion() {
 	for at := len(screen.blocks) - 1; at >= 0; at-- {
-		if screen.blocks[at].kind != blockCard {
+		if screen.blocks[at].kind != blockCard || screen.blocks[at].shown.kind != cardQuestion {
 			continue
 		}
-		if screen.blocks[at].shown.kind == cardQuestion && !screen.blocks[at].shown.answered {
+		if !screen.blocks[at].shown.answered {
 			screen.blocks[at].shown.answered = true
 			screen.setState(stateIdle, "")
 		}

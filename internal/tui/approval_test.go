@@ -70,7 +70,7 @@ func TestAPreviewDrawsTheCardAndWaitsForThePerson(t *testing.T) {
 	send(screen, aPreview())
 
 	frame := screen.View()
-	for _, wanted := range []string{previewTitle, "browser_click e7", "[a] approve once", "[A] always this session", "[r] reject with a reason"} {
+	for _, wanted := range []string{previewTitle, "browser_click e7", "[ a ] approve once", "[ A ] always this session", "[ r ] reject with a reason"} {
 		if !strings.Contains(frame, wanted) {
 			t.Errorf("the frame does not hold %q, and the preview card shows the call and its three answers", wanted)
 		}

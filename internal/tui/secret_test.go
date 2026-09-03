@@ -79,7 +79,7 @@ func TestEscapeCancelsAMaskedPromptAndTellsTheProgram(t *testing.T) {
 	if screen.input.secret {
 		t.Error("Escape did not leave secret mode")
 	}
-	if len(link.sent) != 1 || link.sent[0].Type != contract.SocketDeny || link.sent[0].ID != "7" {
+	if len(link.sent) != 1 || link.sent[0].Type != contract.SocketCancel || link.sent[0].ID != "7" {
 		t.Errorf("cancelling sent %+v, and the program is told so that it is not left waiting", link.sent)
 	}
 	if link.sent[0].Secret != "" {

@@ -598,5 +598,6 @@ worker/desktop/test/session.test.ts
 worker/desktop/test/wire.test.ts
 worker/desktop/test/worker.test.ts
 worker/desktop/tsconfig.json
+worker/desktop/tsconfig.test.json
 worker/desktop/vitest.config.ts
 ```

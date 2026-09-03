@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -214,6 +215,28 @@ func checkEnvironment(environment []string) error {
 		if strings.ContainsRune(entry, 0) {
 			return fmt.Errorf("the environment entry %q holds a zero byte, and a zero byte hides whatever follows it, so take it out", entry)
 		}
+		if isTheFencesOwnName(name) {
+			return fmt.Errorf("the environment entry %q sets %s, which the fence sets itself, and bwrap gives the command whichever value was written last,"+
+				" so leave %s out and let the fence's own value stand", entry, name, name)
+		}
 	}
 	return nil
+}
+
+// theFencesOwnNames are the environment names the fence writes itself: where a
+// command looks for its programs, and where its home directory is. A caller's
+// entry is written after the fence's, and the last one written wins, so an entry
+// with one of these names is refused rather than quietly taking the fence's
+// place.
+var theFencesOwnNames = []string{"PATH", "HOME"}
+
+// loaderNamePrefix is what every setting the program loader reads begins with,
+// LD_PRELOAD among them. A caller that could set one would choose what every
+// program inside the fence loads before its own code.
+const loaderNamePrefix = "LD_"
+
+// isTheFencesOwnName says whether an environment name belongs to the fence
+// rather than to the caller.
+func isTheFencesOwnName(name string) bool {
+	return slices.Contains(theFencesOwnNames, name) || strings.HasPrefix(name, loaderNamePrefix)
 }

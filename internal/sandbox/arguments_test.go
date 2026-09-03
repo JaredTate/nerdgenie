@@ -152,6 +152,57 @@ func TestTheEnvironmentLeavesOutTheInheritedNamesThatAreNotSet(t *testing.T) {
 	}
 }
 
+func TestTheFenceRefusesACallerEntryThatWouldReplaceItsOwnPathOrHome(t *testing.T) {
+	fence, _ := aFenceForTesting(t)
+
+	for _, entry := range []string{
+		"PATH=/tmp/somewhere-else",
+		"HOME=/home/example",
+		"LD_PRELOAD=/tmp/mine.so",
+		"LD_LIBRARY_PATH=/tmp",
+	} {
+		_, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{entry}})
+		if err == nil {
+			t.Errorf("the caller passed %q and the fence took it; the last --setenv wins, so the caller's value would replace the fence's own", entry)
+			continue
+		}
+		if !strings.Contains(err.Error(), entry) {
+			t.Errorf("the refusal says %q, and it must name the entry it refused", err)
+		}
+	}
+}
+
+func TestTheFenceTakesACallerEntryThatIsNotOneOfItsOwn(t *testing.T) {
+	fence, _ := aFenceForTesting(t)
+
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{"GIT_AUTHOR_NAME=Example", "LDFLAGS=-s"}})
+	if err != nil {
+		t.Fatalf("an ordinary environment entry was refused: %v", err)
+	}
+	if !slices.Contains(plan.environment, "GIT_AUTHOR_NAME=Example") || !slices.Contains(plan.environment, "LDFLAGS=-s") {
+		t.Errorf("the environment is %v, want both of the caller's entries in it", plan.environment)
+	}
+}
+
+func TestTheFencesOwnPathAndHomeAreTheFirstTwoEntriesAndTheOnlyOnes(t *testing.T) {
+	fence, work := aFenceForTesting(t)
+
+	plan, err := fence.planFor(contract.SandboxCommand{Program: "/bin/true", Environment: []string{"NINJA_STATUS=go"}})
+	if err != nil {
+		t.Fatalf("planning a command failed: %v", err)
+	}
+
+	wantPath, wantHome := "PATH="+sandboxPath, "HOME="+filepath.Join(work, scratchHomeName)
+	if plan.environment[0] != wantPath || plan.environment[1] != wantHome {
+		t.Fatalf("the environment starts %v, want %q then %q", plan.environment[:2], wantPath, wantHome)
+	}
+	for _, entry := range plan.environment[2:] {
+		if strings.HasPrefix(entry, "PATH=") || strings.HasPrefix(entry, "HOME=") {
+			t.Errorf("the environment holds a second %q after the fence's own, and bwrap gives the last one to the command", entry)
+		}
+	}
+}
+
 func TestTheFencePlanRefusesACommandWithNoProgram(t *testing.T) {
 	fence, _ := aFenceForTesting(t)
 

@@ -34,8 +34,12 @@
 // survive that change of program, so the command starts already fenced in.
 //
 // Every run has bounds: the number of roots, the number of arguments, the number
-// of environment entries, the time the command may take, and the bytes kept from
-// each of its two output streams.
+// of environment entries, the processes the command may start, the address space
+// it may map, the size of its temporary folder, the time it may take, and the
+// bytes kept from each of its two output streams. An environment entry a caller
+// adds may not be named PATH, HOME, or anything beginning with LD_, because the
+// command is given whichever value was written last and those are the fence's
+// own.
 //
 // Two pieces here were not asked for by brief 2.3 and are kept on purpose. The
 // first is the user-namespace probe in Available: Ubuntu ships with AppArmor

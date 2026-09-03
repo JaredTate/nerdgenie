@@ -45,6 +45,9 @@ func FuzzTheAddressCheck(f *testing.F) {
 	f.Add("http://[::1]/x")
 	f.Add("")
 	f.Add("http://")
+	f.Add(" http://0.1.0.0")
+	f.Add("http://0x7f000001/")
+	f.Add("http://[::ffff:127.0.0.1]/")
 
 	f.Fuzz(func(t *testing.T, address string) {
 		if len(address) > 4096 {
@@ -53,10 +56,12 @@ func FuzzTheAddressCheck(f *testing.F) {
 		if err := web.CheckAddressAllowed(address, nil); err != nil {
 			return
 		}
-		// The scheme of a web address is read without regard to capital
+		// The check trims the space round an address before it reads it, so what
+		// it allowed is the trimmed text and that is what this compares. The
+		// scheme of a web address is also read without regard to capital
 		// letters, which is what the standard says, so "httpS://" is a web
 		// address and this looks at the lowercase form.
-		lowered := strings.ToLower(address)
+		lowered := strings.ToLower(strings.TrimSpace(address))
 		if !strings.HasPrefix(lowered, "http://") && !strings.HasPrefix(lowered, "https://") {
 			t.Fatalf("the address %q was allowed and is not a web address", address)
 		}

@@ -161,6 +161,7 @@ func impossibleSettings() []badField {
 		{"no model aliases at all", "\nmodels = [] " + theMarker + "\n", "models"},
 		{"no sandbox roots at all", "\nsandbox_roots = [] " + theMarker + "\n", "sandbox_roots"},
 		{"an ask-me-first entry nobody ships", "\nask_me_first = [\"anything at all\"] " + theMarker + "\n", "ask_me_first"},
+		{"a sandbox setting that is neither of the two values", "\nsandbox = \"loose\" " + theMarker + "\n", "sandbox"},
 	}
 }
 
@@ -406,5 +407,46 @@ func TestTheUsersOwnPermissionRulesLoad(t *testing.T) {
 	first := settings.PermissionRules[0]
 	if first.Tool != "shell" || first.Pattern != "git push*" || first.Action != contract.RulingAsk {
 		t.Errorf("the first rule is %+v, want the shell rule the file writes", first)
+	}
+}
+
+// TestBothSandboxValuesLoadAndAFileThatSaysNothingMeansOff pins the two values
+// the sandbox setting takes and the default a file that says nothing gets, which
+// is off: commands run straight on the machine as the user unless the file asks
+// for the fence.
+func TestBothSandboxValuesLoadAndAFileThatSaysNothingMeansOff(t *testing.T) {
+	for _, written := range []struct {
+		document string
+		wanted   string
+	}{
+		{"", contract.SandboxOff},
+		{"sandbox = \"off\"\n", contract.SandboxOff},
+		{"sandbox = \"fence\"\n", contract.SandboxFence},
+	} {
+		settings, err := config.Load(writeConfig(t, written.document))
+		if err != nil {
+			t.Fatalf("the configuration %q was refused: %v", written.document, err)
+		}
+		if settings.SandboxMode() != written.wanted {
+			t.Errorf("the configuration %q runs the sandbox as %q, want %q",
+				written.document, settings.SandboxMode(), written.wanted)
+		}
+	}
+}
+
+// TestASandboxValueNobodyKnowsIsRefusedByNameWithBothValues holds the other half
+// of the rule: a misspelled value is refused rather than quietly read as one of
+// the two, and the refusal names both, so that the person can put it right
+// without opening a document.
+func TestASandboxValueNobodyKnowsIsRefusedByNameWithBothValues(t *testing.T) {
+	problem := refuses(t, "sandbox = \"loose\"\n")
+
+	if problem.Key != "sandbox" {
+		t.Errorf("the problem names the key %q, want %q", problem.Key, "sandbox")
+	}
+	for _, wanted := range []string{"loose", contract.SandboxFence, contract.SandboxOff} {
+		if !strings.Contains(problem.Advice, wanted) {
+			t.Errorf("the advice is %q and does not name %q", problem.Advice, wanted)
+		}
 	}
 }

@@ -1,5 +1,13 @@
-// Package sandbox runs a command inside bwrap with a Landlock ruleset and a
-// seccomp filter.
+// Package sandbox runs a command for the agent, either inside a fence of bwrap,
+// Landlock, and seccomp, or straight on the machine as the user.
+//
+// There are two runners here and the configuration picks between them. NewDirect
+// is the one a fresh install uses, because the sandbox setting is off unless the
+// file asks for the fence: it runs the command on the machine as the user, the
+// way most agents run on the host, keeping the process group, the
+// timeout, the cancel, and the output cap that the fence keeps and losing only
+// the box. New builds the fence, which is what the setting "fence" asks for and
+// what the rest of this comment is about.
 //
 // The fence has two halves. Outside, this package builds a bwrap command line
 // that gives the command a new user, process, message-queue, and hostname

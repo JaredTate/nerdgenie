@@ -17,7 +17,7 @@ import (
 const signalProgram = "signal-cli"
 
 // makeTheLayout makes every folder of the home layout with the mode the
-// contract gives it, and writes the three persona files.
+// contract gives it, and writes the three persona files and the browser skill.
 func makeTheLayout(home contract.Home) error {
 	for _, folder := range home.Folders() {
 		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
@@ -27,7 +27,10 @@ func makeTheLayout(home contract.Home) error {
 			return fmt.Errorf("the folder %s could not be closed to other accounts, so check who owns it: %w", folder, err)
 		}
 	}
-	return writePersonaFiles(home)
+	if err := writePersonaFiles(home); err != nil {
+		return err
+	}
+	return writeBrowserSkill(home)
 }
 
 // askWorkFolders asks which folders Coeus may work in, checking every answer

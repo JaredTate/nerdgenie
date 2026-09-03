@@ -27,6 +27,12 @@ const (
 	// does at rounds twenty-nine and thirty. The third is refused and the
 	// fourth ends the turn.
 	IdenticalCallsAllowed = 2
+	// SameCallHardCap is the second rule, beside the first: how many times the
+	// same call with the same arguments may run in a row whatever it answered.
+	// The first human trial ran one shell command thirteen times in a row, and
+	// the first rule never fired, because every answer carried a new process id.
+	// The seventh call is refused, and the ninth ends the turn.
+	SameCallHardCap = 6
 )
 
 // HarnessStopLineWall is the second line the harness adds to every stop list:
@@ -66,9 +72,47 @@ func (running *run) spent() time.Duration {
 
 // detectorRefuses says whether this call is one the model has already made over
 // and over. It returns the words to send back when the call is refused, and
-// true when the turn has to end because the model will not stop asking.
+// true when the turn has to end because the model will not stop asking. Two
+// rules are read: a run of the same call whose answers also stayed the same, and
+// the hard cap on a run of the same call whatever it answered.
 func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	mark := fingerprintOf(call)
+	streak := running.sameResultStreak(mark)
+	made := running.sameCallRun(mark)
+	running.rememberCall(mark)
+	if streak > IdenticalCallsAllowed || made > SameCallHardCap+1 {
+		return fmt.Sprintf("You have asked for %s with the same arguments %d times in a row, so the turn ends here.",
+			call.Name, made+1), true
+	}
+	if streak == IdenticalCallsAllowed {
+		return fmt.Sprintf("You have already called %s with these exact arguments %d times, and it was not run again. Do something different, or answer the user.",
+			call.Name, streak), false
+	}
+	if made >= SameCallHardCap {
+		return fmt.Sprintf("You have already called %s with these exact arguments %d times, and it was not run again. "+
+			"The answers differed, but they did not change what you did next. Do something different, or answer the user: "+
+			"if you are waiting for something to finish, wait longer before asking again, and if the answer is already in front of you, read the result you already have.",
+			call.Name, made), false
+	}
+	return "", false
+}
+
+// sameCallRun is how many of the newest calls in the window, in a row, asked for
+// this same thing, whatever each came back with. A different call in between
+// ends the run, because the same call after doing something else is ordinary
+// work: reading a page again after a click, or running the tests after an edit.
+func (running *run) sameCallRun(mark string) int {
+	made := 0
+	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
+		made++
+	}
+	return made
+}
+
+// sameResultStreak is how many of the newest calls in the window, in a row,
+// asked for this same thing and came back with the same answer, which is the
+// first rule's count. A call whose answer changed starts a new streak.
+func (running *run) sameResultStreak(mark string) int {
 	streak := 0
 	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
 		if streak > 0 && somethingChanged(running.recentCalls[at], running.recentCalls[at+1]) {
@@ -76,16 +120,7 @@ func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 		}
 		streak++
 	}
-	running.rememberCall(mark)
-	if streak > IdenticalCallsAllowed {
-		return fmt.Sprintf("You have asked for %s with the same arguments %d times in a row, so the turn ends here.",
-			call.Name, streak+1), true
-	}
-	if streak == IdenticalCallsAllowed {
-		return fmt.Sprintf("You have already called %s with these exact arguments %d times, and it was not run again. Do something different, or answer the user.",
-			call.Name, streak), false
-	}
-	return "", false
+	return streak
 }
 
 // somethingChanged says whether two neighbouring calls in the window came back

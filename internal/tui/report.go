@@ -39,6 +39,8 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldTokensOut, &screen.tokensOut)
 	setIfSent(fields, contract.StatusFieldCost, &screen.money)
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
+	setIfSent(fields, statusFieldPlan, &screen.plan)
+	setIfSent(fields, statusFieldJobs, &screen.jobs)
 	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
 	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
 	setCountIfSent(fields, contract.StatusFieldStreamed, &screen.streamed)
@@ -48,13 +50,80 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	if listed, sent := fields[contract.StatusFieldCommands]; sent {
 		screen.learnCommands(listed)
 	}
-	if line, sent := fields[contract.StatusFieldToolLine]; sent && line != "" {
-		screen.flushDeltas()
-		screen.remember(block{kind: blockTool, text: line})
-	}
+	screen.readToolLine(fields)
 	screen.readRecordLine(fields)
 	screen.readHealth(fields)
 	screen.readReportedState(fields)
+}
+
+// readToolLine puts one pill in the transcript for the call in flight. The
+// program sends the same line on every heartbeat until the call changes, so a
+// line that is what is already on the screen is not drawn again, and a line that
+// is the same call with what came back added to it takes the place of the pill
+// that call already has rather than making a second one. The same call made
+// again, straight after the last one came back, is counted on the pill it
+// already has rather than given another.
+func (screen *Screen) readToolLine(fields map[string]string) {
+	line, sent := fields[contract.StatusFieldToolLine]
+	if !sent || line == "" || line == screen.lastTool {
+		return
+	}
+	screen.flushDeltas()
+	if !screen.replacePill(screen.lastTool, line) && !screen.countTheCallAgain(line) {
+		screen.remember(block{kind: blockTool, text: line})
+	}
+	screen.lastTool = line
+}
+
+// countTheCallAgain writes a line for the same call as the newest pill, the same
+// tool with the same argument made again after the last one came back, into
+// that pill with a count, and says whether it did. The trial saw a model that
+// had got stuck run one shell command thirteen times over and fill the screen
+// with it; one row that says how many times tells the person more. Only the
+// newest pill is looked at, because a count is for a run of the same call and
+// not for a call that came round again later.
+func (screen *Screen) countTheCallAgain(line string) bool {
+	if len(screen.blocks) == 0 {
+		return false
+	}
+	newest := &screen.blocks[len(screen.blocks)-1]
+	if newest.kind != blockTool || callOf(newest.text) != callOf(line) {
+		return false
+	}
+	newest.text = keepTail(line)
+	newest.repeats = max(newest.repeats, 1) + 1
+	screen.scrollBack = 0
+	return true
+}
+
+// toolLineSeparator is what the program writes between a call and what came back
+// of it, which is internal/loop's ToolLineSeparator spelled here because the
+// screen imports nothing of Coeus but the contract and the clock.
+const toolLineSeparator = " · "
+
+// callOf is the part of a tool line that names the call: the tool and its main
+// argument, which is everything before the separator the program writes between
+// the call and what came back of it.
+func callOf(line string) string {
+	call, _, _ := strings.Cut(line, toolLineSeparator)
+	return strings.TrimSpace(call)
+}
+
+// replacePill writes a newer line into the pill an older one is already drawn
+// in, when the newer line is the older one with more added to the end of it,
+// which is what a call gaining its result looks like. It says whether it found
+// that pill.
+func (screen *Screen) replacePill(older string, newer string) bool {
+	if older == "" || !strings.HasPrefix(newer, older) {
+		return false
+	}
+	for at := len(screen.blocks) - 1; at >= 0; at-- {
+		if screen.blocks[at].kind == blockTool && screen.blocks[at].text == older {
+			screen.blocks[at].text = keepTail(newer)
+			return true
+		}
+	}
+	return false
 }
 
 // readRecordLine puts one pill in the transcript for the latest change to the

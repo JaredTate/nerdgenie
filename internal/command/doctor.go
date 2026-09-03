@@ -61,15 +61,19 @@ func canReallyFence(home contract.Home) error {
 }
 
 // sandboxFinding turns what the sandbox said into one line of the report. A
-// machine that cannot fence is not broken: the shell tool switches itself off
-// and everything else works, so this is a warning. The sandbox's own words are
-// passed on whole, because they are what name the fix, which on Ubuntu is the
-// AppArmor rule about unprivileged user namespaces.
+// machine that cannot fence is not broken: with the sandbox off, which is the
+// default, nothing is lost, and with it set to fence the shell tool switches
+// itself off and everything else works, so this is a warning. The sandbox's own
+// words are passed on whole, because they are what name the fix, which on Ubuntu
+// is the AppArmor rule about unprivileged user namespaces. The fine line says the
+// fence is ready for the setting that turns it on rather than that commands run
+// inside it, because by default they do not; which way the setting is turned is
+// config.Doctor's own finding.
 func sandboxFinding(reason error) config.Finding {
 	const what = "the sandbox fence"
 	if reason != nil {
 		return config.Finding{What: what, Result: config.Warning, Detail: reason.Error()}
 	}
 	return config.Finding{What: what, Result: config.Fine,
-		Detail: "bwrap made a user namespace here, so shell commands run inside the fence"}
+		Detail: `bwrap made a user namespace here, so the fence is ready whenever the sandbox setting is "fence"`}
 }

@@ -148,6 +148,44 @@ func aConfigurationShapedLikeTheOneInitWrites(t *testing.T, home contract.Home) 
 		"base_address = \"http://127.0.0.1:19091/v1\"\nmodel_name = \"local-coder\"\ncontext_length = 262144\n"
 }
 
+// TestWithTheSandboxOffTheAgentRunsCommandsStraightOnTheMachineAndSaysSo holds
+// the switch at the place it is thrown. A fresh install has no sandbox line at
+// all, so this is what almost every machine runs: the runner needs no bwrap, and
+// the person is told in one sentence what that means.
+func TestWithTheSandboxOffTheAgentRunsCommandsStraightOnTheMachineAndSaysSo(t *testing.T) {
+	for _, written := range []string{"", contract.SandboxOff} {
+		said := []string{}
+		running := &agent{
+			home:     contract.NewHome(filepath.Join(t.TempDir(), contract.HomeFolderName)),
+			settings: contract.DefaultConfig(),
+			sayLine:  func(line string) { said = append(said, line) },
+		}
+		running.settings.Sandbox = written
+
+		runner := running.openTheFence()
+		if runner == nil {
+			t.Fatalf("the sandbox setting %q left the agent with nothing to run commands with", written)
+		}
+		if err := runner.Available(); err != nil {
+			t.Errorf("the sandbox setting %q gave a runner that cannot run: %v", written, err)
+		}
+		if !strings.Contains(strings.Join(said, "\n"), theSandboxIsOffNote) {
+			t.Errorf("the agent said %v at start, and none of it is the line saying the sandbox is off", said)
+		}
+	}
+}
+
+// TestTheNoteAboutTheSandboxBeingOffSaysWhatIsGoneAndWhatIsLeft pins the words
+// themselves, because they are the only warning a person gets that commands are
+// running on their machine as them.
+func TestTheNoteAboutTheSandboxBeingOffSaysWhatIsGoneAndWhatIsLeft(t *testing.T) {
+	for _, wanted := range []string{"the sandbox is off", "straight on this machine as you", "ask-me-first"} {
+		if !strings.Contains(theSandboxIsOffNote, wanted) {
+			t.Errorf("the note is %q and it does not say %q", theSandboxIsOffNote, wanted)
+		}
+	}
+}
+
 // readTheSourceOf reads one file of this package back, for a test that has to
 // say something about how the wiring is written rather than what it does.
 func readTheSourceOf(t *testing.T, name string) string {

@@ -67,7 +67,7 @@ func agentBubble() bubble {
 // bubbleWidth is the widest box the transcript will draw: the frame less its
 // margins, and never wider than a line is comfortable to read.
 func (screen *Screen) bubbleWidth() int {
-	widest := screen.width - 2*marginColumns
+	widest := screen.transcriptColumns() - 2*marginColumns
 	if widest > widestTranscript+bubbleFrame {
 		widest = widestTranscript + bubbleFrame
 	}
@@ -87,7 +87,7 @@ func (screen *Screen) bubbleRows(lines []row, shape bubble) []string {
 	widest = max(widest, 1)
 	indent := marginColumns
 	if shape.leaningRight {
-		indent = screen.width - marginColumns - widest - bubbleFrame
+		indent = screen.transcriptColumns() - marginColumns - widest - bubbleFrame
 	}
 
 	drawn := []string{screen.bubbleEdgeRow(shape, widest, indent, true)}
@@ -128,7 +128,7 @@ func (screen *Screen) bubbleBodyRow(shape bubble, line row, widest int, indent i
 // main argument, and its short summary, and never the result text.
 func (screen *Screen) pillRows(text string) []string {
 	inner := screen.bubbleWidth() - bubbleFrame
-	wrapped := wrapText(text, max(inner-2, 1))
+	wrapped := wrapText(withoutLeadingArrow(text), max(inner-2, 1))
 	widest := 0
 	for _, line := range wrapped {
 		widest = max(widest, displayWidth(line))
@@ -149,4 +149,16 @@ func (screen *Screen) pillRows(text string) []string {
 		drawn = append(drawn, pill.render(screen.colors))
 	}
 	return drawn
+}
+
+// withoutLeadingArrow takes the arrow off the front of a line that already
+// carries one. The running program writes the line for a call in flight
+// beginning with the design's own arrow, and the pill draws that arrow itself,
+// so a line handed over with one would otherwise be drawn with two.
+func withoutLeadingArrow(text string) string {
+	trimmed := strings.TrimLeft(text, " ")
+	if !strings.HasPrefix(trimmed, string(toolArrowGlyph)) {
+		return text
+	}
+	return strings.TrimLeft(strings.TrimPrefix(trimmed, string(toolArrowGlyph)), " ")
 }

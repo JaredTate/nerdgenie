@@ -52,6 +52,25 @@ func newScreenTasks() *screenTasks {
 	return &screenTasks{newest: map[string]endedTask{}}
 }
 
+// screenNamed is the name one screen goes by in this memory: the channel and
+// the sender, joined, so that the terminal is one screen and every person
+// writing over Signal is another.
+func screenNamed(channel string, sender string) string {
+	return channel + ":" + sender
+}
+
+// forget drops what this screen's newest task was doing, so that the next
+// message from that screen starts a fresh task whatever the old one was waiting
+// for. It is what the clear command does, because a person who has emptied the
+// screen does not want their next words read as the answer to a question they
+// can no longer see.
+func (tasks *screenTasks) forget(screen string) {
+	tasks.guard.Lock()
+	defer tasks.guard.Unlock()
+	delete(tasks.newest, screen)
+	tasks.spokenLast = slices.DeleteFunc(tasks.spokenLast, func(named string) bool { return named == screen })
+}
+
 // remember writes down where this screen's newest task ended. It is called with
 // whatever the loop came back with, so a task that made no record and a task
 // that failed both replace what was there before and leave nothing to pick up.

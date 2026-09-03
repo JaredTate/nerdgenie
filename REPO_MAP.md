@@ -140,6 +140,7 @@ examples/tools/wordcount/README.md
 examples/tools/wordcount/wordcount
 go.mod
 go.sum
+internal/browser/accessibility_test.go
 internal/browser/browser.go
 internal/browser/budget.go
 internal/browser/budget_test.go

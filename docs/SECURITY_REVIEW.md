@@ -309,56 +309,82 @@ through the redactor. Either the claim goes or the pass does. This is a
 documentation-versus-code decision for the orchestrator, not a code fix a worker
 should make on its own.
 
-### 17. Medium: the desktop's accessibility settings are changed by programs Coeus starts, and nothing notices
+### 17. High: the browser Coeus launches turns the screen reader on, and it spoke aloud twice during this review
 
-This is the thing the brief asked about specifically, and it is worth writing down
-carefully. **Nothing in Coeus writes the setting.** I read every file under
-`worker/desktop/src`, `worker/desktop/test` and `internal/desktop`: there is no
-call to `gsettings`, `dconf`, `gio`, D-Bus or `org.gnome.*` anywhere in the
-repository, the word "orca" does not appear in it, and the only environment
-variables the desktop worker writes are `GDK_BACKEND` and `QT_QPA_PLATFORM`
+This is the thing the brief asked about, and the review found the real cause,
+which is not the one the brief expected. **Nothing in Coeus writes the setting.**
+I read every file under `worker/desktop/src`, `worker/desktop/test`,
+`internal/desktop`, `worker/browser/src` and `internal/browser`: there is no call
+to `gsettings`, `dconf`, `gio`, D-Bus or `org.gnome.*` anywhere in the
+repository, the word "orca" does not appear in it, no Chrome flag asks for
+accessibility (`worker/browser/src/chrome.ts:66-84`), and the only environment
+variables either worker writes are `GDK_BACKEND` and `QT_QPA_PLATFORM`
 (`worker/desktop/src/cuadriver.ts:171-172`). What Coeus does do is hand
-`DBUS_SESSION_BUS_ADDRESS` to two third-party programs — the native
-`@trycua/cua-driver`, through `internal/desktop/process.go:37`, and Google Chrome,
-through `internal/browser/process.go:42` — and those programs can and do change
-the session's accessibility settings. **The evidence from this review:** at the
-start of it, `org.gnome.desktop.a11y.applications screen-reader-enabled` read
-`false` and `org.gnome.desktop.interface toolkit-accessibility` read `false` on
-this machine. Twenty minutes later, with the real-Chrome browser integration tests
-running repeatedly in other worktrees (the user journal shows Chrome scopes
-starting throughout), `toolkit-accessibility` read `true`, written into
-`~/.config/dconf/user` at 21:18:32. `worker/desktop/dist` does not exist in any
-worktree, so the desktop worker did not run; Chrome is the candidate that was
-running. Orca did not start and `screen-reader-enabled` stayed `false`, so nobody
-was read to this time. **The threat is not confidentiality, it is trust:** the
-agent silently changes a setting on the user's desktop that turns the screen
-reader machinery on, and the user's first sign of it is a voice. **Two more
-things make it likely to happen again.** First,
-`worker/desktop/test/fixturewindow.test.ts:26-31` loads the real native driver
-and drives the real screen and the real clipboard whenever `DISPLAY` is set and
-`zenity` is installed — a plain `npm test` in that folder, with no build tag and
-no opt-in. Second, `Makefile:24` and `scripts/coverage.sh:32` both run
-`go test -tags integration`, which compiles `internal/desktop/integration_test.go`;
-it skips today only because `worker/desktop/dist/main.js` is absent, and its own
-skip message tells the reader to build it. So the day the worker is built,
-`make check` drives the real screen. **The fix** is a guard rather than a patch,
-and I wrote the one the brief asked for: `internal/desktop/accessibility_test.go`
-adds a `TestMain` that reads both settings and the list of running screen readers
-before this package's tests run and again afterwards, and fails the package if
-either changed, naming what started. It reads and never writes and never signals a
-process, so the guard cannot itself be the thing that turns a reader on or off. It
-passes today. Beside it, `TestTheWorkerIsHandedNothingThatTurnsTheAccessibilityBusOn`
-holds the environment allow list against ever growing an accessibility variable.
-**Three things are left for the orchestrator**, because they are outside a test
-file or outside this brief's packages: the same guard belongs on
-`internal/browser`, which is where the evidence points, and it should live in
-`internal/testkit` so both packages share it rather than duplicating ninety lines;
-`worker/desktop/test/fixturewindow.test.ts` needs an explicit opt-in variable
-rather than defaulting to "run whenever there is a display"; and the harness
-should record both settings when it starts the desktop worker and put them back
-when it stops, so that a third-party driver cannot leave the user's desktop
-changed.
+`DBUS_SESSION_BUS_ADDRESS` to two third-party programs — Google Chrome, through
+`internal/browser/process.go:42`, and the native `@trycua/cua-driver`, through
+`internal/desktop/process.go:37` — and a program handed the session bus can bring
+the desktop's accessibility bridge up, which on this machine starts the screen
+reader.
 
+**The evidence, and it is not circumstantial.** At the start of this review
+`org.gnome.desktop.a11y.applications screen-reader-enabled` read `false` and
+`org.gnome.desktop.interface toolkit-accessibility` read `false`. Twenty minutes
+later `toolkit-accessibility` read `true`, written into `~/.config/dconf/user` at
+21:18:32, with Chrome scopes starting throughout the user journal. Later, at
+21:40:38, a `speech-dispatch` process appeared under the user's own systemd, the
+dconf database was written again at 21:42:40, and the orchestrator reported that
+Orca had come on and spoken through the user's speakers. **The desktop worker was
+not involved in either occasion:** `worker/desktop/dist/main.js` does not exist in
+any worktree, so `internal/desktop/integration_test.go` skips at its first check
+and the native driver is never loaded. `worker/browser/dist/main.js` **does**
+exist, so `internal/browser/integration_test.go` runs, and it starts a real Google
+Chrome on the machine's own display (`internal/browser/integration_test.go:107-131`).
+Chrome is the program that was running on both occasions. So the culprit is the
+browser worker, not the desktop worker, and any run of `go test -tags integration
+./...` or `make check` on a machine where the browser bundle is built will do it
+again.
+
+**The threat is not confidentiality, it is trust and it is the user's own
+comfort.** The agent silently changes a setting on the user's desktop, and the
+first sign of it is a voice reading the screen aloud. An assistant that does that
+will be turned off.
+
+**The rule this has to become**, stated as the orchestrator asked for it: any code
+that touches the accessibility bus must read
+`org.gnome.desktop.a11y.applications screen-reader-enabled` before it starts, set
+it to false if it was false, never set it to true, and check afterwards that Orca
+is not running — with a test that fails if Orca appeared. That is a change to the
+harness, not to a test file, so it is a fix brief: the browser and desktop
+lifecycles must snapshot both accessibility settings when they start a worker and
+put them back when they stop it, and `coeus doctor` should report when the screen
+reader is on.
+
+**The guard is written and it is in this branch**, in both packages that hand a
+third-party program the session bus:
+`internal/desktop/accessibility_test.go` and
+`internal/browser/accessibility_test.go` each add a `TestMain` that reads both
+settings and the list of running screen readers before the package's tests and
+again afterwards, and fails the package if either changed, naming what started. It
+reads and never writes, and it never signals a process, so the guard cannot itself
+turn a reader on or off and cannot kill anything by a name pattern. Beside each
+sits a test holding the worker's environment allow list against ever growing an
+accessibility variable. Both pass today. The two copies are ninety duplicated
+lines and belong in `internal/testkit` so that one copy serves both; that move is
+outside a test file and so outside this brief.
+
+**Three more things for the orchestrator.**
+`worker/desktop/test/fixturewindow.test.ts:26-31` loads the real native driver and
+drives the real screen and the real clipboard whenever `DISPLAY` is set and
+`zenity` is installed — a plain `npm test` in that folder, with no build tag and
+no opt-in; it needs an explicit opt-in variable. `Makefile:24` and
+`scripts/coverage.sh:32` both run `go test -tags integration`, which is what
+starts the real Chrome, so `make check` on the development machine drives the
+user's desktop as a matter of course; the real-screen tests want a tag of their
+own. And until the harness snapshots and restores the settings, nobody should run
+the integration suite on a live GNOME session. **I stopped running it the moment
+the orchestrator reported the voice, and the rest of this review was read rather
+than run.** `speech-dispatch` as process 1040260 was still running when I
+finished; I did not kill it, because nothing here kills a process by its name.
 ### 18. Medium: three strangers can shut a user out of their own assistant
 
 `internal/signal/pairing.go:29` caps the waiting codes at three, and
@@ -513,15 +539,27 @@ the call whoever asked for it. Against an injection that goes through a skill, i
 does not hold at all (finding 1), and that is the most serious thing in this
 review.
 
-**The desktop's accessibility bus — no Coeus code touches it, and that is the
-problem.** Finding 17 has the whole of it. The guard the brief asked for is
-written, it passes, and it will fail the day a program Coeus starts turns the
-screen reader on while these tests run.
+**The accessibility bus — no Coeus code touches it, and that is the problem.**
+Finding 17 has the whole of it, including the correction to what the brief
+assumed: it is the real Chrome the browser worker launches, not the desktop
+worker, that brings the bridge up, and it did it twice during this review, the
+second time loudly. The guard the brief asked for is written, in both packages
+that hand a third-party program the session bus, and both pass today. The rule
+itself — read the setting, leave it as you found it, check afterwards that Orca is
+not running — has to move into the harness, and that is a fix brief.
 
 ## What was not done
 
 Part two of the brief. The container runs on clean Ubuntu and Debian, the live run
 against the three models, the token costs in `docs/PROGRESS.md`, and the rewritten
-README all wait on the installer and on the two worker bundles, none of which is
-built in this tree. `make release` and `make install` both still say so and exit 1
-on purpose.
+README all wait on the installer. `make release` and `make install` both still say
+so and exit 1 on purpose.
+
+Two things in part one were stopped rather than finished. The real-worker desktop
+tests were never run, because `worker/desktop/dist` is not built in this tree, so
+the native accessibility driver was reviewed by reading it rather than by driving
+it. And the browser integration tests, which do run here and which start a real
+Chrome, were stopped part way through when the orchestrator reported that the
+screen reader had come on and spoken; everything after that point was read rather
+than run. Finding 17 says what has to be true before either is run again on a live
+desktop session.

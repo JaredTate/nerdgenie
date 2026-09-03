@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 // readInput reads the model's arguments and refuses anything this tool could not
@@ -97,22 +98,47 @@ func operationOf(asked input) (string, error) {
 	if strings.TrimSpace(asked.Operation) == "" {
 		return inferredOperation(asked), nil
 	}
-	known, itIs := knownOperation(asked.Operation)
+	known, itIs := theOperations[plainName(asked.Operation)]
 	if !itIs {
 		return "", fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, or pin_result", asked.Operation)
 	}
 	return known, nil
 }
 
-// knownOperation says whether a name is one of the seven, and gives it back in
-// this tool's own spelling.
-func knownOperation(name string) (string, bool) {
-	switch name {
-	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan,
-		OperationDecision, OperationFailure, OperationPinResult:
-		return name, true
+// theOperations are the seven this tool knows, under the plain name each is
+// found by however the model spelled it.
+var theOperations = map[string]string{
+	"why":       OperationWhy,
+	"donewhen":  OperationDoneWhen,
+	"stopwhen":  OperationStopWhen,
+	"plan":      OperationPlan,
+	"decision":  OperationDecision,
+	"failure":   OperationFailure,
+	"pinresult": OperationPinResult,
+}
+
+// theWordsInFront are the words a model puts in front of an operation because
+// it is naming what the call does rather than which operation it is.
+var theWordsInFront = []string{"set", "add", "update", "write"}
+
+// plainName is the name an operation is found by: the capital letters lowered,
+// the underscores, dashes and spaces taken out, and a leading set, add, update
+// or write dropped, so that "DONE_WHEN", "doneWhen", "done-when" and
+// "set_done_when" are all the one operation and none of them costs a round.
+func plainName(operation string) string {
+	letters := strings.Map(func(letter rune) rune {
+		switch letter {
+		case '_', '-', ' ':
+			return -1
+		}
+		return unicode.ToLower(letter)
+	}, strings.TrimSpace(operation))
+	for _, word := range theWordsInFront {
+		if rest := strings.TrimPrefix(letters, word); rest != letters && rest != "" {
+			return rest
+		}
 	}
-	return "", false
+	return letters
 }
 
 // inferredOperation is what a call with no operation in it can only mean, read

@@ -209,7 +209,31 @@ func (jobs *Jobs) stopTheJob(ctx context.Context, jobID string, held *heldJob,
 	}
 	changed := held.state
 	changed.State = state
-	return jobs.saveState(ctx, jobID, held, changed)
+	if err := jobs.saveState(ctx, jobID, held, changed); err != nil {
+		return err
+	}
+	return jobs.sayTheJobStopped(ctx, jobID, why, cause)
+}
+
+// sayTheJobStopped puts in front of the user the fact that a job has stopped
+// working: why it stopped, the failure behind it, and the two commands that show
+// it and start it again. Brief 4.4 asks for this message twice, and without it a
+// paused job is invisible until somebody happens to type /jobs.
+//
+// The message is sent while the store's own lock is held, so the function must
+// not call back into the jobs. When it cannot reach the user the job has still
+// stopped and the reason is still in its record, and the caller is told that
+// nobody heard.
+func (jobs *Jobs) sayTheJobStopped(ctx context.Context, jobID string, why string, cause string) error {
+	if jobs.tellTheUser == nil {
+		return nil
+	}
+	said := fmt.Sprintf("%s. The last failure was: %s. Run /jobs %s to see it, and /cron run %s to start it again.",
+		why, cause, jobID, jobID)
+	if err := jobs.tellTheUser(ctx, said); err != nil {
+		return fmt.Errorf("job %s stopped and the user was not told why: %w", jobID, err)
+	}
+	return nil
 }
 
 // recordStatusOfJob maps where a job stands onto the statuses a record prints.

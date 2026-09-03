@@ -88,6 +88,7 @@ type Jobs struct {
 	closed        bool
 	lastWaitEnded time.Time
 	mayStartWork  func() bool
+	tellTheUser   func(ctx context.Context, text string) error
 }
 
 // The job store is the one real job store, so the compiler is asked to say at
@@ -151,6 +152,19 @@ func (jobs *Jobs) OnlyStartWorkWhen(mayStart func() bool) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
 	jobs.mayStartWork = mayStart
+}
+
+// TellTheUser sets the way the jobs reach the user, which is the seam
+// reliability.Settings has for the same reason: a job that pauses itself after
+// three failures or switches itself off after ten has stopped working, and a
+// line written into its own record is read only by somebody who already thought
+// to look. cmd/coeus/serve.go passes the same function it gives the guard.
+//
+// With none set nothing is sent, which is what a job store in a test gets.
+func (jobs *Jobs) TellTheUser(send func(ctx context.Context, text string) error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobs.tellTheUser = send
 }
 
 // Close lets go of every connection to the database file. Closing a job store

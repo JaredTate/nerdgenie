@@ -126,7 +126,7 @@ func TestARecordingWithNoOpeningStepDryRunsWithNoAddress(t *testing.T) {
 	if _, err := recorder.Type(ctx, "Write the note.", "e3", "nine years", "the note box holds the words"); err != nil {
 		t.Fatalf("cannot write the note: %v", err)
 	}
-	if err := recorder.Save(ctx, contract.SkillSavedByPerson, built.store, definitionOf("note-only")); err != nil {
+	if err := recorder.Save(ctx, built.store, definitionOf("note-only")); err != nil {
 		t.Fatalf("cannot save the recording: %v", err)
 	}
 	if arguments := built.load(t, "note-only").Plan.Arguments; arguments != "" {
@@ -137,7 +137,7 @@ func TestARecordingWithNoOpeningStepDryRunsWithNoAddress(t *testing.T) {
 func TestARecordingWithNoStoreToSaveIntoIsRefused(t *testing.T) {
 	built := newBench(t)
 	recorder := recordTheThreeStepFlow(t, built)
-	if err := recorder.Save(context.Background(), contract.SkillSavedByPerson, nil, definitionOf("fixture-walk")); err == nil {
+	if err := recorder.Save(context.Background(), nil, definitionOf("fixture-walk")); err == nil {
 		t.Fatal("a recording was saved with no store to save into")
 	}
 }

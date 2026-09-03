@@ -128,7 +128,7 @@ func (options WalkOptions) record(ctx context.Context, name string) (string, err
 	if _, err := recorder.Open(ctx, "Open "+page.URL+".", page.URL, expectation); err != nil {
 		return "", err
 	}
-	if err := recorder.Save(ctx, contract.SkillSavedByPerson, options.Skills, definitionOfARecordedWalk(name, page)); err != nil {
+	if err := recorder.Save(ctx, options.Skills, definitionOfARecordedWalk(name, page)); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("I wrote the page %s down as step 1 of the walk %q. I cannot see your own clicks in the browser, "+

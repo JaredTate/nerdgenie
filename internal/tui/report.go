@@ -39,6 +39,8 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldTokensOut, &screen.tokensOut)
 	setIfSent(fields, contract.StatusFieldCost, &screen.money)
 	setIfSent(fields, contract.StatusFieldBudget, &screen.budget)
+	setIfSent(fields, statusFieldPlan, &screen.plan)
+	setIfSent(fields, statusFieldJobs, &screen.jobs)
 	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
 	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
 	setCountIfSent(fields, contract.StatusFieldStreamed, &screen.streamed)

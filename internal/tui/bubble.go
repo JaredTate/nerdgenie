@@ -67,7 +67,7 @@ func agentBubble() bubble {
 // bubbleWidth is the widest box the transcript will draw: the frame less its
 // margins, and never wider than a line is comfortable to read.
 func (screen *Screen) bubbleWidth() int {
-	widest := screen.width - 2*marginColumns
+	widest := screen.transcriptColumns() - 2*marginColumns
 	if widest > widestTranscript+bubbleFrame {
 		widest = widestTranscript + bubbleFrame
 	}
@@ -87,7 +87,7 @@ func (screen *Screen) bubbleRows(lines []row, shape bubble) []string {
 	widest = max(widest, 1)
 	indent := marginColumns
 	if shape.leaningRight {
-		indent = screen.width - marginColumns - widest - bubbleFrame
+		indent = screen.transcriptColumns() - marginColumns - widest - bubbleFrame
 	}
 
 	drawn := []string{screen.bubbleEdgeRow(shape, widest, indent, true)}

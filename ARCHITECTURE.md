@@ -616,6 +616,23 @@ state and `task 24` when it did not, because the program sends the number on its
 own and the header was reading `· 24 ·`; a program that already writes the word
 is not made to write it twice.
 
+**The side panel.** `panel.go` draws the column the same trial asked for: at a
+hundred columns and wider, the last twenty-eight columns between the two rules
+are a panel, and everything in the transcript is drawn in what is left, which is
+`transcriptColumns` rather than the terminal's own width. Below a hundred columns
+`showsPanel` is false, `transcriptColumns` is the width, and every frame is what
+it was before, which is why the eighty-column golden files did not move. The
+drawing is opencode's sidebar, read at
+`~/Code/opencode/packages/tui/src/routes/session/sidebar.tsx`: a fixed-width
+column of short quiet lines in groups with a blank line between them. The three
+groups are the model with its context measure and the session's cost, the running
+task with a check beside every step of its plan that is done, and how many jobs
+are waiting; a group the program has said nothing about is left out altogether.
+The plan and the job count are the two things on the panel that the status
+envelope does not carry yet, so `panel.go` names the two fields it reads and
+writes out the `internal/contract` lines it wants for them; everything else in
+the panel is what the header already reads.
+
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text
 means this one call; a deny carries the person's reason in `Reason`; and

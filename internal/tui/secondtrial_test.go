@@ -96,34 +96,48 @@ func TestThePersonsBubbleLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
 	screen := aTrialScreen()
 	typeAndSend(screen, theHaikuMessage)
 
-	lid, words, floor := "", "", ""
+	lid, floor, said := "", "", []string{}
 	for _, line := range strings.Split(plainText(screen.frame()), "\n") {
+		beside := string([]rune(line)[:screen.transcriptColumns()])
 		switch {
-		case strings.Contains(line, "╭"):
-			lid = line
-		case strings.Contains(line, string(personBarGlyph)):
-			words = line
-		case strings.Contains(line, "╰"):
-			floor = line
+		case strings.Contains(beside, "╭"):
+			lid = beside
+		case strings.Contains(beside, string(personBarGlyph)):
+			said = append(said, insideTheBubble(beside))
+		case strings.Contains(beside, "╰"):
+			floor = beside
 		}
 	}
-	if lid == "" || words == "" || floor == "" {
+	if lid == "" || len(said) == 0 || floor == "" {
 		t.Fatalf("the bubble is missing one of its three rows:\n%s", screen.frame())
 	}
-	if !strings.Contains(words, theHaikuMessage) {
-		t.Errorf("the bubble's one row is %q, and it should hold the whole message", words)
+	if joined := strings.Join(said, " "); joined != theHaikuMessage {
+		t.Errorf("the bubble holds %q, and it should hold the whole message", joined)
 	}
 
 	left := displayWidth(lid) - displayWidth(strings.TrimLeft(lid, " "))
-	right := screen.width - displayWidth(strings.TrimRight(lid, " "))
+	right := screen.transcriptColumns() - displayWidth(strings.TrimRight(lid, " "))
 	if left <= right {
 		t.Errorf("the bubble has %d columns to its left and %d to its right, and the person's bubble leans against the right-hand edge",
 			left, right)
 	}
-	if wide := displayWidth(strings.TrimRight(lid, " ")) - left; wide != displayWidth(theHaikuMessage)+bubbleFrame {
-		t.Errorf("the bubble is %d columns wide for %d columns of words, and it is only as wide as its words",
-			wide, displayWidth(theHaikuMessage))
+	if right != marginColumns {
+		t.Errorf("the bubble stops %d columns short of the transcript's right-hand edge, and the design leaves it the one blank margin", right)
 	}
+	widest := 0
+	for _, one := range said {
+		widest = max(widest, displayWidth(one))
+	}
+	if wide := displayWidth(strings.TrimRight(lid, " ")) - left; wide != widest+bubbleFrame {
+		t.Errorf("the bubble is %d columns wide for %d columns of words, and it is only as wide as its words", wide, widest)
+	}
+}
+
+// insideTheBubble is the words on one row of a person's bubble, with the bar, the
+// padding and the right-hand border taken off.
+func insideTheBubble(drawn string) string {
+	_, words, _ := strings.Cut(drawn, string(personBarGlyph))
+	return strings.TrimSpace(strings.TrimSuffix(strings.TrimRight(words, " "), "│"))
 }
 
 func TestAToolLineThatArrivesAgainOnEveryHeartbeatDrawsOnePill(t *testing.T) {

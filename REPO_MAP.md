@@ -1117,12 +1117,14 @@ internal/tui/messages.go
 internal/tui/monitor_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
+internal/tui/panel_test.go
 internal/tui/pictures.go
 internal/tui/pseudoterminal_test.go
 internal/tui/record_test.go
 internal/tui/report.go
 internal/tui/screen.go
 internal/tui/screen_test.go
+internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go
 internal/tui/size.go

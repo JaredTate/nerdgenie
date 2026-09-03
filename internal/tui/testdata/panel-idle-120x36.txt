@@ -1,8 +1,6 @@
- coeus · connecting                                                                                           ○ offline 
+ coeus · opus                                                                                                 ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
+                                                                                            │ opus                      
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
@@ -20,10 +18,8 @@
                █████ █████ █████ █████ █████   █   █ █████ █████ █   █   █                  │                           
                                                                                             │                           
                       the agent that does not forget what it is doing                       │                           
-                                         connecting                                         │                           
+                                        opus · idle                                         │                           
                                  type / to see the commands                                 │                           
-                                                                                            │                           
-                                                                                            │                           
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
@@ -37,4 +33,4 @@
                                                                                             │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
- connecting                                                                   Enter send · Ctrl+J newline · Ctrl+C quit 
+ idle                                                                         Enter send · Ctrl+J newline · Ctrl+C quit 

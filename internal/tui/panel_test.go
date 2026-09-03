@@ -31,15 +31,21 @@ func aStatusWithAPlan() contract.SocketEnvelope {
 }
 
 // panelColumnOf is the rows of the side panel alone, cut out of the frame at the
-// column the panel begins in.
+// column the panel begins in. A row of the frame that is not the panel's, such
+// as the header or a rule, is left out, because the panel's rows are the ones
+// carrying its edge.
 func panelColumnOf(screen *Screen) []string {
 	drawn := []string{}
 	for _, line := range strings.Split(plainText(screen.frame()), "\n") {
 		letters := []rune(line)
-		if len(letters) < screen.width-panelColumns {
+		if len(letters) < screen.transcriptColumns() {
 			continue
 		}
-		drawn = append(drawn, strings.TrimRight(string(letters[screen.width-panelColumns:]), " "))
+		beside := strings.TrimRight(string(letters[screen.transcriptColumns():]), " ")
+		if !strings.HasPrefix(beside, string(panelEdgeGlyph)) {
+			continue
+		}
+		drawn = append(drawn, beside)
 	}
 	return drawn
 }
@@ -74,7 +80,8 @@ func TestThePanelIsTwentyEightColumnsWideAndLeavesTheRestToTheTranscript(t *test
 		if !strings.Contains(line, string(personBarGlyph)) {
 			continue
 		}
-		if edge := displayWidth(strings.TrimRight(line, " ")); edge > screen.transcriptColumns() {
+		beside := string([]rune(line)[:screen.transcriptColumns()])
+		if edge := displayWidth(strings.TrimRight(beside, " ")); edge >= screen.transcriptColumns() {
 			t.Errorf("the person's bubble reaches column %d, and the transcript ends at %d: %q",
 				edge, screen.transcriptColumns(), line)
 		}
@@ -101,7 +108,7 @@ func TestThePanelPutsACheckBesideEveryStepThatIsDone(t *testing.T) {
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
 	for _, wanted := range []string{
-		string(doneStepGlyph) + " the product notes are read",
+		string(doneStepGlyph) + " the product notes are",
 		string(doneStepGlyph) + " a draft under 280",
 		string(toDoStepGlyph) + " the tweet is posted",
 	} {

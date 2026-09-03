@@ -15,7 +15,7 @@ The screen is built on Bubble Tea, version 2, and on nothing else: the borders a
 
 ## The frame
 
-Eighty columns is the design width. Below sixty it degrades by dropping the right side of the header and the key hints; it never wraps the header, and it never glues the right-hand piece onto the words beside it — a piece that will not fit with a real gap in front of it is dropped instead. Above one hundred and twenty it does not stretch; a bubble is never wider than one hundred columns of text and centres nothing.
+Eighty columns is the design width. Below sixty it degrades by dropping the right side of the header and the key hints; it never wraps the header, and it never glues the right-hand piece onto the words beside it — a piece that will not fit with a real gap in front of it is dropped instead. Above one hundred and twenty it does not stretch; a bubble is never wider than one hundred columns of text and centres nothing. At a hundred columns and wider there is room for the side panel below, and everything between the two rules is drawn in what is left; below a hundred the panel is dropped and nothing else changes.
 
 ```
  coeus · opus · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
@@ -56,6 +56,31 @@ From top to bottom:
 
 **The budget bar.** The program reports its budget in plain words, such as "86 rounds, 51 min left", so the screen reads the first number in that line as the count and measures it against the largest count it has seen since this task started. A new task starts the measure again. There is no fuller measure to be had, and a bar measured against the fullest report of this task is the truth as the screen knows it.
 
+## The side panel
+
+At a hundred columns and wider, the last twenty-eight columns between the two rules are a panel down the right-hand side, drawn the way opencode draws its sidebar: a thin dim line down its left edge, a blank column after it, and short quiet lines in groups with a blank line between them. It holds what a person wants to see without asking for it, and nothing the program has not said:
+
+```
+ coeus · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                             │ opus
+                                                             │ ctx 12.4k / 262k · 5%
+                                                             │ 6.1k in 0.4k out · $0.04
+                                                             │
+                                                             │ task 17 running
+                                                             │ ✓ the product notes are
+                                                             │   read
+                                                             │ ✓ a draft under 280
+                                                             │   characters is written
+                                                             │ · the tweet is posted
+                                                             │
+                                                             │ 3 jobs
+```
+
+The three groups are the model and what it has cost, the running task and its plan, and the jobs. The model alias is bold; the context measure and its share are the header's own two pieces, so the share turns gold and then red at the same places; the cost is the session's tokens and money. The task is the header's words again, bold while it runs. Under it the plan is one line per done-when step, a check `✓` in the accent beside a step that is finished and a dim `·` beside one that is not, the step's own words wrapped under themselves so that the marks read as a column; at most eight steps are drawn, and a plan with more says how many more there are. The jobs line is how many jobs are waiting.
+
+A group the program has said nothing about is left out altogether, blank line and all, so a panel beside an idle agent is the model alone. The plan and the jobs come from two status fields of their own; everything else in the panel is what the header already knows.
+
 ## The masked prompt
 
 When the program asks for a secret, the input box switches to secret mode: the prompt glyph becomes `🔒` where the terminal has it and `*` where it does not, the title of the request is shown dim above the box (`API key for anthropic`), every typed character is drawn as `•`, paste works, Enter sends, Esc withdraws. Nothing typed in secret mode goes into the transcript, the history, or the log. The test types a secret and asserts the whole frame contains only bullets.
@@ -93,7 +118,7 @@ The escape codes are written by the screen rather than by a terminal styling lib
 ## What the tests check
 
 - The golden first frame at eighty by twenty-four before any socket message: the header with `coeus · connecting`, the rule, the banner, the rule, the input box, and the strip saying `connecting`.
-- Golden frames, themed and plain, at eighty by twenty-four and at one hundred and twenty by forty, for the banner and for a conversation with a bubble, a pill and a card in it. Golden frames at sixty and sixty-eight columns for the narrow degrade.
+- Golden frames, themed and plain, at eighty by twenty-four and at one hundred and twenty by forty, for the banner and for a conversation with a bubble, a pill and a card in it. Golden frames at sixty and sixty-eight columns for the narrow degrade, and at one hundred and twenty by thirty-six for the side panel, with a task and without one.
 - Every row of a themed frame is painted to the full width of the terminal and carries a background colour, so there are no dark gaps.
 - The spinner appears at five hundred milliseconds on the fake clock and is still there at three seconds even when the reply arrived at one second.
 - An approval card answered with `a`, `A`, and `r` sends the right socket message and the transcript records the answer in one pill, and it still does with an error card sitting on top of it.

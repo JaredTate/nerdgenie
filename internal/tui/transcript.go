@@ -52,7 +52,7 @@ func (screen *Screen) remember(added block) {
 // less its margins and the two-column gutter, and never more than the widest a
 // line is comfortable to read.
 func (screen *Screen) transcriptWidth() int {
-	width := screen.width - 2*marginColumns - gutterColumns
+	width := screen.transcriptColumns() - 2*marginColumns - gutterColumns
 	if width > widestTranscript {
 		width = widestTranscript
 	}

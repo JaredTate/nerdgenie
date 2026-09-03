@@ -11,27 +11,28 @@ import (
 
 // TestTheFirstPieceOfAReplyReachesEveryScreenAtOnce holds the design's promise
 // that streaming looks instant: the first piece goes out the moment it arrives,
-// and later pieces follow once the gathering window has passed.
+// less the tail that waits in case it is the start of a secret, and later
+// pieces follow once the gathering window has passed.
 func TestTheFirstPieceOfAReplyReachesEveryScreenAtOnce(t *testing.T) {
+	if deltaHoldBackRunes != 64 {
+		t.Fatalf("the tail held back is %d runes, and the design settles on sixty-four", deltaHoldBackRunes)
+	}
 	harness := newSocketHarness(t)
 	first := harness.attach(t)
-	second := harness.attach(t)
+	opening := strings.Repeat("a", deltaHoldBackRunes+6)
 
-	if err := harness.socket.SendDelta(context.Background(), "Hello "); err != nil {
+	if err := harness.socket.SendDelta(context.Background(), opening); err != nil {
 		t.Fatalf("sending the first piece failed: %v", err)
 	}
-	for _, client := range []*screen{first, second} {
-		got := client.next()
-		if got.Type != contract.SocketDelta || got.Text != "Hello " || got.Reset {
-			t.Errorf("a screen was sent %+v, want the first piece as a delta", got)
-		}
+	if got := first.next(); got.Type != contract.SocketDelta || got.Text != "aaaaaa" || got.Reset {
+		t.Errorf("the screen was sent %+v, want the first piece less the held tail, as a delta", got)
 	}
 	harness.clock.Advance(deltaCoalesce)
-	if err := harness.socket.SendDelta(context.Background(), "world"); err != nil {
+	if err := harness.socket.SendDelta(context.Background(), "bbbbb"); err != nil {
 		t.Fatalf("sending the second piece failed: %v", err)
 	}
-	if got := first.next(); got.Text != "world" {
-		t.Errorf("the screen was sent %q after the window passed, want the second piece", got.Text)
+	if got := first.next(); got.Text != "aaaaa" {
+		t.Errorf("the screen was sent %q after the window passed, want the next five runes to come out of the tail", got.Text)
 	}
 }
 
@@ -45,19 +46,19 @@ func TestPiecesAreGatheredForThirtyMillisecondsBeforeTheyGoOut(t *testing.T) {
 	client := harness.attach(t)
 	ctx := context.Background()
 
-	_ = harness.socket.SendDelta(ctx, "a")
+	_ = harness.socket.SendDelta(ctx, strings.Repeat("a", deltaHoldBackRunes+6))
 	client.next()
-	for _, piece := range []string{"b", "c"} {
+	for _, piece := range []string{strings.Repeat("b", 20), strings.Repeat("c", 10)} {
 		if err := harness.socket.SendDelta(ctx, piece); err != nil {
-			t.Fatalf("sending %q failed: %v", piece, err)
+			t.Fatalf("sending a piece failed: %v", err)
 		}
 	}
 	harness.clock.Advance(deltaCoalesce)
 	if err := harness.socket.SendDelta(ctx, "d"); err != nil {
 		t.Fatalf("sending the last piece failed: %v", err)
 	}
-	if got := client.next(); got.Text != "bcd" {
-		t.Errorf("the screen was sent %q, want the three pieces inside the window joined as one", got.Text)
+	if got := client.next(); len(got.Text) != 31 {
+		t.Errorf("the screen was sent %q (%d runes), want the three pieces inside the window joined as one of thirty-one", got.Text, len(got.Text))
 	}
 }
 
@@ -72,13 +73,13 @@ func TestASecretSplitAcrossTwoPiecesNeverReachesAScreen(t *testing.T) {
 	client := harness.attach(t)
 	ctx := context.Background()
 
-	for _, piece := range []string{"the password is hunter2the-", "real-one and that is all there is to say about it, so we go on"} {
+	for _, piece := range []string{"the password is hunter2the-", "real-one and that is all there is to say about it, so we go on", strings.Repeat(" and on", 12)} {
 		if err := harness.socket.SendDelta(ctx, piece); err != nil {
 			t.Fatalf("sending %q failed: %v", piece, err)
 		}
 		harness.clock.Advance(deltaCoalesce)
 	}
-	if err := harness.socket.Send(ctx, "the password is hunter2the-real-one and that is all there is to say about it, so we go on"); err != nil {
+	if err := harness.socket.Send(ctx, "the password is hunter2the-real-one and that is all there is to say about it, so we go on"+strings.Repeat(" and on", 12)); err != nil {
 		t.Fatalf("sending the reply failed: %v", err)
 	}
 	seen := ""
@@ -104,7 +105,7 @@ func TestAResetWithdrawsThePartialReply(t *testing.T) {
 	client := harness.attach(t)
 	ctx := context.Background()
 
-	_ = harness.socket.SendDelta(ctx, "Hello ")
+	_ = harness.socket.SendDelta(ctx, strings.Repeat("a", deltaHoldBackRunes+6))
 	client.next()
 	if err := harness.socket.ResetDelta(ctx); err != nil {
 		t.Fatalf("withdrawing the partial reply failed: %v", err)
@@ -112,10 +113,10 @@ func TestAResetWithdrawsThePartialReply(t *testing.T) {
 	if got := client.next(); got.Type != contract.SocketDelta || !got.Reset {
 		t.Errorf("the screen was sent %+v, want a delta that withdraws the reply", got)
 	}
-	if err := harness.socket.SendDelta(ctx, "Hello world"); err != nil {
+	if err := harness.socket.SendDelta(ctx, strings.Repeat("b", deltaHoldBackRunes+6)); err != nil {
 		t.Fatalf("sending the reply over failed: %v", err)
 	}
-	if got := client.next(); got.Text != "Hello world" || got.Reset {
+	if got := client.next(); got.Text != "bbbbbb" || got.Reset {
 		t.Errorf("the screen was sent %+v, want the reply started over", got)
 	}
 }

@@ -78,6 +78,7 @@ func (socket *Socket) Receive(ctx context.Context) (<-chan contract.Inbound, err
 // does nothing and says so with no error, because the reply is in the event log
 // either way and the loop must not stop for want of an audience.
 func (socket *Socket) Send(ctx context.Context, text string) error {
+	socket.endStreaming()
 	return socket.toEveryScreen(ctx, contract.SocketEnvelope{Type: contract.SocketReply, Text: text})
 }
 

@@ -68,13 +68,16 @@ type Socket struct {
 	listener net.Listener
 	done     chan struct{}
 
-	guard    sync.Mutex
-	clients  map[*client]struct{}
-	watchers map[*watcher]struct{}
-	previews map[string]chan contract.PreviewAnswerWithReason
-	prompts  map[string]chan promptAnswer
-	asked    int64
-	closed   bool
+	guard   sync.Mutex
+	clients map[*client]struct{}
+	// deltaGuard and streaming hold the reply being streamed to the screens.
+	deltaGuard sync.Mutex
+	streaming  *replyInProgress
+	watchers   map[*watcher]struct{}
+	previews   map[string]chan contract.PreviewAnswerWithReason
+	prompts    map[string]chan promptAnswer
+	asked      int64
+	closed     bool
 }
 
 // Listen opens the socket file, gives it a mode nobody else can read, and

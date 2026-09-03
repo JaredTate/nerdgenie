@@ -28,10 +28,18 @@ packages="$(go list "${roots[@]}")"
 # Run every test once with coverage. A failing test still leaves a report worth
 # reading, so the failure is remembered and reported per package rather than
 # ending the script here.
+# The browser and desktop packages are measured without the integration tag,
+# because their integration tests start a real Chrome and drive the desktop,
+# which belongs to "make test-browser" and never to a coverage run.
 tests_failed=0
-if ! report="$(go test -tags integration -cover "${roots[@]}" 2>&1)"; then
+measured="$(go list "${roots[@]}" | grep -v '/internal/browser$' | grep -v '/internal/desktop$')"
+if ! report="$(go test -tags integration -cover $measured 2>&1)"; then
 	tests_failed=1
 fi
+if ! windowed="$(go test -cover ./internal/browser/ ./internal/desktop/ 2>&1)"; then
+	tests_failed=1
+fi
+report="$(printf '%s\n%s\n' "$report" "$windowed")"
 
 printf '%-56s %8s %8s  %s\n' "PACKAGE" "COVERED" "NEEDED" "RESULT"
 

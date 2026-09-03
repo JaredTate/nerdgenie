@@ -86,6 +86,7 @@ docs/briefs/wave-3/3.3-commands-init-install.md
 docs/briefs/wave-3/3.4-terminal-screen.md
 docs/briefs/wave-3/3.5-signal.md
 docs/briefs/wave-3/3.6-fix-the-wave-3-gate.md
+docs/briefs/wave-3/3.7-fix-the-first-trial.md
 docs/briefs/wave-4/4.1-reliability-backups.md
 docs/briefs/wave-4/4.2-memory.md
 docs/briefs/wave-4/4.3-skills.md
@@ -279,6 +280,7 @@ internal/contract/command.go
 internal/contract/command_test.go
 internal/contract/config.go
 internal/contract/config_test.go
+internal/contract/contextstatus_test.go
 internal/contract/contract_test.go
 internal/contract/desktop.go
 internal/contract/doc.go

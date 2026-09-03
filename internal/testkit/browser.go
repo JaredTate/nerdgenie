@@ -263,8 +263,10 @@ func (worker *FakeBrowserWorker) oneStep(ctx context.Context, step contract.ActS
 		return worker.Type(ctx, step.Ref, step.Text, step.Expectation)
 	case "press":
 		return worker.Press(ctx, step.Key, step.Expectation)
+	case "scroll":
+		return worker.Scroll(ctx, step.Direction, step.Amount, step.Expectation)
 	default:
-		return contract.Diff{}, fmt.Errorf("the batch asked for the method %q, so use click, type, or press", step.Method)
+		return contract.Diff{}, fmt.Errorf("the batch asked for the method %q, so use click, type, press, or scroll", step.Method)
 	}
 }
 

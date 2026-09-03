@@ -235,17 +235,17 @@ func TestTheDefaultSandboxRootIsAWorkFolderAndARootMayNotHoldAnExcludedPath(t *t
 func TestAPathTheCallerNamesIsKeptOutsideTheFence(t *testing.T) {
 	userHome := t.TempDir()
 	profile := filepath.Join(userHome, "work", "profile")
-	excluded := ExcludedFromSandbox(userHome, "", profile, "")
+	excluded := contract.ExcludedFromSandbox(userHome, "", profile, "")
 	if !slices.Contains(excluded, profile) {
 		t.Errorf("the named path is not in the exclusions: %v", excluded)
 	}
 	if slices.Contains(excluded, "") {
 		t.Errorf("an empty name was kept as an exclusion: %v", excluded)
 	}
-	if err := CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, "", profile); err == nil {
+	if err := contract.CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, "", profile); err == nil {
 		t.Errorf("a root that holds the named path was accepted")
 	}
-	if err := CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, ""); err != nil {
+	if err := contract.CheckSandboxRoot(filepath.Join(userHome, "work"), userHome, ""); err != nil {
 		t.Errorf("the same root with nothing named was refused: %v", err)
 	}
 }

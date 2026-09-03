@@ -18,8 +18,10 @@ import (
 const maxNestedShells = 3
 
 // shellPrograms are the programs that take a script as an argument, so that what
-// follows their -c flag is a command line and not an argument that varies.
-var shellPrograms = []string{"sh", "bash", "zsh", "dash"}
+// follows their -c flag is a command line and not an argument that varies. "su"
+// is here because "su -c" hands over a script exactly as "sh -c" does, and it
+// hands it over to another user's shell.
+var shellPrograms = []string{"sh", "bash", "zsh", "dash", "su"}
 
 // programName is the name of the program a word names, without the folders it
 // was written with, because "/usr/bin/sudo" is sudo just as much as "sudo" is.

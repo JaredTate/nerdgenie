@@ -10,22 +10,44 @@ import (
 	"github.com/JaredTate/coeus/internal/testkit"
 )
 
+// aUserWhoAsksAboutOneCompanysSites is a user who wrote one rule of their own:
+// ask me before anything goes to that company. A standing approval is held
+// against a rule like this one, because the ask-me-first list the harness ships
+// is read before every approval and no approval ever covers it.
+func aUserWhoAsksAboutOneCompanysSites() contract.Config {
+	configuration := contract.DefaultConfig()
+	configuration.PermissionRules = []contract.PermissionRule{
+		{Tool: contract.ToolWeb, Pattern: "*example.com*", Action: contract.RulingAsk},
+	}
+	return configuration
+}
+
+// aVisitTo is one call to a page, which is the kind of call a skill's
+// permissions block holds a standing approval for.
+func aVisitTo(t *testing.T, address string) contract.PermissionRequest {
+	t.Helper()
+	return contract.PermissionRequest{
+		ToolName: contract.ToolWeb,
+		Input:    jsonInput(t, map[string]any{"url": address}),
+	}
+}
+
 func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       2,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	for use := 1; use <= 2; use++ {
 		decision := decide(t, decider, request)
 		if decision.Ruling != contract.RulingAllow {
 			t.Fatalf("use %d of the standing approval was ruled %q, want %q", use, decision.Ruling, contract.RulingAllow)
 		}
-		if !strings.Contains(decision.Reason, "clear-the-build-folder") {
+		if !strings.Contains(decision.Reason, "read-the-news") {
 			t.Errorf("the reason is %q, and it has to name the skill that holds the approval", decision.Reason)
 		}
 	}
@@ -37,17 +59,17 @@ func TestAStandingApprovalAllowsUpToItsLimitAndThenAsksAgain(t *testing.T) {
 
 func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 	clock := testkit.NewFakeClock(theTestTime)
-	decider, err := permission.New(contract.DefaultConfig(), clock)
+	decider, err := permission.New(aUserWhoAsksAboutOneCompanysSites(), clock)
 	if err != nil {
 		t.Fatalf("building the permission function failed: %v", err)
 	}
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	if decision := decide(t, decider, request); decision.Ruling != contract.RulingAllow {
 		t.Fatalf("before the expiry the call was ruled %q, want %q", decision.Ruling, contract.RulingAllow)
@@ -61,29 +83,29 @@ func TestAnExpiredStandingApprovalAsksAgain(t *testing.T) {
 }
 
 func TestAStandingApprovalCoversOnlyTheFormItNames(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
 
-	decision := decide(t, decider, shellRequest(t, "git reset --hard origin/main"))
+	decision := decide(t, decider, aVisitTo(t, "https://other.example.com/today"))
 	if decision.Ruling != contract.RulingAsk {
 		t.Errorf("a call the standing approval does not name was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
 	}
 }
 
 func TestARejectionTheUserGaveBeatsAStandingApproval(t *testing.T) {
-	decider := newDecider(t, contract.DefaultConfig())
+	decider := newDecider(t, aUserWhoAsksAboutOneCompanysSites())
 	registerStanding(t, decider, permission.StandingApproval{
-		Skill:       "clear-the-build-folder",
-		ReducedForm: "rm -rf",
+		Skill:       "read-the-news",
+		ReducedForm: "*news.example.com*",
 		Limit:       10,
 		Expires:     theTestTime.Add(time.Hour),
 	})
-	request := shellRequest(t, "rm -rf /tmp/x")
+	request := aVisitTo(t, "https://news.example.com/today")
 
 	if err := decider.Remember(request, contract.AnswerReject, "not that folder"); err != nil {
 		t.Fatalf("remembering the rejection failed: %v", err)
@@ -136,6 +158,39 @@ func TestMoreStandingApprovalsThanTheCapAreRefused(t *testing.T) {
 
 	if lastErr == nil {
 		t.Fatalf("more than %d standing approvals were accepted, and the cap has to hold", permission.MaxStandingApprovals)
+	}
+}
+
+// theShippedEntriesAndACallEachCatches is one call for each of the three entries
+// the ask-me-first list ships with. A skill's standing approval is not the user's
+// yes, so it may not cover any of them, however wide the readable form it names.
+var theShippedEntriesAndACallEachCatches = []struct {
+	entry    string
+	toolName string
+	fields   map[string]any
+}{
+	{contract.AskFirstBulkDelete, contract.ToolShell, map[string]any{"command": "rm -rf /home/jared/coeus"}},
+	{contract.AskFirstSudo, contract.ToolShell, map[string]any{"command": "sudo apt install ripgrep"}},
+	{contract.AskFirstSpendMoney, contract.ToolWeb, map[string]any{"url": "https://shop.example.com/checkout"}},
+}
+
+func TestAStandingApprovalNeverCoversTheAskMeFirstList(t *testing.T) {
+	for _, one := range theShippedEntriesAndACallEachCatches {
+		decider := newDecider(t, contract.DefaultConfig())
+		registerStanding(t, decider, permission.StandingApproval{
+			Skill:       "tidy-up",
+			ReducedForm: "*",
+			Limit:       1000,
+			Expires:     theTestTime.Add(time.Hour),
+		})
+		request := contract.PermissionRequest{ToolName: one.toolName, Input: jsonInput(t, one.fields)}
+
+		decision := decide(t, decider, request)
+		if decision.Ruling != contract.RulingAsk {
+			t.Errorf("%s: %q was ruled %q because %q, want %q; the ask-me-first list is read before any standing approval,"+
+				" so a skill cannot hand itself the three things the user always sees first",
+				one.entry, permission.Reduce(request), decision.Ruling, decision.Reason, contract.RulingAsk)
+		}
 	}
 }
 

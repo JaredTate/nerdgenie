@@ -42,6 +42,8 @@ cmd/coeus/main.go
 cmd/coeus/main_test.go
 cmd/coeus/model.go
 cmd/coeus/previews.go
+cmd/coeus/replay.go
+cmd/coeus/replay_test.go
 cmd/coeus/reviewaskpass_test.go
 cmd/coeus/runlock.go
 cmd/coeus/sandbox_entry.go
@@ -101,6 +103,7 @@ docs/briefs/wave-6/6.2-installer-release.md
 docs/briefs/wave-6/6.3-updater.md
 docs/briefs/wave-6/6.4-replay-nightly.md
 docs/briefs/wave-6/6.5-security-review-release-check.md
+docs/briefs/wave-6/6.6-what-the-fix-workers-handed-back.md
 docs/html/build.ts
 docs/html/coeus-plan.html
 docs/html/coeus.html
@@ -467,6 +470,7 @@ internal/permission/decider.go
 internal/permission/decider_test.go
 internal/permission/doc.go
 internal/permission/evasion_test.go
+internal/permission/flags.go
 internal/permission/fuzz_test.go
 internal/permission/integration_test.go
 internal/permission/nestedshell.go
@@ -484,6 +488,7 @@ internal/permission/shellwords.go
 internal/permission/standing.go
 internal/permission/standing_test.go
 internal/permission/unattended_test.go
+internal/permission/wrappers.go
 internal/provider/anthropic.go
 internal/provider/anthropic_test.go
 internal/provider/anthropicstream.go
@@ -614,6 +619,27 @@ internal/repair/testdata/two-calls.txt
 internal/repair/testdata/unknown-name.txt
 internal/repair/thinking.go
 internal/repair/thinking_test.go
+internal/replay/astest.go
+internal/replay/astest_test.go
+internal/replay/channel.go
+internal/replay/compare.go
+internal/replay/doc.go
+internal/replay/failures_test.go
+internal/replay/fixture_test.go
+internal/replay/fuzz_test.go
+internal/replay/helpers_test.go
+internal/replay/integration_test.go
+internal/replay/internals_test.go
+internal/replay/model.go
+internal/replay/nightly.go
+internal/replay/nightly_test.go
+internal/replay/nightlychecks.go
+internal/replay/recording.go
+internal/replay/recording_test.go
+internal/replay/replay.go
+internal/replay/replay_test.go
+internal/replay/testdata/budget-task.json
+internal/replay/tools.go
 internal/sandbox/arguments.go
 internal/sandbox/arguments_test.go
 internal/sandbox/available.go
@@ -909,6 +935,7 @@ internal/tool/web/testdata/a_fetched_page.txt
 internal/tool/web/testdata/a_page_as_text.txt
 internal/tool/web/testdata/a_search_through_the_server.txt
 internal/tool/web/testdata/a_search_with_no_server.txt
+internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/7f72ed17f01b6f36
 internal/tool/web/testdata/fuzz/FuzzTheAddressCheck/ec7528631b9ef93e
 internal/tool/web/testdata/fuzz/FuzzTheTurnIntoText/5227ce2ede044796
 internal/tool/web/text.go
@@ -1059,6 +1086,8 @@ test/functional/sample_test.go
 test/functional/serve_test.go
 test/functional/site_test.go
 test/functional/vault_test.go
+test/replays/task_1_test.go
+test/replays/testdata/task-1.json
 worker/browser/.gitignore
 worker/browser/PROTOCOL.md
 worker/browser/package-lock.json

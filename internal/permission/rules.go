@@ -35,6 +35,10 @@ type Rule struct {
 	Action contract.PermissionRuling
 	// Reason says why this rule is here.
 	Reason string
+	// FromTheAskMeFirstList says the rule is one of the entries the user asked
+	// to see first, which is the one thing a skill's standing approval may
+	// never cover.
+	FromTheAskMeFirstList bool
 }
 
 // Rulebook is a list of rules, compiled once, ready to be matched against a call.
@@ -70,15 +74,24 @@ func NewRulebook(rules []Rule) (*Rulebook, error) {
 }
 
 // Match returns the last rule that covers the call, and says whether any rule
-// did. Nothing here decides what happens when no rule covers a call; that is the
-// decider's job.
-func (book *Rulebook) Match(toolName string, reduced string) (Rule, bool) {
+// did. A call is given in one form or in more than one — the readable form the
+// user sees, and for a shell command the same form with its flags spelled out —
+// and a rule covers the call when its pattern matches any of them, so that a
+// rule about a flag holds however the flag was written. Nothing here decides
+// what happens when no rule covers a call; that is the decider's job.
+func (book *Rulebook) Match(toolName string, forms ...string) (Rule, bool) {
 	matched := Rule{}
 	covered := false
 	for _, compiled := range book.rules {
-		if compiled.tool.MatchString(toolName) && compiled.pattern.MatchString(reduced) {
-			matched = compiled.rule
-			covered = true
+		if !compiled.tool.MatchString(toolName) {
+			continue
+		}
+		for _, form := range forms {
+			if compiled.pattern.MatchString(form) {
+				matched = compiled.rule
+				covered = true
+				break
+			}
 		}
 	}
 	return matched, covered

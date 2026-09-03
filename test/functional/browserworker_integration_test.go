@@ -79,7 +79,8 @@ func startBrowserWorker(t *testing.T) *browserWorker {
 	// The worker's pacing is human by default, which is right in front of a real
 	// site and far too slow for a test that types a password one key at a time.
 	command := exec.Command(node, entry, "--profile", profile, "--pacing", "fast")
-	command.Stderr = workerLogFile(t)
+	logFile := workerLogFile(t)
+	command.Stderr = logFile
 	toWorker, err := command.StdinPipe()
 	if err != nil {
 		t.Fatalf("cannot open the pipe the worker reads its requests from: %v", err)
@@ -96,7 +97,7 @@ func startBrowserWorker(t *testing.T) *browserWorker {
 		command:  command,
 		toWorker: toWorker,
 		answers:  readAnswerLines(fromWorker),
-		logPath:  command.Stderr.(*os.File).Name(),
+		logPath:  logFile.Name(),
 	}
 	t.Cleanup(func() { worker.stop(t) })
 	return worker

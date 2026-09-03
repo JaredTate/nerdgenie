@@ -94,9 +94,15 @@ func TestTheHintSaysNothingWhenNothingMatches(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	ctx := context.Background()
 
-	opened.saveWorldFact(t, "the anniversary is on the tenth of January")
+	for _, fact := range []string{
+		"the anniversary is on the tenth of January",
+		"the blog is built with Hugo and the theme is ananke",
+		"the user posts in the morning and never in the evening",
+	} {
+		opened.saveWorldFact(t, fact)
+	}
 
-	for _, query := range []string{"", "   ", "kayaks and canoes"} {
+	for _, query := range []string{"", "   ", "kayaks and canoes", "and then the one of them is on it for a while"} {
 		hint, err := opened.memory.Hint(ctx, query)
 		if err != nil {
 			t.Fatalf("cannot ask for a hint for %q: %v", query, err)

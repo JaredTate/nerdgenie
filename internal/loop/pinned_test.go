@@ -102,6 +102,70 @@ func scriptThatPins(writes ...string) []testkit.Step {
 	return append(steps, answerStep("Which account should I post from?"))
 }
 
+// TestAPinMadeBeforeAStopIsStillThereAfterTheResume is the finding this file
+// was reopened for: the pinned evidence lived in the run and nowhere else, so a
+// task put down with the brand rule in front of the model was picked up with it
+// gone, and the model wrote the very word the rule forbids.
+func TestAPinMadeBeforeAStopIsStillThereAfterTheResume(t *testing.T) {
+	built := newHarness(t, append(scriptThatPins(`{"operation":"pin_evidence","result":"r1"}`),
+		answerStep("The post is written. What is left: nothing.")),
+		scriptedTool("read", theBrandRule, "the notes are long and say nothing about the brand"))
+
+	waiting := built.ask(t, "write the post")
+	if waiting.Status != contract.StatusWaiting {
+		t.Fatalf("the first turn ended %q, want waiting, so that there is a task to pick up", waiting.Status)
+	}
+	callsBefore := len(built.model.Requests())
+
+	answered := built.task("the DigiByte account")
+	answered.ResumeID = waiting.TaskID
+	if _, err := built.loop.Run(t.Context(), answered); err != nil {
+		t.Fatalf("the loop could not pick the task up again: %v", err)
+	}
+
+	first := built.model.Requests()[callsBefore]
+	pinned := pinnedEvidenceIn(first)
+	if pinned == "" {
+		t.Fatal("the first call after the resume carried no pinned evidence, and the pin was made before the task was put down")
+	}
+	if !strings.Contains(pinned, theBrandRule) {
+		t.Errorf("the pinned evidence after the resume reads %q, want the whole text of the result that was pinned", pinned)
+	}
+}
+
+// TestAPinIsWrittenIntoTheRecordItself proves where the pin now lives: in the
+// record, which is the only thing that survives the wait, rather than in the
+// run, which does not.
+func TestAPinIsWrittenIntoTheRecordItself(t *testing.T) {
+	built := newHarness(t, scriptThatPins(`{"operation":"pin_evidence","result":"r1"}`),
+		scriptedTool("read", theBrandRule, "the notes"))
+
+	outcome := built.ask(t, "write the post")
+
+	results := built.held(t, outcome.TaskID).Work.Results
+	if len(results) == 0 {
+		t.Fatal("the record holds no results at all, so there was nothing to pin")
+	}
+	if !results[0].Pinned {
+		t.Errorf("the record's line for %s is not marked pinned, so nothing would bring the pin back after a resume", results[0].ID)
+	}
+}
+
+// TestAPinTheModelLetsGoOfIsNotBroughtBack proves the unpin is written down too,
+// so that a resume does not put back evidence the model has finished with.
+func TestAPinTheModelLetsGoOfIsNotBroughtBack(t *testing.T) {
+	built := newHarness(t, scriptThatPins(
+		`{"operation":"pin_evidence","result":"r1"}`,
+		`{"operation":"unpin_evidence","result":"r1"}`),
+		scriptedTool("read", theBrandRule, "the notes"))
+
+	outcome := built.ask(t, "write the post")
+
+	if built.held(t, outcome.TaskID).Work.Results[0].Pinned {
+		t.Error("the record still marks the result pinned after the model unpinned it")
+	}
+}
+
 // pinnedEvidenceIn is the pinned block of one request, and is empty when the
 // request carried none.
 func pinnedEvidenceIn(request contract.Request) string {

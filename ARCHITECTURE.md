@@ -148,8 +148,8 @@ The tool input field names this package reduces by are the ones fixed in `docs/b
 `internal/loop` is the core. It runs one task at a time to one of four ends —
 done, waiting on the user, stopped, or failed — and every dependency it has is
 an interface in `internal/contract`, so the whole of it is driven by the fakes in
-`internal/testkit`. It imports `contract`, `record`, `repair`, and the standard
-library, and nothing else. `loop.New(loop.Options{...})` is what `serve.go`
+`internal/testkit`. It imports `contract`, `record`, `repair`, `context`, and the
+standard library, and nothing else. `loop.New(loop.Options{...})` is what `serve.go`
 calls; the six it refuses to be built without are the model, the tool registry,
 the permission function, the store, the clock, and a working-context builder,
 and the five it will run without are the jobs, the memory, the skills, the
@@ -223,14 +223,28 @@ fired. A task that belongs to a job has its report written into the job through
 next due task started; when the last task finishes, the job's own done list is
 checked and reviewed the same way and the user gets the final report.
 
-**Two things the loop owns until their own packages arrive.**
-`loop.ContextBuilder` is the one-method interface the loop is written against,
-and `loop.PlainBuilder` is a stand-in that puts the harness rules, the job
-summary, the record, the recent messages, and the memory hint in the design's
-order and wraps every tool result in the data marker; `serve.go` hands in the
-real builder from `internal/context` when wave 2's is merged. The two commands
-the orchestrator registers are `loop.TasksCommand()` (`/tasks`, `/tasks 17`, and
-`/tasks 17 back 3` through `record.Back`) and `loop.StopCommand()` (`/stop`).
+**The two seams onto wave 2.** `loop.ContextBuilder` is the one-method interface
+the loop is written against, and `loop.TheWorkingContext(builder)` wraps the real
+builder from `internal/context` behind it, putting in the two things the loop
+knows and that builder does not: how big the window of the model being called is,
+and whether this is the call that asks for a report with the tools off. Every
+test in the package drives the real builder. `Options.ToolsForTask`, when
+`serve.go` sets it, is asked for the registry of each task before its first call,
+and is handed the task's number and a `loop.TaskRecord` that finds the keeper
+when there is one; that is how `internal/tool`'s `task` and `read` tools, which
+need the record of the task running now, are built with it. With no such
+function the shared registry in `Options.Tools` serves every task and the loop
+applies a `task` call itself, which is what the tests that drive the fakes do.
+The two commands the orchestrator registers are `loop.TasksCommand()` (`/tasks`,
+`/tasks 17`, and `/tasks 17 back 3` through `record.Back`) and
+`loop.StopCommand()` (`/stop`).
+
+One note for the wave gate. The forty-step fixture writes its record updates in
+the names wave 0 gave them (`doneWhen`, `stopWhen`, `resultId`) and brief 2.5
+fixed the task tool's own (`operation`, `done_when`, `stop_when`, `result`). The
+loop's own reader takes both, so the fixture runs whichever way the record is
+written, but the real task tool takes only the second, so the fixture cannot be
+driven through it until one of the two is changed.
 
 ## Signal (built, wave 3)
 

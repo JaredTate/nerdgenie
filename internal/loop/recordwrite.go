@@ -12,17 +12,42 @@ import (
 	"github.com/JaredTate/coeus/internal/record"
 )
 
+// TheTaskToolSpec is what the model is told about the task tool when the
+// registry holds none of its own. It is the same tool internal/tool builds, and
+// the loop only describes and applies it while a registry is built without the
+// record of the task running now.
+var TheTaskToolSpec = contract.ToolSpec{
+	Name: contract.ToolTask,
+	Description: "Writes the task record: the why, the done list, the stop list, the plan, " +
+		"a decision with its reason, or a failure with its cause.",
+	Fields: []contract.ToolField{
+		{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once."},
+		{Name: "done_when", Type: "array", Description: "The whole done list, each line with the result that proves it."},
+		{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
+		{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
+		{Name: "decision", Type: "object", Description: "A choice, as a text and the reason it was made."},
+		{Name: "failure", Type: "object", Description: "Something that went wrong, as a text and its cause."},
+	},
+	Classes: []contract.PermissionClass{contract.ClassWrite},
+}
+
 // recordWrite is what the model may write into the record, as it writes it in
-// the arguments of a task call. The names are the ones the forty-step fixture
-// and brief 2.5 use, and anything else in the object is left alone, so that a
-// model that adds a field of its own is not refused over it.
+// the arguments of a task call. Both ways of writing a name are read: the one
+// the forty-step fixture uses and the one brief 2.5 fixed for the task tool, so
+// that the loop and the tool understand the same calls. Anything else in the
+// object is left alone, so that a model that adds a field of its own is not
+// refused over it.
 type recordWrite struct {
 	// Why is the one line on why the user wants this.
 	Why string `json:"why"`
 	// DoneWhen is the whole done list.
 	DoneWhen []doneLineWrite `json:"doneWhen"`
+	// DoneWhenWritten is the same list under the task tool's own name.
+	DoneWhenWritten []doneLineWrite `json:"done_when"`
 	// StopWhen is the whole stop list.
 	StopWhen []string `json:"stopWhen"`
+	// StopWhenWritten is the same list under the task tool's own name.
+	StopWhenWritten []string `json:"stop_when"`
 	// Plan is a task's plan, one line per step.
 	Plan []string `json:"plan"`
 	// Tasks is a job's task list.
@@ -92,10 +117,10 @@ func readRecordUpdate(arguments json.RawMessage) (record.Update, error) {
 	}
 	update := record.Update{
 		Why:      written.Why,
-		StopWhen: written.StopWhen,
+		StopWhen: eitherWay(written.StopWhen, written.StopWhenWritten),
 		Plan:     written.Plan,
 	}
-	for _, line := range written.DoneWhen {
+	for _, line := range eitherWay(written.DoneWhen, written.DoneWhenWritten) {
 		update.DoneWhen = append(update.DoneWhen, line.DoneLine)
 	}
 	for _, task := range written.Tasks {
@@ -113,6 +138,14 @@ func readRecordUpdate(arguments json.RawMessage) (record.Update, error) {
 	return update, nil
 }
 
+// eitherWay takes whichever of the two ways of writing a list the model used.
+func eitherWay[Item any](first []Item, second []Item) []Item {
+	if len(first) > 0 {
+		return first
+	}
+	return second
+}
+
 // nothingWritten says whether an update would change nothing at all.
 func nothingWritten(update record.Update) bool {
 	return update.Why == "" && update.DoneWhen == nil && update.StopWhen == nil &&
@@ -122,7 +155,7 @@ func nothingWritten(update record.Update) bool {
 // whatTheTaskToolTakes names the fields of the task tool, so that a model whose
 // write was refused is told what to write instead.
 func whatTheTaskToolTakes() string {
-	return `Write one object with any of: "why", "doneWhen", "stopWhen", "plan", "tasks", "decision" (with a reason), "failure" (with a cause).`
+	return `Write one object with any of: "why", "done_when", "stop_when", "plan", "tasks", "decision" (with a reason), "failure" (with a cause).`
 }
 
 // fieldsWritten names the parts of the record one write touched, in order, for

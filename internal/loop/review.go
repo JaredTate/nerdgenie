@@ -56,8 +56,8 @@ func (theLoop *Loop) askTheFourQuestions(ctx context.Context, background string)
 			{Role: contract.RoleUser, Text: background},
 			{Role: contract.RoleUser, Text: TheFourQuestions},
 		},
-		ToolsOff:        true,
-		MaxOutputTokens: theLoop.options.Caps.OutputTokensPerCall,
+		ToolsOff:      true,
+		ContextLength: theLoop.options.Model.ContextLength(),
 	})
 	if err != nil {
 		return ""

@@ -49,6 +49,76 @@ type run struct {
 	hadFailure    bool
 	hadStop       bool
 	stopLine      string
+	number        string
+	perTask       contract.ToolRegistry
+}
+
+// tools is the registry this task's calls go to: the one built for this task
+// when the caller builds one, and the one every task shares otherwise.
+func (running *run) tools() contract.ToolRegistry {
+	if running.perTask != nil {
+		return running.perTask
+	}
+	return running.theLoop.options.Tools
+}
+
+// useTheTaskRegistry asks the caller for the registry of this task. It is built
+// before the first call, because the model has to be told about the tools on
+// the very first one, and the record it is given finds the keeper when there is
+// one, because a record is only made on the first tool call.
+func (running *run) useTheTaskRegistry() error {
+	if running.theLoop.options.ToolsForTask == nil {
+		return nil
+	}
+	made, err := running.theLoop.options.ToolsForTask(running.number, theRecordOfTheTask{running: running})
+	if err != nil {
+		return fmt.Errorf("cannot build the tools for task %s: %w", running.number, err)
+	}
+	running.perTask = made
+	return nil
+}
+
+// TaskRecord is the record of the task running now, as the tools that read and
+// write it see it. A *record.Keeper is one, and so is what the loop hands the
+// tools before the first tool call has made a record.
+type TaskRecord interface {
+	// Record returns the record as it stands.
+	Record() contract.Record
+	// Apply writes the model's half of it, all or nothing.
+	Apply(ctx context.Context, update record.Update) error
+	// Read brings back the whole text of one result by its label.
+	Read(ctx context.Context, id string) (string, error)
+}
+
+// theRecordOfTheTask is the record of the task running now, found when it is
+// asked for rather than when the tools were built.
+type theRecordOfTheTask struct {
+	running *run
+}
+
+// Record returns the record as it stands, which is empty until the first tool
+// call has made one.
+func (held theRecordOfTheTask) Record() contract.Record {
+	if held.running.keeper == nil {
+		return contract.Record{}
+	}
+	return held.running.keeper.Record()
+}
+
+// Apply writes the model's half of the record.
+func (held theRecordOfTheTask) Apply(ctx context.Context, update record.Update) error {
+	if held.running.keeper == nil {
+		return errors.New("this task has no record yet, so ask for a tool before writing the record")
+	}
+	return held.running.keeper.Apply(ctx, update)
+}
+
+// Read brings back the whole text of one result by its label.
+func (held theRecordOfTheTask) Read(ctx context.Context, id string) (string, error) {
+	if held.running.keeper == nil {
+		return "", fmt.Errorf("this task has no result %s yet, because nothing has been run", id)
+	}
+	return held.running.keeper.Read(ctx, id)
 }
 
 // newRun sets one task up: its budget, its record if it is being resumed, the
@@ -65,7 +135,13 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 		roundsAllowed: budgetRounds(task, theLoop.options.Caps),
 		timeAllowed:   budgetTime(task, theLoop.options.Caps),
 	}
+	if err := running.takeANumber(ctx); err != nil {
+		return nil, err
+	}
 	if err := running.resume(ctx); err != nil {
+		return nil, err
+	}
+	if err := running.useTheTaskRegistry(); err != nil {
 		return nil, err
 	}
 	if err := running.readJobSummary(ctx); err != nil {
@@ -123,6 +199,22 @@ func (running *run) readJobSummary(ctx context.Context) error {
 		return fmt.Errorf("cannot read job %s to put its summary above the task: %w", running.task.FromJob.JobID, err)
 	}
 	running.jobSummary = string(record.Print(held))
+	return nil
+}
+
+// takeANumber gives the task the number its record will carry. It is settled
+// before the first call, because the tools that write the record are built with
+// it, and a task that never needs a record simply never uses it.
+func (running *run) takeANumber(ctx context.Context) error {
+	if running.task.ResumeID != "" {
+		running.number = running.task.ResumeID
+		return nil
+	}
+	number, err := running.theLoop.nextTaskNumber(ctx)
+	if err != nil {
+		return err
+	}
+	running.number = number
 	return nil
 }
 
@@ -197,13 +289,13 @@ func (running *run) callTheModel(ctx context.Context) (contract.Reply, error) {
 // buildRequest asks the working-context builder for one call's prompt.
 func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.Request, error) {
 	request, err := running.theLoop.options.Context.Build(ctx, BuildInput{
-		Record:          running.recordOrNothing(),
-		JobSummary:      running.jobSummary,
-		Messages:        running.messages,
-		Tools:           running.specs(),
-		ToolsOff:        toolsOff,
-		MemoryHint:      running.memoryHint(ctx),
-		MaxOutputTokens: running.theLoop.options.Caps.OutputTokensPerCall,
+		Record:        running.recordOrNothing(),
+		ContextLength: running.theLoop.options.Model.ContextLength(),
+		JobSummary:    running.jobSummary,
+		Messages:      running.messages,
+		Tools:         running.specs(),
+		ToolsOff:      toolsOff,
+		MemoryHint:    running.memoryHint(ctx),
 	})
 	if err != nil {
 		return contract.Request{}, fmt.Errorf("cannot build the working context for this call: %w", err)
@@ -221,9 +313,16 @@ func (running *run) recordOrNothing() *contract.Record {
 	return &held
 }
 
-// specs is what the model is told about the tools.
+// specs is what the model is told about the tools. When the registry holds no
+// task tool, which is what a registry built without the record of the task
+// running now looks like, the loop adds the one it applies itself, so that the
+// model is always told how to write its half of the record.
 func (running *run) specs() []contract.ToolSpec {
-	return running.theLoop.options.Tools.Specs()
+	specs := running.tools().Specs()
+	if _, found := running.tools().Lookup(contract.ToolTask); !found {
+		specs = append(specs, TheTaskToolSpec)
+	}
+	return specs
 }
 
 // memoryHint is the few lines from memory that ride at the end of the prompt. A

@@ -376,6 +376,7 @@ internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
 internal/loop/problems_test.go
+internal/loop/realtools_test.go
 internal/loop/recordwrite.go
 internal/loop/resume_test.go
 internal/loop/review.go

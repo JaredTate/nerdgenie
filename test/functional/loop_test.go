@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/log"
 	"github.com/JaredTate/coeus/internal/loop"
@@ -141,6 +142,14 @@ func TestRefusingThePreviewStopsTheCommandAndTheModelIsTold(t *testing.T) {
 func buildTheAgent(t *testing.T, eventLog contract.Store, channel contract.Channel) (*loop.Loop, *testkit.ScriptedTool) {
 	t.Helper()
 	clock := testkit.NewFakeClock(time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC))
+	builder, err := workingcontext.New(workingcontext.Options{
+		Home:            testkit.NewTempHome(t),
+		MemoryCaps:      contract.DefaultConfig().MemoryCaps,
+		MaxOutputTokens: contract.DefaultConfig().Caps.OutputTokensPerCall,
+	})
+	if err != nil {
+		t.Fatalf("cannot build the working context: %v", err)
+	}
 	decider, err := permission.New(contract.DefaultConfig(), clock)
 	if err != nil {
 		t.Fatalf("cannot build the permission function: %v", err)
@@ -150,11 +159,7 @@ func buildTheAgent(t *testing.T, eventLog contract.Store, channel contract.Chann
 		Description: "Runs a command in the sandbox and hands back what it printed.",
 		Classes:     []contract.PermissionClass{contract.ClassExecute},
 	}, "the build folder is empty now")
-	tools := testkit.NewFakeToolRegistry(shell, testkit.NewScriptedTool(contract.ToolSpec{
-		Name:        contract.ToolTask,
-		Description: "Update the task record: the why, the done list, the stop list, the plan, a decision, or a failure.",
-		Classes:     []contract.PermissionClass{contract.ClassWrite},
-	}))
+	tools := testkit.NewFakeToolRegistry(shell)
 
 	turns, err := loop.New(loop.Options{
 		Model:      testkit.NewFakeModel(theScriptTheModelPlays()),
@@ -162,7 +167,7 @@ func buildTheAgent(t *testing.T, eventLog contract.Store, channel contract.Chann
 		Permission: decider,
 		Store:      eventLog,
 		Clock:      clock,
-		Context:    loop.NewPlainBuilder(),
+		Context:    loop.TheWorkingContext(builder),
 	})
 	if err != nil {
 		t.Fatalf("cannot build the turn loop: %v", err)

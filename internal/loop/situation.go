@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
@@ -30,11 +31,7 @@ func (running *run) writeCostAndBudget(ctx context.Context, usage contract.Usage
 	if err := running.keeper.SetBudget(ctx, running.roundsLeft(), running.minutesLeft()); err != nil {
 		return fmt.Errorf("cannot write the budget left into the record: %w", err)
 	}
-	return running.keeper.SetCost(ctx, contract.CostLine{
-		InputTokens:       usage.InputTokens,
-		CachedInputTokens: usage.CachedInputTokens,
-		OutputTokens:      usage.OutputTokens,
-	})
+	return workingcontext.WriteCostLine(ctx, running.keeper, usage)
 }
 
 // roundsLeft is how many rounds the task may still take.

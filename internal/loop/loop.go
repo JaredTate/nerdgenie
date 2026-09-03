@@ -31,6 +31,12 @@ type Options struct {
 	Model contract.Model
 	// Tools is the set of tools this agent has.
 	Tools contract.ToolRegistry
+	// ToolsForTask, when it is set, is asked for the registry of each task, so
+	// that the tools which need the record of the task running now, the task
+	// tool and the reading of a past result, are built with it. When it is nil
+	// the registry in Tools serves every task and the loop applies a task call
+	// itself.
+	ToolsForTask func(taskID string, records TaskRecord) (contract.ToolRegistry, error)
 	// Permission is the rulebook every tool call goes through.
 	Permission contract.Permission
 	// Store is the event log.

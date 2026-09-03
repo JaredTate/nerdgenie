@@ -107,10 +107,10 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 // runOneTool finds the tool and runs it under the tool time limit, and says
 // whether what came back is a result or an error.
 func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (string, bool) {
-	if call.Name == contract.ToolTask {
+	tool, found := running.tools().Lookup(call.Name)
+	if !found && call.Name == contract.ToolTask {
 		return running.applyRecordWrite(ctx, call)
 	}
-	tool, found := running.theLoop.options.Tools.Lookup(call.Name)
 	if !found {
 		return fmt.Sprintf("there is no tool called %q on this agent, so use one of the tools you were given", call.Name), true
 	}
@@ -198,10 +198,7 @@ func (running *run) startTheRecord(ctx context.Context) error {
 	if running.keeper != nil {
 		return nil
 	}
-	taskID, err := running.theLoop.nextTaskNumber(ctx)
-	if err != nil {
-		return err
-	}
+	taskID := running.number
 	keeper, err := record.New(ctx, running.theLoop.options.Store, record.Start{
 		Kind:        contract.RecordTask,
 		ID:          taskID,

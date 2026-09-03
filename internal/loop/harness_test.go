@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	workingcontext "github.com/JaredTate/coeus/internal/context"
 	"github.com/JaredTate/coeus/internal/contract"
 	"github.com/JaredTate/coeus/internal/loop"
 	"github.com/JaredTate/coeus/internal/record"
@@ -31,6 +32,7 @@ type harness struct {
 	skills     *testkit.FakeSkill
 	jobs       *testkit.FakeJob
 	sandbox    *testkit.FakeSandbox
+	builder    loop.ContextBuilder
 	deltaGuard sync.Mutex
 	deltas     []string
 }
@@ -50,7 +52,8 @@ func newHarness(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *har
 		sandbox: testkit.NewFakeSandbox(),
 	}
 	built.jobs = testkit.NewFakeJob(built.clock)
-	built.tools = testkit.NewFakeToolRegistry(append(tools, taskToolSpecOnly())...)
+	built.tools = testkit.NewFakeToolRegistry(tools...)
+	built.builder = theWorkingContext(t)
 
 	made, err := loop.New(built.options())
 	if err != nil {
@@ -68,7 +71,7 @@ func (built *harness) options() loop.Options {
 		Permission: built.rulings,
 		Store:      built.store,
 		Clock:      built.clock,
-		Context:    loop.NewPlainBuilder(),
+		Context:    built.builder,
 		Jobs:       built.jobs,
 		Memory:     built.memory,
 		Skills:     built.skills,
@@ -130,15 +133,26 @@ func (built *harness) eventsOfKind(t *testing.T, kind contract.EventKind) []cont
 	return found
 }
 
-// taskToolSpecOnly is the task tool as the model sees it. The loop applies a
-// task call to the record itself, so this tool has no outputs at all: if the
-// loop ever dispatched one here, the test would fail rather than pass quietly.
-func taskToolSpecOnly() contract.Tool {
-	return testkit.NewScriptedTool(contract.ToolSpec{
-		Name:        contract.ToolTask,
-		Description: "Update the task record: the why, the done list, the stop list, the plan, a decision, or a failure.",
-		Classes:     []contract.PermissionClass{contract.ClassWrite},
+// theBoundaryTheTestsUse is the tool-result boundary every test here builds
+// with, so that a golden line does not change from one run to the next.
+const theBoundaryTheTestsUse = "0123456789abcdef"
+
+// theWorkingContext is the real builder from internal/context over a temporary
+// home, which is what the loop is driven with everywhere but the tests of the
+// builder seam itself.
+func theWorkingContext(t *testing.T) loop.ContextBuilder {
+	t.Helper()
+	home := testkit.NewTempHome(t)
+	built, err := workingcontext.New(workingcontext.Options{
+		Home:            home,
+		MemoryCaps:      contract.DefaultConfig().MemoryCaps,
+		MaxOutputTokens: contract.DefaultConfig().Caps.OutputTokensPerCall,
+		Boundary:        theBoundaryTheTestsUse,
 	})
+	if err != nil {
+		t.Fatalf("cannot build the working context over a temporary home: %v", err)
+	}
+	return loop.TheWorkingContext(built)
 }
 
 // scriptedTool is one tool that answers with the text given, in order.

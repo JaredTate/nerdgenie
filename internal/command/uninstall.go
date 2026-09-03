@@ -41,12 +41,17 @@ func (service Service) Uninstall(ctx context.Context, arguments []string) error 
 		return fmt.Errorf("coeus uninstall takes no plain words, and was given %q, so run it with --purge or with nothing at all", strings.Join(left, " "))
 	}
 
-	for _, told := range [][]string{{"stop", ServiceName}, {"disable", ServiceName}} {
-		if err := runSystemctl(ctx, told); err != nil {
-			fmt.Fprintf(service.Output, "%v\n", err)
+	for _, unit := range Units(service.Home) {
+		if !unit.Started {
+			continue
+		}
+		for _, told := range [][]string{{"stop", unit.Name}, {"disable", unit.Name}} {
+			if err := runSystemctl(ctx, told); err != nil {
+				fmt.Fprintf(service.Output, "%v\n", err)
+			}
 		}
 	}
-	unitPath, err := removeUnit()
+	unitPath, err := removeUnits(service.Home)
 	if err != nil {
 		return err
 	}

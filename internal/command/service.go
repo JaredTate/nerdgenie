@@ -28,17 +28,36 @@ import (
 // ServiceName is the name of the systemd user unit Coeus runs under.
 const ServiceName = "coeus.service"
 
+// The two units that run the nightly backup. The service does one backup and
+// stops; the timer is what starts it, and is the one that is enabled.
+const (
+	// BackupServiceName is the unit that runs "coeus backup" once.
+	BackupServiceName = "coeus-backup.service"
+	// BackupTimerName is the timer that starts it every night.
+	BackupTimerName = "coeus-backup.timer"
+	// backupTime is when the nightly backup runs, in the machine's own time
+	// zone. Three in the morning is when the machine is least likely to be busy.
+	backupTime = "*-*-* 03:00:00"
+	// backupSpread is how long after that time the backup may actually start, so
+	// that many machines do not all wake at once.
+	backupSpread = 900
+)
+
 // WatchdogSeconds is how long systemd waits to hear from Coeus before it
 // decides that the program is stuck and starts it again.
 const WatchdogSeconds = 60
+
+// writtenByInstall is the note at the top of every unit file, so that whoever
+// finds one knows where it came from and how to take it away.
+const writtenByInstall = "# Written by \"coeus install\". Run \"coeus install\" again to replace it, or\n" +
+	"# \"coeus uninstall\" to take it away."
 
 // UnitText is the systemd user unit for one home folder. ExecStart points at
 // the current link under the releases folder rather than at a version, so that
 // the updater can switch versions by moving one link.
 func UnitText(home contract.Home) string {
 	return strings.Join([]string{
-		"# Written by \"coeus install\". Run \"coeus install\" again to replace it, or",
-		"# \"coeus uninstall\" to take it away.",
+		writtenByInstall,
 		"",
 		"[Unit]",
 		"Description=Coeus, an assistant that runs on your own computer",
@@ -62,14 +81,81 @@ func UnitText(home contract.Home) string {
 	}, "\n")
 }
 
-// UnitPath is where the unit file goes: the user's own systemd folder, which
-// needs no administrator rights and starts with the user's session.
+// BackupServiceText is the unit that runs one backup and stops. It is started
+// by the timer below and never enabled itself, which is how a systemd timer and
+// the job it runs are written.
+func BackupServiceText(home contract.Home) string {
+	return strings.Join([]string{
+		writtenByInstall,
+		"",
+		"[Unit]",
+		"Description=Coeus nightly backup of the database, the vault, and the browser profile",
+		"",
+		"[Service]",
+		"Type=oneshot",
+		"ExecStart=" + home.CurrentReleaseLink() + " backup",
+		"Environment=COEUS_HOME=" + home.Root,
+		"",
+	}, "\n")
+}
+
+// BackupTimerText is the timer that runs the backup every night. It is
+// persistent, so that a machine which was asleep at the time backs up when it
+// comes back rather than skipping the night.
+func BackupTimerText(home contract.Home) string {
+	return strings.Join([]string{
+		writtenByInstall,
+		"",
+		"[Unit]",
+		"Description=Coeus nightly backup",
+		"",
+		"[Timer]",
+		"OnCalendar=" + backupTime,
+		fmt.Sprintf("RandomizedDelaySec=%d", backupSpread),
+		"Persistent=true",
+		"Unit=" + BackupServiceName,
+		"",
+		"[Install]",
+		"WantedBy=timers.target",
+		"",
+	}, "\n")
+}
+
+// Unit is one systemd unit file that "coeus install" writes.
+type Unit struct {
+	// Name is the file name, such as "coeus.service".
+	Name string
+	// Text is what goes in the file.
+	Text string
+	// Started says the unit is enabled and started by "coeus install" and
+	// stopped and disabled by "coeus uninstall". The backup service is not: the
+	// timer starts it.
+	Started bool
+}
+
+// Units are the three unit files "coeus install" writes, in the order it writes
+// them.
+func Units(home contract.Home) []Unit {
+	return []Unit{
+		{Name: ServiceName, Text: UnitText(home), Started: true},
+		{Name: BackupServiceName, Text: BackupServiceText(home)},
+		{Name: BackupTimerName, Text: BackupTimerText(home), Started: true},
+	}
+}
+
+// UnitPath is where the main unit file goes.
 func UnitPath() (string, error) {
+	return UnitPathFor(ServiceName)
+}
+
+// UnitPathFor is where one unit file goes: the user's own systemd folder, which
+// needs no administrator rights and starts with the user's session.
+func UnitPathFor(name string) (string, error) {
 	configFolder, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("your configuration folder could not be found, so set the XDG_CONFIG_HOME or HOME variable and try again: %w", err)
 	}
-	return filepath.Join(configFolder, "systemd", "user", ServiceName), nil
+	return filepath.Join(configFolder, "systemd", "user", name), nil
 }
 
 // Service is what "coeus install" and "coeus uninstall" need from the outside.
@@ -95,24 +181,45 @@ func (service Service) Install(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(unitPath), contract.HomeFolderMode); err != nil {
-		return fmt.Errorf("the folder %s for the unit could not be made: %w", filepath.Dir(unitPath), err)
-	}
-	if err := os.WriteFile(unitPath, []byte(UnitText(service.Home)), contract.DataFileMode); err != nil {
-		return fmt.Errorf("the unit %s could not be written, so check that you can write in that folder: %w", unitPath, err)
+	if err := writeUnits(service.Home); err != nil {
+		return err
 	}
 	if err := service.linkCurrentRelease(); err != nil {
 		return err
 	}
 
-	for _, told := range [][]string{{"daemon-reload"}, {"enable", ServiceName}, {"start", ServiceName}} {
-		if err := runSystemctl(ctx, told); err != nil {
+	told := [][]string{{"daemon-reload"}}
+	for _, unit := range Units(service.Home) {
+		if unit.Started {
+			told = append(told, []string{"enable", unit.Name}, []string{"start", unit.Name})
+		}
+	}
+	for _, one := range told {
+		if err := runSystemctl(ctx, one); err != nil {
 			return err
 		}
 	}
 	fmt.Fprintf(service.Output, "wrote %s and started %s.\n", unitPath, ServiceName)
 	fmt.Fprintf(service.Output, "It runs %s, and systemd starts it again if it stops.\n", service.Home.CurrentReleaseLink())
+	fmt.Fprintf(service.Output, "%s writes an encrypted backup every night.\n", BackupTimerName)
 	fmt.Fprintf(service.Output, "Run \"systemctl --user status %s\" to see how it is doing.\n", ServiceName)
+	return nil
+}
+
+// writeUnits puts every unit file in the user's own systemd folder.
+func writeUnits(home contract.Home) error {
+	for _, unit := range Units(home) {
+		path, err := UnitPathFor(unit.Name)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(path), contract.HomeFolderMode); err != nil {
+			return fmt.Errorf("the folder %s for the unit could not be made: %w", filepath.Dir(path), err)
+		}
+		if err := os.WriteFile(path, []byte(unit.Text), contract.DataFileMode); err != nil {
+			return fmt.Errorf("the unit %s could not be written, so check that you can write in that folder: %w", path, err)
+		}
+	}
 	return nil
 }
 
@@ -136,14 +243,21 @@ func (service Service) linkCurrentRelease() error {
 	return nil
 }
 
-// removeUnit takes the unit file away, saying nothing when it was not there.
-func removeUnit() (string, error) {
+// removeUnits takes every unit file away, saying nothing about one that was not
+// there, and returns where the main unit was.
+func removeUnits(home contract.Home) (string, error) {
 	unitPath, err := UnitPath()
 	if err != nil {
 		return "", err
 	}
-	if err := os.Remove(unitPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("the unit %s could not be removed, so check that you can write in that folder: %w", unitPath, err)
+	for _, unit := range Units(home) {
+		path, err := UnitPathFor(unit.Name)
+		if err != nil {
+			return "", err
+		}
+		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("the unit %s could not be removed, so check that you can write in that folder: %w", path, err)
+		}
 	}
 	return unitPath, nil
 }

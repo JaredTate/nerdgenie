@@ -1,0 +1,8 @@
+Which model should Coeus use?
+  1. the local model daemon on this machine, at THE-LOCAL-DAEMON, which costs nothing and sends nothing away
+  2. an LM Studio server on this machine, at THE-LM-STUDIO-SERVER, serving qwen3-27b-uncensored
+  3. the Claude subscription you already pay for, through the claude program
+  4. the ChatGPT subscription you already pay for, through the codex program
+  5. Anthropic, with an API key you pay for by the token
+  6. OpenAI, with an API key you pay for by the token
+

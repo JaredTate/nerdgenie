@@ -74,11 +74,22 @@ func (line *writtenDoneLine) UnmarshalJSON(data []byte) error {
 		return json.Unmarshal(trimmed, &line.Text)
 	}
 	type plainDoneLine writtenDoneLine
-	var written plainDoneLine
+	var written struct {
+		plainDoneLine
+		// Line, Item and Description are the other names a model gives the text.
+		Line        string `json:"line"`
+		Item        string `json:"item"`
+		Description string `json:"description"`
+	}
 	if err := json.Unmarshal(trimmed, &written); err != nil {
 		return errors.New(`a done line is an object with "text" (and "done" with "result" once it is proved), or the line itself as a string`)
 	}
-	*line = writtenDoneLine(written)
+	*line = writtenDoneLine(written.plainDoneLine)
+	for _, other := range []string{written.Line, written.Item, written.Description} {
+		if line.Text == "" {
+			line.Text = other
+		}
+	}
 	return nil
 }
 
@@ -240,14 +251,8 @@ func said(operation string) string {
 // shape the model can write a record in.
 func (tool *Tool) updateFor(asked input) (record.Update, error) {
 	switch asked.Operation {
-	case OperationWhy:
-		return record.Update{Why: asked.Why}, nil
-	case OperationDoneWhen:
-		return record.Update{DoneWhen: doneLines([]writtenDoneLine(asked.DoneWhen))}, nil
-	case OperationStopWhen:
-		return record.Update{StopWhen: []string(asked.StopWhen)}, nil
-	case OperationPlan:
-		return record.Update{Plan: []string(asked.Plan)}, nil
+	case OperationWhy, OperationDoneWhen, OperationStopWhen, OperationPlan, "":
+		return sectionsUpdate(asked), nil
 	case OperationDecision:
 		return record.Update{Decision: &record.NewDecision{Text: asked.Text, Reason: asked.Reason}}, nil
 	case OperationFailure:
@@ -280,4 +285,21 @@ func doneLines(written []writtenDoneLine) []contract.DoneLine {
 		})
 	}
 	return lines
+}
+
+// sectionsUpdate turns every section the call carries into one update, so a
+// model that writes the why, the done list and the plan together is taken at
+// its word rather than told to make three calls.
+func sectionsUpdate(asked input) record.Update {
+	update := record.Update{Why: strings.TrimSpace(asked.Why)}
+	if len(asked.DoneWhen) > 0 {
+		update.DoneWhen = doneLines([]writtenDoneLine(asked.DoneWhen))
+	}
+	if len(asked.StopWhen) > 0 {
+		update.StopWhen = []string(asked.StopWhen)
+	}
+	if len(asked.Plan) > 0 {
+		update.Plan = []string(asked.Plan)
+	}
+	return update
 }

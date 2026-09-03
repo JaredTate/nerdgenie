@@ -38,16 +38,17 @@ func TestAMessageThroughTheFakeChannelGetsAScriptedReplyInUnderASecond(t *testin
 		t.Fatalf("attaching to the channel failed: %v", err)
 	}
 
-	started := time.Now()
-	channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "when did DigiByte launch?"})
-
-	if err := answerOneMessage(ctx, inbound, model, channel); err != nil {
-		t.Fatalf("answering the message failed: %v", err)
+	if err := channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "when did DigiByte launch?"}); err != nil {
+		t.Fatalf("pushing the message failed: %v", err)
 	}
 
-	took := time.Since(started)
-	if took > time.Second {
-		t.Errorf("the reply took %s, and the whole exchange must take under a second", took)
+	// The bound is enforced while the exchange runs, not measured after it: a
+	// model that hangs would otherwise hang every functional test copied from
+	// this one, and the failure would arrive as a test timeout minutes later.
+	if err := within(t, time.Second, func() error {
+		return answerOneMessage(ctx, inbound, model, channel)
+	}); err != nil {
+		t.Fatalf("answering the message failed: %v", err)
 	}
 
 	sent := channel.Sent()
@@ -78,13 +79,35 @@ func TestAScriptThatExpectsSomethingTheMessageLostFailsLoudly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("attaching to the channel failed: %v", err)
 	}
-	channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "what is the date?"})
+	if err := channel.Push(contract.Inbound{ID: "1", Sender: "jared", Text: "what is the date?"}); err != nil {
+		t.Fatalf("pushing the message failed: %v", err)
+	}
 
-	if err := answerOneMessage(ctx, inbound, model, channel); err == nil {
+	err = within(t, time.Second, func() error {
+		return answerOneMessage(ctx, inbound, model, channel)
+	})
+	if err == nil {
 		t.Fatal("a message that lost the correction was answered anyway, want an error naming what went missing")
 	}
 	if len(channel.Sent()) != 0 {
 		t.Errorf("a reply went out after the model refused: %v", channel.Sent())
+	}
+}
+
+// within runs the work and gives back what it returned, failing the test at once
+// when the work is still going after the bound. Every functional test is written
+// this way, so that a step which hangs fails in a second with a message rather
+// than in ten minutes with a test timeout.
+func within(t *testing.T, bound time.Duration, work func() error) error {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() { done <- work() }()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(bound):
+		t.Fatalf("the exchange was still running after %s, and the whole of it must take less than that", bound)
+		return nil
 	}
 }
 

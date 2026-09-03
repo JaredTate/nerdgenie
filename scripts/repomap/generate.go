@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 )
 
 // The header and the roots table the map always carries. They change only when
@@ -53,7 +56,11 @@ func generate(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Sorted, and then with the repeats taken out: git prints one line per stage
+	// of a file left in conflict, so a merge in progress would otherwise put the
+	// same path in the map three times.
 	slices.Sort(paths)
+	paths = slices.Compact(paths)
 
 	var built strings.Builder
 	built.WriteString(mapHeader)
@@ -70,13 +77,15 @@ func generate(root string) (string, error) {
 // Inside a git work tree that is the tracked files, which is exactly what a
 // fresh clone holds; outside one it is every file in the tree, which is what the
 // fixture trees in the tests are.
+//
+// Which of the two it is comes from whether the folder holds a .git entry, not
+// from whether git happened to work. A git that fails inside a work tree is
+// reported, because falling back to a walk there would quietly list every
+// untracked file as though a fresh clone held it.
 func listedFiles(root string) ([]string, error) {
-	paths, err := trackedFiles(root)
+	paths, err := filesToList(root)
 	if err != nil {
-		paths, err = walkedFiles(root)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	kept := []string{}
@@ -88,22 +97,95 @@ func listedFiles(root string) ([]string, error) {
 	return kept, nil
 }
 
+// filesToList picks the way to list this folder and does it.
+func filesToList(root string) ([]string, error) {
+	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
+		return walkedFiles(root)
+	}
+	return trackedFiles(root)
+}
+
+// gitTimeout bounds the git child, because every outside call has a timeout.
+const gitTimeout = 30 * time.Second
+
+// maxTrackedFilesBytes caps the listing git prints. This repository's listing is
+// a few tens of kilobytes, so eight megabytes is far more than any tree the
+// generator should meet.
+const maxTrackedFilesBytes = 8 << 20
+
 // trackedFiles asks git which files it is tracking, and fails when the folder is
 // not a git work tree.
+//
+// The child runs with every GIT_ variable taken out of its environment. Git
+// exports GIT_DIR, GIT_INDEX_FILE, and GIT_WORK_TREE to the programs it runs,
+// and GIT_DIR outranks the -C flag, so a generator that inherited them would
+// list some other repository's files and say nothing about it. HomeRecon wrote
+// the same warning at the top of
+// ~/Code/homerecon/scripts/repo-map/repo-map.test.cjs.
 func trackedFiles(root string) ([]string, error) {
-	command := exec.Command("git", "-C", root, "ls-files", "-z")
+	ctx, cancel := context.WithTimeout(context.Background(), gitTimeout)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, "git", "-C", root, "ls-files", "-z")
+	command.Env = environmentWithoutGitVariables()
 	command.Stderr = nil
-	listing, err := command.Output()
+	listing, err := command.StdoutPipe()
 	if err != nil {
+		return nil, fmt.Errorf("cannot read what git prints about %s: %w", root, err)
+	}
+	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("cannot ask git which files %s tracks: %w", root, err)
 	}
+
+	read, readErr := readCapped(listing, maxTrackedFilesBytes)
+	if err := command.Wait(); err != nil {
+		return nil, fmt.Errorf("cannot ask git which files %s tracks: %w", root, err)
+	}
+	if readErr != nil {
+		return nil, fmt.Errorf("cannot read the list of files %s tracks: %w", root, readErr)
+	}
+
+	return pathsInListing(read), nil
+}
+
+// pathsInListing reads the NUL-separated list of paths git prints for
+// "ls-files -z", leaving out the empty piece after the last separator and any
+// other empty piece, because a path is never nothing.
+func pathsInListing(listing []byte) []string {
 	paths := []string{}
 	for _, path := range strings.Split(string(listing), "\x00") {
 		if path != "" {
 			paths = append(paths, path)
 		}
 	}
-	return paths, nil
+	return paths
+}
+
+// environmentWithoutGitVariables is this program's environment with every GIT_
+// setting removed, so that a git child obeys the folder it was given and nothing
+// else.
+func environmentWithoutGitVariables() []string {
+	kept := []string{}
+	for _, setting := range os.Environ() {
+		if strings.HasPrefix(setting, "GIT_") {
+			continue
+		}
+		kept = append(kept, setting)
+	}
+	return kept
+}
+
+// readCapped reads everything the reader has, up to the cap, and refuses to go
+// past it rather than holding an unbounded amount in memory.
+func readCapped(reader io.Reader, cap int) ([]byte, error) {
+	read, err := io.ReadAll(io.LimitReader(reader, int64(cap)+1))
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the answer: %w", err)
+	}
+	if len(read) > cap {
+		return nil, fmt.Errorf("the answer is longer than the %d byte cap, so something is wrong with the folder being mapped", cap)
+	}
+	return read, nil
 }
 
 // walkedFiles lists every file under the root, for a tree that is not a git work

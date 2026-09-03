@@ -45,7 +45,11 @@ func TestTheInputCountIsEverythingTheModelReadOnTheAnthropicWire(t *testing.T) {
 	// cache. The input count the harness reports is all three added together,
 	// and the cached count is the third of them on its own, so the cached count
 	// is always a part of the input count.
-	want := contract.Usage{InputTokens: 900 + 300 + 5200, CachedInputTokens: 5200, OutputTokens: 64}
+	//
+	// This script says it read 900 tokens in all and that 5200 of them were
+	// cached, which no real provider would say, so the fake's plain field holds
+	// the remainder at zero and the total is the 300 written plus the 5200 read.
+	want := contract.Usage{InputTokens: 0 + 300 + 5200, CachedInputTokens: 5200, OutputTokens: 64}
 	if reply.Usage != want {
 		t.Errorf("the usage came back as %+v, want %+v", reply.Usage, want)
 	}

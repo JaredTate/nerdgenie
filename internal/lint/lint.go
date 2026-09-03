@@ -1,9 +1,11 @@
 package lint
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/scanner"
 	"go/token"
 	"io/fs"
 	"os"
@@ -31,6 +33,9 @@ const (
 	// RuleBorrowedHeader covers a borrowed design named without its reference
 	// path.
 	RuleBorrowedHeader = "borrowed-design-header"
+	// RuleParseError covers a file the checker cannot read at all, which is a
+	// file the compiler will refuse too.
+	RuleParseError = "parse-error"
 )
 
 // The two limits from the definition of done in docs/WORK_PLAN.md.
@@ -39,6 +44,11 @@ const (
 	MaxFunctionLines = 60
 	// MaxFileLines is the longest a file may be.
 	MaxFileLines = 500
+	// MaxSourceFileBytes is the most of one file the checker will read. Rule 4
+	// caps a file at five hundred lines, so a megabyte is far more than any file
+	// this checker should ever meet, and a file past it is refused by name rather
+	// than read into memory whole.
+	MaxSourceFileBytes = 1 << 20
 )
 
 // Violation is one style rule broken at one place, with what to do about it.
@@ -59,14 +69,20 @@ func (violation Violation) String() string {
 	return fmt.Sprintf("%s:%d: %s: %s", violation.Path, violation.Line, violation.Rule, violation.Advice)
 }
 
-// CheckSource checks one Go file and returns every violation in it. Source that
-// will not parse produces nothing, because the compiler already says so far
-// better than this checker could.
+// CheckSource checks one Go file and returns every violation in it. Source the
+// parser cannot read is one violation of its own, naming the file: the compiler
+// will refuse it too, and a checker that said nothing would let a broken file
+// through the gate in silence.
 func CheckSource(path string, source []byte) []Violation {
 	positions := token.NewFileSet()
 	file, err := parser.ParseFile(positions, path, source, parser.ParseComments|parser.SkipObjectResolution)
 	if err != nil {
-		return nil
+		return []Violation{{
+			Path:   path,
+			Line:   parseErrorLine(err),
+			Rule:   RuleParseError,
+			Advice: fmt.Sprintf("fix the syntax the compiler will refuse too: %v", err),
+		}}
 	}
 	inspector := &fileInspector{
 		path:      path,
@@ -83,6 +99,16 @@ func CheckSource(path string, source []byte) []Violation {
 	inspector.checkIdentifierNames()
 	slices.SortStableFunc(inspector.found, func(left, right Violation) int { return left.Line - right.Line })
 	return inspector.found
+}
+
+// parseErrorLine is the line the parser gave up on, or the first line when it
+// did not say.
+func parseErrorLine(err error) int {
+	var found scanner.ErrorList
+	if errors.As(err, &found) && len(found) > 0 {
+		return found[0].Pos.Line
+	}
+	return 1
 }
 
 // CheckPackage checks every Go file in one folder, and adds the one rule that
@@ -102,9 +128,9 @@ func CheckPackage(folder string) ([]Violation, error) {
 			continue
 		}
 		path := filepath.Join(folder, entry.Name())
-		source, err := os.ReadFile(path)
+		source, err := readSourceFile(path, entry)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read the file %s to check it: %w", path, err)
+			return nil, err
 		}
 		if !strings.HasSuffix(entry.Name(), "_test.go") {
 			sourceFiles++
@@ -124,6 +150,24 @@ func CheckPackage(folder string) ([]Violation, error) {
 		})
 	}
 	return found, nil
+}
+
+// readSourceFile reads one file, refusing anything past the cap by name rather
+// than holding it in memory whole.
+func readSourceFile(path string, entry os.DirEntry) ([]byte, error) {
+	about, err := entry.Info()
+	if err != nil {
+		return nil, fmt.Errorf("cannot look at the file %s to check it: %w", path, err)
+	}
+	if about.Size() > MaxSourceFileBytes {
+		return nil, fmt.Errorf("the file %s is %d bytes and the cap is %d, so split it before the checker reads it",
+			path, about.Size(), MaxSourceFileBytes)
+	}
+	source, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the file %s to check it: %w", path, err)
+	}
+	return source, nil
 }
 
 // CheckTree walks a folder and checks every package under it. It skips the

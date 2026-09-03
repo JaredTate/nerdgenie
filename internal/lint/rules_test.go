@@ -115,7 +115,6 @@ func TestIdentifierNameRuleRefusesOneLettersAndAbbreviations(t *testing.T) {
 		{"a loop index", "package example\n\n// Count counts.\nfunc Count() int {\n\ttotal := 0\n\tfor i := 0; i < 3; i++ {\n\t\ttotal += i\n\t}\n\treturn total\n}\n", false},
 		{"a range key", "package example\n\n// Count counts.\nfunc Count(list []int) int {\n\ttotal := 0\n\tfor i, v := range list {\n\t\ttotal += i + v\n\t}\n\treturn total\n}\n", false},
 		{"a receiver", "package example\n\n// Counter counts.\ntype Counter struct{}\n\n// Count counts.\nfunc (c Counter) Count() int { return 0 }\n", false},
-		{"a conventional test name", "package example\n\n// Count counts.\nfunc Count() int {\n\tt := 1\n\treturn t\n}\n", false},
 		{"a bare letter", "package example\n\n// Count counts.\nfunc Count() int {\n\tx := 1\n\treturn x\n}\n", true},
 		{"a banned abbreviation", "package example\n\n// Count counts.\nfunc Count() int {\n\tcfg := 1\n\treturn cfg\n}\n", true},
 		{"ctx is allowed", "package example\n\n// Count counts.\nfunc Count() int {\n\tctx := 1\n\treturn ctx\n}\n", false},
@@ -154,6 +153,64 @@ func TestBorrowedHeaderRuleWantsAPathBesideTheProjectName(t *testing.T) {
 	}
 }
 
+// theNineBorrowedProjects is every project Coeus took a design from, written the
+// way CLAUDE.md teaches a worker to write it: the folder name beside this
+// repository, or the folder under docs/reference for a project not on disk.
+var theNineBorrowedProjects = []string{
+	"openclaw", "hermes-agent", "prime-agent", "opencode", "zeroclaw",
+	"homerecon", "browser-use", "codex", "moltis",
+}
+
+// theSameNineInTheirOwnCapitals is how the same projects write their own names,
+// which a worker is just as likely to type.
+var theSameNineInTheirOwnCapitals = []string{
+	"OpenClaw", "Hermes", "Prime Agent", "OpenCode", "ZeroClaw",
+	"HomeRecon", "browser-use", "Codex", "Moltis",
+}
+
+func TestTheBorrowedHeaderRuleKnowsEveryProjectByItsFolderName(t *testing.T) {
+	for _, project := range theNineBorrowedProjects {
+		t.Run(project, func(t *testing.T) {
+			named := "// The design here is ported from " + project + ", wherever that lives.\n\npackage example\n"
+			if !containsRule(checkOneFile(named), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s with no reference path reported nothing", project)
+			}
+			withPath := "// The design here is ported from " + project +
+				" at ~/Code/" + project + "/source/main.go.\n\npackage example\n"
+			if containsRule(checkOneFile(withPath), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s beside its reference path was reported anyway", project)
+			}
+		})
+	}
+}
+
+func TestAVendorsProgramNamedAsAProgramIsNotABorrowedDesign(t *testing.T) {
+	// "codex" is both a project Coeus read a design from and the name of the
+	// program that runs GPT on the user's subscription. A header that says how to
+	// run the program is not naming a borrowed design.
+	source := "// Package example runs \"codex exec\" in a scratch folder and reads the text back.\n\npackage example\n"
+
+	if containsRule(checkOneFile(source), lint.RuleBorrowedHeader) {
+		t.Errorf("a header naming the codex program was read as a borrowed design:\n%s", source)
+	}
+
+	borrowed := "// The design here is ported from codex, wherever that lives.\n\npackage example\n"
+	if !containsRule(checkOneFile(borrowed), lint.RuleBorrowedHeader) {
+		t.Errorf("a header naming the codex project with no reference path reported nothing:\n%s", borrowed)
+	}
+}
+
+func TestTheBorrowedHeaderRuleDoesNotCareAboutCapitalLetters(t *testing.T) {
+	for _, project := range theSameNineInTheirOwnCapitals {
+		t.Run(project, func(t *testing.T) {
+			named := "// The design here is ported from " + project + ", wherever that lives.\n\npackage example\n"
+			if !containsRule(checkOneFile(named), lint.RuleBorrowedHeader) {
+				t.Errorf("a header naming %s with no reference path reported nothing", project)
+			}
+		})
+	}
+}
+
 func TestThePackageDocRuleWantsTheFirstSentenceToNameThePackage(t *testing.T) {
 	rules := []string{}
 	for _, violation := range lint.CheckSource("doc.go", []byte("// This file explains the package.\npackage example\n")) {
@@ -161,6 +218,129 @@ func TestThePackageDocRuleWantsTheFirstSentenceToNameThePackage(t *testing.T) {
 	}
 	if !containsRule(rules, lint.RuleDocComment) {
 		t.Error("a doc.go whose comment does not begin with \"Package example\" was accepted, want it refused")
+	}
+}
+
+func TestTheErrorMessageRuleSeesThroughAnAliasAndADotImport(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   string
+		reported bool
+	}{
+		{
+			name:     "an aliased errors import with too few words",
+			source:   "package example\n\nimport stderrors \"errors\"\n\n// Fail fails.\nfunc Fail() error { return stderrors.New(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "an aliased fmt import with too few words",
+			source:   "package example\n\nimport format \"fmt\"\n\n// Fail fails.\nfunc Fail() error { return format.Errorf(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "a dot import of errors with too few words",
+			source:   "package example\n\nimport . \"errors\"\n\n// Fail fails.\nfunc Fail() error { return New(\"bad input\") }\n",
+			reported: true,
+		},
+		{
+			name:     "a package of somebody else's called errors",
+			source:   "package example\n\nimport errors \"example.com/other/errors\"\n\n// Fail fails.\nfunc Fail() error { return errors.New(\"bad input\") }\n",
+			reported: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reported := containsRule(checkOneFile(test.source), lint.RuleErrorMessage)
+			if reported != test.reported {
+				t.Errorf("the error-message rule reported %v, want %v, for:\n%s", reported, test.reported, test.source)
+			}
+		})
+	}
+}
+
+func TestAFormatVerbIsNotAWordInAnErrorMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   string
+		reported bool
+	}{
+		{
+			name:     "three words padded out with verbs",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail(name string) error { return fmt.Errorf(\"cannot open %s %d\", name, 1) }\n",
+			reported: true,
+		},
+		{
+			name:     "four words beside a verb",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail(name string) error { return fmt.Errorf(\"cannot open the vault %s\", name) }\n",
+			reported: false,
+		},
+		{
+			name:     "a doubled percent sign is a word",
+			source:   "package example\n\nimport \"fmt\"\n\n// Fail fails.\nfunc Fail() error { return fmt.Errorf(\"the disk is 100%% full now\") }\n",
+			reported: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reported := containsRule(checkOneFile(test.source), lint.RuleErrorMessage)
+			if reported != test.reported {
+				t.Errorf("the error-message rule reported %v, want %v, for:\n%s", reported, test.reported, test.source)
+			}
+		})
+	}
+}
+
+func TestATrailingCommentOnAFieldIsASentenceToo(t *testing.T) {
+	source := "package example\n\n// Counter counts.\ntype Counter struct {\n\tTotal int // how many there are\n}\n"
+
+	if !containsRule(checkOneFile(source), lint.RuleCommentSentence) {
+		t.Errorf("a trailing comment on an exported field was not read at all:\n%s", source)
+	}
+
+	proper := "package example\n\n// Counter counts.\ntype Counter struct {\n\tTotal int // How many there are.\n}\n"
+	if containsRule(checkOneFile(proper), lint.RuleCommentSentence) {
+		t.Errorf("a trailing comment that is a complete sentence was reported:\n%s", proper)
+	}
+}
+
+func TestTheOneLetterNamesAreAllowedInTestsAndHandlersAndNowhereElse(t *testing.T) {
+	inAPlainFunction := "package example\n\n// Count counts.\nfunc Count() int {\n\tt := 1\n\treturn t\n}\n"
+	if !containsRule(checkOneFile(inAPlainFunction), lint.RuleIdentifierName) {
+		t.Errorf("a bare t in a plain function was allowed, and the rule allows it in tests and handlers only:\n%s", inAPlainFunction)
+	}
+
+	inATest := "package example\n\nimport \"testing\"\n\nfunc TestCount(t *testing.T) {\n\tb := 1\n\t_ = b\n\t_ = t\n}\n"
+	rules := []string{}
+	for _, violation := range lint.CheckSource("example_test.go", []byte(inATest)) {
+		rules = append(rules, violation.Rule)
+	}
+	if containsRule(rules, lint.RuleIdentifierName) {
+		t.Errorf("a bare b in a test file was reported, and a test is where the convention lives:\n%s", inATest)
+	}
+
+	inAHandler := "package example\n\nimport \"net/http\"\n\n// Serve answers one request.\n" +
+		"func Serve(w http.ResponseWriter, r *http.Request) {\n\t_ = w\n\t_ = r\n}\n"
+	if containsRule(checkOneFile(inAHandler), lint.RuleIdentifierName) {
+		t.Errorf("the conventional w and r in an HTTP handler were reported:\n%s", inAHandler)
+	}
+}
+
+func TestEveryBannedAbbreviationIsRefused(t *testing.T) {
+	for _, abbreviation := range []string{"cfg", "msg", "req", "resp", "buf", "tmp", "str", "num", "val"} {
+		t.Run(abbreviation, func(t *testing.T) {
+			source := "package example\n\n// Count counts.\nfunc Count(" + abbreviation + " string) int { return len(" + abbreviation + ") }\n"
+			if !containsRule(checkOneFile(source), lint.RuleIdentifierName) {
+				t.Errorf("the abbreviation %q was allowed, and it says less than the word it came from", abbreviation)
+			}
+		})
+	}
+	for _, allowed := range []string{"ctx", "err"} {
+		t.Run(allowed, func(t *testing.T) {
+			source := "package example\n\n// Count counts.\nfunc Count(" + allowed + " string) int { return len(" + allowed + ") }\n"
+			if containsRule(checkOneFile(source), lint.RuleIdentifierName) {
+				t.Errorf("the name %q was refused, and Go writes it everywhere", allowed)
+			}
+		})
 	}
 }
 

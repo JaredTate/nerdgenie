@@ -8,15 +8,19 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// The error codes worker/browser/PROTOCOL.md defines.
+// The error codes worker/browser/PROTOCOL.md defines, all eight of them.
 const (
-	// CodeParseError means the line was not JSON.
+	// CodeParseError means the line was not JSON, or was longer than the cap.
 	CodeParseError = -32700
+	// CodeInvalidRequest means the line was JSON but not a JSON-RPC request.
+	CodeInvalidRequest = -32600
 	// CodeMethodNotFound means there is no such method.
 	CodeMethodNotFound = -32601
 	// CodeBadParameters means the parameters were wrong.
@@ -25,6 +29,28 @@ const (
 	CodeNoSuchReference = -32000
 	// CodeSettleTimeout means the page did not settle before the limit.
 	CodeSettleTimeout = -32001
+	// CodeNoBrowserOpen means no page is open, so there is nothing to act on.
+	CodeNoBrowserOpen = -32002
+	// CodeBrowserGone means the browser died and the worker must be restarted.
+	CodeBrowserGone = -32003
+)
+
+// The bounds the protocol server keeps, because every buffer has a cap and every
+// wait has a timeout.
+const (
+	// MaxProtocolLine is the longest request line the server will read. A longer
+	// one is answered with a parse error rather than ending the connection in
+	// silence.
+	MaxProtocolLine = 256 * 1024
+	// DefaultProtocolIdleTimeout is how long the server waits for the next line
+	// from a caller that has said nothing before it closes the connection.
+	DefaultProtocolIdleTimeout = 30 * time.Second
+	// protocolCallTimeout bounds one method call, so a worker that hangs does not
+	// hold the connection for ever.
+	protocolCallTimeout = 30 * time.Second
+	// maxProtocolCallers is how many callers the server serves at once. More than
+	// this wait in the listener's own queue.
+	maxProtocolCallers = 16
 )
 
 // ErrNoSuchMethod means the caller asked for a method the protocol does not
@@ -39,6 +65,9 @@ type BrowserProtocolServer struct {
 	worker     contract.BrowserWorker
 	listener   net.Listener
 	socketPath string
+
+	guard       sync.Mutex
+	idleTimeout time.Duration
 }
 
 // NewBrowserProtocolServer starts the server on a socket under a temporary
@@ -51,7 +80,12 @@ func NewBrowserProtocolServer(t testing.TB, worker contract.BrowserWorker) *Brow
 		t.Fatalf("cannot open the browser worker's socket: %v", err)
 	}
 
-	server := &BrowserProtocolServer{worker: worker, listener: listener, socketPath: socketPath}
+	server := &BrowserProtocolServer{
+		worker:      worker,
+		listener:    listener,
+		socketPath:  socketPath,
+		idleTimeout: DefaultProtocolIdleTimeout,
+	}
 	go server.accept()
 	t.Cleanup(func() { _ = server.Close() })
 	return server
@@ -62,40 +96,95 @@ func (server *BrowserProtocolServer) SocketPath() string {
 	return server.socketPath
 }
 
+// IdleAfter says how long the server waits for the next line from a caller that
+// has said nothing, so that a test can prove the deadline without waiting the
+// usual half a minute for it.
+func (server *BrowserProtocolServer) IdleAfter(wait time.Duration) {
+	server.guard.Lock()
+	defer server.guard.Unlock()
+	server.idleTimeout = wait
+}
+
+// idleWait is how long the server currently waits between lines.
+func (server *BrowserProtocolServer) idleWait() time.Duration {
+	server.guard.Lock()
+	defer server.guard.Unlock()
+	return server.idleTimeout
+}
+
 // Close stops the server.
 func (server *BrowserProtocolServer) Close() error {
 	return server.listener.Close()
 }
 
-// accept takes callers one at a time until the listener closes.
+// accept takes callers until the listener closes, no more than
+// maxProtocolCallers of them at once. A caller beyond that waits in the
+// listener's own queue rather than costing another goroutine.
 func (server *BrowserProtocolServer) accept() {
+	callers := make(chan struct{}, maxProtocolCallers)
 	for {
 		connection, err := server.listener.Accept()
 		if err != nil {
 			return
 		}
-		go server.serve(connection)
+		callers <- struct{}{}
+		go func() {
+			defer func() { <-callers }()
+			server.serve(connection)
+		}()
 	}
 }
 
-// serve answers every line one caller sends.
+// serve answers every line one caller sends, until the caller goes quiet for
+// longer than the idle timeout or sends a line longer than the cap.
 func (server *BrowserProtocolServer) serve(connection net.Conn) {
 	defer connection.Close()
 	lines := bufio.NewScanner(connection)
-	for lines.Scan() {
-		answer := server.answer(lines.Bytes())
-		written, err := json.Marshal(answer)
-		if err != nil {
+	lines.Buffer(make([]byte, 0, 64*1024), MaxProtocolLine)
+
+	for {
+		if err := connection.SetDeadline(time.Now().Add(server.idleWait())); err != nil {
 			return
 		}
-		if _, err := connection.Write(append(written, '\n')); err != nil {
+		if !lines.Scan() {
+			server.sayWhyTheLineWasNotRead(connection, lines.Err())
+			return
+		}
+		if !server.write(connection, server.answer(lines.Bytes())) {
 			return
 		}
 	}
+}
+
+// sayWhyTheLineWasNotRead answers a caller whose line could not be read at all,
+// which the protocol calls a parse error. A caller that simply went away or went
+// quiet gets nothing, because there is nobody left to tell.
+func (server *BrowserProtocolServer) sayWhyTheLineWasNotRead(connection net.Conn, err error) {
+	if !errors.Is(err, bufio.ErrTooLong) {
+		return
+	}
+	server.write(connection, protocolFailure(nil, CodeParseError,
+		fmt.Sprintf("that request line is longer than the %d byte cap, so send a smaller one", MaxProtocolLine), nil))
+}
+
+// write sends one answer and says whether the caller is still there.
+func (server *BrowserProtocolServer) write(connection net.Conn, answer map[string]any) bool {
+	written, err := json.Marshal(answer)
+	if err != nil {
+		return false
+	}
+	if err := connection.SetWriteDeadline(time.Now().Add(server.idleWait())); err != nil {
+		return false
+	}
+	_, err = connection.Write(append(written, '\n'))
+	return err == nil
 }
 
 // protocolCall is one JSON-RPC request as it arrives on the socket.
 type protocolCall struct {
+	// Version must be "2.0", and anything else is not a request this server
+	// speaks.
+	Version string `json:"jsonrpc"`
 	// ID is the caller's number for the request, echoed back on the answer.
 	ID any `json:"id"`
 	// Method is which of the eleven methods was asked for.
@@ -108,19 +197,27 @@ type protocolCall struct {
 func (server *BrowserProtocolServer) answer(line []byte) map[string]any {
 	var call protocolCall
 	if err := json.Unmarshal(line, &call); err != nil {
-		return protocolFailure(nil, CodeParseError, "the line was not JSON, so send one JSON object per line")
+		return protocolFailure(nil, CodeParseError, "the line was not JSON, so send one JSON object per line", nil)
+	}
+	if call.Version != "2.0" || call.Method == "" {
+		return protocolFailure(call.ID, CodeInvalidRequest,
+			"that is JSON but not a JSON-RPC request, so send a jsonrpc of 2.0 and a method", nil)
 	}
 
 	result, err := server.run(call)
 	if err != nil {
-		return protocolFailure(call.ID, codeFor(err), err.Error())
+		// A failed call may still have something to report: PROTOCOL.md promises
+		// one diff per step of a batch that ran, and says a -32000 carries a fresh
+		// snapshot. Both ride in the error's data field.
+		return protocolFailure(call.ID, codeFor(err), err.Error(), result)
 	}
 	return map[string]any{"jsonrpc": "2.0", "id": call.ID, "result": result}
 }
 
 // run does the work of one method and returns whatever it produced.
 func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), protocolCallTimeout)
+	defer cancel()
 	var params struct {
 		URL         string                   `json:"url"`
 		VisibleOnly bool                     `json:"visibleOnly"`
@@ -142,48 +239,67 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 
 	switch call.Method {
 	case "open":
-		return server.worker.Open(ctx, params.URL)
+		return onlyOnSuccess(server.worker.Open(ctx, params.URL))
 	case "read":
-		return server.worker.Read(ctx, contract.ReadOptions{VisibleOnly: params.VisibleOnly})
+		return onlyOnSuccess(server.worker.Read(ctx, contract.ReadOptions{VisibleOnly: params.VisibleOnly}))
 	case "click":
-		return server.worker.Click(ctx, params.Ref, params.Expectation)
+		return onlyOnSuccess(server.worker.Click(ctx, params.Ref, params.Expectation))
 	case "type":
-		return server.worker.Type(ctx, params.Ref, params.Text, params.Expectation)
+		return onlyOnSuccess(server.worker.Type(ctx, params.Ref, params.Text, params.Expectation))
 	case "press":
-		return server.worker.Press(ctx, params.Key, params.Expectation)
+		return onlyOnSuccess(server.worker.Press(ctx, params.Key, params.Expectation))
 	case "scroll":
-		return server.worker.Scroll(ctx, params.Direction, params.Amount, params.Expectation)
+		return onlyOnSuccess(server.worker.Scroll(ctx, params.Direction, params.Amount, params.Expectation))
 	case "act":
-		diffs, err := server.worker.Act(ctx, params.Steps)
-		return map[string]any{"diffs": diffs}, err
+		return server.act(ctx, params.Steps)
 	case "tabs":
 		tabs, err := server.worker.Tabs(ctx, params.Action, params.TabID)
-		return map[string]any{"tabs": tabs}, err
+		return onlyOnSuccess(map[string]any{"tabs": tabs}, err)
 	case "loginFill":
 		return server.loginFill(ctx, call.Params)
 	case "screenshot":
-		return server.worker.Screenshot(ctx)
+		return onlyOnSuccess(server.worker.Screenshot(ctx))
 	case "health":
-		return server.worker.Health(ctx)
+		return onlyOnSuccess(server.worker.Health(ctx))
 	case "dialog":
-		return server.dialog(ctx, call.Params)
+		return onlyOnSuccess(server.dialog(ctx, call.Params))
 	default:
 		return nil, fmt.Errorf("the method %q is not one of the twelve: %w", call.Method, ErrNoSuchMethod)
 	}
 }
 
 // dialog reads the two dialog fields and answers the open dialog box.
-func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMessage) (any, error) {
+func (server *BrowserProtocolServer) dialog(ctx context.Context, raw json.RawMessage) (contract.Diff, error) {
 	var params struct {
 		Action contract.DialogAction `json:"action"`
 		Text   string                `json:"text"`
 	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, fmt.Errorf("cannot read the dialog parameters, so check the action and text fields: %w", err)
+			return contract.Diff{}, fmt.Errorf("cannot read the dialog parameters, so check the action and text fields: %w", err)
 		}
 	}
 	return server.worker.Dialog(ctx, params.Action, params.Text)
+}
+
+// act runs a batch and keeps the diffs of the steps that ran, even when a later
+// step failed, because PROTOCOL.md promises one diff per step that ran and the
+// model needs to see exactly where the batch stopped.
+func (server *BrowserProtocolServer) act(ctx context.Context, steps []contract.ActStep) (any, error) {
+	diffs, err := server.worker.Act(ctx, steps)
+	if err != nil && len(diffs) == 0 {
+		return nil, err
+	}
+	return map[string]any{"diffs": diffs}, err
+}
+
+// onlyOnSuccess drops a half-built result when the call failed, so that an error
+// carries nothing but what it meant to carry.
+func onlyOnSuccess[Result any](result Result, err error) (any, error) {
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loginFill reads the credential fields separately, so that they are never part
@@ -196,16 +312,24 @@ func (server *BrowserProtocolServer) loginFill(ctx context.Context, raw json.Raw
 	return server.worker.LoginFill(ctx, fields)
 }
 
-// protocolFailure builds the error answer PROTOCOL.md describes.
-func protocolFailure(id any, code int, message string) map[string]any {
+// protocolFailure builds the error answer PROTOCOL.md describes, carrying
+// whatever the failed call still had to report in the error's data field.
+func protocolFailure(id any, code int, message string, data any) map[string]any {
+	failure := map[string]any{"code": code, "message": message}
+	if data != nil {
+		failure["data"] = data
+	}
 	return map[string]any{
 		"jsonrpc": "2.0",
 		"id":      id,
-		"error":   map[string]any{"code": code, "message": message},
+		"error":   failure,
 	}
 }
 
-// codeFor picks the protocol's error code for one Go error.
+// codeFor picks the protocol's error code for one Go error, following the table
+// in worker/browser/PROTOCOL.md. What is left over is a bad set of parameters,
+// which is the one thing the model can act on, so it is the residue rather than
+// the catch-all it used to be.
 func codeFor(err error) int {
 	switch {
 	case errors.Is(err, ErrSettleTimeout):
@@ -214,6 +338,10 @@ func codeFor(err error) int {
 		return CodeMethodNotFound
 	case errors.Is(err, ErrNoSuchReference):
 		return CodeNoSuchReference
+	case errors.Is(err, ErrBrowserGone):
+		return CodeBrowserGone
+	case errors.Is(err, ErrNoPageOpen):
+		return CodeNoBrowserOpen
 	default:
 		return CodeBadParameters
 	}

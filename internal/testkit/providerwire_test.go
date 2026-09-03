@@ -222,6 +222,73 @@ func TestTheAnthropicStreamReportsTheCacheCreationTokensTheStepAsksFor(t *testin
 	}
 }
 
+func TestTheAnthropicStreamCountsTheInputThreeWaysThatAddBackUp(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptWithTwoToolCalls())
+	defer server.Close()
+
+	_, _, stream := postJSON(t, server.AnthropicAddress(), `{"messages":[]}`)
+
+	for _, event := range readAnthropicStream(t, stream) {
+		usage := usageIn(event)
+		if usage == nil {
+			continue
+		}
+		// On the real Messages API input_tokens is what was read fresh: the cache
+		// read and the cache write are counted separately, and the three add up to
+		// everything the model read. A fake that put the whole count in the plain
+		// field would make one script report a different total on each wire.
+		plain, _ := usage["input_tokens"].(float64)
+		read, _ := usage["cache_read_input_tokens"].(float64)
+		written, _ := usage["cache_creation_input_tokens"].(float64)
+
+		if plain != float64(6100-5200-700) {
+			t.Errorf("the %s event says %v input tokens, want what was read fresh rather than the whole count",
+				event.name, plain)
+		}
+		if plain+read+written != float64(6100) {
+			t.Errorf("the %s event's three counts add up to %v, want the script's whole input count of 6100",
+				event.name, plain+read+written)
+		}
+	}
+}
+
+func TestTheAnthropicStreamNeverReportsANegativeInputCount(t *testing.T) {
+	script := scriptWithTwoToolCalls()
+	// A script whose cached count is bigger than its whole input count is not a
+	// count any real provider would send, and the remainder must not go below
+	// zero.
+	script.Steps[0].Usage = contract.Usage{InputTokens: 900, CachedInputTokens: 5200, OutputTokens: 64}
+	server := testkit.NewFakeProviderServer(script)
+	defer server.Close()
+
+	_, _, stream := postJSON(t, server.AnthropicAddress(), `{"messages":[]}`)
+
+	for _, event := range readAnthropicStream(t, stream) {
+		usage := usageIn(event)
+		if usage == nil {
+			continue
+		}
+		if plain, _ := usage["input_tokens"].(float64); plain < 0 {
+			t.Errorf("the %s event says %v input tokens, and a token count is never negative", event.name, plain)
+		}
+	}
+}
+
+// usageIn is the token count one event carries, or nil when it carries none.
+func usageIn(event streamEvent) map[string]any {
+	switch event.name {
+	case "message_start":
+		message, _ := event.data["message"].(map[string]any)
+		usage, _ := message["usage"].(map[string]any)
+		return usage
+	case "message_delta":
+		usage, _ := event.data["usage"].(map[string]any)
+		return usage
+	default:
+		return nil
+	}
+}
+
 func TestAStepThatMisbehavesMidStreamSendsAnErrorEventAndStops(t *testing.T) {
 	script := scriptWithTwoToolCalls()
 	script.Steps[0].MidStreamError = "the provider is overloaded, so try again"

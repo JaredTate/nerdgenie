@@ -1,7 +1,6 @@
 package testkit
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -12,7 +11,10 @@ import (
 const fixturePicture = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 // fixturePages returns the five pages the fake browser knows: one with a link
-// and a form, the page that link goes to, and the three walls.
+// and a form, the page that link goes to, and the three walls. A wall rides on
+// the page itself rather than being worked out later, so that open and read
+// report it the way PROTOCOL.md says they do, and so that a test can add a page
+// of its own with a wall on it.
 func fixturePages() map[string]contract.Snapshot {
 	return map[string]contract.Snapshot{
 		FixtureSimplePage: {
@@ -35,6 +37,7 @@ func fixturePages() map[string]contract.Snapshot {
 		},
 		FixtureLoginPage: {
 			URL: FixtureLoginPage, Title: "Sign in", TabID: "t1",
+			Wall: &contract.Wall{Kind: contract.WallLogin, Detail: "a password box named Password"},
 			Elements: []contract.Element{
 				{Ref: FixtureUsernameRef, Role: "textbox", Name: "Username"},
 				{Ref: FixturePasswordRef, Role: "textbox", Name: "Password"},
@@ -43,6 +46,7 @@ func fixturePages() map[string]contract.Snapshot {
 		},
 		FixtureTwoFactorPage: {
 			URL: FixtureTwoFactorPage, Title: "Enter your code", TabID: "t1",
+			Wall: &contract.Wall{Kind: contract.WallTwoFactor, Detail: "a box named Verification code"},
 			Elements: []contract.Element{
 				{Ref: "e5", Role: "textbox", Name: "Verification code"},
 				{Ref: "e6", Role: "button", Name: "Verify"},
@@ -50,24 +54,11 @@ func fixturePages() map[string]contract.Snapshot {
 		},
 		FixtureCaptchaPage: {
 			URL: FixtureCaptchaPage, Title: "Are you a person?", TabID: "t1",
+			Wall: &contract.Wall{Kind: contract.WallCaptcha, Detail: "a checkbox named I am not a robot"},
 			Elements: []contract.Element{
 				{Ref: "e7", Role: "checkbox", Name: "I am not a robot"},
 			},
 		},
-	}
-}
-
-// wallOn returns the wall the page shows, or nil when it shows none.
-func wallOn(address string) *contract.Wall {
-	switch address {
-	case FixtureLoginPage:
-		return &contract.Wall{Kind: contract.WallLogin, Detail: "a password box named Password"}
-	case FixtureTwoFactorPage:
-		return &contract.Wall{Kind: contract.WallTwoFactor, Detail: "a box named Verification code"}
-	case FixtureCaptchaPage:
-		return &contract.Wall{Kind: contract.WallCaptcha, Detail: "a checkbox named I am not a robot"}
-	default:
-		return nil
 	}
 }
 
@@ -89,10 +80,10 @@ func (worker *FakeBrowserWorker) LinkGoesTo(ref string, address string) {
 // page is the page the worker is on, and an error when it is on none.
 func (worker *FakeBrowserWorker) page() (contract.Snapshot, error) {
 	if worker.closed {
-		return contract.Snapshot{}, errors.New("the browser worker is closed, so start it again before reading a page")
+		return contract.Snapshot{}, ErrBrowserGone
 	}
 	if worker.current == "" {
-		return contract.Snapshot{}, errors.New("no page is open in the browser, so open one before acting on it")
+		return contract.Snapshot{}, ErrNoPageOpen
 	}
 	return worker.pages[worker.current], nil
 }
@@ -120,11 +111,17 @@ func (worker *FakeBrowserWorker) findable(ref string) error {
 
 // actAndSettle does what every action does after the click or the keystroke:
 // wait for the page to settle, take a new snapshot, and work out the diff.
-func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string) (contract.Diff, error) {
+//
+// A page that keeps changing past the limit is read as it stands and reported
+// with settled false, so that a live page such as a chat or a clock stays
+// usable. Only a page that cannot be read at all is an error, which the protocol
+// answers with -32001.
+func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string, aimedAt string) (contract.Diff, error) {
 	problem := worker.takeProblem()
-	if problem.neverSettle {
+	if problem.cannotRead {
 		return contract.Diff{}, ErrSettleTimeout
 	}
+	target := worker.elementNamed(aimedAt)
 
 	before := worker.previous
 	moved := false
@@ -149,8 +146,8 @@ func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string
 		Dialog:      problem.dialog,
 		Download:    problem.download,
 		NewTab:      problem.newTab,
-		Wall:        wallOn(page.URL),
-		Settled:     true,
+		Wall:        page.Wall,
+		Settled:     !problem.neverSettle,
 		Snapshot:    page,
 	}
 	worker.previous = page.Elements
@@ -158,11 +155,30 @@ func (worker *FakeBrowserWorker) actAndSettle(goingTo string, expectation string
 		worker.tabs = append(worker.tabs, contract.Tab{ID: problem.newTab, URL: page.URL, Title: page.Title})
 	}
 
-	diff.ExpectationMet = diff.Wall == nil && !problem.changeNothing
+	diff.ExpectationMet = diff.Wall == nil && diff.Settled && meetsExpectation(expectation, diff, target)
 	if !diff.ExpectationMet {
-		diff.Seen = fmt.Sprintf("expected %q, and the page is still %s", expectation, page.Title)
+		diff.Seen = whatChanged(expectation, diff)
 	}
 	return diff, nil
+}
+
+// elementNamed is the element an action was aimed at, as it stood before the
+// action, or the zero value when the action was aimed at no element. The caller
+// holds the lock.
+func (worker *FakeBrowserWorker) elementNamed(ref string) contract.Element {
+	if ref == "" {
+		return contract.Element{}
+	}
+	page, err := worker.page()
+	if err != nil {
+		return contract.Element{}
+	}
+	for _, element := range page.Elements {
+		if element.Ref == ref {
+			return element
+		}
+	}
+	return contract.Element{}
 }
 
 // elementsNotIn returns the elements of the new page that were not on the old

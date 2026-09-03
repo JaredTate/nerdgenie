@@ -34,6 +34,20 @@ func (agreeablePermission) Remember(contract.PermissionRequest, contract.Preview
 	return nil
 }
 
+// forgetfulPermission files every answer it understands as an always, so a
+// reject the user gave with a reason is allowed anyway and the reason is thrown
+// away. It is the mutation the reviewer named.
+type forgetfulPermission struct{ *testkit.FakePermission }
+
+// Remember files an answer it understands as an always, and passes an answer it
+// does not understand through so that the refusal still happens.
+func (forgetful forgetfulPermission) Remember(request contract.PermissionRequest, answer contract.PreviewAnswer, reason string) error {
+	if !contract.KnownPreviewAnswer(answer) {
+		return forgetful.FakePermission.Remember(request, answer, reason)
+	}
+	return forgetful.FakePermission.Remember(request, contract.AnswerAlways, "")
+}
+
 func TestThePermissionCheckCatchesADeciderThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -43,6 +57,7 @@ func TestThePermissionCheckCatchesADeciderThatBreaksOnePromise(t *testing.T) {
 		{"a ruling nobody defined", undecidedPermission{testkit.NewFakePermission(contract.RulingAllow)}},
 		{"an ask with nothing to show the user", silentAsker{testkit.NewFakePermission(contract.RulingAllow)}},
 		{"an answer of maybe that was accepted", agreeablePermission{testkit.NewFakePermission(contract.RulingAllow)}},
+		{"a reject filed as an always", forgetfulPermission{testkit.NewFakePermission(contract.RulingAllow)}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -176,6 +191,32 @@ func (worker leakyBrowser) LoginFill(_ context.Context, fields contract.LoginFie
 	return contract.Diff{Seen: "typed " + fields.Password, ExpectationMet: true}, nil
 }
 
+// echoingBrowser hands the password back in an element that appeared, which is
+// the one place the old scrubber did not look.
+type echoingBrowser struct{ *testkit.FakeBrowserWorker }
+
+// LoginFill fills the form properly and then adds a message naming the password.
+func (worker echoingBrowser) LoginFill(ctx context.Context, fields contract.LoginFields) (contract.Diff, error) {
+	diff, err := worker.FakeBrowserWorker.LoginFill(ctx, fields)
+	if err != nil {
+		return diff, err
+	}
+	diff.NewElements = append(diff.NewElements, contract.Element{
+		Ref: "e9", Role: "alert", Name: "we could not sign you in with " + fields.Password, New: true,
+	})
+	return diff, nil
+}
+
+// blindBrowser opens a login page and says nothing about the wall on it.
+type blindBrowser struct{ *testkit.FakeBrowserWorker }
+
+// Open hands back the page with whatever wall it holds taken off.
+func (worker blindBrowser) Open(ctx context.Context, address string) (contract.Snapshot, error) {
+	page, err := worker.FakeBrowserWorker.Open(ctx, address)
+	page.Wall = nil
+	return page, err
+}
+
 // eagerBrowser clicks before any page is open.
 type eagerBrowser struct{ *testkit.FakeBrowserWorker }
 
@@ -193,10 +234,22 @@ func TestTheBrowserCheckCatchesAWorkerThatBreaksOnePromise(t *testing.T) {
 		t.Error("the browser check passed a worker that hands the password back")
 	}
 
+	echoing := echoingBrowser{testkit.NewFakeBrowserWorker()}
+	defer echoing.Close()
+	if err := testkit.CheckBrowserWorker(ctx, echoing); err == nil {
+		t.Error("the browser check passed a worker that hands the password back in an element that appeared")
+	}
+
 	eager := eagerBrowser{testkit.NewFakeBrowserWorker()}
 	defer eager.Close()
 	if err := testkit.CheckBrowserWorker(ctx, eager); err == nil {
 		t.Error("the browser check passed a worker that clicks with no page open")
+	}
+
+	blind := blindBrowser{testkit.NewFakeBrowserWorker()}
+	defer blind.Close()
+	if err := testkit.CheckBrowserWorker(ctx, blind); err == nil {
+		t.Error("the browser check passed a worker that says nothing about the wall on the page it opened")
 	}
 }
 

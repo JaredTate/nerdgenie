@@ -28,6 +28,11 @@ const (
 	OpenAIPath = "/v1/chat/completions"
 )
 
+// MaxProviderRequestBytes is the most of one request body the fake provider will
+// read. A real request is a few hundred kilobytes at most, so a megabyte is
+// generous, and a body past it is refused rather than held in memory.
+const MaxProviderRequestBytes = 1 << 20
+
 // Misbehaviour is one way the fake provider can go wrong on purpose, so that a
 // test can prove the harness handles it.
 type Misbehaviour string
@@ -123,7 +128,12 @@ func (provider *FakeProviderServer) Close() {
 // handle answers one call: record it, then either misbehave once or write the
 // next step of the script in the shape the path asks for.
 func (provider *FakeProviderServer) handle(writer http.ResponseWriter, request *http.Request) {
-	body, _ := io.ReadAll(request.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(writer, request.Body, MaxProviderRequestBytes))
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("the request body is longer than the %d byte cap, so send a smaller one",
+			MaxProviderRequestBytes), http.StatusRequestEntityTooLarge)
+		return
+	}
 	problem, wait := provider.recordAndTakeProblem(request, body)
 
 	if request.URL.Path != AnthropicPath && request.URL.Path != OpenAIPath {

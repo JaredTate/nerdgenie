@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -41,6 +42,15 @@ var ErrSettleTimeout = errors.New("the page did not settle before the limit, so 
 // after every way of finding it again has been tried.
 var ErrNoSuchReference = errors.New("that element is not on this page, so read the page again and use a reference from the new snapshot")
 
+// ErrNoPageOpen means nothing has been opened yet, so there is nothing to act
+// on. The protocol answers it with -32002.
+var ErrNoPageOpen = errors.New("no page is open in the browser, so open one before acting on it")
+
+// ErrBrowserGone means the browser the worker was driving is not there any more.
+// The protocol answers it with -32003, which tells the Go side to start the
+// worker again.
+var ErrBrowserGone = errors.New("the browser worker is closed, so start it again before opening a page")
+
 // FakeBrowserWorker is a browser that never opens one: it moves between fixture
 // pages, records what was typed, and does on command the six things that go
 // wrong on a real page.
@@ -73,6 +83,7 @@ type DialogAnswer struct {
 type browserProblem struct {
 	changeNothing bool
 	neverSettle   bool
+	cannotRead    bool
 	dialog        *contract.Dialog
 	download      *contract.Download
 	newTab        string
@@ -110,9 +121,18 @@ func (worker *FakeBrowserWorker) NextActionChangesNothing() {
 	worker.setProblem(browserProblem{changeNothing: true})
 }
 
-// NextActionTimesOutSettling makes the next action never settle.
+// NextActionTimesOutSettling makes the page keep changing past the limit. The
+// action still returns a diff, of the page as it stood, with settled false, the
+// way worker/browser/PROTOCOL.md says a live page is handled.
 func (worker *FakeBrowserWorker) NextActionTimesOutSettling() {
 	worker.setProblem(browserProblem{neverSettle: true})
+}
+
+// NextActionCannotBeRead makes the page unreadable after the limit, which is the
+// one settling failure that is an error rather than a diff, and the one the
+// protocol answers with -32001.
+func (worker *FakeBrowserWorker) NextActionCannotBeRead() {
+	worker.setProblem(browserProblem{cannotRead: true})
 }
 
 // NextActionOpensADialog makes the next action open a dialog box.
@@ -158,7 +178,7 @@ func (worker *FakeBrowserWorker) Open(_ context.Context, address string) (contra
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
 	if worker.closed {
-		return contract.Snapshot{}, errors.New("the browser worker is closed, so start it again before opening a page")
+		return contract.Snapshot{}, ErrBrowserGone
 	}
 	page, found := worker.pages[address]
 	if !found {
@@ -190,7 +210,7 @@ func (worker *FakeBrowserWorker) Click(_ context.Context, ref string, expectatio
 	if err := worker.findable(ref); err != nil {
 		return contract.Diff{}, err
 	}
-	return worker.actAndSettle(worker.links[ref], expectation)
+	return worker.actAndSettle(worker.links[ref], expectation, ref)
 }
 
 // Type types into one element and records what was typed.
@@ -201,21 +221,21 @@ func (worker *FakeBrowserWorker) Type(_ context.Context, ref string, text string
 		return contract.Diff{}, err
 	}
 	worker.typed[ref] = append(worker.typed[ref], text)
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, ref)
 }
 
 // Press presses one key.
 func (worker *FakeBrowserWorker) Press(_ context.Context, _ string, expectation string) (contract.Diff, error) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, "")
 }
 
 // Scroll scrolls the page.
 func (worker *FakeBrowserWorker) Scroll(_ context.Context, _ contract.ScrollDirection, _ int, expectation string) (contract.Diff, error) {
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	return worker.actAndSettle("", expectation)
+	return worker.actAndSettle("", expectation, "")
 }
 
 // Act runs a batch of steps and stops at the first one that fails.
@@ -269,7 +289,14 @@ func (worker *FakeBrowserWorker) Tabs(_ context.Context, action contract.TabActi
 }
 
 // LoginFill types the credentials and returns a diff that holds none of them.
+// The diff describes the whole login rather than the last keystroke, so an
+// element the page grew while the form was being filled is reported as new, the
+// way the real worker reports it.
 func (worker *FakeBrowserWorker) LoginFill(ctx context.Context, fields contract.LoginFields) (contract.Diff, error) {
+	worker.guard.Lock()
+	beforeTheLogin := worker.previous
+	worker.guard.Unlock()
+
 	if _, err := worker.Type(ctx, fields.UsernameRef, fields.Username, "the username box holds the login name"); err != nil {
 		return contract.Diff{}, err
 	}
@@ -284,15 +311,22 @@ func (worker *FakeBrowserWorker) LoginFill(ctx context.Context, fields contract.
 
 	worker.guard.Lock()
 	defer worker.guard.Unlock()
-	diff, err := worker.actAndSettle("", "the login is accepted")
+	diff, err := worker.actAndSettle("", "the login is accepted", fields.PasswordRef)
 	if err != nil {
 		return contract.Diff{}, err
 	}
+	diff.NewElements = elementsNotIn(diff.Snapshot.Elements, beforeTheLogin)
 	return scrubCredentials(diff, fields), nil
 }
 
 // scrubCredentials takes every value that was typed back out of the diff, so
 // that no method of the browser worker can ever hand a credential to the model.
+//
+// It works on the whole diff at once rather than on a list of fields, because a
+// list of fields is a list somebody will forget to add to. The diff is turned
+// into plain values, every piece of text in it is rewritten, and it is read back
+// as a diff. A diff that cannot be written or read that way comes back holding
+// nothing but the marker, because a credential must never escape a failure here.
 func scrubCredentials(diff contract.Diff, fields contract.LoginFields) contract.Diff {
 	hide := func(text string) string {
 		for _, secret := range []string{fields.Password, fields.Code, fields.Username} {
@@ -302,13 +336,50 @@ func scrubCredentials(diff contract.Diff, fields contract.LoginFields) contract.
 		}
 		return text
 	}
-	diff.Seen = hide(diff.Seen)
-	diff.URL = hide(diff.URL)
-	diff.Snapshot.Title = hide(diff.Snapshot.Title)
-	for at := range diff.Snapshot.Elements {
-		diff.Snapshot.Elements[at].Name = hide(diff.Snapshot.Elements[at].Name)
+
+	written, err := json.Marshal(diff)
+	if err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
 	}
-	return diff
+	var opened any
+	if err := json.Unmarshal(written, &opened); err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	rewritten, err := json.Marshal(rewriteEveryString(opened, hide))
+	if err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	var scrubbed contract.Diff
+	if err := json.Unmarshal(rewritten, &scrubbed); err != nil {
+		return contract.Diff{Seen: scrubFailureNote}
+	}
+	return scrubbed
+}
+
+// scrubFailureNote is what a diff says when the scrubber could not read it. It
+// is deliberately the only thing that comes back, because a diff that could not
+// be scrubbed may still hold a credential.
+const scrubFailureNote = "the browser worker could not check this diff for credentials, so it was thrown away"
+
+// rewriteEveryString rewrites every piece of text inside a decoded piece of
+// JSON, however deeply it is buried, and leaves the shape alone.
+func rewriteEveryString(value any, rewrite func(text string) string) any {
+	switch typed := value.(type) {
+	case string:
+		return rewrite(typed)
+	case []any:
+		for at, item := range typed {
+			typed[at] = rewriteEveryString(item, rewrite)
+		}
+		return typed
+	case map[string]any:
+		for key, item := range typed {
+			typed[key] = rewriteEveryString(item, rewrite)
+		}
+		return typed
+	default:
+		return value
+	}
 }
 
 // Screenshot returns a picture with the clickable elements numbered.
@@ -349,7 +420,7 @@ func (worker *FakeBrowserWorker) Dialog(_ context.Context, action contract.Dialo
 	}
 	worker.openDialog = nil
 	worker.answers = append(worker.answers, DialogAnswer{Action: action, Text: text})
-	return worker.actAndSettle("", "")
+	return worker.actAndSettle("", "", "")
 }
 
 // DialogAnswers is every answer given through Dialog, which a test reads.

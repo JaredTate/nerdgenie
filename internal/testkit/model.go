@@ -94,7 +94,10 @@ func (model *FakeModel) StepsLeft() int {
 
 // Send plays the next step, after checking that the request carries everything
 // the step said it must.
-func (model *FakeModel) Send(_ context.Context, request contract.Request, onDelta func(delta string)) (contract.Reply, error) {
+func (model *FakeModel) Send(ctx context.Context, request contract.Request, onDelta func(delta string)) (contract.Reply, error) {
+	if err := ctx.Err(); err != nil {
+		return contract.Reply{}, fmt.Errorf("the model call was given up on before it started: %w", err)
+	}
 	step, err := model.nextStep(request)
 	if err != nil {
 		return contract.Reply{}, err
@@ -102,6 +105,9 @@ func (model *FakeModel) Send(_ context.Context, request contract.Request, onDelt
 
 	if onDelta != nil {
 		for _, delta := range splitIntoDeltas(step.Text, deltasPerReply) {
+			if err := ctx.Err(); err != nil {
+				return contract.Reply{}, fmt.Errorf("the model call was given up on part way through the reply: %w", err)
+			}
 			onDelta(delta)
 		}
 	}

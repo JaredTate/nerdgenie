@@ -2,7 +2,6 @@ package testkit
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,20 +10,30 @@ import (
 	"github.com/JaredTate/coeus/internal/contract"
 )
 
-// updateGoldenFiles is set by running the tests with -update, which rewrites
-// every golden file instead of comparing against it. Read the difference before
-// you use it: a golden file rewritten without being read is a test that proves
+// UpdateGoldenFilesVariable is the environment variable that rewrites every
+// golden file instead of comparing against it. Read the difference before you
+// use it: a golden file rewritten without being read is a test that proves
 // nothing.
-var updateGoldenFiles = flag.Bool("update", false, "rewrite the golden files under testdata instead of comparing against them")
+//
+// It is a variable rather than a flag because a flag registered from a file that
+// is not a test goes onto the global flag set of every program that imports this
+// package, and the first later package to register a golden flag of its own
+// would panic with "flag redefined".
+const UpdateGoldenFilesVariable = "COEUS_UPDATE_GOLDEN"
+
+// updatingGoldenFiles says whether this run rewrites the golden files.
+func updatingGoldenFiles() bool {
+	return os.Getenv(UpdateGoldenFilesVariable) == "1"
+}
 
 // Golden compares bytes with the file of that name under the package's testdata
-// folder, and fails the test when they differ. Running the tests with -update
-// writes the file instead.
+// folder, and fails the test when they differ. Running the tests with
+// COEUS_UPDATE_GOLDEN set to 1 writes the file instead.
 func Golden(t testing.TB, name string, actual []byte) {
 	t.Helper()
 	path := filepath.Join("testdata", name)
 
-	if *updateGoldenFiles {
+	if updatingGoldenFiles() {
 		if err := WriteGolden(path, actual); err != nil {
 			t.Fatalf("cannot rewrite the golden file %s: %v", path, err)
 		}
@@ -36,8 +45,8 @@ func Golden(t testing.TB, name string, actual []byte) {
 		t.Fatalf("%v", err)
 	}
 	if !same {
-		t.Errorf("the result does not match the golden file %s.\nRead the difference, and run the tests with -update only when the new result is right.\n--- want ---\n%s\n--- got ---\n%s",
-			path, mustRead(path), actual)
+		t.Errorf("the result does not match the golden file %s.\nRead the difference, and run the tests with %s=1 only when the new result is right.\n--- want ---\n%s\n--- got ---\n%s",
+			path, UpdateGoldenFilesVariable, mustRead(path), actual)
 	}
 }
 
@@ -45,7 +54,7 @@ func Golden(t testing.TB, name string, actual []byte) {
 func GoldenMatches(path string, actual []byte) (bool, error) {
 	wanted, err := os.ReadFile(path)
 	if err != nil {
-		return false, fmt.Errorf("cannot read the golden file %s, so run the tests with -update to write it: %w", path, err)
+		return false, fmt.Errorf("cannot read the golden file %s, so run the tests with COEUS_UPDATE_GOLDEN=1 to write it: %w", path, err)
 	}
 	return bytes.Equal(wanted, actual), nil
 }

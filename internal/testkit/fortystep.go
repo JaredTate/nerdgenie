@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
 )
@@ -110,6 +113,13 @@ func LoadFortyStepTask() (FortyStepTask, error) {
 	if len(task.Rounds) == 0 {
 		return FortyStepTask{}, errors.New("the forty-step fixture has no rounds in it, so check the file on disk")
 	}
+	// Every record write is read here, so that a fixture holding something no
+	// reader knows fails at the door rather than in the middle of a wave 1 test.
+	for _, round := range task.Rounds {
+		if _, err := round.Update(); err != nil {
+			return FortyStepTask{}, fmt.Errorf("cannot read the forty-step fixture: %w", err)
+		}
+	}
 	return task, nil
 }
 
@@ -135,7 +145,9 @@ func RepositoryRoot() (string, error) {
 
 // Script turns the fixture into a script the fake model plays, one step per
 // round. Every step after the correction expects the correction to still be in
-// the request, which is how the fixture catches a harness that dropped it.
+// the request, which is how the fixture catches a harness that dropped it, and
+// every round that writes to the record asks for the task tool in the same
+// reply, which is how it catches a harness that never writes the record at all.
 func (task FortyStepTask) Script() Script {
 	steps := make([]Step, 0, len(task.Rounds))
 	for _, round := range task.Rounds {
@@ -145,10 +157,19 @@ func (task FortyStepTask) Script() Script {
 }
 
 // stepFor turns one round into one step of the script.
+//
+// A round after the correction expects the correction to still be in the
+// request, and a round after the stop expects the user's reply as well, because
+// the stop condition fired at round thirty and nothing may run until the user
+// has answered. A harness that runs straight through the stop fails on the
+// round after it.
 func (task FortyStepTask) stepFor(round FortyStepRound) Step {
 	step := Step{Text: round.Orient, Finish: contract.FinishToolCalls}
 	if round.Number > task.CorrectionRound {
-		step.Expect = []string{task.Correction}
+		step.Expect = append(step.Expect, task.Correction)
+	}
+	if round.Number > task.StopRound {
+		step.Expect = append(step.Expect, task.UserReplyAfterStop)
 	}
 	if round.ToolName == "" {
 		step.Text = round.Reply
@@ -164,11 +185,26 @@ func (task FortyStepTask) stepFor(round FortyStepRound) Step {
 		Name:  round.ToolName,
 		Input: input,
 	}}
+	if round.TaskUpdate != nil {
+		step.ToolCalls = append(step.ToolCalls, taskCallFor(round))
+	}
 	return step
 }
 
-// ToolResults are the results the fixture's tools produced, in order, numbered
-// from r1.
+// taskCallFor is the record write one round makes, as a call to the task tool.
+// The design says the model writes the record in the same reply as its other
+// tool calls, so that updating it never costs an extra call.
+func taskCallFor(round FortyStepRound) contract.ToolCall {
+	return contract.ToolCall{
+		ID:    fmt.Sprintf("call_%d_task", round.Number),
+		Name:  contract.ToolTask,
+		Input: asJSON(round.TaskUpdate),
+	}
+}
+
+// ToolResults are the results the fixture's tool calls produced, in order,
+// numbered from r1. A record write is a tool call like any other, so it gets an
+// id too, and the numbering counts both.
 func (task FortyStepTask) ToolResults() []FortyStepResult {
 	results := []FortyStepResult{}
 	for _, round := range task.Rounds {
@@ -180,6 +216,152 @@ func (task FortyStepTask) ToolResults() []FortyStepResult {
 			Summary: round.ResultSummary,
 			Text:    round.ResultText,
 		})
+		if round.TaskUpdate != nil {
+			results = append(results, taskUpdateResult(round, contract.ResultID(len(results)+1)))
+		}
 	}
 	return results
+}
+
+// ResultsOfRound is what one round's tool calls produced, in order and with the
+// labels they carry in the whole list: the round's own tool result, and the
+// record write when the round made one. A harness driving the fixture adds these
+// as it goes, and ends with exactly the list ToolResults returns.
+func (task FortyStepTask) ResultsOfRound(number int) []FortyStepResult {
+	produced := []FortyStepResult{}
+	at := 0
+	for _, round := range task.Rounds {
+		if round.ToolName == "" {
+			continue
+		}
+		mine := round.Number == number
+		if mine {
+			produced = append(produced, task.ToolResults()[at])
+		}
+		at++
+		if round.TaskUpdate != nil {
+			if mine {
+				produced = append(produced, task.ToolResults()[at])
+			}
+			at++
+		}
+		if mine {
+			return produced
+		}
+	}
+	return produced
+}
+
+// taskUpdateResult is what the task tool gives back for one record write: a one
+// line summary for the record, and the whole update for the log, so that a
+// record write can be read back by its id just like any other result.
+func taskUpdateResult(round FortyStepRound, id string) FortyStepResult {
+	return FortyStepResult{
+		ID:      id,
+		Summary: "updated the record: " + strings.Join(slices.Sorted(maps.Keys(round.TaskUpdate)), ", "),
+		Text:    string(asJSON(round.TaskUpdate)),
+	}
+}
+
+// asJSON writes a tool call's arguments, falling back to an empty object,
+// because a fixture that cannot be written as JSON is a fixture nobody can use
+// and the loader has already said so.
+func asJSON(value any) json.RawMessage {
+	written, err := json.Marshal(value)
+	if err != nil {
+		return json.RawMessage("{}")
+	}
+	return written
+}
+
+// PlanAtTheEnd is the plan the model wrote through the task tool, numbered from
+// one. No step is ticked: the harness ticks a step when it sees it finish, and
+// the fixture says nothing about that, so this is what the record holds after
+// the forty rounds.
+func (task FortyStepTask) PlanAtTheEnd() []contract.PlanStep {
+	steps := []contract.PlanStep{}
+	for _, written := range task.updates() {
+		for _, text := range written.Plan {
+			steps = append(steps, contract.PlanStep{Number: len(steps) + 1, Text: text})
+		}
+	}
+	return steps
+}
+
+// DecisionsAtTheEnd is every choice the model wrote through the task tool, with
+// its reason and its label, in the order the rounds made them.
+func (task FortyStepTask) DecisionsAtTheEnd() []contract.Decision {
+	decisions := []contract.Decision{}
+	for _, written := range task.updates() {
+		if written.Decision == nil {
+			continue
+		}
+		decided := *written.Decision
+		decided.ID = contract.DecisionID(len(decisions) + 1)
+		decisions = append(decisions, decided)
+	}
+	return decisions
+}
+
+// FailuresAtTheEnd is everything that went wrong, with its cause and its label,
+// in the order the rounds hit them.
+func (task FortyStepTask) FailuresAtTheEnd() []contract.Failure {
+	failures := []contract.Failure{}
+	for _, written := range task.updates() {
+		if written.Failure == nil {
+			continue
+		}
+		failed := *written.Failure
+		failed.ID = contract.FailureID(len(failures) + 1)
+		failures = append(failures, failed)
+	}
+	return failures
+}
+
+// DoneLinesAtTheEnd is the done list as it stands when the task closes: every
+// line ticked and pointing at the result that proves it.
+func (task FortyStepTask) DoneLinesAtTheEnd() []contract.DoneLine {
+	lines := make([]contract.DoneLine, 0, len(task.DoneWhen))
+	for _, line := range task.DoneWhen {
+		lines = append(lines, contract.DoneLine{Text: line.Text, Done: true, ResultID: line.ResultID})
+	}
+	return lines
+}
+
+// updates is every round's record write, in order, already read into the
+// contract's shapes. The loader has checked them, so nothing here can fail.
+func (task FortyStepTask) updates() []FortyStepUpdate {
+	written := make([]FortyStepUpdate, 0, len(task.Rounds))
+	for _, round := range task.Rounds {
+		update, err := round.Update()
+		if err != nil {
+			continue
+		}
+		written = append(written, update)
+	}
+	return written
+}
+
+// textsIn reads a list of lines out of a piece of a record write, which arrives
+// from the fixture's JSON as a list of unknown values.
+func textsIn(value any) []string {
+	items, isList := value.([]any)
+	if !isList {
+		return nil
+	}
+	texts := []string{}
+	for _, item := range items {
+		texts = append(texts, textOf(item))
+	}
+	return texts
+}
+
+// textOf reads one line out of a piece of a record write, and is empty when the
+// fixture holds something other than text there.
+func textOf(value any) string {
+	text, isText := value.(string)
+	if !isText {
+		return ""
+	}
+	return text
 }

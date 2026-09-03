@@ -112,6 +112,22 @@ func TestTheFakeProviderPlaysTheStepWhenTheRequestStillCarriesWhatItExpects(t *t
 	}
 }
 
+func TestARequestBodyOverTheCapIsRefusedRatherThanRead(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptExpectingTheCorrection())
+	defer server.Close()
+
+	huge := `{"messages":[{"role":"user","content":"` +
+		strings.Repeat("a", testkit.MaxProviderRequestBytes+1024) + `"}]}`
+	code, _, answer := postJSON(t, server.OpenAIAddress(), huge)
+
+	if code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("a body over the cap answered %d, want 413. It said:\n%s", code, answer)
+	}
+	if !strings.Contains(answer, "cap") {
+		t.Errorf("the refusal does not say there is a cap: %s", answer)
+	}
+}
+
 func TestTheFakeProviderKeepsTheStepItRefusedSoTheNextGoodRequestPlaysIt(t *testing.T) {
 	server := testkit.NewFakeProviderServer(scriptExpectingTheCorrection())
 	defer server.Close()

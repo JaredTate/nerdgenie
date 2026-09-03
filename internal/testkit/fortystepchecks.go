@@ -15,16 +15,16 @@ import (
 // the time the task finishes. A test compares the record the harness actually
 // built against this one, or hands this one to the three checks below to prove
 // the checks themselves work.
+//
+// It carries everything the model wrote through the task tool: the goal, the
+// rules, the plan, the decisions and the failures. The situation is left empty,
+// because those are the few facts the harness checks for itself and the fixture
+// has nothing to say about them.
 func (task FortyStepTask) RecordAtTheEnd() contract.Record {
 	results := task.ToolResults()
 	lines := make([]contract.ResultLine, 0, len(results))
 	for _, result := range results {
 		lines = append(lines, contract.ResultLine{ID: result.ID, Summary: result.Summary})
-	}
-
-	doneWhen := make([]contract.DoneLine, 0, len(task.DoneWhen))
-	for _, line := range task.DoneWhen {
-		doneWhen = append(doneWhen, contract.DoneLine{Text: line.Text, Done: true, ResultID: line.ResultID})
 	}
 
 	return contract.Record{
@@ -34,12 +34,19 @@ func (task FortyStepTask) RecordAtTheEnd() contract.Record {
 			Status: contract.StatusDone,
 			Origin: task.Origin,
 		},
-		Goal: contract.Goal{Ask: task.Ask, Why: task.Why, DoneWhen: doneWhen},
+		Goal: contract.Goal{Ask: task.Ask, Why: task.Why, DoneWhen: task.DoneLinesAtTheEnd()},
 		Rules: contract.Rules{
 			Corrections: []contract.Correction{{ID: contract.CorrectionID(1), Text: task.Correction}},
 			StopWhen:    task.StopWhen,
 		},
-		Work: contract.Work{Results: lines},
+		Work: contract.Work{
+			Plan:    task.PlanAtTheEnd(),
+			Results: lines,
+		},
+		Lessons: contract.Lessons{
+			Decisions: task.DecisionsAtTheEnd(),
+			Failures:  task.FailuresAtTheEnd(),
+		},
 	}
 }
 

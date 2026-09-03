@@ -384,8 +384,10 @@ internal/signal/stream_test.go
 internal/testkit/browser.go
 internal/testkit/browser_dialog_test.go
 internal/testkit/browser_test.go
+internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
+internal/testkit/browserrules_test.go
 internal/testkit/browserserver.go
 internal/testkit/browserserver_test.go
 internal/testkit/channel.go
@@ -405,6 +407,8 @@ internal/testkit/doc.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
 internal/testkit/fortystepchecks.go
+internal/testkit/fortystepupdate.go
+internal/testkit/fuzz_test.go
 internal/testkit/golden.go
 internal/testkit/golden_test.go
 internal/testkit/home.go
@@ -412,6 +416,7 @@ internal/testkit/home_test.go
 internal/testkit/integration_test.go
 internal/testkit/job.go
 internal/testkit/job_test.go
+internal/testkit/jobstate_test.go
 internal/testkit/memory.go
 internal/testkit/memory_test.go
 internal/testkit/model.go
@@ -434,6 +439,7 @@ internal/testkit/signalcli.go
 internal/testkit/signalcli_test.go
 internal/testkit/skill.go
 internal/testkit/skill_test.go
+internal/testkit/smaller_test.go
 internal/testkit/store.go
 internal/testkit/store_test.go
 internal/testkit/testdata/greeting.txt
@@ -458,8 +464,15 @@ internal/vault/vault.go
 internal/vault/vault_test.go
 scripts/coverage.sh
 scripts/fuzz.sh
+scripts/gate/coverage_test.go
+scripts/gate/fixture_test.go
+scripts/gate/fuzz_test.go
+scripts/gate/gofmt_test.go
+scripts/gate/threshold_test.go
+scripts/gofmt.sh
 scripts/repomap/doc.go
 scripts/repomap/drift_test.go
+scripts/repomap/fuzz_test.go
 scripts/repomap/generate.go
 scripts/repomap/generate_test.go
 scripts/repomap/main.go

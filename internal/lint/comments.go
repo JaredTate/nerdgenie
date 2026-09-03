@@ -10,14 +10,28 @@ import (
 // The projects Coeus borrowed designs from. A file whose top comment names one
 // of them must also say where the reference file lives, so that the next reader
 // can go and look at it.
+//
+// These are the folder names, because that is what CLAUDE.md teaches a worker to
+// write: the folder beside this repository for a project on disk, and the folder
+// under docs/reference for one that is not. They are matched with the case
+// folded, so a header that writes a project's own capitals is caught too. Prime
+// Agent is here twice because its folder uses a hyphen and its name uses a
+// space, and neither spelling contains the other.
 var borrowedProjects = []string{
-	"OpenClaw", "Hermes", "OpenCode", "ZeroClaw", "HomeRecon",
-	"browser-use", "Moltis", "Codex", "prime-agent", "Prime Agent",
+	"openclaw", "hermes", "prime-agent", "prime agent", "opencode",
+	"zeroclaw", "homerecon", "browser-use", "codex", "moltis",
 }
 
 // The two shapes a reference path takes: a project cloned beside this one, or a
 // copy kept in this repository.
 var referencePathMarkers = []string{"~/Code/", "/home/jared/Code/", "docs/reference/"}
+
+// The vendors' own command-line programs, written the way a comment writes them
+// when it says how to run one. Their names are also the names of projects Coeus
+// read designs from, so a header saying how to run the program is naming no
+// design at all and these are taken out of the header before the projects are
+// looked for.
+var programInvocations = []string{"codex exec", "claude -p"}
 
 // checkFileLength reports a file longer than the limit.
 func (inspector *fileInspector) checkFileLength(source []byte) {
@@ -39,9 +53,13 @@ func (inspector *fileInspector) checkBorrowedHeader() {
 		return
 	}
 	text := header.Text()
+	folded := strings.ToLower(text)
+	for _, invocation := range programInvocations {
+		folded = strings.ReplaceAll(folded, invocation, " ")
+	}
 	named := ""
 	for _, project := range borrowedProjects {
-		if strings.Contains(text, project) {
+		if strings.Contains(folded, project) {
 			named = project
 			break
 		}
@@ -149,7 +167,11 @@ func (inspector *fileInspector) declarationComments() []documented {
 		case *ast.TypeSpec:
 			found = append(found, documented{typed.Doc, typed.Name.Name})
 		case *ast.Field:
+			// A field carries two comments: the one above it and the one on the end
+			// of its line. Both are read by whoever reads the field, so both are
+			// held to the sentence rule.
 			found = append(found, documented{typed.Doc, firstName(typed.Names)})
+			found = append(found, documented{typed.Comment, firstName(typed.Names)})
 		}
 		return true
 	})

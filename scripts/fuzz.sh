@@ -5,6 +5,11 @@
 # Go runs one fuzz target per invocation of `go test`, so this script finds the
 # targets first and then runs them one at a time. `make test` calls it with a
 # five-second smoke and `make fuzz` calls it with a minute each.
+#
+# The listing is done with the integration tag on, because a fuzz target behind
+# that tag is still a fuzz target, and a package whose test binary will not build
+# is a failure rather than a package with no targets. Hiding either was how a
+# whole package could stop being fuzzed without anybody noticing.
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
@@ -20,7 +25,12 @@ found=0
 # `go test -list` prints one name per line plus a trailing "ok <package>" line
 # for each package, so read the package and its target names together.
 while read -r package; do
-	targets="$(go test -list '^Fuzz' "$package" 2>/dev/null | grep '^Fuzz' || true)"
+	if ! listed="$(go test -tags integration -list '^Fuzz' "$package" 2>&1)"; then
+		echo "cannot list the fuzz targets in $package, because its test binary does not build:" >&2
+		echo "$listed" >&2
+		exit 1
+	fi
+	targets="$(printf '%s\n' "$listed" | grep '^Fuzz' || true)"
 	if [ -z "$targets" ]; then
 		continue
 	fi
@@ -28,7 +38,7 @@ while read -r package; do
 		[ -z "$target" ] && continue
 		found=$((found + 1))
 		echo "fuzzing $target in $package for $duration"
-		go test "$package" -run '^$' -fuzz "^${target}\$" -fuzztime "$duration"
+		go test -tags integration "$package" -run '^$' -fuzz "^${target}\$" -fuzztime "$duration"
 	done <<<"$targets"
 done < <(go list ./...)
 

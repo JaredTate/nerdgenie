@@ -37,6 +37,15 @@ func (silentlyUnwellChannel) Health(context.Context) contract.ChannelHealth {
 	return contract.ChannelHealth{Healthy: false}
 }
 
+// clingyChannel hands back a stream that stays open after the context that
+// asked for it was cancelled.
+type clingyChannel struct{ *testkit.FakeChannel }
+
+// Receive hands back a stream nothing ever closes.
+func (clingyChannel) Receive(context.Context) (<-chan contract.Inbound, error) {
+	return make(chan contract.Inbound), nil
+}
+
 func TestTheChannelCheckCatchesAChannelThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -46,6 +55,7 @@ func TestTheChannelCheckCatchesAChannelThatBreaksOnePromise(t *testing.T) {
 		{"a channel with no name", namelessChannel{testkit.NewFakeChannel("terminal")}},
 		{"a channel that answers a preview with a word nobody knows", confusedChannel{testkit.NewFakeChannel("terminal")}},
 		{"a channel that is unwell and will not say why", silentlyUnwellChannel{testkit.NewFakeChannel("terminal")}},
+		{"a channel whose stream never closes", clingyChannel{testkit.NewFakeChannel("terminal")}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -224,6 +234,22 @@ func (recklessSandbox) Run(context.Context, contract.SandboxCommand) (contract.S
 func TestTheSandboxCheckCatchesAnUnavailableSandboxThatRunsAnyway(t *testing.T) {
 	if err := testkit.CheckSandbox(context.Background(), recklessSandbox{testkit.NewFakeSandbox()}); err == nil {
 		t.Fatal("the sandbox check passed, and an unavailable sandbox ran a command")
+	}
+}
+
+// boastfulSandbox is available and reports every command as a success without
+// looking at it, which is what replacing the whole body of Run with a constant
+// looks like.
+type boastfulSandbox struct{ *testkit.FakeSandbox }
+
+// Run reports a success whatever it was asked to run.
+func (boastfulSandbox) Run(context.Context, contract.SandboxCommand) (contract.SandboxResult, error) {
+	return contract.SandboxResult{}, nil
+}
+
+func TestTheSandboxCheckCatchesASandboxThatSaysEverythingWorked(t *testing.T) {
+	if err := testkit.CheckSandbox(context.Background(), boastfulSandbox{testkit.NewFakeSandbox()}); err == nil {
+		t.Fatal("the sandbox check passed a sandbox that reported a program nobody has as a success")
 	}
 }
 

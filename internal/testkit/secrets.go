@@ -67,13 +67,82 @@ func (secrets *FakeSecrets) SudoPassword(_ context.Context) (string, error) {
 }
 
 // Redact replaces every value the vault holds wherever it appears in the text.
-// The longest values go first, so that one secret inside another is not left
-// half visible.
+//
+// Every match is found in the text as it arrived and the pieces are spliced
+// together once at the end. Replacing one secret at a time over the growing text
+// would let a short secret match inside a marker an earlier pass had written,
+// and the sentence would come back mangled. The longest values are claimed
+// first, so that one secret inside another is not left half visible.
 func (secrets *FakeSecrets) Redact(text string) string {
-	for _, value := range secrets.values() {
-		text = strings.ReplaceAll(text, value, contract.RedactedMarker)
+	claimed := secrets.spansToHide(text)
+	if len(claimed) == 0 {
+		return text
 	}
-	return text
+
+	var built strings.Builder
+	at := 0
+	for _, span := range claimed {
+		built.WriteString(text[at:span.from])
+		built.WriteString(contract.RedactedMarker)
+		at = span.to
+	}
+	built.WriteString(text[at:])
+	return built.String()
+}
+
+// span is one stretch of the text a secret was found in.
+type span struct {
+	// from is where the secret starts.
+	from int
+	// to is one past where it ends.
+	to int
+}
+
+// spansToHide finds every place a secret appears in the text, longest secret
+// first, and returns them in reading order with none overlapping another.
+//
+// A marker already in the text is claimed before anything else, so that a secret
+// which happens to be spelled inside the word "redacted" cannot match there.
+// That is what makes redacting text twice change nothing the second time.
+func (secrets *FakeSecrets) spansToHide(text string) []span {
+	claimed := []span{}
+	for at := 0; at < len(text); {
+		found := strings.Index(text[at:], contract.RedactedMarker)
+		if found < 0 {
+			break
+		}
+		start := at + found
+		claimed = append(claimed, span{from: start, to: start + len(contract.RedactedMarker)})
+		at = start + len(contract.RedactedMarker)
+	}
+
+	for _, value := range secrets.values() {
+		at := 0
+		for at < len(text) {
+			found := strings.Index(text[at:], value)
+			if found < 0 {
+				break
+			}
+			start := at + found
+			if !overlapsAny(claimed, start, start+len(value)) {
+				claimed = append(claimed, span{from: start, to: start + len(value)})
+			}
+			at = start + len(value)
+		}
+	}
+	sort.Slice(claimed, func(left, right int) bool { return claimed[left].from < claimed[right].from })
+	return claimed
+}
+
+// overlapsAny says whether a stretch of the text runs into one already claimed
+// by a longer secret.
+func overlapsAny(claimed []span, from int, to int) bool {
+	for _, taken := range claimed {
+		if from < taken.to && taken.from < to {
+			return true
+		}
+	}
+	return false
 }
 
 // values returns every secret value the vault holds, longest first.

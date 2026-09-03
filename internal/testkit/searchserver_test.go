@@ -65,6 +65,18 @@ func TestTheFakeSearchServerAlsoServesADuckDuckGoResultsPage(t *testing.T) {
 	if !strings.Contains(body, "result__a") {
 		t.Errorf("the results page does not look like the one the web tool reads:\n%s", body)
 	}
+	if !strings.Contains(body, "result__snippet") {
+		t.Errorf("the results page carries no snippets, and the snippet is what the web tool reads:\n%s", body)
+	}
+	if strings.Count(body, "href=") < 2 {
+		t.Errorf("the results page carries fewer than two links, and a results page is made of links:\n%s", body)
+	}
+	if !strings.Contains(body, "The anniversary is in January.") {
+		t.Errorf("the results page carries no snippet text at all:\n%s", body)
+	}
+	if !strings.Contains(body, "digibyte") {
+		t.Errorf("the results page never says what was searched for:\n%s", body)
+	}
 }
 
 func TestTheFakeSearchServerServesFixturePages(t *testing.T) {

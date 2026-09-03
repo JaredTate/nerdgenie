@@ -65,12 +65,18 @@ func writeAnthropicStream(send func(line string), step Step, dropEarly bool) {
 }
 
 // anthropicUsage is the token count the Messages API reports, with the cache
-// creation count the step asks for. Wave 1's brief adds that count to the input
-// tokens, so a fake that always says zero would let a harness that ignores it
-// pass.
+// creation count the step asks for.
+//
+// The Messages API counts the input in three places and input_tokens is only one
+// of them: what was read fresh, with the cache read and the cache write counted
+// beside it. So the plain field carries the remainder, and the three add back up
+// to the step's whole input count. A fake that put the whole count in the plain
+// field would make one script report a different total on this wire than on the
+// OpenAI one, where there is one input count and the cached part is inside it.
+// The remainder never goes below zero, because a token count never does.
 func anthropicUsage(step Step, outputTokens int) map[string]any {
 	return map[string]any{
-		"input_tokens":                step.Usage.InputTokens,
+		"input_tokens":                max(0, step.Usage.InputTokens-step.Usage.CachedInputTokens-step.CacheCreationTokens),
 		"cache_read_input_tokens":     step.Usage.CachedInputTokens,
 		"cache_creation_input_tokens": step.CacheCreationTokens,
 		"output_tokens":               outputTokens,

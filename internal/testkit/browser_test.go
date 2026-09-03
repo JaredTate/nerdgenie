@@ -2,6 +2,7 @@ package testkit_test
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -93,7 +94,9 @@ func TestTheFakeBrowserCanBeToldToDoTheFourThingsThatGoWrong(t *testing.T) {
 	}
 
 	worker.NextActionChangesNothing()
-	diff, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changes")
+	// The expectation names nothing on the page and nothing on the link that was
+	// clicked, so the rule in PROTOCOL.md cannot find any of its words.
+	diff, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the timeline fills with posts")
 	if err != nil {
 		t.Fatalf("a click that changes nothing failed instead of reporting: %v", err)
 	}
@@ -114,8 +117,14 @@ func TestTheFakeBrowserCanBeToldToDoTheFourThingsThatGoWrong(t *testing.T) {
 	}
 
 	worker.NextActionTimesOutSettling()
-	if _, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changes"); err == nil {
-		t.Error("a click that never settles was reported as a success, want an error saying the page did not settle")
+	diff, err = worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changed")
+	if err != nil || diff.Settled {
+		t.Errorf("a click on a page that kept changing gave %+v and error %v, want a diff with settled false", diff, err)
+	}
+
+	worker.NextActionCannotBeRead()
+	if _, err := worker.Click(ctx, testkit.FixtureChangeLinkRef, "the page changed"); err == nil {
+		t.Error("a click on a page that cannot be read was reported as a success, want the settle timeout")
 	}
 }
 
@@ -167,17 +176,63 @@ func TestTheFakeBrowserTypesAndNeverGivesTheCredentialsBack(t *testing.T) {
 		t.Fatalf("filling the login form failed: %v", err)
 	}
 
-	whole := diff.URL + diff.Seen + diff.Snapshot.Title
-	for _, element := range diff.Snapshot.Elements {
-		whole += element.Name + element.Role
-	}
 	for _, secret := range []string{"correct horse battery staple", "123456"} {
-		if strings.Contains(whole, secret) {
-			t.Errorf("the diff from the login holds %q, and it must never hold a credential", secret)
+		if strings.Contains(wholeDiffAsJSON(t, diff), secret) {
+			t.Errorf("the diff from the login holds %q, and it must never hold a credential:\n%s",
+				secret, wholeDiffAsJSON(t, diff))
 		}
 	}
 	if typed := worker.TypedInto(testkit.FixtureUsernameRef); len(typed) != 1 || typed[0] != "digibyte" {
 		t.Errorf("the worker typed %v into the username box, want the one username", typed)
+	}
+}
+
+// wholeDiffAsJSON is every field of a diff as one piece of text, which is the
+// only haystack that cannot miss a field somebody forgot to scrub.
+func wholeDiffAsJSON(t *testing.T, diff contract.Diff) string {
+	t.Helper()
+	written, err := json.Marshal(diff)
+	if err != nil {
+		t.Fatalf("cannot write the diff as JSON: %v", err)
+	}
+	return string(written)
+}
+
+func TestALoginNeverHandsBackACredentialInAnElementThatAppeared(t *testing.T) {
+	ctx := context.Background()
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	password := "correct horse battery staple"
+	if _, err := worker.Open(ctx, testkit.FixtureLoginPage); err != nil {
+		t.Fatalf("opening the login page failed: %v", err)
+	}
+
+	// The page grows a message while the login is being filled, the way a site
+	// that echoes what was typed does.
+	worker.AddPage(contract.Snapshot{
+		URL: testkit.FixtureLoginPage, Title: "Sign in", TabID: "t1",
+		Elements: []contract.Element{
+			{Ref: testkit.FixtureUsernameRef, Role: "textbox", Name: "Username"},
+			{Ref: testkit.FixturePasswordRef, Role: "textbox", Name: "Password"},
+			{Ref: "e9", Role: "alert", Name: "we could not sign you in with " + password},
+		},
+	})
+
+	diff, err := worker.LoginFill(ctx, contract.LoginFields{
+		UsernameRef: testkit.FixtureUsernameRef,
+		PasswordRef: testkit.FixturePasswordRef,
+		Username:    "digibyte",
+		Password:    password,
+	})
+
+	if err != nil {
+		t.Fatalf("filling the login form failed: %v", err)
+	}
+	if len(diff.NewElements) == 0 {
+		t.Fatal("no element appeared during the login, so the test proves nothing")
+	}
+	if strings.Contains(wholeDiffAsJSON(t, diff), password) {
+		t.Errorf("the diff holds the password in an element that appeared:\n%s", wholeDiffAsJSON(t, diff))
 	}
 }
 

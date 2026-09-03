@@ -36,6 +36,10 @@ type ModelAlias struct {
 	// KeyReference is a "secret://name" reference to the API key, and is empty
 	// for a local server that needs none.
 	KeyReference string `toml:"key_reference"`
+	// Think is how hard this model is asked to think before it answers: one of
+	// the six levels ThinkLevels names. It is empty by default, which leaves
+	// the provider's own default alone.
+	Think Think `toml:"think"`
 }
 
 // Caps are the limits from the design that keep the agent from running away.

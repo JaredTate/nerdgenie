@@ -75,7 +75,10 @@ type openAIBody struct {
 	// older max_tokens, because the reasoning models refuse the older one and
 	// the local daemon honours this one.
 	MaxCompletionTokens int `json:"max_completion_tokens,omitempty"`
-	// ChatTemplateKwargs carries the thinking-off hint, and is sent only to a
+	// ReasoningEffort is how hard the model is asked to think, and is left out
+	// when nobody asked, so that the server's own default stands.
+	ReasoningEffort string `json:"reasoning_effort,omitempty"`
+	// ChatTemplateKwargs says whether the model thinks, and is sent only to a
 	// local server that was found to understand it.
 	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
 }

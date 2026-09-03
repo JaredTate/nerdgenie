@@ -85,6 +85,11 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 	if err := checker.checkAliasReach(where, alias); err != nil {
 		return err
 	}
+	if !contract.KnownThink(alias.Think) {
+		return checker.complain(where+".think", fmt.Sprintf(
+			"this model is asked to think at %q, and the levels are %s, so write one of those or leave the key out for the model's own default",
+			alias.Think, contract.ThinkLevelsSentence()))
+	}
 	if alias.KeyReference != "" {
 		if _, isReference := contract.SecretReferenceName(alias.KeyReference); !isReference {
 			return checker.complain(where+".key_reference", fmt.Sprintf(

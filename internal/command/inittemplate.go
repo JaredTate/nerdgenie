@@ -207,6 +207,10 @@ func aliasBlock(choice modelChoice) string {
 	written.WriteString("# How many tokens the model can hold, which is what the working context\n")
 	written.WriteString("# is sized from. Set it to the window your model really has.\n")
 	fmt.Fprintf(written, "context_length = %d\n", alias.ContextLength)
+	written.WriteString("# How hard this model thinks before it answers: " + contract.ThinkLevelsSentence() + ".\n")
+	written.WriteString("# Leave it empty to let the model think the way it does on its own. The\n")
+	written.WriteString("# \"/think\" command changes it for one session without editing this file.\n")
+	fmt.Fprintf(written, "think = %s\n", quoted(string(alias.Think)))
 	if alias.KeyReference != "" {
 		written.WriteString("# Where the API key is. The key itself lives in the vault and is never\n")
 		written.WriteString("# written here; \"coeus init\" put it there.\n")

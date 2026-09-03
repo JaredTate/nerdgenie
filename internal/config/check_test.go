@@ -241,6 +241,38 @@ func impossibleModelAliases() []badField {
 			"\ndefault_model = \"cloud\"\n\n[[models]] " + theMarker + "\nname = \"cloud\"\nprovider = \"cli\"\nmodel_name = \"opus\"\ncontext_length = 200000\n",
 			"models.0.program",
 		},
+		{
+			"an alias asked to think at a level nobody offers",
+			strings.Replace(oneGoodAlias, `context_length = 262144`, "context_length = 262144\nthink = \"hardest\" "+theMarker, 1),
+			"models.0.think",
+		},
+	}
+}
+
+// TestAThinkLevelIsReadOffAnAliasAndAnUnknownOneNamesTheGoodOnes holds both
+// halves of the think setting in config.toml: a level a provider knows is read
+// onto the alias, and one nobody offers is refused with the six good ones in
+// the message, because a person who wrote "hardest" needs to be told what to
+// write instead.
+func TestAThinkLevelIsReadOffAnAliasAndAnUnknownOneNamesTheGoodOnes(t *testing.T) {
+	for _, level := range append(contract.ThinkLevels(), contract.ThinkDefault) {
+		document := strings.Replace(oneGoodAlias, `context_length = 262144`,
+			"context_length = 262144\nthink = \""+string(level)+"\"", 1)
+		settings, err := config.Load(writeConfig(t, document))
+		if err != nil {
+			t.Fatalf("the think level %q was refused, and it is one Coeus offers: %v", level, err)
+		}
+		if settings.Models[0].Think != level {
+			t.Errorf("the alias thinks at %q, want %q", settings.Models[0].Think, level)
+		}
+	}
+
+	problem := refuses(t, strings.Replace(oneGoodAlias, `context_length = 262144`,
+		"context_length = 262144\nthink = \"hardest\"", 1))
+	for _, level := range contract.ThinkLevels() {
+		if !strings.Contains(problem.Advice, string(level)) {
+			t.Errorf("the advice is %q, and it leaves out the level %q a person could write instead", problem.Advice, level)
+		}
 	}
 }
 

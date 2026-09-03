@@ -370,6 +370,10 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 	if err != nil {
 		return contract.Request{}, fmt.Errorf("cannot build the working context for this call: %w", err)
 	}
+	// How hard to think is not part of the working context, so it goes on here,
+	// beside the model it was chosen for: the provider reads it off the request
+	// and falls back to the level in config.toml when the request names none.
+	request.Think = running.theLoop.thinkFor(running.theLoop.options.Model.Name())
 	return request, nil
 }
 

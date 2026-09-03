@@ -30,7 +30,7 @@ func (commands *Commands) Status() contract.Command {
 		Help: "Shows the model, the cost so far, the jobs, the answers waiting, and the health of each channel.",
 		Run: func(ctx context.Context, _ string, _ contract.CommandContext) (string, error) {
 			lines := []string{
-				"model: " + commands.modelInUse(),
+				"model: " + commands.modelLine(),
 				"cost so far: " + commands.costLine(),
 			}
 			lines = append(lines, commands.jobLines(ctx)...)
@@ -39,6 +39,19 @@ func (commands *Commands) Status() contract.Command {
 			return strings.Join(lines, "\n") + "\n", nil
 		},
 	}
+}
+
+// modelLine is the model in use with how hard it is thinking, which is what the
+// status prints first. A model left at its provider's own default says nothing
+// extra, because that is the setting almost every model is on.
+func (commands *Commands) modelLine() string {
+	name := commands.modelInUse()
+	for _, alias := range commands.deps.Settings.Models {
+		if alias.Name == name && alias.Think != contract.ThinkDefault {
+			return name + ", thinking at " + string(alias.Think)
+		}
+	}
+	return name
 }
 
 // modelInUse is the alias the program is talking to, or the one the

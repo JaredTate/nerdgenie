@@ -19,7 +19,7 @@ func TestEveryNamedNumberIsTheNumberItIsMeantToBe(t *testing.T) {
 		why  string
 	}{
 		{"MaxCheckpoints", MaxCheckpoints, 10000,
-			"a task of a hundred rounds saves a few hundred checkpoints, so ten thousand is a log that has gone wrong rather than a record"},
+			"a task saves one checkpoint per round and a hundred rounds is its budget, so ten thousand is a log that has gone wrong rather than a record"},
 		{"MaxRecordBytes", MaxRecordBytes, 1 << 20,
 			"a megabyte is far more than the three thousand tokens a record is allowed, so anything larger is not a record at all"},
 		{"MaxRecordLines", MaxRecordLines, 20000,

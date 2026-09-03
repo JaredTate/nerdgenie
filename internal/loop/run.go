@@ -43,11 +43,11 @@ type run struct {
 	roundsUsed       int
 	failedParses     int
 	doneNudges       int
-	resultsThisRound int
 	recentCalls      []pastCall
 	lastOrient       string
 	browserFact      string
 	commandFact      string
+	continuedFact    string
 	filesChanged     []string
 	hadCorrection    bool
 	hadFailure       bool
@@ -181,6 +181,11 @@ func budgetTime(task Task, caps contract.Caps) time.Duration {
 
 // resume picks a waiting or stopped task up again from its last checkpoint,
 // which is what the user's next message does even days later.
+//
+// The budget it picks up on is the record's own, so that a task cannot buy
+// itself more rounds by waiting for an answer it asked for. A task that stopped
+// because its budget ran out is the one exception, and it is the whole of
+// carryOnFromAStop below.
 func (running *run) resume(ctx context.Context) error {
 	if running.task.ResumeID == "" {
 		return nil
@@ -189,11 +194,42 @@ func (running *run) resume(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot pick task %s up again: %w", running.task.ResumeID, err)
 	}
+	keeper.SaveOncePerRound()
 	running.keeper = keeper
 	header := keeper.Record().Header
 	running.roundsAllowed = header.RoundsLeft
 	running.timeAllowed = time.Duration(header.MinutesLeft) * time.Minute
+	if err := running.carryOnFromAStop(ctx, header.Status); err != nil {
+		return err
+	}
 	return keeper.SetStatus(ctx, contract.StatusRunning)
+}
+
+// carryOnFromAStop gives a stopped task a fresh budget, because a person who
+// says to carry on is asking for more. A task whose budget ran out ends stopped
+// with nothing left and a report saying to tell it how to carry on; picked up on
+// the nothing it stopped with, it spent its two spare rounds writing that same
+// ending again and told the person the budget was used up, which is the answer
+// to a question they had already answered.
+//
+// A waiting task is left alone. There the model stopped the work to ask
+// something, the budget was never what ran out, and a wait that bought rounds
+// would be a way round the budget rather than an answer to the person.
+func (running *run) carryOnFromAStop(ctx context.Context, standing contract.RecordStatus) error {
+	if standing != contract.StatusStopped {
+		return nil
+	}
+	running.roundsAllowed = budgetRounds(running.task, running.theLoop.options.Caps)
+	running.timeAllowed = budgetTime(running.task, running.theLoop.options.Caps)
+	minutes := int(running.timeAllowed / time.Minute)
+	running.continuedFact = fmt.Sprintf(
+		"the person asked this task to carry on, so it was given a fresh budget of %d rounds and %d minutes",
+		running.roundsAllowed, minutes)
+	if err := running.keeper.SetBudget(ctx, running.roundsAllowed, minutes); err != nil {
+		return fmt.Errorf("cannot give task %s the fresh budget it was asked to carry on with: %w",
+			running.task.ResumeID, err)
+	}
+	return nil
 }
 
 // readJobSummary prints the job this task belongs to, which rides above the
@@ -252,7 +288,6 @@ func (running *run) play(ctx context.Context) (Outcome, error) {
 // oneRound is one turn of the loop: orient, call, guard, permit, run, update.
 // It returns false when the task has reached an end state.
 func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
-	running.resultsThisRound = 0
 	if spent := running.budgetIsSpent(); spent != "" {
 		outcome, err := running.finalReport(ctx, spent)
 		return outcome, false, err
@@ -277,6 +312,12 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	found := repair.Find(reply, running.specs(), running.failedParses)
 	running.orient(found.Text, reply.Text)
 	if err := running.writeCostAndBudget(ctx, reply.Usage); err != nil {
+		return Outcome{}, false, err
+	}
+	// One model call is one checkpoint, taken here: after the call and before
+	// anything this round does, so that it carries this round's budget and the
+	// whole of the round before it, which is where a replay reads the boundary.
+	if err := running.saveTheRound(ctx); err != nil {
 		return Outcome{}, false, err
 	}
 	if found.Problem != "" {

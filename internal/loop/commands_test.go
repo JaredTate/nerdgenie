@@ -59,13 +59,15 @@ func TestTheTasksCommandPrintsOneRecord(t *testing.T) {
 	}
 }
 
-// TestTheTasksCommandWindsARecordBack proves "/tasks 17 back 3" reloads an
-// earlier checkpoint so the model can try another path.
+// TestTheTasksCommandWindsARecordBack proves "/tasks 17 back 1" reloads an
+// earlier checkpoint so the model can try another path. A task saves one
+// checkpoint per round now, so a step back is a round of work: this script runs
+// three rounds, and one step back is the moment before its last.
 func TestTheTasksCommandWindsARecordBack(t *testing.T) {
 	built := newHarness(t, closingScript("the notes are read"), scriptedTool("read", "the notes"))
 	outcome := built.ask(t, "read the notes")
 
-	wound, err := runTasksCommand(t, built, outcome.TaskID+" back 3")
+	wound, err := runTasksCommand(t, built, outcome.TaskID+" back 1")
 	if err != nil {
 		t.Fatalf("the tasks command could not wind task %s back: %v", outcome.TaskID, err)
 	}

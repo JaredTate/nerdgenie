@@ -30,6 +30,9 @@ func (running *run) endOfTurn(ctx context.Context, text string, why contract.Fin
 	if err := running.theReplyProvesItsLines(ctx, text); err != nil {
 		return Outcome{}, false, err
 	}
+	if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
+		return Outcome{}, false, err
+	}
 	problem, err := running.doneCheck(ctx)
 	if err != nil {
 		return Outcome{}, false, err
@@ -68,6 +71,38 @@ func (running *run) theReplyProvesItsLines(ctx context.Context, text string) err
 	return nil
 }
 
+// TheWorkIsTheAnswer is the one done line the harness writes into a record the
+// model never wrote a done list into. It is the harness's own words, not the
+// model's, and it says exactly what it stands on: the work was done and the
+// answer is the report of it.
+const TheWorkIsTheAnswer = "the work was done and the user was told what changed"
+
+// theAnswerIsTheWholeDoneList is the rule the live suite asked for. On a small
+// ask no model writes a done list: it does the work, answers, and never calls
+// the task tool. A record with an empty done list is one the done-check can only
+// refuse, so the model would be sent back three times and the task given up on.
+// The answer is the report of the work, so the harness writes it into the record
+// as a result and puts one done line of its own behind it, and the done-check
+// then runs on a record that says what done looked like.
+//
+// A record the model did write a done list into is left exactly as it is: what
+// done looks like is the model's to say whenever it has said it.
+func (running *run) theAnswerIsTheWholeDoneList(ctx context.Context, text string) error {
+	if len(running.keeper.Record().Goal.DoneWhen) > 0 || strings.TrimSpace(text) == "" {
+		return nil
+	}
+	label, err := running.keeper.AddResult(ctx, "the reply to the user: "+firstLine(text), text)
+	if err != nil {
+		return fmt.Errorf("cannot write the answer of task %s into the record as the result that proves it: %w",
+			running.keeper.ID(), err)
+	}
+	written := record.Update{DoneWhen: []contract.DoneLine{{Text: TheWorkIsTheAnswer, Done: true, ResultID: label}}}
+	if err := running.keeper.Apply(ctx, written); err != nil {
+		return fmt.Errorf("cannot write the done line of task %s that its answer proves: %w", running.keeper.ID(), err)
+	}
+	return nil
+}
+
 // backToWork sends the model back with one line naming the rule its done list
 // broke, and gives the task up when it will not fix it.
 func (running *run) backToWork(ctx context.Context, problem string) (Outcome, bool, error) {
@@ -80,29 +115,59 @@ func (running *run) backToWork(ctx context.Context, problem string) (Outcome, bo
 	return Outcome{}, true, nil
 }
 
+// theWaysAReplyAsks is the short fixed list of ways a last line asks the user
+// for something without ending in a question mark. It is a fixed list for the
+// same reason theWordsThatMeanStop is one: a rule a reader can hold in their
+// head is a rule they can argue with.
+//
+// It is read on the last line only, and only on a reply the record has no done
+// list to close on, because outside those two fences the same words are
+// ordinary: the harness's own stopped report ends "Tell me how to carry on".
+var theWaysAReplyAsks = []string{
+	"tell me", "let me know", "i need to know", "please confirm", "please say",
+	"should i ", "would you like", "do you want",
+}
+
 // isAQuestion says whether the model asked the user something rather than
 // answering them. A question mark on the last line is the plain sign of one, and
-// a model that writes none is read by what it did instead: a reply with no tool
-// calls, an empty done list, and no result written this round has nothing behind
-// it that could close a task, so it is the model asking for something and not
-// the model saying the work is finished.
+// a reply the record has nothing to close on is read by the words of its last
+// line as well, because the reviewer's own probe asked politely and ended in a
+// full stop.
+//
+// An empty done list used to be the whole of that second reading: a reply with
+// no tool calls and no done list was taken for a question whatever it said. The
+// live suite showed why that is wrong on all three real models. Asked to write
+// hello to a file and read it back, none of them writes a done list at all — it
+// does the work, answers, and never calls the task tool — so every small task
+// ended waiting on a user who had been asked nothing, and the done-check never
+// ran.
 func (running *run) isAQuestion(text string, why contract.FinishReason) bool {
 	if why != contract.FinishEnd {
 		return false
 	}
-	if strings.HasSuffix(lastLine(text), "?") {
+	last := lastLine(text)
+	if strings.HasSuffix(last, "?") {
 		return true
 	}
-	return running.nothingBehindTheReply()
+	return running.theRecordHasNoDoneList() && asksInPlainWords(last)
 }
 
-// nothingBehindTheReply says the reply could close nothing: the record holds no
-// done list to prove, and this round wrote no result into it.
-func (running *run) nothingBehindTheReply() bool {
-	if running.keeper == nil {
-		return false
+// theRecordHasNoDoneList says the record holds nothing that says what done looks
+// like, so there is nothing the done-check could close the task on yet.
+func (running *run) theRecordHasNoDoneList() bool {
+	return running.keeper != nil && len(running.keeper.Record().Goal.DoneWhen) == 0
+}
+
+// asksInPlainWords says whether this line is one of the plain ways of asking the
+// user for something.
+func asksInPlainWords(line string) bool {
+	said := strings.ToLower(line)
+	for _, asking := range theWaysAReplyAsks {
+		if strings.Contains(said, asking) {
+			return true
+		}
 	}
-	return len(running.keeper.Record().Goal.DoneWhen) == 0 && running.resultsThisRound == 0
+	return false
 }
 
 // lastLine is the last line of a piece of text with anything on it.

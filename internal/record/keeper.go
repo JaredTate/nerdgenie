@@ -42,8 +42,48 @@ type Start struct {
 type Checkpoint struct {
 	// Number counts from one, in the order the checkpoints were saved.
 	Number int `json:"number"`
-	// Text is the record, printed.
+	// Text is the record, printed. On a checkpoint that names another for the
+	// ask, AskHeldElsewhere stands where the ask would be.
 	Text string `json:"text"`
+	// AskFrom is the number of the checkpoint whose text carries the ask, and is
+	// zero on a checkpoint that carries its own, which is the first one. The ask
+	// is the user's message word for word: it is written once, it never changes,
+	// and it is never shortened where it is kept, so writing it into every
+	// checkpoint of a long task copies the same page and a half a hundred times.
+	// A checkpoint after the first names the one that holds it instead.
+	AskFrom int `json:"askFrom,omitempty"`
+}
+
+// AskHeldElsewhere stands where the ask would be in a checkpoint that names
+// another checkpoint for it. It is one short line so that the checkpoint's text
+// still reads back as a record, and it is never what a reader hands out: Read
+// puts the real ask back, and says so plainly when it was not given one.
+const AskHeldElsewhere = "(the ask is in the checkpoint this one names)"
+
+// Read reads a checkpoint's text back into a record. A checkpoint that names
+// another for the ask carries the stand-in in its place, so the ask read out of
+// the checkpoint it names is passed in here and put back where it belongs; a
+// checkpoint that carries its own ask ignores what it is given.
+func (saved Checkpoint) Read(ask string) (contract.Record, error) {
+	held, err := Parse([]byte(saved.Text))
+	if err != nil {
+		return contract.Record{}, fmt.Errorf("checkpoint %d does not read as a record: %w", saved.Number, err)
+	}
+	if saved.AskFrom == 0 {
+		return held, nil
+	}
+	if ask == "" {
+		return contract.Record{}, fmt.Errorf("checkpoint %d keeps the user's ask in checkpoint %d: %w",
+			saved.Number, saved.AskFrom, ErrAskIsElsewhere)
+	}
+	held.Goal.Ask = ask
+	return held, nil
+}
+
+// CarriesTheAsk says whether this checkpoint's own text holds the user's ask,
+// which is what a reader walking a log in order picks the ask up from.
+func (saved Checkpoint) CarriesTheAsk() bool {
+	return saved.AskFrom == 0
 }
 
 // StoredResult is the full text of one result, which is what a tool-result event
@@ -66,6 +106,14 @@ type Keeper struct {
 	store      contract.Store
 	record     contract.Record
 	checkpoint int
+	// askFrom is the checkpoint whose text carries the ask, and is zero until
+	// the first checkpoint is saved.
+	askFrom int
+	// oncePerRound says the owner marks the rounds, so a change waits for
+	// SaveTheRound rather than saving a checkpoint of its own.
+	oncePerRound bool
+	// unsaved says there are changes since the last checkpoint.
+	unsaved bool
 }
 
 // New creates a record on the first tool call and saves the first checkpoint.
@@ -134,7 +182,7 @@ func checkItReadsBack(held contract.Record) error {
 // exported, because a record handed in from outside could carry a rewritten ask
 // or an edited correction, and the rules of this package are only worth having
 // if there is no way round them.
-func hold(store contract.Store, held contract.Record, checkpoint int) (*Keeper, error) {
+func hold(store contract.Store, held contract.Record, checkpoint int, askFrom int) (*Keeper, error) {
 	if store == nil {
 		return nil, errors.New("a record needs an event log to write to, so pass the store")
 	}
@@ -144,7 +192,10 @@ func hold(store contract.Store, held contract.Record, checkpoint int) (*Keeper, 
 	if checkpoint < 1 {
 		return nil, fmt.Errorf("this record is held at checkpoint %d, and checkpoints count from one", checkpoint)
 	}
-	return &Keeper{store: store, record: held, checkpoint: checkpoint}, nil
+	if askFrom < 1 {
+		return nil, fmt.Errorf("this record says its ask is in checkpoint %d, and checkpoints count from one", askFrom)
+	}
+	return &Keeper{store: store, record: held, checkpoint: checkpoint, askFrom: askFrom}, nil
 }
 
 // Record returns a copy of the record, so that a caller reading it cannot change
@@ -178,17 +229,47 @@ func (keeper *Keeper) LogKey() string {
 }
 
 // LatestCheckpoint is the number of the last checkpoint saved, which counts from
-// one and grows by one with every change.
+// one and grows by one with every checkpoint.
 func (keeper *Keeper) LatestCheckpoint() int {
 	return keeper.checkpoint
 }
 
-// save writes the record into the log as the next numbered checkpoint. Every
-// change calls it, which is what makes a task resumable days later on another
-// model, and what "/tasks 17 back 3" winds through.
+// SaveOncePerRound tells this keeper that its owner marks the rounds, so that
+// the changes of one round are saved as one checkpoint when the round is marked
+// rather than one checkpoint for every change. The loop turns it on for a task
+// and marks a round at every model call, which is where a replay reads the round
+// boundary; a job leaves it off, because a job changes a few times a day and has
+// nobody to mark its rounds. Closing a record saves whatever is waiting, so an
+// ending is never left in a keeper nobody marks again.
+func (keeper *Keeper) SaveOncePerRound() {
+	keeper.oncePerRound = true
+}
+
+// SaveTheRound writes everything changed since the last checkpoint as the next
+// one, and does nothing at all when nothing has changed. The loop calls it once
+// per model call, before that call's tools run.
+func (keeper *Keeper) SaveTheRound(ctx context.Context) error {
+	if !keeper.unsaved {
+		return nil
+	}
+	return keeper.save(ctx)
+}
+
+// save writes the record into the log as the next numbered checkpoint. It is
+// what makes a task resumable days later on another model, and what
+// "/tasks 17 back 3" winds through.
+//
+// Only the first checkpoint carries the user's ask. The ask is written once and
+// never changes, so every checkpoint after it names the one that holds it and
+// carries one short line in its place instead of a page and a half of the user's
+// pasted specification.
 func (keeper *Keeper) save(ctx context.Context) error {
 	number := keeper.checkpoint + 1
-	body, err := json.Marshal(Checkpoint{Number: number, Text: string(Print(keeper.record))})
+	saving := Checkpoint{Number: number, Text: string(Print(keeper.record)), AskFrom: keeper.askFrom}
+	if keeper.askFrom != 0 {
+		saving.Text = string(Print(withTheAskStandingIn(keeper.record)))
+	}
+	body, err := json.Marshal(saving)
 	if err != nil {
 		return fmt.Errorf("cannot write checkpoint %d of %s %s as JSON: %w", number, keeper.Kind(), keeper.ID(), err)
 	}
@@ -197,7 +278,18 @@ func (keeper *Keeper) save(ctx context.Context) error {
 		return fmt.Errorf("cannot save checkpoint %d of %s %s to the log: %w", number, keeper.Kind(), keeper.ID(), err)
 	}
 	keeper.checkpoint = number
+	keeper.unsaved = false
+	if keeper.askFrom == 0 {
+		keeper.askFrom = number
+	}
 	return nil
+}
+
+// withTheAskStandingIn is the record with the stand-in where the user's words
+// are, which is what every checkpoint but the first writes down.
+func withTheAskStandingIn(held contract.Record) contract.Record {
+	held.Goal.Ask = AskHeldElsewhere
+	return held
 }
 
 // mustBe says no to an operation that belongs to the other kind of record.

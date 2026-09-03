@@ -438,13 +438,16 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/loop/answercloses_test.go
 internal/loop/bounds_test.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
+internal/loop/checkpoints_test.go
 internal/loop/commands.go
 internal/loop/commands_test.go
 internal/loop/contextbuilder.go
 internal/loop/contextbuilder_test.go
+internal/loop/continued_test.go
 internal/loop/doc.go
 internal/loop/donecheck.go
 internal/loop/donecheck_test.go
@@ -591,6 +594,7 @@ internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
 internal/provider/wire_test.go
 internal/record/agreement_test.go
 internal/record/ask_test.go
+internal/record/askbyreference_test.go
 internal/record/bounds_test.go
 internal/record/checkpoint.go
 internal/record/checkpoint_test.go
@@ -872,6 +876,7 @@ internal/testkit/fixturesite.go
 internal/testkit/fixturesite_test.go
 internal/testkit/fortystep.go
 internal/testkit/fortystep_test.go
+internal/testkit/fortystepcalls_test.go
 internal/testkit/fortystepchecks.go
 internal/testkit/fortystepupdate.go
 internal/testkit/fuzz_test.go

@@ -46,13 +46,17 @@ func (running *run) minutesLeft() int {
 }
 
 // writeSituation fills the record's situation from the facts ordinary code can
-// check for itself: the page the browser is on, the files changed in this task,
-// the last command and how it went, and the model's own last orient line.
+// check for itself: that the person asked a stopped task to carry on, the page
+// the browser is on, the files changed in this task, the last command and how it
+// went, and the model's own last orient line.
 func (running *run) writeSituation(ctx context.Context) error {
 	if running.keeper == nil {
 		return nil
 	}
 	facts := []string{}
+	if running.continuedFact != "" {
+		facts = append(facts, cutToALine(running.continuedFact))
+	}
 	if running.browserFact != "" {
 		facts = append(facts, cutToALine(running.browserFact))
 	}

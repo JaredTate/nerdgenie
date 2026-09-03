@@ -17,8 +17,8 @@ import (
 )
 
 // MaxCheckpoints is the most checkpoints of one record this package will read
-// back. A task of a hundred rounds saves a few hundred, so anything past this is
-// a log that has gone wrong rather than a record.
+// back. A task saves one per round and a hundred rounds is its budget, so
+// anything past this is a log that has gone wrong rather than a record.
 const MaxCheckpoints = 10000
 
 // Load reloads a record from its latest checkpoint. A task waiting on the user
@@ -29,7 +29,7 @@ func Load(ctx context.Context, store contract.Store, kind contract.RecordKind, r
 	if err != nil {
 		return nil, err
 	}
-	return holdCheckpoint(store, kind, saved[len(saved)-1])
+	return holdCheckpoint(store, kind, saved, saved[len(saved)-1])
 }
 
 // LoadCheckpoint reloads one numbered checkpoint of a record, which is what a
@@ -41,7 +41,7 @@ func LoadCheckpoint(ctx context.Context, store contract.Store, kind contract.Rec
 	}
 	for _, one := range saved {
 		if one.Number == number {
-			return holdCheckpoint(store, kind, one)
+			return holdCheckpoint(store, kind, saved, one)
 		}
 	}
 	return nil, fmt.Errorf("there is no checkpoint numbered %d of %s %s, which has %d of them",
@@ -49,7 +49,8 @@ func LoadCheckpoint(ctx context.Context, store contract.Store, kind contract.Rec
 }
 
 // Back reloads the checkpoint the given number of steps before the latest and
-// saves it as a new checkpoint, which is what "/tasks 17 back 3" does. Nothing in
+// saves it as a new checkpoint, which is what "/tasks 17 back 3" does. A task
+// saves one checkpoint per round, so a step back is a round of work. Nothing in
 // the log is lost: the checkpoints in between stay where they are, and the model
 // carries on from an earlier moment down another path.
 func Back(ctx context.Context, store contract.Store, kind contract.RecordKind, recordID string, steps int) (*Keeper, error) {
@@ -78,18 +79,49 @@ func Back(ctx context.Context, store contract.Store, kind contract.RecordKind, r
 	return keeper, nil
 }
 
-// holdCheckpoint reads one saved checkpoint back into a keeper, and says no when
-// what it holds is not the kind of record that was asked for.
-func holdCheckpoint(store contract.Store, kind contract.RecordKind, saved Checkpoint) (*Keeper, error) {
-	held, err := Parse([]byte(saved.Text))
+// holdCheckpoint reads one saved checkpoint back into a keeper, with the ask put
+// back from the checkpoint that carries it, and says no when what it holds is not
+// the kind of record that was asked for.
+func holdCheckpoint(store contract.Store, kind contract.RecordKind, saved []Checkpoint, one Checkpoint) (*Keeper, error) {
+	held, err := one.Read(theAskAmong(saved, one))
 	if err != nil {
-		return nil, fmt.Errorf("checkpoint %d does not read as a record: %w", saved.Number, err)
+		return nil, err
 	}
 	if held.Header.Kind != kind {
 		return nil, fmt.Errorf("checkpoint %d holds a %s and a %s was asked for, so the log has them under one key: %w",
-			saved.Number, held.Header.Kind, kind, ErrWrongKind)
+			one.Number, held.Header.Kind, kind, ErrWrongKind)
 	}
-	return hold(store, held, saved.Number)
+	return hold(store, held, one.Number, askCarriedBy(one))
+}
+
+// theAskAmong is the user's ask read out of the checkpoint this one names for
+// it, and is empty when this checkpoint carries its own or when the one it names
+// is not there.
+func theAskAmong(saved []Checkpoint, one Checkpoint) string {
+	if one.CarriesTheAsk() {
+		return ""
+	}
+	for _, carrying := range saved {
+		if carrying.Number != one.AskFrom {
+			continue
+		}
+		held, err := Parse([]byte(carrying.Text))
+		if err != nil {
+			return ""
+		}
+		return held.Goal.Ask
+	}
+	return ""
+}
+
+// askCarriedBy is the number of the checkpoint whose text holds the ask, seen
+// from this one: its own number when it carries the ask, and the one it names
+// otherwise.
+func askCarriedBy(one Checkpoint) int {
+	if one.CarriesTheAsk() {
+		return one.Number
+	}
+	return one.AskFrom
 }
 
 // checkpointsOf reads every checkpoint of one record out of the log, in the order

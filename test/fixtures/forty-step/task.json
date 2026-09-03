@@ -511,12 +511,22 @@
     },
     {
       "number": 39,
-      "orient": "The post is up. I will count its characters from the page itself.",
+      "orient": "The post is up. Counting the characters and reading the draft back do not depend on each other, so I will ask for both in this reply.",
       "reply": "",
       "toolName": "shell",
       "toolInput": {
         "command": "wc -m drafts/anniversary-1.md"
       },
+      "alsoCalls": [
+        {
+          "toolName": "read",
+          "toolInput": {
+            "path": "drafts/anniversary-1.md"
+          },
+          "resultSummary": "read drafts/anniversary-1.md, 228 characters",
+          "resultText": "10 January 2014. Nine years ago today the first DigiByte block was mined."
+        }
+      ],
       "taskUpdate": null,
       "resultSummary": "wc -m, exit 0",
       "resultText": "228 drafts/anniversary-1.md"

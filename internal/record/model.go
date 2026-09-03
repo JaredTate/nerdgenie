@@ -88,7 +88,28 @@ func (keeper *Keeper) Apply(ctx context.Context, update Update) error {
 // change makes one change on a copy of the record and only lets the copy become
 // the record once the checkpoint behind it is saved, so that the record and the
 // log never disagree about what happened.
+//
+// A keeper whose owner marks the rounds keeps the change in hand instead and
+// waits for SaveTheRound, so that one round of work costs one checkpoint rather
+// than one for the budget, one for the cost, one for every result and one for
+// the situation. Nothing is lost by waiting: the whole text of every result is
+// already in the log under its own event before the record's line for it is
+// written, and closing a record saves whatever is still waiting.
 func (keeper *Keeper) change(ctx context.Context, write func(into *contract.Record) error) error {
+	return keeper.changeOrWait(ctx, write, keeper.oncePerRound)
+}
+
+// changeAndSave makes one change and saves the checkpoint behind it whatever
+// the keeper's owner does about rounds, which is what closing a record does.
+func (keeper *Keeper) changeAndSave(ctx context.Context, write func(into *contract.Record) error) error {
+	return keeper.changeOrWait(ctx, write, false)
+}
+
+// changeOrWait is what both of those do: check the change against every rule on
+// a copy, make the copy the record, and either save the checkpoint behind it now
+// or mark it as waiting for the round. A save the log refuses leaves the record
+// exactly as it was.
+func (keeper *Keeper) changeOrWait(ctx context.Context, write func(into *contract.Record) error, wait bool) error {
 	changing := cloneRecord(keeper.record)
 	if err := write(&changing); err != nil {
 		return err
@@ -101,6 +122,10 @@ func (keeper *Keeper) change(ctx context.Context, write func(into *contract.Reco
 	}
 	held := keeper.record
 	keeper.record = changing
+	if wait {
+		keeper.unsaved = true
+		return nil
+	}
 	if err := keeper.save(ctx); err != nil {
 		keeper.record = held
 		return err

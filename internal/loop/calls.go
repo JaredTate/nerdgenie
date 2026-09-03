@@ -91,7 +91,6 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	if err != nil {
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}
-	running.resultsThisRound++
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
 	result := contract.ToolResult{CallID: call.ID, Text: text, Failed: failed}
@@ -267,8 +266,27 @@ func (running *run) startTheRecord(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot start the record of task %s: %w", taskID, err)
 	}
+	keeper.SaveOncePerRound()
 	running.keeper = keeper
 	running.theLoop.nowRunning(taskID)
+	return nil
+}
+
+// saveTheRound writes one checkpoint for the round that has just called the
+// model and is about to run its tools. A checkpoint holds the whole record
+// printed, and saving one for every change to it wrote the record into the log
+// four times per tool call: the budget, the cost, each result, and the
+// situation. One model call is one round, and a round is where a replay reads
+// the boundary, so a round is one checkpoint, taken before the round's tools run
+// and carrying both the budget that round is spending and everything the round
+// before it left behind.
+func (running *run) saveTheRound(ctx context.Context) error {
+	if running.keeper == nil {
+		return nil
+	}
+	if err := running.keeper.SaveTheRound(ctx); err != nil {
+		return fmt.Errorf("cannot save the checkpoint of this round of task %s: %w", running.keeper.ID(), err)
+	}
 	return nil
 }
 

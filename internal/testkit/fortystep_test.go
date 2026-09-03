@@ -157,13 +157,14 @@ func TestTheFixtureTurnsIntoAScriptTheFakeModelCanPlay(t *testing.T) {
 }
 
 // toolCallsInTheFixture is how many tool calls the whole fixture asks for: one
-// for each round that uses a tool, and one more for each round that writes to
-// the record, because the model writes the record in the same reply.
+// for each round that uses a tool, one more for each further tool a round asks
+// for in the same reply, and one more for each round that writes to the record,
+// because the model writes the record in the same reply.
 func toolCallsInTheFixture(task testkit.FortyStepTask) int {
 	calls := 0
 	for _, round := range task.Rounds {
 		if round.ToolName != "" {
-			calls++
+			calls += 1 + len(round.AlsoCalls)
 		}
 		if round.TaskUpdate != nil {
 			calls++

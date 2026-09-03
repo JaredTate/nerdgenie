@@ -30,6 +30,15 @@ const mostLogLineBytes = 4096
 // window is visible on the machine's own display, and Chrome cannot draw one
 // without them. The design is Hermes' sanitized child environment at
 // ~/Code/hermes-agent/tools/computer_use/permissions.py.
+//
+// The session message bus is deliberately not on this list. The wave 6 security
+// review found that handing Chrome DBUS_SESSION_BUS_ADDRESS let it reach the
+// desktop's accessibility bus, which set org.gnome.desktop.interface
+// toolkit-accessibility to true and started the screen reader, so a voice read
+// the screen aloud through the user's speakers while these tests ran. Chrome
+// needs no bus of ours: it draws its window on the display and talks to this
+// program down a pipe. DBUS_SESSION_BUS_PID and AT_SPI_BUS_ADDRESS are the other
+// two names that lead to the same bus, and they are not on this list either.
 var environmentPassedOn = []string{
 	"PATH",
 	"HOME",
@@ -39,8 +48,14 @@ var environmentPassedOn = []string{
 	"XDG_SESSION_TYPE",
 	"XDG_RUNTIME_DIR",
 	"XAUTHORITY",
-	"DBUS_SESSION_BUS_ADDRESS",
 }
+
+// bridgeOff switches a toolkit's accessibility bridge off. Leaving the session
+// bus behind stops Chrome finding the accessibility bus by the usual name, and
+// this says plainly, in the way every toolkit on Linux understands, that no
+// bridge is to be loaded at all. It is added to the worker's environment even
+// when the caller's own environment sets it to something else.
+const bridgeOff = "NO_AT_BRIDGE=1"
 
 // ProcessStart returns a Start that runs the browser worker as a child process,
 // such as `node bin/workers/browser/main.js`. The profile folder is the agent's
@@ -168,7 +183,9 @@ func readLog(complaints io.Reader, note func(format string, arguments ...any)) {
 }
 
 // workerEnvironment is the environment the worker is handed, which carries the
-// display Chrome draws on and nothing secret.
+// display Chrome draws on, the accessibility bridge switched off, and nothing
+// secret. It is built from the list above and never from the caller's whole
+// environment, so a name that is not on the list cannot arrive by accident.
 func workerEnvironment() []string {
 	handed := []string{}
 	for _, name := range environmentPassedOn {
@@ -176,5 +193,5 @@ func workerEnvironment() []string {
 			handed = append(handed, name+"="+value)
 		}
 	}
-	return handed
+	return append(handed, bridgeOff)
 }

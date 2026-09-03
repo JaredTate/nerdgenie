@@ -12,14 +12,17 @@ import (
 	"time"
 )
 
-// This package starts a real Google Chrome and hands it the session message bus,
-// through the DBUS_SESSION_BUS_ADDRESS entry in environmentPassedOn. Chrome, once
-// its accessibility support is activated, brings the desktop's accessibility
-// bridge up with it, and on this machine that started the screen reader and it
-// spoke aloud through the user's speakers while this package's integration tests
-// were running. Nothing in Coeus writes the setting, so the guard cannot be a
-// check of Coeus's own code: it has to be a check of the machine, taken before
-// and after this package's tests run. The same guard is in
+// This package starts a real Google Chrome, and it used to hand it the session
+// message bus, through a DBUS_SESSION_BUS_ADDRESS entry in environmentPassedOn.
+// Chrome, once its accessibility support is activated, brings the desktop's
+// accessibility bridge up with it, and on this machine that started the screen
+// reader and it spoke aloud through the user's speakers while this package's
+// integration tests were running. That entry is gone now and the worker is handed
+// NO_AT_BRIDGE=1 instead, which is what
+// TestTheBrowserWorkerIsHandedTheBridgeSwitchedOffAndNoSessionBus below holds.
+// Nothing in Coeus writes the setting, so the guard cannot be a check of Coeus's
+// own code: it has to be a check of the machine, taken before and after this
+// package's tests run. The same guard is in
 // internal/desktop/accessibility_test.go, and it belongs in internal/testkit so
 // that both packages share one copy rather than two.
 

@@ -67,6 +67,8 @@ func TestTheChainNeverReplaysTheTextTheModelItGaveUpOnStreamed(t *testing.T) {
 	working := testkit.NewFakeProviderServer(scriptSayingOneThing("Hello world"))
 	defer working.Close()
 	options, _ := testOptions(t, newTestClock())
+	seen := &deltaLog{}
+	options.OnReset = seen.reset
 	chain, err := provider.NewChain([]contract.Model{
 		modelOn(t, "first", breaking.URL, options),
 		modelOn(t, "second", working.Address(), options),
@@ -75,7 +77,13 @@ func TestTheChainNeverReplaysTheTextTheModelItGaveUpOnStreamed(t *testing.T) {
 		t.Fatalf("building the chain failed: %v", err)
 	}
 
-	reply, streamed, err := sendAndCollect(context.Background(), chain, requestWithEverything())
+	reply, err := chain.Send(context.Background(), requestWithEverything(), seen.delta)
+	events := seen.all()
+	if len(events) < 3 || events[0] != "+Hello " || events[1] != "reset" {
+		t.Errorf("the caller saw %q, want the first model's words, a reset, then the whole reply", events)
+	}
+	streamed := strings.Join(events[2:], "")
+	streamed = strings.ReplaceAll(streamed, "+", "")
 
 	if err != nil {
 		t.Fatalf("the chain gave up although its second model works: %v", err)

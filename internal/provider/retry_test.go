@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -269,6 +270,8 @@ func TestARetryNeverReplaysTheTextTheFailedAttemptStreamed(t *testing.T) {
 	model := provider.WithRetries(base, options)
 
 	streamed := &strings.Builder{}
+	options.OnReset = streamed.Reset
+	model = provider.WithRetries(base, options)
 	done := sendInBackgroundCollecting(model, requestWithEverything(), streamed)
 	waitForNotes(t, recorder, 1)
 	waitForSleeper(t, clock, 1)
@@ -282,7 +285,7 @@ func TestARetryNeverReplaysTheTextTheFailedAttemptStreamed(t *testing.T) {
 		t.Fatalf("the reply is %q, want the whole answer the second attempt streamed", finished.reply.Text)
 	}
 	if streamed.String() != finished.reply.Text {
-		t.Errorf("the caller was streamed %q while the reply is %q, and a caller must never be handed the text of an attempt that was thrown away",
+		t.Errorf("the caller was streamed %q while the reply is %q, and a caller that withdraws on the reset must end with exactly the reply",
 			streamed.String(), finished.reply.Text)
 	}
 }
@@ -297,5 +300,67 @@ func TestTheRetryWrapperKeepsTheModelsNameAndWindow(t *testing.T) {
 	}
 	if model.ContextLength() != 262144 {
 		t.Errorf("the wrapped model reports a window of %d, want the one underneath", model.ContextLength())
+	}
+}
+
+// deltaLog writes down what a caller showing the reply as it arrives would
+// see: each piece of text as it comes, and the reset that withdraws them when
+// the attempt behind them is given up on.
+type deltaLog struct {
+	mu     sync.Mutex
+	events []string
+}
+
+func (seen *deltaLog) delta(text string) {
+	seen.mu.Lock()
+	defer seen.mu.Unlock()
+	seen.events = append(seen.events, "+"+text)
+}
+
+func (seen *deltaLog) reset() {
+	seen.mu.Lock()
+	defer seen.mu.Unlock()
+	seen.events = append(seen.events, "reset")
+}
+
+func (seen *deltaLog) all() []string {
+	seen.mu.Lock()
+	defer seen.mu.Unlock()
+	return append([]string(nil), seen.events...)
+}
+
+// TestTheCallerSeesEachAttemptsWordsAsTheyArriveAndAResetBetween is the design
+// of brief 6.8: a reply streams as it is written, and when an attempt that has
+// streamed text is given up on, the caller is told to withdraw it before the
+// next attempt's first word, so a person sees the partial reply, sees it go,
+// and then sees the whole reply exactly once.
+func TestTheCallerSeesEachAttemptsWordsAsTheyArriveAndAResetBetween(t *testing.T) {
+	server := serverThatBreaksOffAfterSaying("Hello ", "Hello world")
+	defer server.Close()
+	clock := newTestClock()
+	options, recorder := testOptions(t, clock)
+	seen := &deltaLog{}
+	options.OnReset = seen.reset
+	base, err := provider.New(localAliasAt(server.URL, 262144), options)
+	if err != nil {
+		t.Fatalf("building the provider failed: %v", err)
+	}
+	model := provider.WithRetries(base, options)
+
+	done := make(chan callResult, 1)
+	go func() {
+		reply, err := model.Send(context.Background(), requestWithEverything(), seen.delta)
+		done <- callResult{reply: reply, err: err}
+	}()
+	waitForNotes(t, recorder, 1)
+	waitForSleeper(t, clock, 1)
+	clock.Advance(30 * time.Second)
+	finished := waitForResult(t, done)
+	if finished.err != nil {
+		t.Fatalf("the call came back as %v", finished.err)
+	}
+	events := seen.all()
+	if len(events) < 3 || events[0] != "+Hello " || events[1] != "reset" || strings.Join(events[2:], "") != "+Hello world" {
+		t.Errorf("the caller saw %q, want the first attempt's words, a reset, then the whole reply", events)
 	}
 }

@@ -38,7 +38,7 @@ All building and testing happen on the Linux development machine, `jared-irene`.
 - `make fuzz` — one minute of fuzzing per target. Runs before every wave gate and nightly.
 - `make check` — `gofmt`, `go vet`, `staticcheck`, the style checker (`scripts/stylecheck`), the repo-map drift test, the coverage gate (`scripts/coverage.sh`: ninety percent per package, seventy for the terminal screen), and `make test`. CI runs this on every push. A wave does not pass until it is clean.
 - `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen 3.8 through the llama-server daemon on this machine, Opus 4.8 through `claude -p` on the user's Claude subscription, and GPT-5.5 through `codex exec` on the user's ChatGPT subscription. There are no API keys on this machine and none are wanted. Tagged `live`; development machine only; a program that is missing or not logged in, or a daemon that is down, is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
-- `make release` — binaries for `linux/amd64` and `linux/arm64`, the worker bundles, a checksum file, and a manifest, into `dist/`. Until wave 6 builds it, the target says so and exits 1 on purpose.
+- `make release` — binaries for `linux/amd64` and `linux/arm64`, each packed with the two worker bundles and a pinned Node runtime so nobody has to install Node, into `dist/` with a `SHA256SUMS` the installer checks against and a `manifest.json` the updater reads. A version tag publishes them as a GitHub release.
 - `make repo-map` — regenerate `REPO_MAP.md`.
 - `make install` — build and install the systemd user unit on this machine. Until wave 3 builds it, the target says so and exits 1 on purpose.
 

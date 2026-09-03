@@ -147,8 +147,8 @@ func TestAScrollStepRidesInABatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("a batch with a scroll in it failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "scroll") {
-		t.Errorf("the output says nothing about the scroll: %q", output.Text)
+	if strings.Count(output.Text, "what was expected happened") != 2 {
+		t.Errorf("the two scrolls did not both run and settle: %q", output.Text)
 	}
 
 	for _, broken := range []map[string]any{

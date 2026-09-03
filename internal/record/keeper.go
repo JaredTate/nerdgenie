@@ -30,11 +30,45 @@ type Start struct {
 	// Ask is the user's message, word for word. It is never edited afterwards.
 	Ask string
 	// RoundsLeft is the task's tool-round budget from the configuration, and is
-	// unused on a job.
+	// unused on a job and on a task with no round budget.
 	RoundsLeft int
+	// NoRoundBudget says the task has no round budget, which is the default
+	// unless the user set one.
+	NoRoundBudget bool
 	// MinutesLeft is the task's minute budget from the configuration, and is
-	// unused on a job.
+	// unused on a job and on a task with no time budget.
 	MinutesLeft int
+	// NoTimeBudget says the task has no time budget, the same way.
+	NoTimeBudget bool
+}
+
+// Budget is how much of a task's budget is left, as the harness writes it into
+// the header: a count of rounds and a count of minutes, either of which may be
+// off. Both off is the default and means the task has no budget at all, so it
+// runs until it is done, stopped, or failed.
+type Budget struct {
+	// RoundsLeft is how many tool rounds the task may still take, and means
+	// nothing while NoRoundBudget is true.
+	RoundsLeft int
+	// NoRoundBudget says the task has no round budget.
+	NoRoundBudget bool
+	// MinutesLeft is how many minutes the task may still take, and means
+	// nothing while NoTimeBudget is true.
+	MinutesLeft int
+	// NoTimeBudget says the task has no time budget.
+	NoTimeBudget bool
+}
+
+// kept is the budget with the count on every limit that is off set to zero, so
+// that the record in hand never holds a number its own text does not print.
+func (left Budget) kept() Budget {
+	if left.NoRoundBudget {
+		left.RoundsLeft = 0
+	}
+	if left.NoTimeBudget {
+		left.MinutesLeft = 0
+	}
+	return left
 }
 
 // Checkpoint is one saved copy of a record, which is what a checkpoint event in
@@ -146,7 +180,12 @@ func New(ctx context.Context, store contract.Store, start Start) (*Keeper, error
 	// holds a number its own text does not print, so a budget handed to a job is
 	// left behind here rather than kept where nothing would ever show it.
 	if start.Kind == contract.RecordTask {
-		header.RoundsLeft, header.MinutesLeft = start.RoundsLeft, start.MinutesLeft
+		left := Budget{
+			RoundsLeft: start.RoundsLeft, NoRoundBudget: start.NoRoundBudget,
+			MinutesLeft: start.MinutesLeft, NoTimeBudget: start.NoTimeBudget,
+		}.kept()
+		header.RoundsLeft, header.NoRoundBudget = left.RoundsLeft, left.NoRoundBudget
+		header.MinutesLeft, header.NoTimeBudget = left.MinutesLeft, left.NoTimeBudget
 	}
 	keeper := &Keeper{store: store, record: contract.Record{Header: header, Goal: contract.Goal{Ask: start.Ask}}}
 	if err := checkItReadsBack(keeper.record); err != nil {

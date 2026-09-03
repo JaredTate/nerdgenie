@@ -2,6 +2,7 @@ package record
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/JaredTate/coeus/internal/contract"
@@ -154,16 +155,41 @@ func (reading *reader) readWordsField(field string, value string, into *string, 
 	return nil
 }
 
-// readBudgetField reads how much of a task's budget is left.
+// readBudgetField reads how much of a task's budget is left: "no budget" when
+// the task has none, and otherwise the rounds, the minutes, or both, in that
+// order. The field is printed again from what was read and has to come back the
+// same, so a header cannot say two things about one limit, put the minutes
+// before the rounds, or pad a number, and be read as something else.
 func (reading *reader) readBudgetField(field string) error {
-	rounds, minutes := 0, 0
-	if _, err := fmt.Sscanf(field, "budget left: %d rounds, %d minutes", &rounds, &minutes); err != nil {
-		return reading.fail("the header field %q is one nobody knows, so write the budget as %q", field, "budget left: 86 rounds, 51 minutes")
+	header := &reading.record.Header
+	header.NoRoundBudget, header.NoTimeBudget = true, true
+	if field == fieldNoBudget {
+		reading.sawBudget = true
+		return nil
 	}
-	if rounds < 0 || minutes < 0 || fmt.Sprintf("budget left: %d rounds, %d minutes", rounds, minutes) != field {
-		return reading.fail("the budget field %q does not read as a whole number of rounds and minutes left", field)
+	rest, found := strings.CutPrefix(field, labelBudget)
+	if !found {
+		return reading.fail("the header field %q is one nobody knows, so write the budget as %q, or %q when the task has none",
+			field, "budget left: 86 rounds, 51 minutes", fieldNoBudget)
 	}
-	reading.record.Header.RoundsLeft, reading.record.Header.MinutesLeft = rounds, minutes
+	for _, part := range strings.Split(rest, ", ") {
+		count, unit, _ := strings.Cut(part, " ")
+		number, err := strconv.Atoi(count)
+		if err != nil || number < 0 {
+			return reading.fail("the budget field %q does not read as a whole number of rounds and minutes left, so write it as %q",
+				field, "budget left: 86 rounds, 51 minutes")
+		}
+		switch unit {
+		case "rounds":
+			header.RoundsLeft, header.NoRoundBudget = number, false
+		case "minutes":
+			header.MinutesLeft, header.NoTimeBudget = number, false
+		}
+	}
+	if printBudget(*header) != field {
+		return reading.fail("the budget field %q does not read as a whole number of rounds and minutes left, so write it as %q",
+			field, "budget left: 86 rounds, 51 minutes")
+	}
 	reading.sawBudget = true
 	return nil
 }
@@ -186,7 +212,8 @@ func (reading *reader) readProgressField(field string) error {
 // of record must carry.
 func (reading *reader) checkHeaderIsWhole() error {
 	if reading.record.Header.Kind == contract.RecordTask && !reading.sawBudget {
-		return reading.fail("this task header carries no budget, so add %q to it", "budget left: 86 rounds, 51 minutes")
+		return reading.fail("this task header says nothing about its budget, so add %q to it, or %q when the task has none",
+			"budget left: 86 rounds, 51 minutes", fieldNoBudget)
 	}
 	if reading.record.Header.Kind == contract.RecordJob && !reading.sawProgress {
 		return reading.fail("this job header carries no progress, so add %q to it", "3 of 12 tasks done")

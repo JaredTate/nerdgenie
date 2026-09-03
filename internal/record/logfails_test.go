@@ -50,7 +50,7 @@ func TestALogThatWillNotWriteLeavesTheRecordAsItWas(t *testing.T) {
 		"the model's writing": func() error { return keeper.Apply(ctx, Update{Why: "a why that cannot be saved"}) },
 		"a result":            func() error { _, err := keeper.AddResult(ctx, "a result", "the whole text"); return err },
 		"a correction":        func() error { _, err := keeper.AddCorrection(ctx, "no, do it the other way"); return err },
-		"the budget":          func() error { return keeper.SetBudget(ctx, 5, 5) },
+		"the budget":          func() error { return keeper.SetBudget(ctx, Budget{RoundsLeft: 5, MinutesLeft: 5}) },
 		"the cost line":       func() error { return keeper.SetCost(ctx, contract.CostLine{InputTokens: 100}) },
 		"the situation":       func() error { return keeper.SetSituation(ctx, []string{"the browser is open"}) },
 		"where it stands":     func() error { return keeper.SetStatus(ctx, contract.StatusWaiting) },

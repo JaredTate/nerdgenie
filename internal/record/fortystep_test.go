@@ -74,7 +74,7 @@ func runFixtureRound(t *testing.T, keeper *Keeper, fixture testkit.FortyStepTask
 	if round.Number == fixture.StopRound {
 		checkTheStopConditionFires(t, keeper, fixture, round)
 	}
-	if err := keeper.SetBudget(ctx, 100-round.Number, 60); err != nil {
+	if err := keeper.SetBudget(ctx, Budget{RoundsLeft: 100 - round.Number, MinutesLeft: 60}); err != nil {
 		t.Fatalf("cannot spend a round of the budget at round %d: %v", round.Number, err)
 	}
 }

@@ -137,7 +137,7 @@ func TestTheHarnessWritesTheHeaderAndTheSituation(t *testing.T) {
 	keeper, _ := newKeeper(t, taskStart())
 	ctx := t.Context()
 
-	if err := keeper.SetBudget(ctx, 86, 51); err != nil {
+	if err := keeper.SetBudget(ctx, Budget{RoundsLeft: 86, MinutesLeft: 51}); err != nil {
 		t.Fatalf("cannot write the budget: %v", err)
 	}
 	if err := keeper.SetCost(ctx, contract.CostLine{InputTokens: 6147, CachedInputTokens: 5200, OutputTokens: 400}); err != nil {
@@ -173,7 +173,7 @@ func TestRefusesAHeaderTheOtherKindOfRecordCarries(t *testing.T) {
 	if err := task.SetProgress(ctx, 1, 2, "task 31 today"); err == nil {
 		t.Error("a task took a progress line, and only a job has one")
 	}
-	if err := job.SetBudget(ctx, 5, 5); err == nil {
+	if err := job.SetBudget(ctx, Budget{RoundsLeft: 5, MinutesLeft: 5}); err == nil {
 		t.Error("a job took a budget, and only a task has one")
 	}
 	if err := job.SetCost(ctx, contract.CostLine{InputTokens: 100}); err == nil {
@@ -191,7 +191,7 @@ func TestRefusesAHeaderTheOtherKindOfRecordCarries(t *testing.T) {
 func TestRefusesABudgetOrACostBelowZero(t *testing.T) {
 	keeper, _ := newKeeper(t, taskStart())
 	ctx := t.Context()
-	if err := keeper.SetBudget(ctx, -1, 5); err == nil {
+	if err := keeper.SetBudget(ctx, Budget{RoundsLeft: -1, MinutesLeft: 5}); err == nil {
 		t.Error("the budget took a count of rounds below zero")
 	}
 	if err := keeper.SetCost(ctx, contract.CostLine{InputTokens: -1}); err == nil {

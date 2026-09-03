@@ -15,16 +15,20 @@ import (
 // anything here, which is how rules seven and eight are kept: the model never
 // writes the header, the situation, the corrections, or the results.
 
-// SetBudget writes how much of a task's budget is left.
-func (keeper *Keeper) SetBudget(ctx context.Context, roundsLeft int, minutesLeft int) error {
+// SetBudget writes how much of a task's budget is left, on each of the two
+// limits the task may have. A limit that is off is written as off, and the count
+// on it is not kept.
+func (keeper *Keeper) SetBudget(ctx context.Context, left Budget) error {
 	if err := keeper.mustBe(contract.RecordTask, "a budget"); err != nil {
 		return err
 	}
 	return keeper.change(ctx, func(into *contract.Record) error {
-		if roundsLeft < 0 || minutesLeft < 0 {
-			return fmt.Errorf("the budget left is %d rounds and %d minutes, and neither may be below zero", roundsLeft, minutesLeft)
+		if left.RoundsLeft < 0 || left.MinutesLeft < 0 {
+			return fmt.Errorf("the budget left is %d rounds and %d minutes, and neither may be below zero", left.RoundsLeft, left.MinutesLeft)
 		}
-		into.Header.RoundsLeft, into.Header.MinutesLeft = roundsLeft, minutesLeft
+		left = left.kept()
+		into.Header.RoundsLeft, into.Header.NoRoundBudget = left.RoundsLeft, left.NoRoundBudget
+		into.Header.MinutesLeft, into.Header.NoTimeBudget = left.MinutesLeft, left.NoTimeBudget
 		return nil
 	})
 }

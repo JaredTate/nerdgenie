@@ -39,13 +39,32 @@ func TestOnlyTheWordsForCarryingOnPickUpAStoppedTask(t *testing.T) {
 	}
 }
 
-func TestAFinishedOrFailedTaskIsNeverCarriedOn(t *testing.T) {
-	for _, status := range []contract.RecordStatus{contract.StatusDone, contract.StatusFailed, contract.StatusRunning} {
+func TestAFinishedOrRunningTaskIsNeverCarriedOn(t *testing.T) {
+	for _, status := range []contract.RecordStatus{contract.StatusDone, contract.StatusRunning} {
 		remembered := newScreenTasks()
 		remembered.remember(theTerminalScreen, loop.Outcome{TaskID: "7", Status: status})
 		if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
-			t.Errorf("a task that ended %s was picked up as %q, and only a waiting or a stopped task is carried on", status, picked)
+			t.Errorf("a task that ended %s was picked up as %q, and a finished or a still-running task is never carried on", status, picked)
 		}
+	}
+}
+
+// TestAFailedTaskIsCarriedOnLikeAStoppedOne holds that a task cut off by an
+// error is picked up again by the words for carrying on, just as a stopped one
+// is, because a failure is a stop the agent did not choose and the work behind
+// it is not lost.
+func TestAFailedTaskIsCarriedOnLikeAStoppedOne(t *testing.T) {
+	for _, said := range []string{"continue", "carry on", "Keep going."} {
+		remembered := newScreenTasks()
+		remembered.remember(theTerminalScreen, loop.Outcome{TaskID: "7", Status: contract.StatusFailed})
+		if picked := remembered.taskToCarryOn(theTerminalScreen, said); picked != "7" {
+			t.Errorf("%q after a failure picked up %q, want task 7, because a failed task is resumable", said, picked)
+		}
+	}
+	remembered := newScreenTasks()
+	remembered.remember(theTerminalScreen, loop.Outcome{TaskID: "7", Status: contract.StatusFailed})
+	if picked := remembered.taskToCarryOn(theTerminalScreen, "write the release notes"); picked != "" {
+		t.Errorf("a new ask after a failure picked up task %q, and a failed task is carried on only by the words for it", picked)
 	}
 }
 

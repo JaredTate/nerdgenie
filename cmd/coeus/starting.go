@@ -33,6 +33,15 @@ func (running *agent) startTask(ctx context.Context, lastTasks *screenTasks, mes
 	if !found {
 		return fmt.Errorf("the message came through the channel %q, which is not one this agent is running, so the reply would have nowhere to go", message.Channel)
 	}
+	// A message that asks only where the work stands is answered from the
+	// records here, with no model call and no new task, because a person asking
+	// "where are we" is not starting work: a fresh task would see an empty
+	// record and answer "no active work", which is exactly what a real user was
+	// told mid-project. The waiting or stopped task the memory holds is left
+	// untouched, so the next real message still carries it on.
+	if saysStatusQuestion(message.Text) {
+		return where.Send(ctx, running.statusAnswer(ctx))
+	}
 	// Nothing new is started while the guard says no, which is what the
 	// crash-loop breaker and the updater's drain marker both work through. The
 	// guard says why in its own words, because the reason is the user's to hear.

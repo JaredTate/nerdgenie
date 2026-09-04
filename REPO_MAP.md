@@ -82,6 +82,7 @@ cmd/nerdgenie/servehelpers_test.go
 cmd/nerdgenie/serving.go
 cmd/nerdgenie/serving_holding_test.go
 cmd/nerdgenie/serving_loops_test.go
+cmd/nerdgenie/serving_midturn_test.go
 cmd/nerdgenie/serving_test.go
 cmd/nerdgenie/signal.go
 cmd/nerdgenie/signal_test.go

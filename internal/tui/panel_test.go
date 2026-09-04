@@ -46,12 +46,21 @@ func aStatusWithAJob() contract.SocketEnvelope {
 	return status
 }
 
+// aStatusWithANamedJob is the same job once the model has given it the short
+// name every job now carries, which is what the panel's header shows.
+func aStatusWithANamedJob() contract.SocketEnvelope {
+	status := aStatusWithAJob()
+	status.Fields[contract.StatusFieldJobName] = "Tater Tots Tetris"
+	return status
+}
+
 // aStatusWithNoJob is what the program says once the job's tasks are over: the
 // job fields sent empty, and the count of jobs waiting.
 func aStatusWithNoJob() contract.SocketEnvelope {
 	return contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
 		contract.StatusFieldJob:      "",
 		contract.StatusFieldJobAsk:   "",
+		contract.StatusFieldJobName:  "",
 		contract.StatusFieldJobTask:  "",
 		contract.StatusFieldJobTasks: "",
 		contract.StatusFieldJobs:     "3",
@@ -122,13 +131,16 @@ func TestThePanelSaysTheModelTheContextTheCostTheTaskAndTheJobs(t *testing.T) {
 	send(screen, aStatusWithAPlan())
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	for _, wanted := range []string{"opus", "ctx 12.4k / 262k", "5%", "6.1k in 0.4k out", "$0.04", "task 17 running", "3 jobs"} {
+	for _, wanted := range []string{"opus", "ctx 12.4k / 262k", "5%", "6.1k in 0.4k out", "$0.04", "TASK 17", "3 jobs waiting"} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the panel does not say %q:\n%s", wanted, panel)
 		}
 	}
 }
 
+// TestThePanelPutsACheckBesideEveryStepThatIsDone holds that a finished step
+// gets the check, and the first step that is not finished gets the pointer,
+// because that is where the work stands inside the task.
 func TestThePanelPutsACheckBesideEveryStepThatIsDone(t *testing.T) {
 	screen, _ := newTestScreen(120, 36)
 	screen.Update(linkMessage{up: true})
@@ -136,16 +148,16 @@ func TestThePanelPutsACheckBesideEveryStepThatIsDone(t *testing.T) {
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
 	for _, wanted := range []string{
-		string(doneStepGlyph) + " the product notes are",
-		string(doneStepGlyph) + " a draft under 280",
-		string(toDoStepGlyph) + " the tweet is posted",
+		string(doneGlyph) + " the product notes are",
+		string(doneGlyph) + " a draft under 280",
+		string(runningGlyph) + " the tweet is posted",
 	} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the panel does not draw %q:\n%s", wanted, panel)
 		}
 	}
-	if strings.Count(panel, string(doneStepGlyph)) != 2 {
-		t.Errorf("the panel draws %d checks for the two steps that are done:\n%s", strings.Count(panel, string(doneStepGlyph)), panel)
+	if strings.Count(panel, string(doneGlyph)) != 2 {
+		t.Errorf("the panel draws %d checks for the two steps that are done:\n%s", strings.Count(panel, string(doneGlyph)), panel)
 	}
 }
 
@@ -161,17 +173,18 @@ func TestThePanelSaysNothingTheProgramHasNotSaid(t *testing.T) {
 	if !strings.Contains(panel, "local") {
 		t.Errorf("the panel does not name the model, which is the one thing the program said:\n%s", panel)
 	}
-	for _, unwanted := range []string{"task", "job", "ctx"} {
+	for _, unwanted := range []string{"task", "TASK", "job", "JOB", "ctx", "done", string(ruleGlyph)} {
 		if strings.Contains(panel, unwanted) {
 			t.Errorf("the panel says %q about a program that never said it:\n%s", unwanted, panel)
 		}
 	}
 }
 
-// TestThePanelShowsTheJobTheRunningTaskBelongsTo is the third group of the
-// panel as the Tetris trial wanted it: the job's number and its ask, one line
-// per task with its mark, its label and its title, the running task pointed
-// at, and how far the job has got, in place of the count of jobs.
+// TestThePanelShowsTheJobTheRunningTaskBelongsTo is the checklist as the
+// Tetris trial wanted it: the job's number, one row per task with the glyph of
+// its state, its label and its words, the running task pointed at, and how far
+// the job has got, in place of the count of jobs. A job made without a name
+// still says what it is, by its ask on the line under its number.
 func TestThePanelShowsTheJobTheRunningTaskBelongsTo(t *testing.T) {
 	screen, _ := newTestScreen(120, 36)
 	screen.Update(linkMessage{up: true})
@@ -179,12 +192,12 @@ func TestThePanelShowsTheJobTheRunningTaskBelongsTo(t *testing.T) {
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
 	for _, wanted := range []string{
-		"job 4",
-		"Run the DigiByte annivers",
-		"  [x] t17 post the annive",
-		string(currentTaskGlyph) + " [ ] t19 draft the blog",
-		"  [ ] t22 post for day tw",
-		"1 of 3 tasks done",
+		"JOB 4",
+		"Run the DigiByte anniver" + string(ellipsisGlyph),
+		string(doneGlyph) + " t17 post the",
+		string(runningGlyph) + " t19 draft the blog",
+		string(plannedGlyph) + " t22 post for day two",
+		"1 of 3 done",
 	} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the panel does not draw %q:\n%s", wanted, panel)
@@ -193,24 +206,30 @@ func TestThePanelShowsTheJobTheRunningTaskBelongsTo(t *testing.T) {
 	if strings.Contains(panel, "3 jobs") {
 		t.Errorf("the panel counts the jobs while it is showing one:\n%s", panel)
 	}
-	if strings.Count(panel, string(currentTaskGlyph)) != 1 {
-		t.Errorf("the panel points at %d tasks, want the one that is running:\n%s", strings.Count(panel, string(currentTaskGlyph)), panel)
+	pointed := 0
+	for _, line := range checklistRowsOf(screen) {
+		if strings.HasPrefix(line, string(runningGlyph)+" t") {
+			pointed++
+		}
+	}
+	if pointed != 1 {
+		t.Errorf("the panel points at %d tasks, want the one that is running:\n%s", pointed, panel)
 	}
 }
 
 // TestThePanelGoesBackToTheCountOfJobsWhenTheJobIsOver holds that the job
-// gives way to today's line once the program says no job's task is running.
+// gives way to the waiting line once the program says no job's task is running.
 func TestThePanelGoesBackToTheCountOfJobsWhenTheJobIsOver(t *testing.T) {
 	screen, _ := newTestScreen(120, 36)
 	screen.Update(linkMessage{up: true})
-	send(screen, aStatusWithAJob())
+	send(screen, aStatusWithANamedJob())
 	send(screen, aStatusWithNoJob())
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	if !strings.Contains(panel, "3 jobs") {
+	if !strings.Contains(panel, "3 jobs waiting") {
 		t.Errorf("the panel does not count the jobs once the job is over:\n%s", panel)
 	}
-	for _, unwanted := range []string{"job 4", "t17", "tasks done"} {
+	for _, unwanted := range []string{"JOB 4", "Tater", "t17", "1 of 3 done"} {
 		if strings.Contains(panel, unwanted) {
 			t.Errorf("the panel still says %q about a job that is over:\n%s", unwanted, panel)
 		}
@@ -232,10 +251,10 @@ func TestThePanelDrawsOnlySoManyTasksOfALongJob(t *testing.T) {
 	send(screen, status)
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	if drawn := strings.Count(panel, "] t"); drawn != maxJobTasks {
+	if drawn := strings.Count(panel, "task number "); drawn != maxJobTasks {
 		t.Errorf("the panel draws %d tasks of a job of %d, want %d:\n%s", drawn, maxJobTasks+5, maxJobTasks, panel)
 	}
-	for _, wanted := range []string{"and 5 more tasks", "0 of " + strconv.Itoa(maxJobTasks+5) + " tasks done"} {
+	for _, wanted := range []string{"and 5 more tasks", "0 of " + strconv.Itoa(maxJobTasks+5) + " done"} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the panel does not say %q:\n%s", wanted, panel)
 		}
@@ -264,7 +283,7 @@ func TestThePanelIsDrawnAsTheGoldenFilesHaveIt(t *testing.T) {
 	inAJob, _ := newTestScreen(120, 36)
 	inAJob.link = &recordingLink{}
 	inAJob.Update(linkMessage{up: true})
-	send(inAJob, aStatusWithAJob())
+	send(inAJob, aStatusWithANamedJob())
 	send(inAJob, contract.SocketEnvelope{Type: contract.SocketReply, Text: "Where I stand: the tweet is up, drafting the blog piece next."})
 	testkit.Golden(t, "panel-job-120x36.txt", []byte(inAJob.frame()))
 }
@@ -339,25 +358,21 @@ func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
 }
 
 // TestThePanelShowsTheJobsNameInsteadOfItsAsk holds that a job made with a
-// short name is drawn as "job N · Name" with its task list under it, and its
-// long ask is not spelled out, which is what the job structure should look like
-// on the side.
+// short name is headed "JOB N · Name" with its task list under it, and its long
+// ask is not spelled out, which is what the job should look like on the side.
 func TestThePanelShowsTheJobsNameInsteadOfItsAsk(t *testing.T) {
 	screen, _ := newTestScreen(120, 36)
 	screen.Update(linkMessage{up: true})
-	status := aStatusWithAJob()
-	status.Fields[contract.StatusFieldJobName] = "Tater Tots Tetris"
-	send(screen, status)
+	send(screen, aStatusWithANamedJob())
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	if !strings.Contains(panel, "job 4 · Tater Tots Tetris") {
+	if !strings.Contains(panel, "JOB 4 · Tater Tots Tetris") {
 		t.Errorf("the panel does not name the job:\n%s", panel)
 	}
-	if strings.Contains(panel, "Run the DigiByte annivers") {
+	if strings.Contains(panel, "Run the DigiByte") {
 		t.Errorf("the panel spells out the ask even though the job has a name:\n%s", panel)
 	}
-	// The task list still shows under the named job.
-	for _, wanted := range []string{"[x] t17 post the annive", "1 of 3 tasks done"} {
+	for _, wanted := range []string{string(doneGlyph) + " t17 post the", "1 of 3 done"} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the named job does not draw its task list %q:\n%s", wanted, panel)
 		}

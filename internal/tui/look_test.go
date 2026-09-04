@@ -36,62 +36,6 @@ func theWholeConversation(screen *Screen) {
 	send(screen, contract.SocketEnvelope{Type: contract.SocketPreview, ID: "3", Text: "browser_click e7 \"Post\""})
 }
 
-func TestTheBannerIsDrawnWhileThereIsNothingToShowAndScrollsAwayOnceThereIs(t *testing.T) {
-	// The block wordmark "NERD GENIE AGENT" is eighty-seven columns wide, so it
-	// needs a terminal wide enough to hold it; a narrow one gets the plain words,
-	// which the narrow-terminal test covers.
-	screen, _ := newTestScreen(120, 24)
-	frame := screen.frame()
-
-	for _, wanted := range []string{"the agent that does not forget what it is doing", "connecting"} {
-		if !strings.Contains(frame, wanted) {
-			t.Errorf("the first frame does not hold %q:\n%s", wanted, frame)
-		}
-	}
-	if strings.Count(frame, string(blockGlyph)) < 100 {
-		t.Errorf("the wordmark is not drawn in block letters:\n%s", frame)
-	}
-	if rows := strings.Count(frame, string(blockGlyph)+string(blockGlyph)); rows < blockRows {
-		t.Errorf("the wordmark is not five rows tall:\n%s", frame)
-	}
-
-	screen.remember(block{kind: blockPerson, text: "hello"})
-	if after := screen.frame(); strings.Contains(after, string(blockGlyph)) {
-		t.Errorf("the banner is still on the frame once the conversation started:\n%s", after)
-	}
-}
-
-func TestTheBannerNamesTheModelAndWhatTheProgramIsDoing(t *testing.T) {
-	screen, _ := newTestScreen(80, 24)
-	screen.Update(linkMessage{up: true})
-	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
-		contract.StatusFieldModel: "opus",
-		contract.StatusFieldState: contract.StateIdle,
-	}})
-
-	frame := screen.frame()
-	if !strings.Contains(frame, "opus · idle") {
-		t.Errorf("the banner does not name the model and what the program is doing:\n%s", frame)
-	}
-}
-
-func TestANarrowTerminalGetsTheWordmarkInPlainLettersRatherThanBlocks(t *testing.T) {
-	screen, _ := newTestScreen(40, 24)
-	frame := screen.frame()
-
-	if strings.Contains(frame, string(blockGlyph)) {
-		t.Errorf("a forty-column terminal drew the block letters, which do not fit:\n%s", frame)
-	}
-	if !strings.Contains(frame, "NERD GENIE AGENT") {
-		t.Errorf("a forty-column terminal lost the wordmark altogether:\n%s", frame)
-	}
-	for number, line := range strings.Split(frame, "\n") {
-		if displayWidth(line) > 40 {
-			t.Errorf("row %d is %d columns wide: %q", number+1, displayWidth(line), line)
-		}
-	}
-}
-
 func TestThePersonsMessageLeansRightAndTheAgentsReplyLeansLeft(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 	screen.remember(block{kind: blockPerson, text: "post it"})
@@ -165,8 +109,8 @@ func TestTheThreeAnswersOnAPreviewAreDrawnAsButtons(t *testing.T) {
 			t.Errorf("the preview card does not draw %q as a button:\n%s", wanted, plainText(frame))
 		}
 	}
-	if !strings.Contains(frame, foregroundOf(warnTone, depthTruecolor)) {
-		t.Error("the preview card has no bright border, and it is the one card the person must answer")
+	if !strings.Contains(frame, screen.colors.wrap(styleAccent, "┌ ")+screen.colors.wrap(styleAccent, previewTitle)) {
+		t.Error("the preview card's border and title are not in the accent, and it is the one card the person must answer")
 	}
 }
 

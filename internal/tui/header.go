@@ -10,23 +10,50 @@ import (
 // for the dot on the right of the header to be filled.
 const healthFreshFor = 10 * time.Second
 
-// headerRow draws the one row at the top: the wordmark, the model alias, the
-// task state, what this session has cost so far, and the health dot on the
-// right. Everything is dim except the task state, which is accent while a task
-// runs.
+// headerRow draws the one row at the top: the wordmark in its two colours, the
+// tagline, the model alias, the context measure, the task state, what this
+// session has cost so far, and the health dot on the right. Everything after
+// the wordmark is dim except the task state, which is bold while a task runs.
+// The tagline is a nicety and the status is information, so on a terminal too
+// narrow for both the tagline goes first.
 func (screen *Screen) headerRow() string {
-	line := row{}
-	line.blanks(marginColumns)
-	line.add(styleDim, "nerdgenie")
-	for _, piece := range screen.headerParts() {
-		line.add(styleDim, " · ")
-		line.addSpan(piece)
+	line := screen.headerLine(true)
+	if !screen.headerFits(line) {
+		line = screen.headerLine(false)
 	}
 	if screen.width >= narrowWidth {
 		line.addRightPiece(screen.healthMark(), screen.width)
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
+}
+
+// headerLine is the left-hand side of the header: the wordmark, the tagline
+// when it is asked for, and the pieces the program reported.
+func (screen *Screen) headerLine(withTagline bool) row {
+	line := row{}
+	line.blanks(marginColumns)
+	line.add(styleBold, wordmarkFirst)
+	line.add(styleBrand, wordmarkSecond)
+	if withTagline {
+		line.add(styleDim, " · "+taglineText)
+	}
+	for _, piece := range screen.headerParts() {
+		line.add(styleDim, " · ")
+		line.addSpan(piece)
+	}
+	return line
+}
+
+// headerFits says whether a header line leaves room for the health mark and
+// the gap in front of it, or, on a terminal too narrow to draw the mark at all,
+// whether it fits inside the frame.
+func (screen *Screen) headerFits(line row) bool {
+	room := screen.width - marginColumns
+	if screen.width >= narrowWidth {
+		room -= displayWidth(screen.healthMark().text) + minimumGap
+	}
+	return line.width <= room
 }
 
 // headerParts are the pieces between the wordmark and the health dot. A link
@@ -55,17 +82,18 @@ func (screen *Screen) headerParts() []span {
 // about how full it is, because a person who cannot see the context filling up
 // finds out when the model forgets something.
 const (
-	// contextShareWarn is the share at which the measure turns the warning gold.
+	// contextShareWarn is the share at which the measure turns the accent.
 	contextShareWarn = 80
-	// contextShareTrouble is the share at which it turns the error colour.
+	// contextShareTrouble is the share at which it turns bold white, the
+	// loudest thing the palette has.
 	contextShareTrouble = 95
 )
 
 // contextParts are the two pieces that say how much of the model's context the
 // last call used: the measure itself, always quiet, and the share, which is the
-// piece that turns gold and then red as the context fills. They are drawn only
-// when the program sent both numbers, because a share of a window nobody named
-// is not a fact the screen has.
+// piece that turns the accent and then bold white as the context fills. They
+// are drawn only when the program sent both numbers, because a share of a
+// window nobody named is not a fact the screen has.
 func (screen *Screen) contextParts() []span {
 	if screen.contextWindow <= 0 || screen.contextTokens <= 0 {
 		return nil
@@ -79,13 +107,13 @@ func (screen *Screen) contextParts() []span {
 }
 
 // shareStyle draws a context with room to spare quietly, one that is filling up
-// in the warning gold, and one that is nearly full in the error colour.
+// in the accent, and one that is nearly full in bold white.
 func shareStyle(share int) style {
 	switch {
 	case share >= contextShareTrouble:
-		return styleError
+		return styleBold
 	case share >= contextShareWarn:
-		return styleWarn
+		return styleAccent
 	default:
 		return styleDim
 	}
@@ -107,10 +135,10 @@ func tokenWords(count int) string {
 // linkPiece is what the header says about a link that is not there. A screen
 // that has never reached the program is still connecting, which is ordinary and
 // is drawn quietly; a link that was up and went away is a failure and is drawn
-// in the error colour.
+// loud, in bold white.
 func (screen *Screen) linkPiece() span {
 	if screen.everAttached {
-		return span{style: styleError, text: "disconnected"}
+		return span{style: styleBold, text: "disconnected"}
 	}
 	return span{style: styleDim, text: "connecting"}
 }
@@ -170,12 +198,12 @@ func (screen *Screen) costWords() string {
 
 // healthMark is the dot on the right of the header and the word beside it:
 // filled and accent when the program answered its health check in the last ten
-// seconds, hollow and dim when it has not, and error-coloured when there is no
-// link at all.
+// seconds, hollow and dim when it has not, and hollow in bold white when there
+// is no link at all.
 func (screen *Screen) healthMark() span {
 	switch {
 	case !screen.attached:
-		return span{style: styleError, text: string(hollowDotGlyph) + " offline"}
+		return span{style: styleBold, text: string(hollowDotGlyph) + " offline"}
 	case screen.now.Sub(screen.lastHealth) <= healthFreshFor:
 		return span{style: styleAccent, text: string(filledDotGlyph) + " healthy"}
 	default:

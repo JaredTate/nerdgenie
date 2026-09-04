@@ -632,22 +632,35 @@ view scrolled up is a window moved by rows, and the blocks at its edges are cut.
 link, feeds it the bytes a terminal sends for the wheel, and checks that the
 mark appears and that the reporting is off by the time it quits.
 
-**The look.** `style.go` holds the DigiByte palette as six hex digits each —
-a light blue ground behind every row, white letters, a pale blue for the quiet
-parts, DigiByte's own blue for the filled shapes, gold for the card that must be
-answered, red for a failure — and turns each of them into escape codes at
-whatever colour depth the terminal reports, stepping from twenty-four bit through
-the two hundred and fifty-six colour cube to the sixteen ordinary colours and
-down to none. The codes are written here rather than by a terminal styling
-library because such a library reports no colour at all when its writer is not a
-terminal, which every test process is. `frame` paints every row out to the
-right-hand edge so the ground has no gaps. `banner.go` draws the `NERD GENIE AGENT`
-wordmark in a five-row block font while the transcript is empty, with the tagline,
-a small filled tag naming the model and what the program is doing, and one line
-saying `type / to see the commands`, which is the only thing on a first frame
-that says where the tasks and the jobs are to be found; `bubble.go`
-draws the person's filled bubble leaning right, the agent's outlined bubble
-leaning left, and a tool call as a small filled pill.
+**The look.** `style.go` holds the DigiByte palette, named once, as five
+colours and nothing else — the dark blue ground `#002352` behind every row,
+white letters, DigiByte's own blue `#0066CC` for the wordmark's GENIE, the
+checklist's rules, the running-task pointer and the filled shapes, with one
+lighter tint `#4DA3FF` of it for small accent text, a desaturated light blue
+`#8FA9CC` for the quiet parts, and a green `#3DDC84` for check marks only; a test
+reads every source file of the package for a hex colour and fails on any other —
+and turns each of them into escape codes at whatever colour depth the terminal
+reports, stepping from twenty-four bit through the two hundred and fifty-six
+colour cube to the sixteen ordinary colours and down to none. The codes are
+written here rather than by a terminal styling library because such a library
+reports no colour at all when its writer is not a terminal, which every test
+process is. `frame` paints every row out to the right-hand edge so the ground has
+no gaps, and `View` also hands Bubble Tea the ground and white as the terminal's
+own background and foreground for the program's lifetime (`tea.View.BackgroundColor`
+and `ForegroundColor`, which the renderer sends as the OSC 11 and 10 colour
+requests and resets on quit), so every cell is dark blue whether or not a row
+painted it; `ground_test.go` proves both on a real pseudo-terminal. Colour never
+carries a meaning alone: `panel.go` draws the side panel as one checklist —
+`JOB 4 · Tater Tots Tetris` (or `TASK 17`), a rule, one row per task with a
+green `✓`, a blue `▶` or a dim `○` and the running task's plan steps indented
+under it alone, a rule, and `1 of 4 done` — so a terminal with no colour reads
+it by the glyphs. `welcome.go` draws the `NERD GENIE` wordmark in a five-row
+block font of its own, NERD white and GENIE blue, while the transcript is empty
+and the area is at least sixty columns by fourteen rows, with the tagline, the
+wish in dim italics, and one line saying `type an ask, or /help`; `header.go`
+draws the same two-colour wordmark on every frame and drops the tagline before
+it cuts the status. `bubble.go` draws the person's filled bubble leaning right,
+the agent's outlined bubble leaning left, and a tool call as a small filled pill.
 
 Time comes from `contract.Clock` and reaches the screen as one heartbeat every
 thirty milliseconds. That heartbeat does three things: it moves the screen's idea

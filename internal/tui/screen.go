@@ -282,13 +282,17 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 // View is what Bubble Tea puts on the terminal: the frame below, on the
 // alternate screen, so that the person's shell is still there when they quit,
-// with the mouse reported cell by cell, so that the terminal sends the wheel.
-// Bubble Tea turns both off again when the screen quits, which leaves the
-// shell as it was found.
+// with the mouse reported cell by cell, so that the terminal sends the wheel,
+// and with the terminal's own background and foreground set to the DigiByte
+// ground and white for as long as the program runs, so that every cell is dark
+// blue whether or not a row painted it. Bubble Tea turns all of it off again
+// when the screen quits and hands the terminal its own colours back, which
+// leaves the shell as it was found.
 func (screen *Screen) View() tea.View {
 	shown := tea.NewView(screen.frame())
 	shown.AltScreen = true
 	shown.MouseMode = tea.MouseModeCellMotion
+	shown.BackgroundColor, shown.ForegroundColor = screen.colors.terminalColors()
 	return shown
 }
 

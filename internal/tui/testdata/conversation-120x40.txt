@@ -1,9 +1,9 @@
- nerdgenie · opus · task 17 running · 6.1k in 0.4k out · $0.04                                                ● healthy 
+ NERDGENIE · the open-source agent harness · opus · task 17 running · 6.1k in 0.4k out · $0.04                ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
                                                                                             │ opus                      
                                                                                             │ 6.1k in 0.4k out · $0.04  
                                                                                             │                           
-                                                                                            │ task 17 running           
+                                                                                            │ TASK 17                   
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           

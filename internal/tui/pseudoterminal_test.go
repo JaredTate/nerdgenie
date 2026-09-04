@@ -115,10 +115,18 @@ type pseudoTerminal struct {
 	far *os.File
 }
 
-// openPseudoTerminal makes one pair with the echo the terminal driver does for
-// itself turned off, so that a letter coming back has come back from the screen
-// and not from the kernel, and closes both sides when the test ends.
+// openPseudoTerminal makes one pair the size every terminal has had since the
+// nineteen seventies.
 func openPseudoTerminal(t *testing.T) *pseudoTerminal {
+	t.Helper()
+	return openPseudoTerminalOfSize(t, fallbackWidth, fallbackHeight)
+}
+
+// openPseudoTerminalOfSize makes one pair of a given size with the echo the
+// terminal driver does for itself turned off, so that a letter coming back has
+// come back from the screen and not from the kernel, and closes both sides when
+// the test ends.
+func openPseudoTerminalOfSize(t *testing.T, columns int, rows int) *pseudoTerminal {
 	t.Helper()
 	near, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
 	if err != nil {
@@ -140,17 +148,16 @@ func openPseudoTerminal(t *testing.T) *pseudoTerminal {
 	if err := turnEchoOff(far); err != nil {
 		t.Fatalf("turning the terminal's own echo off failed, and it would have made this test lie: %v", err)
 	}
-	if err := sayHowBigTheTerminalIs(far); err != nil {
+	if err := sayHowBigTheTerminalIs(far, columns, rows); err != nil {
 		t.Fatalf("telling the pseudo-terminal how big it is failed, and a terminal of no size draws nothing: %v", err)
 	}
 	return &pseudoTerminal{near: near, far: far}
 }
 
-// sayHowBigTheTerminalIs gives the pair the eighty by twenty-four every
-// terminal has had since the nineteen seventies, because a pair the kernel has
+// sayHowBigTheTerminalIs gives the pair a size, because a pair the kernel has
 // just made is no columns wide and no rows tall.
-func sayHowBigTheTerminalIs(far *os.File) error {
-	size := windowSize{rows: fallbackHeight, columns: fallbackWidth}
+func sayHowBigTheTerminalIs(far *os.File, columns int, rows int) error {
+	size := windowSize{rows: uint16(rows), columns: uint16(columns)}
 	_, _, failed := syscall.Syscall(
 		syscall.SYS_IOCTL,
 		far.Fd(),
@@ -227,17 +234,22 @@ func turnEchoOff(far *os.File) error {
 // its screen, and the terminal it is in charge of.
 func startTheScreenOnTheFarSide(t *testing.T, terminal *pseudoTerminal) *exec.Cmd {
 	t.Helper()
-	child := exec.Command(os.Args[0], "-test.run=^"+helperTestName+"$", "-test.timeout=1m")
-	// The child gets a plain environment of its own rather than this test's,
-	// because a terminal library refuses to ask a terminal anything while CI is
-	// set, and a test that quietly stops proving what it was written for is
-	// worse than no test at all.
-	child.Env = []string{
-		helperSetting + "=1",
-		"TERM=xterm-256color",
-		"HOME=" + t.TempDir(),
-		"PATH=" + os.Getenv("PATH"),
-	}
+	return startTheHelper(t, terminal, helperTestName, []string{helperSetting + "=1", "TERM=xterm-256color"})
+}
+
+// startTheHelper runs one named test of this binary as a child on the far side
+// of the pseudo-terminal, with the settings given and nothing else of this
+// test's environment. The child gets a plain environment of its own, because a
+// terminal library refuses to ask a terminal anything while CI is set, and a
+// test that quietly stops proving what it was written for is worse than no
+// test at all.
+func startTheHelper(t *testing.T, terminal *pseudoTerminal, testName string, settings []string) *exec.Cmd {
+	t.Helper()
+	child := exec.Command(os.Args[0], "-test.run=^"+testName+"$", "-test.timeout=1m")
+	child.Env = append(settings,
+		"HOME="+t.TempDir(),
+		"PATH="+os.Getenv("PATH"),
+	)
 	child.Stdin, child.Stdout, child.Stderr = terminal.far, terminal.far, terminal.far
 	child.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
 	if err := child.Start(); err != nil {

@@ -186,7 +186,7 @@ func (screen *Screen) visibleTranscript(height int) []string {
 		return []string{}
 	}
 	if len(screen.blocks) == 0 {
-		return screen.bannerRows(height)
+		return screen.welcomeRows(height)
 	}
 	gathered := screen.newestRows(height+screen.scrollBack, !screen.scrolledUp())
 	screen.scrollBack = min(screen.scrollBack, max(len(gathered)-height, 0))

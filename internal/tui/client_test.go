@@ -192,6 +192,34 @@ func TestTheClientAttachesAndPassesOnWhatTheProgramSays(t *testing.T) {
 	}
 }
 
+func TestClosingTheWindowDetachesAndNeverStopsTheTask(t *testing.T) {
+	// Closing the terminal window is the person walking away from a task that is
+	// still running: the screen tells the program to stop sending it the stream,
+	// never to stop the task, so that the task is there to reattach to. The last
+	// thing the screen says on its way out is a detach, and it is never a stop.
+	clock := testkitClock()
+	dialer := newFakeDialer()
+	client := NewClient(dialer, clock)
+	events := client.Start()
+
+	socket := dialer.nextLink(t)
+	if up, isLink := nextEvent(t, events).(linkMessage); !isLink || !up.up {
+		t.Fatal("the client did not say the link was up once it had dialled")
+	}
+
+	client.Close()
+
+	sent := socket.everySent()
+	if len(sent) == 0 || sent[len(sent)-1].Type != contract.SocketDetach {
+		t.Fatalf("closing the window sent %+v, and the last thing it sends is a detach", sent)
+	}
+	for _, envelope := range sent {
+		if envelope.Type == contract.SocketCommand && envelope.Text == "stop" {
+			t.Error("closing the window sent a stop command, and closing a window must never end the running task")
+		}
+	}
+}
+
 func TestTheClientDialsAgainAfterTheLinkDrops(t *testing.T) {
 	clock := testkitClock()
 	dialer := newFakeDialer()

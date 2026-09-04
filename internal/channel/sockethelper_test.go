@@ -48,17 +48,32 @@ func newSocketHarness(t *testing.T) *socketHarness {
 // chooses, which is how a test listens the way the shipped caps do, with none.
 func newSocketHarnessWith(t *testing.T, answerDeadline time.Duration) *socketHarness {
 	t.Helper()
+	return newSocketHarnessReporting(t, answerDeadline, nil)
+}
+
+// newSocketHarnessReporting is the same harness over a stream that reports the
+// status the test gives it, which is how a test watches a screen attach to an
+// agent that already has a task running: the status carries the running task's
+// record line, exactly as cmd/coeus fills it in. A nil status is a stream with
+// nothing to say about itself, which is what every other harness wants.
+func newSocketHarnessReporting(t *testing.T, answerDeadline time.Duration, status func() map[string]string) *socketHarness {
+	t.Helper()
 	folder, err := os.MkdirTemp("", "coeus-socket")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the socket: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(folder) })
 
+	clock := testkit.NewFakeClock(arrived)
+	streamOptions := StreamOptions{}
+	if status != nil {
+		streamOptions = StreamOptions{Clock: clock, Status: status}
+	}
 	harness := &socketHarness{
 		path:    filepath.Join(folder, "coeus.sock"),
 		queue:   newTestQueue(t, 10),
-		stream:  NewStream(StreamOptions{}),
-		clock:   testkit.NewFakeClock(arrived),
+		stream:  NewStream(streamOptions),
+		clock:   clock,
 		secrets: testkit.NewFakeSecrets(),
 		served:  make(chan error, 1),
 	}

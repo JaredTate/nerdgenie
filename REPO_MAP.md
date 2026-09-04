@@ -225,6 +225,7 @@ internal/channel/channel.go
 internal/channel/client.go
 internal/channel/deltas.go
 internal/channel/deltas_test.go
+internal/channel/detach_test.go
 internal/channel/doc.go
 internal/channel/fuzz_test.go
 internal/channel/integration_test.go

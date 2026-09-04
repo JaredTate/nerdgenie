@@ -30,7 +30,7 @@ package context
 // words "name it" that tell the model to name a job then went in with nothing
 // taken out, and text and heading stood at 497 by the test's count. The plan
 // cap went in on the same trade as the done-list cap it sits beside: saying
-// that a plan over eight steps is refused too cost six words, and six came
+// that a plan over ten steps is refused too cost six words, and six came
 // out, none of them a rule — "into anything" after "never type a password",
 // "and last" for "then" in the list of what the prompt holds, "keep going" for
 // "continue", the "first" that the ask-me-first list already says, and "any
@@ -49,7 +49,7 @@ const InstructionText = "" +
 	"\n" +
 	"**Your part of the record.** Use the `task` tool, in the same reply as your other calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. The harness fills in the rest; you cannot change the ask or a correction.\n" +
 	"\n" +
-	"**Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, name it, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines, or a plan over eight steps, is refused: that ask is a job. The harness runs them one at a time, reporting after each.\n" +
+	"**Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, name it, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines, or a plan over ten steps, is refused: that ask is a job. The harness runs them one at a time, reporting after each.\n" +
 	"\n" +
 	"**When to stop.** Stop when any \"stop and tell the user\" condition is true, and say which; otherwise continue until every \"done\" line is true or the budget runs out. Every done line must point at the result proving it. To ask the user something, say it in plain text and end your reply.\n" +
 	"\n" +

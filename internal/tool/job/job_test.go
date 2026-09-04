@@ -61,6 +61,7 @@ func TestAJobWithNoScheduleIsCreatedAndItsTasksAreAddedAndListed(t *testing.T) {
 		"action": "create",
 		"ask":    "write up the release notes for every version this year",
 		"why":    "the user wants one page per release",
+		"text":   "gather the versions, done when the list is written",
 	})
 	if err != nil {
 		t.Fatalf("creating a job failed: %v", err)
@@ -74,8 +75,8 @@ func TestAJobWithNoScheduleIsCreatedAndItsTasksAreAddedAndListed(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("adding a task failed: %v", err)
 	}
-	if tasks := jobs.Tasks("1"); len(tasks) != 1 {
-		t.Fatalf("the job holds %d tasks, want the one that was added", len(tasks))
+	if tasks := jobs.Tasks("1"); len(tasks) != 2 {
+		t.Fatalf("the job holds %d tasks, want the first task and the one that was added", len(tasks))
 	}
 
 	listed, err := run(t, tool, map[string]any{"action": "list"})
@@ -83,6 +84,60 @@ func TestAJobWithNoScheduleIsCreatedAndItsTasksAreAddedAndListed(t *testing.T) {
 		t.Fatalf("listing the jobs failed: %v", err)
 	}
 	testkit.Golden(t, "the_jobs.txt", []byte(listed.Text))
+}
+
+func TestACreateWithNoFirstTaskIsRefusedAndNamesTask(t *testing.T) {
+	tool, jobs := newTool(t)
+
+	_, err := run(t, tool, map[string]any{
+		"action": "create",
+		"ask":    "build a whole tetris game i can play in the terminal",
+		"why":    "the user wants to play tetris",
+	})
+	if err == nil {
+		t.Fatalf("a create with no first task was allowed to make an empty job")
+	}
+	if !strings.Contains(err.Error(), "task") {
+		t.Errorf("the refusal reads %q and does not tell the model to name a task", err)
+	}
+	if summaries, listErr := jobs.List(context.Background()); listErr != nil {
+		t.Fatalf("listing failed: %v", listErr)
+	} else if len(summaries) != 0 {
+		t.Errorf("the refused create still left %d jobs behind", len(summaries))
+	}
+}
+
+func TestACreateWithAFirstTaskStartsItUnderTheJob(t *testing.T) {
+	tool, jobs := newTool(t)
+
+	out, err := run(t, tool, map[string]any{
+		"action": "create",
+		"ask":    "build a whole tetris game i can play in the terminal",
+		"why":    "the user wants to play tetris",
+		"text":   "set up the game board, done when the empty grid renders",
+	})
+	if err != nil {
+		t.Fatalf("creating a job with a first task failed: %v", err)
+	}
+
+	tasks := jobs.Tasks("1")
+	if len(tasks) != 1 {
+		t.Fatalf("the new job holds %d tasks, want the one first task", len(tasks))
+	}
+	if tasks[0].Done {
+		t.Errorf("the first task is already marked done, want it left to work")
+	}
+	if !strings.Contains(out.Text, tasks[0].TaskID) {
+		t.Errorf("creating a job said %q and did not name the task it started", out.Text)
+	}
+
+	summaries, err := jobs.List(context.Background())
+	if err != nil {
+		t.Fatalf("listing failed: %v", err)
+	}
+	if len(summaries) != 1 || summaries[0].NextTaskID != tasks[0].TaskID {
+		t.Errorf("the job's next task is %q, want the first task %q", summaries[0].NextTaskID, tasks[0].TaskID)
+	}
 }
 
 func TestAJobWithAScheduleKeepsIt(t *testing.T) {
@@ -108,7 +163,9 @@ func TestAJobWithAScheduleKeepsIt(t *testing.T) {
 
 func TestATaskWithADateWaitsForIt(t *testing.T) {
 	tool, jobs := newTool(t)
-	if _, err := run(t, tool, map[string]any{"action": "create", "ask": "the ask", "why": "the why"}); err != nil {
+	if _, err := run(t, tool, map[string]any{
+		"action": "create", "ask": "the ask", "why": "the why", "text": "the first task",
+	}); err != nil {
 		t.Fatalf("creating a job failed: %v", err)
 	}
 
@@ -118,8 +175,12 @@ func TestATaskWithADateWaitsForIt(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("adding a task with a date failed: %v", err)
 	}
-	if tasks := jobs.Tasks("1"); len(tasks) != 1 || tasks[0].DueAt == "" {
-		t.Errorf("the task on the list is %v, want one that waits for its date", tasks)
+	tasks := jobs.Tasks("1")
+	if len(tasks) != 2 {
+		t.Fatalf("the job holds %d tasks, want the first task and the dated one", len(tasks))
+	}
+	if tasks[1].DueAt == "" {
+		t.Errorf("the dated task on the list is %v, want one that waits for its date", tasks[1])
 	}
 }
 

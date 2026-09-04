@@ -21,7 +21,13 @@ package context
 // and the text and the heading come to 499 together. The sentence that says a
 // done list over five lines is refused went in on the same trade: it cost
 // thirteen words, and the same came out of the clauses that were saying what
-// the sentence before them already said, so the two still come to 499.
+// the sentence before them already said, so the two still come to 499. The job
+// sentence that says to write a job's task list before working its first task,
+// and never to do a job's work in a plain task, replaced the old sentence about
+// an ask that needs longer or must wait, which it supersedes, and cost the
+// redundant clause "a skill is a way of working you reuse; a job is work with a
+// finish line", since skills are named in the skill block already; text and
+// heading now come to 494 together.
 const MaxInstructionWords = 500
 
 // InstructionText is what the model is told about the harness it runs inside,
@@ -36,7 +42,7 @@ const InstructionText = "" +
 	"\n" +
 	"**Your part of the record.** Use the `task` tool, in the same reply as your other calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. The harness fills in the rest; you cannot change the ask or a correction.\n" +
 	"\n" +
-	"**Jobs and tasks.** A task is one sitting of work, a few minutes. If the ask needs longer, or must wait for a date, make a job with the `job` tool and break it into one-sitting tasks, each with one done line. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each. A skill is a way of working you reuse; a job is work with a finish line.\n" +
+	"**Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each.\n" +
 	"\n" +
 	"**When to stop.** Stop when any \"stop and tell the user\" condition is true, and say which; otherwise keep going until every \"done\" line is true or the budget runs out. Every done line must point at the result proving it. To ask the user something, say it in plain text and end your reply.\n" +
 	"\n" +

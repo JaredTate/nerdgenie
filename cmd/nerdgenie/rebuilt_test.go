@@ -101,10 +101,12 @@ func TestTheMemoryOfAWaitingTaskIsRebuiltFromTheLog(t *testing.T) {
 }
 
 // TestATaskThatEndedIsNotRebuiltIntoTheMemory proves only a task somebody can
-// pick up is remembered: a finished or failed task takes no message, and a task
-// still marked running was cut off by the very stop being recovered from.
+// pick up is remembered: a finished task takes no message, and a task still
+// marked running was cut off by the very stop being recovered from. A failed
+// task is not among these, because a failure is a stop the agent did not choose
+// and "continue" must pick it up again.
 func TestATaskThatEndedIsNotRebuiltIntoTheMemory(t *testing.T) {
-	for _, standing := range []contract.RecordStatus{contract.StatusDone, contract.StatusFailed, contract.StatusRunning} {
+	for _, standing := range []contract.RecordStatus{contract.StatusDone, contract.StatusRunning} {
 		store := testkit.NewFakeStore()
 		aTaskInTheLog(t, store, "3", fromTheTerminal, standing)
 
@@ -113,6 +115,23 @@ func TestATaskThatEndedIsNotRebuiltIntoTheMemory(t *testing.T) {
 		if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
 			t.Errorf("a task the log says is %s was picked up as %q after the restart", standing, picked)
 		}
+	}
+}
+
+// TestAFailedTaskIsRebuiltFromTheLog proves a task cut off by an error before a
+// restart is picked up again by "continue" under the number it already had,
+// rather than starting a fresh task, so a crash mid-task loses no work.
+func TestAFailedTaskIsRebuiltFromTheLog(t *testing.T) {
+	store := testkit.NewFakeStore()
+	aTaskInTheLog(t, store, "9", fromTheTerminal, contract.StatusFailed)
+
+	remembered := rebuilt(t, store)
+
+	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "9" {
+		t.Errorf("continue after the restart picked up %q, want task 9, which the log says failed", picked)
+	}
+	if picked := remembered.taskToCarryOn(theTerminalScreen, "start something else"); picked != "" {
+		t.Errorf("a new ask after the restart picked up task %q, and a failed task is carried on only by the words for it", picked)
 	}
 }
 

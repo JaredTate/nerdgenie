@@ -104,10 +104,12 @@ func (tasks *screenTasks) remember(screen string, outcome loop.Outcome) {
 // empty when the message starts a fresh task.
 //
 // A waiting task is carried on by any message at all, because the model asked a
-// question and whatever the person typed next is the answer to it. A stopped
-// task is carried on only when the person says one of the few words that mean
-// "pick it up", because a stopped task takes no answer and the next thing a
-// person types is usually a new ask.
+// question and whatever the person typed next is the answer to it. A stopped or
+// a failed task is carried on only when the person says one of the few words
+// that mean "pick it up", because neither takes an answer and the next thing a
+// person types is usually a new ask. A failure is a stop the agent did not
+// choose, so it is picked up again the same way a stop is: the work behind it is
+// not lost, and "continue" resumes it under the number it already had.
 func (tasks *screenTasks) taskToCarryOn(screen string, said string) string {
 	tasks.guard.Lock()
 	defer tasks.guard.Unlock()
@@ -119,7 +121,7 @@ func (tasks *screenTasks) taskToCarryOn(screen string, said string) string {
 	switch last.status {
 	case contract.StatusWaiting:
 		return last.number
-	case contract.StatusStopped:
+	case contract.StatusStopped, contract.StatusFailed:
 		if saysCarryOn(said) {
 			return last.number
 		}
@@ -143,11 +145,54 @@ func saysCarryOn(said string) bool {
 	return slices.Contains(theWordsForCarryingOn, trimmed)
 }
 
+// theStatusQuestions are the whole messages that ask only where the work stands.
+// A person who wants to know what is happening says one of these and nothing
+// else; anything longer, such as "update the readme to say where we are", is a
+// real ask and is handled as one. Each is stored without an apostrophe and in
+// lower case, because normalizeQuestion strips both before it looks a message up
+// here.
+var theStatusQuestions = []string{
+	"status",
+	"status update",
+	"update",
+	"update me",
+	"any update",
+	"where are we",
+	"where are we at",
+	"where do we stand",
+	"what happened",
+	"whats happening",
+	"whats the status",
+	"whats the update",
+	"hows it going",
+	"progress",
+}
+
+// saysStatusQuestion says whether the whole message is one of the ways of asking
+// where the work stands, whatever case it was typed in, whether or not its
+// apostrophes are there, however its words are spaced, and whatever punctuation
+// it ends with. A message that only holds one of these words as part of a longer
+// ask is not one, because the whole of it must match.
+func saysStatusQuestion(said string) bool {
+	return slices.Contains(theStatusQuestions, normalizeQuestion(said))
+}
+
+// normalizeQuestion folds a message to the plain form the status questions are
+// stored in: lower case, apostrophes removed so that "what's" reads as "whats",
+// its words joined by single spaces, and any trailing punctuation dropped.
+func normalizeQuestion(said string) string {
+	lowered := strings.ToLower(said)
+	lowered = strings.ReplaceAll(lowered, "’", "")
+	lowered = strings.ReplaceAll(lowered, "'", "")
+	collapsed := strings.Join(strings.Fields(lowered), " ")
+	return strings.TrimRight(collapsed, ".!?")
+}
+
 // rememberedFromTheLog rebuilds the memory of what each screen was last doing
 // out of the event log, which is what a restart would otherwise have forgotten:
-// for each screen, the newest task whose record stands at waiting or stopped,
-// so that "continue" after a restart picks that task up under the number it
-// already had rather than starting a fresh one.
+// for each screen, the newest task whose record stands at waiting, stopped, or
+// failed, so that "continue" after a restart picks that task up under the number
+// it already had rather than starting a fresh one.
 //
 // The log says where each task stands in its newest checkpoint, and whose it is
 // in the ask written under its number. A task whose ask is not there is passed
@@ -184,10 +229,12 @@ type numberedTask struct {
 }
 
 // tasksToPickUp reads the log once and returns every task whose record stands at
-// waiting or stopped, oldest first, which is what the newest checkpoint of each
-// task says. A job's checkpoints are left out, because a job's key begins with a
-// letter and a task's is its number, and a checkpoint that does not read as a
-// record is passed over rather than stopping the rebuild.
+// waiting, stopped, or failed, oldest first, which is what the newest checkpoint
+// of each task says. A failed task is among them because a failure is a stop the
+// agent did not choose and "continue" must pick it up again after a restart. A
+// job's checkpoints are left out, because a job's key begins with a letter and a
+// task's is its number, and a checkpoint that does not read as a record is
+// passed over rather than stopping the rebuild.
 func tasksToPickUp(ctx context.Context, store contract.Store) ([]numberedTask, error) {
 	saved, err := store.ByKind(ctx, contract.EventCheckpoint)
 	if err != nil {
@@ -214,7 +261,8 @@ func tasksToPickUp(ctx context.Context, store contract.Store) ([]numberedTask, e
 		if err != nil {
 			continue
 		}
-		if held.Header.Status == contract.StatusWaiting || held.Header.Status == contract.StatusStopped {
+		switch held.Header.Status {
+		case contract.StatusWaiting, contract.StatusStopped, contract.StatusFailed:
 			found = append(found, numberedTask{number: number, status: held.Header.Status})
 		}
 	}

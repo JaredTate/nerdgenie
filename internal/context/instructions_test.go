@@ -59,6 +59,19 @@ func TestTheInstructionTextSaysSeveralCallsMayRideInOneReply(t *testing.T) {
 	}
 }
 
+// TestTheInstructionTextSaysAJobIsPlannedThenWorked proves the instruction text
+// tells the model that work of many features, or work that must wait for a date,
+// is a job written with its task list before its first task is worked, and never
+// done as a plain task. Without this a model given a whole game builds it inside
+// one task, whose done list cannot prove it and whose record it overruns.
+func TestTheInstructionTextSaysAJobIsPlannedThenWorked(t *testing.T) {
+	for _, said := range []string{"Work of many features", "must wait for a date", "task list first", "never do a job's work in a plain task"} {
+		if !strings.Contains(InstructionText, said) {
+			t.Errorf("the instruction text does not say %q, so the model is never told to plan a job before working it", said)
+		}
+	}
+}
+
 // instructionTextInTheDesign reads the block quote under section 5 of the design
 // and takes the quote marks off, which leaves exactly the text the model is sent.
 func instructionTextInTheDesign(t *testing.T) string {

@@ -33,6 +33,9 @@ const (
 	BlockTools = "tools"
 	// BlockJob holds the summary of the job the task belongs to.
 	BlockJob = "job summary"
+	// BlockRecentWork holds a few lines on the tasks most recently finished or
+	// set down, for the times the current record is empty.
+	BlockRecentWork = "recent work"
 	// BlockRecord holds the record's goal and rules.
 	BlockRecord = "record goal and rules"
 )
@@ -102,6 +105,11 @@ type BuildInput struct {
 	// JobSummary is the job's goal, rules, and task list, printed by the record
 	// package, or empty when the task stands on its own.
 	JobSummary string
+	// RecentWork is a few just-finished or set-down tasks, newest first, so the
+	// model can say where things stand when the current record is empty. It
+	// rides above the record in the caching part of the prompt because it holds
+	// still through a sitting. Empty leaves the prompt byte-for-byte as it was.
+	RecentWork []RecentTask
 	// Pinned is the evidence that never leaves the window.
 	Pinned []Pin
 	// Messages are the recent messages and tool results, oldest first.
@@ -215,10 +223,24 @@ func (builder *Builder) systemBlocks(persona string, input BuildInput, stable st
 			Name: BlockJob, Text: jobHeading + "\n\n" + input.JobSummary,
 		})
 	}
+	if len(input.RecentWork) > 0 {
+		blocks = append(blocks, contract.SystemBlock{
+			Name: BlockRecentWork, Text: recentWorkHeading + "\n\n" + recentWorkText(input.RecentWork),
+		})
+	}
 	if stable != "" {
 		blocks = append(blocks, contract.SystemBlock{
-			Name: BlockRecord, Text: recordFirstHalfHeading + "\n\n" + stable, Boundary: contract.CacheBoundaryC,
+			Name: BlockRecord, Text: recordFirstHalfHeading + "\n\n" + stable,
 		})
+	}
+	// Cache boundary C ends the stable prefix. It falls on the record's goal and
+	// rules; when there is no record yet it falls on the recent-work block
+	// instead, so a "where are we" turn with an empty record still keeps that
+	// list in the cached prefix. With neither present the prefix ends at the
+	// tools and their boundary B, and the job summary, as before, never carries
+	// C on its own.
+	if last := len(blocks) - 1; blocks[last].Name == BlockRecord || blocks[last].Name == BlockRecentWork {
+		blocks[last].Boundary = contract.CacheBoundaryC
 	}
 	return blocks
 }

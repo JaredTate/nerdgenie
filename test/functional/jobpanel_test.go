@@ -33,16 +33,14 @@ func aJobOfTwoTasksMadeByTheModel(_ string) testkit.Script {
 			Text:   "This needs two sittings, so I will make a job.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{{ID: "call-job", Name: contract.ToolJob, Input: json.RawMessage(
-				`{"action":"create","ask":"` + theAskThatIsAJob + `","why":"the user wants the campaign run and summed up"}`)}},
+				`{"action":"create","ask":"` + theAskThatIsAJob + `","why":"the user wants the campaign run and summed up","text":"post the tweet"}`)}},
 			Usage: contract.Usage{InputTokens: 400, OutputTokens: 20},
 		},
 		{
 			Expect: []string{"created job " + theJobTheModelMakes},
-			Text:   "I will give the job its two tasks.",
+			Text:   "The job made its first task; I will add the second.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{
-				{ID: "call-task-one", Name: contract.ToolJob, Input: json.RawMessage(
-					`{"action":"add_task","job_id":"` + theJobTheModelMakes + `","text":"post the tweet"}`)},
 				{ID: "call-task-two", Name: contract.ToolJob, Input: json.RawMessage(
 					`{"action":"add_task","job_id":"` + theJobTheModelMakes + `","text":"write the summary for the user"}`)},
 				{ID: "call-task", Name: contract.ToolTask, Input: json.RawMessage(

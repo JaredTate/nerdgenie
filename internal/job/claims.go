@@ -10,9 +10,17 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
 )
+
+// ownerPrefix is what stands before the process number in a claim's owner, so
+// that the process a claim belongs to can be asked after when the store opens.
+const ownerPrefix = "process "
 
 // claimsTable is the one table this package owns in the shared database file.
 // One row is one task that some process is running now.
@@ -31,6 +39,70 @@ func (jobs *Jobs) createTables(ctx context.Context) error {
 		return fmt.Errorf("cannot make the table of job claims in %s: %w", jobs.home.DatabaseFile(), err)
 	}
 	return nil
+}
+
+// releaseTheClaimsOfProcessesThatAreGone gives up every claim held by a process
+// that is no longer running, which is what a process that died or was restarted
+// in the middle of a task leaves behind. Without this the task it was running
+// sat claimed for the hour of its budget, and a job cut off by a restart stood
+// still for that hour. A claim held by a process that is still running is left
+// alone, because a second store opened beside a live one, as the integration
+// tests open, must not take a task away from it. The job a released claim
+// belongs to is not touched: one the person put down stays paused on its task.
+func (jobs *Jobs) releaseTheClaimsOfProcessesThatAreGone(ctx context.Context) error {
+	owners, err := jobs.claimOwners(ctx)
+	if err != nil {
+		return err
+	}
+	for _, owner := range owners {
+		if processIsRunning(owner) {
+			continue
+		}
+		if _, err := jobs.database.ExecContext(ctx, `DELETE FROM job_claims WHERE owner = ?`, owner); err != nil {
+			return fmt.Errorf("cannot release the claims left behind by %s: %w", owner, err)
+		}
+	}
+	return nil
+}
+
+// claimOwners is every process named on a claim, each once.
+func (jobs *Jobs) claimOwners(ctx context.Context) ([]string, error) {
+	rows, err := jobs.database.QueryContext(ctx, `SELECT DISTINCT owner FROM job_claims ORDER BY owner`)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read whose claims the table holds: %w", err)
+	}
+	defer rows.Close()
+
+	owners := []string{}
+	for rows.Next() {
+		owner := ""
+		if err := rows.Scan(&owner); err != nil {
+			return nil, fmt.Errorf("cannot read the owner of a claim: %w", err)
+		}
+		owners = append(owners, owner)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("cannot read the owners of the claims to the end: %w", err)
+	}
+	return owners, nil
+}
+
+// processIsRunning says whether the process a claim was taken under is still
+// running. The kernel is asked with the signal that sends nothing: it answers
+// that there is no such process, or that there is one, whether or not it is
+// ours to signal. A name that is not a process number at all is nobody's,
+// because nothing can be asked whether it lives.
+func processIsRunning(owner string) bool {
+	number, isAProcess := strings.CutPrefix(owner, ownerPrefix)
+	if !isAProcess {
+		return false
+	}
+	pid, err := strconv.Atoi(number)
+	if err != nil || pid < 1 {
+		return false
+	}
+	err = syscall.Kill(pid, 0)
+	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
 // claim takes one task for this process and says whether it won. The whole of

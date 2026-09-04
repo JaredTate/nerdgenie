@@ -195,12 +195,16 @@ func (jobs *Jobs) Close() error {
 }
 
 // prepare checks that the file really is the event log's file, makes this
-// package's own table, and rebuilds every job from the log.
+// package's own table, lets go of the claims a process that is gone left in
+// it, and rebuilds every job from the log.
 func (jobs *Jobs) prepare(ctx context.Context) error {
 	if err := jobs.checkTheEventLogIsThere(ctx); err != nil {
 		return err
 	}
 	if err := jobs.createTables(ctx); err != nil {
+		return err
+	}
+	if err := jobs.releaseTheClaimsOfProcessesThatAreGone(ctx); err != nil {
 		return err
 	}
 	return jobs.rebuild(ctx)
@@ -224,9 +228,11 @@ func (jobs *Jobs) checkTheEventLogIsThere(ctx context.Context) error {
 }
 
 // thisProcess is the name a claim is taken under. Two copies of the agent have
-// two process numbers, which is all a claim needs to tell them apart.
+// two process numbers, which is all a claim needs to tell them apart, and the
+// number is what the next store to open asks after to know whether the claim's
+// process is still running.
 func thisProcess() string {
-	return "process " + strconv.Itoa(os.Getpid())
+	return ownerPrefix + strconv.Itoa(os.Getpid())
 }
 
 // jobNumber reads a job identifier as the whole number it is, and says no to

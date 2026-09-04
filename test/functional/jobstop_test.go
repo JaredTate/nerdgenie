@@ -76,9 +76,9 @@ func TestAStopOnAJobsTaskKeepsTheJobOnThatTaskAndContinuePicksItUp(t *testing.T)
 	screen := agent.attach(t)
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatIsAJob})
 
-	// The job driver starts the first task within the minute its timer is
-	// clamped to, and the stop lands while that task is busy in its tool.
-	first := screen.waitForStatusWhere(t, 120*time.Second, func(fields map[string]string) bool {
+	// A job made wakes the job driver, so the first task starts within a few
+	// seconds, and the stop lands while that task is busy in its tool.
+	first := screen.waitForStatusWhere(t, theTimeAJobsFirstTaskIsGiven, func(fields map[string]string) bool {
 		return fields[contract.StatusFieldJob] == theJobTheModelMakes &&
 			fields[contract.StatusFieldJobTask] == "t1" &&
 			strings.Contains(fields[contract.StatusFieldToolLine], contract.ToolShell)
@@ -118,7 +118,7 @@ func TestAStopOnAJobsTaskKeepsTheJobOnThatTaskAndContinuePicksItUp(t *testing.T)
 	if listed := second.Fields[contract.StatusFieldJobTasks]; !strings.HasPrefix(listed, "[x] t1 post the tweet\n[ ] t2 ") {
 		t.Errorf("while the second task runs the status carries the task list:\n%s\nwant the first task marked done", listed)
 	}
-	screen.waitForReplySaying(t, "has run every task", 90*time.Second)
+	screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)
 }
 
 // theJobStaysOnTheStoppedTask asks the job store, through the two listing

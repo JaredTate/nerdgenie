@@ -179,7 +179,7 @@ Failures:
 
 ### The job record
 
-A task is one sitting of work: thirty seconds to an hour. There is no budget on a task unless the user sets one, so nothing stops a task but its own ending; a task that would run all day is a job. When the model sees that an ask cannot be finished in one sitting, or that part of the work has to wait for a date, it makes a job. The harness holds the line where it can: a task's done list is at most five lines, and the `task` tool refuses a longer one with a message saying this ask is a job and to make it with the `job` tool, one task per done line. A job has the same four parts as a task, and the same rules. The differences are that its plan is a list of tasks instead of a list of steps, and its results are the reports of the tasks that have finished. Here is a job record.
+A task is one sitting of work: thirty seconds to an hour. There is no budget on a task unless the user sets one, so nothing stops a task but its own ending; a task that would run all day is a job. When the model sees that an ask has many features, cannot be finished in one sitting, or has a part that must wait for a date, it makes a job: it writes the job's task list first, then works the first task, rather than doing a job's work in a plain task. The harness holds the line where it can: a task's done list is at most five lines, and the `task` tool refuses a longer one with a message saying this ask is a job and to make it with the `job` tool, one task per done line. A job has the same four parts as a task, and the same rules. The differences are that its plan is a list of tasks instead of a list of steps, and its results are the reports of the tasks that have finished. Here is a job record.
 
 ```
 # job 4   running   from Signal   3 of 12 tasks done   next: task 31 today at 14:00
@@ -274,7 +274,7 @@ The model works inside a harness. It cannot do its job well unless it understand
 >
 > **Your part of the record.** Use the `task` tool, in the same reply as your other calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. The harness fills in the rest; you cannot change the ask or a correction.
 >
-> **Jobs and tasks.** A task is one sitting of work, a few minutes. If the ask needs longer, or must wait for a date, make a job with the `job` tool and break it into one-sitting tasks, each with one done line. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each. A skill is a way of working you reuse; a job is work with a finish line.
+> **Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each.
 >
 > **When to stop.** Stop when any "stop and tell the user" condition is true, and say which; otherwise keep going until every "done" line is true or the budget runs out. Every done line must point at the result proving it. To ask the user something, say it in plain text and end your reply.
 >

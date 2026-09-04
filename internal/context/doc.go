@@ -7,9 +7,12 @@
 // it in the order design section 4 lays out, from the part that changes least to
 // the part that changes most: the harness rules, SOUL.md and the list of skills,
 // ending cache boundary A; the tools, ending boundary B; the summary of the job
-// when the task belongs to one; and the record's goal and rules, ending boundary
-// C. Everything above boundary C goes into the system prompt and is
-// byte-identical from one turn to the next, so the provider can reuse it.
+// when the task belongs to one; a few recent tasks when the caller passes them,
+// for the times the current record is empty; and the record's goal and rules.
+// Boundary C ends this stable prefix, on the record's goal and rules or, when
+// there is no record yet, on the recent-work block instead. Everything above
+// boundary C goes into the system prompt and is byte-identical from one turn to
+// the next, so the provider can reuse it.
 //
 // Everything below that line is ordered by one question: does this block only
 // grow at its end, or is it written anew? A prompt cache keeps what two calls

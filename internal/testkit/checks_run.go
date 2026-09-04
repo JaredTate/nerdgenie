@@ -292,6 +292,37 @@ func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, jobID string, t
 	if _, err := jobs.Load(ctx, "no-such-job"); err == nil {
 		return errors.New("loading a job that is not there returned no error, and it must name what is missing")
 	}
+	return checkJobClosesOnItsTasks(ctx, jobs, jobID, reportID)
+}
+
+// checkJobClosesOnItsTasks is the last part of CheckJob: the one task was the
+// job's last, and a job the model gave no done list closes when its last task
+// finishes on one done line per task, each pointing at that task's report. A
+// store that never closes such a job leaves every job waiting forever, and one
+// that closes it with nothing behind the done list has said done without proof.
+func checkJobClosesOnItsTasks(ctx context.Context, jobs contract.Job, jobID string, reportID string) error {
+	listed, err := jobs.List(ctx)
+	if err != nil {
+		return fmt.Errorf("listing the jobs after the last task finished failed: %w", err)
+	}
+	for _, summary := range listed {
+		if summary.ID == jobID && summary.State != contract.JobDone {
+			return fmt.Errorf("the job is %q after its last task finished, want %q, because a job with no done list of its own closes on one done line per task", summary.State, contract.JobDone)
+		}
+	}
+	record, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("loading the finished job failed: %w", err)
+	}
+	if record.Header.Status != contract.StatusDone {
+		return fmt.Errorf("the finished job's record stands at %q, want %q", record.Header.Status, contract.StatusDone)
+	}
+	if len(record.Goal.DoneWhen) != 1 {
+		return fmt.Errorf("the finished job's done list is %+v, want one line for its one task", record.Goal.DoneWhen)
+	}
+	if line := record.Goal.DoneWhen[0]; !line.Done || line.ResultID != reportID {
+		return fmt.Errorf("the finished job's done line is %+v, want it proved by the task's report %s", line, reportID)
+	}
 	return nil
 }
 

@@ -30,6 +30,9 @@ type fakeJobEntry struct {
 	template string
 	tasks    []fakeTask
 	reports  []contract.ResultLine
+	// doneWhen is the done list the fake writes when the job closes: one line
+	// per task, pointing at that task's report, the rule the real store keeps.
+	doneWhen []contract.DoneLine
 }
 
 // FakeJob holds jobs in memory: create one, add tasks to it, list them, change
@@ -211,9 +214,21 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 	}
 	entry.summary.NextTaskID = jobs.firstUnfinished(entry)
 	if entry.summary.NextTaskID == "" && entry.schedule == nil && entry.summary.State == contract.JobRunning {
-		entry.summary.State = contract.JobDone
+		jobs.closeOnADoneLinePerTask(entry)
 	}
 	return reportID, nil
+}
+
+// closeOnADoneLinePerTask closes a job whose last task is done, writing one
+// done line per task, each pointing at that task's report, which is the rule
+// the real store keeps so that a job the model gave no done list can still
+// finish. The caller holds the lock.
+func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
+	entry.doneWhen = nil
+	for _, task := range entry.tasks {
+		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+	}
+	entry.summary.State = contract.JobDone
 }
 
 // Load returns the job as a record: the same four parts as a task, with the
@@ -239,7 +254,10 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			TasksTotal: entry.summary.TasksTotal,
 			NextDue:    jobs.nextDueLine(entry),
 		},
-		Goal:    contract.Goal{Ask: entry.ask, Name: entry.name, Why: entry.why},
+		Goal: contract.Goal{
+			Ask: entry.ask, Name: entry.name, Why: entry.why,
+			DoneWhen: append([]contract.DoneLine(nil), entry.doneWhen...),
+		},
 		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil

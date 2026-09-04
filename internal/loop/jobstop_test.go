@@ -216,7 +216,7 @@ func TestContinuePicksAPutDownJobTaskUpUnderItsJob(t *testing.T) {
 	if !sentSomethingLike(sent, "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
 		t.Errorf("the person was sent %v, want the picked-up task's report with the job's progress on it", sent)
 	}
-	if !sentSomethingLike(sent, "Job "+jobID+" has run every task") {
+	if !sentSomethingLike(sent, "Job "+jobID+" is finished") {
 		t.Errorf("the person was sent %v, want the next task run and the job closed after it", sent)
 	}
 }

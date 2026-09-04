@@ -55,8 +55,8 @@ func TestTheFirstFrameIsDrawnBeforeTheSocketConnects(t *testing.T) {
 			t.Errorf("row %d is %d columns wide and the terminal is 80 columns: %q", number+1, width, line)
 		}
 	}
-	if !strings.Contains(lines[0], "nerdgenie · connecting") {
-		t.Errorf("the header is %q, and it should name the program and say it is connecting", lines[0])
+	if !strings.Contains(lines[0], "NERDGENIE · the open-source agent harness · connecting") {
+		t.Errorf("the header is %q, and it should carry the wordmark, the tagline, and say it is connecting", lines[0])
 	}
 	if !strings.Contains(lines[23], "connecting") {
 		t.Errorf("the status strip is %q, and it should say connecting", lines[23])

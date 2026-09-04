@@ -73,7 +73,11 @@ func TestTheHeaderSaysNothingAboutTheContextUntilTheProgramSendsBothNumbers(t *t
 	}
 }
 
-func TestTheContextShareIsWarningColouredAtEightyAndErrorColouredAtNinetyFive(t *testing.T) {
+// TestTheContextShareTurnsAccentAtEightyAndBoldWhiteAtNinetyFive holds the two
+// steps at which the share stops being quiet: the accent when the context is
+// filling up, and bold white, the loudest thing the palette has, when it is
+// nearly full.
+func TestTheContextShareTurnsAccentAtEightyAndBoldWhiteAtNinetyFive(t *testing.T) {
 	for _, one := range []struct {
 		held   string
 		shown  string
@@ -81,10 +85,10 @@ func TestTheContextShareIsWarningColouredAtEightyAndErrorColouredAtNinetyFive(t 
 		saying string
 	}{
 		{held: "12400", shown: "5%", drawn: styleDim, saying: "a context with room to spare is quiet"},
-		{held: "209716", shown: "80%", drawn: styleWarn, saying: "eighty percent is the warning"},
-		{held: "246136", shown: "94%", drawn: styleWarn, saying: "ninety-four percent is still the warning"},
-		{held: "249037", shown: "95%", drawn: styleError, saying: "ninety-five percent is the error colour"},
-		{held: "262144", shown: "100%", drawn: styleError, saying: "a full context is the error colour"},
+		{held: "209716", shown: "80%", drawn: styleAccent, saying: "eighty percent is the accent"},
+		{held: "246136", shown: "94%", drawn: styleAccent, saying: "ninety-four percent is still the accent"},
+		{held: "249037", shown: "95%", drawn: styleBold, saying: "ninety-five percent is bold white"},
+		{held: "262144", shown: "100%", drawn: styleBold, saying: "a full context is bold white"},
 	} {
 		screen := attachedWith(aStatusWithTheContextInUse(one.held, "262144"))
 		share := span{}

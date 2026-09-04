@@ -41,8 +41,8 @@ func attachedScreen(t *testing.T) (*Screen, *recordingLink) {
 	if len(screen.blocks) != 0 {
 		t.Fatalf("the transcript holds %d blocks after attaching, and the banner shows while it is empty", len(screen.blocks))
 	}
-	if !strings.Contains(screen.frame(), "the agent that does not forget") {
-		t.Fatal("the banner is not on the frame after attaching")
+	if !strings.Contains(screen.frame(), wishText) {
+		t.Fatal("the welcome is not on the frame after attaching")
 	}
 	return screen, link
 }

@@ -29,6 +29,15 @@ var (
 	// done-list refusal, with one task per step, and it is the one line the
 	// model reads.
 	ErrPlanTooLong = errors.New("this ask is a job, not one task: create it with the job tool, one task per step, each task with one clear done line, and then work the first task")
+	// ErrAskIsAJob is the rule that a task whose ask runs past
+	// MaxAskWordsForATask words takes neither a done list nor a plan, because
+	// an ask that long is a job however short the model keeps its lists. The
+	// two rules above were met by compressing, seven features into one done
+	// line and a whole game into ten steps, and the ask is the one measure the
+	// model cannot shorten. The message gives the model the same instruction
+	// as those two refusals, with one task per piece of work, and it is the
+	// one line the model reads.
+	ErrAskIsAJob = errors.New("this ask is a job, not one task: create it with the job tool, one task per piece of work, each task with one clear done line, and then work the first task")
 	// ErrDecisionNeedsReason is the rule that every decision carries its reason,
 	// so that the model does not argue with itself later.
 	ErrDecisionNeedsReason = errors.New("a decision must carry the reason it was made, so add a reason to it")

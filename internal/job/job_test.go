@@ -124,3 +124,10 @@ func TestTheJobStoreKeepsTheJobContract(t *testing.T) {
 		t.Fatalf("the job store does not keep the job contract: %v", err)
 	}
 }
+
+func TestTheJobStoreKeepsTheJobContractForAJobWithoutAName(t *testing.T) {
+	holding := newJobs(t)
+	if err := testkit.CheckJobWithoutAName(t.Context(), holding.jobs); err != nil {
+		t.Fatalf("the job store does not keep the job contract for a job without a name: %v", err)
+	}
+}

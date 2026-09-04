@@ -132,10 +132,18 @@ type Loop struct {
 	// runningFromJob is the job's task the loop is running now, and nil while
 	// the running task is a person's or nothing is running.
 	runningFromJob *contract.TaskToRun
-	highest        int
-	counted        bool
-	thinkModel     string
-	thinkLevel     contract.Think
+	// jobTasks is the job's task behind each number this loop has run for a
+	// job, and jobTaskNumbers is those numbers oldest first, which is how the
+	// memory is held to MaxJobTasksRemembered.
+	jobTasks       map[string]contract.TaskToRun
+	jobTaskNumbers []string
+	// putDown is the job's task the person stopped most recently and has not
+	// yet carried on, and nil when there is none.
+	putDown    *putDownTask
+	highest    int
+	counted    bool
+	thinkModel string
+	thinkLevel contract.Think
 }
 
 // UseThink sets how hard one model is asked to think, for the rest of the
@@ -193,11 +201,16 @@ func New(options Options) (*Loop, error) {
 
 // Run takes one task to an end state and returns where it ended. A second call
 // waits until the first is finished, because the agent works on one task at a
-// time.
+// time. A person's message that picks a job's task up, by the word that
+// carries on or by the task's number, is run as that job's task.
 func (theLoop *Loop) Run(ctx context.Context, task Task) (Outcome, error) {
 	theLoop.oneAtATime.Lock()
 	defer theLoop.oneAtATime.Unlock()
 	theLoop.clearStopAsked()
+	task, err := theLoop.pickUpTheJobsTask(ctx, task)
+	if err != nil {
+		return Outcome{}, err
+	}
 	return theLoop.runTaskAndItsJob(ctx, task)
 }
 
@@ -252,7 +265,7 @@ func nameOf(where contract.Channel) string {
 func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, error) {
 	first := Outcome{}
 	for turn := range MaxTasksInARow {
-		outcome, err := theLoop.runOne(ctx, task)
+		outcome, number, err := theLoop.runOne(ctx, task)
 		if turn == 0 {
 			first = outcome
 		}
@@ -262,7 +275,7 @@ func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, 
 		if task.FromJob == nil {
 			return first, nil
 		}
-		next, more, err := theLoop.finishJobTask(ctx, task, outcome)
+		next, more, err := theLoop.finishJobTask(ctx, task, number, outcome)
 		if err != nil || !more {
 			return first, err
 		}
@@ -271,12 +284,15 @@ func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, 
 	return first, nil
 }
 
-// runOne takes one task through its rounds.
-func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, error) {
+// runOne takes one task through its rounds, and says which number it ran
+// under, which a task of a job is remembered by so that it can be picked up
+// again as the job's task.
+func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, string, error) {
 	running, err := theLoop.newRun(ctx, task)
 	if err != nil {
-		return Outcome{}, err
+		return Outcome{}, "", err
 	}
+	theLoop.rememberTheJobTask(running.number, task.FromJob)
 	theLoop.nowRunning(running.taskID())
 	theLoop.nowRunningFromJob(task.FromJob)
 	defer theLoop.nowRunning("")
@@ -290,12 +306,12 @@ func (theLoop *Loop) runOne(ctx context.Context, task Task) (Outcome, error) {
 	wrappingUp, done := running.timeToWrapUp(ctx)
 	defer done()
 	if saving := running.saveTheRound(wrappingUp); saving != nil && err == nil {
-		return outcome, saving
+		return outcome, running.number, saving
 	}
 	if err == nil {
 		theLoop.noteRecordLine(RecordLineOf(running.number, task.FromJob, string(outcome.Status), task.Message.Text))
 	}
-	return outcome, err
+	return outcome, running.number, err
 }
 
 // Deliver hands the loop a message that arrived while a task was running. The

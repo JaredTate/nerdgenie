@@ -1217,7 +1217,6 @@ internal/tool/write/write.go
 internal/tool/write/write_test.go
 internal/tui/answer.go
 internal/tui/approval_test.go
-internal/tui/banner.go
 internal/tui/behaviour_test.go
 internal/tui/bubble.go
 internal/tui/card.go
@@ -1232,6 +1231,7 @@ internal/tui/frame_fuzz_test.go
 internal/tui/frame_test.go
 internal/tui/gate_test.go
 internal/tui/geometry.go
+internal/tui/ground_test.go
 internal/tui/header.go
 internal/tui/hint_test.go
 internal/tui/input.go
@@ -1290,6 +1290,8 @@ internal/tui/transcript.go
 internal/tui/typing_test.go
 internal/tui/unixsocket.go
 internal/tui/unixsocket_test.go
+internal/tui/welcome.go
+internal/tui/welcome_test.go
 internal/update/bounds_test.go
 internal/update/doc.go
 internal/update/failures_test.go

@@ -45,10 +45,10 @@ func TestARollbackToAVersionThatDoesNotComeUpGoesBackToTheOneThatWasRunning(t *t
 	}
 }
 
-// aDatabaseFromANewerCoeus makes the one database and writes a schema version
+// aDatabaseFromANewerNerdGenie makes the one database and writes a schema version
 // above the one this program understands into it, which is what the file looks
 // like after a later version of Coeus has migrated it.
-func aDatabaseFromANewerCoeus(t *testing.T, home contract.Home) {
+func aDatabaseFromANewerNerdGenie(t *testing.T, home contract.Home) {
 	t.Helper()
 	opened, err := log.Open(context.Background(), home.DatabaseFile())
 	if err != nil {
@@ -67,11 +67,11 @@ func aDatabaseFromANewerCoeus(t *testing.T, home contract.Home) {
 	}
 }
 
-func TestARollbackIsRefusedWhenTheDatabaseIsFromANewerCoeus(t *testing.T) {
+func TestARollbackIsRefusedWhenTheDatabaseIsFromANewerNerdGenie(t *testing.T) {
 	home, service := aMachineWithAService(t)
 	anInstalledRelease(t, home, "0.6.0", aWorkingProgram)
 	working := anInstalledRelease(t, home, "0.7.0", aWorkingProgram)
-	aDatabaseFromANewerCoeus(t, home)
+	aDatabaseFromANewerNerdGenie(t, home)
 
 	_, err := anUpdater(t, home, testkit.NewFakeClock(startOfTime), t.TempDir(), "0.7.0").
 		Rollback(context.Background())

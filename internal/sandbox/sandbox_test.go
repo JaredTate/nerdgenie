@@ -117,7 +117,7 @@ func TestNewFenceRefusesARootThatMustStayOutside(t *testing.T) {
 	}
 }
 
-func TestNewFenceRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+func TestNewFenceRefusesARootThatHoldsTheAgentsHomeWhereNerdGenieHomeMovedIt(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 	agentHome := filepath.Join(work, "agenthome")

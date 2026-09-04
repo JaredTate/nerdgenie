@@ -143,7 +143,7 @@ func TestCheckRootsRefusesAnEmptyUserHome(t *testing.T) {
 	}
 }
 
-func TestCheckRootsRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+func TestCheckRootsRefusesARootThatHoldsTheAgentsHomeWhereNerdGenieHomeMovedIt(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 	agentHome := filepath.Join(work, "agenthome")
@@ -160,7 +160,7 @@ func TestCheckRootsRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *te
 	}
 }
 
-func TestCheckRootsAcceptsARootBesideTheAgentsHomeWhereCoeusHomeMovedIt(t *testing.T) {
+func TestCheckRootsAcceptsARootBesideTheAgentsHomeWhereNerdGenieHomeMovedIt(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 	agentHome := filepath.Join(userHome, "somewhere-else")

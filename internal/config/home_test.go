@@ -9,7 +9,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-func TestTheRootIsTheDotCoeusFolderUnderTheUsersHomeByDefault(t *testing.T) {
+func TestTheRootIsTheDotNerdGenieFolderUnderTheUsersHomeByDefault(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	t.Setenv(config.HomeVariable, "")
 
@@ -22,7 +22,7 @@ func TestTheRootIsTheDotCoeusFolderUnderTheUsersHomeByDefault(t *testing.T) {
 	}
 }
 
-func TestTheRootIsTheCoeusHomeVariableWhenItIsSet(t *testing.T) {
+func TestTheRootIsTheNerdGenieHomeVariableWhenItIsSet(t *testing.T) {
 	testkit.NewTempHome(t)
 	elsewhere := t.TempDir()
 	t.Setenv(config.HomeVariable, elsewhere)
@@ -36,7 +36,7 @@ func TestTheRootIsTheCoeusHomeVariableWhenItIsSet(t *testing.T) {
 	}
 }
 
-func TestARelativeCoeusHomeIsRefusedWithAdviceToUseAFullPath(t *testing.T) {
+func TestARelativeNerdGenieHomeIsRefusedWithAdviceToUseAFullPath(t *testing.T) {
 	testkit.NewTempHome(t)
 	t.Setenv(config.HomeVariable, "nerdgenie-somewhere")
 
@@ -49,7 +49,7 @@ func TestARelativeCoeusHomeIsRefusedWithAdviceToUseAFullPath(t *testing.T) {
 	}
 }
 
-func TestATrailingSeparatorIsTakenOffTheCoeusHome(t *testing.T) {
+func TestATrailingSeparatorIsTakenOffTheNerdGenieHome(t *testing.T) {
 	testkit.NewTempHome(t)
 	elsewhere := t.TempDir()
 	t.Setenv(config.HomeVariable, elsewhere+string(filepath.Separator))

@@ -334,7 +334,7 @@ func TestAMigrationNeedsAClockAndAHome(t *testing.T) {
 	}
 }
 
-func TestAMigrationRunOnADatabaseFromANewerCoeusIsRefused(t *testing.T) {
+func TestAMigrationRunOnADatabaseFromANewerNerdGenieIsRefused(t *testing.T) {
 	home := aHomeReadyToMigrate(t)
 	aDatabaseAtVersion(t, home.DatabaseFile(), SchemaVersion()+1, "0.9.0")
 

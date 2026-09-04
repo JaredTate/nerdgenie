@@ -144,7 +144,7 @@ nothing expects. **The fix is two lines**, one in each file: askpass should call
 than moving `HOME`. Two lines in two packages one worker does not own, so it goes
 to the orchestrator. Separately, `askpass` should refuse to open a vault it would
 have to create. **The tests:** `cmd/nerdgenie/reviewaskpass_test.go`,
-`TestAskpassReadsTheHomeTheRestOfCoeusReads` and
+`TestAskpassReadsTheHomeTheRestOfNerdGenieReads` and
 `TestAskpassFindsTheVaultUnderTheEnvironmentSudoIsGiven`.
 
 ### 8. High: one sandboxed command can take the whole machine down

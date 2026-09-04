@@ -74,7 +74,7 @@ func TestOpenReopensALogItAlreadyMade(t *testing.T) {
 	}
 }
 
-func TestOpenRefusesAFileThatIsNotACoeusLog(t *testing.T) {
+func TestOpenRefusesAFileThatIsNotANerdGenieLog(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "someone-elses.db")
 	handle, err := sql.Open("sqlite", path)
 	if err != nil {

@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-// ErrDatabaseFromANewerCoeus is what CheckSchema refuses with when the file was
+// ErrDatabaseFromANewerNerdGenie is what CheckSchema refuses with when the file was
 // written by a later version. It is a value rather than a sentence alone so
 // that the program starting can tell this refusal from any other trouble and
 // leave with contract.ExitBadConfiguration, which is the code that stops the
 // service manager from starting the same losing program again and again.
-var ErrDatabaseFromANewerCoeus = errors.New("the database was written by a newer version of Coeus")
+var ErrDatabaseFromANewerNerdGenie = errors.New("the database was written by a newer version of Coeus")
 
 // executor is the part of a database handle that writing a row needs, so that
 // the same code writes inside a transaction and outside one.
@@ -49,7 +49,7 @@ func CheckSchema(ctx context.Context, path string) error {
 		return nil
 	}
 	return fmt.Errorf("%w: %s is at schema version %d and this Coeus understands %d%s",
-		ErrDatabaseFromANewerCoeus, path, at, SchemaVersion(), whichVersionToUse(ctx, database, at))
+		ErrDatabaseFromANewerNerdGenie, path, at, SchemaVersion(), whichVersionToUse(ctx, database, at))
 }
 
 // whichVersionToUse is the sentence naming the version that wrote the newer

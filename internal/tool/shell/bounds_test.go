@@ -209,7 +209,7 @@ func TestACommandThatCannotBeStartedAtAllSaysSo(t *testing.T) {
 		Permission:       testkit.NewFakePermission(contract.RulingAllow),
 		Clock:            testkit.NewFakeClock(theMoment),
 		Home:             home,
-		CoeusProgram:     "/bin/true",
+		NerdGenieProgram:     "/bin/true",
 		WorkingDirectory: t.TempDir(),
 		Timeout:          time.Minute,
 	})

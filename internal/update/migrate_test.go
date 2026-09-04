@@ -72,7 +72,7 @@ func TestALaterListOfMigrationsRaisesTheSchemaVersion(t *testing.T) {
 	}
 }
 
-func TestADatabaseFromANewerCoeusIsRefusedWithTheVersionToUse(t *testing.T) {
+func TestADatabaseFromANewerNerdGenieIsRefusedWithTheVersionToUse(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	aDatabaseAtVersion(t, home.DatabaseFile(), SchemaVersion()+1, "0.9.0")
 
@@ -95,12 +95,12 @@ func TestTheRefusalOfANewerDatabaseIsOneTheProgramStartingCanRecognise(t *testin
 
 	err := CheckSchema(context.Background(), home.DatabaseFile())
 
-	if !errors.Is(err, ErrDatabaseFromANewerCoeus) {
+	if !errors.Is(err, ErrDatabaseFromANewerNerdGenie) {
 		t.Errorf("the refusal is %v, which the program starting cannot tell from any other trouble, so it cannot leave with the code that stops the service being restarted", err)
 	}
 }
 
-func TestADatabaseFromANewerCoeusThatNamesNoVersionStillRefuses(t *testing.T) {
+func TestADatabaseFromANewerNerdGenieThatNamesNoVersionStillRefuses(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	aDatabaseAtVersion(t, home.DatabaseFile(), SchemaVersion()+1, "")
 
@@ -140,7 +140,7 @@ func TestAHomeWithNoDatabaseYetHasNothingToCheckOrMigrate(t *testing.T) {
 	}
 }
 
-func TestAFileThatIsNotACoeusDatabaseIsRefused(t *testing.T) {
+func TestAFileThatIsNotANerdGenieDatabaseIsRefused(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "not-a-database.db")
 	database, err := sql.Open("sqlite", path)
 	if err != nil {

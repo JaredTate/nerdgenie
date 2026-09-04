@@ -161,7 +161,7 @@ func exitCodeFor(err error) int {
 	// A database from a newer Coeus is not something a restart will fix, and a
 	// service that tried every five seconds would fill the log and change
 	// nothing.
-	if errors.Is(err, update.ErrDatabaseFromANewerCoeus) {
+	if errors.Is(err, update.ErrDatabaseFromANewerNerdGenie) {
 		return contract.ExitBadConfiguration
 	}
 	return contract.ExitFailure

@@ -280,7 +280,7 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 		Memory:        running.memories,
 		Jobs:          running.jobs,
 		Clock:         clock.System(),
-		CoeusProgram:  thisProgramOrEmpty(),
+		NerdGenieProgram:  thisProgramOrEmpty(),
 	}
 	settings.Skills = running.skillsBox
 	if running.browser != nil {

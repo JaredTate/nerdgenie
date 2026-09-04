@@ -37,10 +37,10 @@ func aVaultHoldingTheSudoPassword(t *testing.T, home contract.Home) {
 	}
 }
 
-// TestAskpassReadsTheHomeTheRestOfCoeusReads holds the rule that NERDGENIE_HOME
+// TestAskpassReadsTheHomeTheRestOfNerdGenieReads holds the rule that NERDGENIE_HOME
 // moves the whole home folder. Every other subcommand asks config.HomeFolder for
 // its paths; askpass calls contract.DefaultHome, which reads only HOME.
-func TestAskpassReadsTheHomeTheRestOfCoeusReads(t *testing.T) {
+func TestAskpassReadsTheHomeTheRestOfNerdGenieReads(t *testing.T) {
 	moved := contract.NewHome(filepath.Join(t.TempDir(), "moved-home"))
 	aVaultHoldingTheSudoPassword(t, moved)
 	t.Setenv("HOME", t.TempDir())

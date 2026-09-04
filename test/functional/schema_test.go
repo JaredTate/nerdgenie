@@ -22,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestServeStopsOnADatabaseFromANewerCoeus(t *testing.T) {
+func TestServeStopsOnADatabaseFromANewerNerdGenie(t *testing.T) {
 	agent := startTheAgentWorkingIn(t, func(string) testkit.Script {
 		return testkit.Script{Name: "local", ContextLength: 32768}
 	}, func(home contract.Home, _ string) {

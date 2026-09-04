@@ -114,7 +114,7 @@ func (tool *Tool) runWithSudo(ctx context.Context, command string) (contract.San
 // the run folder and readable by nobody but the agent's own account, and returns
 // its path. It runs the nerdgenie binary's askpass subcommand and nothing else.
 func (tool *Tool) AskpassHelper() (string, error) {
-	program := tool.settings.CoeusProgram
+	program := tool.settings.NerdGenieProgram
 	if program == "" {
 		found, err := os.Executable()
 		if err != nil {

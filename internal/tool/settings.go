@@ -74,10 +74,10 @@ type Settings struct {
 	// AskUser is how the handoff tool reaches the user.
 	AskUser browserhandoff.AskUser
 
-	// CoeusProgram is the whole path of the nerdgenie binary, whose askpass
+	// NerdGenieProgram is the whole path of the nerdgenie binary, whose askpass
 	// subcommand is what sudo reads the administrator password from. Empty means
 	// this program.
-	CoeusProgram string
+	NerdGenieProgram string
 	// WorkingDirectory is where a shell command runs, and is inside a sandbox
 	// root. Empty means the first root.
 	WorkingDirectory string

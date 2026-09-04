@@ -45,7 +45,7 @@ func escalatingTool(t *testing.T, permission contract.Permission) *shell.Tool {
 		Permission:       permission,
 		Clock:            testkit.NewFakeClock(theMoment),
 		Home:             home,
-		CoeusProgram:     program,
+		NerdGenieProgram:     program,
 		WorkingDirectory: t.TempDir(),
 		Timeout:          time.Minute,
 	})
@@ -126,7 +126,7 @@ func TestAnApprovedEscalationRunsThroughSudoWithAnAskpassProgram(t *testing.T) {
 	}
 }
 
-func TestTheAskpassHelperRunsTheCoeusProgramAndNothingElse(t *testing.T) {
+func TestTheAskpassHelperRunsTheNerdGenieProgramAndNothingElse(t *testing.T) {
 	fakeSudo(t)
 	tool := escalatingTool(t, testkit.NewFakePermission(contract.RulingAllow))
 

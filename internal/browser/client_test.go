@@ -151,7 +151,7 @@ func TestTheRefusalsTheModelCanActOnCarryTheirCode(t *testing.T) {
 
 // A method the worker does not have is a fault on this side of the pipe, and is
 // reported as one rather than handed to the model as page trouble.
-func TestAMethodTheWorkerDoesNotHaveIsReportedAsAFaultInCoeus(t *testing.T) {
+func TestAMethodTheWorkerDoesNotHaveIsReportedAsAFaultInNerdGenie(t *testing.T) {
 	world := newWorld(t)
 	browser := world.browser(t, nil)
 

@@ -1353,6 +1353,18 @@ with the real `read` tool and asserts that what the file says comes back in the
 reply. They are the first tests that drive the whole program rather than its
 parts.
 
+The harness waits for a loaded machine, not an idle one. Building the binary and
+starting many `coeus serve` processes at once, beside the several agents that
+share the development machine, can leave a serve tens of seconds slow to bind its
+socket, so `waitForTheSocket` and the screen's `attach` both poll the socket
+through `dialTheSocketWithin`, retrying a refused dial every fiftieth of a second
+for a generous window (`theWaitForTheSocketToOpen`, ninety seconds, bounded below
+the test's own timeout) rather than giving up on the first refusal or on a flat
+thirty seconds. A serve that never comes up still fails inside that window with
+its log; only a serve that is merely slow is now waited for, which is what stops
+the functional suite reddening `make check` under load without weakening what any
+test proves.
+
 Four things were found by running it against the real local model. A home folder
 whose path is long cannot open its socket at all, because a Unix socket path may
 be at most 107 bytes and nothing checks that before `net.Listen` refuses it with

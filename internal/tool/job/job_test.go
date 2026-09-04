@@ -46,7 +46,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)
 	}
-	if strings.Join(names, ",") != "action,ask,name,why,schedule,task_template,job_id,text,due_at" {
+	if strings.Join(names, ",") != "action,ask,name,why,schedule,task_template,job_id,text,tasks,due_at" {
 		t.Errorf("the tool takes the fields %v", names)
 	}
 	if len(spec.Classes) != 1 || spec.Classes[0] != contract.ClassIrreversible {

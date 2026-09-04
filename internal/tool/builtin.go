@@ -80,7 +80,7 @@ func builtInTools(settings Settings) []contract.Tool {
 		memory.New(memory.Settings{Memory: settings.Memory}),
 		task.New(task.Settings{Records: settings.Records}),
 		skill.New(skill.Settings{Skills: settings.Skills}),
-		job.New(job.Settings{Jobs: settings.Jobs}),
+		job.New(job.Settings{Jobs: settings.Jobs, Records: settings.Records}),
 	}
 	return append(tools, browserAndDesktopTools(settings)...)
 }

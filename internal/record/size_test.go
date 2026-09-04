@@ -110,8 +110,10 @@ func recordFilledToTheBudget(t *testing.T) *Keeper {
 	keeper, _ := newKeeper(t, taskStart())
 	ctx := t.Context()
 
+	// The plan is as long as a task's may be, which is the ten steps one sitting
+	// works through; a longer one is a job's task list in disguise and is refused.
 	plan := []string{}
-	for step := range 12 {
+	for step := range MaxPlanSteps {
 		plan = append(plan, fmt.Sprintf("step %d of the plan, which says what to do in about eight words", step+1))
 	}
 	// The done list is as long as a task's may be, which is the five lines a

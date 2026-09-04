@@ -154,6 +154,33 @@ func (oddlyNumberedJobStore) AddTask(context.Context, contract.NewTask) (string,
 	return "task-one", nil
 }
 
+// askListingJobStore lists every job by its ask, the way the store did before a
+// job had a name, so a job made with a name is listed as if it had none.
+type askListingJobStore struct{ *testkit.FakeJob }
+
+// List puts the whole ask where the title goes, name or no name.
+func (store askListingJobStore) List(ctx context.Context) ([]contract.JobSummary, error) {
+	listed, err := store.FakeJob.List(ctx)
+	for index, summary := range listed {
+		record, loadErr := store.FakeJob.Load(ctx, summary.ID)
+		if loadErr == nil {
+			listed[index].Title = record.Goal.Ask
+		}
+	}
+	return listed, err
+}
+
+// nameDroppingJobStore keeps a job's name for the listing and loses it from the
+// record, so the job list and the side panel would disagree about the job.
+type nameDroppingJobStore struct{ *testkit.FakeJob }
+
+// Load hands back the record with the name taken off.
+func (store nameDroppingJobStore) Load(ctx context.Context, jobID string) (contract.Record, error) {
+	record, err := store.FakeJob.Load(ctx, jobID)
+	record.Goal.Name = ""
+	return record, err
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -163,11 +190,60 @@ func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 		{"a store that creates a job with no ask", agreeableJobStore{workingJobStore()}},
 		{"a store that pauses a job that is not there", forgivingJobStore{workingJobStore()}},
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},
+		{"a store that lists a named job by its ask", askListingJobStore{workingJobStore()}},
+		{"a store that loads a named job with its name dropped", nameDroppingJobStore{workingJobStore()}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if err := testkit.CheckJob(ctx, test.jobs); err == nil {
 				t.Fatal("the job check passed, and it was given a store that breaks a promise")
+			}
+		})
+	}
+}
+
+// untitledJobStore lists a job made without a name under no title at all,
+// instead of falling back to its ask.
+type untitledJobStore struct{ *testkit.FakeJob }
+
+// List leaves the title empty on every job that has no name.
+func (store untitledJobStore) List(ctx context.Context) ([]contract.JobSummary, error) {
+	listed, err := store.FakeJob.List(ctx)
+	for index, summary := range listed {
+		record, loadErr := store.FakeJob.Load(ctx, summary.ID)
+		if loadErr == nil && record.Goal.Name == "" {
+			listed[index].Title = ""
+		}
+	}
+	return listed, err
+}
+
+// askNamingJobStore makes a name up for a job that was given none, by writing
+// the ask into the record where the name goes.
+type askNamingJobStore struct{ *testkit.FakeJob }
+
+// Load hands back the record with the ask in place of the missing name.
+func (store askNamingJobStore) Load(ctx context.Context, jobID string) (contract.Record, error) {
+	record, err := store.FakeJob.Load(ctx, jobID)
+	if record.Goal.Name == "" {
+		record.Goal.Name = record.Goal.Ask
+	}
+	return record, err
+}
+
+func TestTheJobWithoutANameCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name string
+		jobs contract.Job
+	}{
+		{"a store that lists a job with no name under no title", untitledJobStore{workingJobStore()}},
+		{"a store that makes a name up for a job given none", askNamingJobStore{workingJobStore()}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := testkit.CheckJobWithoutAName(ctx, test.jobs); err == nil {
+				t.Fatal("the job-without-a-name check passed, and it was given a store that breaks a promise")
 			}
 		})
 	}

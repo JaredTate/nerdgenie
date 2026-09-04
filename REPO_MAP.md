@@ -503,6 +503,7 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
+internal/loop/carryon_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
 internal/loop/commands_test.go
@@ -525,6 +526,7 @@ internal/loop/helpers_test.go
 internal/loop/integration_test.go
 internal/loop/jobs.go
 internal/loop/jobs_test.go
+internal/loop/jobstop_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
@@ -537,6 +539,7 @@ internal/loop/permit_test.go
 internal/loop/pinned_test.go
 internal/loop/polling_test.go
 internal/loop/problems_test.go
+internal/loop/putdown.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go
 internal/loop/recentwork.go
@@ -709,12 +712,14 @@ internal/record/logfails_test.go
 internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
+internal/record/name_test.go
 internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go
 internal/record/parsebad_test.go
 internal/record/parseitems.go
 internal/record/pinned_test.go
+internal/record/plancap_test.go
 internal/record/print.go
 internal/record/print_test.go
 internal/record/size.go
@@ -1088,7 +1093,9 @@ internal/tool/foldercap_test.go
 internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go
 internal/tool/job/bounds_test.go
+internal/tool/job/create_test.go
 internal/tool/job/doc.go
+internal/tool/job/fuzz_test.go
 internal/tool/job/job.go
 internal/tool/job/job_test.go
 internal/tool/job/read.go
@@ -1399,6 +1406,7 @@ test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/jobpanel_test.go
 test/functional/jobs_test.go
+test/functional/jobstop_test.go
 test/functional/livefixture_test.go
 test/functional/livehome_test.go
 test/functional/livetask_test.go

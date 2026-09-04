@@ -28,6 +28,7 @@ ARCHITECTURE.md
 BENCHMARK.md
 CLAUDE.md
 COEUS.md
+FINISH_PLAN.md
 GPT_BENCHMARK.md
 LICENSE
 Makefile
@@ -349,6 +350,8 @@ internal/context/marker.go
 internal/context/marker_test.go
 internal/context/persona.go
 internal/context/persona_test.go
+internal/context/recentwork.go
+internal/context/recentwork_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
 internal/context/reviewmarker_test.go

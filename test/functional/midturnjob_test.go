@@ -138,15 +138,10 @@ func aJobWhoseFirstTaskHearsACorrection(_ string) testkit.Script {
 }
 
 // aJobWhoseFirstTaskIsToldToStop is the same job up to the first task's shell
-// command. What the job does after the stop is not this test's to say, so the
-// steps behind it answer whatever runs next in one call each.
+// command, and nothing after it: a stopped task is put down and its job pauses,
+// as jobstop_test.go proves, so no model call follows the stop.
 func aJobWhoseFirstTaskIsToldToStop(_ string) testkit.Script {
-	steps := append(theStepsThatMakeTheJob(),
-		theStepThatStartsTheFirstTask(),
-		testkit.Step{Text: "The tweet is posted.", Finish: contract.FinishEnd, Usage: contract.Usage{InputTokens: 300, OutputTokens: 5}},
-		testkit.Step{Text: "The summary is written.", Finish: contract.FinishEnd, Usage: contract.Usage{InputTokens: 300, OutputTokens: 5}},
-		theReviewStep(),
-	)
+	steps := append(theStepsThatMakeTheJob(), theStepThatStartsTheFirstTask())
 	return testkit.Script{Name: "local", ContextLength: 32768, Steps: steps}
 }
 

@@ -32,6 +32,8 @@ func TestEveryNamedNumberIsTheNumberItIsMeantToBe(t *testing.T) {
 			"seventy characters is one line, and a hundred of them are what a hundred-round budget can write"},
 		{"MaxDoneLines", MaxDoneLines, 5,
 			"five lines is what one sitting can prove, and an ask that needs more is a job with one task per line"},
+		{"MaxPlanSteps", MaxPlanSteps, 8,
+			"eight steps is what one sitting can work through, and a longer plan is a job's task list in disguise"},
 	} {
 		if check.is != check.want {
 			t.Errorf("%s is %d and it is meant to be %d: %s", check.name, check.is, check.want, check.why)

@@ -91,16 +91,16 @@ refuses() { # refuses NAME EXPECTED_FRAGMENT ARGS...
   esac
 }
 
-refuses "an unknown phase" "the phase must be" tuesday coeus t --dry-run
-refuses "the opus phase, which is driven by hand" "driven by hand" opus coeus t --dry-run
+refuses "an unknown phase" "the phase must be" tuesday nerdgenie t --dry-run
+refuses "the opus phase, which is driven by hand" "driven by hand" opus nerdgenie t --dry-run
 refuses "an unknown harness" "the harness must be" qwen nosuch t --dry-run
-refuses "an unknown card" "the card must be" qwen coeus t c --dry-run
-refuses "a label with a slash" "must be letters, digits" qwen coeus a/b --dry-run
-refuses "too few arguments" "usage: tater_run.sh" qwen coeus
-refuses "an unknown option" "unknown option" qwen coeus t --go-faster
+refuses "an unknown card" "the card must be" qwen nerdgenie t c --dry-run
+refuses "a label with a slash" "must be letters, digits" qwen nerdgenie a/b --dry-run
+refuses "too few arguments" "usage: tater_run.sh" qwen nerdgenie
+refuses "an unknown option" "unknown option" qwen nerdgenie t --go-faster
 
 printf 'not the canonical task\n' > "$SCRATCH/wrong-task.txt"
-wrong_output="$(TATER_ROOT="$ROOT" TATER_TASK="$SCRATCH/wrong-task.txt" "$RUNNER" qwen coeus t --dry-run 2>&1)"
+wrong_output="$(TATER_ROOT="$ROOT" TATER_TASK="$SCRATCH/wrong-task.txt" "$RUNNER" qwen nerdgenie t --dry-run 2>&1)"
 case "$wrong_output" in
   *"not the canonical task; refusing to run"*) pass "a task with the wrong checksum";;
   *) fail "a task with the wrong checksum" "it said: $wrong_output";;
@@ -122,8 +122,8 @@ if [ ! -f "$TASK" ]; then
   echo "There is no canonical task at $TASK, so the dry runs cannot be checked." >&2
   exit 1
 fi
-if [ ! -x "$REPO/bin/coeus" ]; then
-  echo "There is no Coeus binary at $REPO/bin/coeus; run \"make build\" first." >&2
+if [ ! -x "$REPO/bin/nerdgenie" ]; then
+  echo "There is no Coeus binary at $REPO/bin/nerdgenie; run \"make build\" first." >&2
   exit 1
 fi
 
@@ -139,7 +139,7 @@ command_of() { grep -m1 '^command:' "$1"; }
 for card in a b; do
   [ "$card" = a ] && port=19091 || port=19093
   url="http://127.0.0.1:$port/v1"
-  for harness in coeus opencode hermes openclaw; do
+  for harness in nerdgenie opencode hermes openclaw; do
     echo
     echo "a dry run of $harness on card $card"
     run="$ROOT/qwen-$harness-$card"
@@ -167,7 +167,7 @@ for card in a b; do
 
     # The launch block, against expected text.
     budget=no
-    [ "$harness" = "coeus" ] && budget=yes
+    [ "$harness" = "nerdgenie" ] && budget=yes
     {
       echo "phase: qwen"
       echo "harness: $harness"
@@ -182,10 +182,10 @@ for card in a b; do
       echo "launched from: $run/work"
       echo "call cap: none"
       echo "wall-clock cap: none"
-      echo "coeus budget raised: $budget"
+      echo "nerdgenie budget raised: $budget"
       echo "environment:"
       case "$harness" in
-        coeus) echo "  COEUS_HOME=$run/home";;
+        nerdgenie) echo "  NERDGENIE_HOME=$run/home";;
         opencode)
           echo "  XDG_DATA_HOME=$run/home/data"
           echo "  XDG_CONFIG_HOME=$run/home/config"
@@ -201,9 +201,9 @@ for card in a b; do
     # The command itself.
     line="$(command_of "$run/launch.txt")"
     case "$harness" in
-      coeus)
+      nerdgenie)
         same "$harness card $card command" \
-          "command: bash $HERE/run-coeus.sh $REPO/bin/coeus $run/home $run/work/task.txt" "$line";;
+          "command: bash $HERE/run-nerdgenie.sh $REPO/bin/nerdgenie $run/home $run/work/task.txt" "$line";;
       opencode)
         starts_with "$harness card $card command" "$line" \
           "command: $OPENCODE_BIN run -m bench/$model --format json "
@@ -221,14 +221,14 @@ for card in a b; do
 
     # The harness's own fresh config, against expected text.
     case "$harness" in
-      coeus)
-        # The lines above the model block come from "coeus init", which guesses
+      nerdgenie)
+        # The lines above the model block come from "nerdgenie init", which guesses
         # at what is installed, so only the three settings this benchmark
         # decides and the whole block it writes are compared.
         config="$run/home/config.toml"
-        has_line "coeus card $card names bench as its model" "$config" 'default_model = "bench"'
-        has_line "coeus card $card has no fallback" "$config" "fallback_chain = []"
-        has_line "coeus card $card fences on the work folder" "$config" "sandbox_roots = [\"$run/work\"]"
+        has_line "nerdgenie card $card names bench as its model" "$config" 'default_model = "bench"'
+        has_line "nerdgenie card $card has no fallback" "$config" "fallback_chain = []"
+        has_line "nerdgenie card $card fences on the work folder" "$config" "sandbox_roots = [\"$run/work\"]"
         cat > "$SCRATCH/expected-config" <<EXPECTED
 # The one model this benchmark run talks to.
 [[models]]
@@ -245,7 +245,7 @@ rounds_per_task = 1000000
 time_per_task = "240h"
 EXPECTED
         sed -n '/^# The one model/,$p' "$config" > "$SCRATCH/actual-config"
-        same_file "coeus card $card model block and raised budget" \
+        same_file "nerdgenie card $card model block and raised budget" \
           "$SCRATCH/expected-config" "$SCRATCH/actual-config"
         ;;
       opencode)
@@ -355,7 +355,7 @@ has_line "the wall-clock cap is named" "$SCRATCH/capped.out" "wall-clock cap: 12
 
 echo
 echo "nothing was written outside the test's own folder"
-if [ -e "$HOME/work/bench/tater2/qwen-coeus-a" ]; then
+if [ -e "$HOME/work/bench/tater2/qwen-nerdgenie-a" ]; then
   fail "the default benchmark folder was left alone" "the test wrote into ~/work/bench/tater2"
 else
   pass "the default benchmark folder was left alone"
@@ -394,7 +394,7 @@ path, harness = sys.argv[1:3]
 json.dump({
     "phase": "qwen", "harness": harness, "label": "t", "card": "a",
     "port": 19091, "model": "local-coder", "base_url": "u", "context_length": 262144,
-    "cap": "", "minutes_cap": "", "budget_raised": harness == "coeus",
+    "cap": "", "minutes_cap": "", "budget_raised": harness == "nerdgenie",
     "started": 100, "ended": 400, "wall_seconds": 300, "exit_status": 0,
     "finished_by": "exited", "run_folder": path, "daemon_log": "log",
     "daemon_log_lines_before": 0,
@@ -408,8 +408,8 @@ field() { # field FOLDER NAME
 }
 
 # The daemon's numbers are read the same way for every harness.
-run="$SCRATCH/result-coeus"
-make_run "$run" coeus
+run="$SCRATCH/result-nerdgenie"
+make_run "$run" nerdgenie
 printf '12:00:00 << status tokensIn=120000 | tokensOut=5000 | cost=0\n12:00:05 == done in 5.0 min: replies=3 previews=7 asks=2 errors=0 toolLines=11 recordLines=4 continues=1\n' \
   > "$run/home/drive.log"
 python3 "$HERE/tater_result.py" "$run"
@@ -419,14 +419,14 @@ same "the cached part" "100000" "$(field "$run" cache_read)"
 same "the part read afresh" "20000" "$(field "$run" prompt_tokens_read)"
 same "output tokens" "5000" "$(field "$run" tokens_out)"
 same "no dollar figure for a local model" "None" "$(field "$run" cost_usd)"
-same "coeus driver asks" "2" "$(field "$run" own_asks)"
-same "coeus driver continues" "1" "$(field "$run" own_continues)"
-same "coeus's own input tokens" "120000" "$(field "$run" own_tokensIn)"
-same "coeus's budget was raised" "True" "$(field "$run" budget_raised)"
-same "coeus finished the task" "True" "$(field "$run" finished)"
-same "coeus logic checks" "6" "$(field "$run" logic_passed)"
-same "coeus play-throughs" "4" "$(field "$run" plays_passed)"
-exists "coeus plain-words result" "$run/result.txt"
+same "nerdgenie driver asks" "2" "$(field "$run" own_asks)"
+same "nerdgenie driver continues" "1" "$(field "$run" own_continues)"
+same "nerdgenie's own input tokens" "120000" "$(field "$run" own_tokensIn)"
+same "nerdgenie's budget was raised" "True" "$(field "$run" budget_raised)"
+same "nerdgenie finished the task" "True" "$(field "$run" finished)"
+same "nerdgenie logic checks" "6" "$(field "$run" logic_passed)"
+same "nerdgenie play-throughs" "4" "$(field "$run" plays_passed)"
+exists "nerdgenie plain-words result" "$run/result.txt"
 
 run="$SCRATCH/result-opencode"
 make_run "$run" opencode
@@ -501,7 +501,7 @@ echo
 echo "the table gathers every finished run"
 TABLE_ROOT="$SCRATCH/table"
 mkdir -p "$TABLE_ROOT"
-for made in coeus opencode hermes openclaw; do
+for made in nerdgenie opencode hermes openclaw; do
   mkdir -p "$TABLE_ROOT/qwen-$made-t"
   cp "$SCRATCH/result-$made/result.json" "$TABLE_ROOT/qwen-$made-t/result.json"
 done
@@ -509,8 +509,8 @@ node "$HERE/tater_table.mjs" "$TABLE_ROOT" > "$SCRATCH/table.md" 2>&1
 has_line "there is a qwen table" "$SCRATCH/table.md" "## qwen phase"
 has_line "the columns are the ones asked for" "$SCRATCH/table.md" \
   "| harness | finished | wall | calls | tokens in | cached | out | cost | model time | harness time | logic 6 | plays 4 | tests written | tests passing |"
-has_line "coeus's row" "$SCRATCH/table.md" \
-  "| coeus (t) | yes | 5m 00s | 14 | 120,000 | 100,000 | 5,000 | — | — | — | 6 | 4 | 8 | 8 |"
+has_line "nerdgenie's row" "$SCRATCH/table.md" \
+  "| nerdgenie (t) | yes | 5m 00s | 14 | 120,000 | 100,000 | 5,000 | — | — | — | 6 | 4 | 8 | 8 |"
 
 # ---- how it went -----------------------------------------------------------
 

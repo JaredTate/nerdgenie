@@ -19,7 +19,7 @@ import sys
 BASE = os.path.expanduser("~/work/bench/opus3")
 PROJECTS = os.path.expanduser("~/.claude/projects")
 PRICE_FRESH, PRICE_WRITE, PRICE_READ, PRICE_OUT = 5.0, 10.0, 0.5, 25.0
-HARNESSES = ["coeus", "openclaw", "hermes"]
+HARNESSES = ["nerdgenie", "openclaw", "hermes"]
 
 
 def cost(fresh, write, read, out):
@@ -64,7 +64,7 @@ def session_calls(work_folder):
     return calls
 
 
-def coeus_calls(run_folder):
+def nerdgenie_calls(run_folder):
     """Coeus's per-call counters, differenced from its driver log, with the
     cache split taken from Claude Code's own bill for each call."""
     log = open(os.path.join(run_folder, "home", "drive.log")).read().splitlines()
@@ -125,8 +125,8 @@ def load_run(harness, number):
         return None
     exit_status, launch_to_exit = wall(folder)
     run = {"harness": harness, "number": number, "exit": exit_status, "launch_to_exit": launch_to_exit, "check": checker(folder), "notes": []}
-    if harness == "coeus":
-        calls, task_to_answer, tool_calls, asks, previews = coeus_calls(folder)
+    if harness == "nerdgenie":
+        calls, task_to_answer, tool_calls, asks, previews = nerdgenie_calls(folder)
         run.update(calls=calls, task_to_answer=task_to_answer, tool_calls=tool_calls)
         if asks or previews:
             run["notes"].append(f"driver answered {asks} questions and {previews} previews")
@@ -160,7 +160,7 @@ def totals(run):
     as_run = cost(fresh, write, read, out)
     first_read = calls[0]["read"] if calls else 0
     cold = as_run + first_read * (PRICE_WRITE - PRICE_READ) / 1e6
-    program = sum(c.get("cost_program", 0) for c in calls) if run["harness"] == "coeus" else None
+    program = sum(c.get("cost_program", 0) for c in calls) if run["harness"] == "nerdgenie" else None
     return dict(fresh=fresh, write=write, read=read, out=out, thinking=thinking, tokens_in=fresh + write + read,
                 as_run=as_run, cold=cold, program=program, first_read=first_read)
 
@@ -203,13 +203,13 @@ def main():
     for run in runs:
         for index, c in enumerate(run["calls"], 1):
             think = "" if c["thinking"] is None else str(c["thinking"])
-            tools = ", ".join(c["tools"]) if c["tools"] else ("Coeus's own tools" if run["harness"] == "coeus" else "none")
+            tools = ", ".join(c["tools"]) if c["tools"] else ("Coeus's own tools" if run["harness"] == "nerdgenie" else "none")
             print(f"| {run['harness']} {run['number']} | {index} | {c['fresh']:,} | {c['write']:,} | {c['read']:,} | {c['out']:,} | {think} | {c['fresh'] + c['write'] + c['read']:,} | ${cost(c['fresh'], c['write'], c['read'], c['out']):.3f} | {tools} |")
     print("\n## Notes per run\n")
     for run in runs:
         t = totals(run)
         line = f"- {run['harness']} {run['number']}: exit {run['exit']}, launch to exit {fmt_time(run['launch_to_exit'])}"
-        if run["harness"] == "coeus" and t["program"] is not None:
+        if run["harness"] == "nerdgenie" and t["program"] is not None:
             line += f", Claude Code's own bills sum to ${t['program']:.2f}"
         if run.get("claude_code_ms"):
             line += f", Claude Code's own time {run['claude_code_ms'] / 1000:.1f} s"

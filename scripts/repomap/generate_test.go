@@ -60,7 +60,7 @@ func runGit(t *testing.T, root string, arguments ...string) {
 }
 
 func TestGenerateProducesTheSameMapEveryTime(t *testing.T) {
-	root := newFixtureRepository(t, "README.md", "internal/contract/doc.go", "cmd/coeus/main.go")
+	root := newFixtureRepository(t, "README.md", "internal/contract/doc.go", "cmd/nerdgenie/main.go")
 
 	first, err := generate(root)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestGenerateProducesTheSameMapEveryTime(t *testing.T) {
 		"## Roots",
 		"## Tree",
 		"README.md",
-		"cmd/coeus/main.go",
+		"cmd/nerdgenie/main.go",
 		"internal/contract/doc.go",
 	} {
 		if !strings.Contains(first, wanted) {
@@ -116,8 +116,8 @@ func TestExcludedFoldersAndFilesNeverAppear(t *testing.T) {
 	root := newFixtureRepository(t,
 		"README.md",
 		"node_modules/library/index.js",
-		"bin/coeus",
-		"dist/coeus-linux-amd64",
+		"bin/nerdgenie",
+		"dist/nerdgenie-linux-amd64",
 		"coverage/report.txt",
 		"notes.log",
 		"build.tsbuildinfo",
@@ -128,7 +128,7 @@ func TestExcludedFoldersAndFilesNeverAppear(t *testing.T) {
 		t.Fatalf("generating the map failed: %v", err)
 	}
 
-	for _, unwanted := range []string{"node_modules", "bin/coeus", "dist/", "coverage/", "notes.log", "build.tsbuildinfo"} {
+	for _, unwanted := range []string{"node_modules", "bin/nerdgenie", "dist/", "coverage/", "notes.log", "build.tsbuildinfo"} {
 		if strings.Contains(generated, unwanted) {
 			t.Errorf("the map lists %q, and the generator is supposed to leave it out:\n%s", unwanted, generated)
 		}
@@ -171,7 +171,7 @@ func TestGenerateWalksTheTreeWhenThereIsNoGitRepository(t *testing.T) {
 
 func TestWalkingATreeWithNoGitStillSkipsTheExcludedFolders(t *testing.T) {
 	root := t.TempDir()
-	for _, path := range []string{"README.md", "node_modules/library/index.js", "bin/coeus", "notes.log"} {
+	for _, path := range []string{"README.md", "node_modules/library/index.js", "bin/nerdgenie", "notes.log"} {
 		full := filepath.Join(root, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 			t.Fatalf("cannot make the folder for %s: %v", path, err)
@@ -186,7 +186,7 @@ func TestWalkingATreeWithNoGitStillSkipsTheExcludedFolders(t *testing.T) {
 		t.Fatalf("generating the map outside a git work tree failed: %v", err)
 	}
 
-	for _, unwanted := range []string{"node_modules", "bin/coeus", "notes.log"} {
+	for _, unwanted := range []string{"node_modules", "bin/nerdgenie", "notes.log"} {
 		if strings.Contains(generated, unwanted) {
 			t.Errorf("the map lists %q from a tree with no git in it:\n%s", unwanted, generated)
 		}

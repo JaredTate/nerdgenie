@@ -409,18 +409,18 @@ func refusesRoot(t testing.TB, home contract.Home, root string) config.Problem {
 }
 
 func TestAProblemPrintsAsPathLineKeyAndAdvice(t *testing.T) {
-	withEverything := config.Problem{Path: "/home/someone/.coeus/config.toml", Line: 12, Key: "caps.rounds_per_task", Advice: "set it above zero"}
-	if want := "/home/someone/.coeus/config.toml:12: caps.rounds_per_task: set it above zero"; withEverything.Error() != want {
+	withEverything := config.Problem{Path: "/home/someone/.nerdgenie/config.toml", Line: 12, Key: "caps.rounds_per_task", Advice: "set it above zero"}
+	if want := "/home/someone/.nerdgenie/config.toml:12: caps.rounds_per_task: set it above zero"; withEverything.Error() != want {
 		t.Errorf("the problem prints as %q, want %q", withEverything.Error(), want)
 	}
 
-	withNoLine := config.Problem{Path: "/home/someone/.coeus/config.toml", Key: "models", Advice: "add one"}
-	if want := "/home/someone/.coeus/config.toml: models: add one"; withNoLine.Error() != want {
+	withNoLine := config.Problem{Path: "/home/someone/.nerdgenie/config.toml", Key: "models", Advice: "add one"}
+	if want := "/home/someone/.nerdgenie/config.toml: models: add one"; withNoLine.Error() != want {
 		t.Errorf("a problem with no line prints as %q, want %q", withNoLine.Error(), want)
 	}
 
-	aboutTheWholeFile := config.Problem{Path: "/home/someone/.coeus/config.toml", Advice: "this file is far too big"}
-	if want := "/home/someone/.coeus/config.toml: this file is far too big"; aboutTheWholeFile.Error() != want {
+	aboutTheWholeFile := config.Problem{Path: "/home/someone/.nerdgenie/config.toml", Advice: "this file is far too big"}
+	if want := "/home/someone/.nerdgenie/config.toml: this file is far too big"; aboutTheWholeFile.Error() != want {
 		t.Errorf("a problem about the whole file prints as %q, want %q", aboutTheWholeFile.Error(), want)
 	}
 }

@@ -54,7 +54,7 @@ var shellReductions = []struct {
 	{"xargs -n 1 rm -rf", "xargs rm -rf"},
 	{"nohup timeout 60 nice setsid xargs rm -rf /tmp/x",
 		"nohup timeout nice setsid xargs -rf (cut short before the end)"},
-	{"cat notes.txt | grep coeus", "cat | grep"},
+	{"cat notes.txt | grep nerdgenie", "cat | grep"},
 	{"make check && go build ./...", "make check | go build"},
 	{"echo $(rm -rf /tmp/x)", "echo | rm -rf (builds part of itself at run time)"},
 	{"echo `rm -rf /tmp/x`", "echo | rm -rf (builds part of itself at run time)"},
@@ -98,7 +98,7 @@ var otherToolReductions = []struct {
 	reduced  string
 }{
 	{contract.ToolRead, map[string]any{"path": "/home/jared/notes.md"}, "read /home/jared/notes.md"},
-	{contract.ToolSearch, map[string]any{"pattern": "coeus"}, "search coeus"},
+	{contract.ToolSearch, map[string]any{"pattern": "nerdgenie"}, "search nerdgenie"},
 	{contract.ToolWeb, map[string]any{"url": "https://example.com/checkout"}, "web https://example.com/checkout"},
 	{contract.ToolWeb, map[string]any{"query": "kayak prices"}, "web kayak prices"},
 	{contract.ToolBrowserOpen, map[string]any{"url": "https://example.com"}, "browser_open https://example.com"},

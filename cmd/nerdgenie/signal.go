@@ -20,17 +20,17 @@ const signalProgramName = "signal-cli"
 // accountSetting is the key in config.toml that holds the linked account.
 const accountSetting = "signal_account"
 
-// signalSubcommand is "coeus signal". Its one action in this wave is "link",
+// signalSubcommand is "nerdgenie signal". Its one action in this wave is "link",
 // which links this computer to the user's Signal account as another device, the
 // same way the Signal desktop application is linked to a phone.
 //
 // The orchestrator adds this value to the table in main.go.
 var signalSubcommand = subcommand{
 	name: "signal",
-	help: "Links this computer to your Signal account. Use: coeus signal link.",
+	help: "Links this computer to your Signal account. Use: nerdgenie signal link.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		if len(arguments) == 0 || arguments[0] != "link" {
-			fmt.Fprintln(problems, "coeus signal: the only action is link. Use: coeus signal link")
+			fmt.Fprintln(problems, "nerdgenie signal: the only action is link. Use: nerdgenie signal link")
 			return contract.ExitUsage
 		}
 		return runSignalLink(output, problems)
@@ -42,12 +42,12 @@ var signalSubcommand = subcommand{
 func runSignalLink(output io.Writer, problems io.Writer) int {
 	program, err := exec.LookPath(signalProgramName)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus signal link: cannot find %s on your PATH. Install it from https://github.com/AsamK/signal-cli/releases and try again.\n", signalProgramName)
+		fmt.Fprintf(problems, "nerdgenie signal link: cannot find %s on your PATH. Install it from https://github.com/AsamK/signal-cli/releases and try again.\n", signalProgramName)
 		return contract.ExitFailure
 	}
 	home, err := config.HomeFolder()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus signal link: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie signal link: %v\n", err)
 		return contract.ExitBadConfiguration
 	}
 
@@ -58,7 +58,7 @@ func runSignalLink(output io.Writer, problems io.Writer) int {
 		SaveAccount: func(account string) error { return saveSignalAccount(home, account) },
 	})
 	if err != nil {
-		fmt.Fprintf(problems, "coeus signal link: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie signal link: %v\n", err)
 		return contract.ExitFailure
 	}
 	return contract.ExitOK
@@ -89,7 +89,7 @@ func saveSignalAccount(home contract.Home, account string) error {
 //
 // The two rules are what the file's own format needs. A key written after a
 // "[[models]]" header belongs to that table rather than to the file, so a line
-// appended to the end of a configuration "coeus init" wrote becomes
+// appended to the end of a configuration "nerdgenie init" wrote becomes
 // "models.signal_account" and the whole file stops loading, which takes every
 // subcommand down with it. And the line to replace is found by its key and not
 // by its first letters, so a setting whose name merely begins the same way is

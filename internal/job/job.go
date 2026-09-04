@@ -140,7 +140,7 @@ func Open(ctx context.Context, home contract.Home, eventLog contract.Store, cloc
 
 // OnlyStartWorkWhen sets the question the store asks before it hands out any
 // task at all. It is how the drain marker an update writes and the crash-loop
-// breaker reach the scheduler: cmd/coeus/serve.go passes
+// breaker reach the scheduler: cmd/nerdgenie/serve.go passes
 // reliability.Guard.MayStartTask here, and while that says no, NextTask hands
 // out nothing and touches no claim, so an update waits for the running task
 // rather than cutting a forty-round job in half.
@@ -158,7 +158,7 @@ func (jobs *Jobs) OnlyStartWorkWhen(mayStart func() bool) {
 // reliability.Settings has for the same reason: a job that pauses itself after
 // three failures or switches itself off after ten has stopped working, and a
 // line written into its own record is read only by somebody who already thought
-// to look. cmd/coeus/serve.go passes the same function it gives the guard.
+// to look. cmd/nerdgenie/serve.go passes the same function it gives the guard.
 //
 // With none set nothing is sent, which is what a job store in a test gets.
 func (jobs *Jobs) TellTheUser(send func(ctx context.Context, text string) error) {

@@ -219,7 +219,7 @@ func (theLoop *Loop) RunNextJobTask(ctx context.Context, where contract.Channel)
 
 // RunJobTask runs one task of a job that its caller has already taken from the
 // job store, and carries on with the job's next tasks the way RunNextJobTask
-// does. The job driver in cmd/coeus asks the store for the due task itself, so
+// does. The job driver in cmd/nerdgenie asks the store for the due task itself, so
 // that it can hand the nightly self-check to the checker rather than to the
 // model, and a task taken once cannot be taken again: a driver that then asked
 // this loop for the next task would run the second task of a job first and

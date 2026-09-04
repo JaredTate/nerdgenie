@@ -23,7 +23,7 @@ import (
 const (
 	// helperSetting names the setting that turns this test binary into the
 	// child process that draws the screen on the pseudo-terminal.
-	helperSetting = "COEUS_TUI_PSEUDO_TERMINAL_CHILD"
+	helperSetting = "NERDGENIE_TUI_PSEUDO_TERMINAL_CHILD"
 	// helperTestName is the test in this file the child runs, and nothing else.
 	helperTestName = "TestTheScreenHelperDrawsOnWhateverTerminalItWasGiven"
 	// wordTyped is what the parent types at the child a second in. No part of

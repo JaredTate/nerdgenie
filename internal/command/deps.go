@@ -24,7 +24,7 @@ type Session struct {
 }
 
 // Deps is everything the core commands need from the rest of the program. Each
-// field is a function or a store that cmd/coeus/serve.go fills in, so this
+// field is a function or a store that cmd/nerdgenie/serve.go fills in, so this
 // package never imports the loop, the channels, or the terminal screen, and a
 // test can hand every command a fake.
 //
@@ -85,7 +85,7 @@ func New(registry *Registry, deps Deps) *Commands {
 }
 
 // All returns the ten core commands in the order the help listing prints them.
-// cmd/coeus/serve.go registers every one of them.
+// cmd/nerdgenie/serve.go registers every one of them.
 func (commands *Commands) All() []contract.Command {
 	return []contract.Command{
 		commands.Help(),
@@ -105,5 +105,5 @@ func (commands *Commands) All() []contract.Command {
 // it needed was never filled in. It names the field, because the reader who
 // sees it is the one editing serve.go.
 func notWiredUp(name string, field string) error {
-	return fmt.Errorf("the /%s command has nothing to work with, so fill Deps.%s in cmd/coeus/serve.go", name, field)
+	return fmt.Errorf("the /%s command has nothing to work with, so fill Deps.%s in cmd/nerdgenie/serve.go", name, field)
 }

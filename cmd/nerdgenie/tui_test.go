@@ -35,7 +35,7 @@ func TestTheTerminalScreenRefusesArgumentsItDoesNotUnderstand(t *testing.T) {
 }
 
 func TestTheTerminalScreenSaysSoWhenItCannotFindTheHomeFolder(t *testing.T) {
-	t.Setenv("COEUS_HOME", "")
+	t.Setenv("NERDGENIE_HOME", "")
 	t.Setenv("HOME", "")
 	output := bytes.Buffer{}
 	problems := bytes.Buffer{}

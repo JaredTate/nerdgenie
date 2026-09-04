@@ -65,7 +65,7 @@ func TestNoCommandTellsTheUserToEditTheSource(t *testing.T) {
 		if err != nil {
 			whole += " " + err.Error()
 		}
-		for _, giveaway := range []string{"cmd/coeus/serve.go", "Deps.", "not counted in this build"} {
+		for _, giveaway := range []string{"cmd/nerdgenie/serve.go", "Deps.", "not counted in this build"} {
 			if strings.Contains(whole, giveaway) {
 				t.Errorf("/%s answered %q, which tells the user to go and edit the source", typed, whole)
 			}

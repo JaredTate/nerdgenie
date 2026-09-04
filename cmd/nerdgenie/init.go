@@ -28,7 +28,7 @@ var initSubcommand = subcommand{
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		home, err := config.HomeFolder()
 		if err != nil {
-			fmt.Fprintf(problems, "coeus init: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie init: %v\n", err)
 			return contract.ExitBadConfiguration
 		}
 
@@ -41,7 +41,7 @@ var initSubcommand = subcommand{
 			},
 		}
 		if err := command.Init(context.Background(), setup, arguments); err != nil {
-			fmt.Fprintf(problems, "coeus init: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie init: %v\n", err)
 			return contract.ExitFailure
 		}
 		return contract.ExitOK

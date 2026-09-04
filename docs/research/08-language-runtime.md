@@ -139,7 +139,7 @@ Shared facts: signal-cli is an external JVM/GraalVM daemon in all cases. Chrome 
 - **Numbers (measured)**: 6 MB binary, 3 ms start, ~10 MB idle. Sidecar adds ~107 MB (Bun) or ~132 MB (Node) only while a browser task runs.
 - **Claude write/fix**: hardest of the three. Async Rust means `Send` bounds, lifetimes across `.await`, `Arc<Mutex<_>>` for shared state, and trait-heavy library APIs (axum extractors, tower layers). Claude gets there, but compile-error rounds are longer and crate APIs drift (croner today). Two languages in the repo.
 - **Self-fix on the Pi**: Rust must be installed on the Pi (~1 GB). A one-file fix to a 15k-line app costs an estimated 1–4 min in release mode; a clean build 5–12 min. Feasible but slow enough that the agent's own repair loop feels broken. Cross-build from the Mac is the realistic path and needs `cargo-zigbuild`.
-- **Update/rollback**: single static musl binary; `rename(2)` over the old file, `systemctl restart`, keep `coeus.prev` for rollback. Best in class.
+- **Update/rollback**: single static musl binary; `rename(2)` over the old file, `systemctl restart`, keep `nerdgenie.prev` for rollback. Best in class.
 - **Browser**: sidecar via JSON-RPC over stdio. Rust could instead use chromiumoxide (alive, 0.9.1) and drop the sidecar, but Claude knows Playwright far better and the persistent-profile story is smoother in Playwright.
 - **Biggest risk**: Claude's token cost per fix, plus toolchain drift (cargo 1.84 could not build today's crates). The 10 MB memory win over Go buys nothing on an 8 GB Pi.
 

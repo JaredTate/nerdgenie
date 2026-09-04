@@ -153,7 +153,7 @@ func TestCheckRootsRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *te
 
 	_, err := checkRoots([]string{work}, userHome, agentHome)
 	if err == nil {
-		t.Fatalf("the root %q was accepted, and COEUS_HOME put the agent's home, its vault, and its browser profile inside it", work)
+		t.Fatalf("the root %q was accepted, and NERDGENIE_HOME put the agent's home, its vault, and its browser profile inside it", work)
 	}
 	if !strings.Contains(err.Error(), agentHome) {
 		t.Errorf("the refusal says %q, and it must name the folder it would have put inside the fence", err)

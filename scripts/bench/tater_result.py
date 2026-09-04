@@ -77,7 +77,7 @@ def read_countcalls(path):
 
 # ---- 2. what the harness itself says it used -------------------------------
 
-def coeus_own_report():
+def nerdgenie_own_report():
     """count what the driver had to say to Coeus, from its log of envelopes."""
     text = read(os.path.join(HOME, "drive.log"))
     done = [line for line in text.splitlines() if "== done in" in line]
@@ -228,7 +228,7 @@ def openclaw_own_report():
 
 
 OWN_REPORTS = {
-    "coeus": coeus_own_report,
+    "nerdgenie": nerdgenie_own_report,
     "opencode": opencode_own_report,
     "hermes": hermes_own_report,
     "openclaw": openclaw_own_report,

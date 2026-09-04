@@ -34,7 +34,7 @@ func TestAStatusMessageFillsTheHeaderAndTheStatusStrip(t *testing.T) {
 	send(screen, aFullStatus())
 
 	header := headerOf(screen)
-	for _, wanted := range []string{"coeus", "opus", "task 17 running", "6.1k in 0.4k out", "$0.04"} {
+	for _, wanted := range []string{"nerdgenie", "opus", "task 17 running", "6.1k in 0.4k out", "$0.04"} {
 		if !strings.Contains(header, wanted) {
 			t.Errorf("the header is %q and it should hold %q", header, wanted)
 		}

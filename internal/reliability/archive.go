@@ -19,7 +19,7 @@ import (
 // them by time, which is what makes the newest archive the last one.
 const (
 	// ArchivePrefix starts the name of every archive.
-	ArchivePrefix = "coeus-backup-"
+	ArchivePrefix = "nerdgenie-backup-"
 	// ArchiveSuffix ends it, and says what is inside: a tar file, encrypted with
 	// age.
 	ArchiveSuffix = ".tar.age"
@@ -32,7 +32,7 @@ const (
 // knows where each one goes. Nothing else is ever read out of an archive.
 const (
 	// databaseEntry is the one SQLite file.
-	databaseEntry = "coeus.db"
+	databaseEntry = "nerdgenie.db"
 	// vaultEntry is the encrypted secret store.
 	vaultEntry = "vault.age"
 	// browserFolderEntry is the folder holding the Chrome profiles.
@@ -63,7 +63,7 @@ func LatestArchive(folder string) (string, error) {
 		return "", err
 	}
 	if len(archives) == 0 {
-		return "", fmt.Errorf("there is no backup in %s, so there is nothing to put back: run \"coeus backup\" to make one", folder)
+		return "", fmt.Errorf("there is no backup in %s, so there is nothing to put back: run \"nerdgenie backup\" to make one", folder)
 	}
 	return filepath.Join(folder, archives[len(archives)-1]), nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// Setup is everything "coeus init" needs from the outside world, so that a test
+// Setup is everything "nerdgenie init" needs from the outside world, so that a test
 // can drive the whole thing with no terminal, no daemon, and no real home
 // folder.
 type Setup struct {
@@ -51,7 +51,7 @@ func (setup Setup) lmStudioAddress() string {
 	return LMStudioAddress
 }
 
-// SetupWait is how long the whole of "coeus init" may take. At most six
+// SetupWait is how long the whole of "nerdgenie init" may take. At most six
 // questions each wait AnswerWait, so twenty minutes covers a person answering
 // every one of them slowly, and a run that has gone past it is a run nobody is
 // sitting in front of any more.
@@ -63,11 +63,11 @@ const SetupWait = 20 * time.Minute
 // user needs.
 //
 // A home folder that already has a configuration is left exactly as it is,
-// because a second "coeus init" is nearly always a mistake; --reset-config
+// because a second "nerdgenie init" is nearly always a mistake; --reset-config
 // writes the configuration again on purpose.
 func Init(ctx context.Context, setup Setup, arguments []string) error {
 	if setup.Output == nil {
-		return errors.New("coeus init has nowhere to print its questions, so give the setup an output writer")
+		return errors.New("nerdgenie init has nowhere to print its questions, so give the setup an output writer")
 	}
 	chosen, err := readInitFlags(arguments, setup.Output)
 	if err != nil {
@@ -83,7 +83,7 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 
 	if _, err := os.Stat(setup.Home.ConfigFile()); err == nil && !chosen.resetConfig {
 		fmt.Fprintf(setup.Output, "\n%s is already set up, so nothing was changed.\n", setup.Home.Root)
-		fmt.Fprintf(setup.Output, "Run \"coeus init --reset-config\" to write %s again.\n", setup.Home.ConfigFile())
+		fmt.Fprintf(setup.Output, "Run \"nerdgenie init --reset-config\" to write %s again.\n", setup.Home.ConfigFile())
 		return setup.finish(ctx, false)
 	}
 	return setup.run(ctx, chosen)
@@ -131,11 +131,11 @@ func (setup Setup) finish(ctx context.Context, signalWanted bool) error {
 func nextSteps(signalWanted bool) string {
 	written := &strings.Builder{}
 	written.WriteString("\nCoeus is ready. Here is what to type next:\n\n")
-	written.WriteString("  coeus              talk to Coeus in this terminal\n")
+	written.WriteString("  nerdgenie              talk to Coeus in this terminal\n")
 	if signalWanted && onThePath(signalProgram) {
-		written.WriteString("  coeus signal link  link Coeus to your Signal account\n")
+		written.WriteString("  nerdgenie signal link  link Coeus to your Signal account\n")
 	}
-	written.WriteString("  coeus doctor       check that everything Coeus needs is here\n")
+	written.WriteString("  nerdgenie doctor       check that everything Coeus needs is here\n")
 	written.WriteString("\nAnd once you are talking to it:\n\n")
 	written.WriteString("  /help              the list of commands\n")
 	written.WriteString("  /tasks             what Coeus is working on\n")

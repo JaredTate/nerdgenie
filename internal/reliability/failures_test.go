@@ -145,7 +145,7 @@ func TestAStateFileTooLongToBeOneOfOursIsRefused(t *testing.T) {
 
 func TestADatabaseCannotBeMovedOnTopOfOneThatIsAlreadyThere(t *testing.T) {
 	folder := t.TempDir()
-	path := filepath.Join(folder, "coeus.db")
+	path := filepath.Join(folder, "nerdgenie.db")
 	writeFile(t, path, "not a database at all", contract.SecretFileMode)
 	movedTo, err := reliability.MoveDatabaseAside(path, startOfTime)
 	if err != nil {
@@ -276,7 +276,7 @@ func TestTheWatchdogSaysWhenSystemdAnnouncedSomethingItCannotRead(t *testing.T) 
 }
 
 func TestTheWatchdogSaysWhenTheServiceManagerCannotBeReached(t *testing.T) {
-	folder, err := os.MkdirTemp("", "coeus-notify-*")
+	folder, err := os.MkdirTemp("", "nerdgenie-notify-*")
 	if err != nil {
 		t.Fatalf("making the folder failed: %v", err)
 	}

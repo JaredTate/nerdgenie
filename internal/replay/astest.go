@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
-// TestsFolder is where the tests written by "coeus replay <task> --as-test"
+// TestsFolder is where the tests written by "nerdgenie replay <task> --as-test"
 // live, as a path from the top of the repository. They are ordinary Go tests,
 // so "go test ./..." runs them like any other.
 const TestsFolder = "test/replays"
@@ -104,7 +104,7 @@ func (recording Recording) Encode() ([]byte, error) {
 func Decode(raw []byte) (Recording, error) {
 	recording := Recording{}
 	if err := json.Unmarshal(raw, &recording); err != nil {
-		return Recording{}, fmt.Errorf("this is not a recording written by coeus replay: %w", err)
+		return Recording{}, fmt.Errorf("this is not a recording written by nerdgenie replay: %w", err)
 	}
 	held, err := record.Parse([]byte(recording.FinalText))
 	if err != nil {
@@ -123,7 +123,7 @@ func testSourceFor(name string, fixture string) string {
 
 // theGeneratedTest is the shape of every generated test, with the task's number
 // and the path of its recording put in.
-const theGeneratedTest = `// This file was written by "coeus replay <name> --as-test". It replays the
+const theGeneratedTest = `// This file was written by "nerdgenie replay <name> --as-test". It replays the
 // recording that sits beside it against the code as it stands now, and fails
 // when the run no longer ends where it ended when it was recorded.
 //

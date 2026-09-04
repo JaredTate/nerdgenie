@@ -2,12 +2,12 @@
 
 This is part one of brief 6.5: a review by a worker with fresh eyes, who built
 none of this and read it as an adversary would. The threat list is design section
-11 of `docs/COEUS_PLAN.md`: the five safety rules, the vault, and reliability.
+11 of `docs/NERDGENIE_PLAN.md`: the five safety rules, the vault, and reliability.
 
 Every finding below has a failing test in the package's own test files, and every
 attack was run for real on the development machine, against the real bwrap, the
 real Landlock kernel, and the real seccomp filter, under temporary home folders.
-Nothing touched the user's own `~/.coeus` or `~/.ssh`. Nothing was fixed except
+Nothing touched the user's own `~/.nerdgenie` or `~/.ssh`. Nothing was fixed except
 one finding whose fix was a single line, which is noted where it appears.
 
 Part two of the brief — the container runs, the live run against the three
@@ -64,9 +64,9 @@ the orchestrator rather than being made here. **The test:**
 `*rm -r*`, `*rm -fr*`, `*rm -f -r*` and `*rm --recursive*`, which are runs of
 characters that have to appear next to each other.
 `internal/permission/reduce.go:180-195` (`wordsThatDefineTheCommand`) keeps the
-flags in the order the model wrote them. **The threat:** `rm -v -rf ~/coeus`,
-`rm -i -rf ~/coeus`, `rm -d -r ~/coeus`, `rm --one-file-system -rf ~/coeus` and
-`rm --force --recursive ~/coeus` all really delete a folder and everything under
+flags in the order the model wrote them. **The threat:** `rm -v -rf ~/nerdgenie`,
+`rm -i -rf ~/nerdgenie`, `rm -d -r ~/nerdgenie`, `rm --one-file-system -rf ~/nerdgenie` and
+`rm --force --recursive ~/nerdgenie` all really delete a folder and everything under
 it, and all five are ruled allow today. The sandbox does not help: the work
 folder is a writable root, which is the whole point of it. **The fix** is to stop
 matching flags as text: reduce a command's flags to a set, expand the bundled
@@ -110,7 +110,7 @@ programs that run another program (`env`, `nohup`, `timeout`, `xargs`, `nice`,
 ### 6. High: the configured browser profile is not kept outside the fence
 
 `internal/contract/config.go:155-166` (`ExcludedFromSandbox`) works the forbidden
-paths out from the **default** browser folder, `~/.coeus/browser`. The
+paths out from the **default** browser folder, `~/.nerdgenie/browser`. The
 configuration lets the user put the profile anywhere:
 `internal/config/check.go:236` checks only that `browser_profile_path` is a full
 path. **The threat:** a `browser_profile_path` inside a sandbox root puts the
@@ -127,23 +127,23 @@ signature, so it is a fix brief. **The test:**
 
 ### 7. High: the sudo path cannot find the vault, and leaves a stray key behind
 
-`cmd/coeus/askpass.go:25` calls `contract.DefaultHome()`, which reads only `HOME`
+`cmd/nerdgenie/askpass.go:25` calls `contract.DefaultHome()`, which reads only `HOME`
 (`internal/contract/home.go:39-45`). Every other subcommand asks
-`config.HomeFolder()`, which reads `COEUS_HOME` first
+`config.HomeFolder()`, which reads `NERDGENIE_HOME` first
 (`internal/config/home.go:20-34`). Worse, the one caller there is,
 `internal/tool/shell/escalate.go:90`, sets `HOME` to the agent's own home folder
-before it runs `sudo -A`, so the askpass helper inherits `HOME=~/.coeus` and
-looks for the vault at `~/.coeus/.coeus/vault.age`. **The threat is two things at
+before it runs `sudo -A`, so the askpass helper inherits `HOME=~/.nerdgenie` and
+looks for the vault at `~/.nerdgenie/.nerdgenie/vault.age`. **The threat is two things at
 once.** The escalation path never works: an approved sudo command gets no
 password and fails, so a user who has approved a preview watches it do nothing.
 And `vault.Open` makes a key when it finds none
 (`internal/vault/key.go:29-36`), so every attempt writes a fresh age private key
-to `~/.coeus/.coeus/vault.key`, a file nothing manages, nothing backs up, and
+to `~/.nerdgenie/.nerdgenie/vault.key`, a file nothing manages, nothing backs up, and
 nothing expects. **The fix is two lines**, one in each file: askpass should call
-`config.HomeFolder()`, and `runWithSudo` should pass `COEUS_HOME` through rather
+`config.HomeFolder()`, and `runWithSudo` should pass `NERDGENIE_HOME` through rather
 than moving `HOME`. Two lines in two packages one worker does not own, so it goes
 to the orchestrator. Separately, `askpass` should refuse to open a vault it would
-have to create. **The tests:** `cmd/coeus/reviewaskpass_test.go`,
+have to create. **The tests:** `cmd/nerdgenie/reviewaskpass_test.go`,
 `TestAskpassReadsTheHomeTheRestOfCoeusReads` and
 `TestAskpassFindsTheVaultUnderTheEnvironmentSudoIsGiven`.
 
@@ -250,7 +250,7 @@ is what makes the closing line trustworthy, or that a line of the same shape
 inside the result is a forgery. The nonce is doing no work if nobody was told to
 check it. A second, smaller problem sits beside it:
 `internal/context/builder.go:118` makes the boundary in `New`, and
-`cmd/coeus/serve.go:211` calls `New` once for the life of the daemon, so the
+`cmd/nerdgenie/serve.go:211` calls `New` once for the life of the daemon, so the
 boundary that `marker.go` says is "made fresh for every task" is in fact made
 once per process. **The fix:** two or three sentences added to the instruction
 text, within the word cap, and a boundary made per task. The instruction text is
@@ -299,7 +299,7 @@ the strength of the code and of the two doc comments that contradict it.
 `internal/log/append.go:24-49` writes an event body into SQLite with no
 redaction, and the package holds no `contract.Secrets`. Every writer feeds it raw:
 the whole tool call with its arguments (`internal/loop/calls.go:51`), the user's
-message text (`internal/loop/run.go:151`, `cmd/coeus/firstturn.go:177`), the
+message text (`internal/loop/run.go:151`, `cmd/nerdgenie/firstturn.go:177`), the
 model's reply (`internal/loop/endings.go:198`), the preview text
 (`internal/loop/permit.go:98`), and the whole prior contents of every file
 changed (`internal/tool/write/change.go:87`). **The threat is bounded** — the
@@ -356,7 +356,7 @@ it to false if it was false, never set it to true, and check afterwards that Orc
 is not running — with a test that fails if Orca appeared. That is a change to the
 harness, not to a test file, so it is a fix brief: the browser and desktop
 lifecycles must snapshot both accessibility settings when they start a worker and
-put them back when they stop it, and `coeus doctor` should report when the screen
+put them back when they stop it, and `nerdgenie doctor` should report when the screen
 reader is on.
 
 **The guard is written and it is in this branch**, in both packages that hand a

@@ -21,7 +21,7 @@ import sqlite3
 import sys
 
 BASE = os.path.expanduser("~/work/bench/gpt")
-HARNESSES = ["coeus", "opencode", "hermes", "openclaw"]
+HARNESSES = ["nerdgenie", "opencode", "hermes", "openclaw"]
 
 
 def seconds(stamp):
@@ -45,7 +45,7 @@ def checker(folder):
             "lines": thorough["gameJsLines"], "quality": thorough["quality"]["passed"]}
 
 
-def coeus(folder):
+def nerdgenie(folder):
     log = open(os.path.join(folder, "home", "drive.log")).read().splitlines()
     rows, previous = [], (0, 0)
     for line in log:
@@ -58,7 +58,7 @@ def coeus(folder):
         rows.append({"in": now[0] - previous[0], "out": now[1] - previous[1]})
         previous = now
     cached = [0]
-    db = sqlite3.connect(os.path.join(folder, "home", "coeus.db"))
+    db = sqlite3.connect(os.path.join(folder, "home", "nerdgenie.db"))
     for (body,) in db.execute("select body from events where kind='checkpoint' order by sequence"):
         text = body.decode() if isinstance(body, (bytes, bytearray)) else body
         found = re.search(r"this turn: ([\d.]+)k tokens in, ([\d.]+)k of them cached", text)

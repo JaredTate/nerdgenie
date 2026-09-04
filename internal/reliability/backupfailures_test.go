@@ -111,7 +111,7 @@ func TestARestoreRefusesAnythingInTheArchiveThatIsNotAPlainFileOrFolder(t *testi
 	}
 	for name, header := range map[string]*tar.Header{
 		"a link":                        {Typeflag: tar.TypeSymlink, Name: "vault.age", Linkname: "/etc/passwd"},
-		"a file bigger than any backup": {Typeflag: tar.TypeReg, Name: "coeus.db", Size: int64(reliability.MaxArchiveBytes) + 1},
+		"a file bigger than any backup": {Typeflag: tar.TypeReg, Name: "nerdgenie.db", Size: int64(reliability.MaxArchiveBytes) + 1},
 		"a name from outside the home":  {Typeflag: tar.TypeReg, Name: "../../escaped", Size: 0},
 	} {
 		t.Run(name, func(t *testing.T) {

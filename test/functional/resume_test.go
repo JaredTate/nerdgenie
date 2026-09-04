@@ -1,7 +1,7 @@
 // The whole-program tests for picking a task up again through the socket: an
 // answer to the model's question carries on the task that asked it, the word
 // "continue" carries on a task that stopped at its budget, and anything else
-// starts a fresh task. Before this, "coeus serve" never filled the loop's
+// starts a fresh task. Before this, "nerdgenie serve" never filled the loop's
 // ResumeID, so every message began a new task and a question could never be
 // answered.
 package functional

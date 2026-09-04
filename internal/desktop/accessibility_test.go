@@ -208,7 +208,7 @@ func TestTheWorkerIsHandedNothingThatWakesTheScreenReader(t *testing.T) {
 // drive this machine's own screen. The TypeScript suite is gated behind it for
 // the same reason, and the Go suite must be gated behind it too, because a test
 // run on a machine somebody is logged in to must never move a real window.
-const liveDesktopSwitch = "COEUS_LIVE_DESKTOP"
+const liveDesktopSwitch = "NERDGENIE_LIVE_DESKTOP"
 
 func TestTheIntegrationTestsAreGatedBehindTheLiveDesktopSwitch(t *testing.T) {
 	written, err := os.ReadFile("integration_test.go")

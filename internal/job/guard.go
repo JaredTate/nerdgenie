@@ -48,11 +48,11 @@ type refusal struct {
 // job that could restart the agent would start itself again on the way up, and
 // the agent would spend its life coming back from the dead.
 var refusedWork = []refusal{
-	{program: "systemctl", verbs: []string{"restart", "stop", "kill", "disable", "mask", "reload"}, target: "coeus"},
-	{program: "coeus", verbs: []string{"restart", "stop", "uninstall", "update", "install"}},
-	{program: "pkill", target: "coeus"},
-	{program: "killall", target: "coeus"},
-	{program: "kill", target: "coeus"},
+	{program: "systemctl", verbs: []string{"restart", "stop", "kill", "disable", "mask", "reload"}, target: "nerdgenie"},
+	{program: "nerdgenie", verbs: []string{"restart", "stop", "uninstall", "update", "install"}},
+	{program: "pkill", target: "nerdgenie"},
+	{program: "killall", target: "nerdgenie"},
+	{program: "kill", target: "nerdgenie"},
 	{program: "reboot", mustLeadTheCommand: true},
 	{program: "shutdown", mustLeadTheCommand: true},
 	{program: "halt", mustLeadTheCommand: true},
@@ -127,7 +127,7 @@ func checkItCannotRestartTheAgent(text string) error {
 // refused: the program, then one of its verbs, then the thing it would stop.
 //
 // A program that carries a verb and a target is looked for anywhere in the
-// command, because "run systemctl restart coeus every morning" is an order
+// command, because "run systemctl restart nerdgenie every morning" is an order
 // however it is worded. A program that needs neither has to lead the command,
 // because it is an ordinary English word as well. Every token is read by the
 // last part of its path, so "/sbin/reboot" is reboot.

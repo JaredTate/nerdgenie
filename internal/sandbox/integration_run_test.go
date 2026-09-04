@@ -178,7 +178,7 @@ func TestOutputPastTheCapIsDroppedWithTheNote(t *testing.T) {
 	}
 
 	whole := string(result.StandardOutput)
-	if !strings.Contains(whole, "coeus dropped") {
+	if !strings.Contains(whole, "nerdgenie dropped") {
 		t.Errorf("the output is %q, and it must end with a note saying how much was dropped", whole)
 	}
 	if len(whole) > 64+200 {

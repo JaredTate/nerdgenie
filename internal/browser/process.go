@@ -61,7 +61,7 @@ const bridgeOff = "NO_AT_BRIDGE=1"
 // not put a Chrome window on the screen of whoever is running it. Nothing else
 // sets it: design section 11 says a logged-in account is only safe in a window
 // the user can see, so an ordinary run always opens the visible window.
-const headlessVariable = "COEUS_HEADLESS_TESTS"
+const headlessVariable = "NERDGENIE_HEADLESS_TESTS"
 
 // headlessFlag is what the worker is asked for when that name is set. The worker
 // turns it into Chrome's own --headless=new.

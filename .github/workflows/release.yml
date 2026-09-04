@@ -47,7 +47,7 @@ jobs:
           node-version: "24"
 
       # The pinned runtimes are the same files every run, so they are kept between
-      # runs rather than fetched from nodejs.org each time. COEUS_NODE_CACHE puts
+      # runs rather than fetched from nodejs.org each time. NERDGENIE_NODE_CACHE puts
       # them under the workspace, which is the only place this action can save.
       - name: Reuse the pinned Node runtimes
         uses: actions/cache@v4
@@ -71,9 +71,9 @@ jobs:
       - name: Keep the archives whether or not this is a tag
         uses: actions/upload-artifact@v4
         with:
-          name: coeus-${{ steps.version.outputs.version }}
+          name: nerdgenie-${{ steps.version.outputs.version }}
           path: |
-            dist/coeus-*.tar.gz
+            dist/nerdgenie-*.tar.gz
             dist/SHA256SUMS
             dist/manifest.json
           if-no-files-found: error
@@ -87,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.version.outputs.version }}" \
-            dist/coeus-*.tar.gz dist/SHA256SUMS dist/manifest.json \
+            dist/nerdgenie-*.tar.gz dist/SHA256SUMS dist/manifest.json \
             --repo "$GITHUB_REPOSITORY" \
             --title "${{ steps.version.outputs.version }}" \
             --generate-notes \

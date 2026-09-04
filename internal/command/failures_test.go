@@ -291,10 +291,10 @@ func TestUndoSaysWhenAFileChangeCannotBeRead(t *testing.T) {
 func TestInstallAndUninstallNeedSomewhereToPrint(t *testing.T) {
 	service := command.Service{Home: testkit.NewTempHome(t)}
 	if err := service.Install(context.Background()); err == nil {
-		t.Errorf("coeus install ran with nowhere to print what it did")
+		t.Errorf("nerdgenie install ran with nowhere to print what it did")
 	}
 	if err := service.Uninstall(context.Background(), nil); err == nil {
-		t.Errorf("coeus uninstall ran with nowhere to print what it did")
+		t.Errorf("nerdgenie uninstall ran with nowhere to print what it did")
 	}
 }
 
@@ -305,7 +305,7 @@ func TestInstallNeedsToKnowWhichBinaryTheServiceRuns(t *testing.T) {
 
 	err := command.Service{Home: home, Output: &strings.Builder{}}.Install(context.Background())
 	if err == nil {
-		t.Fatalf("coeus install made a link to nothing at all")
+		t.Fatalf("nerdgenie install made a link to nothing at all")
 	}
 	if !strings.Contains(err.Error(), "running program") {
 		t.Errorf("the refusal does not say what was missing: %v", err)
@@ -319,13 +319,13 @@ func TestUninstallOnAMachineWithNoUnitSaysWhatItDid(t *testing.T) {
 	written := &strings.Builder{}
 
 	if err := aServiceIn(t, home, "", written).Uninstall(context.Background(), nil); err != nil {
-		t.Fatalf("coeus uninstall failed on a machine with no unit: %v", err)
+		t.Fatalf("nerdgenie uninstall failed on a machine with no unit: %v", err)
 	}
 	if !strings.Contains(written.String(), "systemctl") {
-		t.Errorf("coeus uninstall does not say what the service manager refused:\n%s", written)
+		t.Errorf("nerdgenie uninstall does not say what the service manager refused:\n%s", written)
 	}
 	if !strings.Contains(written.String(), "kept") {
-		t.Errorf("coeus uninstall does not say that it kept the home folder:\n%s", written)
+		t.Errorf("nerdgenie uninstall does not say that it kept the home folder:\n%s", written)
 	}
 }
 
@@ -336,7 +336,7 @@ func TestUninstallPurgeNeedsSomebodyToAsk(t *testing.T) {
 
 	err := command.Service{Home: home, Output: &strings.Builder{}}.Uninstall(context.Background(), []string{"--purge"})
 	if err == nil {
-		t.Fatalf("coeus uninstall --purge removed the home folder with nobody to ask")
+		t.Fatalf("nerdgenie uninstall --purge removed the home folder with nobody to ask")
 	}
 	if _, statErr := os.Stat(home.Root); statErr != nil {
 		t.Errorf("the home folder was removed without anybody typing the word: %v", statErr)

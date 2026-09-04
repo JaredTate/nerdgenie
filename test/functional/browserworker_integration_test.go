@@ -93,12 +93,12 @@ func startBrowserWorker(t *testing.T) *browserWorker {
 	t.Helper()
 	entry := builtWorkerEntry(t)
 	node := programNamed(t, "node")
-	profile := throwawayFolder(t, "coeus-browser-profile-")
+	profile := throwawayFolder(t, "nerdgenie-browser-profile-")
 
 	// The worker's pacing is human by default, which is right in front of a real
 	// site and far too slow for a test that types a password one key at a time.
 	arguments := []string{entry, "--profile", profile, "--pacing", "fast"}
-	if os.Getenv("COEUS_HEADLESS_TESTS") != "" {
+	if os.Getenv("NERDGENIE_HEADLESS_TESTS") != "" {
 		arguments = append(arguments, "--headless")
 	}
 	command := exec.Command(node, arguments...)

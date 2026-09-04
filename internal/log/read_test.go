@@ -231,7 +231,7 @@ func TestBoundedLimitNeverAsksForNothing(t *testing.T) {
 }
 
 func TestTheListReadsSaySoAfterTheLogIsClosed(t *testing.T) {
-	closed, err := Open(context.Background(), filepath.Join(t.TempDir(), "coeus.db"))
+	closed, err := Open(context.Background(), filepath.Join(t.TempDir(), "nerdgenie.db"))
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)
 	}

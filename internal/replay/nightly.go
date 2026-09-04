@@ -65,7 +65,7 @@ type NightlySettings struct {
 	// Skills is the list of skills to dry-run, and is nil on an agent with none.
 	Skills contract.Skill
 	// DryRun runs one skill's dry run, which contract.Skill does not carry, so
-	// cmd/coeus/serve.go passes the skill store's own method here.
+	// cmd/nerdgenie/serve.go passes the skill store's own method here.
 	DryRun func(ctx context.Context, name string) (string, error)
 	// Send puts the one line in front of the user, on whichever channel they are
 	// normally talked to on.

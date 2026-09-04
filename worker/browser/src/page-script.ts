@@ -22,7 +22,7 @@
 
 /** Walk the elements of a document, including into open shadow roots. */
 const WALK = `
-window.__coeusWalk = window.__coeusWalk || function (root, mostNodes, visit) {
+window.__nerdgenieWalk = window.__nerdgenieWalk || function (root, mostNodes, visit) {
   var waiting = [root];
   var seen = 0;
   while (waiting.length > 0 && seen < mostNodes) {
@@ -38,7 +38,7 @@ window.__coeusWalk = window.__coeusWalk || function (root, mostNodes, visit) {
 
 /** What kind of thing an element is. An explicit role attribute always wins. */
 const ROLE = `
-window.__coeusRoleOf = window.__coeusRoleOf || function (element) {
+window.__nerdgenieRoleOf = window.__nerdgenieRoleOf || function (element) {
   var stated = (element.getAttribute("role") || "").trim().split(/\\s+/)[0].toLowerCase();
   if (stated) { return stated; }
   var tag = element.tagName.toLowerCase();
@@ -68,22 +68,22 @@ window.__coeusRoleOf = window.__coeusRoleOf || function (element) {
  * A password field's value is never read at all.
  */
 const NAME = `
-window.__coeusTidy = window.__coeusTidy || function (text) {
+window.__nerdgenieTidy = window.__nerdgenieTidy || function (text) {
   return (text || "").replace(/\\s+/g, " ").trim();
 };
-window.__coeusLabelledBy = window.__coeusLabelledBy || function (element) {
+window.__nerdgenieLabelledBy = window.__nerdgenieLabelledBy || function (element) {
   var ids = (element.getAttribute("aria-labelledby") || "").trim();
   if (!ids) { return ""; }
   var parts = [];
   ids.split(/\\s+/).forEach(function (id) {
     var other = document.getElementById(id);
-    if (other) { parts.push(window.__coeusTidy(other.textContent)); }
+    if (other) { parts.push(window.__nerdgenieTidy(other.textContent)); }
   });
-  return window.__coeusTidy(parts.join(" "));
+  return window.__nerdgenieTidy(parts.join(" "));
 };
-window.__coeusNameOf = window.__coeusNameOf || function (element, role, mostCharacters) {
-  var tidy = window.__coeusTidy;
-  var name = tidy(element.getAttribute("aria-label")) || window.__coeusLabelledBy(element);
+window.__nerdgenieNameOf = window.__nerdgenieNameOf || function (element, role, mostCharacters) {
+  var tidy = window.__nerdgenieTidy;
+  var name = tidy(element.getAttribute("aria-label")) || window.__nerdgenieLabelledBy(element);
   if (!name && element.id) {
     var tied = document.querySelector('label[for="' + window.CSS.escape(element.id) + '"]');
     if (tied) { name = tidy(tied.textContent); }
@@ -110,12 +110,12 @@ window.__coeusNameOf = window.__coeusNameOf || function (element, role, mostChar
 
 /** Whether an element is drawn at all, and whether it takes a short run of digits. */
 const SHAPE = `
-window.__coeusRendered = window.__coeusRendered || function (box, style) {
+window.__nerdgenieRendered = window.__nerdgenieRendered || function (box, style) {
   return box.width > 0 && box.height > 0 &&
     style.visibility !== "hidden" && style.display !== "none" &&
     parseFloat(style.opacity || "1") > 0;
 };
-window.__coeusShortNumeric = window.__coeusShortNumeric || function (element) {
+window.__nerdgenieShortNumeric = window.__nerdgenieShortNumeric || function (element) {
   if (element.tagName !== "INPUT") { return false; }
   var kind = (element.getAttribute("type") || "text").toLowerCase();
   if (["text", "tel", "number", "password"].indexOf(kind) === -1) { return false; }
@@ -134,7 +134,7 @@ window.__coeusShortNumeric = window.__coeusShortNumeric || function (element) {
  * how much was cut.
  */
 const TEXT = `
-window.__coeusPageText = window.__coeusPageText || function (mostCharacters) {
+window.__nerdgeniePageText = window.__nerdgeniePageText || function (mostCharacters) {
   var raw = document.body ? (document.body.innerText || "") : "";
   var lines = [];
   raw.split("\\n").forEach(function (line) {
@@ -152,30 +152,30 @@ window.__coeusPageText = window.__coeusPageText || function (mostCharacters) {
  * the same element for as long as that element lives.
  */
 const SCAN = `
-window.__coeusScan = window.__coeusScan || function (how) {
-  if (typeof window.__coeusNextRef !== "number") { window.__coeusNextRef = how.refBase; }
+window.__nerdgenieScan = window.__nerdgenieScan || function (how) {
+  if (typeof window.__nerdgenieNextRef !== "number") { window.__nerdgenieNextRef = how.refBase; }
   var wide = window.innerWidth;
   var tall = window.innerHeight;
   var found = [];
-  window.__coeusWalk(document, how.mostNodes, function (element) {
-    var role = window.__coeusRoleOf(element);
+  window.__nerdgenieWalk(document, how.mostNodes, function (element) {
+    var role = window.__nerdgenieRoleOf(element);
     if (!role || how.roles.indexOf(role) === -1) { return; }
     var box = element.getBoundingClientRect();
     var style = window.getComputedStyle(element);
-    if (!window.__coeusRendered(box, style)) { return; }
-    var ref = element.getAttribute("data-coeus-ref");
+    if (!window.__nerdgenieRendered(box, style)) { return; }
+    var ref = element.getAttribute("data-nerdgenie-ref");
     if (!ref) {
-      ref = "e" + window.__coeusNextRef;
-      window.__coeusNextRef += 1;
-      element.setAttribute("data-coeus-ref", ref);
+      ref = "e" + window.__nerdgenieNextRef;
+      window.__nerdgenieNextRef += 1;
+      element.setAttribute("data-nerdgenie-ref", ref);
     }
     found.push({
       ref: ref,
       role: role,
-      name: window.__coeusNameOf(element, role, how.mostNameCharacters),
+      name: window.__nerdgenieNameOf(element, role, how.mostNameCharacters),
       aboveFold: box.bottom > 0 && box.right > 0 && box.top < tall && box.left < wide,
       password: element.tagName === "INPUT" && (element.getAttribute("type") || "").toLowerCase() === "password",
-      shortNumeric: window.__coeusShortNumeric(element)
+      shortNumeric: window.__nerdgenieShortNumeric(element)
     });
   });
   return {
@@ -183,47 +183,47 @@ window.__coeusScan = window.__coeusScan || function (how) {
     title: document.title,
     contentType: document.contentType,
     elements: found,
-    text: window.__coeusPageText(how.mostTextCharacters)
+    text: window.__nerdgeniePageText(how.mostTextCharacters)
   };
 };
 `;
 
 /** Find an element again after its ref went stale, and give the answer a fresh ref. */
 const FIND = `
-window.__coeusStamp = window.__coeusStamp || function (element, refBase) {
-  if (typeof window.__coeusNextRef !== "number") { window.__coeusNextRef = refBase; }
-  var ref = element.getAttribute("data-coeus-ref");
+window.__nerdgenieStamp = window.__nerdgenieStamp || function (element, refBase) {
+  if (typeof window.__nerdgenieNextRef !== "number") { window.__nerdgenieNextRef = refBase; }
+  var ref = element.getAttribute("data-nerdgenie-ref");
   if (!ref) {
-    ref = "e" + window.__coeusNextRef;
-    window.__coeusNextRef += 1;
-    element.setAttribute("data-coeus-ref", ref);
+    ref = "e" + window.__nerdgenieNextRef;
+    window.__nerdgenieNextRef += 1;
+    element.setAttribute("data-nerdgenie-ref", ref);
   }
   return ref;
 };
-window.__coeusFindLike = window.__coeusFindLike || function (how) {
+window.__nerdgenieFindLike = window.__nerdgenieFindLike || function (how) {
   var wanted = (how.name || "").toLowerCase();
   var match = null;
-  window.__coeusWalk(document, how.mostNodes, function (element) {
+  window.__nerdgenieWalk(document, how.mostNodes, function (element) {
     if (match) { return; }
-    var role = window.__coeusRoleOf(element);
+    var role = window.__nerdgenieRoleOf(element);
     if (!role) { return; }
     if (how.role && role !== how.role) { return; }
     var box = element.getBoundingClientRect();
     var style = window.getComputedStyle(element);
-    if (!window.__coeusRendered(box, style)) { return; }
-    var name = window.__coeusNameOf(element, role, how.mostNameCharacters).toLowerCase();
-    var text = window.__coeusTidy(element.innerText || element.textContent).toLowerCase();
+    if (!window.__nerdgenieRendered(box, style)) { return; }
+    var name = window.__nerdgenieNameOf(element, role, how.mostNameCharacters).toLowerCase();
+    var text = window.__nerdgenieTidy(element.innerText || element.textContent).toLowerCase();
     var hit = how.byText ? (name.indexOf(wanted) !== -1 || text.indexOf(wanted) !== -1) : name === wanted;
     if (hit && wanted) { match = element; }
   });
-  return match ? window.__coeusStamp(match, how.refBase) : null;
+  return match ? window.__nerdgenieStamp(match, how.refBase) : null;
 };
 `;
 
 /** Where an element is on the screen, so a click can be retried at its place. */
 const BOX = `
-window.__coeusBoxOf = window.__coeusBoxOf || function (ref) {
-  var element = document.querySelector('[data-coeus-ref="' + ref + '"]');
+window.__nerdgenieBoxOf = window.__nerdgenieBoxOf || function (ref) {
+  var element = document.querySelector('[data-nerdgenie-ref="' + ref + '"]');
   if (!element) { return null; }
   var box = element.getBoundingClientRect();
   return { x: box.x, y: box.y, width: box.width, height: box.height };
@@ -240,34 +240,34 @@ window.__coeusBoxOf = window.__coeusBoxOf || function (ref) {
  * none of them means the page is still doing something worth waiting for.
  */
 const WATCH = `
-window.__coeusInstallWatch = window.__coeusInstallWatch || function () {
-  if (window.__coeusWatching) { return; }
+window.__nerdgenieInstallWatch = window.__nerdgenieInstallWatch || function () {
+  if (window.__nerdgenieWatching) { return; }
   var root = document.documentElement;
   if (!root) {
-    document.addEventListener("DOMContentLoaded", window.__coeusInstallWatch);
+    document.addEventListener("DOMContentLoaded", window.__nerdgenieInstallWatch);
     return;
   }
-  window.__coeusWatching = true;
-  window.__coeusLastChange = Date.now();
-  new window.MutationObserver(function () { window.__coeusLastChange = Date.now(); })
+  window.__nerdgenieWatching = true;
+  window.__nerdgenieLastChange = Date.now();
+  new window.MutationObserver(function () { window.__nerdgenieLastChange = Date.now(); })
     .observe(root, { subtree: true, childList: true, characterData: true });
 };
-window.__coeusQuietFor = window.__coeusQuietFor || function () {
-  window.__coeusInstallWatch();
-  return typeof window.__coeusLastChange === "number" ? Date.now() - window.__coeusLastChange : 0;
+window.__nerdgenieQuietFor = window.__nerdgenieQuietFor || function () {
+  window.__nerdgenieInstallWatch();
+  return typeof window.__nerdgenieLastChange === "number" ? Date.now() - window.__nerdgenieLastChange : 0;
 };
-window.__coeusInstallWatch();
+window.__nerdgenieInstallWatch();
 `;
 
 /** Draw a numbered mark on each element a screenshot should point at, then take them away. */
 const MARKS = `
-window.__coeusDrawMarks = window.__coeusDrawMarks || function (marks) {
-  window.__coeusClearMarks();
+window.__nerdgenieDrawMarks = window.__nerdgenieDrawMarks || function (marks) {
+  window.__nerdgenieClearMarks();
   var sheet = document.createElement("div");
-  sheet.id = "coeus-marks";
+  sheet.id = "nerdgenie-marks";
   sheet.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none";
   marks.forEach(function (mark) {
-    var element = document.querySelector('[data-coeus-ref="' + mark.ref + '"]');
+    var element = document.querySelector('[data-nerdgenie-ref="' + mark.ref + '"]');
     if (!element) { return; }
     var box = element.getBoundingClientRect();
     var tag = document.createElement("div");
@@ -283,8 +283,8 @@ window.__coeusDrawMarks = window.__coeusDrawMarks || function (marks) {
   document.body.appendChild(sheet);
   return marks.length;
 };
-window.__coeusClearMarks = window.__coeusClearMarks || function () {
-  var sheet = document.getElementById("coeus-marks");
+window.__nerdgenieClearMarks = window.__nerdgenieClearMarks || function () {
+  var sheet = document.getElementById("nerdgenie-marks");
   if (sheet && sheet.parentNode) { sheet.parentNode.removeChild(sheet); }
   return true;
 };

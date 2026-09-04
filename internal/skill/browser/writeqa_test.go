@@ -11,12 +11,12 @@ import (
 
 // TestWriteTheShippedQualitySkill is how skills/qa is generated. It is skipped
 // unless a person asks for it by hand with
-// "COEUS_WRITE_QA_SKILL=1 go test ./internal/skill/browser -run TestWriteTheShippedQualitySkill",
+// "NERDGENIE_WRITE_QA_SKILL=1 go test ./internal/skill/browser -run TestWriteTheShippedQualitySkill",
 // because the folder it writes is checked in and the test beside it is what
 // keeps the two the same.
 func TestWriteTheShippedQualitySkill(t *testing.T) {
 	if !askedToWriteTheSkill() {
-		t.Skip("the shipped skill folder is only rewritten when COEUS_WRITE_QA_SKILL is set to 1")
+		t.Skip("the shipped skill folder is only rewritten when NERDGENIE_WRITE_QA_SKILL is set to 1")
 	}
 	folder := filepath.Join("..", "..", "..", "skills", browser.QASkillName)
 	if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
@@ -32,5 +32,5 @@ func TestWriteTheShippedQualitySkill(t *testing.T) {
 // askedToWriteTheSkill says whether the person running the tests asked for the
 // shipped folder to be rewritten.
 func askedToWriteTheSkill() bool {
-	return os.Getenv("COEUS_WRITE_QA_SKILL") == "1"
+	return os.Getenv("NERDGENIE_WRITE_QA_SKILL") == "1"
 }

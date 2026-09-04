@@ -38,7 +38,7 @@ var ErrPromptInterrupted = errors.New("the prompt was stopped before a secret wa
 // every path out, the interrupt key included.
 //
 // This is the one way a value enters the vault: "/vault add" in the terminal
-// and "coeus init" both ask through here.
+// and "nerdgenie init" both ask through here.
 func AskSecret(terminal *os.File, prompt string) (string, error) {
 	settings, err := readTerminalSettings(terminal)
 	if err != nil {

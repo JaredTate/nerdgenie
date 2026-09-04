@@ -20,7 +20,7 @@ const fixtureVersion = "9.9.9-fixture"
 // installerFakes is everything a test needs to run the installer without
 // administrator rights and without the network.
 type installerFakes struct {
-	// home is the temporary HOME, so that the real ~/.coeus is never touched.
+	// home is the temporary HOME, so that the real ~/.nerdgenie is never touched.
 	home string
 	// fakes is the folder of fake programs that goes on the front of the PATH.
 	fakes string
@@ -67,9 +67,9 @@ func newInstallerFakes(t *testing.T, osReleaseText string) installerFakes {
 // environment is the environment the installer runs in on this fake machine.
 func (fakes installerFakes) environment() []string {
 	return cleanEnvironment(fakes.home, fakes.fakes,
-		"COEUS_OS_RELEASE="+fakes.osRelease,
-		"COEUS_APPARMOR_DIR="+fakes.apparmor,
-		"COEUS_INIT_LOG="+fakes.initLog,
+		"NERDGENIE_OS_RELEASE="+fakes.osRelease,
+		"NERDGENIE_APPARMOR_DIR="+fakes.apparmor,
+		"NERDGENIE_INIT_LOG="+fakes.initLog,
 	)
 }
 
@@ -97,15 +97,15 @@ const fedora = "ID=fedora\nVERSION_ID=\"42\"\nPRETTY_NAME=\"Fedora Linux 42\"\n"
 // writeFixtureArchive builds a release archive shaped exactly like the one
 // scripts/release/build.sh writes, holding a stub program in place of the real
 // binary, and returns its path. The stub writes the arguments it was given into
-// the file COEUS_INIT_LOG names, so a test can prove that init was run and with
+// the file NERDGENIE_INIT_LOG names, so a test can prove that init was run and with
 // what.
 func writeFixtureArchive(t *testing.T, into string, architecture string) string {
 	t.Helper()
-	folder := "coeus-" + fixtureVersion + "-" + architecture
+	folder := "nerdgenie-" + fixtureVersion + "-" + architecture
 	staging := filepath.Join(t.TempDir(), folder)
 
-	writeExecutable(t, filepath.Join(staging, "coeus"),
-		"#!/bin/sh\nprintf 'coeus %s\\n' \"$*\" >> \"${COEUS_INIT_LOG:-/dev/null}\"\nexit 0\n")
+	writeExecutable(t, filepath.Join(staging, "nerdgenie"),
+		"#!/bin/sh\nprintf 'nerdgenie %s\\n' \"$*\" >> \"${NERDGENIE_INIT_LOG:-/dev/null}\"\nexit 0\n")
 	writeFile(t, filepath.Join(staging, "VERSION"), fixtureVersion+"\n")
 	writeExecutable(t, filepath.Join(staging, "node", "bin", "node"), "#!/bin/sh\nexit 0\n")
 	writeFile(t, filepath.Join(staging, "workers", "browser", "main.js"), "// the browser worker\n")
@@ -116,7 +116,7 @@ func writeFixtureArchive(t *testing.T, into string, architecture string) string 
 	}
 	archive := filepath.Join(into, folder+".tar.gz")
 	packing := exec.Command("tar", "czf", archive, "-C", staging,
-		"coeus", "VERSION", "node", "workers")
+		"nerdgenie", "VERSION", "node", "workers")
 	if printed, err := packing.CombinedOutput(); err != nil {
 		t.Fatalf("cannot pack the fixture archive: %v\n%s", err, printed)
 	}

@@ -230,7 +230,7 @@ Cookies are the login. Each persona has a persistent `--user-data-dir`. First lo
 
 ### 8.2 Vault for services used often
 
-Format: one file `~/.coeus/vault.enc`, ChaCha20-Poly1305 with a random 32-byte key at `~/.coeus/vault.key` (0600), fresh 12-byte nonce per record — exactly ZeroClaw's design (`crates/zeroclaw-config/src/secrets.rs:1-22`, `FileKeySource` at 87-125, which also refuses symlinks). `age` with a passphrase would work too but needs the passphrase at daemon start; a key file is simpler for a headless daemon and JT can wrap that file with his login keyring later. Hermes's alternative, pulling from Bitwarden/1Password at startup with a 0600 TTL disk cache (`agent/secret_sources/_cache.py:1-19`, `bitwarden.py`, `onepassword.py`, `command.py`), is a good v2 if JT already uses one of those; the `command` source ("keepassxc-cli") is the cleanest bridge.
+Format: one file `~/.nerdgenie/vault.enc`, ChaCha20-Poly1305 with a random 32-byte key at `~/.nerdgenie/vault.key` (0600), fresh 12-byte nonce per record — exactly ZeroClaw's design (`crates/zeroclaw-config/src/secrets.rs:1-22`, `FileKeySource` at 87-125, which also refuses symlinks). `age` with a passphrase would work too but needs the passphrase at daemon start; a key file is simpler for a headless daemon and JT can wrap that file with his login keyring later. Hermes's alternative, pulling from Bitwarden/1Password at startup with a 0600 TTL disk cache (`agent/secret_sources/_cache.py:1-19`, `bitwarden.py`, `onepassword.py`, `command.py`), is a good v2 if JT already uses one of those; the `command` source ("keepassxc-cli") is the cleanest bridge.
 
 Entry shape: `name, domains[], username, password, totp_secret?, notes, allow_autofill (bool), last_used`. Added via the TUI: `/vault add linkedin` with masked input (password and TOTP secret never echoed, never logged). Referenced by name only. The model never receives values; every tool output passes a redactor that masks any vault value and secret-looking strings, like Hermes's `_redact_browser_output` (`browser_tool.py:4214-4237`).
 
@@ -248,7 +248,7 @@ Hand off to JT when: the site has no vault entry; a CAPTCHA/Turnstile is visible
 
 ### 8.4 sudo
 
-Hermes caches a sudo password per session after a masked prompt (`tools/terminal_tool.py:247-340`), pipes it with `sudo -S -p ''` on stdin (764, 1035-1037) with a trailing newline (1112). Coeus's equivalent: vault entry `sudo`. Run privileged commands with `SUDO_ASKPASS=/usr/libexec/coeus-askpass sudo -A ...`, where the askpass helper reads the secret from the Coeus daemon over a per-invocation unix socket token. This keeps the password off stdin (so nested pipelines still work) and out of the process list and model context. First sudo in a session requires a yes/no confirmation from JT over TUI/Signal; after that it is silent until the session ends. Never print sudo output before redaction.
+Hermes caches a sudo password per session after a masked prompt (`tools/terminal_tool.py:247-340`), pipes it with `sudo -S -p ''` on stdin (764, 1035-1037) with a trailing newline (1112). Coeus's equivalent: vault entry `sudo`. Run privileged commands with `SUDO_ASKPASS=/usr/libexec/nerdgenie-askpass sudo -A ...`, where the askpass helper reads the secret from the Coeus daemon over a per-invocation unix socket token. This keeps the password off stdin (so nested pipelines still work) and out of the process list and model context. First sudo in a session requires a yes/no confirmation from JT over TUI/Signal; after that it is silent until the session ends. Never print sudo output before redaction.
 
 ---
 
@@ -264,7 +264,7 @@ Hermes caches a sudo password per session after a masked prompt (`tools/terminal
 
 Why not chromedp: the value is in the 10k+ lines around CDP (OpenClaw's `browser/` is where the reliability lives). Why not agent-browser first: no control over mouse paths, keystroke cadence, or settle logic beyond its CLI, and its snapshot is still moving. Why playwright-core despite +85 MB / +135 ms (prior benchmark): it is one long-lived helper per persona, started once, not per call — noise on a 60 GB desktop. `patchright` (same API, removes `Runtime.enable` and other leaks) is a config-flag swap for Cloudflare-heavy sites; parity of its `ariaSnapshot({mode:"ai"})` is not verified.
 
-Attach model: Coeus launches `/usr/bin/google-chrome --user-data-dir=~/.coeus/browser/<persona>/user-data --remote-debugging-port=0 --no-first-run --no-default-browser-check --disable-sync --disable-background-networking --disable-component-update --password-store=basic --window-size=1400,900` (headed on rosie's display; `--headless=new` only for the throwaway persona), reads `DevToolsActivePort` like Hermes (`browser_tool.py:1835-1850`), and the worker does `chromium.connectOverCDP("http://127.0.0.1:<port>")`. No `--disable-blink-features=AutomationControlled` games; real Chrome with a real profile does not set `navigator.webdriver` unless driven by WebDriver.
+Attach model: Coeus launches `/usr/bin/google-chrome --user-data-dir=~/.nerdgenie/browser/<persona>/user-data --remote-debugging-port=0 --no-first-run --no-default-browser-check --disable-sync --disable-background-networking --disable-component-update --password-store=basic --window-size=1400,900` (headed on rosie's display; `--headless=new` only for the throwaway persona), reads `DevToolsActivePort` like Hermes (`browser_tool.py:1835-1850`), and the worker does `chromium.connectOverCDP("http://127.0.0.1:<port>")`. No `--disable-blink-features=AutomationControlled` games; real Chrome with a real profile does not set `navigator.webdriver` unless driven by WebDriver.
 
 ### 9.2 Tool set (10 tools)
 
@@ -344,12 +344,12 @@ Defaults: curved mouse paths of 200–600 ms; click hold 60–120 ms; typing 60�
 
 ### 9.10 Persona / profile model
 
-`~/.coeus/browser/<persona>/{user-data, downloads, pacing.yaml, vault-scope}`. Personas: `jt` (JT's identity; social and personal accounts; headed; home IP; vault scope = all entries), `work` (if needed), `scratch` (no logins, headless allowed, may use patchright, no vault). One Chrome process per active persona, launched on demand, kept alive 30 minutes idle (browser-use `keep_alive`), never two personas on the same site at once. Profiles are never copied or exported; backups are file-level and encrypted. JT can open the persona window himself any time (`coeus browser open jt https://…`) to log in or fix something; the agent sees the result on its next snapshot.
+`~/.nerdgenie/browser/<persona>/{user-data, downloads, pacing.yaml, vault-scope}`. Personas: `jt` (JT's identity; social and personal accounts; headed; home IP; vault scope = all entries), `work` (if needed), `scratch` (no logins, headless allowed, may use patchright, no vault). One Chrome process per active persona, launched on demand, kept alive 30 minutes idle (browser-use `keep_alive`), never two personas on the same site at once. Profiles are never copied or exported; backups are file-level and encrypted. JT can open the persona window himself any time (`nerdgenie browser open jt https://…`) to log in or fix something; the agent sees the result on its next snapshot.
 
 ### 9.11 Downloads, uploads, dialogs, iframes, shadow DOM, PDF
 
 - Downloads: `download` events are always captured into the persona's `downloads/` with a sanitized name and listed in the result as `downloads: [path]`; `browser_act kind=download ref=` waits for a specific one.
-- Uploads: `browser_act kind=upload ref paths[]` via `filechooser`; paths must be inside `~/coeus-share/` or a path JT sent in this conversation.
+- Uploads: `browser_act kind=upload ref paths[]` via `filechooser`; paths must be inside `~/nerdgenie-share/` or a path JT sent in this conversation.
 - Dialogs: policy `must_respond` (Hermes). A pending `alert/confirm/prompt/beforeunload` shows in the header (`dialogs: confirm "Leave page?"`) and the model answers with `browser_act kind=dialog`.
 - Iframes: same-process frames appear inline with `fNeM` refs; cross-origin frames show as `- iframe "name" @f2 (collapsed)` and are read with `frame=f2`; known ad/tracker frames stay collapsed.
 - Shadow DOM: open roots are pierced by Playwright locators; closed roots are reported as `[closed shadow]` and need coordinates.

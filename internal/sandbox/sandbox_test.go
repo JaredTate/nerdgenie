@@ -16,7 +16,7 @@ func aFenceForTesting(t *testing.T) (*Fence, string) {
 	t.Helper()
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
-	helper := filepath.Join(userHome, "work", "coeus")
+	helper := filepath.Join(userHome, "work", "nerdgenie")
 	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatalf("cannot write the stand-in helper program: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestAFenceNeverBindsAPathTheCallerNamedAsOneToKeepOutside(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 	profile := filepath.Join(userHome, "chrome-profile")
-	helper := filepath.Join(work, "coeus")
+	helper := filepath.Join(work, "nerdgenie")
 	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatalf("cannot write the stand-in helper program: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestAFenceNeverBindsAPathTheCallerNamedAsOneToKeepOutside(t *testing.T) {
 func TestAFenceCarriesTheNetworkSettingThroughToEveryCommandItPlans(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
-	helper := filepath.Join(work, "coeus")
+	helper := filepath.Join(work, "nerdgenie")
 	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatalf("cannot write the stand-in helper program: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestNewFenceRefusesARootThatHoldsTheAgentsHomeWhereCoeusHomeMovedIt(t *test
 
 	_, err := New(Settings{Roots: []string{work}, UserHome: userHome, AgentHome: agentHome, HelperProgram: "/bin/sh"})
 	if err == nil {
-		t.Fatalf("a fence was built around %q, and COEUS_HOME put the vault and the browser profile inside it", work)
+		t.Fatalf("a fence was built around %q, and NERDGENIE_HOME put the vault and the browser profile inside it", work)
 	}
 	if !strings.Contains(err.Error(), agentHome) {
 		t.Errorf("the refusal says %q, and it must name the folder it would have put inside the fence", err)
@@ -161,7 +161,7 @@ func TestNewFenceRefusesAHelperProgramThatIsNotAFullPath(t *testing.T) {
 	userHome := tempUserHome(t)
 	work := filepath.Join(userHome, "work")
 
-	if _, err := New(Settings{Roots: []string{work}, UserHome: userHome, HelperProgram: "coeus"}); err == nil {
+	if _, err := New(Settings{Roots: []string{work}, UserHome: userHome, HelperProgram: "nerdgenie"}); err == nil {
 		t.Fatal("a fence was built around a helper named without a full path, and the fence has its own PATH")
 	}
 }

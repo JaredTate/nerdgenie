@@ -34,7 +34,7 @@ all: check
 # test/functional/browserworker_integration_test.go uses, and its packages are
 # fetched again only when the bundle has none or its lock file has changed.
 build:
-	go build -ldflags "$(LDFLAGS)" -o bin/coeus ./cmd/coeus
+	go build -ldflags "$(LDFLAGS)" -o bin/nerdgenie ./cmd/nerdgenie
 	@command -v npm >/dev/null 2>&1 || { \
 	  echo "npm is not on the path, and the two TypeScript workers cannot be built without it. Install Node 22 or newer, or put the Node you have on your path."; \
 	  exit 1; \
@@ -68,16 +68,16 @@ build:
 # The browser integration tests start a real Chrome, which puts a window on the
 # screen of whoever runs them, so they live in their own target and an ordinary
 # test run never opens one; the desktop's live tests are gated behind
-# COEUS_LIVE_DESKTOP=1 inside the package and run nowhere by accident. The gate and
+# NERDGENIE_LIVE_DESKTOP=1 inside the package and run nowhere by accident. The gate and
 # continuous integration run both targets; the browser target asks for headless
-# Chrome through COEUS_HEADLESS_TESTS, which internal/browser honours.
+# Chrome through NERDGENIE_HEADLESS_TESTS, which internal/browser honours.
 test:
 	go test -tags integration $$(go list ./... | grep -v '/internal/browser$$' | grep -v '/test/functional$$')
 	go test ./test/functional/...
 	scripts/fuzz.sh 5s
 
 test-browser:
-	COEUS_HEADLESS_TESTS=1 go test -tags integration ./internal/browser/ ./internal/desktop/ ./test/functional/
+	NERDGENIE_HEADLESS_TESTS=1 go test -tags integration ./internal/browser/ ./internal/desktop/ ./test/functional/
 
 fuzz:
 	scripts/fuzz.sh 60s
@@ -104,7 +104,7 @@ check:
 live:
 	go test -tags live ./test/functional/... ./internal/...
 
-# One release: bin/coeus for linux/amd64 and linux/arm64, each packed with the two
+# One release: bin/nerdgenie for linux/amd64 and linux/arm64, each packed with the two
 # worker bundles and a pinned Node runtime so that nobody has to install Node, and
 # beside them a SHA256SUMS the installer checks against and a manifest.json the
 # updater reads. The version comes from git describe unless VERSION says otherwise.
@@ -117,7 +117,7 @@ release: build
 	scripts/release/build.sh $(if $(filter-out dev,$(VERSION)),--version $(VERSION))
 
 install: build
-	./bin/coeus install
+	./bin/nerdgenie install
 
 repo-map:
 	go run ./scripts/repomap > REPO_MAP.md

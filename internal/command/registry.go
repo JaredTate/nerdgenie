@@ -30,7 +30,7 @@ const terminalOnlyRefusal = "the /%s command works only in the terminal, so open
 // Registry holds every slash command the program answers, in the order they
 // were registered, which is the order the help listing prints them in.
 //
-// It is filled once at startup, in cmd/coeus/serve.go, and only read after
+// It is filled once at startup, in cmd/nerdgenie/serve.go, and only read after
 // that, so it needs no lock of its own.
 type Registry struct {
 	order  []string

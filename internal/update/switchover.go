@@ -101,7 +101,7 @@ func linkRelease(home contract.Home, binary string) error {
 }
 
 // currentBinary is the program the current link points at, and is empty when
-// there is no link yet, which is what a machine looks like before "coeus
+// there is no link yet, which is what a machine looks like before "nerdgenie
 // install" has run.
 func currentBinary(home contract.Home) string {
 	where, err := os.Readlink(home.CurrentReleaseLink())

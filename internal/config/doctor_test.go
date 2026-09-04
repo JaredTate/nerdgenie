@@ -69,7 +69,7 @@ func TestTheDoctorOnAnEmptyHomeFindsTheFoldersAndMissesTheRest(t *testing.T) {
 	if finding := findingAbout(t, report, "persona"); finding.Result != config.Fine {
 		t.Errorf("the persona folder is reported %s: %s, want it fine", finding.Result, finding.Detail)
 	}
-	for _, missing := range []string{"config.toml", "coeus.db", "vault.age", "vault.key"} {
+	for _, missing := range []string{"config.toml", "nerdgenie.db", "vault.age", "vault.key"} {
 		if finding := findingAbout(t, report, missing); finding.Result != config.Warning {
 			t.Errorf("%s is reported %s: %s, want a warning, because a fresh home has none of these yet",
 				missing, finding.Result, finding.Detail)
@@ -86,7 +86,7 @@ func TestTheDoctorOnAFullHomeFindsEverything(t *testing.T) {
 
 	report := config.Doctor(context.Background(), home)
 
-	for _, what := range append([]string{"the home folder", "config.toml", "coeus.db", "vault.age", "vault.key"}, theFivePrograms...) {
+	for _, what := range append([]string{"the home folder", "config.toml", "nerdgenie.db", "vault.age", "vault.key"}, theFivePrograms...) {
 		if finding := findingAbout(t, report, what); finding.Result != config.Fine {
 			t.Errorf("%s is reported %s: %s, want it fine on a home that has everything", what, finding.Result, finding.Detail)
 		}
@@ -105,8 +105,8 @@ func TestTheDoctorReportsAFolderThatIsNotThere(t *testing.T) {
 	if finding.Result != config.Trouble {
 		t.Errorf("a missing folder is reported %s, want it a problem", finding.Result)
 	}
-	if !strings.Contains(finding.Detail, "coeus init") {
-		t.Errorf("the detail is %q, want it to say that coeus init makes the folder", finding.Detail)
+	if !strings.Contains(finding.Detail, "nerdgenie init") {
+		t.Errorf("the detail is %q, want it to say that nerdgenie init makes the folder", finding.Detail)
 	}
 	if report.Verdict() != config.Trouble {
 		t.Errorf("the verdict is %s, want a problem when a folder of the layout is missing", report.Verdict())

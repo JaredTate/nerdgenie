@@ -105,7 +105,7 @@ func savePicture(encoded string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("the picture of the page was not the base64 text the protocol promises: %w", err)
 	}
-	file, err := os.CreateTemp("", "coeus-browser-*.png")
+	file, err := os.CreateTemp("", "nerdgenie-browser-*.png")
 	if err != nil {
 		return "", fmt.Errorf("a file for the picture of the page could not be made: %w", err)
 	}

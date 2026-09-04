@@ -28,7 +28,7 @@ const (
 	LinkTimeout = 5 * time.Minute
 	// DefaultDeviceName is the name this device shows up under in the phone's
 	// list of linked devices.
-	DefaultDeviceName = "coeus"
+	DefaultDeviceName = "nerdgenie"
 	// linkingAddressPrefix is what signal-cli prints the address as.
 	linkingAddressPrefix = "sgnl://"
 	// linkedLinePrefix is the line signal-cli prints once the phone has scanned.
@@ -46,7 +46,7 @@ type LinkOptions struct {
 	// Program is the signal-cli to run, either a path or a name on the PATH.
 	Program string
 	// DeviceName is what this device is called in the phone's list of linked
-	// devices. Empty means "coeus".
+	// devices. Empty means "nerdgenie".
 	DeviceName string
 	// Out is where the code and the words around it are drawn.
 	Out io.Writer
@@ -135,7 +135,7 @@ func readLinking(ctx context.Context, options LinkOptions, printed io.Reader) (s
 				return account, nil
 			}
 		case <-expired:
-			return "", fmt.Errorf("no phone scanned the code within %v, so run \"coeus signal link\" again and scan it from Signal on your phone under Linked Devices", LinkTimeout)
+			return "", fmt.Errorf("no phone scanned the code within %v, so run \"nerdgenie signal link\" again and scan it from Signal on your phone under Linked Devices", LinkTimeout)
 		case <-ctx.Done():
 			return "", ctx.Err()
 		}
@@ -163,7 +163,7 @@ func readLinkLine(options LinkOptions, line string, drawn *bool) (string, bool) 
 // scanned anything.
 func linkEndedError(drawn bool) error {
 	if drawn {
-		return errors.New("signal-cli stopped before the phone finished linking, so run \"coeus signal link\" again and scan the code more quickly")
+		return errors.New("signal-cli stopped before the phone finished linking, so run \"nerdgenie signal link\" again and scan the code more quickly")
 	}
 	return errors.New("signal-cli printed no linking address, so check that signal-cli runs on its own and that this account is not already linked")
 }

@@ -118,7 +118,7 @@ describe("clicking, typing, pressing, and scrolling", () => {
     const page = await worker.result("open", { url: site.page("keyboard.html") });
     await worker.result("type", {
       ref: refFor(page, "What are you looking for"),
-      text: "coeus",
+      text: "nerdgenie",
     });
     const diff = asDiff(
       await worker.result("press", { key: "Enter", expectation: "the welcome screen" }),

@@ -25,7 +25,7 @@ func aRealFenceOverTwoFoldersInTheUsersHome(t *testing.T) (*Fence, string, []str
 	t.Helper()
 	userHome, _ := aTemporaryUserHome(t)
 
-	roots := []string{filepath.Join(userHome, "coeus"), filepath.Join(userHome, "Desktop")}
+	roots := []string{filepath.Join(userHome, "nerdgenie"), filepath.Join(userHome, "Desktop")}
 	for _, root := range roots {
 		if err := os.MkdirAll(root, contract.HomeFolderMode); err != nil {
 			t.Fatalf("cannot make the folder %s: %v", root, err)
@@ -86,13 +86,13 @@ func TestTheFoldersThatStayOutsideAreMissingRatherThanEmptyInsideTheFence(t *tes
 func TestAWriteToAFolderTheUserNamesLandsInTheRealFolder(t *testing.T) {
 	fence, _, roots := aRealFenceOverTwoFoldersInTheUsersHome(t)
 
-	insideTheFence(t, fence, "echo 'the model wrote this' > ~/coeus/x")
+	insideTheFence(t, fence, "echo 'the model wrote this' > ~/nerdgenie/x")
 
 	written, err := os.ReadFile(filepath.Join(roots[0], "x"))
 	if err != nil {
-		t.Fatalf("the file the command wrote to ~/coeus/x is not in the real folder: %v", err)
+		t.Fatalf("the file the command wrote to ~/nerdgenie/x is not in the real folder: %v", err)
 	}
 	if !strings.Contains(string(written), "the model wrote this") {
-		t.Errorf("the real ~/coeus/x holds %q, want what the command wrote", written)
+		t.Errorf("the real ~/nerdgenie/x holds %q, want what the command wrote", written)
 	}
 }

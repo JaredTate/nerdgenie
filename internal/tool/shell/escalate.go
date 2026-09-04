@@ -1,7 +1,7 @@
 // Reading the administrator password from a helper program rather than from a
 // command line, an environment variable, or anything the model can see is
 // Hermes' sudo path, at ~/Code/hermes-agent/tools/terminal_tool.py. The Go here
-// is written fresh, and the helper is the coeus binary's own askpass subcommand.
+// is written fresh, and the helper is the nerdgenie binary's own askpass subcommand.
 
 package shell
 
@@ -20,12 +20,12 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// AskpassSubcommand is the word the coeus binary answers with the administrator
+// AskpassSubcommand is the word the nerdgenie binary answers with the administrator
 // password, and nothing else, on its ordinary output.
 const AskpassSubcommand = "askpass"
 
 // askpassHelperName is the little program written under the run folder that runs
-// the coeus binary's askpass subcommand. Sudo takes one program in SUDO_ASKPASS
+// the nerdgenie binary's askpass subcommand. Sudo takes one program in SUDO_ASKPASS
 // and no arguments with it, so the two words have to be wrapped in one file.
 const askpassHelperName = "askpass"
 
@@ -112,13 +112,13 @@ func (tool *Tool) runWithSudo(ctx context.Context, command string) (contract.San
 
 // AskpassHelper writes the little program sudo reads the password from, under
 // the run folder and readable by nobody but the agent's own account, and returns
-// its path. It runs the coeus binary's askpass subcommand and nothing else.
+// its path. It runs the nerdgenie binary's askpass subcommand and nothing else.
 func (tool *Tool) AskpassHelper() (string, error) {
 	program := tool.settings.CoeusProgram
 	if program == "" {
 		found, err := os.Executable()
 		if err != nil {
-			return "", fmt.Errorf("cannot find the coeus program on disk to read the administrator password from: %w", err)
+			return "", fmt.Errorf("cannot find the nerdgenie program on disk to read the administrator password from: %w", err)
 		}
 		program = found
 	}

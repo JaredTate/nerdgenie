@@ -35,7 +35,7 @@ var askpassSubcommand = subcommand{
 func printTheSudoPassword(_ []string, output io.Writer, problems io.Writer) int {
 	home, err := theHomeAskpassMustRead()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus askpass: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie askpass: %v\n", err)
 		return contract.ExitBadConfiguration
 	}
 
@@ -44,21 +44,21 @@ func printTheSudoPassword(_ []string, output io.Writer, problems io.Writer) int 
 	// account's environment, possibly many times: a key nothing manages must
 	// never be left behind by a program that only wanted to read.
 	if _, err := os.Stat(home.VaultFile()); err != nil {
-		fmt.Fprintf(problems, "coeus askpass: there is no vault at %s, so run \"coeus init\" and then \"/vault add sudo\" in the terminal: %v\n",
+		fmt.Fprintf(problems, "nerdgenie askpass: there is no vault at %s, so run \"nerdgenie init\" and then \"/vault add sudo\" in the terminal: %v\n",
 			home.VaultFile(), err)
 		return contract.ExitFailure
 	}
 
 	opened, err := vault.Open(home, clock.System())
 	if err != nil {
-		fmt.Fprintf(problems, "coeus askpass: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie askpass: %v\n", err)
 		return contract.ExitFailure
 	}
 	defer func() { _ = opened.Close() }()
 
 	password, err := opened.SudoPassword(context.Background())
 	if err != nil {
-		fmt.Fprintf(problems, "coeus askpass: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie askpass: %v\n", err)
 		return contract.ExitFailure
 	}
 	fmt.Fprintln(output, password)
@@ -68,7 +68,7 @@ func printTheSudoPassword(_ []string, output io.Writer, problems io.Writer) int 
 // theHomeAskpassMustRead finds the agent's home folder from inside sudo, where
 // the environment is not the one the agent runs under.
 //
-// Three things make this different from every other subcommand. COEUS_HOME may
+// Three things make this different from every other subcommand. NERDGENIE_HOME may
 // have moved the home folder, and it is passed through, so it is read first, the
 // way config.HomeFolder reads it. The shell tool sets HOME to the agent's own
 // home folder before it runs sudo, so HOME may already be the home rather than

@@ -15,7 +15,7 @@ import (
 )
 
 // TestARealConfigurationFileLoadsAndTheDoctorReadsTheSameHome writes the file
-// "coeus init" would write into a temporary home on the real filesystem, loads
+// "nerdgenie init" would write into a temporary home on the real filesystem, loads
 // it, and runs the doctor over it, which is the whole of what wave 3 asks of
 // this package.
 func TestARealConfigurationFileLoadsAndTheDoctorReadsTheSameHome(t *testing.T) {
@@ -57,11 +57,11 @@ func TestARealConfigurationFileLoadsAndTheDoctorReadsTheSameHome(t *testing.T) {
 	}
 }
 
-// aWholeConfiguration is the file "coeus init" writes on a fresh machine, with
+// aWholeConfiguration is the file "nerdgenie init" writes on a fresh machine, with
 // every key a first run sets.
 func aWholeConfiguration() string {
 	return strings.Join([]string{
-		"# The configuration coeus init writes on a fresh machine.",
+		"# The configuration nerdgenie init writes on a fresh machine.",
 		`default_model = "local"`,
 		`fallback_chain = ["cloud"]`,
 		`signal_account = "+15125550123"`,

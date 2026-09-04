@@ -35,7 +35,7 @@ func TestTheShippedSoulNamesNerdGenieAndHisVoice(t *testing.T) {
 // way their machine is running and turn it the other way in one edit.
 func TestTheShippedConfigurationSaysTheSandboxIsOffAndWhatTheFenceWouldDo(t *testing.T) {
 	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
-	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})
 
 	lines := strings.Split(written, "\n")
 	at := -1
@@ -62,13 +62,13 @@ func TestTheShippedConfigurationSaysTheSandboxIsOffAndWhatTheFenceWouldDo(t *tes
 }
 
 // TestTheShippedConfigurationWritesTheBudgetsCommentedOut is the user's rule in
-// the file "coeus init" writes: the three budgets are off unless set, so each
+// the file "nerdgenie init" writes: the three budgets are off unless set, so each
 // is written as a comment a person can uncomment, under a [caps] header so that
 // the uncommented line lands in the right table, with a comment above saying
 // they are off and how to turn one on.
 func TestTheShippedConfigurationWritesTheBudgetsCommentedOut(t *testing.T) {
 	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
-	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})
 
 	caps := strings.Index(written, "[caps]\n")
 	models := strings.Index(written, "[[models]]\n")
@@ -95,12 +95,12 @@ func TestTheShippedConfigurationWritesTheBudgetsCommentedOut(t *testing.T) {
 }
 
 // TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt pins the
-// think setting in the file "coeus init" writes: every model block carries it,
+// think setting in the file "nerdgenie init" writes: every model block carries it,
 // empty, with a comment above it naming the levels, so that a person can turn
 // one model up and another down in one edit.
 func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing.T) {
 	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
-	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})
 
 	lines := strings.Split(written, "\n")
 	at := -1
@@ -127,7 +127,7 @@ func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing
 }
 
 // TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlock
-// pins the one example block "coeus init" writes for a model it does not set up
+// pins the one example block "nerdgenie init" writes for a model it does not set up
 // itself: OpenAI's Codex backend on the ChatGPT subscription, reached with the
 // login the codex program keeps, so that Coeus's own loop drives the model. Every
 // line of it is a comment, so the file loads exactly as it did without it, and
@@ -139,7 +139,7 @@ func TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlo
 	codex := modelChoice{name: contract.CodexProgram, detected: true, alias: contract.ModelAlias{
 		Name: contract.CodexProgram, Provider: contract.ProviderCommandLine, Program: contract.CodexProgram,
 		ModelName: "gpt-5.5", ContextLength: cloudContextLength}}
-	written := configurationText(chosen, []modelChoice{chosen, codex}, []string{"/home/someone/coeus"})
+	written := configurationText(chosen, []modelChoice{chosen, codex}, []string{"/home/someone/nerdgenie"})
 
 	programLine := strings.Index(written, "\nprogram = \"codex\"\n")
 	if programLine < 0 {
@@ -179,12 +179,12 @@ func TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlo
 }
 
 // TestTheCodexExampleIsWrittenWhenNoCodexProgramWasFound pins that the example
-// is part of every file "coeus init" writes, not only of one on a machine with
+// is part of every file "nerdgenie init" writes, not only of one on a machine with
 // the codex program installed, because the example is how a person learns the
 // provider exists.
 func TestTheCodexExampleIsWrittenWhenNoCodexProgramWasFound(t *testing.T) {
 	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
-	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/coeus"})
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})
 
 	if !strings.Contains(written, "\n# provider = \"codex\"\n") {
 		t.Errorf("the configuration written without the codex program has no commented-out codex example:\n%s", written)

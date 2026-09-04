@@ -69,7 +69,7 @@ func (report Report) String() string {
 	}
 
 	written := &strings.Builder{}
-	fmt.Fprintf(written, "coeus doctor: %s\n\n", report.Root)
+	fmt.Fprintf(written, "nerdgenie doctor: %s\n\n", report.Root)
 	for _, finding := range report.Findings {
 		fmt.Fprintf(written, "  %-7s  %-*s  %s\n", finding.Result, widest, finding.What, finding.Detail)
 	}

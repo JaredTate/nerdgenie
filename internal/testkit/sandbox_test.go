@@ -89,13 +89,13 @@ func TestAWorkingDirectoryOutsideEveryRootIsRefused(t *testing.T) {
 
 	_, err := sandbox.Run(ctx, contract.SandboxCommand{
 		Program:          "ls",
-		WorkingDirectory: "/home/jared/.coeus",
+		WorkingDirectory: "/home/jared/.nerdgenie",
 	})
 
 	if err == nil {
 		t.Fatal("a command ran outside every root, and the vault and the home folder are always outside the fence")
 	}
-	if !strings.Contains(err.Error(), "/home/jared/.coeus") {
+	if !strings.Contains(err.Error(), "/home/jared/.nerdgenie") {
 		t.Errorf("the refusal does not name the folder that was asked for: %v", err)
 	}
 }

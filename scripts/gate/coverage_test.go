@@ -45,7 +45,7 @@ func TestTheCoverageGatePassesAModuleWhereEveryPackageIsTested(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("the coverage gate failed a module that is fully tested, and it exited %d:\n%s", code, printed)
 	}
-	for _, folder := range []string{"internal/tested", "scripts/helper", "cmd/coeus"} {
+	for _, folder := range []string{"internal/tested", "scripts/helper", "cmd/nerdgenie"} {
 		if !strings.Contains(printed, folder) {
 			t.Errorf("the gate printed no row for %s, so a package could go unmeasured:\n%s", folder, printed)
 		}

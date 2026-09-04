@@ -19,7 +19,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// ReadyCommand is the slash command "coeus serve" answers while it is running,
+// ReadyCommand is the slash command "nerdgenie serve" answers while it is running,
 // which is the /readyz check of design section 11.
 const ReadyCommand = "/readyz"
 

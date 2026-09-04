@@ -4,7 +4,7 @@
 //
 // There is one command table, so a command means the same thing in the terminal
 // and over Signal. Each package exports the commands it owns as
-// contract.Command values, and cmd/coeus/serve.go registers them all in one
+// contract.Command values, and cmd/nerdgenie/serve.go registers them all in one
 // place, which is what stops two packages from editing the same registration
 // file. The registry splits a typed line into the command's name and its
 // arguments, refuses a terminal-only command on any other channel with one

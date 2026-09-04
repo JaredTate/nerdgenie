@@ -168,7 +168,7 @@ func (checker settingsChecker) checkSandboxMode() error {
 // machine inside the fence. The user's home directory itself is refused too,
 // because it holds the daily browser profile, cloud credentials, and keys, and
 // the fence can only grant, never subtract; the shipped default is the work
-// folder contract.DefaultSandboxRoots names, which "coeus init" creates.
+// folder contract.DefaultSandboxRoots names, which "nerdgenie init" creates.
 //
 // The configured browser profile and backup folder go in as well, because this
 // file can put either of them anywhere. A browser_profile_path inside a sandbox

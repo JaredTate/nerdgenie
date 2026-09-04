@@ -21,14 +21,14 @@ func (answersThatCannotBeRead) Read([]byte) (int, error) {
 	return 0, errors.New("the terminal was closed while a question was waiting")
 }
 
-// aGivingUpRun is one of the ways "coeus init" gives up on a question, as the
+// aGivingUpRun is one of the ways "nerdgenie init" gives up on a question, as the
 // name of the way and the context and setup that bring it about.
 type aGivingUpRun struct {
 	what  string
 	build func(t *testing.T, home contract.Home) (context.Context, command.Setup)
 }
 
-// givingUpRuns are the six ways "coeus init" stops part way through. Every one
+// givingUpRuns are the six ways "nerdgenie init" stops part way through. Every one
 // of them leaves a machine with a home folder, the folders inside it, and the
 // persona files, and with no config.toml, so none of them may say that nothing
 // was set up.
@@ -94,13 +94,13 @@ func TestInitNeverSaysNothingWasSetUpOnceTheHomeFolderIsThere(t *testing.T) {
 
 			err := command.Init(ctx, setup, nil)
 			if err == nil {
-				t.Fatalf("coeus init carried on past %s", one.what)
+				t.Fatalf("nerdgenie init carried on past %s", one.what)
 			}
 
 			if strings.Contains(err.Error(), "nothing was set up") {
-				t.Errorf("coeus init says nothing was set up, and the home folder is already there: %v", err)
+				t.Errorf("nerdgenie init says nothing was set up, and the home folder is already there: %v", err)
 			}
-			for _, wanted := range []string{"home folder was made", "no configuration was written", "coeus init again"} {
+			for _, wanted := range []string{"home folder was made", "no configuration was written", "nerdgenie init again"} {
 				if !strings.Contains(err.Error(), wanted) {
 					t.Errorf("the message leaves out %q, so it does not say where a second run picks up: %v", wanted, err)
 				}
@@ -121,6 +121,6 @@ func assertTheHomeIsThereWithNoConfiguration(t *testing.T, home contract.Home) {
 		}
 	}
 	if _, err := os.Stat(home.ConfigFile()); !os.IsNotExist(err) {
-		t.Errorf("a configuration was written even though coeus init gave up: %v", err)
+		t.Errorf("a configuration was written even though nerdgenie init gave up: %v", err)
 	}
 }

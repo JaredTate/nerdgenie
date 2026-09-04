@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 
 	// The pure-Go SQLite driver, registered under the name "sqlite", which is
-	// what keeps bin/coeus a single static binary with no C compiler and no
+	// what keeps bin/nerdgenie a single static binary with no C compiler and no
 	// system library behind it.
 	_ "modernc.org/sqlite"
 )

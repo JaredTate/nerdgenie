@@ -11,7 +11,7 @@ import (
 )
 
 func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {
-	root := filepath.Join("/home", "someone", ".coeus")
+	root := filepath.Join("/home", "someone", ".nerdgenie")
 	home := contract.NewHome(root)
 
 	tests := []struct {
@@ -20,7 +20,7 @@ func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {
 		want string
 	}{
 		{"the configuration file", home.ConfigFile(), filepath.Join(root, "config.toml")},
-		{"the one database file", home.DatabaseFile(), filepath.Join(root, "coeus.db")},
+		{"the one database file", home.DatabaseFile(), filepath.Join(root, "nerdgenie.db")},
 		{"the persona folder", home.PersonaFolder(), filepath.Join(root, "persona")},
 		{"the agent's own description", home.SoulFile(), filepath.Join(root, "persona", "SOUL.md")},
 		{"the facts about the user", home.UserFactsFile(), filepath.Join(root, "persona", "USER.md")},
@@ -38,8 +38,8 @@ func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {
 		{"one release", home.ReleaseFolder("1.2.0"), filepath.Join(root, "releases", "1.2.0")},
 		{"the link to the live release", home.CurrentReleaseLink(), filepath.Join(root, "releases", "current")},
 		{"the run folder", home.RunFolder(), filepath.Join(root, "run")},
-		{"the local socket", home.SocketFile(), filepath.Join(root, "run", "coeus.sock")},
-		{"the lock", home.LockFile(), filepath.Join(root, "run", "coeus.lock")},
+		{"the local socket", home.SocketFile(), filepath.Join(root, "run", "agent.sock")},
+		{"the lock", home.LockFile(), filepath.Join(root, "run", "nerdgenie.lock")},
 		{"the backups folder", home.BackupsFolder(), filepath.Join(root, "backups")},
 		{"the signal folder", home.SignalFolder(), filepath.Join(root, "signal")},
 	}
@@ -51,7 +51,7 @@ func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {
 }
 
 func TestHomeFoldersListsEveryFolderThatMustExist(t *testing.T) {
-	root := filepath.Join("/home", "someone", ".coeus")
+	root := filepath.Join("/home", "someone", ".nerdgenie")
 	home := contract.NewHome(root)
 
 	folders := home.Folders()

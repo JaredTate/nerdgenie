@@ -14,7 +14,7 @@ import (
 )
 
 // PurgeConfirmation is the word that has to be typed, exactly and with nothing
-// else on the line, before "coeus uninstall --purge" removes the home folder.
+// else on the line, before "nerdgenie uninstall --purge" removes the home folder.
 // Everything Coeus has learned is in there, so a slip of the finger must not be
 // enough.
 const PurgeConfirmation = "delete"
@@ -34,17 +34,17 @@ const MaxProgramOutputBytes = 4 << 10
 // where it is unless --purge is given and the confirmation word is typed.
 func (service Service) Uninstall(ctx context.Context, arguments []string) error {
 	if service.Output == nil {
-		return errors.New("coeus uninstall has nowhere to print what it did, so give the service an output writer")
+		return errors.New("nerdgenie uninstall has nowhere to print what it did, so give the service an output writer")
 	}
 	purge := false
-	set := flag.NewFlagSet("coeus uninstall", flag.ContinueOnError)
+	set := flag.NewFlagSet("nerdgenie uninstall", flag.ContinueOnError)
 	set.SetOutput(service.Output)
 	set.BoolVar(&purge, "purge", false, "remove the home folder and everything Coeus has learned, after asking")
 	if err := set.Parse(arguments); err != nil {
-		return fmt.Errorf("coeus uninstall could not read its flags, so nothing was changed: %w", err)
+		return fmt.Errorf("nerdgenie uninstall could not read its flags, so nothing was changed: %w", err)
 	}
 	if left := set.Args(); len(left) > 0 {
-		return fmt.Errorf("coeus uninstall takes no plain words, and was given %q, so run it with --purge or with nothing at all", strings.Join(left, " "))
+		return fmt.Errorf("nerdgenie uninstall takes no plain words, and was given %q, so run it with --purge or with nothing at all", strings.Join(left, " "))
 	}
 
 	for _, unit := range Units(service.Home) {
@@ -67,7 +67,7 @@ func (service Service) Uninstall(ctx context.Context, arguments []string) error 
 	fmt.Fprintf(service.Output, "stopped %s and removed %s.\n", ServiceName, unitPath)
 
 	if !purge {
-		fmt.Fprintf(service.Output, "%s was kept. Run \"coeus uninstall --purge\" to remove it too.\n", service.Home.Root)
+		fmt.Fprintf(service.Output, "%s was kept. Run \"nerdgenie uninstall --purge\" to remove it too.\n", service.Home.Root)
 		return nil
 	}
 	return service.purgeHome()
@@ -99,7 +99,7 @@ func (service Service) purgeHome() error {
 // word.
 func readConfirmation(input io.Reader) (string, error) {
 	if input == nil {
-		return "", errors.New("coeus uninstall --purge has nobody to ask, so run it in a terminal where you can type the confirmation")
+		return "", errors.New("nerdgenie uninstall --purge has nobody to ask, so run it in a terminal where you can type the confirmation")
 	}
 	line, err := bufio.NewReader(io.LimitReader(input, maxConversationBytes)).ReadString('\n')
 	if err != nil && !errors.Is(err, io.EOF) {

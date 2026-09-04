@@ -44,7 +44,7 @@ type StreamOptions struct {
 	// Status returns what a screen has to be told about the agent right now:
 	// the state word, the command list the palette is filled from, and whatever
 	// else the program knows, under the contract.StatusField names.
-	// cmd/coeus/serve.go fills it in.
+	// cmd/nerdgenie/serve.go fills it in.
 	Status func() map[string]string
 }
 

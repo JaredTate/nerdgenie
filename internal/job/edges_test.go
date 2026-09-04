@@ -120,20 +120,20 @@ func TestTheRestartGuardReadsAProgramByItsNameHoweverTheCommandIsWritten(t *test
 	for _, refused := range []string{
 		"reboot",
 		"sudo reboot",
-		"systemctl --user stop coeus",
-		"pkill coeus",
+		"systemctl --user stop nerdgenie",
+		"pkill nerdgenie",
 		"echo hi && shutdown -h now",
-		"coeus update",
+		"nerdgenie update",
 		"sudo -n reboot",
 		"bash -c reboot",
 		"sh -c 'reboot'",
 		"/sbin/reboot",
-		"/usr/bin/pkill coeus",
-		"/bin/systemctl --user stop coeus",
+		"/usr/bin/pkill nerdgenie",
+		"/bin/systemctl --user stop nerdgenie",
 		"nice -n 5 reboot",
 		"timeout 5 reboot",
 		"xargs reboot",
-		"/usr/local/bin/coeus update",
+		"/usr/local/bin/nerdgenie update",
 	} {
 		if err := checkItCannotRestartTheAgent(refused); err == nil {
 			t.Errorf("the work %q was allowed, and it stops or restarts the agent", refused)

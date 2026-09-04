@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run Coeus once with no person at the keyboard: start "coeus serve" on a
+# Run Coeus once with no person at the keyboard: start "nerdgenie serve" on a
 # benchmark home folder, drive its socket with the task, then stop it.
 #
-#   run-coeus.sh BINARY HOME_FOLDER TASK_FILE [TIMEOUT_MINUTES]
+#   run-nerdgenie.sh BINARY HOME_FOLDER TASK_FILE [TIMEOUT_MINUTES]
 #
 # With no TIMEOUT_MINUTES, or with zero, the driver waits as long as the program
 # takes: the benchmark puts no wall-clock cap on any harness.
@@ -16,15 +16,15 @@ HOME_FOLDER="$2"
 TASK="$3"
 MINUTES="${4:-0}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SOCKET="$HOME_FOLDER/run/coeus.sock"
+SOCKET="$HOME_FOLDER/run/agent.sock"
 
-COEUS_HOME="$HOME_FOLDER" "$BINARY" serve > "$HOME_FOLDER/serve.log" 2>&1 < /dev/null &
+NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" serve > "$HOME_FOLDER/serve.log" 2>&1 < /dev/null &
 SERVE_PID=$!
 
 # The serve is stopped by the exact process id recorded above, checked by name
 # first, whether the driver finishes or this script is told to stop.
 stop_serve() {
-  if [ "$(ps -o comm= -p "$SERVE_PID" 2>/dev/null)" = "coeus" ]; then
+  if [ "$(ps -o comm= -p "$SERVE_PID" 2>/dev/null)" = "nerdgenie" ]; then
     kill -INT "$SERVE_PID"
     wait "$SERVE_PID"
   fi
@@ -36,7 +36,7 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 if ! grep -q 'is listening' "$HOME_FOLDER/serve.log"; then
-  echo "coeus serve did not come up within a minute; its log says:" >&2
+  echo "nerdgenie serve did not come up within a minute; its log says:" >&2
   cat "$HOME_FOLDER/serve.log" >&2
   kill "$SERVE_PID" 2>/dev/null
   exit 1

@@ -65,7 +65,7 @@ export interface FoundTarget {
 }
 
 function locatorFor(frame: Frame, ref: string): Locator {
-  return frame.locator(`[data-coeus-ref="${ref}"]`);
+  return frame.locator(`[data-nerdgenie-ref="${ref}"]`);
 }
 
 /** Look for the attribute the ref was written onto, across every frame. */

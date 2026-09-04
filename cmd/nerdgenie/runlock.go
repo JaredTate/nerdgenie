@@ -31,7 +31,7 @@ func takeRunLock(path string) (*runLock, error) {
 	}
 	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		_ = file.Close()
-		return nil, fmt.Errorf("another copy of coeus is already running on this home folder, because something holds the lock file %s, so stop that one first: %w", path, err)
+		return nil, fmt.Errorf("another copy of nerdgenie is already running on this home folder, because something holds the lock file %s, so stop that one first: %w", path, err)
 	}
 
 	// The number of the process holding the lock is written into the file, so

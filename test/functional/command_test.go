@@ -227,13 +227,13 @@ func (terminal *aTerminal) append(kind contract.EventKind, body any) {
 // running agent and read what comes back.
 func startATerminal(t *testing.T, ctx context.Context) *aTerminal {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-socket")
+	folder, err := os.MkdirTemp("", "nerdgenie-socket")
 	if err != nil {
 		t.Fatalf("making a folder for the socket failed: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(folder) })
 
-	queue, err := channel.OpenQueue(ctx, filepath.Join(t.TempDir(), "coeus.db"), contract.DefaultConfig().Caps.QueuedMessages)
+	queue, err := channel.OpenQueue(ctx, filepath.Join(t.TempDir(), "nerdgenie.db"), contract.DefaultConfig().Caps.QueuedMessages)
 	if err != nil {
 		t.Fatalf("opening the queue failed: %v", err)
 	}
@@ -241,7 +241,7 @@ func startATerminal(t *testing.T, ctx context.Context) *aTerminal {
 
 	stream := channel.NewStream(channel.StreamOptions{})
 	socket, err := channel.Listen(channel.Options{
-		Path:           filepath.Join(folder, "coeus.sock"),
+		Path:           filepath.Join(folder, "agent.sock"),
 		Stream:         stream,
 		Queue:          queue,
 		Secrets:        testkit.NewFakeSecrets(),
@@ -265,7 +265,7 @@ func startATerminal(t *testing.T, ctx context.Context) *aTerminal {
 
 	terminal := &aTerminal{t: t, socket: socket, queue: queue, store: testkit.NewFakeStore()}
 	terminal.registry = theCoreCommands(t, terminal)
-	terminal.attach(filepath.Join(folder, "coeus.sock"))
+	terminal.attach(filepath.Join(folder, "agent.sock"))
 	return terminal
 }
 

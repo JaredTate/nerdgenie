@@ -2,7 +2,7 @@
 
 `wordcount` counts the words in a piece of text. It exists to show the whole of the user-tool protocol in one short file you can read in a minute, and `docs/EXTENDING.md` section 2 is the guide it belongs to.
 
-**Install it.** Copy the `wordcount` file into `~/.coeus/tools/`, make it executable with `chmod +x`, and restart the agent. Nothing in the repository changes: the registry reads that folder at startup and adds whatever it finds to the tools every model sees.
+**Install it.** Copy the `wordcount` file into `~/.nerdgenie/tools/`, make it executable with `chmod +x`, and restart the agent. Nothing in the repository changes: the registry reads that folder at startup and adds whatever it finds to the tools every model sees.
 
 **How it works.** Run with `--describe` it prints a JSON tool specification: a name, a description under the forty-word cap, the input fields, and the permission class `R`, which means the tool only reads. Run with no arguments it reads one JSON object of the model's arguments from standard input and prints the result as plain text. That is the entire protocol; a tool in any language that does those two things works.
 

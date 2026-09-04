@@ -59,7 +59,7 @@ func whichVersionToUse(ctx context.Context, database *sql.DB, at int) string {
 	row := database.QueryRowContext(ctx,
 		"SELECT applied_by FROM "+migrationsTable+" WHERE version = ? LIMIT 1", at)
 	if err := row.Scan(&written); err != nil || written == "" {
-		return "; run \"coeus update\" to get a version that understands it"
+		return "; run \"nerdgenie update\" to get a version that understands it"
 	}
 	return fmt.Sprintf("; use Coeus %s or newer, which is the version that wrote it", written)
 }

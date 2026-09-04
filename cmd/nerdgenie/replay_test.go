@@ -19,7 +19,7 @@ import (
 )
 
 // aHomeWithARecordedTask gives the test its own home folder whose event log
-// holds one finished task, which is what "coeus replay" is pointed at.
+// holds one finished task, which is what "nerdgenie replay" is pointed at.
 func aHomeWithARecordedTask(t *testing.T) contract.Home {
 	t.Helper()
 	home := testkit.NewTempHome(t)
@@ -90,10 +90,10 @@ func TestTheReplaySubcommandReportsOnARecordedTask(t *testing.T) {
 	code := replaySubcommand.run([]string{"1"}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus replay 1 left with %d rather than %d: %s%s", code, contract.ExitOK, output.String(), problems.String())
+		t.Fatalf("nerdgenie replay 1 left with %d rather than %d: %s%s", code, contract.ExitOK, output.String(), problems.String())
 	}
 	if !strings.Contains(output.String(), "reproduced the recording") {
-		t.Errorf("coeus replay 1 printed:\n%s", output.String())
+		t.Errorf("nerdgenie replay 1 printed:\n%s", output.String())
 	}
 }
 
@@ -105,16 +105,16 @@ func TestTheReplaySubcommandWritesTheTestWhenItIsAsked(t *testing.T) {
 	code := replaySubcommand.run([]string{"--as-test", "--into", into, "1"}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus replay 1 --as-test left with %d: %s%s", code, output.String(), problems.String())
+		t.Fatalf("nerdgenie replay 1 --as-test left with %d: %s%s", code, output.String(), problems.String())
 	}
 	for _, one := range []string{"task_1_test.go", filepath.Join("testdata", "task-1.json")} {
 		path := filepath.Join(into, filepath.FromSlash(replay.TestsFolder), one)
 		if _, err := os.Stat(path); err != nil {
-			t.Errorf("coeus replay --as-test wrote no %s: %v", path, err)
+			t.Errorf("nerdgenie replay --as-test wrote no %s: %v", path, err)
 		}
 	}
 	if !strings.Contains(output.String(), "go test") {
-		t.Errorf("coeus replay --as-test did not say how to run what it wrote:\n%s", output.String())
+		t.Errorf("nerdgenie replay --as-test did not say how to run what it wrote:\n%s", output.String())
 	}
 }
 
@@ -125,10 +125,10 @@ func TestTheReplaySubcommandSaysSoWhenThereIsNoSuchTask(t *testing.T) {
 	code := replaySubcommand.run([]string{"41"}, &output, &problems)
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus replay 41 left with %d rather than %d on a log with no such task", code, contract.ExitFailure)
+		t.Errorf("nerdgenie replay 41 left with %d rather than %d on a log with no such task", code, contract.ExitFailure)
 	}
 	if !strings.Contains(problems.String(), "41") {
-		t.Errorf("coeus replay 41 said %q and it must name the task it could not find", problems.String())
+		t.Errorf("nerdgenie replay 41 said %q and it must name the task it could not find", problems.String())
 	}
 }
 
@@ -143,7 +143,7 @@ func TestTheReplaySubcommandRefusesACommandLineItCannotRead(t *testing.T) {
 		t.Run(what, func(t *testing.T) {
 			var output, problems bytes.Buffer
 			if code := replaySubcommand.run(arguments, &output, &problems); code != contract.ExitUsage {
-				t.Errorf("coeus replay with %s left with %d rather than %d", what, code, contract.ExitUsage)
+				t.Errorf("nerdgenie replay with %s left with %d rather than %d", what, code, contract.ExitUsage)
 			}
 		})
 	}

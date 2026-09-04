@@ -17,7 +17,7 @@ const healthFreshFor = 10 * time.Second
 func (screen *Screen) headerRow() string {
 	line := row{}
 	line.blanks(marginColumns)
-	line.add(styleDim, "coeus")
+	line.add(styleDim, "nerdgenie")
 	for _, piece := range screen.headerParts() {
 		line.add(styleDim, " · ")
 		line.addSpan(piece)

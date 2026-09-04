@@ -19,17 +19,17 @@ cd "$REPO" || exit 1
 mkdir -p "$BASE"
 sha=$(sha256sum "$TASK" | cut -c1-8); [ "$sha" = c8ed58f2 ] || { echo "task sha mismatch $sha"; exit 1; }
 cp "$TASK" "$BASE/task.txt"
-[ -x bin/coeus ] || go build -o bin/coeus ./cmd/coeus || exit 1
-echo "coeus $(git rev-parse --short HEAD); $(codex --version 2>&1 | head -1); opencode $(/home/jared/.opencode/bin/opencode --version 2>/dev/null | head -1); $(openclaw --version 2>/dev/null | head -1); $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
+[ -x bin/nerdgenie ] || go build -o bin/nerdgenie ./cmd/nerdgenie || exit 1
+echo "nerdgenie $(git rev-parse --short HEAD); $(codex --version 2>&1 | head -1); opencode $(/home/jared/.opencode/bin/opencode --version 2>/dev/null | head -1); $(openclaw --version 2>/dev/null | head -1); $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
 
 fresh_work() { # $1 = run folder
   rm -rf "$1"; mkdir -p "$1/work"; git init -q "$1/work"; cp "$TASK" "$1/work/task.txt"
   [ "$(ls -A "$1/work" | grep -v -E '^(\.git|task\.txt)$' | wc -l)" = 0 ] || { echo "work folder not empty"; exit 1; }
 }
 
-run_coeus() {
-  R="$BASE/coeus-$1"; fresh_work "$R"; H="$R/home"
-  COEUS_HOME="$H" bin/coeus init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
+run_nerdgenie() {
+  R="$BASE/nerdgenie-$1"; fresh_work "$R"; H="$R/home"
+  NERDGENIE_HOME="$H" bin/nerdgenie init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
   # The model is reached through Coeus's "codex" provider: a fresh, uncommented
   # [[models]] block named "gpt" is appended, whatever the init template wrote
   # (its own codex example is commented out), and made the default.
@@ -45,11 +45,11 @@ open(cfg, 'w').write(t)
 PY
   grep -q '^default_model = "gpt"$' "$H/config.toml" && grep -q '^name = "gpt"$' "$H/config.toml" && grep -q '^provider = "codex"$' "$H/config.toml" \
     && grep -q "^model_name = \"$MODEL\"$" "$H/config.toml" && grep -q '^think = "medium"$' "$H/config.toml" || { echo "config edit failed"; return 1; }
-  COEUS_HOME="$H" bin/coeus doctor > "$R/doctor.txt" 2>&1 || { cat "$R/doctor.txt"; return 1; }
+  NERDGENIE_HOME="$H" bin/nerdgenie doctor > "$R/doctor.txt" 2>&1 || { cat "$R/doctor.txt"; return 1; }
   s=$(date +%s)
-  bash scripts/bench/run-coeus.sh "$REPO/bin/coeus" "$H" "$R/work/task.txt" 100000 > "$R/run.log" 2>&1 < /dev/null
+  bash scripts/bench/run-nerdgenie.sh "$REPO/bin/nerdgenie" "$H" "$R/work/task.txt" 100000 > "$R/run.log" 2>&1 < /dev/null
   echo "exit $? launch_to_exit $(( $(date +%s) - s ))" > "$R/wall.txt"
-  timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness coeus --run "gpt$1" > "$R/check.json" 2> "$R/check.err"
+  timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness nerdgenie --run "gpt$1" > "$R/check.json" 2> "$R/check.err"
 }
 
 run_opencode() {
@@ -128,7 +128,7 @@ PY
   timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness openclaw --run "gpt$1" > "$R/check.json" 2> "$R/check.err"
 }
 
-for h in coeus opencode hermes openclaw; do
+for h in nerdgenie opencode hermes openclaw; do
   echo "== $(date '+%T') round $ROUND: $h"
   "run_$h" "$ROUND"
   echo "== $(date '+%T') $h $ROUND: $(cat "$BASE/$h-$ROUND/wall.txt")"

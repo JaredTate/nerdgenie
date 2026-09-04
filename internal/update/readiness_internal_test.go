@@ -17,13 +17,13 @@ import (
 // may be.
 func anAgentAnswering(t *testing.T, answer func(connection net.Conn)) contract.Home {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-ready")
+	folder, err := os.MkdirTemp("", "nerdgenie-ready")
 	if err != nil {
 		t.Fatalf("making a folder for the socket failed: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(folder) })
 
-	home := contract.NewHome(filepath.Join(folder, ".coeus"))
+	home := contract.NewHome(filepath.Join(folder, ".nerdgenie"))
 	if err := os.MkdirAll(home.RunFolder(), contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the run folder failed: %v", err)
 	}

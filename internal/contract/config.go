@@ -12,7 +12,7 @@ import (
 const LocalModelAlias = "local"
 
 // ModelAlias is one model the user can name, with everything needed to reach it.
-// Coeus ships with one, the local model; "coeus init" writes the cloud aliases
+// Coeus ships with one, the local model; "nerdgenie init" writes the cloud aliases
 // after asking which provider the user wants.
 type ModelAlias struct {
 	// Name is what the user and the record call it, such as "local".
@@ -90,7 +90,7 @@ type MemoryCaps struct {
 	UserFactsBytes int `toml:"user_facts_bytes"`
 }
 
-// Config is the whole of ~/.coeus/config.toml, read once at startup. Every field
+// Config is the whole of ~/.nerdgenie/config.toml, read once at startup. Every field
 // says its default in its doc comment, and DefaultConfig fills them in.
 type Config struct {
 	// Models are the model aliases the user may name.
@@ -102,7 +102,7 @@ type Config struct {
 	// Default empty, because a fresh install has one model.
 	FallbackChain []string `toml:"fallback_chain"`
 	// SignalAccount is the phone number the agent is linked to. Default empty,
-	// which means Signal is off until "coeus signal link" runs.
+	// which means Signal is off until "nerdgenie signal link" runs.
 	SignalAccount string `toml:"signal_account"`
 	// BrowserProfilePath is the Chrome profile the agent drives. Default is the
 	// "default" profile inside the home folder's browser folder.
@@ -175,7 +175,7 @@ func DefaultConfig() Config {
 
 // ExcludedFromSandbox returns the paths that must never be reachable from inside
 // the sandbox, given the user's home directory and the agent's own home folder,
-// which COEUS_HOME may have moved anywhere. They are the agent's home, the
+// which NERDGENIE_HOME may have moved anywhere. They are the agent's home, the
 // vault, the browser profiles, and the user's SSH keys, followed by any path
 // the caller names, such as a configured browser profile or the backup folder,
 // with empty names skipped.
@@ -211,10 +211,10 @@ func resolvedPath(path string) string {
 
 // WorkFolderName is the folder under the user's home directory that a fresh
 // install lets the agent work in.
-const WorkFolderName = "coeus"
+const WorkFolderName = "nerdgenie"
 
 // DefaultSandboxRoots returns the folders a sandboxed command may reach on a
-// fresh install: one work folder under the user's home directory, which "coeus
+// fresh install: one work folder under the user's home directory, which "nerdgenie
 // init" creates. The whole home directory is never a root, because it holds the
 // user's daily browser profile, cloud credentials, and keys, and the fence can
 // only grant, never subtract.

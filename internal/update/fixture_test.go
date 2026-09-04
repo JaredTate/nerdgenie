@@ -20,11 +20,11 @@ import (
 // aWorkingProgram is the shell script a fixture release ships as its binary. It
 // answers "update --migrate" the way the real program does, and writing a file
 // is how a test sees that it ran.
-const aWorkingProgram = "#!/bin/sh\necho \"$@\" >> \"$COEUS_RECORD\"\nexit 0\n"
+const aWorkingProgram = "#!/bin/sh\necho \"$@\" >> \"$NERDGENIE_RECORD\"\nexit 0\n"
 
 // aProgramThatFailsItsMigration is a release whose binary comes up but cannot
 // bring the database forward, which is the case that has to put the backup back.
-const aProgramThatFailsItsMigration = "#!/bin/sh\necho \"$@\" >> \"$COEUS_RECORD\"\n" +
+const aProgramThatFailsItsMigration = "#!/bin/sh\necho \"$@\" >> \"$NERDGENIE_RECORD\"\n" +
 	"case \"$1\" in update) echo 'the migration failed' >&2; exit 1;; esac\nexit 0\n"
 
 // aProgramThatExitsAtOnce is a release that dies the moment it is started, which

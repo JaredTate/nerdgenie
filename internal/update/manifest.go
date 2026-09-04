@@ -32,7 +32,7 @@ const ChecksumsName = "SHA256SUMS"
 
 // BinaryName is the program inside a release archive, and the file the current
 // link is made to point at.
-const BinaryName = "coeus"
+const BinaryName = "nerdgenie"
 
 // Manifest is what one release says about itself. A field this version does not
 // know about is ignored, so that a manifest written by a later release can still
@@ -53,7 +53,7 @@ type Manifest struct {
 // ArchiveName is the file one architecture's release is packed into, which is
 // the name brief 6.2 writes into the release and into the sums file.
 func ArchiveName(version string, architecture string) string {
-	return fmt.Sprintf("coeus-%s-%s.tar.gz", version, architecture)
+	return fmt.Sprintf("nerdgenie-%s-%s.tar.gz", version, architecture)
 }
 
 // ParseManifest reads a release manifest and refuses one that does not say

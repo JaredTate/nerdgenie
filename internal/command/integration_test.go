@@ -63,28 +63,28 @@ func TestInitOnTheRealFilesystemLeavesAHomeTheDoctorAndTheVaultAgreeWith(t *test
 		LMStudioAddress: nothingListening(t),
 	}, []string{"--model", command.OpenAIAlias, "--api-key-from-env", "A_KEY_FOR_THE_INTEGRATION_TEST", "--yes"})
 	if err != nil {
-		t.Fatalf("coeus init failed: %v", err)
+		t.Fatalf("nerdgenie init failed: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	if settings.DefaultModel != command.OpenAIAlias {
 		t.Errorf("the configuration names %q as the model rather than the one the flag chose", settings.DefaultModel)
 	}
 	if report := config.Doctor(context.Background(), home); report.Verdict() == config.Trouble {
-		t.Errorf("the doctor found something broken after coeus init:\n%s", report)
+		t.Errorf("the doctor found something broken after nerdgenie init:\n%s", report)
 	}
 
 	opened, err := vault.Open(home, testkit.NewFakeClock(theStartOfTime))
 	if err != nil {
-		t.Fatalf("opening the vault coeus init made failed: %v", err)
+		t.Fatalf("opening the vault nerdgenie init made failed: %v", err)
 	}
 	defer func() { _ = opened.Close() }()
 	held, err := opened.Resolve(context.Background(), contract.SecretReferencePrefix+command.OpenAIAlias)
 	if err != nil {
-		t.Fatalf("the vault does not hold the key coeus init was given: %v", err)
+		t.Fatalf("the vault does not hold the key nerdgenie init was given: %v", err)
 	}
 	if held.Password != "sk-the-key-itself" {
 		t.Errorf("the vault holds a different key from the one the environment named")

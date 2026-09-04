@@ -59,15 +59,15 @@ func TestTheBackupSubcommandWritesAnArchiveAndSaysWhereItIs(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus backup left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie backup left with %d: %s", code, problems.String())
 	}
 
 	archive := theOneArchiveIn(t, home.BackupsFolder())
 	if !strings.Contains(output.String(), archive) {
-		t.Errorf("coeus backup does not say where it put the archive:\n%s", output.String())
+		t.Errorf("nerdgenie backup does not say where it put the archive:\n%s", output.String())
 	}
 	if !strings.Contains(output.String(), home.VaultKeyFile()) {
-		t.Errorf("coeus backup does not say which key is needed to open the archive again:\n%s", output.String())
+		t.Errorf("nerdgenie backup does not say which key is needed to open the archive again:\n%s", output.String())
 	}
 }
 
@@ -76,7 +76,7 @@ func TestTheBackupSubcommandTakesNoArguments(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := backupSubcommand.run([]string{"now"}, &output, &problems); code != contract.ExitUsage {
-		t.Errorf("coeus backup left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
+		t.Errorf("nerdgenie backup left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
 	}
 }
 
@@ -85,9 +85,9 @@ func TestTheBackupSubcommandSaysWhenThereIsNoKeyToLockTheArchiveWith(t *testing.
 	var output, problems bytes.Buffer
 
 	if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitFailure {
-		t.Errorf("coeus backup left with %d on a home with no vault key", code)
+		t.Errorf("nerdgenie backup left with %d on a home with no vault key", code)
 	}
-	if !strings.Contains(problems.String(), "coeus backup") {
+	if !strings.Contains(problems.String(), "nerdgenie backup") {
 		t.Errorf("the failure does not say which command failed:\n%s", problems.String())
 	}
 }
@@ -96,7 +96,7 @@ func TestTheRestoreSubcommandPutsTheArchiveBackIntoAnEmptyHome(t *testing.T) {
 	home := aHomeWithSomethingToBackUp(t)
 	var output, problems bytes.Buffer
 	if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus backup left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie backup left with %d: %s", code, problems.String())
 	}
 	archive := theOneArchiveIn(t, home.BackupsFolder())
 
@@ -111,7 +111,7 @@ func TestTheRestoreSubcommandPutsTheArchiveBackIntoAnEmptyHome(t *testing.T) {
 
 	output.Reset()
 	if code := restoreSubcommand.run([]string{archive}, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus restore left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie restore left with %d: %s", code, problems.String())
 	}
 
 	written, err := os.ReadFile(home.VaultFile())
@@ -122,7 +122,7 @@ func TestTheRestoreSubcommandPutsTheArchiveBackIntoAnEmptyHome(t *testing.T) {
 		t.Errorf("the vault came back as %q", written)
 	}
 	if !strings.Contains(output.String(), archive) {
-		t.Errorf("coeus restore does not say what it put back:\n%s", output.String())
+		t.Errorf("nerdgenie restore does not say what it put back:\n%s", output.String())
 	}
 }
 
@@ -130,19 +130,19 @@ func TestTheRestoreSubcommandRefusesAHomeInUseUntilItIsForced(t *testing.T) {
 	home := aHomeWithSomethingToBackUp(t)
 	var output, problems bytes.Buffer
 	if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus backup left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie backup left with %d: %s", code, problems.String())
 	}
 	archive := theOneArchiveIn(t, home.BackupsFolder())
 
 	if code := restoreSubcommand.run([]string{archive}, &output, &problems); code != contract.ExitFailure {
-		t.Errorf("coeus restore left with %d over a home that is in use", code)
+		t.Errorf("nerdgenie restore left with %d over a home that is in use", code)
 	}
 	if !strings.Contains(problems.String(), "--force") {
 		t.Errorf("the refusal does not say how to go ahead anyway:\n%s", problems.String())
 	}
 
 	if code := restoreSubcommand.run([]string{"--force", archive}, &output, &problems); code != contract.ExitOK {
-		t.Errorf("coeus restore --force left with %d: %s", code, problems.String())
+		t.Errorf("nerdgenie restore --force left with %d: %s", code, problems.String())
 	}
 }
 
@@ -152,7 +152,7 @@ func TestTheRestoreSubcommandNeedsExactlyOneArchive(t *testing.T) {
 		var output, problems bytes.Buffer
 
 		if code := restoreSubcommand.run(arguments, &output, &problems); code != contract.ExitUsage {
-			t.Errorf("coeus restore %v left with %d rather than %d", arguments, code, contract.ExitUsage)
+			t.Errorf("nerdgenie restore %v left with %d rather than %d", arguments, code, contract.ExitUsage)
 		}
 	}
 }
@@ -161,7 +161,7 @@ func TestTheRestoreSubcommandCanBeGivenTheKeyToOpenTheArchiveWith(t *testing.T) 
 	home := aHomeWithSomethingToBackUp(t)
 	var output, problems bytes.Buffer
 	if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus backup left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie backup left with %d: %s", code, problems.String())
 	}
 	archive := theOneArchiveIn(t, home.BackupsFolder())
 	elsewhere := filepath.Join(t.TempDir(), "vault.key")
@@ -174,7 +174,7 @@ func TestTheRestoreSubcommandCanBeGivenTheKeyToOpenTheArchiveWith(t *testing.T) 
 	code := restoreSubcommand.run([]string{"--key", elsewhere, "--force", archive}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Errorf("coeus restore --key left with %d: %s", code, problems.String())
+		t.Errorf("nerdgenie restore --key left with %d: %s", code, problems.String())
 	}
 }
 
@@ -192,7 +192,7 @@ func TestTheTwoSubcommandsSayWhenTheHomeFolderCannotBeWorkedOut(t *testing.T) {
 			var output, problems bytes.Buffer
 
 			if code := one.subcommand.run(one.arguments, &output, &problems); code != contract.ExitBadConfiguration {
-				t.Errorf("coeus %s left with %d rather than %d when COEUS_HOME is not a full path", one.name, code, contract.ExitBadConfiguration)
+				t.Errorf("nerdgenie %s left with %d rather than %d when NERDGENIE_HOME is not a full path", one.name, code, contract.ExitBadConfiguration)
 			}
 		})
 	}
@@ -204,7 +204,7 @@ func TestTheBackupSubcommandKeepsOnlyTheLastSevenArchives(t *testing.T) {
 	for range reliability.KeptBackups + 2 {
 		var output, problems bytes.Buffer
 		if code := backupSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-			t.Fatalf("coeus backup left with %d: %s", code, problems.String())
+			t.Fatalf("nerdgenie backup left with %d: %s", code, problems.String())
 		}
 	}
 

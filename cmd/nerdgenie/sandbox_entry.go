@@ -10,7 +10,7 @@ import (
 
 // sandboxEntrySubcommand is the helper the sandbox starts inside its own fence.
 // bwrap cannot apply Landlock, so the fence starts this program again as
-// "coeus sandbox-entry ...", and this subcommand applies the Landlock ruleset and
+// "nerdgenie sandbox-entry ...", and this subcommand applies the Landlock ruleset and
 // the seccomp filter and then becomes the command it was asked to run.
 //
 // It is not meant to be typed by a person, and it refuses to run unless the fence
@@ -22,7 +22,7 @@ var sandboxEntrySubcommand = subcommand{
 		// On a good day this call never comes back, because the helper becomes
 		// the command it was asked to run.
 		if err := sandbox.Entry(arguments, problems); err != nil {
-			fmt.Fprintf(problems, "coeus %s: %v\n", sandbox.EntrySubcommandName, err)
+			fmt.Fprintf(problems, "nerdgenie %s: %v\n", sandbox.EntrySubcommandName, err)
 			return contract.ExitFailure
 		}
 		return contract.ExitOK

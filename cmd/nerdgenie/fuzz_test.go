@@ -10,7 +10,7 @@ import (
 )
 
 // FuzzTheSettingWriterNeverBreaksTheConfiguration throws any configuration file
-// at the writer behind "coeus signal link" and holds the one rule that matters:
+// at the writer behind "nerdgenie signal link" and holds the one rule that matters:
 // a file that loaded before still loads afterwards, and the account is really in
 // it. The configuration is text from outside the program, and a write that
 // breaks it takes every subcommand down with exit 78, which the service unit

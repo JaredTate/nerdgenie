@@ -211,11 +211,11 @@ func TestAReplyThatCarriesAFileShowsWhereTheFileIs(t *testing.T) {
 	send(screen, contract.SocketEnvelope{
 		Type:        contract.SocketReply,
 		Text:        "here is the report",
-		Attachments: []string{"/tmp/coeus-report.pdf"},
+		Attachments: []string{"/tmp/nerdgenie-report.pdf"},
 	})
 	advance(screen, clock, heartbeatInterval)
 
-	if !strings.Contains(screen.frame(), "/tmp/coeus-report.pdf") {
+	if !strings.Contains(screen.frame(), "/tmp/nerdgenie-report.pdf") {
 		t.Errorf("the frame does not say where the file is:\n%s", screen.frame())
 	}
 }

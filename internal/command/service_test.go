@@ -14,7 +14,7 @@ import (
 
 // fakeSystemctl puts a program called systemctl on the PATH that writes down
 // every argument it was given and then exits with the code asked for, so that a
-// test can say exactly what "coeus install" told the service manager without a
+// test can say exactly what "nerdgenie install" told the service manager without a
 // real unit ever being installed.
 func fakeSystemctl(t *testing.T, exitCode int) string {
 	t.Helper()
@@ -50,10 +50,10 @@ func whatSystemctlWasTold(t *testing.T, path string) string {
 }
 
 // aServiceIn builds the install and uninstall work against a home folder, with
-// a program standing in for the coeus binary the current link points at.
+// a program standing in for the nerdgenie binary the current link points at.
 func aServiceIn(t *testing.T, home contract.Home, answers string, written *strings.Builder) command.Service {
 	t.Helper()
-	program := filepath.Join(t.TempDir(), "coeus")
+	program := filepath.Join(t.TempDir(), "nerdgenie")
 	if err := os.WriteFile(program, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatalf("writing the stand-in binary failed: %v", err)
 	}
@@ -61,16 +61,16 @@ func aServiceIn(t *testing.T, home contract.Home, answers string, written *strin
 }
 
 func TestTheUnitFileIsTheOneTheDesignAsksFor(t *testing.T) {
-	unit := command.UnitText(contract.NewHome("/home/tester/.coeus"))
+	unit := command.UnitText(contract.NewHome("/home/tester/.nerdgenie"))
 
-	testkit.Golden(t, "coeus.service.golden", []byte(unit))
+	testkit.Golden(t, "nerdgenie.service.golden", []byte(unit))
 }
 
 func TestTheThreeUnitFilesAreTheOnesTheDesignAsksFor(t *testing.T) {
-	units := command.Units(contract.NewHome("/home/tester/.coeus"))
+	units := command.Units(contract.NewHome("/home/tester/.nerdgenie"))
 
 	if len(units) != 3 {
-		t.Fatalf("coeus install writes %d units, want the service and the two that run the nightly backup", len(units))
+		t.Fatalf("nerdgenie install writes %d units, want the service and the two that run the nightly backup", len(units))
 	}
 	for _, unit := range units {
 		testkit.Golden(t, unit.Name+".golden", []byte(unit.Text))
@@ -85,7 +85,7 @@ func TestInstallWritesTheUnitLinksTheCurrentReleaseAndStartsTheService(t *testin
 	service := aServiceIn(t, home, "", written)
 
 	if err := service.Install(context.Background()); err != nil {
-		t.Fatalf("coeus install failed: %v", err)
+		t.Fatalf("nerdgenie install failed: %v", err)
 	}
 
 	unitPath, err := command.UnitPath()
@@ -117,11 +117,11 @@ func TestInstallWritesTheUnitLinksTheCurrentReleaseAndStartsTheService(t *testin
 		"--user start " + command.BackupTimerName,
 	} {
 		if !strings.Contains(said, wanted) {
-			t.Errorf("coeus install never told systemctl %q, only:\n%s", wanted, said)
+			t.Errorf("nerdgenie install never told systemctl %q, only:\n%s", wanted, said)
 		}
 	}
 	if !strings.Contains(written.String(), unitPath) {
-		t.Errorf("coeus install does not say where it wrote the unit:\n%s", written)
+		t.Errorf("nerdgenie install does not say where it wrote the unit:\n%s", written)
 	}
 }
 
@@ -132,7 +132,7 @@ func TestInstallWritesTheNightlyBackupTimerBesideTheService(t *testing.T) {
 	written := &strings.Builder{}
 
 	if err := aServiceIn(t, home, "", written).Install(context.Background()); err != nil {
-		t.Fatalf("coeus install failed: %v", err)
+		t.Fatalf("nerdgenie install failed: %v", err)
 	}
 
 	for _, unit := range command.Units(home) {
@@ -149,7 +149,7 @@ func TestInstallWritesTheNightlyBackupTimerBesideTheService(t *testing.T) {
 		}
 	}
 	if !strings.Contains(written.String(), command.BackupTimerName) {
-		t.Errorf("coeus install does not say that it set up the nightly backup:\n%s", written)
+		t.Errorf("nerdgenie install does not say that it set up the nightly backup:\n%s", written)
 	}
 }
 
@@ -157,7 +157,7 @@ func TestInstallLeavesACurrentLinkThatIsAlreadyThereAlone(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), ".config"))
 	fakeSystemctl(t, 0)
-	released := filepath.Join(home.ReleaseFolder("1.2.3"), "coeus")
+	released := filepath.Join(home.ReleaseFolder("1.2.3"), "nerdgenie")
 	if err := os.MkdirAll(filepath.Dir(released), contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the release folder failed: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestInstallLeavesACurrentLinkThatIsAlreadyThereAlone(t *testing.T) {
 
 	service := aServiceIn(t, home, "", &strings.Builder{})
 	if err := service.Install(context.Background()); err != nil {
-		t.Fatalf("coeus install failed: %v", err)
+		t.Fatalf("nerdgenie install failed: %v", err)
 	}
 
 	pointsAt, err := os.Readlink(home.CurrentReleaseLink())
@@ -175,7 +175,7 @@ func TestInstallLeavesACurrentLinkThatIsAlreadyThereAlone(t *testing.T) {
 		t.Fatalf("reading the current link failed: %v", err)
 	}
 	if pointsAt != released {
-		t.Errorf("coeus install moved the current link from the installed release to %q", pointsAt)
+		t.Errorf("nerdgenie install moved the current link from the installed release to %q", pointsAt)
 	}
 }
 
@@ -186,7 +186,7 @@ func TestInstallSaysWhatTheServiceManagerFailedWith(t *testing.T) {
 
 	err := aServiceIn(t, home, "", &strings.Builder{}).Install(context.Background())
 	if err == nil {
-		t.Fatalf("coeus install said nothing when systemctl refused")
+		t.Fatalf("nerdgenie install said nothing when systemctl refused")
 	}
 	if !strings.Contains(err.Error(), "systemctl") {
 		t.Errorf("the failure does not name the program that refused: %v", err)
@@ -199,11 +199,11 @@ func TestUninstallStopsTheServiceRemovesTheUnitAndLeavesTheHome(t *testing.T) {
 	told := fakeSystemctl(t, 0)
 	service := aServiceIn(t, home, "", &strings.Builder{})
 	if err := service.Install(context.Background()); err != nil {
-		t.Fatalf("coeus install failed: %v", err)
+		t.Fatalf("nerdgenie install failed: %v", err)
 	}
 
 	if err := service.Uninstall(context.Background(), nil); err != nil {
-		t.Fatalf("coeus uninstall failed: %v", err)
+		t.Fatalf("nerdgenie uninstall failed: %v", err)
 	}
 
 	unitPath, err := command.UnitPath()
@@ -211,10 +211,10 @@ func TestUninstallStopsTheServiceRemovesTheUnitAndLeavesTheHome(t *testing.T) {
 		t.Fatalf("working out where the unit goes failed: %v", err)
 	}
 	if _, err := os.Stat(unitPath); !os.IsNotExist(err) {
-		t.Errorf("the unit is still there after coeus uninstall")
+		t.Errorf("the unit is still there after nerdgenie uninstall")
 	}
 	if _, err := os.Stat(home.Root); err != nil {
-		t.Errorf("coeus uninstall took the home folder away without being asked to: %v", err)
+		t.Errorf("nerdgenie uninstall took the home folder away without being asked to: %v", err)
 	}
 
 	said := whatSystemctlWasTold(t, told)
@@ -225,7 +225,7 @@ func TestUninstallStopsTheServiceRemovesTheUnitAndLeavesTheHome(t *testing.T) {
 		"--user disable " + command.BackupTimerName,
 	} {
 		if !strings.Contains(said, wanted) {
-			t.Errorf("coeus uninstall never told systemctl %q, only:\n%s", wanted, said)
+			t.Errorf("nerdgenie uninstall never told systemctl %q, only:\n%s", wanted, said)
 		}
 	}
 	for _, unit := range command.Units(home) {
@@ -234,7 +234,7 @@ func TestUninstallStopsTheServiceRemovesTheUnitAndLeavesTheHome(t *testing.T) {
 			t.Fatalf("working out where %s goes failed: %v", unit.Name, err)
 		}
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Errorf("%s is still there after coeus uninstall", unit.Name)
+			t.Errorf("%s is still there after nerdgenie uninstall", unit.Name)
 		}
 	}
 }
@@ -257,7 +257,7 @@ func TestUninstallPurgeTakesTheHomeAwayOnlyWhenTheWordIsTypedExactly(t *testing.
 			service := aServiceIn(t, home, one.typed, written)
 
 			if err := service.Uninstall(context.Background(), []string{"--purge"}); err != nil {
-				t.Fatalf("coeus uninstall --purge failed: %v", err)
+				t.Fatalf("nerdgenie uninstall --purge failed: %v", err)
 			}
 
 			_, err := os.Stat(home.Root)
@@ -268,7 +268,7 @@ func TestUninstallPurgeTakesTheHomeAwayOnlyWhenTheWordIsTypedExactly(t *testing.
 				t.Errorf("the home folder was taken away after %q was typed: %v", one.typed, err)
 			}
 			if !one.gone && !strings.Contains(written.String(), "kept") {
-				t.Errorf("coeus uninstall does not say that it kept the home folder:\n%s", written)
+				t.Errorf("nerdgenie uninstall does not say that it kept the home folder:\n%s", written)
 			}
 		})
 	}
@@ -280,9 +280,9 @@ func TestUninstallRefusesAFlagItDoesNotUnderstand(t *testing.T) {
 
 	err := aServiceIn(t, home, "", &strings.Builder{}).Uninstall(context.Background(), []string{"--nothing-like-this"})
 	if err == nil {
-		t.Fatalf("coeus uninstall took a flag it does not understand")
+		t.Fatalf("nerdgenie uninstall took a flag it does not understand")
 	}
 	if _, statErr := os.Stat(home.Root); statErr != nil {
-		t.Errorf("coeus uninstall touched the home folder before reading its own flags: %v", statErr)
+		t.Errorf("nerdgenie uninstall touched the home folder before reading its own flags: %v", statErr)
 	}
 }

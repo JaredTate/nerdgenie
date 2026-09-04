@@ -1,8 +1,8 @@
 #!/bin/sh
 # Install Coeus on Ubuntu or Debian, from the web with
-#   curl -fsSL https://raw.githubusercontent.com/JaredTate/coeus/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/JaredTate/nerdgenie/main/scripts/install.sh | sh
 # or from a checkout with "sh scripts/install.sh". Anything after a bare "--" is
-# handed to "coeus init", so a machine with no keyboard can answer every question
+# handed to "nerdgenie init", so a machine with no keyboard can answer every question
 # on the command line. Every step prints one line saying what it did. A step that
 # fails and can be lived without says what to do and the run carries on; only a
 # release that cannot be verified or unpacked stops it, because that is the one
@@ -24,12 +24,12 @@ signal_sum=0fe065294adcf35df4c249b635d0ce57de7765d4fec660bffaa2e7f0549d4e5f
 # Where things go. The first two are read from the environment so that the tests
 # in scripts/release can run every privileged step against a fixture rather than
 # against this machine; on a real install they are the real paths.
-os_release_file=${COEUS_OS_RELEASE:-/etc/os-release}
-apparmor_folder=${COEUS_APPARMOR_DIR:-/etc/apparmor.d}
-coeus_home=${COEUS_HOME:-$HOME/.coeus}
-work_folder=$HOME/coeus
+os_release_file=${NERDGENIE_OS_RELEASE:-/etc/os-release}
+apparmor_folder=${NERDGENIE_APPARMOR_DIR:-/etc/apparmor.d}
+nerdgenie_home=${NERDGENIE_HOME:-$HOME/.nerdgenie}
+work_folder=$HOME/nerdgenie
 launcher_folder=$HOME/.local/bin
-repository=JaredTate/coeus
+repository=JaredTate/nerdgenie
 from=""
 wanted_version=latest
 install_signal=yes
@@ -44,13 +44,13 @@ apt_can() { [ "$distribution" = ubuntu ] || [ "$distribution" = debian ]; }
 
 usage() {
 	cat <<'ENDOFUSAGE'
-usage: install.sh [options] [-- <flags for coeus init>]
+usage: install.sh [options] [-- <flags for nerdgenie init>]
   --from <path>    install this archive from "make release" instead of downloading one
   --version <tag>  download this release rather than the newest one
   --no-signal      leave signal-cli out; Coeus needs it only to talk over Signal
   --help           print this and stop
 With every question answered on the command line:
-  sh install.sh -- --model local --work-folder ~/coeus --signal off --yes
+  sh install.sh -- --model local --work-folder ~/nerdgenie --signal off --yes
 ENDOFUSAGE
 }
 
@@ -121,11 +121,11 @@ else
 fi
 
 # Step two: the programs Coeus runs. None of these is fatal: a machine missing one
-# runs with that one tool switched off, and "coeus doctor" says which.
+# runs with that one tool switched off, and "nerdgenie doctor" says which.
 if apt_can; then
 	say "installing bubblewrap and ripgrep with apt-get"
 	as_root apt-get update -qq || warn "apt-get update did not finish, so the next step may not find the packages"
-	as_root apt-get install -y -qq bubblewrap ripgrep || warn "bubblewrap and ripgrep could not be installed; install them by hand, then run \"coeus doctor\""
+	as_root apt-get install -y -qq bubblewrap ripgrep || warn "bubblewrap and ripgrep could not be installed; install them by hand, then run \"nerdgenie doctor\""
 else
 	warn "this installer knows how to install packages on Ubuntu and Debian only, and this is $distribution, so install bubblewrap, ripgrep, and signal-cli yourself with its package manager"
 fi
@@ -134,19 +134,19 @@ if [ "$install_signal" != yes ]; then
 elif apt_can && as_root apt-get install -y -qq signal-cli 2>/dev/null; then
 	say "signal-cli came from apt-get"
 elif [ "$architecture" != amd64 ]; then
-	warn "there is no pinned signal-cli build for $architecture; install it yourself from https://github.com/AsamK/signal-cli, then run \"coeus doctor\""
+	warn "there is no pinned signal-cli build for $architecture; install it yourself from https://github.com/AsamK/signal-cli, then run \"nerdgenie doctor\""
 else
 	say "the package manager has no signal-cli, so downloading the pinned $signal_version build"
 	signal_archive=$downloads/signal-cli.tar.gz
 	if ! fetch 900 "$signal_archive" "https://github.com/AsamK/signal-cli/releases/download/v$signal_version/signal-cli-$signal_version-Linux-native.tar.gz"; then
-		warn "signal-cli could not be downloaded from github.com; Signal stays switched off until you install it and run \"coeus doctor\""
+		warn "signal-cli could not be downloaded from github.com; Signal stays switched off until you install it and run \"nerdgenie doctor\""
 	elif [ "$(checksum_of "$signal_archive")" != "$signal_sum" ]; then
-		warn "the checksum of the signal-cli download is not the pinned $signal_sum, so it was thrown away; Signal stays switched off, and \"coeus doctor\" will say so"
+		warn "the checksum of the signal-cli download is not the pinned $signal_sum, so it was thrown away; Signal stays switched off, and \"nerdgenie doctor\" will say so"
 	else
-		mkdir -p "$coeus_home/tools" "$launcher_folder"
-		tar -xzf "$signal_archive" -C "$coeus_home/tools"
-		ln -sfn "$coeus_home/tools/signal-cli" "$launcher_folder/signal-cli"
-		say "signal-cli $signal_version is in $coeus_home/tools"
+		mkdir -p "$nerdgenie_home/tools" "$launcher_folder"
+		tar -xzf "$signal_archive" -C "$nerdgenie_home/tools"
+		ln -sfn "$nerdgenie_home/tools/signal-cli" "$launcher_folder/signal-cli"
+		say "signal-cli $signal_version is in $nerdgenie_home/tools"
 	fi
 fi
 
@@ -165,7 +165,7 @@ if [ "$distribution" = ubuntu ] && [ "$apparmor_major" -ge 24 ]; then
 	if bwrap --unshare-user --ro-bind / / /bin/true >/dev/null 2>&1; then
 		say "bwrap can make a user namespace, so the sandbox works"
 	else
-		warn "bwrap still cannot make a user namespace; run \"coeus doctor\", which says what is in the way"
+		warn "bwrap still cannot make a user namespace; run \"nerdgenie doctor\", which says what is in the way"
 	fi
 fi
 
@@ -175,23 +175,23 @@ say "the work folder $work_folder is ready, and Coeus may read and write there a
 
 # Step four: put the release where the service unit looks for it. "current" is a
 # link to one version's binary, and the updater of brief 6.3 moves that link.
-staging=$coeus_home/releases/.unpacking
+staging=$nerdgenie_home/releases/.unpacking
 rm -rf "$staging"
 mkdir -p "$staging"
 tar -xzf "$archive" -C "$staging"
 version=$(cat "$staging/VERSION" 2>/dev/null || true)
 [ -n "$version" ] || die "$archive holds no VERSION file, so it is not an archive \"make release\" wrote, and nothing was installed"
-release=$coeus_home/releases/$version
+release=$nerdgenie_home/releases/$version
 rm -rf "$release"
 mv "$staging" "$release"
-ln -sfn "$release/coeus" "$coeus_home/releases/current"
+ln -sfn "$release/nerdgenie" "$nerdgenie_home/releases/current"
 mkdir -p "$launcher_folder"
-ln -sfn "$coeus_home/releases/current" "$launcher_folder/coeus"
-say "coeus $version is unpacked in $release, and $launcher_folder/coeus runs it"
+ln -sfn "$nerdgenie_home/releases/current" "$launcher_folder/nerdgenie"
+say "nerdgenie $version is unpacked in $release, and $launcher_folder/nerdgenie runs it"
 case ":$PATH:" in
 *":$launcher_folder:"*) ;;
 *) warn "$launcher_folder is not on your PATH; add it in your shell profile, and until you do, type the whole path" ;;
 esac
 
-say "running coeus init"
-"$launcher_folder/coeus" init "$@"
+say "running nerdgenie init"
+"$launcher_folder/nerdgenie" init "$@"

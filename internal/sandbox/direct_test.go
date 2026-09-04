@@ -162,13 +162,13 @@ func TestCancellingTheRunStopsTheCommandStraightAway(t *testing.T) {
 }
 
 func TestTheCommandRunsAsTheUserWithTheirOwnPathAndWhatTheCallerAdds(t *testing.T) {
-	t.Setenv("COEUS_A_WORD_FROM_THE_MACHINE", "the machine said this")
+	t.Setenv("NERDGENIE_A_WORD_FROM_THE_MACHINE", "the machine said this")
 	runner := NewDirect(Settings{})
 
 	result, err := runner.Run(context.Background(), contract.SandboxCommand{
 		Program:     theShell,
-		Arguments:   []string{"-c", "echo $COEUS_A_WORD_FROM_THE_MACHINE; echo $COEUS_A_WORD_FROM_THE_CALLER"},
-		Environment: []string{"COEUS_A_WORD_FROM_THE_CALLER=the caller said this"},
+		Arguments:   []string{"-c", "echo $NERDGENIE_A_WORD_FROM_THE_MACHINE; echo $NERDGENIE_A_WORD_FROM_THE_CALLER"},
+		Environment: []string{"NERDGENIE_A_WORD_FROM_THE_CALLER=the caller said this"},
 	})
 	if err != nil {
 		t.Fatalf("running a command that reads its environment failed: %v", err)

@@ -18,7 +18,7 @@ import (
 // and it is built before the command registry and the turn loop are. One slow
 // program in the tools folder is enough to make the walk of that folder outlast
 // the first heartbeat, and a panic in that goroutine cannot be recovered, so
-// "coeus serve" dies five seconds into starting up.
+// "nerdgenie serve" dies five seconds into starting up.
 func TestTheStatusIsSafeBeforeTheRegistryAndTheLoopExist(t *testing.T) {
 	halfBuilt := &agent{settings: contract.DefaultConfig()}
 
@@ -83,7 +83,7 @@ func TestTheBoundsInTheWiringAreTheOnesWritten(t *testing.T) {
 		t.Errorf("the tool walk is bounded at %s, want thirty seconds", buildingToolsTakes)
 	}
 	if defaultRunTimeout != 30*time.Minute {
-		t.Errorf("coeus run waits %s by default, want half an hour", defaultRunTimeout)
+		t.Errorf("nerdgenie run waits %s by default, want half an hour", defaultRunTimeout)
 	}
 }
 
@@ -103,7 +103,7 @@ func TestSendingToNobodyIsNotADelivery(t *testing.T) {
 }
 
 // TestTheSignalAccountIsWrittenAboveTheFirstTable holds finding 57. Every
-// configuration "coeus init" writes ends with a [[models]] block, so a setting
+// configuration "nerdgenie init" writes ends with a [[models]] block, so a setting
 // appended to the end lands inside that table and the whole file stops loading.
 func TestTheSignalAccountIsWrittenAboveTheFirstTable(t *testing.T) {
 	home := aHomeWithNoModelServer(t)
@@ -116,7 +116,7 @@ func TestTheSignalAccountIsWrittenAboveTheFirstTable(t *testing.T) {
 	}
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("after coeus signal link the configuration will not load, so every subcommand exits 78:\n%v\n\n%s", err, after)
+		t.Fatalf("after nerdgenie signal link the configuration will not load, so every subcommand exits 78:\n%v\n\n%s", err, after)
 	}
 	if settings.SignalAccount != "+15550001111" {
 		t.Errorf("the account was written as %q, want the number that was linked", settings.SignalAccount)

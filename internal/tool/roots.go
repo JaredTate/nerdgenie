@@ -25,7 +25,7 @@ type PathCheck func(path string) (string, error)
 // links are followed, and outside everything that must stay outside the fence,
 // which is the agent's home folder, the vault, the browser profiles, and the
 // user's SSH keys. The agent's home is passed in as well as the user's, because
-// COEUS_HOME may have moved it anywhere, and alsoOutside is for the paths the
+// NERDGENIE_HOME may have moved it anywhere, and alsoOutside is for the paths the
 // configuration can move anywhere in the same way: the browser profile and the
 // backup folder. Without them the model could read the cookies that are the
 // agent's logins with the read tool, whenever the user had put the profile

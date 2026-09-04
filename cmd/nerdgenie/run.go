@@ -17,9 +17,9 @@ import (
 
 // runSocketVariable names the socket to talk to, which is only ever set by a
 // test. Everything else finds the socket in the home folder.
-const runSocketVariable = "COEUS_SOCKET"
+const runSocketVariable = "NERDGENIE_SOCKET"
 
-// The bounds "coeus run" works inside.
+// The bounds "nerdgenie run" works inside.
 const (
 	// defaultRunTimeout is how long it waits for an answer before it gives up.
 	// A task is allowed an hour, and one turn a quarter of an hour, so half an
@@ -40,11 +40,11 @@ const (
 // and it never runs a model of its own: the agent it talks to does the work.
 var runSubcommand = subcommand{
 	name: "run",
-	help: "Asks the running agent one thing and prints the reply: coeus run \"what is the time?\"",
+	help: "Asks the running agent one thing and prints the reply: nerdgenie run \"what is the time?\"",
 	run:  runOnePrompt,
 }
 
-// runOptions are the flags "coeus run" takes.
+// runOptions are the flags "nerdgenie run" takes.
 type runOptions struct {
 	// yes approves anything the agent asks about instead of refusing it.
 	yes bool
@@ -60,24 +60,24 @@ type runOptions struct {
 func runOnePrompt(arguments []string, output io.Writer, problems io.Writer) int {
 	chosen, prompt, err := readRunFlags(arguments, problems)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus run: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie run: %v\n", err)
 		return contract.ExitUsage
 	}
 
 	path, err := whereTheAgentIsListening()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus run: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie run: %v\n", err)
 		return contract.ExitBadConfiguration
 	}
 	connection, err := net.Dial("unix", path)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus run: nothing is listening at %s, so start the agent with \"coeus serve\" and try again: %v\n", path, err)
+		fmt.Fprintf(problems, "nerdgenie run: nothing is listening at %s, so start the agent with \"nerdgenie serve\" and try again: %v\n", path, err)
 		return contract.ExitFailure
 	}
 	defer func() { _ = connection.Close() }()
 
 	if err := oneExchange(connection, chosen, prompt, output, problems); err != nil {
-		fmt.Fprintf(problems, "coeus run: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie run: %v\n", err)
 		return contract.ExitFailure
 	}
 	return contract.ExitOK
@@ -86,7 +86,7 @@ func runOnePrompt(arguments []string, output io.Writer, problems io.Writer) int 
 // readRunFlags reads the command line into the options and the prompt.
 func readRunFlags(arguments []string, problems io.Writer) (runOptions, string, error) {
 	chosen := runOptions{}
-	set := flag.NewFlagSet("coeus run", flag.ContinueOnError)
+	set := flag.NewFlagSet("nerdgenie run", flag.ContinueOnError)
 	set.SetOutput(problems)
 	set.BoolVar(&chosen.yes, "yes", false, "approve anything the agent asks about instead of refusing it")
 	set.BoolVar(&chosen.wait, "wait", false, "wait for the whole task to finish rather than for the first reply")
@@ -97,7 +97,7 @@ func readRunFlags(arguments []string, problems io.Writer) (runOptions, string, e
 	}
 	prompt := strings.TrimSpace(strings.Join(set.Args(), " "))
 	if prompt == "" {
-		return chosen, "", errors.New("there is nothing to ask, so write the prompt in quotation marks, as in coeus run \"what is the time?\"")
+		return chosen, "", errors.New("there is nothing to ask, so write the prompt in quotation marks, as in nerdgenie run \"what is the time?\"")
 	}
 	if chosen.timeout <= 0 {
 		return chosen, "", fmt.Errorf("the timeout is %s, so give it a length of time above zero", chosen.timeout)
@@ -189,11 +189,11 @@ func oneEnvelope(connection net.Conn, envelope contract.SocketEnvelope, chosen r
 func answerTheQuestion(connection net.Conn, envelope contract.SocketEnvelope, chosen runOptions, problems io.Writer) error {
 	fmt.Fprintf(problems, "the agent asked: %s\n", strings.TrimSpace(envelope.Title+"\n"+envelope.Text))
 	answer := contract.SocketEnvelope{Type: contract.SocketDeny, ID: envelope.ID,
-		Reason: "coeus run was not given --yes, so nothing that needs a person's word may run"}
+		Reason: "nerdgenie run was not given --yes, so nothing that needs a person's word may run"}
 	if chosen.yes {
 		answer = contract.SocketEnvelope{Type: contract.SocketApprove, ID: envelope.ID}
 	}
-	fmt.Fprintf(problems, "coeus run answered %s, because --yes was %s\n", answer.Type, wasItGiven(chosen.yes))
+	fmt.Fprintf(problems, "nerdgenie run answered %s, because --yes was %s\n", answer.Type, wasItGiven(chosen.yes))
 	if err := contract.EncodeSocketEnvelope(connection, answer); err != nil {
 		return fmt.Errorf("cannot answer what the agent asked: %w", err)
 	}

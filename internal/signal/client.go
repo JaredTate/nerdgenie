@@ -108,7 +108,7 @@ func (client *Client) Health(ctx context.Context) contract.ChannelHealth {
 	}
 	answer, err := client.requests.Do(request)
 	if err != nil {
-		return contract.ChannelHealth{Detail: fmt.Sprintf("signal-cli is not answering at %s, so start it or run \"coeus signal link\": %v", client.baseAddress, err)}
+		return contract.ChannelHealth{Detail: fmt.Sprintf("signal-cli is not answering at %s, so start it or run \"nerdgenie signal link\": %v", client.baseAddress, err)}
 	}
 	defer answer.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(answer.Body, maxAnswerBytes))

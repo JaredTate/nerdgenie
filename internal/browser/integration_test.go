@@ -167,7 +167,7 @@ const loginPageMarkup = `<!doctype html><title>Sign in</title>
 // rather than once.
 func throwawayProfile(t *testing.T) string {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-browser-profile-")
+	folder, err := os.MkdirTemp("", "nerdgenie-browser-profile-")
 	if err != nil {
 		t.Fatalf("making a throwaway profile folder failed: %v", err)
 	}

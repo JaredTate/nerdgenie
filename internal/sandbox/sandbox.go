@@ -14,7 +14,7 @@ import (
 const bubblewrapProgram = "bwrap"
 
 // EntrySubcommandName is the word the orchestrator registers in
-// cmd/coeus/main.go for the helper this package runs inside the fence. It is not
+// cmd/nerdgenie/main.go for the helper this package runs inside the fence. It is not
 // meant to be typed by a person; the fence starts it itself.
 const EntrySubcommandName = "sandbox-entry"
 
@@ -34,13 +34,13 @@ type Settings struct {
 	// UserHome is the user's own home directory, which is what the forbidden
 	// paths are worked out from.
 	UserHome string
-	// AgentHome is the agent's own home folder, which COEUS_HOME may have moved
+	// AgentHome is the agent's own home folder, which NERDGENIE_HOME may have moved
 	// away from the default under the user's home; the fence must keep it out
 	// wherever it is, because the vault and the browser profile live inside it.
 	// Whoever builds the fence passes the Root of the contract.Home it is
-	// already holding, which is what cmd/coeus/serve.go has to do when the
-	// orchestrator wires the fence. Empty means the default, ~/.coeus, and is
-	// only right when COEUS_HOME has not moved it.
+	// already holding, which is what cmd/nerdgenie/serve.go has to do when the
+	// orchestrator wires the fence. Empty means the default, ~/.nerdgenie, and is
+	// only right when NERDGENIE_HOME has not moved it.
 	AgentHome string
 	// AlsoOutside are paths that must stay outside the fence besides the four
 	// the contract always knows. The configuration can put the browser profile
@@ -60,7 +60,7 @@ type Settings struct {
 	// HelperProgram is the program the fence starts first, which applies
 	// Landlock and seccomp and then becomes the command. Empty means this
 	// program, which is what production uses, because the helper is a subcommand
-	// of coeus itself.
+	// of nerdgenie itself.
 	HelperProgram string
 }
 
@@ -125,7 +125,7 @@ func findHelperProgram(asked string) (string, error) {
 	if asked == "" {
 		thisProgram, err := os.Executable()
 		if err != nil {
-			return "", fmt.Errorf("the sandbox cannot find this program on disk to start inside the fence, so run coeus from a real file: %w", err)
+			return "", fmt.Errorf("the sandbox cannot find this program on disk to start inside the fence, so run nerdgenie from a real file: %w", err)
 		}
 		return thisProgram, nil
 	}
@@ -133,7 +133,7 @@ func findHelperProgram(asked string) (string, error) {
 		return "", fmt.Errorf("the sandbox helper %q is not a full path, and the fence has a PATH of its own, so give the helper's whole path", asked)
 	}
 	if _, err := os.Stat(asked); err != nil {
-		return "", fmt.Errorf("the sandbox helper %q cannot be read, so point at the coeus binary: %w", asked, err)
+		return "", fmt.Errorf("the sandbox helper %q cannot be read, so point at the nerdgenie binary: %w", asked, err)
 	}
 	return asked, nil
 }

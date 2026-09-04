@@ -13,10 +13,10 @@ import (
 // home folder somewhere else, which is what a test, a container, and a second
 // copy on the same machine all need. Nothing else in the configuration can be
 // set from the environment.
-const HomeVariable = "COEUS_HOME"
+const HomeVariable = "NERDGENIE_HOME"
 
 // Root returns the folder Coeus keeps everything in: the folder HomeVariable
-// names when that variable is set to something, and .coeus under the user's own
+// names when that variable is set to something, and .nerdgenie under the user's own
 // home directory otherwise.
 func Root() (string, error) {
 	named := strings.TrimSpace(os.Getenv(HomeVariable))

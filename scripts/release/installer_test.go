@@ -39,7 +39,7 @@ func TestTheInstallerRefusesAFlagItDoesNotKnow(t *testing.T) {
 	}
 	requirePrinted(t, printed, "--wobble", "the refusal names the flag it did not know")
 	requirePrinted(t, printed, "--help", "the refusal says what to do")
-	if _, err := os.Stat(filepath.Join(folder, ".coeus")); err == nil {
+	if _, err := os.Stat(filepath.Join(folder, ".nerdgenie")); err == nil {
 		t.Error("a bad command line still made a home folder; nothing may be touched before the flags are read")
 	}
 }
@@ -47,7 +47,7 @@ func TestTheInstallerRefusesAFlagItDoesNotKnow(t *testing.T) {
 func TestTheInstallerRefusesAnArchiveThatIsNotThere(t *testing.T) {
 	fakes := newInstallerFakes(t, ubuntuTwentyFour)
 	script := installer(t, fakes.fakes+".scripts")
-	missing := filepath.Join(fakes.home, "nowhere", "coeus.tar.gz")
+	missing := filepath.Join(fakes.home, "nowhere", "nerdgenie.tar.gz")
 
 	printed, code := runScript(t, script, fakes.home, fakes.environment(), "--from", missing)
 
@@ -69,7 +69,7 @@ func TestTheInstallerRefusesAnArchiveWhoseChecksumDoesNotMatch(t *testing.T) {
 		t.Fatalf("an archive whose checksum was wrong was installed. It printed:\n%s", printed)
 	}
 	requirePrinted(t, printed, "checksum", "the refusal says what did not match")
-	releases := filepath.Join(fakes.home, ".coeus", "releases", fixtureVersion)
+	releases := filepath.Join(fakes.home, ".nerdgenie", "releases", fixtureVersion)
 	if _, err := os.Stat(releases); err == nil {
 		t.Errorf("%s was unpacked even though its checksum was wrong", releases)
 	}
@@ -96,9 +96,9 @@ func TestTheInstallerInstallsFromALocalArchiveAndRunsInit(t *testing.T) {
 // the unpacked release, the link that says which one is live, and the launcher.
 func assertReleaseIsInPlace(t *testing.T, fakes installerFakes, printed string) {
 	t.Helper()
-	release := filepath.Join(fakes.home, ".coeus", "releases", fixtureVersion)
+	release := filepath.Join(fakes.home, ".nerdgenie", "releases", fixtureVersion)
 	for _, path := range []string{
-		filepath.Join(release, "coeus"),
+		filepath.Join(release, "nerdgenie"),
 		filepath.Join(release, "node", "bin", "node"),
 		filepath.Join(release, "workers", "browser", "main.js"),
 		filepath.Join(release, "workers", "desktop", "main.js"),
@@ -108,22 +108,22 @@ func assertReleaseIsInPlace(t *testing.T, fakes installerFakes, printed string) 
 		}
 	}
 
-	link := filepath.Join(fakes.home, ".coeus", "releases", "current")
+	link := filepath.Join(fakes.home, ".nerdgenie", "releases", "current")
 	pointsAt, err := os.Readlink(link)
 	if err != nil {
 		t.Fatalf("%s is not a link: %v", link, err)
 	}
-	if pointsAt != filepath.Join(release, "coeus") {
+	if pointsAt != filepath.Join(release, "nerdgenie") {
 		t.Errorf("%s points at %s, want the binary of the release just installed at %s",
-			link, pointsAt, filepath.Join(release, "coeus"))
+			link, pointsAt, filepath.Join(release, "nerdgenie"))
 	}
 
-	launcher := filepath.Join(fakes.home, ".local", "bin", "coeus")
+	launcher := filepath.Join(fakes.home, ".local", "bin", "nerdgenie")
 	if _, err := os.Lstat(launcher); err != nil {
-		t.Errorf("no launcher at %s, so nothing put coeus on the PATH: %v", launcher, err)
+		t.Errorf("no launcher at %s, so nothing put nerdgenie on the PATH: %v", launcher, err)
 	}
-	if _, err := os.Stat(filepath.Join(fakes.home, "coeus")); err != nil {
-		t.Errorf("the work folder ~/coeus was not made: %v", err)
+	if _, err := os.Stat(filepath.Join(fakes.home, "nerdgenie")); err != nil {
+		t.Errorf("the work folder ~/nerdgenie was not made: %v", err)
 	}
 	requirePrinted(t, printed, "Chrome", "the user is told that Chrome is theirs to install")
 }
@@ -150,13 +150,13 @@ func assertThePrivilegedStepsRan(t *testing.T, fakes installerFakes, printed str
 	requirePrinted(t, printed, "Ubuntu", "the installer says which distribution it found")
 }
 
-// assertInitRanWithTheFlagsGiven checks the last step: coeus init runs through
+// assertInitRanWithTheFlagsGiven checks the last step: nerdgenie init runs through
 // the launcher and is handed everything written after the two dashes.
 func assertInitRanWithTheFlagsGiven(t *testing.T, fakes installerFakes, printed string) {
 	t.Helper()
 	ran := readFile(t, fakes.initLog)
 	if !strings.Contains(ran, "init") {
-		t.Errorf("coeus init was not run. The stub was called with:\n%s\nThe installer printed:\n%s", ran, printed)
+		t.Errorf("nerdgenie init was not run. The stub was called with:\n%s\nThe installer printed:\n%s", ran, printed)
 	}
 	for _, want := range []string{"--model local", "--yes"} {
 		if !strings.Contains(ran, want) {
@@ -201,7 +201,7 @@ func TestTheInstallerSaysWhatToDoOnADistributionItDoesNotKnow(t *testing.T) {
 	if strings.Contains(fakes.asked(t), "apt-get") {
 		t.Error("apt-get was run on Fedora, where it does not exist")
 	}
-	if _, err := os.Stat(filepath.Join(fakes.home, ".coeus", "releases", fixtureVersion)); err != nil {
+	if _, err := os.Stat(filepath.Join(fakes.home, ".nerdgenie", "releases", fixtureVersion)); err != nil {
 		t.Errorf("the release was not installed on an unknown distribution: %v", err)
 	}
 }
@@ -250,8 +250,8 @@ func TestTheInstallerFallsBackToThePinnedSignalDownload(t *testing.T) {
 		t.Errorf("nothing tried the pinned signal-cli download. The fakes were asked:\n%s", asked)
 	}
 	requirePrinted(t, printed, "checksum", "a download that did not verify is named for what it was")
-	requirePrinted(t, printed, "coeus doctor", "the warning says how to find out what is missing later")
-	if _, err := os.Stat(filepath.Join(fakes.home, ".coeus", "tools", "signal-cli")); err == nil {
+	requirePrinted(t, printed, "nerdgenie doctor", "the warning says how to find out what is missing later")
+	if _, err := os.Stat(filepath.Join(fakes.home, ".nerdgenie", "tools", "signal-cli")); err == nil {
 		t.Error("a signal-cli whose checksum was wrong was installed anyway")
 	}
 }

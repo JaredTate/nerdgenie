@@ -65,7 +65,7 @@ for worker in browser desktop; do
 done
 
 mkdir -p "$output"
-rm -f "$output"/coeus-*.tar.gz "$output/SHA256SUMS" "$output/manifest.json"
+rm -f "$output"/nerdgenie-*.tar.gz "$output/SHA256SUMS" "$output/manifest.json"
 staging="$output/.staging"
 rm -rf "$staging"
 
@@ -96,7 +96,7 @@ stage_worker() {
 
 built=""
 for architecture in $architectures; do
-	say "building coeus $version for $architecture"
+	say "building nerdgenie $version for $architecture"
 	runtime=$(sh "$repository_root/scripts/release/node.sh" "$architecture")
 	# Go and npm have different words for the same two machines.
 	case "$architecture" in
@@ -104,13 +104,13 @@ for architecture in $architectures; do
 	*) processor=$architecture ;;
 	esac
 
-	name="coeus-$version-$architecture"
+	name="nerdgenie-$version-$architecture"
 	tree="$staging/$name"
 	rm -rf "$tree"
 	mkdir -p "$tree/node/bin" "$tree/workers"
 
 	CGO_ENABLED=0 GOOS=linux GOARCH="$architecture" \
-		go build -trimpath -ldflags "-X main.version=$version" -o "$tree/coeus" ./cmd/coeus
+		go build -trimpath -ldflags "-X main.version=$version" -o "$tree/nerdgenie" ./cmd/nerdgenie
 	printf '%s\n' "$version" >"$tree/VERSION"
 	cp "$runtime/bin/node" "$tree/node/bin/node"
 	chmod 755 "$tree/node/bin/node"
@@ -124,9 +124,9 @@ for architecture in $architectures; do
 	[ -z "$links" ] || die "the release tree still holds links, and a release archive may hold none, so take these out of scripts/release/build.sh's staging step: $links"
 
 	# The archive has no folder of its own at the top: internal/update unpacks it
-	# into a folder it has already made and then looks for coeus in it, and the
+	# into a folder it has already made and then looks for nerdgenie in it, and the
 	# installer does the same, so a wrapper folder would only be stripped twice.
-	tar -czf "$output/$name.tar.gz" -C "$tree" coeus VERSION node workers
+	tar -czf "$output/$name.tar.gz" -C "$tree" nerdgenie VERSION node workers
 	rm -rf "$tree"
 	built="$built $architecture"
 	say "wrote dist/$name.tar.gz"
@@ -135,7 +135,7 @@ rm -rf "$staging"
 
 # The checksum file is written last and never lists itself, because a line for
 # the file you are reading proves nothing.
-(cd "$output" && sha256sum coeus-*.tar.gz >SHA256SUMS)
+(cd "$output" && sha256sum nerdgenie-*.tar.gz >SHA256SUMS)
 say "wrote dist/SHA256SUMS"
 
 {
@@ -159,10 +159,10 @@ say "wrote dist/SHA256SUMS"
 	for architecture in $built; do
 		[ "$first" = yes ] || printf ',\n'
 		first=no
-		name="coeus-$version-$architecture.tar.gz"
+		name="nerdgenie-$version-$architecture.tar.gz"
 		sum=$(sha256sum "$output/$name" | cut -d ' ' -f 1)
 		printf '    "%s": "%s"' "$name" "$sum"
 	done
 	printf '\n  }\n}\n'
 } >"$output/manifest.json"
-say "wrote dist/manifest.json for coeus $version on$built"
+say "wrote dist/manifest.json for nerdgenie $version on$built"

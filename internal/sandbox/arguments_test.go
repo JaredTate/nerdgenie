@@ -20,7 +20,7 @@ func theFixturePlan() fencePlan {
 		resolverFile:     "/run/systemd/resolve/stub-resolv.conf",
 		roots:            []string{"/home/example/work", "/home/example/projects"},
 		userHome:         "/home/example",
-		helperProgram:    "/home/example/.coeus/releases/1.0.0/coeus",
+		helperProgram:    "/home/example/.nerdgenie/releases/1.0.0/nerdgenie",
 		workingDirectory: "/home/example/work",
 		environment: allowedEnvironment(
 			"/home/example", "en_US.UTF-8", "xterm-256color",

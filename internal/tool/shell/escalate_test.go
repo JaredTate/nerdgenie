@@ -31,14 +31,14 @@ func fakeSudo(t *testing.T) string {
 	return written
 }
 
-// escalatingTool builds the shell tool with a coeus program that is really on
+// escalatingTool builds the shell tool with a nerdgenie program that is really on
 // disk, so that the askpass helper it writes can point at something.
 func escalatingTool(t *testing.T, permission contract.Permission) *shell.Tool {
 	t.Helper()
 	home := testkit.NewTempHome(t)
-	program := filepath.Join(t.TempDir(), "coeus")
+	program := filepath.Join(t.TempDir(), "nerdgenie")
 	if err := os.WriteFile(program, []byte("#!/bin/sh\necho a-password\n"), 0o700); err != nil {
-		t.Fatalf("cannot write the coeus program the askpass helper points at: %v", err)
+		t.Fatalf("cannot write the nerdgenie program the askpass helper points at: %v", err)
 	}
 	return shell.New(shell.Settings{
 		Sandbox:          testkit.NewFakeSandbox(),

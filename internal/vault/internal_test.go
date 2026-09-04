@@ -11,7 +11,7 @@ import (
 
 // aVaultFilePath is the name every parse error must carry, so that the user
 // knows which file to restore.
-const aVaultFilePath = "/home/someone/.coeus/vault.age"
+const aVaultFilePath = "/home/someone/.nerdgenie/vault.age"
 
 func TestParsingAGoodDocumentGivesBackTheEntriesInNameOrder(t *testing.T) {
 	plaintext := []byte(`{"version":1,"entries":[
@@ -98,7 +98,7 @@ func TestAnEntryWithAValueOverTheLimitIsRefused(t *testing.T) {
 }
 
 func TestAKeyFileIsSafeOnlyWhenNobodyElseCanReadItAndItIsOurs(t *testing.T) {
-	const path = "/home/someone/.coeus/vault.key"
+	const path = "/home/someone/.nerdgenie/vault.key"
 	const ourUser = 1000
 
 	if err := checkKeyFileSafety(path, 0o600, ourUser, ourUser); err != nil {

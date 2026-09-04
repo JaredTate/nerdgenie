@@ -14,7 +14,7 @@ import { MAX_ELEMENT_NAME_CHARS, PERSON_TYPING_QUIET_MS } from "./limits.js";
 import { PAGE_SCRIPT } from "./page-script.js";
 
 /** The name the page calls to say what the person just did. */
-export const PERSON_BINDING = "__coeusPersonDid";
+export const PERSON_BINDING = "__nerdgeniePersonDid";
 
 /** How far up from the clicked node the watcher looks for something worth naming. */
 const MOST_STEPS_UP = 5;
@@ -27,10 +27,10 @@ const MOST_STEPS_UP = 5;
 const REF_BASE = 1;
 
 const WATCH = `
-window.__coeusWatchPerson = window.__coeusWatchPerson || function () {
-  if (window.__coeusWatchingPerson) { return false; }
+window.__nerdgenieWatchPerson = window.__nerdgenieWatchPerson || function () {
+  if (window.__nerdgenieWatchingPerson) { return false; }
   if (window.top !== window) { return false; }
-  window.__coeusWatchingPerson = true;
+  window.__nerdgenieWatchingPerson = true;
   var tell = function (what) {
     try {
       if (typeof window.${PERSON_BINDING} === "function") { window.${PERSON_BINDING}(what); }
@@ -40,8 +40,8 @@ window.__coeusWatchPerson = window.__coeusWatchPerson || function () {
     var element = node;
     for (var step = 0; element && step < ${MOST_STEPS_UP}; step += 1) {
       if (element.nodeType === 1) {
-        if (element.getAttribute("data-coeus-ref")) { return element; }
-        if (window.__coeusRoleOf(element)) { return element; }
+        if (element.getAttribute("data-nerdgenie-ref")) { return element; }
+        if (window.__nerdgenieRoleOf(element)) { return element; }
       }
       element = element.parentElement;
     }
@@ -50,11 +50,11 @@ window.__coeusWatchPerson = window.__coeusWatchPerson || function () {
   document.addEventListener("click", function (happening) {
     var element = worthNaming(happening.target);
     if (!element) { return; }
-    var role = window.__coeusRoleOf(element);
+    var role = window.__nerdgenieRoleOf(element);
     tell({
       kind: "click",
-      ref: window.__coeusStamp(element, ${REF_BASE}),
-      text: window.__coeusNameOf(element, role, ${MAX_ELEMENT_NAME_CHARS}),
+      ref: window.__nerdgenieStamp(element, ${REF_BASE}),
+      text: window.__nerdgenieNameOf(element, role, ${MAX_ELEMENT_NAME_CHARS}),
       startedAt: Date.now()
     });
   }, true);
@@ -70,7 +70,7 @@ window.__coeusWatchPerson = window.__coeusWatchPerson || function () {
     var held = typeof box.value === "string" ? box.value : (box.textContent || "");
     tell({
       kind: "type",
-      ref: window.__coeusStamp(box, ${REF_BASE}),
+      ref: window.__nerdgenieStamp(box, ${REF_BASE}),
       length: held.length,
       startedAt: typingStartedAt
     });
@@ -88,7 +88,7 @@ window.__coeusWatchPerson = window.__coeusWatchPerson || function () {
   document.addEventListener("blur", function () { tellAboutTyping(); }, true);
   return true;
 };
-window.__coeusWatchPerson();
+window.__nerdgenieWatchPerson();
 `;
 
 /**

@@ -30,7 +30,7 @@ type anAgentOnASocket struct {
 // gives back. It is closed when the test ends.
 func aFakeAgent(t *testing.T, answers func(sent contract.SocketEnvelope) []contract.SocketEnvelope) *anAgentOnASocket {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "coeus.sock")
+	path := filepath.Join(t.TempDir(), "agent.sock")
 	listener, err := net.Listen("unix", path)
 	if err != nil {
 		t.Fatalf("opening the fake agent's socket failed: %v", err)
@@ -91,7 +91,7 @@ func answerTheMessageWith(answers ...contract.SocketEnvelope) func(contract.Sock
 	}
 }
 
-// runTheRunSubcommand runs "coeus run" against the fake agent and gives back
+// runTheRunSubcommand runs "nerdgenie run" against the fake agent and gives back
 // what it printed on each output and the code it left with.
 func runTheRunSubcommand(t *testing.T, agent *anAgentOnASocket, arguments ...string) (string, string, int) {
 	t.Helper()
@@ -111,14 +111,14 @@ func TestRunSendsOnePromptAndPrintsTheReply(t *testing.T) {
 	answered, _, code := runTheRunSubcommand(t, agent, "when did DigiByte launch?")
 
 	if code != contract.ExitOK {
-		t.Errorf("coeus run left with %d, want %d", code, contract.ExitOK)
+		t.Errorf("nerdgenie run left with %d, want %d", code, contract.ExitOK)
 	}
 	if !strings.Contains(answered, "DigiByte launched in 2014.") {
 		t.Errorf("the reply printed as %q, want the one the agent sent", answered)
 	}
 	asked := agent.sent()
 	if len(asked) < 2 || asked[0].Type != contract.SocketAttach || asked[1].Type != contract.SocketMessage {
-		t.Fatalf("coeus run sent %v, want an attach and then one message", asked)
+		t.Fatalf("nerdgenie run sent %v, want an attach and then one message", asked)
 	}
 	if asked[1].Text != "when did DigiByte launch?" {
 		t.Errorf("the message sent was %q, want the prompt that was typed", asked[1].Text)
@@ -129,7 +129,7 @@ func TestRunTakesTheWholePromptAsOneMessage(t *testing.T) {
 	agent := aFakeAgent(t, answerTheMessageWith(contract.SocketEnvelope{Type: contract.SocketReply, Text: "done"}))
 
 	if _, _, code := runTheRunSubcommand(t, agent, "count", "the", "jars"); code != contract.ExitOK {
-		t.Fatalf("coeus run left with %d", code)
+		t.Fatalf("nerdgenie run left with %d", code)
 	}
 
 	asked := agent.sent()
@@ -150,7 +150,7 @@ func TestRunPrintsToolLinesAndRecordLinesOnTheErrorOutput(t *testing.T) {
 	answered, said, code := runTheRunSubcommand(t, agent, "count the jars")
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus run left with %d: %s", code, said)
+		t.Fatalf("nerdgenie run left with %d: %s", code, said)
 	}
 	if strings.Contains(answered, "task 3 started") || strings.Contains(answered, "read /etc/hosts") {
 		t.Errorf("the record line or the tool line went to the ordinary output, which is the reply's own: %q", answered)
@@ -179,7 +179,7 @@ func TestRunDeniesAPreviewUnlessYesWasGiven(t *testing.T) {
 	answered, said, code := runTheRunSubcommand(t, agent, "delete the folder")
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus run left with %d: %s", code, said)
+		t.Fatalf("nerdgenie run left with %d: %s", code, said)
 	}
 	if !strings.Contains(answered, "I did not run it.") {
 		t.Errorf("the reply printed as %q", answered)
@@ -212,7 +212,7 @@ func TestRunApprovesAPreviewWhenYesWasGiven(t *testing.T) {
 	answered, said, code := runTheRunSubcommand(t, agent, "--yes", "delete the folder")
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus run left with %d: %s", code, said)
+		t.Fatalf("nerdgenie run left with %d: %s", code, said)
 	}
 	if !strings.Contains(answered, "I ran it.") {
 		t.Errorf("the reply printed as %q", answered)
@@ -236,7 +236,7 @@ func TestRunLeavesWithAFailureWhenTheAgentSendsAnError(t *testing.T) {
 	_, said, code := runTheRunSubcommand(t, agent, "anything at all")
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus run left with %d on an error, want %d", code, contract.ExitFailure)
+		t.Errorf("nerdgenie run left with %d on an error, want %d", code, contract.ExitFailure)
 	}
 	if !strings.Contains(said, "the model could not be reached") {
 		t.Errorf("the error was not printed: %q", said)
@@ -249,7 +249,7 @@ func TestRunGivesUpAfterItsTimeoutAndSaysSo(t *testing.T) {
 	_, said, code := runTheRunSubcommand(t, agent, "--timeout", "150ms", "say nothing")
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus run left with %d after its timeout, want %d", code, contract.ExitFailure)
+		t.Errorf("nerdgenie run left with %d after its timeout, want %d", code, contract.ExitFailure)
 	}
 	if !strings.Contains(said, "150ms") {
 		t.Errorf("the message does not say how long it waited: %q", said)
@@ -263,9 +263,9 @@ func TestRunSaysWhenThereIsNoAgentToTalkTo(t *testing.T) {
 	code := runSubcommand.run([]string{"hello"}, &answered, &said)
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus run left with %d when nothing was listening, want %d", code, contract.ExitFailure)
+		t.Errorf("nerdgenie run left with %d when nothing was listening, want %d", code, contract.ExitFailure)
 	}
-	if !strings.Contains(said.String(), "coeus serve") {
+	if !strings.Contains(said.String(), "nerdgenie serve") {
 		t.Errorf("the message does not say how to start the agent: %q", said.String())
 	}
 }
@@ -274,7 +274,7 @@ func TestRunNeedsAPrompt(t *testing.T) {
 	var answered, said bytes.Buffer
 
 	if code := runSubcommand.run(nil, &answered, &said); code != contract.ExitUsage {
-		t.Errorf("coeus run with no prompt left with %d, want %d", code, contract.ExitUsage)
+		t.Errorf("nerdgenie run with no prompt left with %d, want %d", code, contract.ExitUsage)
 	}
 }
 
@@ -289,7 +289,7 @@ func TestRunWaitsForTheTaskToFinishWhenAskedTo(t *testing.T) {
 	answered, _, code := runTheRunSubcommand(t, agent, "--wait", "count the jars")
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus run --wait left with %d", code)
+		t.Fatalf("nerdgenie run --wait left with %d", code)
 	}
 	if !strings.Contains(answered, "working on it") {
 		t.Errorf("the reply printed as %q", answered)
@@ -300,7 +300,7 @@ func TestRunWaitsForTheTaskToFinishWhenAskedTo(t *testing.T) {
 // in the environment, the socket is the one the home folder names.
 func TestRunReadsTheSocketFromTheHomeFolder(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("COEUS_HOME", home)
+	t.Setenv("NERDGENIE_HOME", home)
 	if err := os.MkdirAll(filepath.Join(home, "run"), contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the run folder failed: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestRunReadsTheSocketFromTheHomeFolder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("working out where the agent listens failed: %v", err)
 	}
-	if path != filepath.Join(home, "run", "coeus.sock") {
-		t.Errorf("coeus run would talk to %q, want the home folder's own socket", path)
+	if path != filepath.Join(home, "run", "agent.sock") {
+		t.Errorf("nerdgenie run would talk to %q, want the home folder's own socket", path)
 	}
 }

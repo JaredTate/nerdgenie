@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	coeuscontext "github.com/JaredTate/nerdgenie/internal/context"
+	nerdgeniecontext "github.com/JaredTate/nerdgenie/internal/context"
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
@@ -58,7 +58,7 @@ func TestTheFortyStepFixtureRunsThroughTheWorkingContext(t *testing.T) {
 type contextTurn struct {
 	fixture  testkit.FortyStepTask
 	keeper   *record.Keeper
-	builder  *coeuscontext.Builder
+	builder  *nerdgeniecontext.Builder
 	model    *testkit.FakeModel
 	messages []contract.Message
 }
@@ -81,7 +81,7 @@ func newContextTurn(t *testing.T) *contextTurn {
 	if err != nil {
 		t.Fatalf("cannot open the fixture's task record: %v", err)
 	}
-	builder, err := coeuscontext.New(coeuscontext.Options{
+	builder, err := nerdgeniecontext.New(nerdgeniecontext.Options{
 		Home:            home,
 		MemoryCaps:      contract.DefaultConfig().MemoryCaps,
 		MaxOutputTokens: 1024,
@@ -121,7 +121,7 @@ func (turn *contextTurn) play(ctx context.Context, t *testing.T, round testkit.F
 // window the fixture names for itself.
 func (turn *contextTurn) build(ctx context.Context, t *testing.T, round int) contract.Request {
 	t.Helper()
-	request, err := turn.builder.Build(ctx, coeuscontext.BuildInput{
+	request, err := turn.builder.Build(ctx, nerdgeniecontext.BuildInput{
 		ContextLength: turn.fixture.ContextLength,
 		Record:        turn.keeper.Record(),
 		Messages:      turn.messages,

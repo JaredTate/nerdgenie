@@ -5,7 +5,7 @@
 ## Get up to speed (read in this order)
 
 1. `COEUS.md` — the plain-words explanation: what Coeus is, how its state works, why it is better than the other agents, and a check table that ties every claim to a design section, a brief, and a test.
-2. `docs/COEUS_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the four kinds of state, what the model is told.
+2. `docs/NERDGENIE_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the four kinds of state, what the model is told.
 3. `ARCHITECTURE.md` — how the code is put together and what each wave built. Updated every wave.
 4. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.
 5. `docs/WORK_PLAN.md` — the goal, the rules for building, the four kinds of tests, the test framework, and the waves of briefs. Your brief is in `docs/briefs/wave-N/`, and it begins by telling you to read these same five files.
@@ -21,7 +21,7 @@ Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `doc
 - **Plain English.** Identifiers say what they are. Comments are complete sentences. Error messages say what went wrong and what to do. Documents follow the same rule, with technical terms explained on first use. The style checker in `make check` enforces the code half, with one carve-out: a doc comment may begin with the lowercase name it documents, as Go's own convention does. The orchestrator enforces the document half at every gate.
 - **Bound everything.** Every loop has a limit, every wait a timeout, every buffer a cap, every outside call a failure path.
 - **Every cross-wave interface lives in `internal/contract`.** Fakes in `internal/testkit` and real implementations are written against the same lines. Never define an interface two packages share anywhere else.
-- **Never touch a package another worker owns this wave, and never edit `cmd/coeus/main.go` or `cmd/coeus/serve.go`.** Your brief names your package. A new subcommand goes in its own file under `cmd/coeus/`, a slash command is exported as a `contract.Command` value, and the orchestrator registers both. If you need something from a neighbor, it is already in `contract` or your brief is wrong; stop and report.
+- **Never touch a package another worker owns this wave, and never edit `cmd/nerdgenie/main.go` or `cmd/nerdgenie/serve.go`.** Your brief names your package. A new subcommand goes in its own file under `cmd/nerdgenie/`, a slash command is exported as a `contract.Command` value, and the orchestrator registers both. If you need something from a neighbor, it is already in `contract` or your brief is wrong; stop and report.
 - **Nothing on the user's ask-me-first list without a yes, nothing secret in the model's context, everything logged.** These are product rules and code rules at once. The permission function, the vault resolver, and the event log exist to enforce them; do not route around them.
 - **Keep the docs honest.** When your brief changes a package's job, interface, or dependencies, update the matching section of `ARCHITECTURE.md` in the same branch. After adding or moving files, run `make repo-map`. `make check` fails if either is stale.
 
@@ -33,14 +33,14 @@ All building and testing happen on the Linux development machine, `jared-irene`.
 
 ## Commands
 
-- `make build` — the binary into `bin/coeus` and the worker bundles into `bin/workers/`.
+- `make build` — the binary into `bin/nerdgenie` and the worker bundles into `bin/workers/`.
 - `make test` — unit tests, integration tests, the functional suite against the fake model, and a five-second fuzz smoke per target through `scripts/fuzz.sh`.
 - `make fuzz` — one minute of fuzzing per target. Runs before every wave gate and nightly.
 - `make check` — `gofmt`, `go vet`, `staticcheck`, the style checker (`scripts/stylecheck`), the repo-map drift test, the coverage gate (`scripts/coverage.sh`: ninety percent per package, seventy for the terminal screen), and `make test`. CI runs this on every push. A wave does not pass until it is clean.
 - `make live` — the functional suite and the forty-step fixture against three real models: the local Qwen 3.8 through the llama-server daemon on this machine, Opus 4.8 through `claude -p` on the user's Claude subscription, and GPT-5.5 through `codex exec` on the user's ChatGPT subscription. There are no API keys on this machine and none are wanted. Tagged `live`; development machine only; a program that is missing or not logged in, or a daemon that is down, is a failure, never a skip. Results go in `docs/PROGRESS.md` with token costs.
 - `make release` — binaries for `linux/amd64` and `linux/arm64`, each packed with the two worker bundles and a pinned Node runtime so nobody has to install Node, into `dist/` with a `SHA256SUMS` the installer checks against and a `manifest.json` the updater reads. A version tag publishes them as a GitHub release.
 - `make repo-map` — regenerate `REPO_MAP.md`.
-- `make install` — build, then install the systemd user unit on this machine through `coeus install`, which wave 3 built.
+- `make install` — build, then install the systemd user unit on this machine through `nerdgenie install`, which wave 3 built.
 
 ## Testing
 

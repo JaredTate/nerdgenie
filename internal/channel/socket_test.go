@@ -241,12 +241,12 @@ func TestListeningRefusesASocketAnotherCopyIsAlreadyOn(t *testing.T) {
 }
 
 func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
-	folder, err := os.MkdirTemp("", "coeus-socket")
+	folder, err := os.MkdirTemp("", "nerdgenie-socket")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the socket: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(folder) })
-	path := filepath.Join(folder, "coeus.sock")
+	path := filepath.Join(folder, "agent.sock")
 	if err := os.WriteFile(path, []byte("left behind by a crash"), contract.SecretFileMode); err != nil {
 		t.Fatalf("cannot leave a stale socket file behind: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestListeningClearsASocketFileNobodyIsOn(t *testing.T) {
 
 func TestListeningRefusesToStartWithoutItsPieces(t *testing.T) {
 	whole := Options{
-		Path:           filepath.Join(t.TempDir(), "coeus.sock"),
+		Path:           filepath.Join(t.TempDir(), "agent.sock"),
 		Stream:         NewStream(StreamOptions{}),
 		Queue:          newTestQueue(t, 10),
 		Secrets:        testkit.NewFakeSecrets(),

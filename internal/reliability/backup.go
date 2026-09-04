@@ -141,7 +141,7 @@ func addDatabase(ctx context.Context, archive *tar.Writer, home contract.Home) e
 	if !databaseIsThere(home.DatabaseFile()) {
 		return nil
 	}
-	folder, err := os.MkdirTemp("", "coeus-database-copy-*")
+	folder, err := os.MkdirTemp("", "nerdgenie-database-copy-*")
 	if err != nil {
 		return fmt.Errorf("a folder for the copy of the database could not be made: %w", err)
 	}

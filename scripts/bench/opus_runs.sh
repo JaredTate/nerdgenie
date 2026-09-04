@@ -16,17 +16,17 @@ mkdir -p "$BASE"
 sha=$(sha256sum "$TASK" | cut -c1-8); [ "$sha" = c8ed58f2 ] || { echo "task sha mismatch $sha"; exit 1; }
 cp "$TASK" "$BASE/task.txt"
 curl -s -m 3 http://127.0.0.1:19091/health | grep -q '"ok"' || { echo "daemon A is down; Hermes needs it"; exit 1; }
-go build -o bin/coeus ./cmd/coeus || exit 1
-echo "coeus built from $(git rev-parse --short HEAD); claude $(claude --version | cut -d' ' -f1); openclaw $(openclaw --version 2>/dev/null | head -1); hermes $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
+go build -o bin/nerdgenie ./cmd/nerdgenie || exit 1
+echo "nerdgenie built from $(git rev-parse --short HEAD); claude $(claude --version | cut -d' ' -f1); openclaw $(openclaw --version 2>/dev/null | head -1); hermes $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
 
 fresh_work() { # $1 = run folder
   rm -rf "$1"; mkdir -p "$1/work"; git init -q "$1/work"; cp "$TASK" "$1/work/task.txt"
   [ "$(ls -A "$1/work" | grep -v -E '^(\.git|task\.txt)$' | wc -l)" = 0 ] || { echo "work folder not empty"; exit 1; }
 }
 
-run_coeus() { # $1 = run number
-  R="$BASE/coeus-$1"; fresh_work "$R"; H="$R/home"
-  COEUS_HOME="$H" bin/coeus init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
+run_nerdgenie() { # $1 = run number
+  R="$BASE/nerdgenie-$1"; fresh_work "$R"; H="$R/home"
+  NERDGENIE_HOME="$H" bin/nerdgenie init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
   python3 - "$H/config.toml" "$R/work" <<'PY'
 import sys, re
 cfg, work = sys.argv[1], sys.argv[2]; t = open(cfg).read()
@@ -42,11 +42,11 @@ t += '\n[caps]\nrounds_per_task = 1000000\ntime_per_task = "1000h"\ntime_per_tur
 open(cfg, 'w').write(t)
 PY
   grep -q 'think = "medium"' "$H/config.toml" || { echo "think line missing"; return 1; }
-  COEUS_HOME="$H" bin/coeus doctor > "$R/doctor.txt" 2>&1 || { cat "$R/doctor.txt"; return 1; }
+  NERDGENIE_HOME="$H" bin/nerdgenie doctor > "$R/doctor.txt" 2>&1 || { cat "$R/doctor.txt"; return 1; }
   s=$(date +%s)
-  bash scripts/bench/run-coeus.sh "$REPO/bin/coeus" "$H" "$R/work/task.txt" 100000 > "$R/run.log" 2>&1 < /dev/null
+  bash scripts/bench/run-nerdgenie.sh "$REPO/bin/nerdgenie" "$H" "$R/work/task.txt" 100000 > "$R/run.log" 2>&1 < /dev/null
   echo "exit $? launch_to_exit $(( $(date +%s) - s ))" > "$R/wall.txt"
-  timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness coeus --run "$1" > "$R/check.json" 2> "$R/check.err"
+  timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness nerdgenie --run "$1" > "$R/check.json" 2> "$R/check.err"
 }
 
 run_openclaw() {
@@ -88,7 +88,7 @@ YAML
 }
 
 for round in 1 2 3; do
-  for h in coeus openclaw hermes; do
+  for h in nerdgenie openclaw hermes; do
     echo "== $(date '+%T') round $round: $h"
     "run_$h" "$round"
     echo "== $(date '+%T') $h $round: $(cat "$BASE/$h-$round/wall.txt")"

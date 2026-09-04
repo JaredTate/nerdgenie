@@ -22,7 +22,7 @@ var doctorSubcommand = subcommand{
 	run: func(_ []string, output io.Writer, problems io.Writer) int {
 		home, err := config.HomeFolder()
 		if err != nil {
-			fmt.Fprintf(problems, "coeus doctor: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie doctor: %v\n", err)
 			return contract.ExitBadConfiguration
 		}
 		if !command.Doctor(context.Background(), home, output) {

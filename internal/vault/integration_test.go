@@ -157,12 +157,12 @@ func TestAHomeFolderThatCannotBeWrittenToIsRefusedWhenTheKeyIsMade(t *testing.T)
 
 func TestAHomeFolderUnderAPlainFileIsRefused(t *testing.T) {
 	root := t.TempDir()
-	inTheWay := filepath.Join(root, "coeus")
+	inTheWay := filepath.Join(root, "nerdgenie")
 	if err := os.WriteFile(inTheWay, []byte("this is a file, not a folder"), contract.DataFileMode); err != nil {
 		t.Fatalf("writing the file in the way failed: %v", err)
 	}
 
-	_, err := openIn(t, contract.NewHome(filepath.Join(inTheWay, ".coeus")))
+	_, err := openIn(t, contract.NewHome(filepath.Join(inTheWay, ".nerdgenie")))
 	if err == nil {
 		t.Fatalf("the vault made its home folder underneath a plain file")
 	}

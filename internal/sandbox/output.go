@@ -33,7 +33,7 @@ func (writer *cappedWriter) Bytes() []byte {
 	if writer.dropped == 0 {
 		return writer.kept
 	}
-	note := fmt.Sprintf("\n[coeus dropped %d more bytes here, because the output passed the cap of %d bytes.]\n",
+	note := fmt.Sprintf("\n[nerdgenie dropped %d more bytes here, because the output passed the cap of %d bytes.]\n",
 		writer.dropped, writer.limit)
 	return append(append([]byte{}, writer.kept...), note...)
 }

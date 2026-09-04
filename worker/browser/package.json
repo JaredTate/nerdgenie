@@ -1,5 +1,5 @@
 {
-  "name": "coeus-browser-worker",
+  "name": "nerdgenie-browser-worker",
   "version": "0.1.0",
   "private": true,
   "description": "The Coeus browser worker: drives a real Chrome and speaks the protocol in PROTOCOL.md over standard input and output.",

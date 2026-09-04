@@ -24,7 +24,7 @@ run() { # $1 harness, $2 card letter, $3 port
   echo "== $(date '+%T') $1 done: $(grep -E 'finished|wall clock|model calls:' "$ROOT/qwen-$1-$LABEL/result.txt" 2>/dev/null | tr '\n' ' ')"
 }
 
-( run coeus a 19091; run opencode a 19091 ) &
+( run nerdgenie a 19091; run opencode a 19091 ) &
 CHAIN_A=$!
 ( wait_free qwen-openclaw-1; wait_free "qwen-hermes-$LABEL"; run hermes b 19093; run openclaw b 19093 ) &
 CHAIN_B=$!

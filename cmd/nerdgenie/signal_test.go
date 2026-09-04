@@ -17,10 +17,10 @@ func TestTheSignalSubcommandSaysHowToUseItWhenTheActionIsMissingOrWrong(t *testi
 		var output, problems bytes.Buffer
 		code := signalSubcommand.run(arguments, &output, &problems)
 		if code != contract.ExitUsage {
-			t.Errorf("running \"coeus signal %v\" returned %d, want %d", arguments, code, contract.ExitUsage)
+			t.Errorf("running \"nerdgenie signal %v\" returned %d, want %d", arguments, code, contract.ExitUsage)
 		}
-		if !strings.Contains(problems.String(), "coeus signal link") {
-			t.Errorf("running \"coeus signal %v\" said %q, want it to say what to type", arguments, problems.String())
+		if !strings.Contains(problems.String(), "nerdgenie signal link") {
+			t.Errorf("running \"nerdgenie signal %v\" said %q, want it to say what to type", arguments, problems.String())
 		}
 	}
 }

@@ -49,12 +49,12 @@ func (registry *Registry) AddUserTools(ctx context.Context) error {
 	}
 	for at, one := range tools {
 		if registry.count() >= MaxTools {
-			registry.note(fmt.Sprintf("coeus left %d of the user's own tools out, because a registry holds %d tools in all; take the ones the model does not need out of the tools folder",
+			registry.note(fmt.Sprintf("nerdgenie left %d of the user's own tools out, because a registry holds %d tools in all; take the ones the model does not need out of the tools folder",
 				len(tools)-at, MaxTools))
 			return nil
 		}
 		if err := registry.Add(one); err != nil {
-			registry.note(fmt.Sprintf("coeus skipped the tool %s: %v", nameOf(one), err))
+			registry.note(fmt.Sprintf("nerdgenie skipped the tool %s: %v", nameOf(one), err))
 		}
 	}
 	return nil
@@ -96,13 +96,13 @@ func askThePrograms(ctx context.Context, settings Settings, folder string, progr
 	tools := []contract.Tool{}
 	for at, path := range programs {
 		if at >= MaxToolsAsked {
-			settings.note(fmt.Sprintf("coeus asked %d of the %d files in %s what they are and read no further, because a registry holds %d tools in all",
+			settings.note(fmt.Sprintf("nerdgenie asked %d of the %d files in %s what they are and read no further, because a registry holds %d tools in all",
 				MaxToolsAsked, len(programs), folder, MaxTools))
 			return tools
 		}
 		one, err := describeUserTool(ctx, settings, path)
 		if err != nil {
-			settings.note(fmt.Sprintf("coeus skipped the tool %s: %v", path, err))
+			settings.note(fmt.Sprintf("nerdgenie skipped the tool %s: %v", path, err))
 			continue
 		}
 		tools = append(tools, one)

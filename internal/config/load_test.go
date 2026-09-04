@@ -43,7 +43,7 @@ func TestAnEmptyFileGivesTheDefaultsTheContractProvides(t *testing.T) {
 		t.Errorf("the fallback chain is %v, want it empty on a fresh install", settings.FallbackChain)
 	}
 	if settings.SignalAccount != "" {
-		t.Errorf("the Signal account is %q, want it empty until coeus signal link runs", settings.SignalAccount)
+		t.Errorf("the Signal account is %q, want it empty until nerdgenie signal link runs", settings.SignalAccount)
 	}
 	if settings.SearchServerAddress != "" {
 		t.Errorf("the search server address is %q, want it empty so the web tool reads DuckDuckGo", settings.SearchServerAddress)

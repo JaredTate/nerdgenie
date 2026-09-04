@@ -43,7 +43,7 @@ type Decider struct {
 	yolo bool
 }
 
-// New builds a permission function from ~/.coeus/config.toml and the clock a
+// New builds a permission function from ~/.nerdgenie/config.toml and the clock a
 // standing approval's expiry is read against. The shipped entries the user kept
 // in "ask_me_first" are read first and the rules in "permission_rules" after
 // them, so the last rule that matches is the user's own when the user wrote one.

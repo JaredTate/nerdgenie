@@ -200,7 +200,7 @@ func applyOne(ctx context.Context, database *sql.DB, migration Migration, versio
 //
 // The agent is brought down first and its going is proved before anything is
 // touched. The migration step of an update runs after the new version has come
-// up, so "coeus serve" is holding the database open at this moment, and putting
+// up, so "nerdgenie serve" is holding the database open at this moment, and putting
 // a backup back clears the write-ahead file and rewrites the database in place;
 // doing that under a live connection throws away writes the agent has already
 // taken. An agent that will not go leaves the database as it is.
@@ -217,7 +217,7 @@ func putTheBackupBack(ctx context.Context, settings MigrateSettings, archive str
 		Home: settings.Home, Archive: archive, OnlyTheDatabase: true, Force: true,
 	}
 	if err := reliability.Restore(ctx, restore); err != nil {
-		return fmt.Errorf("%w, and the backup %s could not be put back either, so put it back by hand with \"coeus restore\": %w", why, archive, err)
+		return fmt.Errorf("%w, and the backup %s could not be put back either, so put it back by hand with \"nerdgenie restore\": %w", why, archive, err)
 	}
 	return fmt.Errorf("%w, so the backup %s was put back and the database is as it was", why, archive)
 }
@@ -237,7 +237,7 @@ func bringTheAgentDown(ctx context.Context, settings MigrateSettings) error {
 	if askIfReady(ctx, settings.Home) != nil {
 		return nil
 	}
-	byHand := fmt.Sprintf("stop Coeus with \"systemctl --user stop %s\" and put the backup back with \"coeus restore\"",
+	byHand := fmt.Sprintf("stop Coeus with \"systemctl --user stop %s\" and put the backup back with \"nerdgenie restore\"",
 		command.ServiceName)
 	if refused != nil {
 		return fmt.Errorf("the agent is still answering on %s after the service manager refused to stop it, so it still has the database open; %s: %w",

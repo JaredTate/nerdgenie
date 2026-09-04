@@ -9,7 +9,7 @@ import (
 )
 
 // oneCodexAlias is a model reached through OpenAI's Codex backend on the ChatGPT
-// subscription, written the way "coeus init" writes it: no address, because the
+// subscription, written the way "nerdgenie init" writes it: no address, because the
 // backend is fixed, and no program, because Coeus's own loop drives the model.
 const oneCodexAlias = `
 default_model = "gpt"

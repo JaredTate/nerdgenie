@@ -41,7 +41,7 @@ func FuzzPathsInListing(f *testing.F) {
 func FuzzExcludedPath(f *testing.F) {
 	for _, seed := range []string{
 		"", "README.md", ".git/config", "node_modules/library/index.js",
-		"bin/coeus", "dist/coeus", "coverage/report.txt", "notes.log",
+		"bin/nerdgenie", "dist/nerdgenie", "coverage/report.txt", "notes.log",
 		"build.tsbuildinfo", "a/b/c/d/e/f", "/", "//", "..",
 	} {
 		f.Add(seed)

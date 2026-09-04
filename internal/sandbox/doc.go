@@ -28,10 +28,10 @@
 // leads to, and Landlock hangs its rule on the same folder, so a fence built
 // from the link itself would bind one path and be asked to write under another.
 // The paths that must stay outside are worked out from the user's home directory
-// and from the agent's own home folder, which COEUS_HOME may have moved anywhere,
+// and from the agent's own home folder, which NERDGENIE_HOME may have moved anywhere,
 // so whoever builds a fence passes both.
 //
-// Inside, bwrap cannot apply Landlock, so it starts the coeus binary again as a
+// Inside, bwrap cannot apply Landlock, so it starts the nerdgenie binary again as a
 // hidden subcommand, sandbox-entry. That helper locks its operating-system
 // thread, sets the no-new-privileges flag, builds a Landlock ruleset that allows
 // reading and running the system folders and full access to the roots, installs
@@ -55,7 +55,7 @@
 // not the same as a working one, and a shell tool that turns itself off on the
 // strength of "bwrap is on the PATH" would be wrong on most fresh machines. The
 // probe is one empty fence, asked once per fence and remembered. The second is
-// Settings.HelperProgram: the fence has to start the coeus binary from inside
+// Settings.HelperProgram: the fence has to start the nerdgenie binary from inside
 // itself, and a test needs to point that at a program that is really on disk,
 // which the test binary is and an unbuilt release is not. It defaults to this
 // program, which is what production uses.

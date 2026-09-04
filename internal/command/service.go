@@ -26,15 +26,15 @@ import (
 )
 
 // ServiceName is the name of the systemd user unit Coeus runs under.
-const ServiceName = "coeus.service"
+const ServiceName = "nerdgenie.service"
 
 // The two units that run the nightly backup. The service does one backup and
 // stops; the timer is what starts it, and is the one that is enabled.
 const (
-	// BackupServiceName is the unit that runs "coeus backup" once.
-	BackupServiceName = "coeus-backup.service"
+	// BackupServiceName is the unit that runs "nerdgenie backup" once.
+	BackupServiceName = "nerdgenie-backup.service"
 	// BackupTimerName is the timer that starts it every night.
-	BackupTimerName = "coeus-backup.timer"
+	BackupTimerName = "nerdgenie-backup.timer"
 	// backupTime is when the nightly backup runs, in the machine's own time
 	// zone. Three in the morning is when the machine is least likely to be busy.
 	backupTime = "*-*-* 03:00:00"
@@ -49,8 +49,8 @@ const WatchdogSeconds = 60
 
 // writtenByInstall is the note at the top of every unit file, so that whoever
 // finds one knows where it came from and how to take it away.
-const writtenByInstall = "# Written by \"coeus install\". Run \"coeus install\" again to replace it, or\n" +
-	"# \"coeus uninstall\" to take it away."
+const writtenByInstall = "# Written by \"nerdgenie install\". Run \"nerdgenie install\" again to replace it, or\n" +
+	"# \"nerdgenie uninstall\" to take it away."
 
 // UnitText is the systemd user unit for one home folder. ExecStart points at
 // the current link under the releases folder rather than at a version, so that
@@ -67,7 +67,7 @@ func UnitText(home contract.Home) string {
 		"[Service]",
 		"Type=notify",
 		"ExecStart=" + home.CurrentReleaseLink() + " serve",
-		"Environment=COEUS_HOME=" + home.Root,
+		"Environment=NERDGENIE_HOME=" + home.Root,
 		fmt.Sprintf("WatchdogSec=%d", WatchdogSeconds),
 		"Restart=on-failure",
 		"RestartSec=5",
@@ -94,7 +94,7 @@ func BackupServiceText(home contract.Home) string {
 		"[Service]",
 		"Type=oneshot",
 		"ExecStart=" + home.CurrentReleaseLink() + " backup",
-		"Environment=COEUS_HOME=" + home.Root,
+		"Environment=NERDGENIE_HOME=" + home.Root,
 		"",
 	}, "\n")
 }
@@ -121,19 +121,19 @@ func BackupTimerText(home contract.Home) string {
 	}, "\n")
 }
 
-// Unit is one systemd unit file that "coeus install" writes.
+// Unit is one systemd unit file that "nerdgenie install" writes.
 type Unit struct {
-	// Name is the file name, such as "coeus.service".
+	// Name is the file name, such as "nerdgenie.service".
 	Name string
 	// Text is what goes in the file.
 	Text string
-	// Started says the unit is enabled and started by "coeus install" and
-	// stopped and disabled by "coeus uninstall". The backup service is not: the
+	// Started says the unit is enabled and started by "nerdgenie install" and
+	// stopped and disabled by "nerdgenie uninstall". The backup service is not: the
 	// timer starts it.
 	Started bool
 }
 
-// Units are the three unit files "coeus install" writes, in the order it writes
+// Units are the three unit files "nerdgenie install" writes, in the order it writes
 // them.
 func Units(home contract.Home) []Unit {
 	return []Unit{
@@ -158,7 +158,7 @@ func UnitPathFor(name string) (string, error) {
 	return filepath.Join(configFolder, "systemd", "user", name), nil
 }
 
-// Service is what "coeus install" and "coeus uninstall" need from the outside.
+// Service is what "nerdgenie install" and "nerdgenie uninstall" need from the outside.
 type Service struct {
 	// Home is the folder the service runs against.
 	Home contract.Home
@@ -175,7 +175,7 @@ type Service struct {
 // systemd to load, enable, and start the service.
 func (service Service) Install(ctx context.Context) error {
 	if service.Output == nil {
-		return errors.New("coeus install has nowhere to print what it did, so give the service an output writer")
+		return errors.New("nerdgenie install has nowhere to print what it did, so give the service an output writer")
 	}
 	unitPath, err := UnitPath()
 	if err != nil {
@@ -232,7 +232,7 @@ func (service Service) linkCurrentRelease() error {
 		return nil
 	}
 	if service.Program == "" {
-		return errors.New("coeus install was not told which binary the service should run, so pass the path of the running program")
+		return errors.New("nerdgenie install was not told which binary the service should run, so pass the path of the running program")
 	}
 	if err := os.MkdirAll(filepath.Dir(link), contract.HomeFolderMode); err != nil {
 		return fmt.Errorf("the releases folder %s could not be made: %w", filepath.Dir(link), err)

@@ -18,7 +18,7 @@ func TestTheRootIsTheDotCoeusFolderUnderTheUsersHomeByDefault(t *testing.T) {
 		t.Fatalf("finding the home root with no %s set failed: %v", config.HomeVariable, err)
 	}
 	if root != home.Root {
-		t.Errorf("the home root is %q, want %q, which is .coeus under the user's home directory", root, home.Root)
+		t.Errorf("the home root is %q, want %q, which is .nerdgenie under the user's home directory", root, home.Root)
 	}
 }
 
@@ -38,13 +38,13 @@ func TestTheRootIsTheCoeusHomeVariableWhenItIsSet(t *testing.T) {
 
 func TestARelativeCoeusHomeIsRefusedWithAdviceToUseAFullPath(t *testing.T) {
 	testkit.NewTempHome(t)
-	t.Setenv(config.HomeVariable, "coeus-somewhere")
+	t.Setenv(config.HomeVariable, "nerdgenie-somewhere")
 
 	_, err := config.Root()
 	if err == nil {
-		t.Fatal("a relative COEUS_HOME was accepted, want it refused because every path in the layout is built from the root")
+		t.Fatal("a relative NERDGENIE_HOME was accepted, want it refused because every path in the layout is built from the root")
 	}
-	if !strings.Contains(err.Error(), "coeus-somewhere") || !strings.Contains(err.Error(), config.HomeVariable) {
+	if !strings.Contains(err.Error(), "nerdgenie-somewhere") || !strings.Contains(err.Error(), config.HomeVariable) {
 		t.Errorf("the error is %q, want it to name both the variable and the value that is wrong", err)
 	}
 }

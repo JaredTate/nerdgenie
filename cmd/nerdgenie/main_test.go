@@ -46,10 +46,10 @@ func TestRunningWithNoArgumentsOpensTheTerminalScreen(t *testing.T) {
 	code := run(table, nil, &output, &problems)
 
 	if !opened {
-		t.Errorf("typing coeus on its own did not open the terminal screen; it printed:\n%s", output.String())
+		t.Errorf("typing nerdgenie on its own did not open the terminal screen; it printed:\n%s", output.String())
 	}
 	if code != contract.ExitOK {
-		t.Errorf("typing coeus on its own returned %d, want %d", code, contract.ExitOK)
+		t.Errorf("typing nerdgenie on its own returned %d, want %d", code, contract.ExitOK)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestTheBareCommandNamesASubcommandThatIsReallyInTheTable(t *testing.T) {
 			return
 		}
 	}
-	t.Errorf("the bare coeus command runs %q, and no subcommand in the table has that name", tuiName)
+	t.Errorf("the bare nerdgenie command runs %q, and no subcommand in the table has that name", tuiName)
 }
 
 func TestTheTableHoldsEverySubcommandThisFolderWrote(t *testing.T) {
@@ -150,7 +150,7 @@ func TestTheShortAndLongHelpFlagsPrintTheSameList(t *testing.T) {
 			if code != contract.ExitOK {
 				t.Errorf("%s returned %d, want %d", flag, code, contract.ExitOK)
 			}
-			if !strings.Contains(output.String(), "Usage: coeus") {
+			if !strings.Contains(output.String(), "Usage: nerdgenie") {
 				t.Errorf("%s printed no list:\n%s", flag, output.String())
 			}
 		})
@@ -176,11 +176,11 @@ func TestRunGivesBackWhateverExitCodeTheSubcommandReturned(t *testing.T) {
 
 // theChildMarker tells the test binary, when it runs itself again, that it is
 // the child and should call main rather than run the test.
-const theChildMarker = "COEUS_MAIN_EXIT_TEST"
+const theChildMarker = "NERDGENIE_MAIN_EXIT_TEST"
 
 func TestMainQuitsWithTheCodeTheSubcommandReturned(t *testing.T) {
 	if os.Getenv(theChildMarker) == "1" {
-		os.Args = []string{"coeus", "a-subcommand-nobody-wrote"}
+		os.Args = []string{"nerdgenie", "a-subcommand-nobody-wrote"}
 		main()
 		return
 	}
@@ -238,7 +238,7 @@ func TestASubcommandNobodyWroteSaysSoAndPointsAtTheList(t *testing.T) {
 	if !strings.Contains(problems.String(), "fly") {
 		t.Errorf("the message %q does not name the subcommand that was asked for", problems.String())
 	}
-	if !strings.Contains(problems.String(), "coeus help") {
+	if !strings.Contains(problems.String(), "nerdgenie help") {
 		t.Errorf("the message %q does not say how to see the list", problems.String())
 	}
 }

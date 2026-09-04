@@ -115,7 +115,7 @@ type storedEntry struct {
 func parseDocument(path string, plaintext []byte) ([]Entry, error) {
 	var document storedDocument
 	if err := json.Unmarshal(plaintext, &document); err != nil {
-		return nil, fmt.Errorf("the vault file %s does not hold the entry list Coeus writes, so restore it from a backup in ~/.coeus/backups: %w", path, err)
+		return nil, fmt.Errorf("the vault file %s does not hold the entry list Coeus writes, so restore it from a backup in ~/.nerdgenie/backups: %w", path, err)
 	}
 	if document.Version != documentVersion {
 		return nil, fmt.Errorf("the vault file %s says it is version %d and this build of Coeus writes version %d, so update Coeus or restore a backup", path, document.Version, documentVersion)

@@ -312,7 +312,7 @@ var theShippedEntriesAndACallEachCatches = []struct {
 	toolName string
 	fields   map[string]any
 }{
-	{contract.AskFirstBulkDelete, contract.ToolShell, map[string]any{"command": "rm -rf /home/jared/coeus"}},
+	{contract.AskFirstBulkDelete, contract.ToolShell, map[string]any{"command": "rm -rf /home/jared/nerdgenie"}},
 	{contract.AskFirstSudo, contract.ToolShell, map[string]any{"command": "sudo apt install ripgrep"}},
 	{contract.AskFirstSpendMoney, contract.ToolWeb, map[string]any{"url": "https://shop.example.com/checkout"}},
 }

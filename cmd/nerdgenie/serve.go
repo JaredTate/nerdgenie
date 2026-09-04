@@ -38,7 +38,7 @@ import (
 // permissions, the vault, the tools, the turn loop, and the model, and answers
 // every screen that attaches to its local socket.
 //
-// This file, cmd/coeus/wiring.go, and the subcommand table in main.go belong to
+// This file, cmd/nerdgenie/wiring.go, and the subcommand table in main.go belong to
 // the orchestrator. Each package exports what it owns and everything is put
 // together in those files, so that no two workers ever edit the same lines.
 var serveSubcommand = subcommand{
@@ -67,12 +67,12 @@ const readyName = "readyz"
 // serves until the terminal interrupt or the service manager stops it.
 func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 	if len(arguments) > 0 {
-		fmt.Fprintf(problems, "coeus serve takes no arguments, and it was given %q. Run \"coeus help\" for the list.\n", strings.Join(arguments, " "))
+		fmt.Fprintf(problems, "nerdgenie serve takes no arguments, and it was given %q. Run \"nerdgenie help\" for the list.\n", strings.Join(arguments, " "))
 		return contract.ExitUsage
 	}
 	home, err := config.HomeFolder()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus serve: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: %v\n", err)
 		return contract.ExitBadConfiguration
 	}
 
@@ -83,36 +83,36 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 
 	running, err := openAgent(ctx, home, func(line string) { fmt.Fprintln(output, line) })
 	if err != nil {
-		fmt.Fprintf(problems, "coeus serve: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: %v\n", err)
 		return exitCodeFor(err)
 	}
 	defer func() {
 		if err := running.close(); err != nil {
-			fmt.Fprintf(problems, "coeus serve: stopping was not clean: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie serve: stopping was not clean: %v\n", err)
 		}
 	}()
 
 	if found, err := running.guard.Start(ctx); err != nil {
-		fmt.Fprintf(problems, "coeus serve: the reliability checks did not finish: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: the reliability checks did not finish: %v\n", err)
 	} else {
 		writeWhatTheGuardFound(output, found)
 	}
 
-	fmt.Fprintf(output, "coeus is listening on %s with the model %s. Open a screen with \"coeus\".\n",
+	fmt.Fprintf(output, "nerdgenie is listening on %s with the model %s. Open a screen with \"nerdgenie\".\n",
 		home.SocketFile(), running.model.Name())
 	if err := running.guard.Ready(); err != nil {
-		fmt.Fprintf(problems, "coeus serve: the service manager was not told the program is up: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: the service manager was not told the program is up: %v\n", err)
 	}
 	if nightlyJob, err := running.nightly.Register(ctx); err != nil {
-		fmt.Fprintf(problems, "coeus serve: the nightly self-check was not put on the job list: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: the nightly self-check was not put on the job list: %v\n", err)
 	} else if err := running.jobs.KeepRunningWhenItsTasksFail(ctx, nightlyJob); err != nil {
 		// The self-check is the one job that must outlive its own failures: it
 		// exists to say when something is wrong, and a run of bad nights is
 		// exactly when it is needed most.
-		fmt.Fprintf(problems, "coeus serve: the nightly self-check will stop itself after a run of bad nights: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: the nightly self-check will stop itself after a run of bad nights: %v\n", err)
 	}
 	if err := running.serve(ctx); err != nil {
-		fmt.Fprintf(problems, "coeus serve: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie serve: %v\n", err)
 		return contract.ExitFailure
 	}
 	return contract.ExitOK
@@ -122,7 +122,7 @@ func runServe(arguments []string, output io.Writer, problems io.Writer) int {
 // program left behind, and nothing at all when it left nothing.
 func writeWhatTheGuardFound(output io.Writer, found reliability.Startup) {
 	if found.UncleanExit {
-		fmt.Fprintln(output, "the last run of coeus did not exit cleanly, so its state was checked before anything opened it.")
+		fmt.Fprintln(output, "the last run of nerdgenie did not exit cleanly, so its state was checked before anything opened it.")
 	}
 	if found.DatabaseMovedTo != "" {
 		fmt.Fprintf(output, "the database was damaged and was moved to %s.\n", found.DatabaseMovedTo)
@@ -131,7 +131,7 @@ func writeWhatTheGuardFound(output io.Writer, found reliability.Startup) {
 		fmt.Fprintf(output, "the database was put back from the archive %s.\n", found.RestoredFrom)
 	}
 	if found.BreakerTripped {
-		fmt.Fprintln(output, "coeus has crashed several times in a row, so it will answer you but start no task until it has been quiet for half an hour.")
+		fmt.Fprintln(output, "nerdgenie has crashed several times in a row, so it will answer you but start no task until it has been quiet for half an hour.")
 	}
 	if found.RepliesSentAgain > 0 {
 		fmt.Fprintf(output, "%d replies from the last run were written down but never delivered, and were sent again.\n", found.RepliesSentAgain)
@@ -147,7 +147,7 @@ func whichBinaryIsServing() string {
 	if err != nil {
 		program = "a program whose path could not be read"
 	}
-	return fmt.Sprintf("coeus %s (commit %s) serving from %s", version, commit, program)
+	return fmt.Sprintf("nerdgenie %s (commit %s) serving from %s", version, commit, program)
 }
 
 // exitCodeFor turns what went wrong at startup into the code the service unit
@@ -255,7 +255,7 @@ func (running *agent) note(line string) {
 }
 
 // makeHomeFolders makes every folder of the layout that is not there yet, so
-// that "coeus serve" comes up on a machine where nobody has run "coeus init".
+// that "nerdgenie serve" comes up on a machine where nobody has run "nerdgenie init".
 func makeHomeFolders(home contract.Home) error {
 	for _, folder := range home.Folders() {
 		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {

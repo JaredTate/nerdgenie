@@ -19,9 +19,9 @@ import (
 // network test needs no program installed on the machine.
 const fetchMode = "fetch-a-page"
 
-// TestMain lets this test binary stand in for the coeus binary. The fence starts
-// its helper as "<the coeus binary> sandbox-entry ...", and on this branch the
-// orchestrator has not yet added that subcommand to cmd/coeus/main.go, so the
+// TestMain lets this test binary stand in for the nerdgenie binary. The fence starts
+// its helper as "<the nerdgenie binary> sandbox-entry ...", and on this branch the
+// orchestrator has not yet added that subcommand to cmd/nerdgenie/main.go, so the
 // test binary answers to the same word. It is the same function either way.
 func TestMain(tests *testing.M) {
 	switch {
@@ -33,12 +33,12 @@ func TestMain(tests *testing.M) {
 	os.Exit(tests.Run())
 }
 
-// runTheHelper is what cmd/coeus/sandbox_entry.go does, written here so that the
+// runTheHelper is what cmd/nerdgenie/sandbox_entry.go does, written here so that the
 // integration tests can run the real helper before the orchestrator registers
 // the subcommand.
 func runTheHelper() int {
 	if err := Entry(os.Args[2:], os.Stderr); err != nil {
-		fmt.Fprintf(os.Stderr, "coeus %s: %v\n", EntrySubcommandName, err)
+		fmt.Fprintf(os.Stderr, "nerdgenie %s: %v\n", EntrySubcommandName, err)
 		return contract.ExitFailure
 	}
 	return contract.ExitOK

@@ -54,12 +54,12 @@ async function removeWhenChromeHasLetGo(folder: string): Promise<void> {
 /**
  * Start a worker with a throwaway profile folder and no waiting between actions.
  *
- * COEUS_HEADLESS_TESTS asks for a Chrome with no window, which is the same name
+ * NERDGENIE_HEADLESS_TESTS asks for a Chrome with no window, which is the same name
  * `make test-browser` sets, so that a test run on a machine somebody is using
  * puts no window on their screen.
  */
 export async function startTestWorker(): Promise<TestWorker> {
-  const profile = await mkdtemp(join(tmpdir(), "coeus-browser-test-"));
+  const profile = await mkdtemp(join(tmpdir(), "nerdgenie-browser-test-"));
   const logLines: string[] = [];
   const events: PersonEvent[] = [];
   let worker: BrowserWorker;
@@ -67,7 +67,7 @@ export async function startTestWorker(): Promise<TestWorker> {
     worker = await startWorker({
       profile,
       pacing: "fast",
-      headless: process.env["COEUS_HEADLESS_TESTS"] !== undefined,
+      headless: process.env["NERDGENIE_HEADLESS_TESTS"] !== undefined,
       log: (line) => logLines.push(line),
       onEvent: (event) => events.push(event),
     });

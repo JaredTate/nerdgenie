@@ -44,7 +44,7 @@ func aHomeReadyToMigrate(t *testing.T) contract.Home {
 // system will take.
 func aHomeUnderAShortPath(t *testing.T) contract.Home {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-migrate")
+	folder, err := os.MkdirTemp("", "nerdgenie-migrate")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the home: %v", err)
 	}
@@ -62,7 +62,7 @@ func aHomeUnderAShortPath(t *testing.T) contract.Home {
 
 // aRunningAgent is what makes putting a backup back over the database
 // destructive: a program holding the one database open and answering the
-// readiness check on the home's socket, which is where "coeus serve" is during
+// readiness check on the home's socket, which is where "nerdgenie serve" is during
 // the migration step of an update.
 type aRunningAgent struct {
 	// eventLog is the agent's own open handle on the database.

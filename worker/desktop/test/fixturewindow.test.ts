@@ -13,7 +13,7 @@
 // speaks every window it is shown through the speakers. So these are live
 // tests in the sense docs/WORK_PLAN.md gives the word, and they are gated the
 // way the Go side gates `//go:build live`: they run only when
-// COEUS_LIVE_DESKTOP is set to 1, and `npm test` on its own never runs them.
+// NERDGENIE_LIVE_DESKTOP is set to 1, and `npm test` on its own never runs them.
 
 import { spawn, spawnSync, type ChildProcessByStdio } from "node:child_process"
 import type { Readable } from "node:stream"
@@ -33,8 +33,8 @@ function haveZenity(): boolean {
 
 /** Why these tests are not being run this time, or "" when they are. */
 function whyNotRunning(): string {
-  if (process.env["COEUS_LIVE_DESKTOP"] !== "1") {
-    return "they drive this machine's real screen, which wakes the screen reader, so they run only when COEUS_LIVE_DESKTOP=1 asks for them"
+  if (process.env["NERDGENIE_LIVE_DESKTOP"] !== "1") {
+    return "they drive this machine's real screen, which wakes the screen reader, so they run only when NERDGENIE_LIVE_DESKTOP=1 asks for them"
   }
   if (!process.env["DISPLAY"]) {
     return "there is no display to drive"

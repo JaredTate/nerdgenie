@@ -23,7 +23,7 @@ import (
 // into the helper the crash test starts and kills. Re-invoking the test binary
 // with a variable set is the standard Go way to get a second process that shares
 // the code under test.
-const crashHelperVariable = "COEUS_LOG_CRASH_HELPER_DATABASE"
+const crashHelperVariable = "NERDGENIE_LOG_CRASH_HELPER_DATABASE"
 
 // helperReadyLine is what the helper prints once it has written its first event,
 // so the parent knows the file is in use before it kills anything.

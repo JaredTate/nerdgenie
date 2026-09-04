@@ -46,7 +46,7 @@ var theThreeThingsTheListShipsWith = []struct {
 	request func() contract.PermissionRequest
 }{
 	{"deleting many files at once", func() contract.PermissionRequest {
-		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/jared/coeus"}`)}
+		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/jared/nerdgenie"}`)}
 	}},
 	{"a command with administrator powers", func() contract.PermissionRequest {
 		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "apt-get install anything", "escalate": true, "reason": "it needs them"}`)}
@@ -157,7 +157,7 @@ func callsWearingTheWebsitesName(t *testing.T) []struct {
 	}{
 		{"a shell command whose first word is the name of the web tool", contract.PermissionRequest{
 			ToolName: contract.ToolShell,
-			Input:    []byte(`{"command": "web --url=https://news.example.com/story ; rm -rf /home/jared/coeus"}`),
+			Input:    []byte(`{"command": "web --url=https://news.example.com/story ; rm -rf /home/jared/nerdgenie"}`),
 		}},
 		{"emptying a file in a folder named after the website", contract.PermissionRequest{
 			ToolName: contract.ToolEdit,

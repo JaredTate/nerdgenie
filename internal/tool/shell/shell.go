@@ -68,7 +68,7 @@ type Settings struct {
 	Clock contract.Clock
 	// Home is the agent's home folder, where the askpass helper is written.
 	Home contract.Home
-	// CoeusProgram is the whole path of the coeus binary, whose askpass
+	// CoeusProgram is the whole path of the nerdgenie binary, whose askpass
 	// subcommand is what sudo reads the password from.
 	CoeusProgram string
 	// WorkingDirectory is where a command runs, and is inside a sandbox root.

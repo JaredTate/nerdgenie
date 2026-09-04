@@ -178,14 +178,14 @@ func TestAJobCanNeverBeMadeToRestartTheAgent(t *testing.T) {
 	jobID := holding.aJob(t, "Do a long thing.")
 
 	for _, refused := range []string{
-		"run systemctl --user restart coeus every morning",
-		"sudo systemctl stop coeus.service",
-		"coeus restart when the memory gets high",
-		"pkill -f coeus",
+		"run systemctl --user restart nerdgenie every morning",
+		"sudo systemctl stop nerdgenie.service",
+		"nerdgenie restart when the memory gets high",
+		"pkill -f nerdgenie",
 		"tidy the logs; reboot",
 		"tidy the logs\nshutdown now",
-		`run ["killall", "coeus"] from the script`,
-		"systemctl \\\n restart coeus.service",
+		`run ["killall", "nerdgenie"] from the script`,
+		"systemctl \\\n restart nerdgenie.service",
 	} {
 		if _, err := holding.jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: refused}); err == nil {
 			t.Errorf("a task was added that would stop the agent: %q", refused)
@@ -204,13 +204,13 @@ func TestAJobCanNeverBeMadeToRestartTheAgent(t *testing.T) {
 	_, err := holding.jobs.Create(ctx, contract.NewJob{
 		Ask:          "Keep the agent healthy.",
 		Schedule:     &contract.Schedule{Kind: contract.ScheduleEvery, Every: time.Hour},
-		TaskTemplate: "systemctl restart coeus if it is using too much memory",
+		TaskTemplate: "systemctl restart nerdgenie if it is using too much memory",
 	})
 	if err == nil {
 		t.Error("a scheduled job was created whose every tick would restart the agent")
 	}
 	_, err = holding.jobs.Create(ctx, contract.NewJob{
-		Ask: "Watch how much memory is being used and systemctl restart coeus when it gets high.",
+		Ask: "Watch how much memory is being used and systemctl restart nerdgenie when it gets high.",
 		Why: "because the machine has been running out",
 	})
 	if err == nil {

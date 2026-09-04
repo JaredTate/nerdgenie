@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// initFlags are the answers "coeus init" accepts on the command line, so that a
+// initFlags are the answers "nerdgenie init" accepts on the command line, so that a
 // container with no keyboard can set Coeus up in one line.
 type initFlags struct {
 	// model is the name of one of the six models, or empty to ask.
@@ -26,14 +26,14 @@ type initFlags struct {
 	resetConfig bool
 }
 
-// readInitFlags reads the command line "coeus init" was given. Nothing on disk
+// readInitFlags reads the command line "nerdgenie init" was given. Nothing on disk
 // is touched until this has come back without an error, so a misspelled flag
 // leaves the machine exactly as it was.
 func readInitFlags(arguments []string, output io.Writer) (initFlags, error) {
 	chosen := initFlags{}
 	folders := ""
 
-	set := flag.NewFlagSet("coeus init", flag.ContinueOnError)
+	set := flag.NewFlagSet("nerdgenie init", flag.ContinueOnError)
 	set.SetOutput(output)
 	set.StringVar(&chosen.model, "model", "", "which model to use: local, lmstudio, claude, codex, anthropic, or openai")
 	set.StringVar(&folders, "work-folder", "", "the folders Coeus may work in, separated by commas")
@@ -43,10 +43,10 @@ func readInitFlags(arguments []string, output io.Writer) (initFlags, error) {
 	set.BoolVar(&chosen.resetConfig, "reset-config", false, "write config.toml again even though the home folder already has one")
 
 	if err := set.Parse(arguments); err != nil {
-		return initFlags{}, fmt.Errorf("coeus init could not read its flags, so nothing was set up: %w", err)
+		return initFlags{}, fmt.Errorf("nerdgenie init could not read its flags, so nothing was set up: %w", err)
 	}
 	if left := set.Args(); len(left) > 0 {
-		return initFlags{}, fmt.Errorf("coeus init takes no plain words, and was given %q, so write every answer as a flag such as --model local", strings.Join(left, " "))
+		return initFlags{}, fmt.Errorf("nerdgenie init takes no plain words, and was given %q, so write every answer as a flag such as --model local", strings.Join(left, " "))
 	}
 	if chosen.signal != "" && chosen.signal != "on" && chosen.signal != "off" {
 		return initFlags{}, fmt.Errorf("--signal is %q, so write it as --signal on or --signal off", chosen.signal)

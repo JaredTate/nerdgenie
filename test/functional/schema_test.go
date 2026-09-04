@@ -32,7 +32,7 @@ func TestServeStopsOnADatabaseFromANewerCoeus(t *testing.T) {
 	// The code is asked for first, because asking waits for the program to end
 	// and nothing it says is on disk until it has.
 	if code := agent.exitCode(t); code != contract.ExitBadConfiguration {
-		t.Errorf("coeus serve left with %d, want %d, which is the code the service unit reads as do not restart",
+		t.Errorf("nerdgenie serve left with %d, want %d, which is the code the service unit reads as do not restart",
 			code, contract.ExitBadConfiguration)
 	}
 	if said := whatItSaid(agent.saidPath); !strings.Contains(said, "newer version") {
@@ -70,11 +70,11 @@ func (agent runningAgent) exitCode(t *testing.T) int {
 	t.Helper()
 	err := agent.wait()
 	if err == nil {
-		t.Fatal("coeus serve came up and kept serving on a database it cannot read")
+		t.Fatal("nerdgenie serve came up and kept serving on a database it cannot read")
 	}
 	quit, isExit := err.(*exec.ExitError)
 	if !isExit {
-		t.Fatalf("coeus serve did not run at all: %v", err)
+		t.Fatalf("nerdgenie serve did not run at all: %v", err)
 	}
 	return quit.ExitCode()
 }

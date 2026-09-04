@@ -4,7 +4,7 @@
 # answer --describe with a JSON tool specification, and otherwise read one JSON
 # object from standard input and print the result as plain text.
 #
-# Copy this file into ~/.coeus/tools/, make it executable, and restart the agent.
+# Copy this file into ~/.nerdgenie/tools/, make it executable, and restart the agent.
 # docs/EXTENDING.md section 2 is the guide it goes with.
 
 set -eu

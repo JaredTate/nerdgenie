@@ -57,7 +57,7 @@ func Load(home contract.Home) (contract.Config, error) {
 		return contract.Config{}, fmt.Errorf("cannot look at the configuration file %s, so check that the home folder is readable: %w", path, err)
 	case about.Size() > MaxConfigBytes:
 		return contract.Config{}, Problem{Path: path, Advice: fmt.Sprintf(
-			"this file is %d bytes and the limit is %d, so it is not a settings file; move it aside and let coeus init write a new one",
+			"this file is %d bytes and the limit is %d, so it is not a settings file; move it aside and let nerdgenie init write a new one",
 			about.Size(), MaxConfigBytes)}
 	}
 	document, err := os.ReadFile(path)

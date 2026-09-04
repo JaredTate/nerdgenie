@@ -20,7 +20,7 @@ const aReadWait = 5 * time.Second
 
 // theAnswerDeadline is how long the socket in these tests waits for a screen to
 // answer: the time_per_turn a user who sets one might write, which is what
-// cmd/coeus passes from the user's own configuration. The shipped default is
+// cmd/nerdgenie passes from the user's own configuration. The shipped default is
 // none at all, which the socket reads as waiting for as long as the turn
 // lasts, and that has a test of its own.
 const theAnswerDeadline = 15 * time.Minute
@@ -48,14 +48,14 @@ func newSocketHarness(t *testing.T) *socketHarness {
 // chooses, which is how a test listens the way the shipped caps do, with none.
 func newSocketHarnessWith(t *testing.T, answerDeadline time.Duration) *socketHarness {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-socket")
+	folder, err := os.MkdirTemp("", "nerdgenie-socket")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the socket: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(folder) })
 
 	harness := &socketHarness{
-		path:    filepath.Join(folder, "coeus.sock"),
+		path:    filepath.Join(folder, "agent.sock"),
 		queue:   newTestQueue(t, 10),
 		stream:  NewStream(StreamOptions{}),
 		clock:   testkit.NewFakeClock(arrived),

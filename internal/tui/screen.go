@@ -28,7 +28,7 @@ type noLink struct{}
 
 // Send always fails, because there is nothing on the other end yet.
 func (noLink) Send(_ contract.SocketEnvelope) error {
-	return errors.New("there is no link to the running program yet, so start it with \"coeus serve\" and this screen will attach on its own")
+	return errors.New("there is no link to the running program yet, so start it with \"nerdgenie serve\" and this screen will attach on its own")
 }
 
 // Options is everything the screen needs that it cannot work out for itself.

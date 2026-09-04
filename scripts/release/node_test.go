@@ -29,7 +29,7 @@ func TestTheNodeRuntimeInTheCacheIsUsedWithoutDownloadingItAgain(t *testing.T) {
 	version := pinnedNodeVersion(t)
 	unpacked := filepath.Join(cache, "node-"+version+"-amd64")
 	writeExecutable(t, filepath.Join(unpacked, "bin", "node"), "#!/bin/sh\nexit 0\n")
-	environment := cleanEnvironment(t.TempDir(), fakes, "COEUS_NODE_CACHE="+cache)
+	environment := cleanEnvironment(t.TempDir(), fakes, "NERDGENIE_NODE_CACHE="+cache)
 
 	printed, code := runScript(t, script, filepath.Dir(script), environment, "amd64")
 
@@ -46,7 +46,7 @@ func TestTheNodeRuntimeIsRefusedWhenItsChecksumDoesNotMatch(t *testing.T) {
 	version := pinnedNodeVersion(t)
 	downloaded := filepath.Join(cache, "node-v"+version+"-linux-x64.tar.xz")
 	writeFile(t, downloaded, "this is not the Node runtime anybody pinned")
-	environment := cleanEnvironment(t.TempDir(), fakes, "COEUS_NODE_CACHE="+cache)
+	environment := cleanEnvironment(t.TempDir(), fakes, "NERDGENIE_NODE_CACHE="+cache)
 
 	printed, code := runScript(t, script, filepath.Dir(script), environment, "amd64")
 
@@ -62,7 +62,7 @@ func TestTheNodeRuntimeIsRefusedWhenItsChecksumDoesNotMatch(t *testing.T) {
 
 func TestTheNodeRuntimeRefusesAnArchitectureItHasNoPinFor(t *testing.T) {
 	script, cache, fakes := nodeScript(t)
-	environment := cleanEnvironment(t.TempDir(), fakes, "COEUS_NODE_CACHE="+cache)
+	environment := cleanEnvironment(t.TempDir(), fakes, "NERDGENIE_NODE_CACHE="+cache)
 
 	printed, code := runScript(t, script, filepath.Dir(script), environment, "sparc")
 
@@ -74,7 +74,7 @@ func TestTheNodeRuntimeRefusesAnArchitectureItHasNoPinFor(t *testing.T) {
 
 func TestTheNodeRuntimeSaysWhatToDoWhenTheDownloadFails(t *testing.T) {
 	script, cache, fakes := nodeScript(t)
-	environment := cleanEnvironment(t.TempDir(), fakes, "COEUS_NODE_CACHE="+cache)
+	environment := cleanEnvironment(t.TempDir(), fakes, "NERDGENIE_NODE_CACHE="+cache)
 
 	printed, code := runScript(t, script, filepath.Dir(script), environment, "amd64")
 

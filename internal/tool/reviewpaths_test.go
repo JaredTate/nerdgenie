@@ -2,7 +2,7 @@ package tool_test
 
 // What the wave 6 security review reached through the file tools. Both tests
 // work under a temporary home; neither goes anywhere near the user's own
-// ~/.coeus or ~/.ssh.
+// ~/.nerdgenie or ~/.ssh.
 
 import (
 	"os"

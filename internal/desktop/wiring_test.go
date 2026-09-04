@@ -10,11 +10,11 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// Nothing in cmd/coeus builds this package yet, so the computer tool ships in
+// Nothing in cmd/nerdgenie builds this package yet, so the computer tool ships in
 // every registry and refuses every call with "this tool has no desktop behind
 // it". These tests walk the path the wiring will take, from the worker command
 // through ProcessStart and New to a call and a close, so that the lines added to
-// cmd/coeus/wiring.go are lines that are known to work. The worker here is a
+// cmd/nerdgenie/wiring.go are lines that are known to work. The worker here is a
 // shell standing in for `node workers/desktop/main.js`, and nothing on this
 // machine's screen is touched.
 
@@ -34,7 +34,7 @@ func TestTheDesktopComesUpFromThePiecesTheWiringWouldHandIt(t *testing.T) {
 		t.Fatalf("the worker command the wiring would build was refused: %v", err)
 	}
 
-	// Everything below is what cmd/coeus already holds for the browser: the
+	// Everything below is what cmd/nerdgenie already holds for the browser: the
 	// user's channel, the permission decider, the system clock, and its own note
 	// line. Nothing new has to be built for the desktop to be reachable.
 	made, err := New(Options{
@@ -66,7 +66,7 @@ func TestTheDesktopComesUpFromThePiecesTheWiringWouldHandIt(t *testing.T) {
 }
 
 func TestAWorkerBundleThatIsNotThereIsReportedRatherThanCrashingTheAgent(t *testing.T) {
-	// cmd/coeus switches the browser tools off with a line saying what to do when
+	// cmd/nerdgenie switches the browser tools off with a line saying what to do when
 	// its bundle is missing, and the desktop has to fail the same way: the agent
 	// comes up, the computer tool refuses, and the line names the program.
 	start, err := ProcessStart([]string{"no-such-program-anywhere", "workers/desktop/main.js"}, nil)

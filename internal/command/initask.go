@@ -19,7 +19,7 @@ import (
 )
 
 // AnswerWait is how long one question waits for an answer before giving up. A
-// person who has walked away is better told to run "coeus init" again than left
+// person who has walked away is better told to run "nerdgenie init" again than left
 // with half a home folder.
 const AnswerWait = 2 * time.Minute
 
@@ -27,7 +27,7 @@ const AnswerWait = 2 * time.Minute
 // question is asked, the home folder, the folders inside it, the persona files,
 // and the work folder are all there, so saying that nothing was set up would be
 // untrue: what is missing is config.toml, and a second run writes it.
-const pickUpThere = "; the home folder was made, but no configuration was written, so run coeus init again and it picks up there"
+const pickUpThere = "; the home folder was made, but no configuration was written, so run nerdgenie init again and it picks up there"
 
 // The bounds on the conversation, so that a pipe full of rubbish cannot make
 // the setup read for ever.
@@ -39,7 +39,7 @@ const (
 	maxTriesPerQuestion = 3
 )
 
-// asker puts the questions "coeus init" asks and reads the answers back. When
+// asker puts the questions "nerdgenie init" asks and reads the answers back. When
 // there is nobody to ask, because every answer came in as a flag or there is no
 // input at all, it says so and the caller takes the default.
 type asker struct {
@@ -150,7 +150,7 @@ func readOneLine(line string, err error) (string, error) {
 	}
 	if line == "" {
 		return "", errors.New("the answers ran out before every question was asked" + pickUpThere +
-			", or give coeus init every answer as a flag instead")
+			", or give nerdgenie init every answer as a flag instead")
 	}
 	return strings.TrimRight(line, "\r\n"), nil
 }

@@ -10,7 +10,7 @@ import (
 const maxVersionParts = 3
 
 // DevelopmentVersion is what a build made outside a release calls itself. It is
-// older than every published version, so that a developer running "coeus update"
+// older than every published version, so that a developer running "nerdgenie update"
 // on their own build installs the release rather than being told there is
 // nothing to do.
 const DevelopmentVersion = "dev"

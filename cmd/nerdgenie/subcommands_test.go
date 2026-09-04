@@ -38,10 +38,10 @@ func TestDoctorSubcommandReportsOnTheHomeFolder(t *testing.T) {
 	code := doctorSubcommand.run(nil, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Errorf("coeus doctor left with %d rather than %d on a home folder that is fine: %s", code, contract.ExitOK, problems.String())
+		t.Errorf("nerdgenie doctor left with %d rather than %d on a home folder that is fine: %s", code, contract.ExitOK, problems.String())
 	}
-	if !strings.Contains(output.String(), "coeus doctor") {
-		t.Errorf("coeus doctor printed no report:\n%s", output.String())
+	if !strings.Contains(output.String(), "nerdgenie doctor") {
+		t.Errorf("nerdgenie doctor printed no report:\n%s", output.String())
 	}
 }
 
@@ -53,7 +53,7 @@ func TestDoctorSubcommandLeavesWithAFailureWhenSomethingIsBroken(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := doctorSubcommand.run(nil, &output, &problems); code != contract.ExitFailure {
-		t.Errorf("coeus doctor left with %d rather than %d on a configuration that will not load", code, contract.ExitFailure)
+		t.Errorf("nerdgenie doctor left with %d rather than %d on a configuration that will not load", code, contract.ExitFailure)
 	}
 }
 
@@ -62,10 +62,10 @@ func TestDoctorSubcommandSaysWhenTheHomeFolderCannotBeWorkedOut(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := doctorSubcommand.run(nil, &output, &problems); code != contract.ExitBadConfiguration {
-		t.Errorf("coeus doctor left with %d rather than %d when COEUS_HOME is not a full path", code, contract.ExitBadConfiguration)
+		t.Errorf("nerdgenie doctor left with %d rather than %d when NERDGENIE_HOME is not a full path", code, contract.ExitBadConfiguration)
 	}
 	if !strings.Contains(problems.String(), config.HomeVariable) {
-		t.Errorf("coeus doctor does not name the variable that is wrong:\n%s", problems.String())
+		t.Errorf("nerdgenie doctor does not name the variable that is wrong:\n%s", problems.String())
 	}
 }
 
@@ -74,7 +74,7 @@ func TestInitSubcommandRefusesAFlagItDoesNotUnderstand(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := initSubcommand.run([]string{"--nothing-like-this"}, &output, &problems); code == contract.ExitOK {
-		t.Errorf("coeus init said all was well after a flag it does not understand")
+		t.Errorf("nerdgenie init said all was well after a flag it does not understand")
 	}
 }
 
@@ -87,14 +87,14 @@ func TestInitSubcommandLeavesAHomeThatIsAlreadySetUpAlone(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := initSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Errorf("coeus init left with %d on a home folder that is already set up: %s", code, problems.String())
+		t.Errorf("nerdgenie init left with %d on a home folder that is already set up: %s", code, problems.String())
 	}
 	after, err := os.ReadFile(home.ConfigFile())
 	if err != nil {
 		t.Fatalf("reading the configuration back failed: %v", err)
 	}
 	if string(after) != string(written) {
-		t.Errorf("coeus init rewrote a configuration that was already there:\n%s", after)
+		t.Errorf("nerdgenie init rewrote a configuration that was already there:\n%s", after)
 	}
 }
 
@@ -103,7 +103,7 @@ func TestInstallSubcommandWritesTheUnitAndStartsTheService(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := installSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus install left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie install left with %d: %s", code, problems.String())
 	}
 
 	unitPath, err := command.UnitPath()
@@ -127,7 +127,7 @@ func TestInstallSubcommandTakesNoArguments(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := installSubcommand.run([]string{"now"}, &output, &problems); code != contract.ExitUsage {
-		t.Errorf("coeus install left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
+		t.Errorf("nerdgenie install left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
 	}
 }
 
@@ -135,11 +135,11 @@ func TestUninstallSubcommandTakesTheUnitAwayAndKeepsTheHome(t *testing.T) {
 	home, _ := aTemporaryServiceMachine(t)
 	var output, problems bytes.Buffer
 	if code := installSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus install left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie install left with %d: %s", code, problems.String())
 	}
 
 	if code := uninstallSubcommand.run(nil, &output, &problems); code != contract.ExitOK {
-		t.Fatalf("coeus uninstall left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie uninstall left with %d: %s", code, problems.String())
 	}
 
 	unitPath, err := command.UnitPath()
@@ -147,10 +147,10 @@ func TestUninstallSubcommandTakesTheUnitAwayAndKeepsTheHome(t *testing.T) {
 		t.Fatalf("working out where the unit goes failed: %v", err)
 	}
 	if _, err := os.Stat(unitPath); !os.IsNotExist(err) {
-		t.Errorf("the unit is still there after coeus uninstall")
+		t.Errorf("the unit is still there after nerdgenie uninstall")
 	}
 	if _, err := os.Stat(home.Root); err != nil {
-		t.Errorf("coeus uninstall took the home folder away without being asked to: %v", err)
+		t.Errorf("nerdgenie uninstall took the home folder away without being asked to: %v", err)
 	}
 }
 
@@ -159,6 +159,6 @@ func TestUninstallSubcommandRefusesAFlagItDoesNotUnderstand(t *testing.T) {
 	var output, problems bytes.Buffer
 
 	if code := uninstallSubcommand.run([]string{"--nothing-like-this"}, &output, &problems); code == contract.ExitOK {
-		t.Errorf("coeus uninstall said all was well after a flag it does not understand")
+		t.Errorf("nerdgenie uninstall said all was well after a flag it does not understand")
 	}
 }

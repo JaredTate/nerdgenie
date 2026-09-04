@@ -1,4 +1,4 @@
-# Review of /Users/jt/Desktop/COEUS_PLAN.md
+# Review of /Users/jt/Desktop/NERDGENIE_PLAN.md
 
 Reviewed version: 465 lines, 5,426 words, mtime 2026-09-02 10:56:24, md5 `cf122eaec8b6e60de33fd7f639330fd3` (sections 0–18, "Nine decisions, in three groups"). The file was rewritten while this review ran; an earlier 420-line draft ("Seven decisions") was read first. Claims that existed only in that draft but were named in the brief are in the Appendix.
 
@@ -148,7 +148,7 @@ Verdicts: WRONG (incorrect), MISLEADING (true words, wrong impression), UNSUPPOR
 |---|---|---|---|
 | "`ask_user` is always eager: Hermes tested hiding it and the model stopped asking" | WRONG | Hermes's A/B (PR #97979, 288 runs) was on `clarify`: structured asks 18/18 visible vs 7/18 deferred; models "fell back to plain-text questions." They kept asking, in text. On Signal, text *is* the ask, so this argues for dropping `ask_user`, not keeping it eager. | hermes:tools/tool_search.py:266-273 |
 | "Hermes' sudo prompt, `cli.py:16479`" | CORRECT | `_sudo_password_callback` is at cli.py:16479; masking with `*` at cli.py:19951. | hermes:cli.py:16479, 19951 |
-| "`~/.coeus/vault.age`, encrypted with a 0600 key file (ZeroClaw's design)" | MISLEADING | ZeroClaw is ChaCha20-Poly1305 with a raw 0600 key at `~/.zeroclaw/.secret_key`, storing API keys for config; no `age`, no site/TOTP entries. | zeroclaw:crates/zeroclaw-config/src/secrets.rs:1-8 |
+| "`~/.nerdgenie/vault.age`, encrypted with a 0600 key file (ZeroClaw's design)" | MISLEADING | ZeroClaw is ChaCha20-Poly1305 with a raw 0600 key at `~/.zeroclaw/.secret_key`, storing API keys for config; no `age`, no site/TOTP entries. | zeroclaw:crates/zeroclaw-config/src/secrets.rs:1-8 |
 | "`sudo` gets its password through `SUDO_ASKPASS`… (Hermes)" | MISLEADING | Hermes pipes `sudo -S -p ''` on stdin with a per-session cache; no `SUDO_ASKPASS` in the repo. `SUDO_ASKPASS` is R16 §8.4's proposal. | hermes:tools/terminal_tool.py:764,1035-1037,1112 |
 | "three tries with backoff, never on context overflow (OpenCode)" | WRONG (number) | `RETRY_MAX_RETRIES = 5`; 3 is OpenClaw/Hermes/Prime. "Never on overflow" is correct. | opencode:packages/opencode/src/session/retry.ts:31,89 |
 | "Malformed call: fix the name… 'Tool x does not exist. Available: a, b, c.' (OpenCode's `invalid`)" | MISLEADING | Name repair and that message are Hermes (`repair_tool_call`, conversation_loop.py:1547); OpenCode's `invalid` handles bad arguments and wrong-case names. | R14 §3; hermes:agent/agent_runtime_helpers.py:3748-3766 |

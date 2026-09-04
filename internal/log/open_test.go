@@ -15,7 +15,7 @@ import (
 // closes it when the test ends.
 func newTestLog(t *testing.T) *Log {
 	t.Helper()
-	opened, err := Open(context.Background(), filepath.Join(t.TempDir(), "coeus.db"))
+	opened, err := Open(context.Background(), filepath.Join(t.TempDir(), "nerdgenie.db"))
 	if err != nil {
 		t.Fatalf("cannot open a log for the test: %v", err)
 	}
@@ -28,7 +28,7 @@ func newTestLog(t *testing.T) *Log {
 }
 
 func TestOpenCreatesTheSchemaWithVersionOne(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 	opened, err := Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)
@@ -56,7 +56,7 @@ func TestOpenCreatesTheSchemaWithVersionOne(t *testing.T) {
 }
 
 func TestOpenReopensALogItAlreadyMade(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 	first, err := Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)
@@ -97,7 +97,7 @@ func TestOpenRefusesAFileThatIsNotACoeusLog(t *testing.T) {
 }
 
 func TestOpenRefusesANewerSchemaVersion(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 	opened, err := Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)
@@ -153,7 +153,7 @@ func TestOpenRefusesAPathWithAQuestionMark(t *testing.T) {
 }
 
 func TestOpenRefusesAPathInAFolderThatIsNotThere(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "no-such-folder", "coeus.db")
+	path := filepath.Join(t.TempDir(), "no-such-folder", "nerdgenie.db")
 	_, err := Open(context.Background(), path)
 	if err == nil {
 		t.Fatal("opening a log in a folder that is not there returned no error, and it must refuse")
@@ -164,7 +164,7 @@ func TestOpenRefusesAPathInAFolderThatIsNotThere(t *testing.T) {
 }
 
 func TestCloseTwiceIsHarmless(t *testing.T) {
-	opened, err := Open(context.Background(), filepath.Join(t.TempDir(), "coeus.db"))
+	opened, err := Open(context.Background(), filepath.Join(t.TempDir(), "nerdgenie.db"))
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)
 	}

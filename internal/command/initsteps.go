@@ -75,12 +75,12 @@ func expandFolders(written []string, userHome string) []string {
 }
 
 // makeWorkFolders checks each folder against the sandbox-root rule and makes
-// the ones that are not there yet, which is how the work folder ~/coeus comes
+// the ones that are not there yet, which is how the work folder ~/nerdgenie comes
 // into being on a fresh machine. The agent's own home folder is passed in
 // rather than worked out, because a test puts it somewhere else.
 //
 // Nothing is passed for the configured browser profile and backup folder, which
-// the check also takes, because "coeus init" is what writes the first
+// the check also takes, because "nerdgenie init" is what writes the first
 // configuration: at this moment both of them are still the defaults inside the
 // agent's home folder, which the check works out for itself. The configuration
 // checker in internal/config is where a browser_profile_path the user has moved
@@ -115,7 +115,7 @@ func (setup Setup) askModel(ctx context.Context, ask *asker, chosen initFlags, f
 	if !ask.canAsk() {
 		picked, any := firstDetected(found)
 		if !any {
-			return modelChoice{}, fmt.Errorf("no model was found on this machine and there was nobody to ask, so run coeus init again with --model %s and --api-key-from-env", inPlainList(choiceNames(found)))
+			return modelChoice{}, fmt.Errorf("no model was found on this machine and there was nobody to ask, so run nerdgenie init again with --model %s and --api-key-from-env", inPlainList(choiceNames(found)))
 		}
 		return picked, nil
 	}
@@ -189,12 +189,12 @@ func (setup Setup) readKey(_ context.Context, chosen initFlags, picked modelChoi
 	if chosen.apiKeyFromEnvironment != "" {
 		key := strings.TrimSpace(os.Getenv(chosen.apiKeyFromEnvironment))
 		if key == "" {
-			return "", fmt.Errorf("the environment variable %s is empty, so set it to the %s key and run coeus init again", chosen.apiKeyFromEnvironment, picked.name)
+			return "", fmt.Errorf("the environment variable %s is empty, so set it to the %s key and run nerdgenie init again", chosen.apiKeyFromEnvironment, picked.name)
 		}
 		return key, nil
 	}
 	if setup.AskSecret == nil {
-		return "", fmt.Errorf("%s needs an API key and there is no terminal to type it in, so run coeus init again with --api-key-from-env naming the variable that holds it", picked.name)
+		return "", fmt.Errorf("%s needs an API key and there is no terminal to type it in, so run nerdgenie init again with --api-key-from-env naming the variable that holds it", picked.name)
 	}
 
 	key, err := setup.AskSecret(fmt.Sprintf("the %s API key (it is not shown as you type): ", picked.name))
@@ -202,7 +202,7 @@ func (setup Setup) readKey(_ context.Context, chosen initFlags, picked modelChoi
 		return "", fmt.Errorf("the %s key was not entered, so nothing was kept: %w", picked.name, err)
 	}
 	if strings.TrimSpace(key) == "" {
-		return "", fmt.Errorf("%w, so run coeus init again and type the %s key, or use --api-key-from-env", errNoKeyTyped, picked.name)
+		return "", fmt.Errorf("%w, so run nerdgenie init again and type the %s key, or use --api-key-from-env", errNoKeyTyped, picked.name)
 	}
 	return strings.TrimSpace(key), nil
 }

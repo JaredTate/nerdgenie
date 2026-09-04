@@ -21,14 +21,14 @@ library.
 
 | Library | First needed by | Why the standard library will not do |
 |---|---|---|
-| `modernc.org/sqlite` | `internal/log`, wave 1 | The one database file is SQLite, and this driver is pure Go, so `bin/coeus` stays a single static binary that needs no C compiler and no system library to build or to run |
-| `github.com/BurntSushi/toml` | `internal/config`, wave 1 | The configuration file is `~/.coeus/config.toml`, and the standard library has no TOML parser |
+| `modernc.org/sqlite` | `internal/log`, wave 1 | The one database file is SQLite, and this driver is pure Go, so `bin/nerdgenie` stays a single static binary that needs no C compiler and no system library to build or to run |
+| `github.com/BurntSushi/toml` | `internal/config`, wave 1 | The configuration file is `~/.nerdgenie/config.toml`, and the standard library has no TOML parser |
 | `filippo.io/age` | `internal/vault`, wave 2 | The vault file and the nightly backups are encrypted with age, and the standard library has no file-encryption format, only the primitives underneath one |
 | `github.com/pquerna/otp` | `internal/vault`, wave 2 | Logging in to a site needs a time-based one-time password, and the standard library has no TOTP implementation |
 | `github.com/robfig/cron/v3` | `internal/job`, wave 4 | A job's schedule may be a cron expression, and the standard library has no cron parser |
 | `charm.land/bubbletea/v2` | `internal/tui`, wave 3 | The terminal screen streams deltas, answers approvals inline, and redraws on resize, and the standard library has no terminal user-interface toolkit. Version 2 rather than version 1, and alone rather than with lipgloss, because version 1 asked the terminal for its background colour while its package was being set up — before any code of ours runs — and waited five seconds for each byte of an answer that a terminal need not give, swallowing what the person typed meanwhile (brief 6.6) |
 | `github.com/coreos/go-systemd/v22/daemon` | `internal/reliability`, wave 4 | The service unit has a watchdog line, and feeding the watchdog means talking to the systemd notify socket, which this library does correctly |
-| `github.com/mdp/qrterminal/v3` | `internal/signal`, wave 3 | `coeus signal link` shows the linking URI as a QR code the user scans with a phone, and the standard library cannot draw one |
+| `github.com/mdp/qrterminal/v3` | `internal/signal`, wave 3 | `nerdgenie signal link` shows the linking URI as a QR code the user scans with a phone, and the standard library cannot draw one |
 
 ## The two TypeScript workers
 
@@ -86,7 +86,7 @@ out of it, and puts that in the archive at `node/bin/node`.
 
 | Download | Version | Why it is here |
 |---|---|---|
-| `node-v24.18.0-linux-x64.tar.xz` and `node-v24.18.0-linux-arm64.tar.xz` | 24.18.0 | The workers are Node programs, and a release that carried no runtime would only run for someone who had already installed Node. It is the official build from `nodejs.org`, pinned by SHA-256 in `scripts/release/node.sh`, cached under `~/.cache/coeus-release` so it is fetched once per machine, and stripped to the one program: npm, the C headers, and the documentation are all left behind |
+| `node-v24.18.0-linux-x64.tar.xz` and `node-v24.18.0-linux-arm64.tar.xz` | 24.18.0 | The workers are Node programs, and a release that carried no runtime would only run for someone who had already installed Node. It is the official build from `nodejs.org`, pinned by SHA-256 in `scripts/release/node.sh`, cached under `~/.cache/nerdgenie-release` so it is fetched once per machine, and stripped to the one program: npm, the C headers, and the documentation are all left behind |
 
 This is not a library anything imports, and nothing in `go.mod` or either
 `package.json` changes because of it. Raising the version means fetching the new

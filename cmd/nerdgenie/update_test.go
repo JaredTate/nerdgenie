@@ -69,7 +69,7 @@ func aReleaseToInstall(t *testing.T, folder string, version string) {
 // manager or waits out the readiness deadline.
 func aServiceThatAnswers(t *testing.T) contract.Home {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-cmd")
+	folder, err := os.MkdirTemp("", "nerdgenie-cmd")
 	if err != nil {
 		t.Fatalf("making a folder for the home failed: %v", err)
 	}
@@ -94,7 +94,7 @@ func aServiceThatAnswers(t *testing.T) contract.Home {
 }
 
 // answerTheReadinessCheck stands in for a running agent: it answers anything
-// asked on the local socket, which is what "coeus update" waits for after it has
+// asked on the local socket, which is what "nerdgenie update" waits for after it has
 // started the service.
 func answerTheReadinessCheck(t *testing.T, home contract.Home) {
 	t.Helper()
@@ -147,7 +147,7 @@ func TestUpdateSubcommandChecksWithoutChangingAnything(t *testing.T) {
 	code := updateSubcommand.run([]string{"--check", "--from", address}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus update --check left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie update --check left with %d: %s", code, problems.String())
 	}
 	if !strings.Contains(output.String(), "9.9.9") {
 		t.Errorf("the check does not say what is on offer:\n%s", output.String())
@@ -164,7 +164,7 @@ func TestUpdateSubcommandInstallsTheVersionOnOffer(t *testing.T) {
 	code := updateSubcommand.run([]string{"--from", address}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus update left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie update left with %d: %s", code, problems.String())
 	}
 	where, err := os.Readlink(home.CurrentReleaseLink())
 	if err != nil {
@@ -185,7 +185,7 @@ func TestUpdateSubcommandRefusesAVersionTheAddressDoesNotOffer(t *testing.T) {
 	code := updateSubcommand.run([]string{"--from", address, "--to", "0.0.1"}, &output, &problems)
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus update --to a version the address does not offer left with %d rather than %d", code, contract.ExitFailure)
+		t.Errorf("nerdgenie update --to a version the address does not offer left with %d rather than %d", code, contract.ExitFailure)
 	}
 	if !strings.Contains(problems.String(), "0.0.1") {
 		t.Errorf("the refusal does not say which version was asked for:\n%s", problems.String())
@@ -199,7 +199,7 @@ func TestUpdateSubcommandBringsTheDatabaseForward(t *testing.T) {
 	code := updateSubcommand.run([]string{"--migrate"}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus update --migrate left with %d on a home with no database: %s", code, problems.String())
+		t.Fatalf("nerdgenie update --migrate left with %d on a home with no database: %s", code, problems.String())
 	}
 	if !strings.Contains(output.String(), "database") {
 		t.Errorf("the migration step says nothing about the database:\n%s", output.String())
@@ -221,7 +221,7 @@ func TestUpdateSubcommandRefusesFlagsThatContradictEachOther(t *testing.T) {
 			var output, problems bytes.Buffer
 
 			if code := updateSubcommand.run(arguments, &output, &problems); code != contract.ExitUsage {
-				t.Errorf("coeus update %v left with %d rather than %d", arguments, code, contract.ExitUsage)
+				t.Errorf("nerdgenie update %v left with %d rather than %d", arguments, code, contract.ExitUsage)
 			}
 		})
 	}
@@ -237,7 +237,7 @@ func TestUpdateSubcommandRollsBackToThePreviousRelease(t *testing.T) {
 	code := updateSubcommand.run([]string{"--rollback"}, &output, &problems)
 
 	if code != contract.ExitOK {
-		t.Fatalf("coeus update --rollback left with %d: %s", code, problems.String())
+		t.Fatalf("nerdgenie update --rollback left with %d: %s", code, problems.String())
 	}
 	where, err := os.Readlink(home.CurrentReleaseLink())
 	if err != nil {
@@ -255,7 +255,7 @@ func TestUpdateSubcommandSaysWhenTheAddressHasNothingOnIt(t *testing.T) {
 	code := updateSubcommand.run([]string{"--from", filepath.Join(t.TempDir(), "nothing")}, &output, &problems)
 
 	if code != contract.ExitFailure {
-		t.Errorf("coeus update against an address with nothing on it left with %d rather than %d", code, contract.ExitFailure)
+		t.Errorf("nerdgenie update against an address with nothing on it left with %d rather than %d", code, contract.ExitFailure)
 	}
 	if problems.String() == "" {
 		t.Errorf("nothing was printed about why the update did not happen")

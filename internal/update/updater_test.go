@@ -17,7 +17,7 @@ import (
 var startOfTime = time.Date(2026, 9, 2, 3, 0, 0, 0, time.UTC)
 
 // anInstalledRelease puts one version under the releases folder and points the
-// current link at it, which is what a machine looks like after "coeus install".
+// current link at it, which is what a machine looks like after "nerdgenie install".
 func anInstalledRelease(t *testing.T, home contract.Home, version string, program string) string {
 	t.Helper()
 	folder := home.ReleaseFolder(version)

@@ -3,7 +3,7 @@ package record
 import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // The two records in this file are the examples in section 4 of
-// docs/COEUS_PLAN.md, written out as the contract types. The text of each one is
+// docs/NERDGENIE_PLAN.md, written out as the contract types. The text of each one is
 // in testdata, taken from the design without a byte changed, and the printer and
 // the parser are held to both.
 

@@ -8,7 +8,7 @@
 #            the llama-server daemon already running on this machine, card "a"
 #            (port 19091) or card "b" (port 19093). Opus 4.8 runs are driven by
 #            hand, so "opus" is refused here rather than half-supported.
-#   harness  coeus | opencode | hermes | openclaw
+#   harness  nerdgenie | opencode | hermes | openclaw
 #   label    a short name for this run, such as "1" or "rerun".
 #   card     "a" or "b". Default "a".
 #
@@ -24,7 +24,7 @@
 #                  a number of minutes to stop the harness after that long.
 #   TATER_ROOT     where run folders go. Default ~/work/bench/tater2.
 #   TATER_TASK     the canonical task. Default ~/work/bench/canonical/task.txt.
-#   TATER_COEUS_BIN  the Coeus binary. Default <repo>/bin/coeus, built if absent.
+#   TATER_NERDGENIE_BIN  the Coeus binary. Default <repo>/bin/nerdgenie, built if absent.
 #
 # Everything one run needs and everything it writes lives in one folder,
 # ~/work/bench/tater2/<phase>-<harness>-<label>/, which is deleted and made
@@ -63,7 +63,7 @@ done
 
 if [ "${#POSITIONAL[@]}" -lt 3 ] || [ "${#POSITIONAL[@]}" -gt 4 ]; then
   echo "usage: tater_run.sh <phase> <harness> <run-label> [card] [--dry-run]" >&2
-  echo "  phase: qwen; harness: coeus, opencode, hermes or openclaw; card: a or b" >&2
+  echo "  phase: qwen; harness: nerdgenie, opencode, hermes or openclaw; card: a or b" >&2
   exit 2
 fi
 
@@ -79,8 +79,8 @@ case "$PHASE" in
 esac
 
 case "$HARNESS" in
-  coeus|opencode|hermes|openclaw) ;;
-  *) echo "tater_run.sh: the harness must be coeus, opencode, hermes or openclaw, not \"$HARNESS\"" >&2; exit 2;;
+  nerdgenie|opencode|hermes|openclaw) ;;
+  *) echo "tater_run.sh: the harness must be nerdgenie, opencode, hermes or openclaw, not \"$HARNESS\"" >&2; exit 2;;
 esac
 
 case "$LABEL" in
@@ -97,7 +97,7 @@ esac
 
 TATER_ROOT="${TATER_ROOT:-$HOME/work/bench/tater2}"
 TATER_TASK="${TATER_TASK:-$HOME/work/bench/canonical/task.txt}"
-COEUS_BIN="${TATER_COEUS_BIN:-$REPO/bin/coeus}"
+NERDGENIE_BIN="${TATER_NERDGENIE_BIN:-$REPO/bin/nerdgenie}"
 OPENCODE_BIN="${TATER_OPENCODE_BIN:-/home/jared/.opencode/bin/opencode}"
 
 RUN="$TATER_ROOT/$PHASE-$HARNESS-$LABEL"
@@ -184,8 +184,8 @@ printf '%s\n' "$CARD" > "$RUN/card"
 
 # ---- the Coeus binary ------------------------------------------------------
 
-if [ "$HARNESS" = "coeus" ] && [ ! -x "$COEUS_BIN" ]; then
-  echo "building the Coeus binary, which is missing from $COEUS_BIN"
+if [ "$HARNESS" = "nerdgenie" ] && [ ! -x "$NERDGENIE_BIN" ]; then
+  echo "building the Coeus binary, which is missing from $NERDGENIE_BIN"
   if ! (cd "$REPO" && timeout 900 make build); then
     echo "tater_run.sh: \"make build\" failed, so there is no Coeus binary to run" >&2
     exit 2
@@ -203,10 +203,10 @@ BUDGET_RAISED=no
 
 case "$HARNESS" in
 
-  coeus)
-    # Coeus keeps everything under COEUS_HOME: config, record, memory, logs.
-    if ! COEUS_HOME="$HOMEDIR" "$COEUS_BIN" init --yes > "$RUN/init.out" 2>&1; then
-      echo "tater_run.sh: \"coeus init --yes\" failed; its output is in $RUN/init.out" >&2
+  nerdgenie)
+    # Coeus keeps everything under NERDGENIE_HOME: config, record, memory, logs.
+    if ! NERDGENIE_HOME="$HOMEDIR" "$NERDGENIE_BIN" init --yes > "$RUN/init.out" 2>&1; then
+      echo "tater_run.sh: \"nerdgenie init --yes\" failed; its output is in $RUN/init.out" >&2
       exit 2
     fi
     # Coeus ships its own task budget, a hundred tool rounds and an hour, which
@@ -254,12 +254,12 @@ time_per_task = "240h"
 """ % (base_url, model, context))
 PYTHON
     BUDGET_RAISED=yes
-    if ! COEUS_HOME="$HOMEDIR" "$COEUS_BIN" doctor > "$RUN/doctor.out" 2>&1; then
-      echo "tater_run.sh: \"coeus doctor\" is unhappy with the config this run wrote; see $RUN/doctor.out" >&2
+    if ! NERDGENIE_HOME="$HOMEDIR" "$NERDGENIE_BIN" doctor > "$RUN/doctor.out" 2>&1; then
+      echo "tater_run.sh: \"nerdgenie doctor\" is unhappy with the config this run wrote; see $RUN/doctor.out" >&2
       exit 2
     fi
-    LAUNCH_ENV=("COEUS_HOME=$HOMEDIR")
-    LAUNCH_CMD=(bash "$HERE/run-coeus.sh" "$COEUS_BIN" "$HOMEDIR" "$WORK/task.txt")
+    LAUNCH_ENV=("NERDGENIE_HOME=$HOMEDIR")
+    LAUNCH_CMD=(bash "$HERE/run-nerdgenie.sh" "$NERDGENIE_BIN" "$HOMEDIR" "$WORK/task.txt")
     if [ -n "$MINUTES" ]; then
       LAUNCH_CMD+=("$MINUTES")
     fi
@@ -402,7 +402,7 @@ esac
   echo "launched from: $WORK"
   echo "call cap: ${CAP:-none}"
   if [ -n "$MINUTES" ]; then echo "wall-clock cap: $MINUTES minutes"; else echo "wall-clock cap: none"; fi
-  echo "coeus budget raised: $BUDGET_RAISED"
+  echo "nerdgenie budget raised: $BUDGET_RAISED"
   echo "environment:"
   for pair in "${LAUNCH_ENV[@]}"; do echo "  $pair"; done
   printf 'command:'; printf ' %q' "${LAUNCH_CMD[@]}"; printf '\n'

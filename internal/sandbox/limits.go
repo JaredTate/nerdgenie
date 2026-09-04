@@ -60,7 +60,7 @@ func setResourceLimits(setLimit func(resource int, limit *syscall.Rlimit) error)
 	for _, bound := range theBoundsOnOneCommand {
 		limit := syscall.Rlimit{Cur: bound.value, Max: bound.value}
 		if err := setLimit(bound.resource, &limit); err != nil {
-			return fmt.Errorf("the sandbox could not bound %s to %d, and a command that runs unbounded can take the whole machine down, so run coeus on a kernel that allows the limit to be set: %w",
+			return fmt.Errorf("the sandbox could not bound %s to %d, and a command that runs unbounded can take the whole machine down, so run nerdgenie on a kernel that allows the limit to be set: %w",
 				bound.name, bound.value, err)
 		}
 	}

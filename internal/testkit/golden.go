@@ -19,7 +19,7 @@ import (
 // is not a test goes onto the global flag set of every program that imports this
 // package, and the first later package to register a golden flag of its own
 // would panic with "flag redefined".
-const UpdateGoldenFilesVariable = "COEUS_UPDATE_GOLDEN"
+const UpdateGoldenFilesVariable = "NERDGENIE_UPDATE_GOLDEN"
 
 // updatingGoldenFiles says whether this run rewrites the golden files.
 func updatingGoldenFiles() bool {
@@ -28,7 +28,7 @@ func updatingGoldenFiles() bool {
 
 // Golden compares bytes with the file of that name under the package's testdata
 // folder, and fails the test when they differ. Running the tests with
-// COEUS_UPDATE_GOLDEN set to 1 writes the file instead.
+// NERDGENIE_UPDATE_GOLDEN set to 1 writes the file instead.
 func Golden(t testing.TB, name string, actual []byte) {
 	t.Helper()
 	path := filepath.Join("testdata", name)
@@ -54,7 +54,7 @@ func Golden(t testing.TB, name string, actual []byte) {
 func GoldenMatches(path string, actual []byte) (bool, error) {
 	wanted, err := os.ReadFile(path)
 	if err != nil {
-		return false, fmt.Errorf("cannot read the golden file %s, so run the tests with COEUS_UPDATE_GOLDEN=1 to write it: %w", path, err)
+		return false, fmt.Errorf("cannot read the golden file %s, so run the tests with NERDGENIE_UPDATE_GOLDEN=1 to write it: %w", path, err)
 	}
 	return bytes.Equal(wanted, actual), nil
 }

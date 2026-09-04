@@ -39,7 +39,7 @@ var kernelFolders = []string{"/proc", "/dev"}
 // the first human trial found the model reading $HOME/Desktop, believing the
 // empty answer, and building a whole project in this folder, where nobody would
 // look for it.
-const scratchHomeName = ".coeus-sandbox-home"
+const scratchHomeName = ".nerdgenie-sandbox-home"
 
 // The words the fence uses to tell the helper what the command may reach.
 const (

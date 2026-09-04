@@ -37,16 +37,16 @@ var replaySubcommand = subcommand{
 // runTheReplaySubcommand reads the flags, replays the task, and prints what the
 // replay found.
 func runTheReplaySubcommand(arguments []string, output io.Writer, problems io.Writer) int {
-	set := flag.NewFlagSet("coeus replay", flag.ContinueOnError)
+	set := flag.NewFlagSet("nerdgenie replay", flag.ContinueOnError)
 	set.SetOutput(problems)
 	asTest := set.Bool("as-test", false, "also write a Go test under test/replays that replays this task")
 	into := set.String("into", ".", "the folder the generated test is written under, which is the top of the repository")
 	if err := set.Parse(arguments); err != nil {
-		fmt.Fprintf(problems, "coeus replay: the flags could not be read, so nothing was replayed: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: the flags could not be read, so nothing was replayed: %v\n", err)
 		return contract.ExitUsage
 	}
 	if len(set.Args()) != 1 {
-		fmt.Fprintln(problems, "coeus replay: name exactly one task to replay, as in \"coeus replay 17\"")
+		fmt.Fprintln(problems, "nerdgenie replay: name exactly one task to replay, as in \"nerdgenie replay 17\"")
 		return contract.ExitUsage
 	}
 	return replayOneTask(set.Args()[0], *asTest, *into, output, problems)
@@ -65,12 +65,12 @@ func replayOneTask(taskID string, asTest bool, into string, output io.Writer, pr
 
 	recording, err := replay.Read(ctx, parts.recorded, taskID)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return contract.ExitFailure
 	}
 	result, err := replay.RunRecording(ctx, parts.options, recording)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return contract.ExitFailure
 	}
 	fmt.Fprintln(output, result.Report)
@@ -91,11 +91,11 @@ func replayOneTask(taskID string, asTest bool, into string, output io.Writer, pr
 func writeTheReplayTest(recording replay.Recording, into string, output io.Writer, problems io.Writer) int {
 	generated, err := replay.AsTest(recording)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return contract.ExitFailure
 	}
 	if err := generated.WriteInto(into); err != nil {
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return contract.ExitFailure
 	}
 	fmt.Fprintf(output, "wrote %s and %s. Run it with \"go test ./%s/...\".\n",
@@ -126,14 +126,14 @@ func (parts replayParts) close(problems io.Writer) {
 			continue
 		}
 		if err := opened.Close(); err != nil {
-			fmt.Fprintf(problems, "coeus replay: cannot close an event log: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie replay: cannot close an event log: %v\n", err)
 		}
 	}
 	if parts.folder == "" {
 		return
 	}
 	if err := os.RemoveAll(parts.folder); err != nil {
-		fmt.Fprintf(problems, "coeus replay: cannot remove the throwaway log in %s: %v\n", parts.folder, err)
+		fmt.Fprintf(problems, "nerdgenie replay: cannot remove the throwaway log in %s: %v\n", parts.folder, err)
 	}
 }
 
@@ -148,22 +148,22 @@ func openWhatAReplayNeeds(problems io.Writer) (replayParts, int) {
 	parts := replayParts{}
 	recorded, err := log.Open(ctx, home.DatabaseFile())
 	if err != nil {
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return replayParts{}, contract.ExitFailure
 	}
 	parts.recorded = recorded
 
-	folder, err := os.MkdirTemp("", "coeus-replay-")
+	folder, err := os.MkdirTemp("", "nerdgenie-replay-")
 	if err != nil {
 		parts.close(problems)
-		fmt.Fprintf(problems, "coeus replay: cannot make a folder for the throwaway log: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: cannot make a folder for the throwaway log: %v\n", err)
 		return replayParts{}, contract.ExitFailure
 	}
 	parts.folder = folder
 	throwaway, err := log.Open(ctx, filepath.Join(folder, "replay.db"))
 	if err != nil {
 		parts.close(problems)
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return replayParts{}, contract.ExitFailure
 	}
 	parts.throwaway = throwaway
@@ -171,7 +171,7 @@ func openWhatAReplayNeeds(problems io.Writer) (replayParts, int) {
 	options, err := theReplayOptions(home, settings, recorded, throwaway)
 	if err != nil {
 		parts.close(problems)
-		fmt.Fprintf(problems, "coeus replay: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie replay: %v\n", err)
 		return replayParts{}, contract.ExitFailure
 	}
 	parts.options = options

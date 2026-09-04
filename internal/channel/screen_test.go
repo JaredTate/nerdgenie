@@ -135,8 +135,8 @@ func TestListeningRefusesAPathItCannotUse(t *testing.T) {
 	}
 
 	for what, path := range map[string]string{
-		"a folder that is not there": filepath.Join(folder, "no-such-folder", "coeus.sock"),
-		"a path through a file":      filepath.Join(inTheWay, "coeus.sock"),
+		"a folder that is not there": filepath.Join(folder, "no-such-folder", "agent.sock"),
+		"a path through a file":      filepath.Join(inTheWay, "agent.sock"),
 	} {
 		if _, err := Listen(Options{
 			Path:    path,
@@ -155,7 +155,7 @@ func TestListeningRefusesASocketWithAnAnswerDeadlineBelowZero(t *testing.T) {
 	// time_per_turn the user set, so the caller passes theirs: zero, the
 	// shipped default, is no limit, and only a length below zero is refused.
 	_, err := Listen(Options{
-		Path:           filepath.Join(t.TempDir(), "coeus.sock"),
+		Path:           filepath.Join(t.TempDir(), "agent.sock"),
 		Stream:         NewStream(StreamOptions{}),
 		Queue:          newTestQueue(t, 10),
 		Secrets:        testkit.NewFakeSecrets(),
@@ -172,7 +172,7 @@ func TestListeningRefusesASocketWithAnAnswerDeadlineBelowZero(t *testing.T) {
 
 func TestListeningTakesASocketWithNoAnswerDeadline(t *testing.T) {
 	socket, err := Listen(Options{
-		Path:    filepath.Join(t.TempDir(), "coeus.sock"),
+		Path:    filepath.Join(t.TempDir(), "agent.sock"),
 		Stream:  NewStream(StreamOptions{}),
 		Queue:   newTestQueue(t, 10),
 		Secrets: testkit.NewFakeSecrets(),

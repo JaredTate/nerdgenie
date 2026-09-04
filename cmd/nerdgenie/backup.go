@@ -14,7 +14,7 @@ import (
 )
 
 // backupSubcommand writes one encrypted archive of everything Coeus keeps and
-// removes all but the newest few. The nightly systemd timer that "coeus install"
+// removes all but the newest few. The nightly systemd timer that "nerdgenie install"
 // writes runs exactly this.
 //
 // The orchestrator adds this value to the table in main.go.
@@ -23,7 +23,7 @@ var backupSubcommand = subcommand{
 	help: "Writes an encrypted copy of the database, the vault, and the browser profile, keeping the last seven.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		if len(arguments) > 0 {
-			fmt.Fprintf(problems, "coeus backup: this takes no arguments, and was given %q\n", strings.Join(arguments, " "))
+			fmt.Fprintf(problems, "nerdgenie backup: this takes no arguments, and was given %q\n", strings.Join(arguments, " "))
 			return contract.ExitUsage
 		}
 		home, settings, code := homeAndSettings(problems, "backup")
@@ -37,7 +37,7 @@ var backupSubcommand = subcommand{
 			Folder: settings.BackupPath,
 		})
 		if err != nil {
-			fmt.Fprintf(problems, "coeus backup: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie backup: %v\n", err)
 			return contract.ExitFailure
 		}
 
@@ -55,16 +55,16 @@ var restoreSubcommand = subcommand{
 	name: "restore",
 	help: "Puts a backup archive back: the database, the vault, and the browser profile.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
-		set := flag.NewFlagSet("coeus restore", flag.ContinueOnError)
+		set := flag.NewFlagSet("nerdgenie restore", flag.ContinueOnError)
 		set.SetOutput(problems)
 		force := set.Bool("force", false, "write over a home folder that is already in use")
 		keyFile := set.String("key", "", "the age key file that opens the archive, when it is not the one in the home folder")
 		if err := set.Parse(arguments); err != nil {
-			fmt.Fprintf(problems, "coeus restore: the flags could not be read, so nothing was changed: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie restore: the flags could not be read, so nothing was changed: %v\n", err)
 			return contract.ExitUsage
 		}
 		if len(set.Args()) != 1 {
-			fmt.Fprintf(problems, "coeus restore: name exactly one archive to put back, as in \"coeus restore ~/.coeus/backups/%s\"\n",
+			fmt.Fprintf(problems, "nerdgenie restore: name exactly one archive to put back, as in \"nerdgenie restore ~/.nerdgenie/backups/%s\"\n",
 				reliability.ArchivePrefix+"2026-09-02-030000"+reliability.ArchiveSuffix)
 			return contract.ExitUsage
 		}
@@ -81,7 +81,7 @@ var restoreSubcommand = subcommand{
 			Force:   *force,
 		})
 		if err != nil {
-			fmt.Fprintf(problems, "coeus restore: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie restore: %v\n", err)
 			return contract.ExitFailure
 		}
 
@@ -96,12 +96,12 @@ var restoreSubcommand = subcommand{
 func homeAndSettings(problems io.Writer, name string) (contract.Home, contract.Config, int) {
 	home, err := config.HomeFolder()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus %s: %v\n", name, err)
+		fmt.Fprintf(problems, "nerdgenie %s: %v\n", name, err)
 		return contract.Home{}, contract.Config{}, contract.ExitBadConfiguration
 	}
 	settings, err := config.Load(home)
 	if err != nil {
-		fmt.Fprintf(problems, "coeus %s: %v\n", name, err)
+		fmt.Fprintf(problems, "nerdgenie %s: %v\n", name, err)
 		return contract.Home{}, contract.Config{}, contract.ExitBadConfiguration
 	}
 	return home, settings, contract.ExitOK

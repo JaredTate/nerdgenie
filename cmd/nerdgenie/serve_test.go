@@ -37,12 +37,12 @@ func TestServeTakesNoArguments(t *testing.T) {
 	code := serveSubcommand.run([]string{"now"}, &output, &problems)
 
 	if code != contract.ExitUsage {
-		t.Errorf("coeus serve left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
+		t.Errorf("nerdgenie serve left with %d rather than %d when given a word it does not understand", code, contract.ExitUsage)
 	}
 }
 
 func TestTheRunLockRefusesASecondHolderAndNamesTheFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "coeus.lock")
+	path := filepath.Join(t.TempDir(), "nerdgenie.lock")
 
 	first, err := takeRunLock(path)
 	if err != nil {
@@ -58,7 +58,7 @@ func TestTheRunLockRefusesASecondHolderAndNamesTheFile(t *testing.T) {
 }
 
 func TestTheRunLockIsFreeAgainOnceItIsReleased(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "coeus.lock")
+	path := filepath.Join(t.TempDir(), "nerdgenie.lock")
 	first, err := takeRunLock(path)
 	if err != nil {
 		t.Fatalf("taking the lock failed: %v", err)

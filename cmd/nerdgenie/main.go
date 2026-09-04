@@ -21,9 +21,9 @@ var version = "dev"
 // development build says "unknown".
 var commit = "unknown"
 
-// subcommand is one thing coeus can be asked to do from the command line.
+// subcommand is one thing nerdgenie can be asked to do from the command line.
 type subcommand struct {
-	// name is what the user types after "coeus".
+	// name is what the user types after "nerdgenie".
 	name string
 	// help is the one line the listing prints beside the name.
 	help string
@@ -63,7 +63,7 @@ func subcommands() []subcommand {
 	}
 }
 
-// tuiName is the subcommand the bare "coeus" command runs, which is the terminal
+// tuiName is the subcommand the bare "nerdgenie" command runs, which is the terminal
 // screen. Somebody who types the program's name with nothing after it wants to
 // talk to the agent, not to read a list.
 const tuiName = "tui"
@@ -118,7 +118,7 @@ func run(table []subcommand, arguments []string, output io.Writer, problems io.W
 		return command.run(arguments[1:], output, problems)
 	}
 
-	fmt.Fprintf(problems, "coeus: there is no subcommand named %q. Run \"coeus help\" for the list.\n", asked)
+	fmt.Fprintf(problems, "nerdgenie: there is no subcommand named %q. Run \"nerdgenie help\" for the list.\n", asked)
 	return contract.ExitUsage
 }
 
@@ -136,9 +136,9 @@ func lookUp(table []subcommand, name string) (subcommand, bool) {
 
 // writeHelp prints every subcommand with its one help line.
 func writeHelp(table []subcommand, output io.Writer) {
-	fmt.Fprintln(output, "coeus - an assistant that runs on your own computer.")
+	fmt.Fprintln(output, "nerdgenie - an assistant that runs on your own computer.")
 	fmt.Fprintln(output)
-	fmt.Fprintln(output, "Usage: coeus <subcommand> [arguments]")
+	fmt.Fprintln(output, "Usage: nerdgenie <subcommand> [arguments]")
 	fmt.Fprintln(output)
 	fmt.Fprintln(output, "Subcommands:")
 

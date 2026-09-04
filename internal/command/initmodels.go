@@ -19,7 +19,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// The addresses and names "coeus init" knows the six models by. Each name is
+// The addresses and names "nerdgenie init" knows the six models by. Each name is
 // both a value of the --model flag and the alias written into config.toml.
 const (
 	// LMStudioAddress is where an LM Studio server answers on this machine.
@@ -53,7 +53,7 @@ const (
 	lmStudioContextLength = 32768
 )
 
-// modelChoice is one model "coeus init" can set up: the name the user types,
+// modelChoice is one model "nerdgenie init" can set up: the name the user types,
 // the line the menu prints, the phrase that says where it was looked for when
 // it was not found, whether it was found on this machine, whether it needs an
 // API key, and the alias written into config.toml for it.
@@ -156,7 +156,7 @@ func notFoundLine(choices []modelChoice) string {
 	return "What was not found on this machine: " + inPlainList(missing) + "."
 }
 
-// firstDetected is the model "coeus init --yes" takes: the first one found on
+// firstDetected is the model "nerdgenie init --yes" takes: the first one found on
 // this machine. It returns false when nothing was found, because a model that
 // needs a key is never chosen without being asked for.
 func firstDetected(choices []modelChoice) (modelChoice, bool) {

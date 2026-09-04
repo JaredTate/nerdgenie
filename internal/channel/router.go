@@ -30,7 +30,7 @@ const (
 )
 
 // Routes are the five things the router needs from the rest of the program.
-// cmd/coeus/serve.go supplies all five, which is what keeps this package from
+// cmd/nerdgenie/serve.go supplies all five, which is what keeps this package from
 // knowing anything about the agent loop, the command registry, or the skill
 // folder.
 type Routes struct {

@@ -39,7 +39,7 @@ var updateSubcommand = subcommand{
 			Announce: func(line string) { fmt.Fprintf(output, "%s\n", line) },
 		})
 		if err != nil {
-			fmt.Fprintf(problems, "coeus update: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie update: %v\n", err)
 			return contract.ExitFailure
 		}
 		if chosen.check {
@@ -69,7 +69,7 @@ type updateFlags struct {
 // worse than one that asks again.
 func readUpdateFlags(arguments []string, problems io.Writer) (updateFlags, int) {
 	chosen := updateFlags{}
-	set := flag.NewFlagSet("coeus update", flag.ContinueOnError)
+	set := flag.NewFlagSet("nerdgenie update", flag.ContinueOnError)
 	set.SetOutput(problems)
 	set.BoolVar(&chosen.check, "check", false, "say what is available and install nothing")
 	set.BoolVar(&chosen.rollback, "rollback", false, "go back to the version installed before this one")
@@ -78,11 +78,11 @@ func readUpdateFlags(arguments []string, problems io.Writer) (updateFlags, int) 
 	set.StringVar(&chosen.from, "from", "", "the folder or web address to read the release from")
 
 	if err := set.Parse(arguments); err != nil {
-		fmt.Fprintf(problems, "coeus update: the flags could not be read, so nothing was changed: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie update: the flags could not be read, so nothing was changed: %v\n", err)
 		return chosen, contract.ExitUsage
 	}
 	if len(set.Args()) > 0 {
-		fmt.Fprintf(problems, "coeus update: this takes flags rather than words, and was given %q\n", strings.Join(set.Args(), " "))
+		fmt.Fprintf(problems, "nerdgenie update: this takes flags rather than words, and was given %q\n", strings.Join(set.Args(), " "))
 		return chosen, contract.ExitUsage
 	}
 	return chosen, checkUpdateFlags(chosen, problems)
@@ -97,11 +97,11 @@ func checkUpdateFlags(chosen updateFlags, problems io.Writer) int {
 		}
 	}
 	if asked > 1 {
-		fmt.Fprintf(problems, "coeus update: --check, --rollback, and --migrate each do a different thing, so ask for one of them at a time\n")
+		fmt.Fprintf(problems, "nerdgenie update: --check, --rollback, and --migrate each do a different thing, so ask for one of them at a time\n")
 		return contract.ExitUsage
 	}
 	if chosen.rollback && chosen.to != "" {
-		fmt.Fprintf(problems, "coeus update: --rollback goes back to the version before this one, so it cannot also be given --to %s\n", chosen.to)
+		fmt.Fprintf(problems, "nerdgenie update: --rollback goes back to the version before this one, so it cannot also be given --to %s\n", chosen.to)
 		return contract.ExitUsage
 	}
 	return contract.ExitOK
@@ -112,13 +112,13 @@ func checkUpdateFlags(chosen updateFlags, problems io.Writer) int {
 func reportWhatIsOnOffer(updater *update.Updater, output io.Writer, problems io.Writer) int {
 	available, err := updater.Check(context.Background())
 	if err != nil {
-		fmt.Fprintf(problems, "coeus update: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie update: %v\n", err)
 		return contract.ExitFailure
 	}
 	fmt.Fprintf(output, "running version %s.\n", available.Running)
 	fmt.Fprintf(output, "%s offers version %s, built %s.\n", updater.Address(), available.Offered, available.Date)
 	if available.Newer {
-		fmt.Fprintf(output, "Run \"coeus update\" to install it. The version running now is kept to go back to.\n")
+		fmt.Fprintf(output, "Run \"nerdgenie update\" to install it. The version running now is kept to go back to.\n")
 		return contract.ExitOK
 	}
 	fmt.Fprintf(output, "There is nothing newer to install.\n")
@@ -136,7 +136,7 @@ func installOrRollBack(updater *update.Updater, chosen updateFlags, output io.Wr
 		outcome, err = updater.Install(context.Background(), chosen.to)
 	}
 	if err != nil {
-		fmt.Fprintf(problems, "coeus update: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie update: %v\n", err)
 		return contract.ExitFailure
 	}
 	switch {
@@ -157,7 +157,7 @@ func bringTheDatabaseForward(home contract.Home, settings contract.Config, outpu
 		Home: home, Clock: clock.System(), BackupFolder: settings.BackupPath, Version: version,
 	})
 	if err != nil {
-		fmt.Fprintf(problems, "coeus update: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie update: %v\n", err)
 		return contract.ExitFailure
 	}
 	fmt.Fprintf(output, "the database is at schema version %d, and %d migrations were applied.\n",

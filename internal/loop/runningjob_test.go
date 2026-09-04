@@ -77,7 +77,7 @@ func TestAPersonsTaskIsNoJobsTask(t *testing.T) {
 	}
 }
 
-// TestALoopRunsTheJobTaskItIsHanded is for the job driver in cmd/coeus, which
+// TestALoopRunsTheJobTaskItIsHanded is for the job driver in cmd/nerdgenie, which
 // asks the job store for the due task itself so that it can hand the nightly
 // self-check to the checker rather than the model. A task the driver has
 // already claimed cannot be claimed again, so the loop has to take the task it

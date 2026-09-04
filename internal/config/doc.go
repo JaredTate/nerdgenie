@@ -1,4 +1,4 @@
-// Package config reads and checks ~/.coeus/config.toml and says where every
+// Package config reads and checks ~/.nerdgenie/config.toml and says where every
 // file in the home folder lives.
 //
 // The configuration is read once, at startup. Loading starts from the defaults
@@ -22,6 +22,6 @@
 // The doctor looks at a home folder and reports what is there, what is missing,
 // what has the wrong mode, whether the configuration loads, whether the outside
 // programs Coeus needs are on the path, and whether the local model daemon
-// answers its health check. It never changes anything: "coeus init" and "coeus
+// answers its health check. It never changes anything: "nerdgenie init" and "nerdgenie
 // doctor" in wave 3 both print what it found.
 package config

@@ -23,7 +23,7 @@ const watchdogInterval = 60 * time.Second
 // only about a hundred characters long and test names here are not short.
 func aNotifySocket(t *testing.T, watchdogIsOn bool) net.PacketConn {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-notify-*")
+	folder, err := os.MkdirTemp("", "nerdgenie-notify-*")
 	if err != nil {
 		t.Fatalf("making the folder for the fake notify socket failed: %v", err)
 	}

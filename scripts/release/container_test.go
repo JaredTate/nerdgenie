@@ -15,7 +15,7 @@ import (
 // The whole point of the installer is that it works on a machine nobody has
 // touched, which is a thing no fake can prove. These tests run it inside a clean
 // Ubuntu container and a clean Debian container, with every init answer given as
-// a flag, and end with a passing "coeus doctor". They need a container runtime
+// a flag, and end with a passing "nerdgenie doctor". They need a container runtime
 // and an archive from "make release"; when either is missing they say so and
 // skip, and .github/workflows/install.yml is where they always run.
 
@@ -56,7 +56,7 @@ func releaseArchive(t *testing.T) string {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasPrefix(name, "coeus-") && strings.HasSuffix(name, "-amd64.tar.gz") {
+		if strings.HasPrefix(name, "nerdgenie-") && strings.HasSuffix(name, "-amd64.tar.gz") {
 			return filepath.Join(folder, name)
 		}
 	}
@@ -72,10 +72,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends ca-certificates tar coreutils >/dev/null
 echo "--- the installer starts here ---"
-sh /coeus/scripts/install.sh --from "/coeus/dist/$ARCHIVE" --no-signal -- \
-  --model local --work-folder /root/coeus --signal off --yes
+sh /nerdgenie/scripts/install.sh --from "/nerdgenie/dist/$ARCHIVE" --no-signal -- \
+  --model local --work-folder /root/nerdgenie --signal off --yes
 echo "--- the installer finished, now the doctor ---"
-/root/.local/bin/coeus doctor
+/root/.local/bin/nerdgenie doctor
 `
 
 // runInstallerInContainer runs the installer inside one image and returns
@@ -87,7 +87,7 @@ func runInstallerInContainer(t *testing.T, runtime string, image string, archive
 
 	running := exec.CommandContext(ctx, runtime, "run", "--rm",
 		"--env", "ARCHIVE="+filepath.Base(archive),
-		"--volume", repositoryRoot(t)+":/coeus:ro",
+		"--volume", repositoryRoot(t)+":/nerdgenie:ro",
 		image, "sh", "-c", insideTheContainer)
 	printed, err := running.CombinedOutput()
 	t.Logf("%s in %s printed:\n%s", distribution, image, printed)
@@ -118,8 +118,8 @@ func TestTheInstallerWorksOnACleanUbuntuAndACleanDebian(t *testing.T) {
 			if err != nil {
 				t.Fatalf("the installer did not finish on a clean %s: %v", machine.distribution, err)
 			}
-			requirePrinted(t, printed, "coeus doctor:", "the doctor ran and printed its report")
-			for _, want := range []string{"bubblewrap", "ripgrep", "Chrome", "coeus init"} {
+			requirePrinted(t, printed, "nerdgenie doctor:", "the doctor ran and printed its report")
+			for _, want := range []string{"bubblewrap", "ripgrep", "Chrome", "nerdgenie init"} {
 				requirePrinted(t, printed, want, "the installer says what it did on "+machine.distribution)
 			}
 		})

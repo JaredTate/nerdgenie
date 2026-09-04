@@ -67,7 +67,7 @@ func newTool(t *testing.T, sandbox contract.Sandbox, permission contract.Permiss
 		Permission:       permission,
 		Clock:            clock,
 		Home:             home,
-		CoeusProgram:     filepath.Join(t.TempDir(), "coeus"),
+		CoeusProgram:     filepath.Join(t.TempDir(), "nerdgenie"),
 		WorkingDirectory: t.TempDir(),
 		Timeout:          time.Minute,
 	})

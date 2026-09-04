@@ -10,7 +10,7 @@ import (
 
 func TestASandboxRootThatIsALinkToAnExcludedPathIsRefused(t *testing.T) {
 	userHome := t.TempDir()
-	agentHome := filepath.Join(userHome, ".coeus")
+	agentHome := filepath.Join(userHome, ".nerdgenie")
 	for _, folder := range []string{agentHome, filepath.Join(userHome, ".ssh"), filepath.Join(userHome, "work")} {
 		if err := os.MkdirAll(folder, 0o700); err != nil {
 			t.Fatal(err)

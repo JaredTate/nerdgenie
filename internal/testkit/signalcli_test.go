@@ -276,7 +276,7 @@ func TestTheFakeSignalProgramPrintsALinkAndThenSaysItIsAssociated(t *testing.T) 
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, filepath.Join(folder, "signal-cli"), "link", "-n", "coeus")
+	command := exec.CommandContext(ctx, filepath.Join(folder, "signal-cli"), "link", "-n", "nerdgenie")
 	printed, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("the fake signal-cli program failed: %v\n%s", err, printed)

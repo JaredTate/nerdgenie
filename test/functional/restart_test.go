@@ -1,5 +1,5 @@
 // The whole-program test for the memory of what each screen was last doing
-// surviving a restart: a task stops, "coeus serve" is stopped and started again
+// surviving a restart: a task stops, "nerdgenie serve" is stopped and started again
 // on the same home, and the word "continue" picks the same task up under the
 // same number. Before this, that memory lived in the process, so after a restart
 // "continue" started a fresh task and the record's own numbering and budget were

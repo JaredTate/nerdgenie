@@ -28,7 +28,7 @@ func TestAWholeTaskCapturedAndFoundAgainAfterARestart(t *testing.T) {
 
 	for number := 1; number <= 8; number++ {
 		opened.writeEvent(t, contract.EventFileChange, contract.FileChangeBody{
-			Path: filepath.Join("/home/jared/coeus/blog", "part-"+strings.Repeat("x", number)+".md"),
+			Path: filepath.Join("/home/jared/nerdgenie/blog", "part-"+strings.Repeat("x", number)+".md"),
 		})
 	}
 	opened.writeEvent(t, contract.EventToolCall, map[string]any{

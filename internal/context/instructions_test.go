@@ -12,7 +12,7 @@ import (
 // The design file the instruction text is copied from, and the heading of the
 // section that holds it.
 const (
-	designPath    = "docs/COEUS_PLAN.md"
+	designPath    = "docs/NERDGENIE_PLAN.md"
 	designSection = "## 5. What the model is told"
 )
 

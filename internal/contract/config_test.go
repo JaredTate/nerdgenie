@@ -109,9 +109,9 @@ func TestExcludedFromSandboxNamesTheFourPathsTheDesignProtects(t *testing.T) {
 	excluded := contract.ExcludedFromSandbox(home, "")
 
 	wanted := []string{
-		filepath.Join(home, ".coeus"),
-		filepath.Join(home, ".coeus", "vault.age"),
-		filepath.Join(home, ".coeus", "browser"),
+		filepath.Join(home, ".nerdgenie"),
+		filepath.Join(home, ".nerdgenie", "vault.age"),
+		filepath.Join(home, ".nerdgenie", "browser"),
 		filepath.Join(home, ".ssh"),
 	}
 	for _, want := range wanted {
@@ -130,12 +130,12 @@ func TestCheckSandboxRootRefusesAnythingInsideAnExcludedPath(t *testing.T) {
 		refused bool
 	}{
 		{"the home folder itself is refused, because it holds the excluded paths", home, true},
-		{"the work folder is allowed", filepath.Join(home, "coeus"), false},
+		{"the work folder is allowed", filepath.Join(home, "nerdgenie"), false},
 		{"a project folder is allowed", filepath.Join(home, "Code", "coeus"), false},
-		{"the agent's own home folder is refused", filepath.Join(home, ".coeus"), true},
-		{"a folder inside the agent's home is refused", filepath.Join(home, ".coeus", "skills"), true},
-		{"the vault file is refused", filepath.Join(home, ".coeus", "vault.age"), true},
-		{"the browser profile folder is refused", filepath.Join(home, ".coeus", "browser"), true},
+		{"the agent's own home folder is refused", filepath.Join(home, ".nerdgenie"), true},
+		{"a folder inside the agent's home is refused", filepath.Join(home, ".nerdgenie", "skills"), true},
+		{"the vault file is refused", filepath.Join(home, ".nerdgenie", "vault.age"), true},
+		{"the browser profile folder is refused", filepath.Join(home, ".nerdgenie", "browser"), true},
 		{"the ssh key folder is refused", filepath.Join(home, ".ssh"), true},
 		{"a folder inside ssh is refused", filepath.Join(home, ".ssh", "keys"), true},
 		{"a relative path is refused because it cannot be checked", "work", true},
@@ -221,15 +221,15 @@ func TestTheConfigurationCarriesTheAskMeFirstListAndTheUserRules(t *testing.T) {
 func TestTheDefaultSandboxRootIsAWorkFolderAndARootMayNotHoldAnExcludedPath(t *testing.T) {
 	userHome := filepath.Join("/home", "someone")
 	roots := contract.DefaultSandboxRoots(userHome)
-	if len(roots) != 1 || roots[0] != filepath.Join(userHome, "coeus") {
-		t.Errorf("the default sandbox roots are %v, want the one work folder %s", roots, filepath.Join(userHome, "coeus"))
+	if len(roots) != 1 || roots[0] != filepath.Join(userHome, "nerdgenie") {
+		t.Errorf("the default sandbox roots are %v, want the one work folder %s", roots, filepath.Join(userHome, "nerdgenie"))
 	}
-	for _, root := range []string{userHome, "/home", "/", filepath.Join(userHome, ".coeus"), filepath.Join(userHome, ".ssh"), filepath.Join(userHome, ".coeus", "browser")} {
+	for _, root := range []string{userHome, "/home", "/", filepath.Join(userHome, ".nerdgenie"), filepath.Join(userHome, ".ssh"), filepath.Join(userHome, ".nerdgenie", "browser")} {
 		if err := contract.CheckSandboxRoot(root, userHome, ""); err == nil {
 			t.Errorf("the root %q was accepted, and it is or holds a path that must stay outside the sandbox", root)
 		}
 	}
-	for _, root := range []string{filepath.Join(userHome, "coeus"), filepath.Join(userHome, "Code"), "/srv/work"} {
+	for _, root := range []string{filepath.Join(userHome, "nerdgenie"), filepath.Join(userHome, "Code"), "/srv/work"} {
 		if err := contract.CheckSandboxRoot(root, userHome, ""); err != nil {
 			t.Errorf("the root %q was refused: %v", root, err)
 		}

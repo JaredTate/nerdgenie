@@ -132,9 +132,9 @@ func aTestedPackage(name string) map[string]string {
 func aFixtureModule() map[string]string {
 	files := map[string]string{
 		"go.mod": "module example.com/gatefixture\n\ngo 1.27\n",
-		"cmd/coeus/main.go": "package main\n\n// Run returns the exit code.\nfunc Run() int {\n\treturn 0\n}\n\n" +
+		"cmd/nerdgenie/main.go": "package main\n\n// Run returns the exit code.\nfunc Run() int {\n\treturn 0\n}\n\n" +
 			"func main() {\n\t_ = Run()\n}\n",
-		"cmd/coeus/main_test.go": "package main\n\nimport \"testing\"\n\n" +
+		"cmd/nerdgenie/main_test.go": "package main\n\nimport \"testing\"\n\n" +
 			"func TestRun(t *testing.T) {\n\tif Run() != 0 {\n\t\tt.Error(\"the exit code changed\")\n\t}\n}\n",
 		"scripts/helper/helper.go": "// Package helper is a fixture package.\npackage helper\n\n" +
 			"// Help returns advice.\nfunc Help() string {\n\treturn \"read the brief\"\n}\n",

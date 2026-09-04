@@ -27,7 +27,7 @@ const fixtureTitle = "Coeus desktop integration fixture"
 // The first check is the one that matters. These tests open a window on the
 // screen of whoever runs them and drive it through the accessibility tree, and
 // on a machine somebody is logged in to that can wake the screen reader. So they
-// run only when COEUS_LIVE_DESKTOP asks for them, which is the same gate the
+// run only when NERDGENIE_LIVE_DESKTOP asks for them, which is the same gate the
 // worker's own fixture-window suite keeps.
 func workerCommand(t *testing.T) []string {
 	t.Helper()

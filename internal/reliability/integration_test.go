@@ -23,7 +23,7 @@ import (
 // helperVariable names the database the helper process writes a reply into. The
 // helper is this same test binary, run again with the variable set, so that the
 // test can kill a real process in the middle of a real turn.
-const helperVariable = "COEUS_TEST_LEDGER_HELPER"
+const helperVariable = "NERDGENIE_TEST_LEDGER_HELPER"
 
 // helperReady is what the helper prints once the reply is in the log and it is
 // safe to kill it.
@@ -236,7 +236,7 @@ func TestADamagedDatabaseIsMovedAsideAndTheNewestBackupPutBack(t *testing.T) {
 
 func TestSomethingThatIsNotADatabaseFailsTheCheck(t *testing.T) {
 	folder := t.TempDir()
-	rubbish := filepath.Join(folder, "coeus.db")
+	rubbish := filepath.Join(folder, "nerdgenie.db")
 	writeFile(t, rubbish, "these are not the bytes you are looking for", contract.SecretFileMode)
 
 	if err := reliability.CheckDatabase(context.Background(), rubbish); err == nil {

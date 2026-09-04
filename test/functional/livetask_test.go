@@ -1,6 +1,6 @@
 //go:build live
 
-// The whole-program live test, one per real model: a real "coeus serve" is
+// The whole-program live test, one per real model: a real "nerdgenie serve" is
 // asked for one small piece of work that cannot be done without a tool, and
 // afterwards the test checks the things the model cannot author. The file is on
 // disk with the words in it, the agent's own log holds a record of the task, the
@@ -21,11 +21,11 @@ import (
 // theLiveAsk is the one small task every model is given. It needs two tools, a
 // write and a read, and its answer is a fact on disk rather than anything the
 // model can talk its way into.
-const theLiveAsk = "write the words hello coeus to a file called greeting.txt in the working folder, " +
+const theLiveAsk = "write the words hello nerdgenie to a file called greeting.txt in the working folder, " +
 	"then read it back and tell me what it says"
 
 // theWordsWanted are the words that have to be in the file afterwards.
-const theWordsWanted = "hello coeus"
+const theWordsWanted = "hello nerdgenie"
 
 // aCommandIsAnsweredWithin is how long a slash command over the socket may take.
 // A command reads the log and answers; it never calls a model.

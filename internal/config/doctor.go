@@ -24,8 +24,8 @@ const HealthProbeWait = 2 * time.Second
 // layout are there, which have a mode that lets other accounts read them,
 // whether the configuration loads, which of the outside programs Coeus uses are
 // on the PATH, and whether the local model daemon answers its health check. It
-// changes nothing at all, so it is safe to run at any time; "coeus init" and
-// "coeus doctor" both print what it found.
+// changes nothing at all, so it is safe to run at any time; "nerdgenie init" and
+// "nerdgenie doctor" both print what it found.
 func Doctor(ctx context.Context, home contract.Home) Report {
 	report := Report{Root: home.Root}
 	report.Findings = append(report.Findings, folderFindings(home)...)
@@ -46,7 +46,7 @@ func configurationFinding(home contract.Home, settings contract.Config, loading 
 	const what = "config.toml"
 	if _, err := os.Stat(home.ConfigFile()); errors.Is(err, os.ErrNotExist) {
 		return Finding{What: what, Result: Warning,
-			Detail: "is not there yet, so the built-in defaults are in use; run coeus init to write one"}
+			Detail: "is not there yet, so the built-in defaults are in use; run nerdgenie init to write one"}
 	}
 	if loading != nil {
 		return Finding{What: what, Result: Trouble, Detail: "will not load: " + loading.Error()}
@@ -116,11 +116,11 @@ func oneFolderFinding(what string, folder string) Finding {
 	about, err := os.Stat(folder)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		return Finding{What: what, Result: Trouble, Detail: "is not there, so run coeus init to make the home folder and everything in it"}
+		return Finding{What: what, Result: Trouble, Detail: "is not there, so run nerdgenie init to make the home folder and everything in it"}
 	case err != nil:
 		return Finding{What: what, Result: Trouble, Detail: fmt.Sprintf("cannot be looked at: %v", err)}
 	case !about.IsDir():
-		return Finding{What: what, Result: Trouble, Detail: "is a file where a folder belongs, so move it aside and run coeus init"}
+		return Finding{What: what, Result: Trouble, Detail: "is a file where a folder belongs, so move it aside and run nerdgenie init"}
 	case about.Mode().Perm() != contract.HomeFolderMode:
 		return Finding{What: what, Result: Trouble, Detail: fmt.Sprintf(
 			"has mode %04o, so other accounts on this machine can look inside it; run chmod 0700 on %s", about.Mode().Perm(), folder)}
@@ -131,12 +131,12 @@ func oneFolderFinding(what string, folder string) Finding {
 
 // fileFindings looks at the three files a working home has that the layout does
 // not make: the database and the two halves of the vault. A file that is not
-// there yet is a warning, because the first run and "coeus init" make them.
+// there yet is a warning, because the first run and "nerdgenie init" make them.
 func fileFindings(home contract.Home) []Finding {
 	return []Finding{
-		oneFileFinding("coeus.db", home.DatabaseFile(), contract.SecretFileMode, "the event log, the records, and the memory index live in it; the first run makes it"),
-		oneFileFinding("vault.age", home.VaultFile(), contract.SecretFileMode, "there are no secrets stored yet; coeus init makes it"),
-		oneFileFinding("vault.key", home.VaultKeyFile(), contract.SecretFileMode, "there is no key to the vault yet; coeus init makes it"),
+		oneFileFinding("nerdgenie.db", home.DatabaseFile(), contract.SecretFileMode, "the event log, the records, and the memory index live in it; the first run makes it"),
+		oneFileFinding("vault.age", home.VaultFile(), contract.SecretFileMode, "there are no secrets stored yet; nerdgenie init makes it"),
+		oneFileFinding("vault.key", home.VaultKeyFile(), contract.SecretFileMode, "there is no key to the vault yet; nerdgenie init makes it"),
 	}
 }
 
@@ -170,7 +170,7 @@ type outsideProgram struct {
 // off.
 func theOutsidePrograms() []outsideProgram {
 	return []outsideProgram{
-		{names: []string{"signal-cli"}, whatItIsFor: "talking over Signal", whenMissing: "install signal-cli and run coeus signal link"},
+		{names: []string{"signal-cli"}, whatItIsFor: "talking over Signal", whenMissing: "install signal-cli and run nerdgenie signal link"},
 		{names: []string{"bwrap"}, whatItIsFor: "the sandbox every shell command runs in", whenMissing: "install bubblewrap, or the shell tool stays switched off"},
 		{names: []string{"rg"}, whatItIsFor: "searching files", whenMissing: "install ripgrep"},
 		{names: []string{"google-chrome", "chromium"}, whatItIsFor: "the browser tools", whenMissing: "install Google Chrome or Chromium"},

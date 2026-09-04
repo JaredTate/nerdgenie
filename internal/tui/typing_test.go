@@ -11,7 +11,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// theStatusOnAttach is what cmd/coeus/serve.go sends a screen the moment it
+// theStatusOnAttach is what cmd/nerdgenie/serve.go sends a screen the moment it
 // attaches and on every heartbeat after that: the model in use, that nothing is
 // running, that the health check answered, and the command list the palette is
 // filled from. Each command name carries the leading slash, because that is how
@@ -118,7 +118,7 @@ func TestThePaletteFiltersTheCommandsTheProgramReported(t *testing.T) {
 	}
 }
 
-// typedOnATerminal drives the whole screen the way cmd/coeus does: through Run,
+// typedOnATerminal drives the whole screen the way cmd/nerdgenie does: through Run,
 // with Bubble Tea reading real bytes off a pipe and drawing to another. It gives
 // back everything that was drawn, so that a key that never reaches the input box
 // is caught at the layer the person types into rather than only at Update.

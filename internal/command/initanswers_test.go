@@ -42,15 +42,15 @@ func TestInitTakesTheModelNameFromTheServerThatAnswered(t *testing.T) {
 		LMStudioAddress: runningLMStudio(t, "qwen3-27b-uncensored"),
 	}, []string{"--yes"})
 	if err != nil {
-		t.Fatalf("coeus init --yes failed with only LM Studio answering: %v", err)
+		t.Fatalf("nerdgenie init --yes failed with only LM Studio answering: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	if settings.DefaultModel != command.LMStudioAlias {
-		t.Fatalf("coeus init chose %q rather than the LM Studio server that answered", settings.DefaultModel)
+		t.Fatalf("nerdgenie init chose %q rather than the LM Studio server that answered", settings.DefaultModel)
 	}
 	if settings.Models[0].ModelName != "qwen3-27b-uncensored" {
 		t.Errorf("the configuration names the model %q rather than the one the server said it had loaded", settings.Models[0].ModelName)
@@ -69,22 +69,22 @@ func TestInitAsksAgainWhenAnAnswerWillNotDo(t *testing.T) {
 
 	answers := userHome + "\n~/work\nbanana\n1\nmaybe\nyes\n"
 	if err := command.Init(context.Background(), setupWithADaemon(t, home, answers, written), nil); err != nil {
-		t.Fatalf("coeus init failed after answers it had to ask about again: %v", err)
+		t.Fatalf("nerdgenie init failed after answers it had to ask about again: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	wanted := filepath.Join(userHome, "work")
 	if len(settings.SandboxRoots) != 1 || settings.SandboxRoots[0] != wanted {
 		t.Errorf("the sandbox roots came out %v rather than the folder given on the second try", settings.SandboxRoots)
 	}
 	if !strings.Contains(written.String(), "type a number") {
-		t.Errorf("coeus init did not say what was wrong with the answer to the menu:\n%s", written)
+		t.Errorf("nerdgenie init did not say what was wrong with the answer to the menu:\n%s", written)
 	}
 	if !strings.Contains(written.String(), "answer yes or no") {
-		t.Errorf("coeus init did not say what was wrong with the answer about Signal:\n%s", written)
+		t.Errorf("nerdgenie init did not say what was wrong with the answer about Signal:\n%s", written)
 	}
 }
 
@@ -94,7 +94,7 @@ func TestInitSaysWhenTheAnswersRunOut(t *testing.T) {
 
 	err := command.Init(context.Background(), setupWithADaemon(t, home, "\n", &strings.Builder{}), nil)
 	if err == nil {
-		t.Fatalf("coeus init carried on after the answers ran out")
+		t.Fatalf("nerdgenie init carried on after the answers ran out")
 	}
 	if !strings.Contains(err.Error(), "ran out") {
 		t.Errorf("the refusal does not say that the answers ran out: %v", err)
@@ -107,7 +107,7 @@ func TestInitGivesUpOnAMenuNobodyAnswersProperly(t *testing.T) {
 
 	err := command.Init(context.Background(), setupWithADaemon(t, home, "\nbanana\npear\nplum\n", &strings.Builder{}), nil)
 	if err == nil {
-		t.Fatalf("coeus init carried on after three answers that were not numbers")
+		t.Fatalf("nerdgenie init carried on after three answers that were not numbers")
 	}
 	if !strings.Contains(err.Error(), "no configuration was written") {
 		t.Errorf("the refusal does not say what was and was not set up: %v", err)
@@ -125,7 +125,7 @@ func TestInitGivesUpOnAFolderNobodyNamesProperly(t *testing.T) {
 	answers := strings.Repeat(userHome+"\n", maxAnswersInATest)
 	err = command.Init(context.Background(), setupWithADaemon(t, home, answers, &strings.Builder{}), nil)
 	if err == nil {
-		t.Fatalf("coeus init took the whole home directory after being told three times that it could not")
+		t.Fatalf("nerdgenie init took the whole home directory after being told three times that it could not")
 	}
 	if !strings.Contains(err.Error(), "no configuration was written") {
 		t.Errorf("the refusal does not say what was and was not set up: %v", err)
@@ -154,10 +154,10 @@ func TestInitGivesUpWhenNoAnswerArrivesAtAll(t *testing.T) {
 		LMStudioAddress: nothingListening(t),
 	}, nil)
 	if err == nil {
-		t.Fatalf("coeus init waited for ever for an answer that was never going to come")
+		t.Fatalf("nerdgenie init waited for ever for an answer that was never going to come")
 	}
-	if !strings.Contains(err.Error(), "coeus init again") {
-		t.Errorf("the refusal does not say to run coeus init again: %v", err)
+	if !strings.Contains(err.Error(), "nerdgenie init again") {
+		t.Errorf("the refusal does not say to run nerdgenie init again: %v", err)
 	}
 }
 
@@ -177,7 +177,7 @@ func TestInitAsksForAnAPIKeyThroughTheMaskedPrompt(t *testing.T) {
 		},
 	}, []string{"--model", command.AnthropicAlias, "--yes"})
 	if err != nil {
-		t.Fatalf("coeus init with a key at the masked prompt failed: %v", err)
+		t.Fatalf("nerdgenie init with a key at the masked prompt failed: %v", err)
 	}
 	if !strings.Contains(asked, "not shown") {
 		t.Errorf("the prompt does not say that the key is not shown as it is typed: %q", asked)
@@ -227,7 +227,7 @@ func TestInitRefusesToSetUpAModelWithNoKeyToReachItWith(t *testing.T) {
 
 			err := command.Init(context.Background(), setup, one.arguments)
 			if err == nil {
-				t.Fatalf("coeus init set a model up with %s", one.what)
+				t.Fatalf("nerdgenie init set a model up with %s", one.what)
 			}
 			if !strings.Contains(err.Error(), one.says) {
 				t.Errorf("the refusal does not say %q: %v", one.says, err)
@@ -247,7 +247,7 @@ func TestInitRefusesAModelNameItDoesNotKnow(t *testing.T) {
 		LMStudioAddress: nothingListening(t),
 	}, []string{"--model", "nothing-like-this", "--yes"})
 	if err == nil {
-		t.Fatalf("coeus init took a model name it does not know")
+		t.Fatalf("nerdgenie init took a model name it does not know")
 	}
 	if !strings.Contains(err.Error(), contract.LocalModelAlias) {
 		t.Errorf("the refusal does not list the names it does know: %v", err)
@@ -265,12 +265,12 @@ func TestInitRefusesAWorkFolderListWithNothingInIt(t *testing.T) {
 		LMStudioAddress: nothingListening(t),
 	}, []string{"--model", "local", "--work-folder", " , ", "--yes"})
 	if err != nil {
-		t.Fatalf("coeus init failed on a work-folder list of nothing but commas: %v", err)
+		t.Fatalf("nerdgenie init failed on a work-folder list of nothing but commas: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	userHome, err := os.UserHomeDir()
 	if err != nil {
@@ -292,7 +292,7 @@ func TestInitRefusesASignalAnswerThatIsNeitherOnNorOff(t *testing.T) {
 		LMStudioAddress: nothingListening(t),
 	}, []string{"--signal", "maybe"})
 	if err == nil {
-		t.Fatalf("coeus init took a signal answer that is neither on nor off")
+		t.Fatalf("nerdgenie init took a signal answer that is neither on nor off")
 	}
 	if !strings.Contains(err.Error(), "--signal on") {
 		t.Errorf("the refusal does not say what to write instead: %v", err)
@@ -301,6 +301,6 @@ func TestInitRefusesASignalAnswerThatIsNeitherOnNorOff(t *testing.T) {
 
 func TestInitNeedsSomewhereToPrint(t *testing.T) {
 	if err := command.Init(context.Background(), command.Setup{Home: emptyHome(t)}, nil); err == nil {
-		t.Fatalf("coeus init ran with nowhere to print its questions")
+		t.Fatalf("nerdgenie init ran with nowhere to print its questions")
 	}
 }

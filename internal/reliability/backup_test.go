@@ -62,7 +62,7 @@ func readFile(t *testing.T, path string) string {
 // what a restore is meant to be run into.
 func anEmptyHome(t *testing.T) contract.Home {
 	t.Helper()
-	home := contract.NewHome(filepath.Join(t.TempDir(), ".coeus"))
+	home := contract.NewHome(filepath.Join(t.TempDir(), ".nerdgenie"))
 	for _, folder := range home.Folders() {
 		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
 			t.Fatalf("making %s failed: %v", folder, err)

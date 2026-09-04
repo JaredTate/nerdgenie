@@ -1,4 +1,4 @@
-// This file was written by "coeus replay 1 --as-test". It replays the
+// This file was written by "nerdgenie replay 1 --as-test". It replays the
 // recording that sits beside it against the code as it stands now, and fails
 // when the run no longer ends where it ended when it was recorded.
 //

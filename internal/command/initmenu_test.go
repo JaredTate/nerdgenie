@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// theModelMenu is the part of what "coeus init" printed that runs from the
+// theModelMenu is the part of what "nerdgenie init" printed that runs from the
 // question above the menu down to the prompt under it, with the two addresses
 // that change from run to run put back to fixed words, so that the menu itself
 // can be a golden file.
@@ -21,7 +21,7 @@ func theModelMenu(t *testing.T, printed string, daemon string, lmStudio string) 
 	const question = "Which model should Coeus use?"
 	begins := strings.Index(printed, question)
 	if begins < 0 {
-		t.Fatalf("coeus init never printed the model menu:\n%s", printed)
+		t.Fatalf("nerdgenie init never printed the model menu:\n%s", printed)
 	}
 	ends := strings.Index(printed[begins:], "Type the number")
 	if ends < 0 {
@@ -59,7 +59,7 @@ func TestTheModelMenuIsInTheOrderTheDesignAsksFor(t *testing.T) {
 		LMStudioAddress: lmStudio,
 	}, nil)
 	if err != nil {
-		t.Fatalf("coeus init failed with every model answering: %v", err)
+		t.Fatalf("nerdgenie init failed with every model answering: %v", err)
 	}
 
 	testkit.Golden(t, "model-menu.golden", theModelMenu(t, written.String(), daemon, lmStudio))
@@ -76,15 +76,15 @@ func TestInitWithYesTakesTheLocalDaemonWhenEveryModelAnswers(t *testing.T) {
 		LMStudioAddress: lmStudio,
 	}, []string{"--yes"})
 	if err != nil {
-		t.Fatalf("coeus init --yes failed with every model answering: %v", err)
+		t.Fatalf("nerdgenie init --yes failed with every model answering: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	if settings.DefaultModel != contract.LocalModelAlias {
-		t.Errorf("coeus init --yes chose %q, and the local daemon is first in the order and was answering", settings.DefaultModel)
+		t.Errorf("nerdgenie init --yes chose %q, and the local daemon is first in the order and was answering", settings.DefaultModel)
 	}
 }
 
@@ -104,19 +104,19 @@ func TestInitOffersTheLocalModelAndSaysWhatWasNotFoundWhenNothingIsRunning(t *te
 		LMStudioAddress: nothingListening(t),
 	}, nil)
 	if err != nil {
-		t.Fatalf("coeus init dead-ended a machine with nothing running on it: %v", err)
+		t.Fatalf("nerdgenie init dead-ended a machine with nothing running on it: %v", err)
 	}
 
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	if settings.DefaultModel != contract.LocalModelAlias {
 		t.Errorf("the configuration names %q rather than the local model the last line of the menu offered", settings.DefaultModel)
 	}
 	for _, wanted := range []string{"was not found on this machine", "start it later"} {
 		if !strings.Contains(written.String(), wanted) {
-			t.Errorf("coeus init does not print %q above its menu:\n%s", wanted, written)
+			t.Errorf("nerdgenie init does not print %q above its menu:\n%s", wanted, written)
 		}
 	}
 
@@ -146,7 +146,7 @@ func TestInitGoesBackToTheMenuWhenNoKeyIsTypedAtThePrompt(t *testing.T) {
 		},
 	}, nil)
 	if err != nil {
-		t.Fatalf("coeus init gave up when the key prompt was left empty: %v", err)
+		t.Fatalf("nerdgenie init gave up when the key prompt was left empty: %v", err)
 	}
 
 	if asked != 1 {
@@ -154,22 +154,22 @@ func TestInitGoesBackToTheMenuWhenNoKeyIsTypedAtThePrompt(t *testing.T) {
 	}
 	settings, err := config.Load(home)
 	if err != nil {
-		t.Fatalf("the configuration coeus init wrote will not load: %v", err)
+		t.Fatalf("the configuration nerdgenie init wrote will not load: %v", err)
 	}
 	if settings.DefaultModel != contract.LocalModelAlias {
 		t.Errorf("the configuration names %q rather than the model picked on the second time through the menu", settings.DefaultModel)
 	}
 	if !strings.Contains(written.String(), "menu again") {
-		t.Errorf("coeus init does not say that it is showing the menu again:\n%s", written)
+		t.Errorf("nerdgenie init does not say that it is showing the menu again:\n%s", written)
 	}
 }
 
-// readTheConfiguration reads back the config.toml that "coeus init" wrote.
+// readTheConfiguration reads back the config.toml that "nerdgenie init" wrote.
 func readTheConfiguration(t *testing.T, home contract.Home) string {
 	t.Helper()
 	written, err := os.ReadFile(home.ConfigFile())
 	if err != nil {
-		t.Fatalf("reading the configuration coeus init wrote failed: %v", err)
+		t.Fatalf("reading the configuration nerdgenie init wrote failed: %v", err)
 	}
 	return string(written)
 }

@@ -5,7 +5,7 @@
 #
 # The default threshold is ninety percent. internal/tui is seventy, because the
 # terminal screen is tested by a person looking at it, which docs/WORK_PLAN.md
-# Part 1 says under "Definition of done". cmd/coeus is measured and printed but
+# Part 1 says under "Definition of done". cmd/nerdgenie is measured and printed but
 # never gated: it is the wiring the orchestrator owns, and a subcommand table is
 # proved by the functional suite rather than by unit tests.
 #
@@ -25,7 +25,7 @@ roots=(./internal/... ./scripts/... ./cmd/...)
 # packages are measured without the integration tag below. Should that ever
 # change, ask for the browser with no window, so that running the gate cannot put
 # a window on the screen of whoever is running it: internal/browser reads
-# COEUS_HEADLESS_TESTS and `make test-browser` sets it.
+# NERDGENIE_HEADLESS_TESTS and `make test-browser` sets it.
 
 # The packages that must be measured. Every one of them gets a row below, and a
 # package with no row fails the gate.
@@ -112,7 +112,7 @@ for package in $packages; do
 
 	verdict="ok"
 	case "$package" in
-	*/cmd/coeus)
+	*/cmd/nerdgenie)
 		verdict="not gated"
 		;;
 	*)

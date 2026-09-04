@@ -133,7 +133,7 @@ func TestTheWorkerIsHandedTheDisplayAndNothingSecret(t *testing.T) {
 }
 
 // A test run must not put a Chrome window on the screen of whoever is running
-// it, so `make test-browser` sets COEUS_HEADLESS_TESTS and the worker is asked
+// it, so `make test-browser` sets NERDGENIE_HEADLESS_TESTS and the worker is asked
 // for a browser with no window. Nothing else sets that name, so an ordinary run
 // still opens the visible window design section 11 asks for: a logged-in account
 // is only safe in a window the user can see.

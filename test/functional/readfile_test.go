@@ -1,4 +1,4 @@
-// The whole-program test that proves the turn loop is really wired into "coeus
+// The whole-program test that proves the turn loop is really wired into "nerdgenie
 // serve": the scripted model asks for the read tool, the agent runs it against a
 // file in the folder it is allowed to work in, and the reply that comes back
 // over the socket carries what the file says.

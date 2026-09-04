@@ -10,7 +10,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/tui"
 )
 
-// tuiSubcommand opens the terminal screen. It is what the bare "coeus" command
+// tuiSubcommand opens the terminal screen. It is what the bare "nerdgenie" command
 // runs, and it never waits on the running program: the first frame appears at
 // once, and the status strip says whether the link is up and keeps trying when
 // it is not, so that a person who starts the screen before the program never
@@ -25,13 +25,13 @@ var tuiSubcommand = subcommand{
 // and turns whatever went wrong into one plain line and an exit code.
 func runTerminalScreen(arguments []string, output io.Writer, problems io.Writer) int {
 	if len(arguments) > 0 {
-		fmt.Fprintf(problems, "coeus tui takes no arguments, and it was given %q. Run \"coeus help\" for the list.\n", arguments[0])
+		fmt.Fprintf(problems, "nerdgenie tui takes no arguments, and it was given %q. Run \"nerdgenie help\" for the list.\n", arguments[0])
 		return contract.ExitUsage
 	}
 
 	home, err := config.HomeFolder()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus tui: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie tui: %v\n", err)
 		return contract.ExitBadConfiguration
 	}
 
@@ -42,7 +42,7 @@ func runTerminalScreen(arguments []string, output io.Writer, problems io.Writer)
 		Input:       os.Stdin,
 	})
 	if err != nil {
-		fmt.Fprintf(problems, "coeus tui: the screen stopped: %v\n", err)
+		fmt.Fprintf(problems, "nerdgenie tui: the screen stopped: %v\n", err)
 		return contract.ExitFailure
 	}
 	return contract.ExitOK

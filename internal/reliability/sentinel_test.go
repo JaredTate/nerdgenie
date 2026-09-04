@@ -124,11 +124,11 @@ func TestTheRecoveryNeedsAClockToNameTheFileItMovesAside(t *testing.T) {
 
 func TestACorruptDatabaseIsMovedAsideWithTheTimeInItsName(t *testing.T) {
 	folder := t.TempDir()
-	path := filepath.Join(folder, "coeus.db")
+	path := filepath.Join(folder, "nerdgenie.db")
 	for name, written := range map[string]string{
-		"coeus.db":     "not a database at all",
-		"coeus.db-wal": "the write-ahead file",
-		"coeus.db-shm": "the shared memory file",
+		"nerdgenie.db":     "not a database at all",
+		"nerdgenie.db-wal": "the write-ahead file",
+		"nerdgenie.db-shm": "the shared memory file",
 	} {
 		if err := os.WriteFile(filepath.Join(folder, name), []byte(written), contract.SecretFileMode); err != nil {
 			t.Fatalf("writing %s failed: %v", name, err)
@@ -160,7 +160,7 @@ func TestACorruptDatabaseIsMovedAsideWithTheTimeInItsName(t *testing.T) {
 }
 
 func TestMovingADatabaseThatIsNotThereSaysSo(t *testing.T) {
-	_, err := reliability.MoveDatabaseAside(filepath.Join(t.TempDir(), "coeus.db"), time.Now())
+	_, err := reliability.MoveDatabaseAside(filepath.Join(t.TempDir(), "nerdgenie.db"), time.Now())
 
 	if err == nil {
 		t.Errorf("moving a database that is not there was called a success")

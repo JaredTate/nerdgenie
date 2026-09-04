@@ -15,7 +15,7 @@ import (
 // behind the log's back.
 func aLogWithOneGoodEvent(t *testing.T) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 	opened, err := Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("opening a new log failed: %v", err)

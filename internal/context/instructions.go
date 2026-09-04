@@ -26,7 +26,7 @@ const MaxInstructionWords = 500
 
 // InstructionText is what the model is told about the harness it runs inside,
 // and it is the first thing in every prompt, before the persona and before the
-// tools. It is section 5 of docs/COEUS_PLAN.md, word for word: the design is the
+// tools. It is section 5 of docs/NERDGENIE_PLAN.md, word for word: the design is the
 // intent and this constant only carries it, so when the design's text changes
 // this changes with it. A test compares the two on every run.
 const InstructionText = "" +

@@ -1,8 +1,8 @@
 # Final review of `docs/WORK_PLAN.md` (version 2) before hand-off
 
-Reviewer stance: last reviewer, adversarial, read-only. Read in full: `docs/WORK_PLAN.md` at commit `2097ee2`, `docs/COEUS_PLAN.md`, `CLAUDE.md`, `ARCHITECTURE.md`, and the previous review `docs/research/work-plan-review.md`.
+Reviewer stance: last reviewer, adversarial, read-only. Read in full: `docs/WORK_PLAN.md` at commit `2097ee2`, `docs/NERDGENIE_PLAN.md`, `CLAUDE.md`, `ARCHITECTURE.md`, and the previous review `docs/research/work-plan-review.md`.
 
-Line references: **WP** = `WORK_PLAN.md` line, **CL** = `CLAUDE.md` line, **AR** = `ARCHITECTURE.md` line, **CP** = `COEUS_PLAN.md` section.
+Line references: **WP** = `WORK_PLAN.md` line, **CL** = `CLAUDE.md` line, **AR** = `ARCHITECTURE.md` line, **CP** = `NERDGENIE_PLAN.md` section.
 
 Checked on disk (Mac clones under `/Users/jt/Code`, the same repos the dev machine holds under `/home/jared/Code`):
 
@@ -46,7 +46,7 @@ WP L65: "the same functional tests run against **two** real models. One is Opus 
 
 ### 3. Easy install: one command, prerequisites named, clean machine, tested — **FAIL**
 
-What is there (WP L234): a shell script under 200 lines, checks the distribution, installs bwrap, ripgrep, signal-cli, tells the user about Chrome, downloads the release binary, verifies the checksum, links `current`, runs `coeus init`; tested on clean Ubuntu and Debian containers in CI ending with a passing `doctor`. Good shape. What stops it:
+What is there (WP L234): a shell script under 200 lines, checks the distribution, installs bwrap, ripgrep, signal-cli, tells the user about Chrome, downloads the release binary, verifies the checksum, links `current`, runs `nerdgenie init`; tested on clean Ubuntu and Debian containers in CI ending with a passing `doctor`. Good shape. What stops it:
 
 - **No release exists when the test runs.** The installer "downloads the release binary for the architecture" in wave 3; no brief in any wave produces a release artifact or names where it is published (7.3's "release manifest" is also unsourced; 7.5 "the release" never says publish). The CI test cannot download anything. Fix: add `make release` (binary plus checksum plus manifest, to GitHub Releases) to 0.1 or 3.5, and give the installer a `--from <path>` flag the CI test uses.
 - **`init` is interactive; the container test is not.** 3.4 says `init` "asks at most six questions." The CI test needs a non-interactive path (flags or environment) that no brief provides.
@@ -55,7 +55,7 @@ What is there (WP L234): a shell script under 200 lines, checks the distribution
 
 ### 4. Onboarding: first-run flow creates everything, few questions, links Signal, pairs a phone, tested — **FAIL**
 
-`coeus init` (WP L232) creates the home, persona files, model menu, masked key, runs `doctor`, prints next steps, six questions, two minutes, and is tested on an empty home and an existing home. That half passes. The other half does not: `init` never links Signal or pairs a phone. Linking is a separate command in 4.2 (`coeus signal link`), and 4.4 updates `init` only to move the key into the vault. Pairing (4.3) has no user-side confirmation at all: the brief stores approved ids but never says how an id becomes approved (a `/pair <code>` command? a prompt in the terminal?), and its test list ("every pairing rule") does not include the round trip. The wave-4 human trial (WP L250) is the only place the three steps are joined, by a person.
+`nerdgenie init` (WP L232) creates the home, persona files, model menu, masked key, runs `doctor`, prints next steps, six questions, two minutes, and is tested on an empty home and an existing home. That half passes. The other half does not: `init` never links Signal or pairs a phone. Linking is a separate command in 4.2 (`nerdgenie signal link`), and 4.4 updates `init` only to move the key into the vault. Pairing (4.3) has no user-side confirmation at all: the brief stores approved ids but never says how an id becomes approved (a `/pair <code>` command? a prompt in the terminal?), and its test list ("every pairing rule") does not include the round trip. The wave-4 human trial (WP L250) is the only place the three steps are joined, by a person.
 
 **Fix:** 4.2 adds "`init` offers Signal linking as its last step when signal-cli is present"; 4.3 adds a terminal-only `/pair <code>` command with a test that a code sent from the fake signal-cli, then typed in the terminal, produces an approved id and a first reply.
 
@@ -64,7 +64,7 @@ What is there (WP L234): a shell script under 200 lines, checks the distribution
 WP L290 is the strongest brief in the plan: manifest, checksum, `releases/<version>/`, keep three, switch the symlink, restart, `/readyz` within sixty seconds, switch back on failure; forward-only numbered migrations in a transaction after a backup; three tests including "an update over a live install preserves every task, memory, and skill." Two holes:
 
 - **Rollback after a migration leaves a broken install.** The brief runs migrations, restarts, and switches back on readiness failure. It also says "an older binary refuses a newer schema." So a failed update that already migrated rolls the symlink back to a binary that refuses to start. Fix: order the update as download, switch, readiness check, then migrate; or restore the pre-migration backup as part of rollback. Add the test "rollback after a migration leaves a working install."
-- **The browser worker is not updated.** `coeus update` downloads "the binary." The TypeScript worker and its `node_modules` are part of the product from wave 6 and have no update path (same gap as item 3).
+- **The browser worker is not updated.** `nerdgenie update` downloads "the binary." The TypeScript worker and its `node_modules` are part of the product from wave 6 and have no update path (same gap as item 3).
 
 ### 6. Every wave: all tests run and pass, ARCHITECTURE.md and REPO_MAP.md updated, orchestrator checks — **FAIL** on "all tests"
 
@@ -118,7 +118,7 @@ Code, comments, errors, and logs: rule 5 (WP L45), CL L20, enforced by the style
 
 Mismatches found:
 
-1. **The import rule is stated backwards.** WP L154 and AR L22: "Packages import only downward in this list." In both lists `internal/contract` (no dependencies) is at the top and `internal/replay` (imports nearly everything) is near the bottom, so "downward" would let `contract` import everything and `replay` import nothing. The list is in build order; the rule must read "a package imports only packages listed **above** it." And `cmd/coeus`, which imports everything, sits at the **top** of Part 2 (WP L117), above `internal/`, contradicting either reading. Move it to the bottom.
+1. **The import rule is stated backwards.** WP L154 and AR L22: "Packages import only downward in this list." In both lists `internal/contract` (no dependencies) is at the top and `internal/replay` (imports nearly everything) is near the bottom, so "downward" would let `contract` import everything and `replay` import nothing. The list is in build order; the rule must read "a package imports only packages listed **above** it." And `cmd/nerdgenie`, which imports everything, sits at the **top** of Part 2 (WP L117), above `internal/`, contradicting either reading. Move it to the bottom.
 2. `internal/lint`: Part 2 lists it last (WP L145, after `replay`) though it is wave 1; AR L31 lists it after `config`. AR L31 also says "used only in tests" while WP L204 says "wired into `make check`" (a command). Pick one.
 3. **The Signal channel's package.** AR L43 says `internal/signal` holds "the signal-cli client, linking, pairing, and the Signal channel." WP L244 puts the channel at `internal/channel/signal`. AR L40's `internal/channel` row does not mention it.
 4. Part 2 omits every sub-package the briefs name (`tool/file`, `tool/shell`, the five `tool/*` folders, `signal/pairing`, `channel/signal`, `memory/capture`, `skill/learn`, `skill/browser`, `browser/login`, `browser/handoff`), so the "import only ..." rule cannot be applied to them. AR folds them into parent rows but AR L47 puts `internal/skill` in wave 5 while `skill/browser` is wave 6.
@@ -155,11 +155,11 @@ No third channel appears anywhere; LM Studio (3.4) is a model server, not a chan
 | Task budget of rounds, tokens, minutes; header line | CP §3 rule 3, §4 header | rounds 2.2; minutes 4.5; **tokens and the header: no brief** | none | none | FAIL |
 | Read a past result by id | CP §4, §7 | **no brief** (2.3 is file-only) | none | forty-step assertion three assumes it | FAIL |
 
-### 16. Every worker told to read ARCHITECTURE.md, REPO_MAP.md, COEUS_PLAN.md — **FAIL**
+### 16. Every worker told to read ARCHITECTURE.md, REPO_MAP.md, NERDGENIE_PLAN.md — **FAIL**
 
-Only the orchestrator is told: WP L9 "Read this whole plan, then `CLAUDE.md`, `ARCHITECTURE.md`, and `docs/COEUS_PLAN.md`." For workers there are only claims: WP L31 "Three files ... are context for every worker," AR L3 "It is read by every worker before starting a brief," CL L5 to L10 the reading order. The brief template (WP L86) lists package, job, interface, references, tests, and done, and no reading line. A sub-agent launched with a brief as its prompt gets `CLAUDE.md` only if the harness injects it, which the plan cannot rely on and never checks.
+Only the orchestrator is told: WP L9 "Read this whole plan, then `CLAUDE.md`, `ARCHITECTURE.md`, and `docs/NERDGENIE_PLAN.md`." For workers there are only claims: WP L31 "Three files ... are context for every worker," AR L3 "It is read by every worker before starting a brief," CL L5 to L10 the reading order. The brief template (WP L86) lists package, job, interface, references, tests, and done, and no reading line. A sub-agent launched with a brief as its prompt gets `CLAUDE.md` only if the harness injects it, which the plan cannot rely on and never checks.
 
-**Fix:** WP L86: "Every brief begins with the same first line: *Before anything else, read `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md`, and `docs/COEUS_PLAN.md`, in that order, then this brief.*" and WP L88: the worker's report states it did.
+**Fix:** WP L86: "Every brief begins with the same first line: *Before anything else, read `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md`, and `docs/NERDGENIE_PLAN.md`, in that order, then this brief.*" and WP L88: the worker's report states it did.
 
 ### 17. Dependency order: no brief imports a same-wave or later package — **FAIL**
 
@@ -169,10 +169,10 @@ Only the orchestrator is told: WP L9 "Read this whole plan, then `CLAUDE.md`, `A
 | 1 | 1.1 | the loop, context builder, review (wave 2) for the replayer ("re-runs it against the current code," L81) and for the fixture's forty rounds and done-check | Later-wave dependency |
 | 2 | 2.5 `skill`, `schedule` thin tools | "over the `contract` interfaces" (L220) | `contract` (L158 to L170) has no `Skill` or `Schedule` interface, and testkit has no fake for either |
 | 3 | 3.2 shell | `internal/sandbox` (3.1, same wave); the vault's sudo entry (4.4, later wave) | Same-wave and later-wave |
-| 3 | 3.4 and 3.5 | both write into `cmd/coeus` (3.4: "the `init` subcommand in `cmd/coeus`"; 3.5: "Package `cmd/coeus`") | Two workers own one package, against WP L27 |
+| 3 | 3.4 and 3.5 | both write into `cmd/nerdgenie` (3.4: "the `init` subcommand in `cmd/nerdgenie`"; 3.5: "Package `cmd/nerdgenie`") | Two workers own one package, against WP L27 |
 | 3 | 3.5 `serve` | the queue and socket (3.3) and the command table (3.4) | Same-wave |
 | 4 | 4.3 Signal channel | the signal-cli client (4.2, same wave) | Same-wave (previous finding 58, unchanged) |
-| 4 | 4.2, 4.4, 4.5 | all add subcommands to `cmd/coeus` (`signal link`, the `init` change, `backup`, `restore`) | Three workers in one package |
+| 4 | 4.2, 4.4, 4.5 | all add subcommands to `cmd/nerdgenie` (`signal link`, the `init` change, `backup`, `restore`) | Three workers in one package |
 | 4 | 4.4 redaction "on every reply, log line, and tool result" | must be called from `log` (1), `tool` (2), `channel` (3) | Upward import; `contract` has no `Redactor` |
 | 4 | 4.5 "nightly" backup | a scheduler (7.1) or a systemd timer nobody names | Later-wave or unowned |
 | 5 | 5.4 learn | the folder format and saver in 5.3 (same wave) | Same-wave (previous finding 59) |
@@ -180,11 +180,11 @@ Only the orchestrator is told: WP L9 "Read this whole plan, then `CLAUDE.md`, `A
 | 6 | 6.3 login, handoff | the worker lifecycle in 6.2 (same wave) to reach `login-fill` | Same-wave |
 | 6 | 6.4 browser skills | 6.2 for replay "through the cascade" | Same-wave |
 | 7 | 7.4 nightly job | `internal/schedule` (7.1, same wave) | Same-wave (previous finding 61) |
-| 7 | 7.1 "the `schedule` tool from wave 2 now talks to this package"; 7.3 `update` in `cmd/coeus` | a wave-2 tool importing a wave-7 package unless a `contract.Schedule` interface exists; `cmd/coeus` touched again | Upward |
+| 7 | 7.1 "the `schedule` tool from wave 2 now talks to this package"; 7.3 `update` in `cmd/nerdgenie` | a wave-2 tool importing a wave-7 package unless a `contract.Schedule` interface exists; `cmd/nerdgenie` touched again | Upward |
 
 Part 6 (L335) says this blocker is fixed; it is fixed for wave 2 and reopened in wave 1.
 
-**Fix:** move `internal/testkit` (or at least clock, home, golden, fake provider server, the fixture data) into wave 0; add `Skill`, `Schedule`, `Sandbox`, `PasswordSource`, `Redactor`, and `BrowserWorker` to `contract` with fakes in testkit; make `cmd/coeus` orchestrator-owned with a subcommand registration table so each brief adds one file; state that 3.5, 5.5, 6.5, 7.5 start after their neighbors merge; 4.3, 5.4, 6.3, 6.4 code against the `contract` interface or the fake over the wire.
+**Fix:** move `internal/testkit` (or at least clock, home, golden, fake provider server, the fixture data) into wave 0; add `Skill`, `Schedule`, `Sandbox`, `PasswordSource`, `Redactor`, and `BrowserWorker` to `contract` with fakes in testkit; make `cmd/nerdgenie` orchestrator-owned with a subcommand registration table so each brief adds one file; state that 3.5, 5.5, 6.5, 7.5 start after their neighbors merge; 4.3, 5.4, 6.3, 6.4 code against the `contract` interface or the fake over the wire.
 
 ### 18. Reference paths — **PASS**
 
@@ -201,7 +201,7 @@ Spot-checked against the Part 5 table (`/home/jared/Code/<repo>` at commit) and 
 9. `~/Code/openclaw/extensions/browser/src/browser/pw-session-cdp-transport.ts` (6.1) yes
 10. `~/Code/hermes-agent/cron/lifecycle_guard.py` (7.1) yes
 
-Paths outside the table: `docs/reference/codex/`, `docs/reference/browser-use/`, `docs/reference/moltis/` (all present, all in Part 5), `docs/research/16-browser-agent-spec.md` (present). No brief names a path outside the repos or `docs/reference`. Nits: WP L11 writes `COEUS_PLAN.md` and `HARNESS_V2.md` without the `docs/` prefix; the HomeRecon row pins no commit; `~/Code/openclaw/extensions/cua-computer/` (7.2) is not among the purposes listed in the OpenClaw row.
+Paths outside the table: `docs/reference/codex/`, `docs/reference/browser-use/`, `docs/reference/moltis/` (all present, all in Part 5), `docs/research/16-browser-agent-spec.md` (present). No brief names a path outside the repos or `docs/reference`. Nits: WP L11 writes `NERDGENIE_PLAN.md` and `HARNESS_V2.md` without the `docs/` prefix; the HomeRecon row pins no commit; `~/Code/openclaw/extensions/cua-computer/` (7.2) is not among the purposes listed in the OpenClaw row.
 
 ### 19. Anything else that stops a signature
 
@@ -243,7 +243,7 @@ Rules the plan breaks itself:
 
 Security (the plan builds a sandbox, then leaves a door):
 
-25. 2.3: `write` and `edit` roots "never include the vault, the browser profile, or `~/.ssh`" but say nothing about `~/.coeus` itself. The model can `write` an executable into `~/.coeus/tools/`, and 2.3's registry loads "any executable in `~/.coeus/tools/`" with whatever permission class the file declares. Exclude `~/.coeus` from the roots and require user tools to be installed by the user, not the model.
+25. 2.3: `write` and `edit` roots "never include the vault, the browser profile, or `~/.ssh`" but say nothing about `~/.nerdgenie` itself. The model can `write` an executable into `~/.nerdgenie/tools/`, and 2.3's registry loads "any executable in `~/.nerdgenie/tools/`" with whatever permission class the file declares. Exclude `~/.nerdgenie` from the roots and require user tools to be installed by the user, not the model.
 26. The security review (7.5) is a single pass at the end; there is no threat-model document and no gate at waves 3 and 4, so sandbox, vault, sudo, and pairing bugs ship through two human trials before anyone looks. Previous blocker 136 asked for `docs/SECURITY.md` and per-wave checks.
 
 ---
@@ -261,14 +261,14 @@ Security (the plan builds a sandbox, then leaves a door):
 | 16 | `task`, `skill`, `schedule` tools never built | Brief 2.5 | **Gap** | Tools exist (L220); the `contract` interfaces they are "thin tools over" do not (item 17) |
 | 18 | No search provider | SearXNG in 2.5 | **Gap** | Chosen (L220); not installed or listed as a prerequisite (item 3), so a fresh install cannot search |
 | 24 | No login-wall or captcha detector | Brief 6.1 | Fixed | L270 wall detector with fixtures |
-| 34 | `write` and `edit` not path-limited | Brief 2.3 | Fixed | L216; but the roots must also exclude `~/.coeus` (item 19 #25) |
+| 34 | `write` and `edit` not path-limited | Brief 2.3 | Fixed | L216; but the roots must also exclude `~/.nerdgenie` (item 19 #25) |
 | 36 | No nightly backup or restore | Brief 4.5 | **Gap (minor)** | L248 has `backup`, `restore`, round-trip test; "nightly" has no trigger before wave 7 and the backup key is unnamed |
-| 43 | No Signal QR linking | Brief 4.2 | Fixed | L242 `coeus signal link` with QR and a test against the fake |
+| 43 | No Signal QR linking | Brief 4.2 | Fixed | L242 `nerdgenie signal link` with QR and a test against the fake |
 | 47 | No installer, no prerequisites | Brief 3.5 | **Gap** | L234 installer exists; release source, Node and the worker bundle, SearXNG, display, Java-or-native signal-cli, non-interactive `init` missing (item 3) |
 | 48 | No first-run onboarding | Brief 3.4 | **Gap (minor)** | L232 `init` is good; does not link or pair (item 4) |
 | 55 | Wave 2 not parallel | Provider and repair to wave 1 | **Gap** | Wave 2 is fixed; wave 1 now has the same defect (item 17) |
-| 56 | Wave 3 not parallel | Tool contract to wave 2 | **Gap** | 3.2 imports 3.1 and the wave-4 vault; 3.4 and 3.5 share `cmd/coeus`; 3.5 imports 3.3 and 3.4 |
-| 57 | Wave 4 fully serial | Channel core to wave 3 | **Gap** | 4.3 imports 4.2; 4.2, 4.4, 4.5 all edit `cmd/coeus`; redaction imports upward |
+| 56 | Wave 3 not parallel | Tool contract to wave 2 | **Gap** | 3.2 imports 3.1 and the wave-4 vault; 3.4 and 3.5 share `cmd/nerdgenie`; 3.5 imports 3.3 and 3.4 |
+| 57 | Wave 4 fully serial | Channel core to wave 3 | **Gap** | 4.3 imports 4.2; 4.2, 4.4, 4.5 all edit `cmd/nerdgenie`; redaction imports upward |
 | 60 / 123 | Browser wave a single lane | Split into two halves | Fixed (wording) | L270; the launch timing sentence contradicts itself (item 8) |
 | 93 | Final pass names no command, image, or prerequisites | Brief 7.5 | **Gap** | `make check` and `make live` named; Ubuntu and Debian named without versions; `make live` cannot run in a container (item 19 #7) |
 | 110 | Fakes the briefs need that testkit lacks | Four fakes added | **Gap** | Permission decider, tool registry, memory store, search server added (L76 to L79); ten more still missing (item 9) |
@@ -287,16 +287,16 @@ Fully fixed: 8 of 24. Fixed with a minor gap: 7. Not fixed enough to hand out: 9
 
 **Do not sign.** The shortest list of edits that would get a signature, in the order I would make them:
 
-1. **Wave parallelism (item 17).** Move `internal/testkit` to wave 0 (wave 0 becomes two workers, or one worker in two steps). Add `Skill`, `Schedule`, `Sandbox`, `PasswordSource`, `Redactor`, and `BrowserWorker` to `contract` with fakes. Make `cmd/coeus` orchestrator-owned with a one-file-per-subcommand registration table. State that 3.5, 5.5, 6.5, and 7.5 start after their neighbors merge. Have 4.3, 5.4, 6.3, and 6.4 code against `contract` or the fake over the wire.
-2. **The import rule (item 12 #1).** Change "downward" to "a package imports only packages listed above it" in WP L154 and AR L22, and move `cmd/coeus` to the bottom of the Part 2 list.
+1. **Wave parallelism (item 17).** Move `internal/testkit` to wave 0 (wave 0 becomes two workers, or one worker in two steps). Add `Skill`, `Schedule`, `Sandbox`, `PasswordSource`, `Redactor`, and `BrowserWorker` to `contract` with fakes. Make `cmd/nerdgenie` orchestrator-owned with a one-file-per-subcommand registration table. State that 3.5, 5.5, 6.5, and 7.5 start after their neighbors merge. Have 4.3, 5.4, 6.3, and 6.4 code against `contract` or the fake over the wire.
+2. **The import rule (item 12 #1).** Change "downward" to "a package imports only packages listed above it" in WP L154 and AR L22, and move `cmd/nerdgenie` to the bottom of the Part 2 list.
 3. **Three live models (item 2).** Add a named GPT model through the real OpenAI API to WP L7, L65, L278, CL L36, AR L99, and `make live`; pin the Ollama tag for Qwen.
 4. **Own the missing MVP pieces (items 1, 15).** `read r7` to 2.3; Situation, harness stop lines, the token budget, and the question-versus-answer rule to 2.2; the third fold tier plus a fold test to 1.3; `/pair <code>` and `init` offering linking to 4.3 and 4.2; the `/undo` snapshot to 2.3; a "registers these commands" line in 4.4, 5.1, 5.3, 6.2, 7.1; SearXNG or a keyless fallback to 3.5. Add a "left for after the MVP" paragraph and decide whether the desktop worker is in the goal.
 5. **The gate (items 6, 9).** `make test` = unit + integration + functional (fake model) + five-second fuzz smoke; `make fuzz` = one minute per target; a coverage threshold in `make check`; define the live variant of the forty-step fixture and say it joins the gate from wave 2; delete the replayer from 1.1; add Vitest and fast-check to 7.2.
-6. **Every brief's first line (item 16):** read `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md`, `docs/COEUS_PLAN.md`, then the brief.
-7. **Install and update (items 3, 5).** Name the release source and add `make release`; a `--from <path>` flag and a non-interactive `init` for the container test; Node and the worker bundle in both the installer and `coeus update`; migrate after readiness or restore the backup on rollback, with a test.
+6. **Every brief's first line (item 16):** read `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md`, `docs/NERDGENIE_PLAN.md`, then the brief.
+7. **Install and update (items 3, 5).** Name the release source and add `make release`; a `--from <path>` flag and a non-interactive `init` for the container test; Node and the worker bundle in both the installer and `nerdgenie update`; migrate after readiness or restore the backup on rollback, with a test.
 8. **The nine number conflicts (item 19 #1 to #9),** including the 361-word instruction text, "seven tools from section 9," the protocol method list, one-message versus chunks, handoff blocking, monthly versus nightly, `make live` in a container, the wave-5 human trial, and the contents of `make check`.
 9. **Visual QA (item 7):** a five-line checklist per human trial and where the notes go.
 10. **Plain English for documents (item 11):** extend rule 5, add a glossary to Part 3.
-11. **Security:** exclude `~/.coeus` from the `write` and `edit` roots (item 19 #25); name the license (0.1).
+11. **Security:** exclude `~/.nerdgenie` from the `write` and `edit` roots (item 19 #25); name the license (0.1).
 
 Everything else in this review is a should-fix that would cost a rework cycle but would not stop the first wave.

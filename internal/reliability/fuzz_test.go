@@ -30,7 +30,7 @@ func FuzzTheArchiveReader(f *testing.F) {
 	f.Add(tarHolding("../../etc/passwd", "somebody else's file"))
 	f.Add(tarHolding("/etc/passwd", "somebody else's file"))
 	f.Add(tarHolding("browser/../../escaped", "somebody else's file"))
-	f.Add(tarHolding("coeus.db", "not really a database"))
+	f.Add(tarHolding("nerdgenie.db", "not really a database"))
 
 	identity, err := age.GenerateX25519Identity()
 	if err != nil {
@@ -41,7 +41,7 @@ func FuzzTheArchiveReader(f *testing.F) {
 		// The folder is made fresh for every input, so that what one input
 		// unpacked cannot slow the next one down.
 		folder := t.TempDir()
-		home := contract.NewHome(filepath.Join(folder, "home", ".coeus"))
+		home := contract.NewHome(filepath.Join(folder, "home", ".nerdgenie"))
 		keyFile := filepath.Join(folder, "vault.key")
 		archive := filepath.Join(folder, "archive.tar.age")
 		if err := os.WriteFile(keyFile, []byte(identity.String()+"\n"), contract.SecretFileMode); err != nil {

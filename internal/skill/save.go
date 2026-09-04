@@ -3,7 +3,7 @@
 // rather than edited, the copy a change replaced is kept beside the skill, and a
 // rollback first keeps what it is about to overwrite, so that the rollback is
 // itself undoable. Coeus keeps whole files in numbered folders rather than
-// content-addressed blobs, because a person reading ~/.coeus by hand should be
+// content-addressed blobs, because a person reading ~/.nerdgenie by hand should be
 // able to see what the old version said.
 
 package skill

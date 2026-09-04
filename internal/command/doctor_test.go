@@ -19,7 +19,7 @@ func TestDoctorPrintsTheReportAndSaysNothingIsBroken(t *testing.T) {
 	if !command.Doctor(context.Background(), home, written) {
 		t.Errorf("the doctor called a fresh temporary home broken:\n%s", written)
 	}
-	for _, wanted := range []string{"coeus doctor", home.Root, "config.toml"} {
+	for _, wanted := range []string{"nerdgenie doctor", home.Root, "config.toml"} {
 		if !strings.Contains(written.String(), wanted) {
 			t.Errorf("the doctor's report leaves out %q:\n%s", wanted, written)
 		}
@@ -48,8 +48,8 @@ func TestDoctorSaysWhenTheHomeFolderIsNotThere(t *testing.T) {
 	if command.Doctor(context.Background(), home, written) {
 		t.Errorf("the doctor called a home folder that is not there fine:\n%s", written)
 	}
-	if !strings.Contains(written.String(), "coeus init") {
-		t.Errorf("the doctor's report does not say to run coeus init:\n%s", written)
+	if !strings.Contains(written.String(), "nerdgenie init") {
+		t.Errorf("the doctor's report does not say to run nerdgenie init:\n%s", written)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestDoctorSaysWhenTheHomeFolderIsNotThere(t *testing.T) {
 const sandboxFindingName = "the sandbox fence"
 
 // TestDoctorSaysWhichWayTheSandboxSettingIsTurned holds what a person runs
-// "coeus doctor" for after changing the setting: the printed report says whether
+// "nerdgenie doctor" for after changing the setting: the printed report says whether
 // commands are running on this machine as them or inside the fence.
 func TestDoctorSaysWhichWayTheSandboxSettingIsTurned(t *testing.T) {
 	for _, written := range []struct {

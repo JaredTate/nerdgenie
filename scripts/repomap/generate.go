@@ -27,7 +27,7 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 ## Roots
 
 - ` + "`./`" + ` - The three living documents, the plain-words explanation COEUS.md, the license, the third-party notes, the Makefile.
-- ` + "`cmd/coeus/`" + ` - The one binary and its subcommands.
+- ` + "`cmd/nerdgenie/`" + ` - The one binary and its subcommands.
 - ` + "`internal/`" + ` - The Go packages, one job each; see ARCHITECTURE.md for the list.
 - ` + "`worker/`" + ` - The TypeScript browser and desktop workers.
 - ` + "`test/`" + ` - Functional tests and fixtures.

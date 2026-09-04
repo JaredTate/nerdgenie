@@ -1,8 +1,8 @@
-// The whole-program test: "coeus serve" is started as its own process against a
+// The whole-program test: "nerdgenie serve" is started as its own process against a
 // temporary home folder and a scripted model server, a screen attaches over the
 // same local socket the terminal uses, sends a message, and reads the reply.
 //
-// The binary is built and run rather than called, because cmd/coeus is package
+// The binary is built and run rather than called, because cmd/nerdgenie is package
 // main and no test can import it. The child is stopped by its exact process
 // identifier, never by anything matching a name.
 package functional
@@ -68,18 +68,18 @@ func TestASecondServeOnTheSameHomeRefusesToStart(t *testing.T) {
 	agent := startTheAgent(t, testkit.Script{Name: "local", ContextLength: 32768})
 
 	second := exec.Command(agent.program, "serve")
-	second.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root)
+	second.Env = append(os.Environ(), "NERDGENIE_HOME="+agent.home.Root)
 	said, err := second.CombinedOutput()
 
 	if err == nil {
-		t.Fatalf("a second coeus serve on the same home folder started anyway:\n%s", said)
+		t.Fatalf("a second nerdgenie serve on the same home folder started anyway:\n%s", said)
 	}
 	if !strings.Contains(string(said), agent.home.LockFile()) {
 		t.Errorf("the refusal does not name the lock file that stopped it:\n%s", said)
 	}
 }
 
-// runningAgent is one child process of "coeus serve" with the home folder, the
+// runningAgent is one child process of "nerdgenie serve" with the home folder, the
 // folder it may work in, and the scripted model server behind it.
 type runningAgent struct {
 	program  string
@@ -103,7 +103,7 @@ func startTheAgent(t *testing.T, script testkit.Script) runningAgent {
 }
 
 // startTheAgentWorkingIn builds the binary, writes a home folder pointing at a
-// scripted model server, starts "coeus serve" as its own process, and waits
+// scripted model server, starts "nerdgenie serve" as its own process, and waits
 // until it answers on its socket. The script is made from the folder the agent
 // may work in, so that a step can name a file inside it. Everything it made is
 // cleaned up when the test ends.
@@ -121,7 +121,7 @@ func startTheAgentWorkingIn(t *testing.T, makeScript func(work string) testkit.S
 	return startTheServe(t, home, work, model, !waitingIsSkipped(andAlso))
 }
 
-// startTheServe starts "coeus serve" as its own process against a home folder
+// startTheServe starts "nerdgenie serve" as its own process against a home folder
 // and a work folder that are already there, waits until it answers on its socket
 // unless the caller says not to, and stops it when the test ends. It is separate
 // from startTheAgentWorkingIn so that a test whose script has to name paths
@@ -134,7 +134,7 @@ func startTheServe(t *testing.T, home contract.Home, work string, model *testkit
 	return agent.start(t, waitingForTheSocket)
 }
 
-// start runs "coeus serve" as its own process over this agent's home and, unless
+// start runs "nerdgenie serve" as its own process over this agent's home and, unless
 // told not to, waits until it answers on its socket. It is what the first start
 // and a restart both do, so a restarted agent is the same program over the same
 // home and the same scripted model.
@@ -145,19 +145,19 @@ func startTheServe(t *testing.T, home contract.Home, work string, model *testkit
 // whoever is running the suite.
 func (agent runningAgent) start(t *testing.T, waitForIt bool) runningAgent {
 	t.Helper()
-	saidPath := filepath.Join(t.TempDir(), "coeus-serve.log")
+	saidPath := filepath.Join(t.TempDir(), "nerdgenie-serve.log")
 	said, err := os.Create(saidPath)
 	if err != nil {
-		t.Fatalf("making the file for what coeus serve says failed: %v", err)
+		t.Fatalf("making the file for what nerdgenie serve says failed: %v", err)
 	}
 	t.Cleanup(func() { _ = said.Close() })
 
 	started := exec.Command(agent.program, "serve")
-	started.Env = append(os.Environ(), "COEUS_HOME="+agent.home.Root, "HOME="+filepath.Dir(agent.home.Root))
+	started.Env = append(os.Environ(), "NERDGENIE_HOME="+agent.home.Root, "HOME="+filepath.Dir(agent.home.Root))
 	started.Stdout = said
 	started.Stderr = said
 	if err := started.Start(); err != nil {
-		t.Fatalf("starting coeus serve failed: %v", err)
+		t.Fatalf("starting nerdgenie serve failed: %v", err)
 	}
 
 	// The child is waited for once and the answer kept, because a test that
@@ -186,7 +186,7 @@ func (agent runningAgent) start(t *testing.T, waitForIt bool) runningAgent {
 	}
 	t.Cleanup(func() {
 		stop()
-		t.Logf("what coeus serve said:\n%s", whatItSaid(saidPath))
+		t.Logf("what nerdgenie serve said:\n%s", whatItSaid(saidPath))
 	})
 
 	if waitForIt {
@@ -205,15 +205,15 @@ func (agent runningAgent) restart(t *testing.T) runningAgent {
 	return agent.start(t, true)
 }
 
-// buildTheBinary compiles cmd/coeus into a folder of this test's own, so that
+// buildTheBinary compiles cmd/nerdgenie into a folder of this test's own, so that
 // the test drives the real program rather than a copy of its parts.
 func buildTheBinary(t *testing.T) string {
 	t.Helper()
-	program := filepath.Join(t.TempDir(), "coeus")
-	build := exec.Command("go", "build", "-o", program, "./cmd/coeus")
+	program := filepath.Join(t.TempDir(), "nerdgenie")
+	build := exec.Command("go", "build", "-o", program, "./cmd/nerdgenie")
 	build.Dir = repositoryRoot(t)
 	if said, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("building the coeus binary failed: %v\n%s", err, said)
+		t.Fatalf("building the nerdgenie binary failed: %v\n%s", err, said)
 	}
 	return program
 }
@@ -288,7 +288,7 @@ func waitForTheSocket(t *testing.T, home contract.Home, saidPath string) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	t.Fatalf("coeus serve never opened its socket at %s; it said:\n%s", home.SocketFile(), whatItSaid(saidPath))
+	t.Fatalf("nerdgenie serve never opened its socket at %s; it said:\n%s", home.SocketFile(), whatItSaid(saidPath))
 }
 
 // whatItSaid reads back everything the child process printed, for a failure

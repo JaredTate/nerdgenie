@@ -20,11 +20,11 @@ var deletesWithAFlagInFront = []struct {
 	name    string
 	command string
 }{
-	{"a talkative delete", "rm -v -rf /home/jared/coeus"},
-	{"a delete that asks first", "rm -i -rf /home/jared/coeus"},
-	{"the long spellings in the other order", "rm --force --recursive /home/jared/coeus"},
-	{"a delete of folders written the long way round", "rm -d -r /home/jared/coeus"},
-	{"a delete that stays on one filesystem", "rm --one-file-system -rf /home/jared/coeus"},
+	{"a talkative delete", "rm -v -rf /home/jared/nerdgenie"},
+	{"a delete that asks first", "rm -i -rf /home/jared/nerdgenie"},
+	{"the long spellings in the other order", "rm --force --recursive /home/jared/nerdgenie"},
+	{"a delete of folders written the long way round", "rm -d -r /home/jared/nerdgenie"},
+	{"a delete that stays on one filesystem", "rm --one-file-system -rf /home/jared/nerdgenie"},
 }
 
 func TestADeleteWithAFlagInFrontOfTheRecursiveOneStillAsks(t *testing.T) {

@@ -18,7 +18,7 @@ The screen is built on Bubble Tea, version 2, and on nothing else: the borders a
 Eighty columns is the design width. Below sixty it degrades by dropping the right side of the header and the key hints; it never wraps the header, and it never glues the right-hand piece onto the words beside it — a piece that will not fit with a real gap in front of it is dropped instead. Above one hundred and twenty it does not stretch; a bubble is never wider than one hundred columns of text and centres nothing. At a hundred columns and wider there is room for the side panel below, and everything between the two rules is drawn in what is left; below a hundred the panel is dropped and nothing else changes.
 
 ```
- coeus · opus · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
+ nerdgenie · opus · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
 
      ╭────────────────────────────────────────────────────────────────────────╮
      ▎ Post a tweet about the DigiByte anniversary. Use the product notes and │
@@ -42,7 +42,7 @@ Eighty columns is the design width. Below sixty it degrades by dropping the righ
 
 From top to bottom:
 
-- **Header, one row.** The wordmark `coeus`, then the link when there is none to speak of, the model alias, the task in words — `task 24 running` when the program said what state it is in, and `task 24` when it did not, never the number on its own, because a bare number in the middle of the header says nothing — the cost of this session so far (tokens in and out, and money when the provider reports it), and a health dot on the right: a filled circle in the accent when the program answered its health check in the last ten seconds, hollow and dim otherwise, error-coloured when disconnected. Everything is dim except the task state, which is bold while a task runs, and the link word, which is dim while the screen has never reached the program ("connecting") and error-coloured once a link that was up has gone away ("disconnected"). A dropped link keeps the model, the task and the cost that were already known, because a person whose link went away still wants to know what was running.
+- **Header, one row.** The wordmark `nerdgenie`, then the link when there is none to speak of, the model alias, the task in words — `task 24 running` when the program said what state it is in, and `task 24` when it did not, never the number on its own, because a bare number in the middle of the header says nothing — the cost of this session so far (tokens in and out, and money when the provider reports it), and a health dot on the right: a filled circle in the accent when the program answered its health check in the last ten seconds, hollow and dim otherwise, error-coloured when disconnected. Everything is dim except the task state, which is bold while a task runs, and the link word, which is dim while the screen has never reached the program ("connecting") and error-coloured once a link that was up has gone away ("disconnected"). A dropped link keeps the model, the task and the cost that were already known, because a person whose link went away still wants to know what was running.
 - **A rule.** One thin line, dim.
 - **The transcript.** Scrolls. The newest content is at the bottom and the view sticks to the bottom until the person scrolls up: one notch of the mouse wheel, Shift+Up or Shift+Down moves it three rows, Page Up or Page Down ten, and it stops at the oldest row and at the newest. The screen asks the terminal to report the mouse cell by cell, which is what makes a terminal send the wheel, and turns that off again when it quits, so the shell is left as it was found. While the view is scrolled up a small `↑ older` mark sits in the status strip, so that the person knows why new text is not appearing, and new output does not pull the view down: a reply, a streamed piece of one, or a tool line arriving underneath leaves the rows being read exactly where they are. The view comes back to the newest row when the person wheels or keys down to the bottom, when they send a message, and when a card arrives that needs them. A block that would fit in a transcript of its own but not in the room left at the top is not drawn at all while the view rests on the newest row, because a bubble cut in two is worse than a bubble not shown, in the same way that a wordmark cut in half is worse than a wordmark written small; a view scrolled up is a window moved by rows, and the blocks at its edges are cut, because a view moving three rows at a time has to cross every block on its way. A block taller than the whole transcript is the other exception: it is drawn and cut, because there is no room for it whole anywhere and its newest rows are the ones being read. Four kinds of block:
   - A **person's message**, in a bubble leaning against the right-hand edge of the frame: a rounded border with the two-column bar `▎` as its left edge, filled with the accent so the words inside it are white on DigiByte blue. The bubble is only as wide as the words in it.
@@ -62,7 +62,7 @@ From top to bottom:
 At a hundred columns and wider, the last twenty-eight columns between the two rules are a panel down the right-hand side, drawn the way opencode draws its sidebar: a thin dim line down its left edge, a blank column after it, and short quiet lines in groups with a blank line between them. It holds what a person wants to see without asking for it, and nothing the program has not said:
 
 ```
- coeus · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
+ nerdgenie · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04            ● healthy
  ─────────────────────────────────────────────────────────────────────────────────────────────────────
                                                              │ opus
                                                              │ ctx 12.4k / 262k · 5%
@@ -119,7 +119,7 @@ The escape codes are written by the screen rather than by a terminal styling lib
 
 ## What the tests check
 
-- The golden first frame at eighty by twenty-four before any socket message: the header with `coeus · connecting`, the rule, the banner, the rule, the input box, and the strip saying `connecting`.
+- The golden first frame at eighty by twenty-four before any socket message: the header with `nerdgenie · connecting`, the rule, the banner, the rule, the input box, and the strip saying `connecting`.
 - Golden frames, themed and plain, at eighty by twenty-four and at one hundred and twenty by forty, for the banner and for a conversation with a bubble, a pill and a card in it. Golden frames at sixty and sixty-eight columns for the narrow degrade, and at one hundred and twenty by thirty-six for the side panel, with a task and without one.
 - Every row of a themed frame is painted to the full width of the terminal and carries a background colour, so there are no dark gaps.
 - The spinner appears at five hundred milliseconds on the fake clock and is still there at three seconds even when the reply arrived at one second.

@@ -31,7 +31,7 @@ const sandboxProbeRoot = "/usr"
 // something Coeus can work without is switched off, such as a browser that is
 // not installed, and a machine like that is set up correctly. A problem means
 // something is broken, such as a configuration that will not load or a vault key
-// other accounts can read, and "coeus doctor" then leaves with a failing exit
+// other accounts can read, and "nerdgenie doctor" then leaves with a failing exit
 // code so that a script notices.
 func Doctor(ctx context.Context, home contract.Home, output io.Writer) bool {
 	report := config.Doctor(ctx, home)

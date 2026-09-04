@@ -64,11 +64,11 @@ func TestTheNightlySelfCheckRunsAnHourAfterTheBackupTimer(t *testing.T) {
 }
 
 // hourOfTheBackupTimer is the hour the installed backup timer fires at, read out
-// of the unit "coeus install" writes.
+// of the unit "nerdgenie install" writes.
 func hourOfTheBackupTimer(t *testing.T) int {
 	t.Helper()
 	const marker = "OnCalendar="
-	for _, line := range strings.Split(command.BackupTimerText(contract.NewHome("/home/somebody/.coeus")), "\n") {
+	for _, line := range strings.Split(command.BackupTimerText(contract.NewHome("/home/somebody/.nerdgenie")), "\n") {
 		if !strings.HasPrefix(line, marker) {
 			continue
 		}

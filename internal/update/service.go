@@ -29,7 +29,7 @@ const (
 // service is the systemd user unit the agent runs under, and the four things
 // the updater does to it.
 type service struct {
-	// unit is the name of the unit, which is "coeus.service".
+	// unit is the name of the unit, which is "nerdgenie.service".
 	unit string
 	// stopWait is how long the stop may take, because stopping waits for the
 	// agent to finish the task it has.
@@ -64,7 +64,7 @@ func (unit service) run(ctx context.Context, wait time.Duration, arguments ...st
 		return string(said), nil
 	}
 	if errors.Is(err, exec.ErrNotFound) {
-		return string(said), fmt.Errorf("systemctl is not on this machine, so Coeus cannot restart itself; install the service with \"coeus install\" on a machine that runs systemd: %w", err)
+		return string(said), fmt.Errorf("systemctl is not on this machine, so Coeus cannot restart itself; install the service with \"nerdgenie install\" on a machine that runs systemd: %w", err)
 	}
 	return string(said), fmt.Errorf("\"systemctl %s\" did not work and said %q, so look at \"systemctl --user status %s\": %w",
 		strings.Join(called, " "), strings.TrimSpace(string(said)), unit.unit, err)

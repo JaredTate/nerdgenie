@@ -2,7 +2,7 @@
 // wheel over the transcript and nothing moved, because the screen had never
 // asked the terminal to report the wheel. Each test here drives the screen
 // through the wheel and the keys that scroll, on the frames it draws, and the
-// last one drives the whole program through Run the way cmd/coeus does.
+// last one drives the whole program through Run the way cmd/nerdgenie does.
 package tui
 
 import (
@@ -292,7 +292,7 @@ var terminalCodes = regexp.MustCompile("\x1b\\[[0-9;?<>=]*[A-Za-z@`]|\x1b\\][^\x
 var olderMarkPainted = regexp.MustCompile("↑ ?older")
 
 // wholeProgram is the screen running through Run on a pair of pipes, the way
-// cmd/coeus runs it on a terminal.
+// cmd/nerdgenie runs it on a terminal.
 type wholeProgram struct {
 	keyboard *os.File
 	drawn    *frameSoFar

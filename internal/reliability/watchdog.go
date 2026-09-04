@@ -11,7 +11,7 @@ import (
 )
 
 // Watchdog tells the service manager that the program is up and still alive.
-// The unit written by "coeus install" is of type notify with a watchdog line, so
+// The unit written by "nerdgenie install" is of type notify with a watchdog line, so
 // systemd waits for READY=1 before it calls the service started, and starts the
 // program again when the feed stops.
 type Watchdog struct {

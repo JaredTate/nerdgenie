@@ -39,13 +39,13 @@ func pinnedNodeVersion(t *testing.T) string {
 func fixtureCheckout(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	writeFile(t, filepath.Join(root, "go.mod"), "module coeus.test\n\ngo 1.27\n")
-	writeFile(t, filepath.Join(root, "cmd", "coeus", "main.go"),
+	writeFile(t, filepath.Join(root, "go.mod"), "module nerdgenie.test\n\ngo 1.27\n")
+	writeFile(t, filepath.Join(root, "cmd", "nerdgenie", "main.go"),
 		"package main\n\nimport \"fmt\"\n\nvar version = \"unset\"\n\nfunc main() { fmt.Println(version) }\n")
 
 	for _, worker := range []string{"browser", "desktop"} {
 		folder := filepath.Join(root, "worker", worker)
-		writeFile(t, filepath.Join(folder, "package.json"), `{"name":"coeus-`+worker+`-worker","private":true}`+"\n")
+		writeFile(t, filepath.Join(folder, "package.json"), `{"name":"nerdgenie-`+worker+`-worker","private":true}`+"\n")
 		writeFile(t, filepath.Join(folder, "package-lock.json"), `{"lockfileVersion":3}`+"\n")
 		writeFile(t, filepath.Join(folder, "tsconfig.json"), "{}\n")
 		writeFile(t, filepath.Join(folder, "src", "main.ts"), "export {};\n")
@@ -103,12 +103,12 @@ func buildTheFixtureRelease(t *testing.T, root string, arguments ...string) stri
 	t.Helper()
 	cache := seedNodeCache(t, root)
 	environment := cleanEnvironment(root, fakeNpm(t, root),
-		"COEUS_NODE_CACHE="+cache,
+		"NERDGENIE_NODE_CACHE="+cache,
 		"GOFLAGS=-mod=mod",
 		// One build cache for the whole package, kept outside the fixture, because
 		// a fresh cache per test means compiling the standard library for both
 		// architectures again on every run.
-		"GOCACHE="+filepath.Join(os.TempDir(), "coeus-release-test-build-cache"),
+		"GOCACHE="+filepath.Join(os.TempDir(), "nerdgenie-release-test-build-cache"),
 		"GOPATH="+filepath.Join(root, ".gopath"),
 		"CGO_ENABLED=0",
 	)
@@ -128,13 +128,13 @@ func TestTheReleaseWritesAnArchiveForEachArchitecture(t *testing.T) {
 	printed := buildTheFixtureRelease(t, root)
 
 	for _, architecture := range []string{"amd64", "arm64"} {
-		archive := filepath.Join(root, "dist", "coeus-"+builtVersion+"-"+architecture+".tar.gz")
+		archive := filepath.Join(root, "dist", "nerdgenie-"+builtVersion+"-"+architecture+".tar.gz")
 		if _, err := os.Stat(archive); err != nil {
 			t.Fatalf("%s was not written: %v\nThe build printed:\n%s", archive, err, printed)
 		}
 		names := namesInArchive(t, archive)
 		for _, wanted := range []string{
-			"coeus", "VERSION", "node/bin/node",
+			"nerdgenie", "VERSION", "node/bin/node",
 			"workers/browser/main.js", "workers/desktop/main.js",
 			"workers/browser/node_modules/a-dependency/index.js",
 		} {
@@ -202,7 +202,7 @@ func TestTheReleaseWritesAChecksumForEveryArchive(t *testing.T) {
 
 	sums := readFile(t, filepath.Join(root, "dist", "SHA256SUMS"))
 	for _, architecture := range []string{"amd64", "arm64"} {
-		name := "coeus-" + builtVersion + "-" + architecture + ".tar.gz"
+		name := "nerdgenie-" + builtVersion + "-" + architecture + ".tar.gz"
 		want := fileChecksum(t, filepath.Join(root, "dist", name))
 		if !strings.Contains(sums, want+"  "+name) {
 			t.Errorf("SHA256SUMS has no line %q for %s. It says:\n%s", want+"  "+name, name, sums)
@@ -220,7 +220,7 @@ func TestTheReleaseWritesAManifestTheUpdaterCanRead(t *testing.T) {
 
 	// The manifest is read back with the updater's own parser rather than with a
 	// struct written out again here, because the whole point of the file is that
-	// "coeus update" can read it: a test with its own idea of the shape would go
+	// "nerdgenie update" can read it: a test with its own idea of the shape would go
 	// on passing while the two drifted apart.
 	content := readFile(t, filepath.Join(root, "dist", "manifest.json"))
 	manifest, err := update.ParseManifest([]byte(content))
@@ -272,10 +272,10 @@ func TestTheReleaseBuildsOnlyTheArchitecturesAskedFor(t *testing.T) {
 
 	buildTheFixtureRelease(t, root, "--arch", "amd64")
 
-	if _, err := os.Stat(filepath.Join(root, "dist", "coeus-"+builtVersion+"-amd64.tar.gz")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "dist", "nerdgenie-"+builtVersion+"-amd64.tar.gz")); err != nil {
 		t.Errorf("--arch amd64 did not write the amd64 archive: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(root, "dist", "coeus-"+builtVersion+"-arm64.tar.gz")); err == nil {
+	if _, err := os.Stat(filepath.Join(root, "dist", "nerdgenie-"+builtVersion+"-arm64.tar.gz")); err == nil {
 		t.Error("--arch amd64 wrote an arm64 archive as well")
 	}
 }
@@ -283,7 +283,7 @@ func TestTheReleaseBuildsOnlyTheArchitecturesAskedFor(t *testing.T) {
 func TestTheReleaseRefusesAnArchitectureItCannotBuild(t *testing.T) {
 	root := fixtureCheckout(t)
 	cache := seedNodeCache(t, root)
-	environment := cleanEnvironment(root, filepath.Join(root, "no-fakes"), "COEUS_NODE_CACHE="+cache)
+	environment := cleanEnvironment(root, filepath.Join(root, "no-fakes"), "NERDGENIE_NODE_CACHE="+cache)
 
 	printed, code := runScript(t, filepath.Join(root, "scripts", "release", "build.sh"), root, environment,
 		"--version", builtVersion, "--arch", "sparc")

@@ -1,4 +1,4 @@
-// Package main is the coeus binary: one program that holds the queue, the loop,
+// Package main is the nerdgenie binary: one program that holds the queue, the loop,
 // the permissions, the records, the memory, the jobs, and one database file.
 //
 // This file, the subcommand table in main.go, and serve.go belong to the
@@ -11,9 +11,9 @@
 // The table is version, help, init, doctor, serve, run, tui, install, uninstall,
 // signal, backup, restore, replay, update, askpass, and the sandbox helper,
 // which is hidden from the listing because the fence starts it and nobody types
-// it. Typing "coeus" with nothing after it opens the terminal screen.
+// it. Typing "nerdgenie" with nothing after it opens the terminal screen.
 //
-// "coeus serve" is the agent itself. Its wiring is serve.go for the stores and
+// "nerdgenie serve" is the agent itself. Its wiring is serve.go for the stores and
 // the serving loops, wiring.go for everything a message meets on its way in and
 // out, model.go for the model chain, status.go for what a screen is told,
 // previews.go for the questions waiting to be answered, skillsbox.go and

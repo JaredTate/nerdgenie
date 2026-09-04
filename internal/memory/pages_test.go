@@ -119,7 +119,7 @@ func aLongTaskIn(t *testing.T, paged *aPagedLog, events int) {
 	t.Helper()
 	for number := 1; number <= events; number++ {
 		body, err := json.Marshal(contract.FileChangeBody{
-			Path: fmt.Sprintf("/home/jared/coeus/blog/part-%d.md", number), Existed: true,
+			Path: fmt.Sprintf("/home/jared/nerdgenie/blog/part-%d.md", number), Existed: true,
 		})
 		if err != nil {
 			t.Fatalf("cannot write the file change body: %v", err)

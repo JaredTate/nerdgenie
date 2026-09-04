@@ -19,7 +19,7 @@ var arrived = time.Date(2026, time.April, 9, 10, 11, 12, 130456789, time.UTC)
 // and closes it when the test ends.
 func newTestQueue(t *testing.T, capacity int) *Queue {
 	t.Helper()
-	opened, err := OpenQueue(context.Background(), filepath.Join(t.TempDir(), "coeus.db"), capacity)
+	opened, err := OpenQueue(context.Background(), filepath.Join(t.TempDir(), "nerdgenie.db"), capacity)
 	if err != nil {
 		t.Fatalf("cannot open a queue for the test: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestAMessageComesBackOutOfTheQueueExactlyAsItWentIn(t *testing.T) {
 	queue := newTestQueue(t, 10)
 	ctx := context.Background()
 	sent := anInbound("post the weekly note")
-	sent.Attachments = []string{"/home/jared/.coeus/inbox/photo.jpg", "/home/jared/.coeus/inbox/note.txt"}
+	sent.Attachments = []string{"/home/jared/.nerdgenie/inbox/photo.jpg", "/home/jared/.nerdgenie/inbox/note.txt"}
 
 	sequence, err := queue.Add(ctx, sent)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestTheQueueHandsMessagesOutInTheOrderTheyArrived(t *testing.T) {
 
 func TestAMessageTakenButNotFinishedIsHandedOutAgainAfterARestart(t *testing.T) {
 	ctx := context.Background()
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 
 	queue, err := OpenQueue(ctx, path, 10)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestAMessageTakenButNotFinishedIsHandedOutAgainAfterARestart(t *testing.T) 
 
 func TestAMessageMarkedDoneIsGoneAfterARestart(t *testing.T) {
 	ctx := context.Background()
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 
 	queue, err := OpenQueue(ctx, path, 10)
 	if err != nil {
@@ -285,7 +285,7 @@ func TestOpeningTheQueueRefusesACapacityBelowOneAndAPathWithAQuestionMark(t *tes
 	ctx := context.Background()
 	folder := t.TempDir()
 
-	if _, err := OpenQueue(ctx, filepath.Join(folder, "coeus.db"), 0); err == nil {
+	if _, err := OpenQueue(ctx, filepath.Join(folder, "nerdgenie.db"), 0); err == nil {
 		t.Error("a queue with room for no messages was opened, want an error saying the cap has to be at least one")
 	}
 	if _, err := OpenQueue(ctx, filepath.Join(folder, "what?.db"), 10); err == nil {
@@ -298,7 +298,7 @@ func TestOpeningTheQueueRefusesACapacityBelowOneAndAPathWithAQuestionMark(t *tes
 
 func TestEveryCallOnAClosedQueueSaysItIsClosed(t *testing.T) {
 	ctx := context.Background()
-	queue, err := OpenQueue(ctx, filepath.Join(t.TempDir(), "coeus.db"), 10)
+	queue, err := OpenQueue(ctx, filepath.Join(t.TempDir(), "nerdgenie.db"), 10)
 	if err != nil {
 		t.Fatalf("opening the queue failed: %v", err)
 	}

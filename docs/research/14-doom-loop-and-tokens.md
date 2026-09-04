@@ -175,7 +175,7 @@ Estimated fixed tokens per turn, default agent, no project instructions (all est
 
 ```
 [system: identity+style | env | core tools | tool_search manifest]   <- stable, cache point A
-<!-- COEUS_CACHE_BOUNDARY -->
+<!-- NERDGENIE_CACHE_BOUNDARY -->
 [system: date/time | memory delta | jobs]                              <- cache point B
 [messages ... last two messages]                                       <- cache points C, D
 ```

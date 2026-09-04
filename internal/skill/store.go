@@ -15,7 +15,7 @@ import (
 )
 
 // AskFunc shows the user what is about to happen and waits for the answer. It
-// is the one function cmd/coeus/serve.go wires to the channel the user is on,
+// is the one function cmd/nerdgenie/serve.go wires to the channel the user is on,
 // and it carries both the offers to save a new skill and the yes a step that
 // cannot be undone needs.
 type AskFunc func(ctx context.Context, preview contract.Preview) (contract.PreviewAnswerWithReason, error)

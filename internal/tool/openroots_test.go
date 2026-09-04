@@ -58,7 +58,7 @@ func TestWithTheSandboxOffEveryPathThatMustStayOutsideIsStillRefused(t *testing.
 	userHome := t.TempDir()
 	agentHome := filepath.Join(userHome, contract.HomeFolderName)
 	profile := filepath.Join(userHome, "chrome-profile")
-	backups := filepath.Join(userHome, "coeus-backups")
+	backups := filepath.Join(userHome, "nerdgenie-backups")
 	check := tool.NewOpenPathCheck(userHome, agentHome, profile, backups)
 
 	for _, forbidden := range contract.ExcludedFromSandbox(userHome, agentHome, profile, backups) {

@@ -23,7 +23,7 @@ var installSubcommand = subcommand{
 	help: "Installs Coeus as a service that starts with your session and is restarted if it stops.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		if len(arguments) > 0 {
-			fmt.Fprintf(problems, "coeus install: this takes no arguments, and was given %q\n", strings.Join(arguments, " "))
+			fmt.Fprintf(problems, "nerdgenie install: this takes no arguments, and was given %q\n", strings.Join(arguments, " "))
 			return contract.ExitUsage
 		}
 		service, code := serviceOnThisMachine(output, problems, "install")
@@ -31,7 +31,7 @@ var installSubcommand = subcommand{
 			return code
 		}
 		if err := service.Install(context.Background()); err != nil {
-			fmt.Fprintf(problems, "coeus install: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie install: %v\n", err)
 			return contract.ExitFailure
 		}
 		return contract.ExitOK
@@ -44,12 +44,12 @@ var installSubcommand = subcommand{
 func serviceOnThisMachine(output io.Writer, problems io.Writer, name string) (command.Service, int) {
 	home, err := config.HomeFolder()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus %s: %v\n", name, err)
+		fmt.Fprintf(problems, "nerdgenie %s: %v\n", name, err)
 		return command.Service{}, contract.ExitBadConfiguration
 	}
 	program, err := os.Executable()
 	if err != nil {
-		fmt.Fprintf(problems, "coeus %s: the path of the running program could not be found, so the service would have nothing to start: %v\n", name, err)
+		fmt.Fprintf(problems, "nerdgenie %s: the path of the running program could not be found, so the service would have nothing to start: %v\n", name, err)
 		return command.Service{}, contract.ExitFailure
 	}
 	return command.Service{Home: home, Program: program, Input: os.Stdin, Output: output}, contract.ExitOK

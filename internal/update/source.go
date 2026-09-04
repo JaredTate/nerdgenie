@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// DefaultAddress is where releases are published, and is what "coeus update"
+// DefaultAddress is where releases are published, and is what "nerdgenie update"
 // reads when it is given no address of its own. It is the download folder of
 // the newest GitHub release, which serves the manifest, the sums file, and one
 // archive per architecture under their own names.

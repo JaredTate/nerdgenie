@@ -70,7 +70,7 @@ func NewDaemon(options DaemonOptions) (*Daemon, error) {
 	case options.Program == "":
 		return nil, errors.New("the Signal daemon has no program to run, so say where signal-cli is")
 	case options.Account == "":
-		return nil, errors.New("the Signal daemon has no account, so run \"coeus signal link\" first")
+		return nil, errors.New("the Signal daemon has no account, so run \"nerdgenie signal link\" first")
 	case options.Address == "":
 		return nil, errors.New("the Signal daemon has no address to serve on, so pass a host and port")
 	case options.Clock == nil:

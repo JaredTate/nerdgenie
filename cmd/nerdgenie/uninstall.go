@@ -22,7 +22,7 @@ var uninstallSubcommand = subcommand{
 			return code
 		}
 		if err := service.Uninstall(context.Background(), arguments); err != nil {
-			fmt.Fprintf(problems, "coeus uninstall: %v\n", err)
+			fmt.Fprintf(problems, "nerdgenie uninstall: %v\n", err)
 			return contract.ExitFailure
 		}
 		return contract.ExitOK

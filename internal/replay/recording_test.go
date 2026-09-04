@@ -165,7 +165,7 @@ func (cutShort aLogThatCutTheReadShort) ByTask(ctx context.Context, taskID strin
 		return events, err
 	}
 	return events, fmt.Errorf("this read of the log at %s stopped at %d events, which is all one read returns, so read the rest in pages with ByRange starting after event %d",
-		"/home/somebody/.coeus/coeus.db", len(events), len(events))
+		"/home/somebody/.nerdgenie/nerdgenie.db", len(events), len(events))
 }
 
 func TestReadSaysATaskIsTooLongToReplayRatherThanPassingOnThePagingAdvice(t *testing.T) {

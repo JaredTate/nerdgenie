@@ -9,7 +9,7 @@ import (
 
 // HomeFolderName is the folder the agent keeps everything in, under the user's
 // own home directory.
-const HomeFolderName = ".coeus"
+const HomeFolderName = ".nerdgenie"
 
 // The modes every file and folder the agent creates is given. The home folder
 // and everything holding a secret are readable by the agent's own user account
@@ -26,7 +26,7 @@ const (
 // Home is the agent's home folder and every path inside it. Nothing in Coeus
 // builds one of these paths by hand, so that the layout lives in one place.
 type Home struct {
-	// Root is the folder itself, normally "~/.coeus".
+	// Root is the folder itself, normally "~/.nerdgenie".
 	Root string
 }
 
@@ -50,7 +50,7 @@ func (home Home) ConfigFile() string { return filepath.Join(home.Root, "config.t
 
 // DatabaseFile is the single SQLite file holding the event log, the records, the
 // memory index, and the jobs.
-func (home Home) DatabaseFile() string { return filepath.Join(home.Root, "coeus.db") }
+func (home Home) DatabaseFile() string { return filepath.Join(home.Root, "nerdgenie.db") }
 
 // PersonaFolder holds the three files that say who the agent is and who the user
 // is.
@@ -114,10 +114,10 @@ func (home Home) CurrentReleaseLink() string {
 func (home Home) RunFolder() string { return filepath.Join(home.Root, "run") }
 
 // SocketFile is the local socket every screen attaches to.
-func (home Home) SocketFile() string { return filepath.Join(home.RunFolder(), "coeus.sock") }
+func (home Home) SocketFile() string { return filepath.Join(home.RunFolder(), "agent.sock") }
 
 // LockFile is what stops a second copy of the program from starting.
-func (home Home) LockFile() string { return filepath.Join(home.RunFolder(), "coeus.lock") }
+func (home Home) LockFile() string { return filepath.Join(home.RunFolder(), "nerdgenie.lock") }
 
 // BackupsFolder holds the nightly encrypted archives.
 func (home Home) BackupsFolder() string { return filepath.Join(home.Root, "backups") }

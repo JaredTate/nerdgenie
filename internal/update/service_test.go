@@ -28,7 +28,7 @@ type fakeService struct {
 // check opens the socket in the run folder.
 func aShortHome(t *testing.T) contract.Home {
 	t.Helper()
-	folder, err := os.MkdirTemp("", "coeus-update")
+	folder, err := os.MkdirTemp("", "nerdgenie-update")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the home: %v", err)
 	}
@@ -59,7 +59,7 @@ func aMachineWithAService(t *testing.T) (contract.Home, *fakeService) {
 	writeFakeServiceManager(t, home, service, folder)
 	startFakeAgent(t, home, service)
 	t.Setenv("PATH", folder)
-	t.Setenv("COEUS_RECORD", filepath.Join(folder, "program.txt"))
+	t.Setenv("NERDGENIE_RECORD", filepath.Join(folder, "program.txt"))
 	return home, service
 }
 
@@ -151,7 +151,7 @@ func (service *fakeService) running(t *testing.T) bool {
 // is how a test sees the migration step happen.
 func programTold(t *testing.T) string {
 	t.Helper()
-	written, err := os.ReadFile(os.Getenv("COEUS_RECORD"))
+	written, err := os.ReadFile(os.Getenv("NERDGENIE_RECORD"))
 	if os.IsNotExist(err) {
 		return ""
 	}

@@ -25,7 +25,7 @@ func FuzzTheFenceNeverBindsAForbiddenFolder(f *testing.F) {
 			f.Fatalf("cannot make the folder %s for the fuzz test: %v", folder, err)
 		}
 	}
-	helper := filepath.Join(userHome, "work", "coeus")
+	helper := filepath.Join(userHome, "work", "nerdgenie")
 	if err := os.WriteFile(helper, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		f.Fatalf("cannot write the stand-in helper program: %v", err)
 	}

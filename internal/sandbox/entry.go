@@ -23,7 +23,7 @@ import (
 // This is a guard against a person running the helper by hand, not a security
 // boundary. The security boundary is the namespaces bwrap makes, the Landlock
 // ruleset, and the seccomp filter the helper installs.
-const FenceMarkerVariable = "COEUS_INSIDE_SANDBOX"
+const FenceMarkerVariable = "NERDGENIE_INSIDE_SANDBOX"
 
 // fenceMarkerValue is what the fence sets that variable to. Its content does not
 // matter; that it is there at all is the whole signal.
@@ -58,7 +58,7 @@ func Entry(arguments []string, progress io.Writer) error {
 		return err
 	}
 	if os.Getenv(FenceMarkerVariable) == "" {
-		return fmt.Errorf("coeus %s only runs inside the sandbox that starts it, so run your command through coeus rather than by hand", EntrySubcommandName)
+		return fmt.Errorf("nerdgenie %s only runs inside the sandbox that starts it, so run your command through nerdgenie rather than by hand", EntrySubcommandName)
 	}
 
 	runtime.LockOSThread()
@@ -81,7 +81,7 @@ func Entry(arguments []string, progress io.Writer) error {
 	// far it got.
 	err = becomeTheCommand(request)
 	if err != nil {
-		fmt.Fprintf(progress, "coeus %s: landlock version %d, %d folders readable, %d writable, %d seccomp instructions, and then it could not start the command\n",
+		fmt.Fprintf(progress, "nerdgenie %s: landlock version %d, %d folders readable, %d writable, %d seccomp instructions, and then it could not start the command\n",
 			EntrySubcommandName, version, len(request.readable), len(request.writable), len(filter))
 	}
 	return err

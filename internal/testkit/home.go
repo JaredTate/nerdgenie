@@ -8,7 +8,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// NewTempHome makes the whole ~/.coeus layout under a folder the test framework
+// NewTempHome makes the whole ~/.nerdgenie layout under a folder the test framework
 // removes afterwards, with the modes the layout calls for, and points the HOME
 // variable at it so that anything asking for the default home finds this one.
 func NewTempHome(t testing.TB) contract.Home {

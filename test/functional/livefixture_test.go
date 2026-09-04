@@ -1,6 +1,6 @@
 //go:build live
 
-// The forty-step fixture through a real "coeus serve", one test per real model.
+// The forty-step fixture through a real "nerdgenie serve", one test per real model.
 //
 // The fixture is the proof that the record and the working context work on any
 // model, and internal/context/live_test.go already plays it to its last round

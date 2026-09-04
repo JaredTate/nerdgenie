@@ -4,7 +4,7 @@ package sandbox
 
 // What the wave 6 security review got past the fence. Every test here runs
 // against the real bwrap, the real Landlock, and the real seccomp filter, under
-// a temporary home, and none of them touches the user's own ~/.coeus or ~/.ssh.
+// a temporary home, and none of them touches the user's own ~/.nerdgenie or ~/.ssh.
 
 import (
 	"context"

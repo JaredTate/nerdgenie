@@ -82,7 +82,7 @@ type Updater struct {
 	service  service
 }
 
-// New builds the updater "coeus update" drives.
+// New builds the updater "nerdgenie update" drives.
 func New(settings Settings) (*Updater, error) {
 	if settings.Home.Root == "" {
 		return nil, errors.New("the updater needs the home folder, because that is where the releases and the link live")
@@ -205,7 +205,7 @@ func (updater *Updater) Rollback(ctx context.Context) (Outcome, error) {
 		}
 	}
 	if wanted == "" {
-		return outcome, fmt.Errorf("there is no version below %s in %s to go back to, so install one with \"coeus update\" instead",
+		return outcome, fmt.Errorf("there is no version below %s in %s to go back to, so install one with \"nerdgenie update\" instead",
 			live, updater.settings.Home.ReleasesFolder())
 	}
 
@@ -234,7 +234,7 @@ func (updater *Updater) migrateWithTheNewProgram(ctx context.Context, binary str
 
 	updater.say("bringing the database forward")
 	running := exec.CommandContext(within, binary, "update", MigrateFlag)
-	running.Env = append(os.Environ(), "COEUS_HOME="+updater.settings.Home.Root)
+	running.Env = append(os.Environ(), "NERDGENIE_HOME="+updater.settings.Home.Root)
 	said, err := running.CombinedOutput()
 	if err == nil {
 		return nil

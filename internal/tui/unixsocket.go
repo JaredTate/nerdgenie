@@ -47,7 +47,7 @@ func (dialer *UnixDialer) Dial(ctx context.Context) (Connection, error) {
 	reaching := net.Dialer{Timeout: dialTimeout}
 	link, err := reaching.DialContext(ctx, "unix", dialer.path)
 	if err != nil {
-		return nil, fmt.Errorf("cannot reach the running program at %s, so start it with \"coeus serve\": %w", dialer.path, err)
+		return nil, fmt.Errorf("cannot reach the running program at %s, so start it with \"nerdgenie serve\": %w", dialer.path, err)
 	}
 	return &socketConnection{link: link, reader: bufio.NewReaderSize(link, readBufferBytes)}, nil
 }

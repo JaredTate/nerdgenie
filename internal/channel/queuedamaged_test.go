@@ -13,7 +13,7 @@ import (
 // file behind the queue's back.
 func aQueueFileWithOneMessage(t *testing.T) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "coeus.db")
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
 	opened, err := OpenQueue(context.Background(), path, 10)
 	if err != nil {
 		t.Fatalf("opening a new queue failed: %v", err)

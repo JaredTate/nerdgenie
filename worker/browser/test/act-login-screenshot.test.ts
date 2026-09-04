@@ -110,7 +110,7 @@ describe("running a short batch of steps", () => {
 describe("filling in a login from the vault", () => {
   let worker: TestWorker;
   let site: FixtureServer;
-  const username = "coeus-operator";
+  const username = "nerdgenie-operator";
   const password = "hunter2-and-then-some";
 
   beforeAll(async () => {

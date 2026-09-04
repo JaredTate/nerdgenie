@@ -70,7 +70,7 @@ var _ contract.Channel = (*Channel)(nil)
 
 // ChannelOptions is everything the Signal channel needs to be built.
 type ChannelOptions struct {
-	// Account is the phone number the daemon is linked to, which is what "coeus
+	// Account is the phone number the daemon is linked to, which is what "nerdgenie
 	// signal link" writes into the configuration.
 	Account string
 	// Program is the signal-cli to run. When it is empty, Coeus starts no
@@ -96,7 +96,7 @@ type ChannelOptions struct {
 // called, and the orchestrator wires it in serve.go.
 func NewChannel(options ChannelOptions) (*Channel, error) {
 	if options.Account == "" {
-		return nil, errors.New("the Signal channel has no account, so run \"coeus signal link\" before switching Signal on")
+		return nil, errors.New("the Signal channel has no account, so run \"nerdgenie signal link\" before switching Signal on")
 	}
 	if options.Clock == nil {
 		return nil, errors.New("the Signal channel has no clock, and every wait it makes is measured on one")

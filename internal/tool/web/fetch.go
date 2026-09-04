@@ -20,7 +20,7 @@ const (
 	MaxRedirects = 5
 	// userAgent is what the agent calls itself when it asks for a page, because
 	// a request with no name on it is a request nobody can trace.
-	userAgent = "coeus/1 (an agent fetching a page a person asked for)"
+	userAgent = "nerdgenie/1 (an agent fetching a page a person asked for)"
 )
 
 // fetched is one page, as it came back.

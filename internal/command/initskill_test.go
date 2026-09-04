@@ -49,7 +49,7 @@ func TestInitShipsTheBrowserSkillAndTheLoaderListsIt(t *testing.T) {
 
 	written, err := os.ReadFile(filepath.Join(home.SkillFolder("browser"), skill.DescriptionFile))
 	if err != nil {
-		t.Fatalf("coeus init did not write the browser skill: %v", err)
+		t.Fatalf("nerdgenie init did not write the browser skill: %v", err)
 	}
 	if words := len(strings.Fields(string(written))); words >= 300 {
 		t.Errorf("the browser skill is %d words long, and it has to stay under three hundred", words)

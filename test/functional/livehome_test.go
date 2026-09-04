@@ -1,6 +1,6 @@
 //go:build live
 
-// The live tier of the functional suite: a real "coeus serve" driven over the
+// The live tier of the functional suite: a real "nerdgenie serve" driven over the
 // same socket the terminal uses, against the three real models this machine
 // has, rather than against a scripted one.
 //
@@ -120,7 +120,7 @@ context_length = %d
 		contract.CodexProgram, liveCodexModelName, liveSubscriptionSize)
 }
 
-// startTheLiveAgent starts a real "coeus serve" against a home naming the three
+// startTheLiveAgent starts a real "nerdgenie serve" against a home naming the three
 // real models, with this one as the default, and waits until it answers on its
 // socket. Anything a test needs done to the home before the agent starts, such
 // as seeding a record, is passed after the model.

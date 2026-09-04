@@ -37,7 +37,7 @@ func aVaultHoldingTheSudoPassword(t *testing.T, home contract.Home) {
 	}
 }
 
-// TestAskpassReadsTheHomeTheRestOfCoeusReads holds the rule that COEUS_HOME
+// TestAskpassReadsTheHomeTheRestOfCoeusReads holds the rule that NERDGENIE_HOME
 // moves the whole home folder. Every other subcommand asks config.HomeFolder for
 // its paths; askpass calls contract.DefaultHome, which reads only HOME.
 func TestAskpassReadsTheHomeTheRestOfCoeusReads(t *testing.T) {

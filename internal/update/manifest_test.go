@@ -21,8 +21,8 @@ func aGoodManifest() string {
 		"date": "2026-09-02",
 		"architectures": ["amd64", "arm64"],
 		"checksums": {
-			"coeus-0.7.0-amd64.tar.gz": "` + aChecksum + `",
-			"coeus-0.7.0-arm64.tar.gz": "` + anotherChecksum + `"
+			"nerdgenie-0.7.0-amd64.tar.gz": "` + aChecksum + `",
+			"nerdgenie-0.7.0-arm64.tar.gz": "` + anotherChecksum + `"
 		}
 	}`
 }
@@ -47,8 +47,8 @@ func TestAManifestSaysWhatIsOnOffer(t *testing.T) {
 func TestTheArchiveIsNamedForItsVersionAndArchitecture(t *testing.T) {
 	name := update.ArchiveName("0.7.0", "arm64")
 
-	if name != "coeus-0.7.0-arm64.tar.gz" {
-		t.Errorf("the archive is called %q rather than coeus-0.7.0-arm64.tar.gz", name)
+	if name != "nerdgenie-0.7.0-arm64.tar.gz" {
+		t.Errorf("the archive is called %q rather than nerdgenie-0.7.0-arm64.tar.gz", name)
 	}
 }
 
@@ -98,7 +98,7 @@ func TestAManifestThatIsWrongIsRefusedWithAReason(t *testing.T) {
 		{"no checksum for an architecture", `{"version":"0.7.0","architectures":["amd64"],"checksums":{}}`, "checksum"},
 		{
 			"a checksum that is not a sum",
-			`{"version":"0.7.0","architectures":["amd64"],"checksums":{"coeus-0.7.0-amd64.tar.gz":"nope"}}`,
+			`{"version":"0.7.0","architectures":["amd64"],"checksums":{"nerdgenie-0.7.0-amd64.tar.gz":"nope"}}`,
 			"checksum",
 		},
 	}
@@ -119,7 +119,7 @@ func TestAManifestThatIsWrongIsRefusedWithAReason(t *testing.T) {
 
 func TestAChecksumThatIsTheRightLengthButNotHexadecimalIsRefused(t *testing.T) {
 	written := `{"version":"0.7.0","architectures":["amd64"],
-		"checksums":{"coeus-0.7.0-amd64.tar.gz":"` + strings.Repeat("z", 64) + `"}}`
+		"checksums":{"nerdgenie-0.7.0-amd64.tar.gz":"` + strings.Repeat("z", 64) + `"}}`
 
 	if _, err := update.ParseManifest([]byte(written)); err == nil {
 		t.Errorf("a checksum of sixty-four letters that are not digits was accepted")
@@ -136,7 +136,7 @@ func TestAManifestLongerThanTheCapIsRefused(t *testing.T) {
 
 func TestAManifestMayCarryFieldsThisVersionDoesNotKnow(t *testing.T) {
 	written := `{"version":"0.7.0","date":"2026-09-02","architectures":["amd64"],
-		"checksums":{"coeus-0.7.0-amd64.tar.gz":"` + aChecksum + `"},"notes":"anything at all"}`
+		"checksums":{"nerdgenie-0.7.0-amd64.tar.gz":"` + aChecksum + `"},"notes":"anything at all"}`
 
 	if _, err := update.ParseManifest([]byte(written)); err != nil {
 		t.Fatalf("a manifest with a field from a later release was refused: %v", err)

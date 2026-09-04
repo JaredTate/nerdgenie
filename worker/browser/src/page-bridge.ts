@@ -91,7 +91,7 @@ export async function askPage<T>(frame: Frame | Page, what: string, expression: 
 
 /** Ask one frame what is on it. */
 export function scanFrame(frame: Frame, settings: ScanSettings): Promise<FrameScan> {
-  return askPage<FrameScan>(frame, "scan", `window.__coeusScan(${JSON.stringify(settings)})`);
+  return askPage<FrameScan>(frame, "scan", `window.__nerdgenieScan(${JSON.stringify(settings)})`);
 }
 
 /** Ask one frame to find an element again and hand back its ref. */
@@ -99,18 +99,18 @@ export function findLike(frame: Frame, settings: FindSettings): Promise<string |
   return askPage<string | null>(
     frame,
     "find",
-    `window.__coeusFindLike(${JSON.stringify(settings)})`,
+    `window.__nerdgenieFindLike(${JSON.stringify(settings)})`,
   );
 }
 
 /** Ask where an element sits on the screen. */
 export function boxOf(frame: Frame, ref: string): Promise<Box | null> {
-  return askPage<Box | null>(frame, "box", `window.__coeusBoxOf(${JSON.stringify(ref)})`);
+  return askPage<Box | null>(frame, "box", `window.__nerdgenieBoxOf(${JSON.stringify(ref)})`);
 }
 
 /** Ask how long the page has been quiet, in milliseconds. */
 export function quietFor(page: Page): Promise<number> {
-  return askPage<number>(page, "quiet", "window.__coeusQuietFor()");
+  return askPage<number>(page, "quiet", "window.__nerdgenieQuietFor()");
 }
 
 /** Draw numbered marks on the elements a screenshot should point at. */
@@ -118,10 +118,10 @@ export function drawMarks(
   page: Page,
   marks: ReadonlyArray<{ number: number; ref: string }>,
 ): Promise<number> {
-  return askPage<number>(page, "marks", `window.__coeusDrawMarks(${JSON.stringify(marks)})`);
+  return askPage<number>(page, "marks", `window.__nerdgenieDrawMarks(${JSON.stringify(marks)})`);
 }
 
 /** Take the marks away again. */
 export function clearMarks(page: Page): Promise<boolean> {
-  return askPage<boolean>(page, "marks", "window.__coeusClearMarks()");
+  return askPage<boolean>(page, "marks", "window.__nerdgenieClearMarks()");
 }

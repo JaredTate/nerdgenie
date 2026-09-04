@@ -27,7 +27,7 @@ import (
 // claimHelperVariable names the environment variable that turns this test binary
 // into the second process. Re-invoking the test binary with a variable set is
 // the standard Go way to get another process that shares the code under test.
-const claimHelperVariable = "COEUS_JOB_CLAIM_HELPER_HOME"
+const claimHelperVariable = "NERDGENIE_JOB_CLAIM_HELPER_HOME"
 
 // The two lines the helper prints, so that the parent can read what happened
 // without having to guess from an exit code.

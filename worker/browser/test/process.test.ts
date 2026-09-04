@@ -111,7 +111,7 @@ describe("the worker as its own process", () => {
       throw new Error(`${BUILT} is missing. Run npm run build before npm test.`);
     });
     site = await startFixtureServer();
-    profile = await mkdtemp(join(tmpdir(), "coeus-browser-process-"));
+    profile = await mkdtemp(join(tmpdir(), "nerdgenie-browser-process-"));
     worker = new SpawnedWorker(profile);
     await worker.ready();
   });
@@ -185,7 +185,7 @@ describe("the worker as its own process", () => {
   });
 
   it("stops when standard input closes, and takes Chrome with it", async () => {
-    const alone = await mkdtemp(join(tmpdir(), "coeus-browser-exit-"));
+    const alone = await mkdtemp(join(tmpdir(), "nerdgenie-browser-exit-"));
     const other = new SpawnedWorker(alone);
     await other.ready();
     await other.stop();

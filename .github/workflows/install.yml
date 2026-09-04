@@ -1,7 +1,7 @@
 # Prove that the installer works on a machine nobody has touched. It builds a
 # release, then runs it inside a clean Ubuntu container and a clean Debian
-# container with every "coeus init" answer given as a flag, and ends with a
-# passing "coeus doctor". That is the first item of the human trial: install on a
+# container with every "nerdgenie init" answer given as a flag, and ends with a
+# passing "nerdgenie doctor". That is the first item of the human trial: install on a
 # clean account, run init, and get to the first reply without reading anything.
 #
 # The test itself is scripts/release/container_test.go, so the same run happens on
@@ -36,7 +36,7 @@ jobs:
           node-version: "24"
 
       # The pinned runtimes are the same files every run, so they are kept between
-      # runs rather than fetched from nodejs.org each time. COEUS_NODE_CACHE puts
+      # runs rather than fetched from nodejs.org each time. NERDGENIE_NODE_CACHE puts
       # them under the workspace, which is the only place this action can save.
       - name: Reuse the pinned Node runtimes
         uses: actions/cache@v4

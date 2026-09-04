@@ -19,7 +19,7 @@ type personaFile struct {
 	text string
 }
 
-// personaFiles returns the three files "coeus init" writes, each with a heading
+// personaFiles returns the three files "nerdgenie init" writes, each with a heading
 // and one line saying what belongs in it.
 func personaFiles(home contract.Home) []personaFile {
 	return []personaFile{{
@@ -56,7 +56,7 @@ func writePersonaFiles(home contract.Home) error {
 	return nil
 }
 
-// browserSkillName is the folder name of the one skill "coeus init" ships beside
+// browserSkillName is the folder name of the one skill "nerdgenie init" ships beside
 // the persona files. The first human trial found that the model, given the
 // seven browser tools and nothing about them, launched Chrome through the shell
 // tool thirteen times in a row and guessed at pages instead of reading them.
@@ -126,9 +126,9 @@ func writeBrowserSkill(home contract.Home) error {
 // folders Coeus may work in, and a comment above every line saying what it does.
 func configurationText(chosen modelChoice, found []modelChoice, roots []string) string {
 	written := &strings.Builder{}
-	written.WriteString("# The Coeus configuration, written by \"coeus init\".\n")
+	written.WriteString("# The Coeus configuration, written by \"nerdgenie init\".\n")
 	written.WriteString("# Every setting has a default, so a line you delete goes back to the default\n")
-	written.WriteString("# rather than switching anything off. Run \"coeus doctor\" after editing it.\n\n")
+	written.WriteString("# rather than switching anything off. Run \"nerdgenie doctor\" after editing it.\n\n")
 
 	written.WriteString("# The model Coeus talks to when nothing else says otherwise.\n")
 	fmt.Fprintf(written, "default_model = %s\n\n", quoted(chosen.name))
@@ -154,7 +154,7 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	return written.String()
 }
 
-// The codex example block "coeus init" writes at the end of every file: the
+// The codex example block "nerdgenie init" writes at the end of every file: the
 // model it names and the window it is given. GPT-5.6 Sol answers a 400,000
 // token window on the Codex backend.
 const (
@@ -167,7 +167,7 @@ const (
 )
 
 // codexExampleBlock is one more [[models]] block, written entirely as comments,
-// for OpenAI's Codex backend on the ChatGPT subscription. "coeus init" cannot
+// for OpenAI's Codex backend on the ChatGPT subscription. "nerdgenie init" cannot
 // set it up itself yet, so the example is how a person learns the provider
 // exists and turns it on in one edit. Every line is a comment, so the file
 // loads exactly as it would without the block.
@@ -229,7 +229,7 @@ func aliasesToWrite(chosen modelChoice, found []modelChoice) []modelChoice {
 }
 
 // aliasBlock is one [[models]] block, with a comment above every line. A server
-// on this machine that was not answering when "coeus init" ran still gets its
+// on this machine that was not answering when "nerdgenie init" ran still gets its
 // block, with a comment saying so, because that is how a person who has not
 // started the daemon yet ends up with a configuration they can use.
 func aliasBlock(choice modelChoice) string {
@@ -237,8 +237,8 @@ func aliasBlock(choice modelChoice) string {
 	written := &strings.Builder{}
 	written.WriteString("\n# One model Coeus can talk to. Add a block like this for another.\n")
 	if !choice.detected && !choice.needsKey {
-		written.WriteString("# This server was not answering when \"coeus init\" ran. Start it, then run\n")
-		written.WriteString("# \"coeus doctor\" to check that Coeus can reach it.\n")
+		written.WriteString("# This server was not answering when \"nerdgenie init\" ran. Start it, then run\n")
+		written.WriteString("# \"nerdgenie doctor\" to check that Coeus can reach it.\n")
 	}
 	written.WriteString("[[models]]\n")
 	written.WriteString("# The short name you call this model by.\n")
@@ -266,7 +266,7 @@ func aliasBlock(choice modelChoice) string {
 	fmt.Fprintf(written, "think = %s\n", quoted(string(alias.Think)))
 	if alias.KeyReference != "" {
 		written.WriteString("# Where the API key is. The key itself lives in the vault and is never\n")
-		written.WriteString("# written here; \"coeus init\" put it there.\n")
+		written.WriteString("# written here; \"nerdgenie init\" put it there.\n")
 		fmt.Fprintf(written, "key_reference = %s\n", quoted(alias.KeyReference))
 	}
 	return written.String()

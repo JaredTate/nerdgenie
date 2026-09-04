@@ -116,10 +116,10 @@ func TestTheBrowserProfileIsNeverInsideAFolderTheFenceOpens(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	started := exec.CommandContext(ctx, program, "serve")
-	started.Env = append(os.Environ(), "COEUS_HOME="+home.Root)
+	started.Env = append(os.Environ(), "NERDGENIE_HOME="+home.Root)
 	said, err := started.CombinedOutput()
 	if err == nil {
-		t.Fatalf("coeus serve came up with the browser profile inside a sandbox root; it said:\n%s", said)
+		t.Fatalf("nerdgenie serve came up with the browser profile inside a sandbox root; it said:\n%s", said)
 	}
 	if !strings.Contains(string(said), "sandbox_roots") || !strings.Contains(string(said), profile) {
 		t.Errorf("the refusal does not name the setting and the profile:\n%s", said)

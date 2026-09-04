@@ -101,7 +101,7 @@ const COLUMNS = [
   ["tests passing", (run) => whole(run.tests_passing)],
 ];
 
-const HARNESS_ORDER = ["coeus", "opencode", "hermes", "openclaw"];
+const HARNESS_ORDER = ["nerdgenie", "opencode", "hermes", "openclaw"];
 
 function sortRuns(left, right) {
   const byHarness = HARNESS_ORDER.indexOf(left.harness) - HARNESS_ORDER.indexOf(right.harness);

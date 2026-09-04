@@ -14,9 +14,9 @@ import (
 // a command that begins with the word reboot is always refused.
 func FuzzTheRestartGuard(theFuzzer *testing.F) {
 	theFuzzer.Add("post the anniversary tweet")
-	theFuzzer.Add("sudo systemctl restart coeus")
+	theFuzzer.Add("sudo systemctl restart nerdgenie")
 	theFuzzer.Add("tidy the logs; reboot")
-	theFuzzer.Add(`run ["killall", "coeus"]`)
+	theFuzzer.Add(`run ["killall", "nerdgenie"]`)
 	theFuzzer.Add("|;&&\\\n\x00")
 	theFuzzer.Add("/sbin/reboot")
 	theFuzzer.Add("bash -c reboot")

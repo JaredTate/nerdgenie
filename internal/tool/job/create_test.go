@@ -265,3 +265,108 @@ func TestAScheduledJobOverARecordNeedsNoAskAndNoTasks(t *testing.T) {
 		t.Errorf("the scheduled job holds %d tasks, want none until its clock ticks", len(tasks))
 	}
 }
+
+// TestATaskListOfPlainStringsGivesUndatedTasksInOrder proves the shape a small
+// model writes most, a list of strings, is taken as undated tasks in order.
+func TestATaskListOfPlainStringsGivesUndatedTasksInOrder(t *testing.T) {
+	tool, jobs := newToolOverRecord(t, "the ask")
+
+	if _, err := run(t, tool, map[string]any{
+		"action": "create", "why": "the why",
+		"tasks": []any{"write the failing tests", "implement the engine"},
+	}); err != nil {
+		t.Fatalf("creating a job from a list of strings was refused: %v", err)
+	}
+	tasks := jobs.Tasks("1")
+	if len(tasks) != 2 || tasks[0].Text != "write the failing tests" || tasks[1].Text != "implement the engine" {
+		t.Fatalf("the job holds %v, want the two strings as tasks in order", tasks)
+	}
+	for _, task := range tasks {
+		if task.DueAt != "" {
+			t.Errorf("task %s waits for %q, want a task written as a string to carry no date", task.TaskID, task.DueAt)
+		}
+	}
+}
+
+// TestAMixedTaskListKeepsItsOrderAndItsDate proves strings and objects can be
+// listed together, each read in its own shape.
+func TestAMixedTaskListKeepsItsOrderAndItsDate(t *testing.T) {
+	tool, jobs := newToolOverRecord(t, "the ask")
+	due := theMoment.Add(24 * time.Hour)
+
+	if _, err := run(t, tool, map[string]any{
+		"action": "create", "why": "the why",
+		"tasks": []any{
+			"write the failing tests",
+			map[string]any{"text": "implement the engine", "due_at": due.Format(time.RFC3339)},
+			"play-test it",
+		},
+	}); err != nil {
+		t.Fatalf("creating a job from a mixed list was refused: %v", err)
+	}
+	tasks := jobs.Tasks("1")
+	wanted := []string{"write the failing tests", "implement the engine", "play-test it"}
+	if len(tasks) != len(wanted) {
+		t.Fatalf("the job holds %d tasks, want the three listed", len(tasks))
+	}
+	for at, task := range tasks {
+		if task.Text != wanted[at] {
+			t.Errorf("task %d is %q, want %q: the list is written in order", at+1, task.Text, wanted[at])
+		}
+	}
+	if tasks[0].DueAt != "" || tasks[1].DueAt == "" || tasks[2].DueAt != "" {
+		t.Errorf("the dates on the list are %q, %q, %q, want only the second task dated", tasks[0].DueAt, tasks[1].DueAt, tasks[2].DueAt)
+	}
+}
+
+// TestATaskInAShapeTheToolCannotReadIsRefusedByItsPosition proves a number, a
+// null, a nested list, or a boolean where a task should be refuses the call by
+// the item's position, in words the model can act on, before any job is made.
+func TestATaskInAShapeTheToolCannotReadIsRefusedByItsPosition(t *testing.T) {
+	tool, jobs := newToolOverRecord(t, "the ask")
+
+	for _, broken := range []any{7, nil, []any{"a task inside a list"}, true} {
+		_, err := run(t, tool, map[string]any{
+			"action": "create", "why": "the why", "tasks": []any{"the first task", broken, "the third task"},
+		})
+		if err == nil {
+			t.Errorf("a task written as %v was taken", broken)
+			continue
+		}
+		if !strings.Contains(err.Error(), "task 2") || !strings.Contains(err.Error(), "string") {
+			t.Errorf("the refusal for a task written as %v reads %q and does not name position two and the shapes to write", broken, err)
+		}
+	}
+	if summaries, listErr := jobs.List(context.Background()); listErr != nil {
+		t.Fatalf("listing failed: %v", listErr)
+	} else if len(summaries) != 0 {
+		t.Errorf("the refused creates still left %d jobs behind", len(summaries))
+	}
+}
+
+// TestTheCapAndTheBlankRuleHoldForPlainStringTasks proves the bound on the list
+// and the refusal of a task that says nothing read a string the same as an
+// object.
+func TestTheCapAndTheBlankRuleHoldForPlainStringTasks(t *testing.T) {
+	tool, jobs := newToolOverRecord(t, "the ask")
+
+	listed := make([]any, 0, job.MaxTasksOnCreate+1)
+	for at := range job.MaxTasksOnCreate + 1 {
+		listed = append(listed, fmt.Sprintf("task %d", at+1))
+	}
+	if _, err := run(t, tool, map[string]any{"action": "create", "why": "the why", "tasks": listed}); err == nil {
+		t.Errorf("a list of %d strings was taken, and the cap is %d", len(listed), job.MaxTasksOnCreate)
+	} else if !strings.Contains(err.Error(), "add_task") {
+		t.Errorf("the refusal reads %q and does not tell the model what to do with the rest", err)
+	}
+	if _, err := run(t, tool, map[string]any{"action": "create", "why": "the why", "tasks": []any{"the first task", "   "}}); err == nil {
+		t.Errorf("a blank string where a task should be was taken")
+	} else if !strings.Contains(err.Error(), "task 2") {
+		t.Errorf("the refusal reads %q and does not name the blank task's position", err)
+	}
+	if summaries, listErr := jobs.List(context.Background()); listErr != nil {
+		t.Fatalf("listing failed: %v", listErr)
+	} else if len(summaries) != 0 {
+		t.Errorf("the refused creates still left %d jobs behind", len(summaries))
+	}
+}

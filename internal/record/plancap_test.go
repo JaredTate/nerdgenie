@@ -31,10 +31,10 @@ func jobTasksOf(count int) []NewJobTask {
 	return tasks
 }
 
-// TestATaskTakesAPlanOfEightSteps holds the near side of the eight-step rule:
-// eight steps is one sitting's plan, and a task keeps them all, numbered from
-// one.
-func TestATaskTakesAPlanOfEightSteps(t *testing.T) {
+// TestATaskTakesAPlanAsLongAsTheCap holds the near side of the plan rule: a
+// plan of exactly MaxPlanSteps steps is one sitting's plan, and a task keeps
+// every step, numbered from one.
+func TestATaskTakesAPlanAsLongAsTheCap(t *testing.T) {
 	keeper, _ := newKeeper(t, taskStart())
 
 	if err := keeper.Apply(t.Context(), Update{Plan: planStepsOf(MaxPlanSteps)}); err != nil {
@@ -49,13 +49,13 @@ func TestATaskTakesAPlanOfEightSteps(t *testing.T) {
 	}
 }
 
-// TestATaskRefusesAPlanOfNineStepsAndSaysItIsAJob is the rule itself. Given a
-// whole game with its tests and its browser play-testing, a small model kept
-// the done list at five lines and hid the whole build in a twelve-step plan on
-// one task, because the plan had no cap. The harness decides now: a plan past
-// eight steps is refused, and the refusal says what to do instead, in the same
-// words as the done-list refusal.
-func TestATaskRefusesAPlanOfNineStepsAndSaysItIsAJob(t *testing.T) {
+// TestATaskRefusesAPlanOneStepPastTheCapAndSaysItIsAJob is the rule itself.
+// Given a whole game with its tests and its browser play-testing, a small model
+// kept the done list at five lines and hid the whole build in a twelve-step
+// plan on one task, because the plan had no cap. The harness decides now: a
+// plan past MaxPlanSteps is refused, and the refusal says what to do instead,
+// in the same words as the done-list refusal.
+func TestATaskRefusesAPlanOneStepPastTheCapAndSaysItIsAJob(t *testing.T) {
 	keeper, _ := newKeeper(t, taskStart())
 
 	err := keeper.Apply(t.Context(), Update{
@@ -69,8 +69,8 @@ func TestATaskRefusesAPlanOfNineStepsAndSaysItIsAJob(t *testing.T) {
 		t.Errorf("the refusal is %v, and it does not carry the named rule", err)
 	}
 	for _, told := range []string{
-		"9 steps", "at most 8", "this ask is a job", "job tool",
-		"one task per step", "one clear done line", "work the first task",
+		strconv.Itoa(MaxPlanSteps+1) + " steps", "at most " + strconv.Itoa(MaxPlanSteps),
+		"this ask is a job", "job tool", "one task per step", "one clear done line", "work the first task",
 	} {
 		if !strings.Contains(err.Error(), told) {
 			t.Errorf("the refusal reads %q and does not say %q", err, told)
@@ -111,10 +111,10 @@ func TestARefusedPlanLeavesThePlanBeforeItStanding(t *testing.T) {
 }
 
 // TestAJobIsNotHeldToATasksPlanCap holds the edge of the rule: it is a task's
-// rule, because a task is one sitting. A job has no plan at all, so a plan of
-// nine steps on a job is refused as the wrong kind and never as too long, and
-// the job's own list of nine tasks, which is what such a plan should have been
-// written as, is kept whole.
+// rule, because a task is one sitting. A job has no plan at all, so a plan one
+// step past the cap on a job is refused as the wrong kind and never as too
+// long, and the job's own task list of the same length, which is what such a
+// plan should have been written as, is kept whole.
 func TestAJobIsNotHeldToATasksPlanCap(t *testing.T) {
 	keeper, _ := newKeeper(t, jobStart())
 	ctx := t.Context()

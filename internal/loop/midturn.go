@@ -23,16 +23,27 @@ var theWordsThatMeanStop = []string{"stop", "halt", "cancel", "abort", "quit", "
 // The harness copies the user's words into the record first, word for word, so
 // that the correction is there whatever the model does with it next.
 func (running *run) readDelivered(ctx context.Context) (Outcome, bool, error) {
-	for _, message := range running.theLoop.takeDelivered() {
+	outcome, more, _, err := running.readTheMessages(ctx, running.theLoop.takeDelivered())
+	return outcome, more, err
+}
+
+// readTheMessages reads the messages given: a stop ends the task, and a
+// correction is written into the record and put in front of the model. It says
+// how many corrections it took, so that a caller with no round after it can
+// send the model round once more to read them.
+func (running *run) readTheMessages(ctx context.Context, messages []contract.Inbound) (Outcome, bool, int, error) {
+	taken := 0
+	for _, message := range messages {
 		if meansStop(message.Text) {
 			outcome, err := running.stopForThePerson(ctx, "the user said to stop")
-			return outcome, false, err
+			return outcome, false, taken, err
 		}
 		if err := running.takeTheCorrection(ctx, message); err != nil {
-			return Outcome{}, false, err
+			return Outcome{}, false, taken, err
 		}
+		taken++
 	}
-	return Outcome{}, true, nil
+	return Outcome{}, true, taken, nil
 }
 
 // takeTheCorrection writes the user's words into the record and puts them in

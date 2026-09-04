@@ -42,9 +42,23 @@ func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.
 // harness tells a question from an answer by the finish state and by what the
 // reply has behind it: a question puts the task into waiting, and an answer goes
 // to the done-check.
+//
+// A message that arrived while the model was writing this reply is read first,
+// because it is this task's to read and not the next task's: the person said
+// stop, so the task stops, or they corrected it, so the model is sent round once
+// more with their words in front of it and this reply does not stand. Messages
+// that arrive during a tool call are read at the end of the tool calls, so
+// this reads only what came during a reply with no tool call after it.
 func (running *run) endOfTurn(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
+	}
+	ended, more, corrections, err := running.readTheMessages(ctx, running.theLoop.takeDelivered())
+	if err != nil || !more {
+		return ended, false, err
+	}
+	if corrections > 0 {
+		return Outcome{}, true, nil
 	}
 	if running.isAQuestion(text, why) {
 		outcome, err := running.waitHere(ctx, text)

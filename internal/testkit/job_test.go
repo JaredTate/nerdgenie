@@ -135,6 +135,13 @@ func TestTheFakeJobStoreKeepsTheJobContract(t *testing.T) {
 	}
 }
 
+func TestTheFakeJobStoreKeepsTheJobContractForAJobWithoutAName(t *testing.T) {
+	jobs := testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC()))
+	if err := testkit.CheckJobWithoutAName(context.Background(), jobs); err != nil {
+		t.Fatalf("the fake job store does not keep the job contract for a job without a name: %v", err)
+	}
+}
+
 // stateOf reads one job's state out of the listing.
 func stateOf(t *testing.T, jobs contract.Job, jobID string) contract.JobState {
 	t.Helper()

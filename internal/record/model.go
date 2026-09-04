@@ -48,6 +48,19 @@ type Update struct {
 // to this, because a job is made of many sittings.
 const MaxDoneLines = 5
 
+// MaxPlanSteps is how many steps a task's plan may hold. A task is one sitting
+// of work, and ten steps is what one sitting works through: the forty-round
+// tweet of the forty-step fixture, which is the design's own picture of one
+// sitting, plans in ten. A plan longer than that is a job's task list in
+// disguise, and the ask behind it is a job with one task per step. The record
+// refuses the eleventh step rather than leaving the call to the model, because
+// a small model never says on its own that an ask is too big for one task:
+// given a whole game with its hazards, its animations, its tests and its
+// play-testing, which section 4 of NERDGENIE.md says is a job, one kept the
+// done list at five lines and hid the whole build in a twelve-step plan. A job
+// is not held to this, because a job has a task list and no plan.
+const MaxPlanSteps = 10
+
 // NewDecision is a choice the model made, with the reason it must carry so that
 // the model does not argue with itself later.
 type NewDecision struct {
@@ -228,15 +241,20 @@ func applyStopWhen(into *contract.Record, update Update) error {
 	return nil
 }
 
-// applyPlan writes a task's plan, numbering the steps from one, and keeps the
-// mark and the result of any step whose words did not change, so that editing a
-// plan never throws away the proof of the work already done.
+// applyPlan writes a task's plan under the rule that it holds at most
+// MaxPlanSteps steps, numbering the steps from one, and keeps the mark and the
+// result of any step whose words did not change, so that editing a plan never
+// throws away the proof of the work already done.
 func applyPlan(into *contract.Record, update Update) error {
 	if update.Plan == nil {
 		return nil
 	}
 	if into.Header.Kind != contract.RecordTask {
 		return fmt.Errorf("a plan belongs to a task and this is a %s, which has a task list: %w", into.Header.Kind, ErrWrongKind)
+	}
+	if len(update.Plan) > MaxPlanSteps {
+		return fmt.Errorf("this plan has %d steps and a task's holds at most %d, so %w",
+			len(update.Plan), MaxPlanSteps, ErrPlanTooLong)
 	}
 	steps := make([]contract.PlanStep, 0, len(update.Plan))
 	for at, text := range update.Plan {

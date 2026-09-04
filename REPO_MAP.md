@@ -709,12 +709,14 @@ internal/record/logfails_test.go
 internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
+internal/record/name_test.go
 internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go
 internal/record/parsebad_test.go
 internal/record/parseitems.go
 internal/record/pinned_test.go
+internal/record/plancap_test.go
 internal/record/print.go
 internal/record/print_test.go
 internal/record/size.go

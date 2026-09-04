@@ -17,6 +17,12 @@ func readInput(written json.RawMessage) (input, error) {
 	asked := input{}
 	if len(written) > 0 {
 		if err := json.Unmarshal(written, &asked); err != nil {
+			// The task list reads itself and its refusals already say what to
+			// do, so one of those goes back as it is.
+			var refusal listRefusal
+			if errors.As(err, &refusal) {
+				return input{}, err
+			}
 			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an action in it: %w", err)
 		}
 	}
@@ -24,17 +30,10 @@ func readInput(written json.RawMessage) (input, error) {
 	case ActionCreate:
 		// The ask is not checked here, because which ask the job takes depends
 		// on whether the tool has the running task's record, and create knows.
+		// The cap on the list and the refusal of a task that says nothing are
+		// the list's own, in its reader, so they hold whatever the action.
 		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 0 {
 			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list under tasks, then work the first task")
-		}
-		if len(asked.Tasks) > MaxTasksOnCreate {
-			return input{}, fmt.Errorf("this create lists %d tasks and one create takes at most %d, so create the job with the first %d and put the rest on it with add_task",
-				len(asked.Tasks), MaxTasksOnCreate, MaxTasksOnCreate)
-		}
-		for at, task := range asked.Tasks {
-			if strings.TrimSpace(task.Text) == "" {
-				return input{}, fmt.Errorf("task %d of the list says nothing, so write in one line what it does and how it is done", at+1)
-			}
 		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {

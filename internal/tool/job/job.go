@@ -1,6 +1,7 @@
 package job
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -45,13 +46,99 @@ type Settings struct {
 	Records Records
 }
 
-// writtenTask is one task as the model lists it on create.
+// writtenTask is one task as the model lists it on create, in either of the two
+// shapes a model writes: the task's text as a bare string, or an object with
+// text and due_at.
 type writtenTask struct {
+	// Text says what the task does, with one clear done line behind it.
+	Text string
+	// DueAt is when the task may start, written as a date and time, or empty.
+	DueAt string
+}
+
+// taskObject is the object shape of a listed task. It is read apart from the
+// item's own reader so that reading it does not call that reader again.
+type taskObject struct {
 	// Text says what the task does, with one clear done line behind it.
 	Text string `json:"text"`
 	// DueAt is when the task may start, written as a date and time, or empty.
 	DueAt string `json:"due_at"`
 }
+
+// errNotATask is what a listed item that is neither a string nor an object
+// comes back as. The list's reader puts the item's position in front of it.
+var errNotATask = errors.New("this task is neither a string nor an object, so write the task's text as a string or an object with text")
+
+// UnmarshalJSON reads one listed task: a string first, which is an undated task
+// with that text, and then an object with text and due_at. Anything else, such
+// as a number, a null, or a list, is refused, so that a small model's habit of
+// listing its tasks as strings works and every other shape is named plainly.
+func (task *writtenTask) UnmarshalJSON(written []byte) error {
+	trimmed := bytes.TrimSpace(written)
+	if len(trimmed) == 0 {
+		return errNotATask
+	}
+	switch trimmed[0] {
+	case '"':
+		var text string
+		if err := json.Unmarshal(trimmed, &text); err != nil {
+			return errNotATask
+		}
+		*task = writtenTask{Text: text}
+		return nil
+	case '{':
+		var object taskObject
+		if err := json.Unmarshal(trimmed, &object); err != nil {
+			return errNotATask
+		}
+		*task = writtenTask{Text: object.Text, DueAt: object.DueAt}
+		return nil
+	default:
+		return errNotATask
+	}
+}
+
+// writtenTasks is the task list as the model writes it. It reads itself one
+// item at a time, so that an item the tool cannot read is refused by its
+// position rather than by Go's own complaint about the whole call, and it
+// holds the list to the cap before reading any item, so the loop is bounded.
+type writtenTasks []writtenTask
+
+// UnmarshalJSON reads the list, refusing one over the cap, an item that is not
+// a task, and an item that says nothing, the last two by their position.
+func (tasks *writtenTasks) UnmarshalJSON(written []byte) error {
+	items := []json.RawMessage{}
+	if err := json.Unmarshal(written, &items); err != nil {
+		return listRefusal{line: "tasks is not a list, so write it as a list of tasks, each the task's text as a string or an object with text"}
+	}
+	if len(items) > MaxTasksOnCreate {
+		return listRefusal{line: fmt.Sprintf("this create lists %d tasks and one create takes at most %d, so create the job with the first %d and put the rest on it with add_task",
+			len(items), MaxTasksOnCreate, MaxTasksOnCreate)}
+	}
+	read := make(writtenTasks, 0, len(items))
+	for at, item := range items {
+		task := writtenTask{}
+		if err := task.UnmarshalJSON(item); err != nil {
+			return listRefusal{line: fmt.Sprintf("task %d of the list is not one this tool can read, so write the task's text as a string or an object with text", at+1)}
+		}
+		if strings.TrimSpace(task.Text) == "" {
+			return listRefusal{line: fmt.Sprintf("task %d of the list says nothing, so write in one line what it does and how it is done", at+1)}
+		}
+		read = append(read, task)
+	}
+	*tasks = read
+	return nil
+}
+
+// listRefusal is a refusal from the task list's own reader. It already says
+// what went wrong and what to do, so readInput hands it back as it is rather
+// than as a call that is not JSON.
+type listRefusal struct {
+	line string
+}
+
+// Error is the refusal in one line.
+func (refusal listRefusal) Error() string { return refusal.line }
 
 // writtenSchedule is a schedule as the model writes it, before it is turned into
 // the one the contract carries.
@@ -88,7 +175,7 @@ type input struct {
 	Text string `json:"text"`
 	// Tasks is the whole task list on create, in order, after Text when there
 	// is one.
-	Tasks []writtenTask `json:"tasks"`
+	Tasks writtenTasks `json:"tasks"`
 	// DueAt is when the task may start, written as a date and time.
 	DueAt string `json:"due_at"`
 }
@@ -118,7 +205,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "task_template", Type: "string", Description: "What a scheduled job turns into one task each time."},
 			{Name: "job_id", Type: "string", Description: "Which job to add a task to."},
 			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task."},
-			{Name: "tasks", Type: "array", Description: "On create, the whole task list in order, each item an object with text and, when it must wait for a date, due_at. At most twenty-five. A job without a schedule needs at least one task, here or under text."},
+			{Name: "tasks", Type: "array", Description: "On create, the whole task list in order, each item either the task's text as a string or an object with text and, when it must wait for a date, due_at. At most twenty-five. A job without a schedule needs at least one task, here or under text."},
 			{Name: "due_at", Type: "string", Description: "When the task may start, as a date and time."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassIrreversible},

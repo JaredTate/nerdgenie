@@ -24,10 +24,10 @@ func aStatusWithAPlan() contract.SocketEnvelope {
 		contract.StatusFieldContextTokens: "12400",
 		contract.StatusFieldContextWindow: "262144",
 		contract.StatusFieldState:         contract.StateThinking,
-		statusFieldPlan: "[x] the product notes are read\n" +
+		contract.StatusFieldPlan: "[x] the product notes are read\n" +
 			"[x] a draft under 280 characters is written\n" +
 			"[ ] the tweet is posted",
-		statusFieldJobs: "3",
+		contract.StatusFieldJobs: "3",
 	}}
 }
 
@@ -54,7 +54,7 @@ func aStatusWithNoJob() contract.SocketEnvelope {
 		contract.StatusFieldJobAsk:   "",
 		contract.StatusFieldJobTask:  "",
 		contract.StatusFieldJobTasks: "",
-		statusFieldJobs:              "3",
+		contract.StatusFieldJobs:     "3",
 	}}
 }
 
@@ -278,7 +278,7 @@ func TestThePanelDrawsOnlySoManyStepsOfALongPlan(t *testing.T) {
 	for at := range maxPlanSteps + 5 {
 		listed = append(listed, "[ ] plan step "+strconv.Itoa(at+1))
 	}
-	status.Fields[statusFieldPlan] = strings.Join(listed, "\n")
+	status.Fields[contract.StatusFieldPlan] = strings.Join(listed, "\n")
 	screen, _ := newTestScreen(120, 40)
 	screen.Update(linkMessage{up: true})
 	send(screen, status)
@@ -301,7 +301,7 @@ func TestThePanelSaysNothingWhenNoJobsAreWaiting(t *testing.T) {
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
 		contract.StatusFieldModel: "opus",
 		contract.StatusFieldState: contract.StateIdle,
-		statusFieldJobs:           "0",
+		contract.StatusFieldJobs:  "0",
 	}})
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
@@ -324,7 +324,7 @@ func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
 	without.Update(linkMessage{up: true})
 	send(without, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: base})
 
-	empty := map[string]string{statusFieldPlan: "", statusFieldJobs: ""}
+	empty := map[string]string{contract.StatusFieldPlan: "", contract.StatusFieldJobs: ""}
 	for name, value := range base {
 		empty[name] = value
 	}

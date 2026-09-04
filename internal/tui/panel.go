@@ -51,24 +51,6 @@ const (
 	currentTaskGlyph = '▸'
 )
 
-// The two things the panel draws that internal/contract does not name yet. The
-// job the running task belongs to is not one of them: the program sends it in
-// the four StatusFieldJob fields the contract names. The lines asked for are:
-//
-//	// StatusFieldPlan is the running task's plan: one done-when step per line,
-//	// each beginning with "[x] " when the step is done and "[ ] " when it is
-//	// not, so a screen can draw a check beside every step that is finished.
-//	StatusFieldPlan = "plan"
-//	// StatusFieldJobs is how many jobs are waiting, written as a number.
-//	StatusFieldJobs = "jobs"
-//
-// The spellings here are the ones the program will send, so the panel fills in
-// the moment those lines are in contract and the program sends them.
-const (
-	statusFieldPlan = "plan"
-	statusFieldJobs = "jobs"
-)
-
 // showsPanel says whether the terminal is wide enough for the side panel.
 func (screen *Screen) showsPanel() bool {
 	return screen.width >= panelFrom

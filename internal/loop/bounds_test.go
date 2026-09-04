@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // capsWithAWindowOf is the caps a test needs to see the detector's window fill

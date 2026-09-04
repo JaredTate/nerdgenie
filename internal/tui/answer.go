@@ -1,6 +1,6 @@
 package tui
 
-import "github.com/JaredTate/coeus/internal/contract"
+import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // showCard puts a card in the transcript, gives it the keys, and says in the
 // status strip that the work has stopped and is waiting for the person. The

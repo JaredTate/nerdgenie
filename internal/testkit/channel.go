@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // inboundQueueSize caps how many messages a test may push before anything reads

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/permission"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theTestTime is the moment every test in this package starts from, so that an

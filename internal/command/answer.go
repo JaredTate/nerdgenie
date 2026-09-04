@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Approve is the "/approve" command: it answers one waiting preview or question

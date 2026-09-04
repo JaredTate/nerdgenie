@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxHintRunes is the longest one line of the memory hint may be. Three lines of

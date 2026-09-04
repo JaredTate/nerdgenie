@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // onAThreadThatIsThrownAway runs one piece of work on an operating-system thread

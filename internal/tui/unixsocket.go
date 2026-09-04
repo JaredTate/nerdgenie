@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds on the local socket. A line past the cap is thrown away rather than

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/repair"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/repair"
 )
 
 // oneWrittenCall is a whole tool call written as text, on one line.

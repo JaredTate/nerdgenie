@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theWeeklyNoteBudget is the budget the weekly-note skill sets in these tests,

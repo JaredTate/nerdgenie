@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/replay"
 )
 
 // The bounds this package promises, written out as the numbers they are. A

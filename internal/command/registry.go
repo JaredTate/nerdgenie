@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ErrNoSuchCommand means the line named a command the registry does not hold,

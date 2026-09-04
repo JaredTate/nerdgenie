@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // sayingCommand is a command that answers with a fixed word and remembers the

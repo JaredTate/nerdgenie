@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/browserhandoff"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserhandoff"
 )
 
 func TestTheReasonCapIsFiveHundredCharacters(t *testing.T) {

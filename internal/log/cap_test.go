@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // lowerTheCap lowers the number of events one read returns for the length of one

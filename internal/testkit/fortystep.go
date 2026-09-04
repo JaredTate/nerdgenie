@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FortyStepFixturePath is where the fixture lives, from the root of the

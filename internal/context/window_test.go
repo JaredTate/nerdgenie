@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestABigModelKeepsEveryResultOnTheTable proves the window is never smaller

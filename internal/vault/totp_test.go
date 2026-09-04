@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 // rfc6238Secret is the twenty-byte seed the RFC 6238 test vectors use, written

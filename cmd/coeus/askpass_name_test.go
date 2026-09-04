@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/shell"
+	"github.com/JaredTate/nerdgenie/internal/tool/shell"
 )
 
 // TestTheAskpassSubcommandIsTheWordTheShellToolWrites holds the one rule that

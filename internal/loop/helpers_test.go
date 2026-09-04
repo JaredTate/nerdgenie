@@ -3,7 +3,7 @@ package loop_test
 import (
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // wholeRequestText joins everything a request would put in front of the model,

@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // arrowEnd is the arrow with nothing behind it, which a done line still waiting

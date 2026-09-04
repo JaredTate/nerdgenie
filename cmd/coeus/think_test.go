@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // runTheThinkCommand runs "/think" with the arguments given and returns what it

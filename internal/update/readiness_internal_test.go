@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // anAgentAnswering listens on a home's socket and hands every caller to the

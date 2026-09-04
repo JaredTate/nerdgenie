@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // candidate is one thing in a reply that looked like a tool call, with where it

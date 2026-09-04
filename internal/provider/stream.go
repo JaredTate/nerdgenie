@@ -9,7 +9,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // dataPrefix begins every line of a server-sent-event stream that carries a

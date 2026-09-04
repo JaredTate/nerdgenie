@@ -1,4 +1,4 @@
-module github.com/JaredTate/coeus
+module github.com/JaredTate/nerdgenie
 
 go 1.27
 

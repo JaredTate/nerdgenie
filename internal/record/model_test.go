@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestTheModelWritesItsHalfOfTheRecord walks one good update through the door the

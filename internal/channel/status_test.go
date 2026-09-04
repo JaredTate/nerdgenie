@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theCommandList is what the palette is filled from: one command per line, its

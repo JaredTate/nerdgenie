@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds every provider in this package works inside. The design says to

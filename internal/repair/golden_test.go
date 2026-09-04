@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/repair"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/repair"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // testSpecs are the tools every test in this package pretends are real. Six is

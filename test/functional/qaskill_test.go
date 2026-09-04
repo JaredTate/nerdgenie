@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	browserskill "github.com/JaredTate/nerdgenie/internal/skill/browser"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestTheShippedQualitySkillIsListedOnAFreshHome(t *testing.T) {

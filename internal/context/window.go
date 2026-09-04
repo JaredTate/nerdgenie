@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ErrNoRoomForTheRecord means the model cannot hold even the things that must be

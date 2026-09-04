@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // The event log this test writes to is a file of one JSON event per line, not the

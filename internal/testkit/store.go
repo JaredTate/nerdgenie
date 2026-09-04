@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FakeStore is the event log kept in memory: append-only, numbered in the order

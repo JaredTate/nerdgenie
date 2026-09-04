@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // describing is a whole SKILL.md built from a body, so that a test can put one

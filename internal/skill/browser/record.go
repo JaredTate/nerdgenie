@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // SkillSaver is the part of the skill store this package writes through. It is

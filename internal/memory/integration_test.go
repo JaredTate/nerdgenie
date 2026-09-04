@@ -14,8 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/memory"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/memory"
 )
 
 // tightCaps are small enough that one task's worth of facts pushes MEMORY.md

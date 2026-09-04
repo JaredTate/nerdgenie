@@ -7,7 +7,7 @@ import (
 	"slices"
 	"text/tabwriter"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // version is the version string the version subcommand prints. A release build

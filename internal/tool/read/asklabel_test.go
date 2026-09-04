@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool/read"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool/read"
 )
 
 // aLongAsk is a specification longer than the quarter of a record the model is

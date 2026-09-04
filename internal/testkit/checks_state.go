@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // A check function takes the interface rather than the fake, and asserts the

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // SudoEntryName is the name of the one entry that holds the machine password,

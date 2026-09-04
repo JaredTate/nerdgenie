@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // NextTask returns the next task that may start now: the first unfinished task

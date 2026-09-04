@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxTasksInARow is how many of a job's tasks the loop will run back to back

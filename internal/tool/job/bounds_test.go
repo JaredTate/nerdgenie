@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/job"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/job"
 )
 
 // manyJobs is a job store holding more jobs than one listing shows.

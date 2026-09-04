@@ -1,6 +1,6 @@
 package tui
 
-import "github.com/JaredTate/coeus/internal/contract"
+import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // receive takes one message the running program sent and changes the screen to
 // match it. A kind this screen does not understand is ignored rather than

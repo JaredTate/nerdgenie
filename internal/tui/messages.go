@@ -3,7 +3,7 @@ package tui
 import (
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // tickMessage is the screen's own heartbeat. It carries the time from

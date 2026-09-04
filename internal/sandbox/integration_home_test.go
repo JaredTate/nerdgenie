@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aRealFenceOverTwoFoldersInTheUsersHome builds a fence whose roots are two

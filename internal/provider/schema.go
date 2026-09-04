@@ -1,6 +1,6 @@
 package provider
 
-import "github.com/JaredTate/coeus/internal/contract"
+import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // jsonSchemaTypes are the type words a tool field may use. Anything else is sent
 // as a string, because a model that is told the wrong type writes the wrong

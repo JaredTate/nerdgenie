@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestACredentialNeverPrintsItsValues(t *testing.T) {

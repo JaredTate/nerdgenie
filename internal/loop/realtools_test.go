@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/record"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool"
 )
 
 // TestTheLoopDrivesTheRealToolRegistry proves the loop against the eighteen

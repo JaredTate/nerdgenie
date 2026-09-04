@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // TheTaskToolSpec is what the model is told about the task tool when the

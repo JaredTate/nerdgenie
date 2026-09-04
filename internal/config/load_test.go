@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // writeConfig puts a configuration file in the home folder and returns the home,

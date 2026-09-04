@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aCallInProgress is the status the program sends on every heartbeat while a

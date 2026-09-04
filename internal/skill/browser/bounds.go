@@ -1,6 +1,6 @@
 package browser
 
-import "github.com/JaredTate/coeus/internal/skill"
+import "github.com/JaredTate/nerdgenie/internal/skill"
 
 // The bounds on everything this package does. Every one of them counts
 // something that comes from outside the program, and something from outside the

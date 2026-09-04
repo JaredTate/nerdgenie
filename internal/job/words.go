@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // InPlainWords says a schedule the way a person says it: "every weekday at 7 in

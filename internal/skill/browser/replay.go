@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // Options is what a replayer is built from. Only the browser is needed. Without

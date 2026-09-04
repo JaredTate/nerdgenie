@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/provider"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/provider"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // openAIAgainst builds the OpenAI-compatible provider pointed at the fake

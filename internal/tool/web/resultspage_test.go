@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/web"
+	"github.com/JaredTate/nerdgenie/internal/tool/web"
 )
 
 // The two pages saved from DuckDuckGo on the third of September 2026, each

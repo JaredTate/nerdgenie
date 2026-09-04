@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // claudeAlias is a command-line alias for the claude program, thinking at the

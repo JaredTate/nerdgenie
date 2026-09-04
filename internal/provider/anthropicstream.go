@@ -12,7 +12,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // anthropicCount is one token count in the stream. The fields are pointers

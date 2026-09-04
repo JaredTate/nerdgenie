@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxBudgetDigits is the longest run of digits the screen will read as a budget

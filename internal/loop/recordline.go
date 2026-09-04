@@ -3,7 +3,7 @@ package loop
 import (
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // RecordLineSeparator is what stands between where a record stands and what it

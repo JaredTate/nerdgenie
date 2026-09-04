@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // DescribeTimeout is how long one of the user's own tools has to say what it is.

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 
 	// The pure-Go SQLite driver, registered under the name "sqlite", which is
 	// what keeps bin/coeus a single static binary with no C compiler and no

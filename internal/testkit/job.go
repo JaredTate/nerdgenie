@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // fakeTask is one task on a fake job's list, with the two things the contract's

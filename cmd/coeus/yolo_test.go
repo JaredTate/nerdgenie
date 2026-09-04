@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // runTheYoloCommand runs "/yolo" with the arguments given and returns what it

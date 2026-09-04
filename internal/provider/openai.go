@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // failedToolResultPrefix is put in front of a tool result that failed. This API

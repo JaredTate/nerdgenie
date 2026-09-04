@@ -12,7 +12,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // openAICount is the token count the server reports in the last chunk of the

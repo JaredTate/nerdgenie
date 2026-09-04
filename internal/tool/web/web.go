@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The two things this tool does.

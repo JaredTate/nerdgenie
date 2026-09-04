@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool/web"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool/web"
 )
 
 // theBoundary finds the random id the wrapper puts on every piece of text from

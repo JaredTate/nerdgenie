@@ -3,7 +3,7 @@ package provider
 import (
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // thinkFor is the level one call is made at. There are two places a level can

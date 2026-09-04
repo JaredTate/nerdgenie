@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Replay hands every event in the log to a function, in sequence order, and

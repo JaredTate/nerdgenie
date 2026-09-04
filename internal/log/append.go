@@ -13,7 +13,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Append writes one event to the end of the log and returns the sequence number

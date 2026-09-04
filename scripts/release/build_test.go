@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // The version the fixture release is built as. It is passed on the command line

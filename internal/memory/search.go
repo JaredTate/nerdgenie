@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxSearchResults is the most results one search hands back, whatever limit it

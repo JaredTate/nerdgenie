@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/replay"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theKindsARecordingReads are the five kinds of event the recording reader

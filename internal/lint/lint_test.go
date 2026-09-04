@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/lint"
+	"github.com/JaredTate/nerdgenie/internal/lint"
 )
 
 // TestOneFixtureFolderPerRuleReportsExactlyThatRule is the acceptance test the

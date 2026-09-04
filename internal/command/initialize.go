@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Setup is everything "coeus init" needs from the outside world, so that a test

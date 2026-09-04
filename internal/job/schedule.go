@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/robfig/cron/v3"
 )
 

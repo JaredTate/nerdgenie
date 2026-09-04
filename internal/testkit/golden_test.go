@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestGoldenAcceptsBytesThatMatchTheFileOnDisk(t *testing.T) {

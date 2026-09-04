@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // writeProgram writes a stand-in for signal-cli that records the arguments it

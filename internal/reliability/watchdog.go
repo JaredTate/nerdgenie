@@ -7,7 +7,7 @@ import (
 
 	"github.com/coreos/go-systemd/v22/daemon"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Watchdog tells the service manager that the program is up and still alive.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/skill"
+	"github.com/JaredTate/nerdgenie/internal/tool/skill"
 )
 
 // TestTheBoundsOnASkillFolderAreTheNumbersTheySay pins the two numbers this

@@ -3,7 +3,7 @@ package search_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/search"
+	"github.com/JaredTate/nerdgenie/internal/tool/search"
 )
 
 // TestEveryBoundOfTheSearchToolIsTheNumberItSays writes each bound out as the

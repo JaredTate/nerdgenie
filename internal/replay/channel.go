@@ -3,7 +3,7 @@ package replay
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // quietChannel is the channel a replay answers on. Nobody is reading it, so

@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // installSubcommand writes the systemd user unit and starts the service, so

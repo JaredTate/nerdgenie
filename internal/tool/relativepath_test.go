@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool"
 )
 
 // aCheckOverAWorkFolder makes a folder the file tools may work in, under a user

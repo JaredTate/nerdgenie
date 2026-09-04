@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The two caps on the text a record may be read from. A record is one to three

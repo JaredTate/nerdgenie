@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aFactAt returns a fact recorded at a fixed moment, so that every line these

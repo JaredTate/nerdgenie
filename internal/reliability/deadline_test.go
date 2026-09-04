@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // startOfTime is the moment every fake clock in these tests starts from.

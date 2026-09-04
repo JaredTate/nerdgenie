@@ -7,10 +7,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
 )
 
 // backupSubcommand writes one encrypted archive of everything Coeus keeps and

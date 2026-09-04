@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool/shell"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool/shell"
 )
 
 // runningSandbox really runs the command it is given, in its own process group,

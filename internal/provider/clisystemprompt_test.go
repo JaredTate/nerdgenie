@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // systemPromptFileFlag is the flag the claude program takes the path of its

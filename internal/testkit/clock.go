@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxTicksPerAdvance caps how many times one ticker fires when a test moves the

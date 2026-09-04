@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The three things one call can ask for.

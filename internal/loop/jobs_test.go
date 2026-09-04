@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // aJobOfTwoTasks puts a job with two tasks into the fake job store.

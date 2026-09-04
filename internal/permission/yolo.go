@@ -3,7 +3,7 @@ package permission
 import (
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // AllowedByYolo is how every ruling made under yolo begins, so that anybody

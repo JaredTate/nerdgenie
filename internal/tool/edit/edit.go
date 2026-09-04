@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/loose"
-	"github.com/JaredTate/coeus/internal/tool/write"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/tool/write"
 )
 
 // MaxFileBytes is the biggest file this tool will edit. A file larger than this

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // TestsFolder is where the tests written by "coeus replay <task> --as-test"
@@ -139,11 +139,11 @@ import (
 	"testing"
 	"time"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/replay"
-	"github.com/JaredTate/coeus/internal/testkit"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestTask<name>ReplaysTheSameWay(t *testing.T) {

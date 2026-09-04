@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/read"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/read"
 )
 
 // TestEveryBoundOfTheReadToolIsTheNumberItSays writes each bound out as the

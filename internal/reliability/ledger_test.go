@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // sentReply is one reply a test's sender was asked to deliver.

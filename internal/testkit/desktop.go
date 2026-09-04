@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FakeDesktop is a desktop nobody can see: it refuses an application the user

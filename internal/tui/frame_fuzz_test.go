@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // drawsInsideTheTerminal fails the test when any row of the frame is wider than

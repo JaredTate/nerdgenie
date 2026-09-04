@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
-	"github.com/JaredTate/coeus/internal/repair"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/repair"
 )
 
 // ThreeOptions is how every error message to the model ends, which is rule 6 of

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestTheFirstPieceOfAReplyReachesEveryScreenAtOnce holds the design's promise

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // aReleaseServer serves one release folder over a loopback address, which is

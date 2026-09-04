@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
-	"github.com/JaredTate/coeus/internal/skill/browser"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/skill/browser"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // startOfTheTests is the time every fake clock in these tests starts at, so that

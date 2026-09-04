@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // uninstallSubcommand stops the service and takes the unit away. The home

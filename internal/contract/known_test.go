@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestKnownPreviewAnswerAcceptsTheThreeAndNothingElse(t *testing.T) {

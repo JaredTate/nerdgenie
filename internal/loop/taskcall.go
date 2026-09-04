@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The operations of the task tool that the loop keeps for itself. They are

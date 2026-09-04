@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FakeSecrets is the vault kept in memory: entries a test adds, a sudo password

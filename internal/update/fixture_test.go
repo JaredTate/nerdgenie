@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // aWorkingProgram is the shell script a fixture release ships as its binary. It

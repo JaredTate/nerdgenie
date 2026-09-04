@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // anEmptyDatabase is a SQLite file with nothing in it, which is what every one

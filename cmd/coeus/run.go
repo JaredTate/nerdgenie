@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // runSocketVariable names the socket to talk to, which is only ever set by a

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // watchdogInterval is the interval the fake service manager announces in these

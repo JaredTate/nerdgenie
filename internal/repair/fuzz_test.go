@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/repair"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/repair"
 )
 
 // maxFuzzedTools caps how many pretend tools one fuzzed case sets up, because a

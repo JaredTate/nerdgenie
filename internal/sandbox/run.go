@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // A Fence is a contract.Sandbox, and this line is what says so at build time.

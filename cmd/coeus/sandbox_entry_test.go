@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/sandbox"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/sandbox"
 )
 
 func TestTheSandboxEntrySubcommandIsNamedWhatTheSandboxExpects(t *testing.T) {

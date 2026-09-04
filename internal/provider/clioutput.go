@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxProgramLineBytes caps one line of a program's output.

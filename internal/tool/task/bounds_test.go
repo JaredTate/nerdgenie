@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/task"
+	"github.com/JaredTate/nerdgenie/internal/tool/task"
 )
 
 // TestOneFieldInTheWrongShapeDoesNotKillTheWholeCall is finding 27 of the wave

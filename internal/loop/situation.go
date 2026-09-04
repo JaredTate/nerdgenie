@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds on the few facts the harness writes into the record for itself.

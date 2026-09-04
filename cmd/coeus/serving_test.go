@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // anAgentWithASocket opens a whole agent over a temporary home, which is what a

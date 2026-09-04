@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The caps on a rulebook. A rule list comes from a file a person wrote, so it is

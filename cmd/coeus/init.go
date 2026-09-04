@@ -6,10 +6,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 // initSubcommand sets Coeus up on a machine that has never run it: the home

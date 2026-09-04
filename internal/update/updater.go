@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
 )
 
 // MigrateFlag is what the updater passes the newly installed program to have it

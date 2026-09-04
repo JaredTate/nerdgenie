@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxApplicationNameRunes is how long an application's name may be. It is a

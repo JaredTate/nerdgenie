@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // aDrain builds a drain marker on a temporary home and the clock the test moves.

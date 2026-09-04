@@ -3,7 +3,7 @@ package record
 import (
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // A record holds one item per line, so any line break inside a piece of text is

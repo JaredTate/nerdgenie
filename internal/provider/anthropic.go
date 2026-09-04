@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxCacheMarkers is how many places in one request may carry a cache marker.

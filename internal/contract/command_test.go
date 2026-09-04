@@ -3,7 +3,7 @@ package contract_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestAnUnknownCommandHasOneSentinel(t *testing.T) {

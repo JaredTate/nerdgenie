@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxStandingApprovals is how many standing approvals one session holds. A skill

@@ -3,7 +3,7 @@ package memory_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/memory"
+	"github.com/JaredTate/nerdgenie/internal/tool/memory"
 )
 
 // TestTheBoundOnOneSearchIsTheNumberItSays pins the one number this tool is

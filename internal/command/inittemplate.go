@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // personaFile is one of the three files that say who the agent is and who the

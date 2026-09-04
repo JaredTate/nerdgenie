@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/channel"
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/channel"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // aCommandWait is how long anything in this file waits for the socket, the

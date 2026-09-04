@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // The contract promises that the stream Receive hands back closes when the

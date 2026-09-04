@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // updateSubcommand installs a newer Coeus beside the running one, switches the

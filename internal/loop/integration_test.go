@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/log"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/record"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/log"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // TestTheLoopRunsAgainstTheRealEventLog runs the same task the unit tests run,

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"filippo.io/age"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The name every archive is given: the prefix, the moment it was written, and

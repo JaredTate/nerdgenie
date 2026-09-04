@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // codexTextPart is one piece of text inside a message item. Its type is

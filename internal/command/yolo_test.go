@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestStatusSaysWhetherYoloIsOn holds the half of the yolo switch a person sees

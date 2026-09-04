@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/lint"
+	"github.com/JaredTate/nerdgenie/internal/lint"
 )
 
 // checkOneFile runs the checker over a snippet and returns the rules it

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/web"
+	"github.com/JaredTate/nerdgenie/internal/tool/web"
 )
 
 func TestTheMarksAPageWritesAsNamesOrNumbersComeBackAsCharacters(t *testing.T) {

@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // These tests drive the real browser worker from worker/browser, which launches

@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/clock"
 )
 
 // serve takes connections on the socket, drains the queue beside it, and runs

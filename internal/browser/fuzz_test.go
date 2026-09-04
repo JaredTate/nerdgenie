@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The line reader takes whatever the worker wrote, however broken, and either

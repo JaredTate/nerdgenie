@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/sandbox"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/sandbox"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestDoctorPrintsTheReportAndSaysNothingIsBroken(t *testing.T) {

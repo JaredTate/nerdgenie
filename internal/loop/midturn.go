@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // theWordsThatMeanStop is the short fixed list of things a user says when they

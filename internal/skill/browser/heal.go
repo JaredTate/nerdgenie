@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // healRules is what the model is told before it is asked which element a failed

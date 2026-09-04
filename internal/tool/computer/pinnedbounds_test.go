@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/computer"
+	"github.com/JaredTate/nerdgenie/internal/tool/computer"
 )
 
 func TestTheTypingCapIsTwentyThousandCharacters(t *testing.T) {

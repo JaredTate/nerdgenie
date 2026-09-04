@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // startOfTest is the moment every fake clock in these tests begins at, so that

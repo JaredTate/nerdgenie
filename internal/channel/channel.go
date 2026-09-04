@@ -13,7 +13,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The socket is the first real channel, so the compiler is asked to say at once

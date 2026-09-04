@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // turnThatWaits is a turn which says when it started and then waits to be let

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // aDoneListOf writes a done list of the length asked for, the way a model

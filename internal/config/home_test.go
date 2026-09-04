@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestTheRootIsTheDotCoeusFolderUnderTheUsersHomeByDefault(t *testing.T) {

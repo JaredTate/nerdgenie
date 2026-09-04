@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // clearName is the slash command that empties the screen.

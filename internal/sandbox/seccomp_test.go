@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theSystemCallsNoToolNeeds is the list from brief 2.3. The filter has to answer

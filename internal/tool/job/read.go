@@ -8,7 +8,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // readInput reads the model's arguments and refuses anything this tool could not

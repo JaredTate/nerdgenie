@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/browserread"
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // Credentials is where the harness gets the login to type for one site. Wave

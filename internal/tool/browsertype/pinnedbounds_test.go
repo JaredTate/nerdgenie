@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool/browsertype"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool/browsertype"
 )
 
 func TestTheTypingCapIsTwentyThousandCharacters(t *testing.T) {

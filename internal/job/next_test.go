@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/job"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/job"
 )
 
 func TestTheReportLandsInTheJobAndTheNextTaskIsHandedOut(t *testing.T) {

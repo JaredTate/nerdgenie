@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/browserclick"
-	"github.com/JaredTate/coeus/internal/tool/browserread"
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserclick"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // MaxTextRunes is how much may be typed into one box in one call. A model

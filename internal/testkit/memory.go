@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FakeMemory holds facts in memory and finds them by the words in them, which is

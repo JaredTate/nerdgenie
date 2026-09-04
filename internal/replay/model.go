@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 )
 
 // RecordedContextLength is the window the replayed model reports. It is large

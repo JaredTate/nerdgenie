@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 func TestAnOpenThatCallsTheAddressSomethingElseStillGoesThere(t *testing.T) {

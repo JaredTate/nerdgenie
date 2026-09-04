@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // LeaseWait is how long a second turn on the same session waits for the turn in

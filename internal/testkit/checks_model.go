@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // CheckModel asserts what every model promises: it has a name and a window, the

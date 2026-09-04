@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/permission"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // keptApprovals is a place to register standing approvals that keeps the ones

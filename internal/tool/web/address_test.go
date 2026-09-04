@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/tool/web"
+	"github.com/JaredTate/nerdgenie/internal/tool/web"
 )
 
 func TestAnAddressOnThisMachineIsRefusedUnlessItIsAllowed(t *testing.T) {

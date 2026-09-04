@@ -15,7 +15,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // noLimit is what a deadline that is off says it has left: the longest span Go

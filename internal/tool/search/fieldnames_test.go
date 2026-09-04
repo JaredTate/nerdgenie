@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/search"
+	"github.com/JaredTate/nerdgenie/internal/tool/search"
 )
 
 func TestASearchThatNamesThePatternSomethingElseStillRuns(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
-	"github.com/JaredTate/coeus/internal/repair"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/repair"
 )
 
 // The bounds one task runs inside, beyond the budget itself.

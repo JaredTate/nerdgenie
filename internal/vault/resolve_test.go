@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 func TestTheResolverGivesTheHarnessTheLoginBehindAGoodReference(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FakeSandbox runs nothing. It returns the result a test scripted for a command

@@ -14,7 +14,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // selectColumns is the start of every read: the five columns of one row, in the

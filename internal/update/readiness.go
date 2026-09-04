@@ -16,7 +16,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ReadyCommand is the slash command "coeus serve" answers while it is running,

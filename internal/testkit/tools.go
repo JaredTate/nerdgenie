@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ScriptedTool returns the outputs a test gave it, one per call, and records

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The three assertions the forty-step fixture makes are here, so that wave 1 and

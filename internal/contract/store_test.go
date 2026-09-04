@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestFileChangeBodyRoundTripsThroughJSONWithItsPriorContents(t *testing.T) {

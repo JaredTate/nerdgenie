@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds on one command. Every one of them is a hard stop, not a target.

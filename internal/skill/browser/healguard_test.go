@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
-	"github.com/JaredTate/coeus/internal/skill/browser"
-	"github.com/JaredTate/coeus/internal/testkit"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/skill/browser"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // theHostilePage is the page from the reviewer's probe: one element whose name

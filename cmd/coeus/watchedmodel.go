@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // tokensPerWord is the rough ratio the streamed count is measured by while a

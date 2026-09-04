@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // waitFor polls a condition until it holds, and fails the test when it never

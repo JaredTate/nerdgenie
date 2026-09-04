@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestDefaultConfigMatchesTheDocumentedDefaults(t *testing.T) {

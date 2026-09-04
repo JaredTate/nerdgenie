@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 	"net/http"
 	"os"
 	"strings"

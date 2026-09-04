@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxUndoFiles is the most files one turn may have changed for "/undo" to put

@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxFactTextBytes is the longest one fact may be. Anything longer is not a

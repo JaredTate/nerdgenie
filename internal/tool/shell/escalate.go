@@ -17,7 +17,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // AskpassSubcommand is the word the coeus binary answers with the administrator

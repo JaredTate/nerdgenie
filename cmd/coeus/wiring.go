@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/browser"
-	"github.com/JaredTate/coeus/internal/channel"
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/replay"
-	"github.com/JaredTate/coeus/internal/sandbox"
-	"github.com/JaredTate/coeus/internal/skill"
-	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
-	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/browser"
+	"github.com/JaredTate/nerdgenie/internal/channel"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/sandbox"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	browserskill "github.com/JaredTate/nerdgenie/internal/skill/browser"
+	"github.com/JaredTate/nerdgenie/internal/tool"
 )
 
 // buildingToolsTakes is how long one task's tool registry may take to build. It

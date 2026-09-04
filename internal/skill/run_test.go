@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // twoStepSkill is a skill whose two steps both call the echo tool, which is

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Pause is the "/pause" command: it stops every job that is running and

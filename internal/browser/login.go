@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 // shortestGuardedSecret is the shortest value the leak guard looks for in an

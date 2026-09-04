@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // scriptedWebTool is a web tool that answers with one line, so that the skill

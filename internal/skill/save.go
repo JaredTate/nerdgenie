@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // changelogDateLayout is how a changelog entry writes its date: universal time

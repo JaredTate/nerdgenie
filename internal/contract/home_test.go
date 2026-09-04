@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestHomePathsMatchTheLayoutInArchitecture(t *testing.T) {

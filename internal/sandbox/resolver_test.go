@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aMachineWithAResolverLink builds a settings folder holding a resolv.conf that

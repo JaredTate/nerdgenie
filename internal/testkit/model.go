@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // deltasPerReply is how many pieces the fake model breaks its text into. More

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aLogWithOneGoodEvent makes a log holding one event that reads back properly,

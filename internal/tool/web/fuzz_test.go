@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/web"
+	"github.com/JaredTate/nerdgenie/internal/tool/web"
 )
 
 // FuzzTheTurnIntoText throws any text at the step that turns a web page into

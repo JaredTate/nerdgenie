@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 )
 
 // theTerminalScreen is the name one screen goes by in these tests: a channel and

@@ -17,7 +17,7 @@ import (
 // reads when it is given no address of its own. It is the download folder of
 // the newest GitHub release, which serves the manifest, the sums file, and one
 // archive per architecture under their own names.
-const DefaultAddress = "https://github.com/JaredTate/coeus/releases/latest/download"
+const DefaultAddress = "https://github.com/JaredTate/nerdgenie/releases/latest/download"
 
 // The bounds on reading a release, because everything from outside the program
 // is read under a cap.

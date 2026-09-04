@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bodies these tests expect are kept as JSON files under testdata/codex,

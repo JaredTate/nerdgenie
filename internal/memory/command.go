@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // commandFactsShown is how many facts the "/memory" listing prints, which is

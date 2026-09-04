@@ -7,7 +7,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // recordedTools is the tool registry a replay runs against. No tool here

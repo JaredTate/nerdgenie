@@ -17,7 +17,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // readHeaderWait bounds how long a slow visitor may take to send its headers.

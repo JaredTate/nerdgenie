@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 
 	// The pure-Go SQLite driver, registered under the name "sqlite". It is the
 	// one internal/log already opens the same file with.

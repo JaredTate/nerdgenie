@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // aBudgetBlock is the section of SKILL.md that sets how much a task run under

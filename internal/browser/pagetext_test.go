@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // theRankingsText is what a rankings table reads as: one line per row, with

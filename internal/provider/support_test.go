@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/provider"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/provider"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // waitingClock is a clock every test in this package can move, together with a

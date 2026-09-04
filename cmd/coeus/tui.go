@@ -5,9 +5,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tui"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tui"
 )
 
 // tuiSubcommand opens the terminal screen. It is what the bare "coeus" command

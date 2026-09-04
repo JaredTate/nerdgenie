@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // skillsBox holds the skill store once it exists. The tool registry is built

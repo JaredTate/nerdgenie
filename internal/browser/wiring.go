@@ -3,7 +3,7 @@ package browser
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The three functions internal/tool's browser tools are wired with. They are

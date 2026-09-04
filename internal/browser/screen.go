@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ScreenCommand builds the "/screen" command, which sends a picture of the

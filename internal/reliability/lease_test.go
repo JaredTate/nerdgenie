@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/reliability"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // takenLease is what a goroutine waiting for a lease hands back to the test.

@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // insideTheFence runs one line of shell inside a real fence and returns what it

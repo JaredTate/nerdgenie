@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 func TestEveryCallSaysSoWhenTheDatabaseHasGoneRatherThanPretending(t *testing.T) {

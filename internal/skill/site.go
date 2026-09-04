@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/permission"
 )
 
 // The bounds on the website a permissions block may name. They are the bounds

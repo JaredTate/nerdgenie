@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // stopGracePeriod is how long a worker is given to close Chrome and go quietly

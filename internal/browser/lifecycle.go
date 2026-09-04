@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // call sends one request to the worker, starting the worker first when there is

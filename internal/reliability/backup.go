@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"filippo.io/age"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // KeptBackups is how many archives are kept. A week of nightly backups is

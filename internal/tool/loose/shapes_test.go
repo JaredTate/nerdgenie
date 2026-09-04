@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 func TestAFieldWrittenAsSomethingWithNoTextInItIsRefusedByName(t *testing.T) {

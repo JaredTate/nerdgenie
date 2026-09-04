@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // QASkillName is the folder name of the skill shipped with the program for

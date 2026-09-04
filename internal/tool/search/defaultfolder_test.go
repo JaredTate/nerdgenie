@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/search"
+	"github.com/JaredTate/nerdgenie/internal/tool/search"
 )
 
 // allowedUnder is the check a tool in these tests is given: a path is allowed

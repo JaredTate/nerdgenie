@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // Pause stops the job after the running task finishes.

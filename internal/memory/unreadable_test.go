@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestASaveIntoAFolderThatCannotBeWrittenSaysSo(t *testing.T) {

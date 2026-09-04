@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/skill"
+	"github.com/JaredTate/nerdgenie/internal/skill"
 )
 
 // The seeds are the shapes a SKILL.md really takes, plus the shapes that would

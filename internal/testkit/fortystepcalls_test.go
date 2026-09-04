@@ -3,7 +3,7 @@ package testkit_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // TestOneRoundOfTheFixtureAsksForTwoToolsInOneReply is brief 6.6's loop item on

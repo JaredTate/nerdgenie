@@ -3,7 +3,7 @@ package contract_test
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The five desktop actions each carry what the model expected to happen, which

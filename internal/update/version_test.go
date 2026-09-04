@@ -3,7 +3,7 @@ package update_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 func TestOneVersionIsNewerThanAnother(t *testing.T) {

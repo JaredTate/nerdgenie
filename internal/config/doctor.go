@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // HealthProbeWait is how long the doctor waits for the local model daemon to

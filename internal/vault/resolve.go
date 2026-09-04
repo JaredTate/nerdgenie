@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Resolve turns a "secret://name" reference into the login behind it, for the

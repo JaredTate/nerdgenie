@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // timeFormat is how a moment is written into the file: the internet date and

@@ -14,7 +14,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // RecoverySettings is what the recovery needs, and it is deliberately less than

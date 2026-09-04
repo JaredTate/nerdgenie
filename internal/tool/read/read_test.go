@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool"
-	"github.com/JaredTate/coeus/internal/tool/read"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/tool/read"
 )
 
 // storedText answers with the text a test put under each label, standing in for

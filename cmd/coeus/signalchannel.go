@@ -4,9 +4,9 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/contract"
-	signalchannel "github.com/JaredTate/coeus/internal/signal"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	signalchannel "github.com/JaredTate/nerdgenie/internal/signal"
 )
 
 // openTheSignalChannel starts Signal when the configuration names an account.

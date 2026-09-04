@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // textBoxRole is what the worker calls anything a person types into, which is

@@ -1,6 +1,6 @@
 package record
 
-import "github.com/JaredTate/coeus/internal/contract"
+import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // The two records in this file are the examples in section 4 of
 // docs/COEUS_PLAN.md, written out as the contract types. The text of each one is

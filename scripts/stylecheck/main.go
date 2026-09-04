@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/lint"
+	"github.com/JaredTate/nerdgenie/internal/lint"
 )
 
 func main() {

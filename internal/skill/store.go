@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/permission"
 )
 
 // AskFunc shows the user what is about to happen and waits for the answer. It

@@ -7,8 +7,8 @@ package permission_test
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/permission"
 )
 
 // deletesWithAFlagInFront are recursive deletes with an ordinary flag written

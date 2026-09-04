@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"filippo.io/age"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // RestoreSettings is what one restore needs to know.

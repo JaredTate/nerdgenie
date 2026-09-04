@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // minRedactedValueLength is the shortest stored value the redactor blacks out.

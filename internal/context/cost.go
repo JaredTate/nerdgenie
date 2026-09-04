@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // WriteCostLine writes what one call cost into the record's header, in the

@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The names of the four files a skill folder holds. They are fixed rather than

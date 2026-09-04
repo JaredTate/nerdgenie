@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // fakeEventsHeld is how many events the fixture browser keeps for a reader that

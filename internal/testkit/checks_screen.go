@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // CheckBrowserWorker asserts what every browser worker promises: it says whether

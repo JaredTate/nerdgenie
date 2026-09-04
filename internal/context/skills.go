@@ -9,7 +9,7 @@ package context
 import (
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The two bounds on the skill list. The store holds up to two hundred skills

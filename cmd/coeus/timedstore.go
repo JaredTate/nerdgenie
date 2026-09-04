@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // timedStore is the event log with one rule added: an event written with no time

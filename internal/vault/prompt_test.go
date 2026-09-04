@@ -10,7 +10,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 // waitLimit is how long a test waits for the prompt to print something before

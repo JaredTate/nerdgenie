@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The error codes from the table in worker/browser/PROTOCOL.md. The first four

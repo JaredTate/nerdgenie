@@ -18,7 +18,7 @@ import (
 	"sync"
 
 	"filippo.io/age"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxVaultFileBytes caps how much plaintext one vault file may hold, because

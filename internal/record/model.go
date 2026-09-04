@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Update is everything the model may write into a record, and the only way it

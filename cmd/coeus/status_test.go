@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestTheStatusCarriesTheJobOfTheRunningTask is what the side panel draws the

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
 )
 
 // ledgeredChannel is a channel whose replies go through the delivery ledger:

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestTheCodexProgramsOwnToolsAreSwitchedOff holds what the live suite found:

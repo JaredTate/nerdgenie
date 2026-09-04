@@ -17,10 +17,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/log"
-	"github.com/JaredTate/coeus/internal/reliability"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/log"
+	"github.com/JaredTate/nerdgenie/internal/reliability"
 
 	// The pure-Go SQLite driver, registered under the name "sqlite", which is the
 	// same one internal/log opens the file with.

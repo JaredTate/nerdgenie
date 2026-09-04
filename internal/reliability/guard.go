@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Settings is everything the guard needs from the program around it. serve.go

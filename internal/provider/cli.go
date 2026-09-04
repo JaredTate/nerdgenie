@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds and the fixed wait a run of a vendor program works inside.

@@ -1,6 +1,6 @@
 package context
 
-import "github.com/JaredTate/coeus/internal/contract"
+import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // The three numbers this package counts tokens with. They live here together,
 // because the size of a prompt is measured the same way everywhere in Coeus and

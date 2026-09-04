@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The bounds a handoff keeps.

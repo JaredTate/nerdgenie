@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/browserread"
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // Settings is what the browser open tool needs to do its work.

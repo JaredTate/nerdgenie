@@ -21,7 +21,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // KeptReleases is how many installed versions are kept. Three is the running

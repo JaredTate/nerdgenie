@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 
 	// The pure-Go SQLite driver, registered under the name "sqlite". It is the
 	// same driver internal/log opens the one database file with, and it carries

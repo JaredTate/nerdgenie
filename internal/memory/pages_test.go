@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aPagedLog is an event log that answers a list read the way internal/log does:

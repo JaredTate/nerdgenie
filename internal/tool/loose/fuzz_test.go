@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // FuzzTheLooseReader throws whatever the fuzzer writes at the reader, because

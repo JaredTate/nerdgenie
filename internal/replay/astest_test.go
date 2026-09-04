@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/replay"
-	"github.com/JaredTate/coeus/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
 // TestAsTestWritesTheTestThatIsCheckedIn is how "a test that compiles and

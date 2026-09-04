@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/browserhandoff"
-	"github.com/JaredTate/coeus/internal/tool/browserlogin"
-	"github.com/JaredTate/coeus/internal/tool/read"
-	"github.com/JaredTate/coeus/internal/tool/task"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserhandoff"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserlogin"
+	"github.com/JaredTate/nerdgenie/internal/tool/read"
+	"github.com/JaredTate/nerdgenie/internal/tool/task"
 )
 
 // Settings is everything the registry and the built-in tools need from the rest

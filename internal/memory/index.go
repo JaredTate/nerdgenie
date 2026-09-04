@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The three kinds of thing the index holds, which is also what the id of a

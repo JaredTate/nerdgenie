@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // CheckChannel asserts what every channel promises: it has a name, it can be

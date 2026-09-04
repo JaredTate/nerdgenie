@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ApprovedByPersonFile is the store's own record, kept beside a skill, that a

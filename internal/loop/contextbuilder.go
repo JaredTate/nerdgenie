@@ -3,8 +3,8 @@ package loop
 import (
 	"context"
 
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // BuildInput is everything one call's working context is built from, in the

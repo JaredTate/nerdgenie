@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/testkit"
-	"github.com/JaredTate/coeus/internal/tool"
-	"github.com/JaredTate/coeus/internal/tool/edit"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/tool/edit"
 )
 
 // newTool builds the edit tool over a folder it may work in, and returns the

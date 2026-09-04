@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxHostRunes is how long a host name in a standing approval may be. A real

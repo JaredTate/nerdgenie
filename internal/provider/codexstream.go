@@ -18,7 +18,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // codexResult is what one streamed call to the Codex backend came to.

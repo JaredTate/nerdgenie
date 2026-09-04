@@ -18,7 +18,7 @@ import (
 	"syscall"
 
 	"filippo.io/age"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxKeyFileBytes caps how much of a key file is read, because an age identity

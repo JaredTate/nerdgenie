@@ -16,8 +16,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // The bounds on one search. A search is a question, and a question with a

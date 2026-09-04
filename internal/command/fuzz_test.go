@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/command"
 )
 
 // FuzzTheLineSplitterNeverPanics throws arbitrary text at the splitter that

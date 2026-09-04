@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/tool"
+	"github.com/JaredTate/nerdgenie/internal/tool"
 )
 
 // TestEveryBoundOfTheRegistryIsTheNumberItSays writes each bound out as the

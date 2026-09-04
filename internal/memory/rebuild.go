@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxIndexedPerRun is how many files and messages one run of the indexer takes

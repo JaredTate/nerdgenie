@@ -3,7 +3,7 @@ package testkit
 import (
 	"fmt"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // fixturePicture stands in for a screenshot. It is a real one-pixel PNG, so a

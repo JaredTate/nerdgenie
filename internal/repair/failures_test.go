@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/repair"
+	"github.com/JaredTate/nerdgenie/internal/repair"
 )
 
 func TestABadCallIsAProblemUntilTwoParsesHaveAlreadyFailed(t *testing.T) {

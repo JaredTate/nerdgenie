@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxPaletteRows is how many commands the palette lists at once, so that it

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/memory"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/memory"
 )
 
 func TestEveryCallSaysSoOnceTheMemoryIsClosed(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // FuzzParseManifest throws arbitrary bytes at the one thing this package parses

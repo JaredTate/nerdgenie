@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 )
 
 // budgetForTheMessage is the budget the task this message starts runs on: the

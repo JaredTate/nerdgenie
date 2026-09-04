@@ -18,7 +18,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // A Direct runner is a contract.Sandbox, and this line is what says so at build

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestParsesTheTaskExampleFromTheDesign proves the parser reads the task record

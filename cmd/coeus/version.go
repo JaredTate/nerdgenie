@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // versionSubcommand prints the version this binary was built as. The updater

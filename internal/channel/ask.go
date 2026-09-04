@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // ShowPreview puts exactly what is about to happen in front of every attached

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxReducedRunes is the cap on the readable form of a call. It goes into a log

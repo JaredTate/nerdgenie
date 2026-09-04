@@ -8,13 +8,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/JaredTate/coeus/internal/clock"
-	workingcontext "github.com/JaredTate/coeus/internal/context"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/log"
-	"github.com/JaredTate/coeus/internal/loop"
-	"github.com/JaredTate/coeus/internal/permission"
-	"github.com/JaredTate/coeus/internal/replay"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/log"
+	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/permission"
+	"github.com/JaredTate/nerdgenie/internal/replay"
 )
 
 // replaySubcommand runs one recorded task again against the code as it stands

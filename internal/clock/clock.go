@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // system is the machine's own clock.

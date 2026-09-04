@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/browser"
-	"github.com/JaredTate/coeus/internal/clock"
-	"github.com/JaredTate/coeus/internal/command"
-	"github.com/JaredTate/coeus/internal/contract"
-	signalchannel "github.com/JaredTate/coeus/internal/signal"
-	browserskill "github.com/JaredTate/coeus/internal/skill/browser"
-	"github.com/JaredTate/coeus/internal/vault"
+	"github.com/JaredTate/nerdgenie/internal/browser"
+	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/command"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	signalchannel "github.com/JaredTate/nerdgenie/internal/signal"
+	browserskill "github.com/JaredTate/nerdgenie/internal/skill/browser"
+	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
 // registerCommands fills the one registry with every slash command each package

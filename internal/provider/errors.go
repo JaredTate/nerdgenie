@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // overflowPhrases are the ways the three servers Coeus talks to say that the

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxLinkHops is how many links the check will follow before giving up. A folder

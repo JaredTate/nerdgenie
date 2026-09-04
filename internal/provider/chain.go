@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Chain is an ordered list of models tried one after another. When the first one

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/sandbox"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/sandbox"
 )
 
 // sandboxEntrySubcommand is the helper the sandbox starts inside its own fence.

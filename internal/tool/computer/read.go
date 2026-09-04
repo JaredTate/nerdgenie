@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/tool/browserclick"
-	"github.com/JaredTate/coeus/internal/tool/browserread"
-	"github.com/JaredTate/coeus/internal/tool/loose"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserclick"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // The names a model writes for the fields of one desktop call. The first of each

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // maxPreviewsWaiting is how many questions may be waiting for an answer at one

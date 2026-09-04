@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Start starts one desktop worker. The running program passes ProcessStart; a

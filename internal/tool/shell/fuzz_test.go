@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/shell"
+	"github.com/JaredTate/nerdgenie/internal/tool/shell"
 )
 
 // FuzzTheCommandReader throws any text at the reader of a shell call's arguments

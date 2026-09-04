@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // aTime is the moment the tests hand to the log, chosen with nanoseconds in it

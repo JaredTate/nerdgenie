@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // anAgentOnASocket is a stand-in for the running agent: a Unix socket that reads

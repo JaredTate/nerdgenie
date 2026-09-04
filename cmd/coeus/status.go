@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/channel"
-	"github.com/JaredTate/coeus/internal/contract"
-	"github.com/JaredTate/coeus/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/channel"
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 )
 
 // statusForAScreen is what a screen is told the moment it attaches and on every

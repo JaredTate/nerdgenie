@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestEveryCrossWaveInterfaceExists is the compile-time proof that the fifteen

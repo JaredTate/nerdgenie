@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // DuplicateMarker goes in front of a reply that is sent again after a crash,

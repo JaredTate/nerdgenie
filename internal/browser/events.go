@@ -6,7 +6,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // DefaultBufferedEvents is how many of the person's own events are held for a

@@ -15,7 +15,7 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The retry policy, from the brief: three attempts in all, a wait of one second

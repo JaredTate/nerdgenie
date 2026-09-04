@@ -14,7 +14,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Start is what a record is created from, on the first tool call of a piece of

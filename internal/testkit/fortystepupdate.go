@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The names the fixture writes a record update under. They are the fields of the

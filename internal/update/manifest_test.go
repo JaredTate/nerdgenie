@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/update"
+	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
 // aChecksum is a plausible SHA-256 sum, which is sixty-four hexadecimal digits.

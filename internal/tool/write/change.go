@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // MaxPriorContentsBytes is how much of what a file held is kept in the log. A

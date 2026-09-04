@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // answersLookedAt is how far down a search a question's answer may be. Three is

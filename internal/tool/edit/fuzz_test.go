@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/tool/edit"
+	"github.com/JaredTate/nerdgenie/internal/tool/edit"
 )
 
 // FuzzTheMatchers throws any three pieces of text at the matcher and asserts the

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // shellProgram is what a command line is handed to when bash is not on this

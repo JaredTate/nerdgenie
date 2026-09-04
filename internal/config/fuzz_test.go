@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/JaredTate/coeus/internal/config"
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/config"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // FuzzTheLoaderNeverPanics throws arbitrary bytes at the configuration reader.

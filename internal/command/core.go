@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // Help is the "/help" command: the one listing of everything Coeus answers, in

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The error codes worker/browser/PROTOCOL.md defines, all eight of them.

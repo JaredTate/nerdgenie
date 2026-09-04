@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // The methods in this file are the harness's half of a record: everything

@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JaredTate/coeus/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // SubscriberBacklog is how many events one subscriber may fall behind by before

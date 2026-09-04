@@ -1,15 +1,15 @@
-# Written by "coeus install". Run "coeus install" again to replace it, or
-# "coeus uninstall" to take it away.
+# Written by "nerdgenie install". Run "nerdgenie install" again to replace it, or
+# "nerdgenie uninstall" to take it away.
 
 [Unit]
-Description=Coeus, an assistant that runs on your own computer
+Description=Nerd Genie, an assistant that runs on your own computer
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=notify
-ExecStart=/home/tester/.coeus/releases/current serve
-Environment=COEUS_HOME=/home/tester/.coeus
+ExecStart=/home/tester/.nerdgenie/releases/current serve
+Environment=NERDGENIE_HOME=/home/tester/.nerdgenie
 WatchdogSec=60
 Restart=on-failure
 RestartSec=5

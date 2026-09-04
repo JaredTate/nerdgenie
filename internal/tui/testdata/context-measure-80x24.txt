@@ -1,19 +1,19 @@
- coeus · local · ctx 12.4k / 262k · 5% · 6.1k in 0.4k out · $0.04     ● healthy 
+ nerdgenie · local · ctx 12.4k / 262k · 5% · 6.1k in 0.4k out · $0.04           
  ────────────────────────────────────────────────────────────────────────────── 
                                                                                 
                                                                                 
                                                                                 
                                                                                 
                                                                                 
-         █████ █████ █████ █   █ █████   █████ █████ █████ █   █ █████          
-         █     █   █ █     █   █ █       █   █ █     █     ██  █   █            
-         █     █   █ ████  █   █ █████   █████ █  ██ ████  █ █ █   █            
-         █     █   █ █     █   █     █   █   █ █   █ █     █  ██   █            
-         █████ █████ █████ █████ █████   █   █ █████ █████ █   █   █            
+                                                                                
+                                                                                
+                                NERD GENIE AGENT                                
                                                                                 
                 the agent that does not forget what it is doing                 
                                   local · idle                                  
                            type / to see the commands                           
+                                                                                
+                                                                                
                                                                                 
                                                                                 
                                                                                 

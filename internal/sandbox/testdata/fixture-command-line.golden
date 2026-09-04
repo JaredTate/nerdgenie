@@ -44,8 +44,8 @@ bwrap
 /home/example/projects
 /home/example/projects
 --ro-bind
-/home/example/.coeus/releases/1.0.0/coeus
-/home/example/.coeus/releases/1.0.0/coeus
+/home/example/.nerdgenie/releases/1.0.0/nerdgenie
+/home/example/.nerdgenie/releases/1.0.0/nerdgenie
 --setenv
 PATH
 /usr/local/bin:/usr/bin:/bin
@@ -62,12 +62,12 @@ xterm-256color
 GIT_AUTHOR_NAME
 Example
 --setenv
-COEUS_INSIDE_SANDBOX
+NERDGENIE_INSIDE_SANDBOX
 1
 --chdir
 /home/example/work
 --
-/home/example/.coeus/releases/1.0.0/coeus
+/home/example/.nerdgenie/releases/1.0.0/nerdgenie
 sandbox-entry
 --read
 /usr
@@ -86,7 +86,7 @@ sandbox-entry
 --read
 /dev
 --read
-/home/example/.coeus/releases/1.0.0/coeus
+/home/example/.nerdgenie/releases/1.0.0/nerdgenie
 --write
 /home/example/work
 --write

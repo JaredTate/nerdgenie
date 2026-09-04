@@ -1,4 +1,4 @@
-Which model should Coeus use?
+Which model should Nerd Genie use?
   1. the local model daemon on this machine, at THE-LOCAL-DAEMON, which costs nothing and sends nothing away
   2. an LM Studio server on this machine, at THE-LM-STUDIO-SERVER, serving qwen3-27b-uncensored
   3. the Claude subscription you already pay for, through the claude program

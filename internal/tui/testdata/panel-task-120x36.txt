@@ -1,4 +1,4 @@
- coeus · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                            ● healthy 
+ nerdgenie · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
                                                                                             │ opus                      
                                                                                             │ ctx 12.4k / 262k · 5%     

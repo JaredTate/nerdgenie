@@ -1,10 +1,10 @@
-# Written by "coeus install". Run "coeus install" again to replace it, or
-# "coeus uninstall" to take it away.
+# Written by "nerdgenie install". Run "nerdgenie install" again to replace it, or
+# "nerdgenie uninstall" to take it away.
 
 [Unit]
-Description=Coeus nightly backup of the database, the vault, and the browser profile
+Description=Nerd Genie nightly backup of the database, the vault, and the browser profile
 
 [Service]
 Type=oneshot
-ExecStart=/home/tester/.coeus/releases/current backup
-Environment=COEUS_HOME=/home/tester/.coeus
+ExecStart=/home/tester/.nerdgenie/releases/current backup
+Environment=NERDGENIE_HOME=/home/tester/.nerdgenie

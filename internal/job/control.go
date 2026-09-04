@@ -133,13 +133,18 @@ func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.Job
 	return jobs.saveState(ctx, jobID, held, changed)
 }
 
-// startWorking puts a job back to running and forgets the failures behind it.
-// The caller holds the lock.
+// startWorking puts a job back to running, forgets the failures behind it, and
+// wakes the store, because a job set running has work due at once. The caller
+// holds the lock.
 func (jobs *Jobs) startWorking(ctx context.Context, jobID string, held *heldJob) error {
 	if err := held.keeper.SetStatus(ctx, contract.StatusRunning); err != nil {
 		return fmt.Errorf("cannot set job %s running again: %w", jobID, err)
 	}
 	changed := held.state
 	changed.State, changed.FailuresInARow, changed.Backoff = contract.JobRunning, 0, 0
-	return jobs.saveState(ctx, jobID, held, changed)
+	if err := jobs.saveState(ctx, jobID, held, changed); err != nil {
+		return err
+	}
+	jobs.wake()
+	return nil
 }

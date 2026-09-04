@@ -89,6 +89,12 @@ type Jobs struct {
 	lastWaitEnded time.Time
 	mayStartWork  func() bool
 	tellTheUser   func(ctx context.Context, text string) error
+	// somethingNew says a job was made or changed since the store last looked
+	// for work, and woken is how a wait that is already asleep hears of it. The
+	// flag lasts until NextTask looks, because the driver that is woken may be
+	// running a task of its own and have to wait again before it can look.
+	somethingNew bool
+	woken        chan struct{}
 }
 
 // The job store is the one real job store, so the compiler is asked to say at
@@ -130,11 +136,17 @@ func Open(ctx context.Context, home contract.Home, eventLog contract.Store, cloc
 	opened := &Jobs{
 		home: home, eventLog: eventLog, clock: clock, database: database,
 		owner: thisProcess(), held: map[string]*heldJob{}, nextJob: 1,
+		woken: make(chan struct{}, 1),
 	}
 	if err := opened.prepare(ctx); err != nil {
 		_ = opened.Close()
 		return nil, err
 	}
+	// A store that has just opened has never looked for work, and a job the
+	// process before this one left running must not wait out a clamp.
+	opened.guard.Lock()
+	opened.wake()
+	opened.guard.Unlock()
 	return opened, nil
 }
 

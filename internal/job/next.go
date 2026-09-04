@@ -30,6 +30,7 @@ func (jobs *Jobs) NextTask(ctx context.Context, now time.Time) (contract.TaskToR
 	if jobs.mayStartWork != nil && !jobs.mayStartWork() {
 		return contract.TaskToRun{}, false, nil
 	}
+	jobs.lookedForWork()
 	if err := jobs.releaseTasksPastTheirBudget(ctx, now); err != nil {
 		return contract.TaskToRun{}, false, err
 	}
@@ -150,9 +151,11 @@ func (jobs *Jobs) releaseTasksPastTheirBudget(ctx context.Context, now time.Time
 	return nil
 }
 
-// Wait sleeps until there could be work to do, and never for longer than the
-// clamp, so that a job created or changed while the agent waits is picked up
-// within the minute. It returns as soon as the context is done.
+// Wait sleeps until there could be work to do: until the soonest date or tick
+// of any running job, never longer than the clamp, and not at all once a job
+// has been made or changed since the store last looked, because a person who
+// has just pasted a big ask is waiting for its first task to start. It returns
+// as soon as the context is done.
 //
 // It also never comes back twice inside RestBetweenWaits. Work that is already
 // past its moment makes the wait nothing at all, and the driver that asks may
@@ -163,11 +166,53 @@ func (jobs *Jobs) Wait(ctx context.Context) error {
 	if err := jobs.clock.Sleep(ctx, jobs.restStillOwed(jobs.clock.Now())); err != nil {
 		return err
 	}
-	if err := jobs.clock.Sleep(ctx, jobs.timeUntilWork(jobs.clock.Now())); err != nil {
+	if err := jobs.sleepUnlessWoken(ctx, jobs.timeUntilWork(jobs.clock.Now())); err != nil {
 		return err
 	}
 	jobs.rememberThisWait(jobs.clock.Now())
 	return nil
+}
+
+// sleepUnlessWoken sleeps on the clock for the time given, and comes back early
+// when a job is made or changed in the meantime. The sleep runs beside this
+// function so that a wake can leave it behind; the sleep it leaves ends on the
+// context that is cancelled here, so nothing is left waiting on the clock.
+func (jobs *Jobs) sleepUnlessWoken(ctx context.Context, until time.Duration) error {
+	if until <= 0 {
+		return nil
+	}
+	sleeping, leaveTheSleep := context.WithCancel(ctx)
+	defer leaveTheSleep()
+	slept := make(chan error, 1)
+	go func() { slept <- jobs.clock.Sleep(sleeping, until) }()
+	select {
+	case err := <-slept:
+		return err
+	case <-jobs.woken:
+		return nil
+	}
+}
+
+// wake says that a job was made or changed, so the next look for work must not
+// wait for the clock: a wait already asleep is woken, and one that has not
+// begun comes straight back, until the store has looked. The caller holds the
+// lock.
+func (jobs *Jobs) wake() {
+	jobs.somethingNew = true
+	select {
+	case jobs.woken <- struct{}{}:
+	default:
+	}
+}
+
+// lookedForWork spends the wake, because the store is looking now. The caller
+// holds the lock.
+func (jobs *Jobs) lookedForWork() {
+	jobs.somethingNew = false
+	select {
+	case <-jobs.woken:
+	default:
+	}
 }
 
 // restStillOwed is how much of the rest between two waits has not been taken
@@ -190,11 +235,15 @@ func (jobs *Jobs) rememberThisWait(now time.Time) {
 }
 
 // timeUntilWork is how long the store may sleep before something is due: the
-// soonest date or tick of any running job, clamped to the minute, and never
-// below nothing.
+// soonest date or tick of any running job, clamped to the minute, never below
+// nothing, and nothing at all while a job made or changed since the last look
+// is waiting to be looked at.
 func (jobs *Jobs) timeUntilWork(now time.Time) time.Duration {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
+	if jobs.somethingNew {
+		return 0
+	}
 	waiting := TimerClamp
 	for _, jobID := range jobs.order {
 		held := jobs.held[jobID]

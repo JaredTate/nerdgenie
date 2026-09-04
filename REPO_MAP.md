@@ -600,6 +600,9 @@ internal/permission/integration_test.go
 internal/permission/nestedshell.go
 internal/permission/preview.go
 internal/permission/preview_test.go
+internal/permission/readonly.go
+internal/permission/readonly_test.go
+internal/permission/readonlydecide_test.go
 internal/permission/reduce.go
 internal/permission/reduce_test.go
 internal/permission/remembered_test.go

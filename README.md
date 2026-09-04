@@ -1,6 +1,6 @@
 # Nerd Genie
 
-Nerd Genie is an open-source AI agent for Linux. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
+Nerd Genie is an open-source AI agent that runs on your own Linux machine. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
 
 Nerd Genie is being built, wave by wave, and `docs/PROGRESS.md` says how far it has got. Start with `NERDGENIE.md`, the plain-words explanation of how it works and why it is better. The design is in `docs/NERDGENIE_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
 

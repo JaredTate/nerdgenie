@@ -29,6 +29,12 @@ For the trials below, the repository build is enough: `make build`, then `NERDGE
 
 Watch for: the first frame at once and at the terminal's real size; streaming visible while a reply is written; a preview card you answer with `a`, `A`, or `r` (ask it to write a file in the working folder to get one); a masked prompt that never echoes (`/vault add` asks for a secret); Escape stops a reply or a task; no flicker on resize; `/` opens the palette; `/tasks` and `/jobs` show the record.
 
+The three session switches, each on its own line:
+
+- Type `/think` on its own: it says how hard the model in use thinks and names the levels. Type `/think medium`: it sets that level for the rest of the session, and `/status` shows the same level.
+- Type `/yolo`: it says the asking is off, and a call that is on your ask-me-first list now runs without a preview and is logged as allowed by yolo. Type `/yolo off`: the asking comes back.
+- Type `/clear`: the screen empties, the running task stops, and the next message you send starts a fresh task rather than carrying on the one you can no longer see.
+
 ## 3. Signal
 
 ```
@@ -47,7 +53,14 @@ go run ./scripts/fixturesite
 
 It prints its address and the one credential it accepts. Store that credential with `/vault add fixture <address> 127.0.0.1 jared` (it asks for the password on a masked prompt), then ask the agent to sign in at the address and post "hello from nerdgenie" on the compose page. Watch the Chrome window: it must be visible, the pacing must look human, the post must be previewed before it is sent, and when you ask the agent to open the site's `/captcha` page it must hand the browser to you rather than guess.
 
-## 5. Jobs, the desktop, and a bad release
+## 5. The record: a big ask becomes a job, status, and reattaching
+
+- Give it a big ask, one that is many steps or names a date, for example: "build a small snake game in a new folder — a plan, the HTML, the CSS, the JavaScript, and a README, then a note of what is left." It must land as a job with a task list, not one flat task.
+- On a wide terminal (at least a hundred columns) the side panel down the right shows the job's tasks, a pointer beside the one running now and a check beside each one done, and the running task's plan. `/jobs` lists the job with its progress; `/tasks` shows the tasks.
+- While it is working, type "where are we". You get the real status straight back — the running task and where it stands — with no new task started and no "no active work" answer.
+- Close the screen window (the one running `nerdgenie`, not the one running `nerdgenie serve`). The task keeps running under the service. Open `nerdgenie` again and type "where are we": the same task is still in flight. This is not `/clear`, which stops the task on purpose.
+
+## 6. Jobs, the desktop, and a bad release
 
 A scheduled job: `/cron` lists them; ask the agent for "a job that writes the time to clock.txt in the working folder every two minutes" and watch `/jobs` and the file.
 

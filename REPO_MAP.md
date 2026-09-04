@@ -1221,6 +1221,7 @@ internal/tui/approval_test.go
 internal/tui/behaviour_test.go
 internal/tui/bubble.go
 internal/tui/card.go
+internal/tui/checklist_test.go
 internal/tui/clear_test.go
 internal/tui/client.go
 internal/tui/client_test.go

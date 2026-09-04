@@ -24,19 +24,6 @@ const MaxJobTasksRemembered = 100
 // hands it a job's task back by nothing but these words.
 var theWordsThatCarryOn = []string{"continue", "go on", "carry on", "keep going"}
 
-// putDownTask is a job's task the person has not yet picked up again: one they
-// stopped, or one that asked them a question. It holds which job's task it is,
-// the number of the run that was stopped or asked, and whether that run made a
-// record, which is what is picked up. A task that asked is picked up by the
-// person's next message, whatever it says, because that message is the answer;
-// a task that was stopped only by the word that carries on.
-type putDownTask struct {
-	fromJob   contract.TaskToRun
-	number    string
-	hasRecord bool
-	waiting   bool
-}
-
 // saysCarryOn says whether the whole message is one of the ways of asking for
 // the stopped task back, whatever case it was typed in and whatever
 // punctuation it ends with. Anything longer is a new ask, even when it begins
@@ -79,23 +66,22 @@ func (theLoop *Loop) jobTaskBehind(number string) (contract.TaskToRun, bool) {
 
 // putTheTaskDown leaves a job's task where the person stopped it, or where it
 // stopped to ask them something, rather than finishing it. The task is neither
-// done nor failed and nothing is written into the job; the job is paused on it,
-// so that nothing of the job runs until the person picks it up, and so that its
-// claim is not given up as a dead process's an hour later; and the person gets
-// the task's own report, the stopped report or the question, with the job
-// named under it where a finished task's report carries its progress line.
-// Only the newest put-down task is kept: it is the one the person was just
-// looking at, and a job put down before it stays paused until they start it
-// again by hand.
+// done nor failed and nothing is written into the job; the job is paused on it
+// with the mark that says which task and which run, kept by the job store so
+// that a restart reads it back, so that nothing of the job runs until the
+// person picks it up, and so that its claim is not given up as a dead
+// process's an hour later; and the person gets the task's own report, the
+// stopped report or the question, with the job named under it where a finished
+// task's report carries its progress line. The newest put-down task is the one
+// picked up: it is the one the person was just looking at, and a job put down
+// before it stays paused until they start it again by hand.
 func (theLoop *Loop) putTheTaskDown(ctx context.Context, task Task, number string, outcome Outcome) error {
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	waiting := outcome.Status == contract.StatusWaiting
-	if err := theLoop.options.Jobs.Pause(ctx, jobID); err != nil {
-		return fmt.Errorf("cannot pause job %s on its put-down task %s: %w", jobID, taskID, err)
+	mark := contract.PutDownMark{Task: *task.FromJob, Run: number, HasRecord: outcome.TaskID != "", Waiting: waiting}
+	if err := theLoop.options.Jobs.PutDown(ctx, mark); err != nil {
+		return fmt.Errorf("cannot put job %s down on its task %s: %w", jobID, taskID, err)
 	}
-	theLoop.guard.Lock()
-	theLoop.putDown = &putDownTask{fromJob: *task.FromJob, number: number, hasRecord: outcome.TaskID != "", waiting: waiting}
-	theLoop.guard.Unlock()
 	under := pausedOnLine(jobID, taskID)
 	if waiting {
 		under = waitingOnLine(jobID, taskID)
@@ -124,10 +110,14 @@ func waitingOnLine(jobID string, taskID string) string {
 // so that its report reaches the job however the task ended. A job's own task,
 // and a message that is none of these, go through unchanged.
 func (theLoop *Loop) pickUpTheJobsTask(ctx context.Context, task Task) (Task, error) {
-	if task.FromJob != nil {
+	if task.FromJob != nil || theLoop.options.Jobs == nil {
 		return task, nil
 	}
-	if putDown, there := theLoop.takeThePutDownTaskFor(task); there {
+	putDown, there, err := theLoop.thePutDownTaskFor(ctx, task)
+	if err != nil {
+		return Task{}, err
+	}
+	if there {
 		return theLoop.carryOn(ctx, task, putDown)
 	}
 	if fromJob, known := theLoop.jobTaskBehind(task.ResumeID); known {
@@ -136,28 +126,29 @@ func (theLoop *Loop) pickUpTheJobsTask(ctx context.Context, task Task) (Task, er
 	return task, nil
 }
 
-// takeThePutDownTaskFor hands over the job's task put down most recently when
-// this message picks it up, which for a task that asked a question is any
-// message and for a stopped task is the person asking for it back, and
-// forgets it, because a task picked up is put down no longer. The caller may
-// have named a stopped or waiting task of the person's own; the one that
-// stopped or asked later is the one the person means, and a task's number
+// thePutDownTaskFor asks the job store for the job's task put down most
+// recently and hands it over when this message picks it up, which for a task
+// that asked a question is any message and for a stopped task is the person
+// asking for it back. The store is asked rather than this loop's memory so
+// that a task put down before a restart is still picked up after it. The
+// caller may have named a stopped or waiting task of the person's own; the one
+// that stopped or asked later is the one the person means, and a task's number
 // says which that is.
-func (theLoop *Loop) takeThePutDownTaskFor(task Task) (putDownTask, bool) {
-	theLoop.guard.Lock()
-	defer theLoop.guard.Unlock()
-	if theLoop.putDown == nil {
-		return putDownTask{}, false
+func (theLoop *Loop) thePutDownTaskFor(ctx context.Context, task Task) (contract.PutDownMark, bool, error) {
+	putDown, there, err := theLoop.options.Jobs.PutDownTask(ctx)
+	if err != nil {
+		return contract.PutDownMark{}, false, fmt.Errorf("cannot ask the jobs which task was put down: %w", err)
 	}
-	if !theLoop.putDown.waiting && !saysCarryOn(task.Message.Text) {
-		return putDownTask{}, false
+	if !there {
+		return contract.PutDownMark{}, false, nil
 	}
-	if task.ResumeID != "" && isNewer(task.ResumeID, theLoop.putDown.number) {
-		return putDownTask{}, false
+	if !putDown.Waiting && !saysCarryOn(task.Message.Text) {
+		return contract.PutDownMark{}, false, nil
 	}
-	putDown := *theLoop.putDown
-	theLoop.putDown = nil
-	return putDown, true
+	if task.ResumeID != "" && isNewer(task.ResumeID, putDown.Run) {
+		return contract.PutDownMark{}, false, nil
+	}
+	return putDown, true, nil
 }
 
 // isNewer says whether the first task number was handed out after the second.
@@ -174,26 +165,26 @@ func isNewer(number string, than string) bool {
 }
 
 // carryOn turns the person's word, or their answer, into the job's task it
-// picks up. The job is set running again first, so that the next task starts
-// as usual when this one finishes; then the run that was stopped or asked is
-// picked up under the job when it made a record, and the task is started
-// afresh under the job, with its own words as the ask, when the stop or the
-// question came before its first tool call. A task started afresh on an
-// answer is given the answer as well, so the model is told both what to do
-// and what the person said.
-func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown putDownTask) (Task, error) {
-	jobID, taskID := putDown.fromJob.JobID, putDown.fromJob.TaskID
+// picks up. The job is set running again first, which forgets the mark, so
+// that the next task starts as usual when this one finishes; then the run
+// that was stopped or asked is picked up under the job when it made a record,
+// and the task is started afresh under the job, with its own words as the ask,
+// when the stop or the question came before its first tool call. A task
+// started afresh on an answer is given the answer as well, so the model is
+// told both what to do and what the person said.
+func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.PutDownMark) (Task, error) {
+	jobID, taskID := putDown.Task.JobID, putDown.Task.TaskID
 	if err := theLoop.options.Jobs.RunNow(ctx, jobID); err != nil {
 		return Task{}, fmt.Errorf("cannot set job %s running again to carry on its task %s: %w", jobID, taskID, err)
 	}
-	if !putDown.hasRecord {
-		fresh := taskFromJob(putDown.fromJob, task.Channel)
-		if putDown.waiting {
+	if !putDown.HasRecord {
+		fresh := taskFromJob(putDown.Task, task.Channel)
+		if putDown.Waiting {
 			fresh.Answer = task.Message
 		}
 		return fresh, nil
 	}
-	fromJob := putDown.fromJob
-	task.FromJob, task.Unattended, task.ResumeID = &fromJob, fromJob.Unattended, putDown.number
+	fromJob := putDown.Task
+	task.FromJob, task.Unattended, task.ResumeID = &fromJob, fromJob.Unattended, putDown.Run
 	return task, nil
 }

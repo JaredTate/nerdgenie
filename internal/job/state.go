@@ -61,6 +61,10 @@ type jobState struct {
 	Incidents []Incident `json:"incidents,omitempty"`
 	// Tasks holds the facts about each task that the record does not carry.
 	Tasks map[string]taskFacts `json:"tasks,omitempty"`
+	// PutDown is the mark the job carries while it is put down on one of its
+	// tasks, and nil when it is not. It is in the snapshot so that a restart
+	// reads back which task the person's next word or answer picks up.
+	PutDown *contract.PutDownMark `json:"putDown,omitempty"`
 	// Notepad is what the job's tasks have written down for the ones after them.
 	// It is not part of a snapshot, because a note is appended on its own.
 	Notepad string `json:"-"`

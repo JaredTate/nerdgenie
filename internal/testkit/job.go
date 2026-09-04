@@ -33,6 +33,9 @@ type fakeJobEntry struct {
 	// doneWhen is the done list the fake writes when the job closes: one line
 	// per task, pointing at that task's report, the rule the real store keeps.
 	doneWhen []contract.DoneLine
+	// putDown is the mark the job carries while it is put down on one of its
+	// tasks, and nil when it is not.
+	putDown *contract.PutDownMark
 }
 
 // FakeJob holds jobs in memory: create one, add tasks to it, list them, change
@@ -136,6 +139,7 @@ func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 	}
 
 	entry.summary.State = contract.JobRunning
+	entry.putDown = nil
 	for index := range entry.tasks {
 		task := &entry.tasks[index]
 		if task.task.Done || task.running {
@@ -152,6 +156,50 @@ func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 // Pause stops the job after the running task finishes.
 func (jobs *FakeJob) Pause(_ context.Context, jobID string) error {
 	return jobs.setState(jobID, contract.JobPaused)
+}
+
+// PutDown pauses a job on one of its tasks and keeps the mark, which RunNow
+// forgets again.
+func (jobs *FakeJob) PutDown(_ context.Context, mark contract.PutDownMark) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[mark.Task.JobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", mark.Task.JobID)
+	}
+	if jobs.findTask(entry, mark.Task.TaskID) == nil {
+		return fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", mark.Task.JobID, mark.Task.TaskID)
+	}
+	entry.summary.State = contract.JobPaused
+	entry.putDown = &mark
+	return nil
+}
+
+// PutDownTask hands back the mark of the paused job whose run is newest, and
+// false when no job is put down.
+func (jobs *FakeJob) PutDownTask(_ context.Context) (contract.PutDownMark, bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	newest, there := contract.PutDownMark{}, false
+	for _, jobID := range jobs.order {
+		entry := jobs.entries[jobID]
+		if entry.putDown == nil || entry.summary.State != contract.JobPaused {
+			continue
+		}
+		if !there || runNumberOf(entry.putDown.Run) > runNumberOf(newest.Run) {
+			newest, there = *entry.putDown, true
+		}
+	}
+	return newest, there, nil
+}
+
+// runNumberOf reads a run's number, and is zero for one that is not a number.
+func runNumberOf(run string) int {
+	number, err := strconv.Atoi(run)
+	if err != nil {
+		return 0
+	}
+	return number
 }
 
 // SwitchOff stops the job for good.

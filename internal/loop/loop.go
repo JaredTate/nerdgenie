@@ -142,14 +142,10 @@ type Loop struct {
 	// memory is held to MaxJobTasksRemembered.
 	jobTasks       map[string]contract.TaskToRun
 	jobTaskNumbers []string
-	// putDown is the job's task the person stopped, or that asked them a
-	// question, most recently and that they have not yet picked up again, and
-	// nil when there is none.
-	putDown    *putDownTask
-	highest    int
-	counted    bool
-	thinkModel string
-	thinkLevel contract.Think
+	highest        int
+	counted        bool
+	thinkModel     string
+	thinkLevel     contract.Think
 }
 
 // UseThink sets how hard one model is asked to think, for the rest of the

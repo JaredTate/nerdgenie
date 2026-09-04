@@ -119,6 +119,26 @@ type TaskToRun struct {
 	Unattended bool
 }
 
+// PutDownMark is the mark a job carries while it is put down on one of its
+// tasks: the person stopped the task, or it asked them a question, and the job
+// holds on it until they pick it up. The store keeps it beside the job's state
+// rather than the loop keeping it in memory, so that the word that carries on,
+// or the answer, picks that same task up under the same job after a restart.
+type PutDownMark struct {
+	// Task is the job's task the job holds on, as it was handed out.
+	Task TaskToRun
+	// Run is the number the loop ran the task under, which is what is picked
+	// up again.
+	Run string
+	// HasRecord says that run made a task record, so it is resumed from its
+	// last checkpoint. A run that had made none is started afresh.
+	HasRecord bool
+	// Waiting says the task asked the person a question, so their next message
+	// answers it. Otherwise the person stopped it, and only the word that
+	// carries on picks it up.
+	Waiting bool
+}
+
 // Job is a piece of work too big for one sitting: the same four parts as a task
 // record, but its plan is a list of tasks and its results are their reports.
 // A scheduled job is simply a job with a schedule, so there is one idea here and
@@ -137,6 +157,16 @@ type Job interface {
 	Pause(ctx context.Context, jobID string) error
 	// SwitchOff stops the job for good and tells the user.
 	SwitchOff(ctx context.Context, jobID string) error
+	// PutDown pauses a job on one of its tasks and marks it: the person stopped
+	// the task, or it asked them a question. Nothing of the job runs until it
+	// is set running again, by RunNow or by the person picking the task up,
+	// and the mark is what that pick-up reads, even after a restart. A job set
+	// running again forgets its mark. A job that is not there, or a task not on
+	// its list, is refused with an error naming it.
+	PutDown(ctx context.Context, mark PutDownMark) error
+	// PutDownTask returns the mark of the paused job put down most recently,
+	// which is the one whose run is newest, and false when no job is put down.
+	PutDownTask(ctx context.Context) (PutDownMark, bool, error)
 	// NextTask returns the next task that may start now: the first unfinished
 	// task of the oldest running job whose due time has passed, or, for a job
 	// with a schedule whose tick has come, one new task made from its template.

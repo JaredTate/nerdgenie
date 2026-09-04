@@ -128,6 +128,62 @@ func TestTheFakeJobStoreRefusesAJobItDoesNotHold(t *testing.T) {
 	}
 }
 
+func TestTheFakeJobStoreHandsBackTheNewestPutDownTaskAndRefusesWhatItCannotMark(t *testing.T) {
+	ctx := context.Background()
+	jobs := testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC()))
+	older, err := jobs.Create(ctx, contract.NewJob{Ask: "The job put down first."})
+	if err != nil {
+		t.Fatalf("creating the older job failed: %v", err)
+	}
+	olderTask, err := jobs.AddTask(ctx, contract.NewTask{JobID: older, Text: "its task"})
+	if err != nil {
+		t.Fatalf("adding the older job's task failed: %v", err)
+	}
+	newer, err := jobs.Create(ctx, contract.NewJob{Ask: "The job put down second."})
+	if err != nil {
+		t.Fatalf("creating the newer job failed: %v", err)
+	}
+	newerTask, err := jobs.AddTask(ctx, contract.NewTask{JobID: newer, Text: "its task"})
+	if err != nil {
+		t.Fatalf("adding the newer job's task failed: %v", err)
+	}
+	if listed := jobs.Tasks(newer); len(listed) != 1 || listed[0].TaskID != newerTask {
+		t.Fatalf("the newer job's tasks are %+v, want the one that was added", listed)
+	}
+
+	if err := jobs.PutDown(ctx, contract.PutDownMark{Task: contract.TaskToRun{JobID: "99", TaskID: "t1"}}); err == nil {
+		t.Error("a job that is not there was put down without an error naming it")
+	}
+	if err := jobs.PutDown(ctx, contract.PutDownMark{Task: contract.TaskToRun{JobID: older, TaskID: "t99"}}); err == nil {
+		t.Error("a job was put down on a task that is not on its list without an error naming it")
+	}
+	for _, mark := range []contract.PutDownMark{
+		{Task: contract.TaskToRun{JobID: newer, TaskID: newerTask}, Run: "12"},
+		{Task: contract.TaskToRun{JobID: older, TaskID: olderTask}, Run: "9"},
+	} {
+		if err := jobs.PutDown(ctx, mark); err != nil {
+			t.Fatalf("putting job %s down failed: %v", mark.Task.JobID, err)
+		}
+	}
+
+	held, there, err := jobs.PutDownTask(ctx)
+	if err != nil || !there || held.Task.JobID != newer {
+		t.Errorf("the put-down task handed back is %+v (there %v, error %v), want the newer job's, whose run is newest", held, there, err)
+	}
+	if err := jobs.SwitchOff(ctx, newer); err != nil {
+		t.Fatalf("switching the newer job off failed: %v", err)
+	}
+	if held, there, _ := jobs.PutDownTask(ctx); !there || held.Task.JobID != older {
+		t.Errorf("with the newer job switched off the put-down task is %+v (there %v), want the older job's", held, there)
+	}
+	if err := jobs.RunNow(ctx, older); err != nil {
+		t.Fatalf("running the older job now failed: %v", err)
+	}
+	if held, there, _ := jobs.PutDownTask(ctx); there {
+		t.Errorf("with both jobs picked up or switched off the put-down task is %+v, want none", held)
+	}
+}
+
 func TestTheFakeJobStoreKeepsTheJobContract(t *testing.T) {
 	jobs := testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC()))
 	if err := testkit.CheckJob(context.Background(), jobs); err != nil {

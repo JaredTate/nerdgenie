@@ -205,9 +205,18 @@ func theContractChecksSkillFolder(name string) map[string][]byte {
 	}
 }
 
+// The named job the job checks make: a short name, and an ask long enough that
+// a store listing by the ask instead of the name shows up in the title.
+const (
+	theNamedJobsName = "Tater Tots Tetris"
+	theNamedJobsAsk  = "Build a Tetris game where every piece is a tater tot, with a score board, a pause key, and a sound when a row clears, then put it on the web so that my nephew can play it on his tablet."
+)
+
 // CheckJob asserts what every job store promises: a job needs an ask, a job that
-// is not there is an error, and a created job is listed as running with the
-// tasks that were added to it.
+// is not there is an error, a created job is listed as running under the name it
+// was given with the tasks that were added to it, and its record carries that
+// name. It makes exactly one job, and the tests that call it count on that, so
+// the other half of the name rule is CheckJobWithoutAName.
 func CheckJob(ctx context.Context, jobs contract.Job) error {
 	if _, err := jobs.Create(ctx, contract.NewJob{}); err == nil {
 		return errors.New("creating a job with no ask returned no error, and the ask is the user's own words")
@@ -216,7 +225,7 @@ func CheckJob(ctx context.Context, jobs contract.Job) error {
 		return errors.New("pausing a job that is not there returned no error, and it must name what is missing")
 	}
 
-	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: "The contract check made this job.", Why: "to check the contract"})
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: theNamedJobsAsk, Name: theNamedJobsName, Why: "to check the contract"})
 	if err != nil {
 		return fmt.Errorf("creating a job failed: %w", err)
 	}
@@ -241,6 +250,9 @@ func CheckJob(ctx context.Context, jobs contract.Job) error {
 		}
 		if summary.TasksTotal != 1 {
 			return fmt.Errorf("the job has %d tasks, want the one that was added", summary.TasksTotal)
+		}
+		if summary.Title != theNamedJobsName {
+			return fmt.Errorf("the job is listed under the title %q, want its name %q, because a job with a name lists by the name and not by its ask", summary.Title, theNamedJobsName)
 		}
 		return checkJobRunsItsTask(ctx, jobs, jobID, taskID)
 	}
@@ -271,11 +283,55 @@ func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, jobID string, t
 	if record.Header.Kind != contract.RecordJob || record.Header.TasksDone != 1 {
 		return fmt.Errorf("the job record's header is %+v, want a job with one task done", record.Header)
 	}
+	if record.Goal.Name != theNamedJobsName {
+		return fmt.Errorf("the job record carries the name %q, want %q, because the name given on create is written once into the record and read back with it", record.Goal.Name, theNamedJobsName)
+	}
 	if len(record.Work.Results) != 1 || record.Work.Results[0].ID != reportID {
 		return fmt.Errorf("the job record's reports are %+v, want one with id %s", record.Work.Results, reportID)
 	}
 	if _, err := jobs.Load(ctx, "no-such-job"); err == nil {
 		return errors.New("loading a job that is not there returned no error, and it must name what is missing")
+	}
+	return nil
+}
+
+// theNamelessJobsAsk is the ask of the job CheckJobWithoutAName makes, which is
+// the whole of what a job with no name is listed by.
+const theNamelessJobsAsk = "The contract check made this job without a name."
+
+// CheckJobWithoutAName asserts the other half of the name rule: a job made with
+// no name is listed by its whole ask, so that an older job or one the model did
+// not name still lists as something, and its record carries no name at all. It
+// stands apart from CheckJob because it needs a job of its own, and the tests
+// that call CheckJob count the one job it makes.
+func CheckJobWithoutAName(ctx context.Context, jobs contract.Job) error {
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: theNamelessJobsAsk, Why: "to check the contract"})
+	if err != nil {
+		return fmt.Errorf("creating a job with no name failed: %w", err)
+	}
+	listed, err := jobs.List(ctx)
+	if err != nil {
+		return fmt.Errorf("listing the jobs failed: %w", err)
+	}
+	found := false
+	for _, summary := range listed {
+		if summary.ID != jobID {
+			continue
+		}
+		found = true
+		if summary.Title != theNamelessJobsAsk {
+			return fmt.Errorf("the job with no name is listed under the title %q, want its whole ask, because a job given no name lists by its ask so that it still lists as something", summary.Title)
+		}
+	}
+	if !found {
+		return errors.New("a job with no name was created and then was not in the listing")
+	}
+	record, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("loading the record of the job with no name failed: %w", err)
+	}
+	if record.Goal.Name != "" {
+		return fmt.Errorf("the record of a job given no name carries the name %q, want none, because the name is only ever the one given on create", record.Goal.Name)
 	}
 	return nil
 }

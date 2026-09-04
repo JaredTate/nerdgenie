@@ -121,7 +121,10 @@ func (jobs *Jobs) tickSchedule(ctx context.Context, jobID string, held *heldJob,
 
 // releaseTasksPastTheirBudget gives up every claim whose task has been running
 // longer than a task's budget and counts it as a failure, which is what happens
-// to a task whose process died holding it. The caller holds the lock.
+// to a task whose process died holding it. A job that is not running has
+// nothing running, so a claim on one of its tasks is left alone: it is the
+// task the person stopped the job on, kept for them to pick up, and not a dead
+// process's. The caller holds the lock.
 func (jobs *Jobs) releaseTasksPastTheirBudget(ctx context.Context, now time.Time) error {
 	overdue, err := jobs.expiredClaims(ctx, now)
 	if err != nil {
@@ -134,6 +137,9 @@ func (jobs *Jobs) releaseTasksPastTheirBudget(ctx context.Context, now time.Time
 			if err := jobs.release(ctx, jobID, taskID); err != nil {
 				return err
 			}
+			continue
+		}
+		if held.state.State != contract.JobRunning {
 			continue
 		}
 		report := fmt.Sprintf("failed: task %s ran for longer than the %s a task is given and was given up", taskID, TaskBudget)

@@ -151,6 +151,9 @@ func TestEveryFakeKeepsItsContractInOnePass(t *testing.T) {
 		{"jobs", func() error {
 			return testkit.CheckJob(ctx, testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC())))
 		}},
+		{"a job without a name", func() error {
+			return testkit.CheckJobWithoutAName(ctx, testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC())))
+		}},
 		{"the channel", func() error { return testkit.CheckChannel(ctx, testkit.NewFakeChannel("terminal")) }},
 		{"the browser worker", func() error { return testkit.CheckBrowserWorker(ctx, browser) }},
 		{"the desktop", func() error { return testkit.CheckDesktop(ctx, testkit.NewFakeDesktop()) }},

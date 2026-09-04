@@ -104,8 +104,9 @@ func goldenJobRecord() contract.Record {
 // goldenJobGoal is the goal part of the job example.
 func goldenJobGoal() contract.Goal {
 	return contract.Goal{
-		Ask: "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end.",
-		Why: "keep the anniversary in front of people all month.",
+		Ask:  "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end.",
+		Name: "DigiByte anniversary campaign",
+		Why:  "keep the anniversary in front of people all month.",
 		DoneWhen: []contract.DoneLine{
 			{Text: "one post is up for every weekday of the month"},
 			{Text: "the blog piece is published"},

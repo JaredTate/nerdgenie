@@ -17,16 +17,23 @@ func readInput(written json.RawMessage) (input, error) {
 	asked := input{}
 	if len(written) > 0 {
 		if err := json.Unmarshal(written, &asked); err != nil {
+			// The task list reads itself and its refusals already say what to
+			// do, so one of those goes back as it is.
+			var refusal listRefusal
+			if errors.As(err, &refusal) {
+				return input{}, err
+			}
 			return input{}, fmt.Errorf("cannot read this call's arguments as JSON, so write an object with an action in it: %w", err)
 		}
 	}
 	switch asked.Action {
 	case ActionCreate:
-		if strings.TrimSpace(asked.Ask) == "" {
-			return input{}, errors.New("this job carries no ask, so pass the user's message word for word")
-		}
-		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" {
-			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list, then work the first task")
+		// The ask is not checked here, because which ask the job takes depends
+		// on whether the tool has the running task's record, and create knows.
+		// The cap on the list and the refusal of a task that says nothing are
+		// the list's own, in its reader, so they hold whatever the action.
+		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 0 {
+			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list under tasks, then work the first task")
 		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {

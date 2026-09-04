@@ -21,6 +21,14 @@ var (
 	// because a small model never says an ask is too big for it. The message
 	// says what to do instead, and it is the one line the model reads.
 	ErrDoneListTooLong = errors.New("this ask is a job, not one task: create it with the job tool, one task per done line, each task with one clear done line, and then work the first task")
+	// ErrPlanTooLong is the rule that a task's plan holds at most MaxPlanSteps
+	// steps, because a task is one sitting and a plan that needs more than that
+	// is a job's task list in disguise. It closes the door the done-list rule
+	// left open: a model that kept its done list short and hid the work in a
+	// long plan. The message gives the model the same instruction as the
+	// done-list refusal, with one task per step, and it is the one line the
+	// model reads.
+	ErrPlanTooLong = errors.New("this ask is a job, not one task: create it with the job tool, one task per step, each task with one clear done line, and then work the first task")
 	// ErrDecisionNeedsReason is the rule that every decision carries its reason,
 	// so that the model does not argue with itself later.
 	ErrDecisionNeedsReason = errors.New("a decision must carry the reason it was made, so add a reason to it")

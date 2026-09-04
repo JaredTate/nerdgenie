@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 	"github.com/JaredTate/nerdgenie/internal/tool"
 )
@@ -134,5 +135,46 @@ func TestARegistryWithNothingWiredInStillShowsEveryToolAndRefusesPlainly(t *test
 func TestTheRegistryNeedsAHomeFolder(t *testing.T) {
 	if _, err := tool.New(context.Background(), tool.Settings{}); err == nil {
 		t.Errorf("a registry was built with no home folder to spill into")
+	}
+}
+
+// recordOfAsk is the record of a running task as the registry's tools read it:
+// it holds one ask and takes no writes.
+type recordOfAsk struct {
+	ask string
+}
+
+// Record returns a record carrying the held ask.
+func (held recordOfAsk) Record() contract.Record {
+	return contract.Record{Goal: contract.Goal{Ask: held.ask}}
+}
+
+// Apply is never called in these tests.
+func (recordOfAsk) Apply(context.Context, record.Update) error { return nil }
+
+// TestTheJobToolIsHandedTheRunningTasksRecord pins the wiring: the registry
+// builds the job tool over the same record the task tool writes through, so a
+// create that names no ask carries the running task's ask word for word.
+func TestTheJobToolIsHandedTheRunningTasksRecord(t *testing.T) {
+	settings, _ := wholeSettings(t)
+	settings.Records = recordOfAsk{ask: "build the whole game, every feature the user listed"}
+	registry, err := tool.New(context.Background(), settings)
+	if err != nil {
+		t.Fatalf("building the registry failed: %v", err)
+	}
+
+	found, held := registry.Lookup(contract.ToolJob)
+	if !held {
+		t.Fatalf("the registry cannot find the job tool")
+	}
+	if _, err := found.Run(context.Background(), []byte(`{"action":"create","name":"The Game","why":"the user wants it","text":"the first task"}`)); err != nil {
+		t.Fatalf("creating a job with no ask through the registry was refused: %v", err)
+	}
+	loaded, err := settings.Jobs.Load(context.Background(), "1")
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if loaded.Goal.Ask != "build the whole game, every feature the user listed" {
+		t.Errorf("the job's ask is %q, want the running task's, which the registry hands the job tool", loaded.Goal.Ask)
 	}
 }

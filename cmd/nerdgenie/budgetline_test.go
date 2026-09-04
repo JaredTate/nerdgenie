@@ -22,6 +22,7 @@ func TestTheBudgetLineSaysNoBudgetUnlessOneIsSet(t *testing.T) {
 		{"nothing set, which is the shipped default", 0, 0, "no budget"},
 		{"rounds only", 100, 0, "100 rounds per task"},
 		{"time only", 0, time.Hour, "1h per task"},
+		{"under a minute, which the header spells out", 0, 30 * time.Second, "30s per task"},
 		{"both", 40, 30 * time.Minute, "40 rounds, 30m per task"},
 	} {
 		running := &agent{settings: contract.DefaultConfig()}

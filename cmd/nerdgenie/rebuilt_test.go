@@ -100,21 +100,20 @@ func TestTheMemoryOfAWaitingTaskIsRebuiltFromTheLog(t *testing.T) {
 	}
 }
 
-// TestATaskThatEndedIsNotRebuiltIntoTheMemory proves only a task somebody can
-// pick up is remembered: a finished task takes no message, and a task still
-// marked running was cut off by the very stop being recovered from. A failed
-// task is not among these, because a failure is a stop the agent did not choose
-// and "continue" must pick it up again.
+// TestATaskThatEndedIsNotRebuiltIntoTheMemory proves a finished task is not
+// remembered: it takes no message, so "continue" after the restart starts a
+// fresh task rather than picking a done one up. A task still marked running is
+// not among these any more: a shutdown left it running, so the rebuild marks it
+// interrupted and carries it on, which TestARunningTaskIsMarkedInterruptedOnRestartAndCarriedOn
+// holds.
 func TestATaskThatEndedIsNotRebuiltIntoTheMemory(t *testing.T) {
-	for _, standing := range []contract.RecordStatus{contract.StatusDone, contract.StatusRunning} {
-		store := testkit.NewFakeStore()
-		aTaskInTheLog(t, store, "3", fromTheTerminal, standing)
+	store := testkit.NewFakeStore()
+	aTaskInTheLog(t, store, "3", fromTheTerminal, contract.StatusDone)
 
-		remembered := rebuilt(t, store)
+	remembered := rebuilt(t, store)
 
-		if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
-			t.Errorf("a task the log says is %s was picked up as %q after the restart", standing, picked)
-		}
+	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
+		t.Errorf("a task the log says is done was picked up as %q after the restart", picked)
 	}
 }
 

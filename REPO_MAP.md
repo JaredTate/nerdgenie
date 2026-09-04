@@ -54,11 +54,13 @@ cmd/nerdgenie/doctor.go
 cmd/nerdgenie/fuzz_test.go
 cmd/nerdgenie/init.go
 cmd/nerdgenie/install.go
+cmd/nerdgenie/interrupted_test.go
 cmd/nerdgenie/ledgeredchannel.go
 cmd/nerdgenie/ledgeredchannel_test.go
 cmd/nerdgenie/main.go
 cmd/nerdgenie/main_test.go
 cmd/nerdgenie/model.go
+cmd/nerdgenie/panelfields_test.go
 cmd/nerdgenie/previews.go
 cmd/nerdgenie/previews_test.go
 cmd/nerdgenie/rebuilt_test.go
@@ -76,6 +78,7 @@ cmd/nerdgenie/sandbox_entry_test.go
 cmd/nerdgenie/sendtouser_test.go
 cmd/nerdgenie/serve.go
 cmd/nerdgenie/serve_test.go
+cmd/nerdgenie/servehelpers_test.go
 cmd/nerdgenie/serving.go
 cmd/nerdgenie/serving_holding_test.go
 cmd/nerdgenie/serving_loops_test.go

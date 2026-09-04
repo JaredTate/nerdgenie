@@ -224,7 +224,7 @@ func applyDoneWhen(into *contract.Record, update Update) error {
 		return err
 	}
 	if into.Header.Kind == contract.RecordTask && len(update.DoneWhen) > MaxDoneLines {
-		return fmt.Errorf("this done list has %d lines and a task's holds at most %d, so %w",
+		return fmt.Errorf("this done list has %d lines and a task's done list holds at most %d, so %w",
 			len(update.DoneWhen), MaxDoneLines, ErrDoneListTooLong)
 	}
 	for _, line := range update.DoneWhen {
@@ -275,7 +275,7 @@ func applyPlan(into *contract.Record, update Update) error {
 		return err
 	}
 	if len(update.Plan) > MaxPlanSteps {
-		return fmt.Errorf("this plan has %d steps and a task's holds at most %d, so %w",
+		return fmt.Errorf("this plan has %d steps and a task's plan holds at most %d, so %w",
 			len(update.Plan), MaxPlanSteps, ErrPlanTooLong)
 	}
 	steps := make([]contract.PlanStep, 0, len(update.Plan))
@@ -389,7 +389,7 @@ func checkTheAskFitsATask(into *contract.Record) error {
 		return nil
 	}
 	if words := len(strings.Fields(into.Goal.Ask)); words > MaxAskWordsForATask {
-		return fmt.Errorf("this ask runs to %d words and a task's ask holds at most %d, so %w",
+		return fmt.Errorf("this ask runs to %d words and a task's ask holds at most %d words, so %w",
 			words, MaxAskWordsForATask, ErrAskIsAJob)
 	}
 	return nil

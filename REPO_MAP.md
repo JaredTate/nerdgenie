@@ -1421,6 +1421,7 @@ test/functional/serve_test.go
 test/functional/signal_test.go
 test/functional/site_test.go
 test/functional/skilllist_test.go
+test/functional/socketreadiness_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
 test/functional/streaming_test.go

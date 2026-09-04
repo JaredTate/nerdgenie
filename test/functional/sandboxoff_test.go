@@ -89,7 +89,7 @@ func TestWithTheFenceOnTheSameCommandAndTheSameReadAreRefused(t *testing.T) {
 func startTheAgentWithTheSandboxSetTo(t *testing.T, line string) runningAgent {
 	t.Helper()
 	work := aWorkFolder(t)
-	userHome := t.TempDir()
+	userHome := aShortTempFolder(t)
 	home := contract.NewHome(filepath.Join(userHome, contract.HomeFolderName))
 	if err := os.MkdirAll(home.Root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the home folder failed: %v", err)

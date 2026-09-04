@@ -247,12 +247,26 @@ func aWorkFolder(t *testing.T) string {
 // server, so that nothing in this test reaches the real machine's model.
 func aHomePointingAt(t *testing.T, baseAddress string, work string) contract.Home {
 	t.Helper()
-	home := contract.NewHome(filepath.Join(t.TempDir(), contract.HomeFolderName))
+	home := contract.NewHome(filepath.Join(aShortTempFolder(t), contract.HomeFolderName))
 	if err := os.MkdirAll(home.Root, contract.HomeFolderMode); err != nil {
 		t.Fatalf("making the home folder failed: %v", err)
 	}
 	writeTheConfiguration(t, home, baseAddress, work)
 	return home
+}
+
+// aShortTempFolder makes a temporary folder with a short path, removed when the
+// test ends. It is used where t.TempDir() would embed the test's full name and
+// push a Unix socket path built under it (<home>/run/agent.sock) past the
+// 108-byte limit a Unix socket path has.
+func aShortTempFolder(t *testing.T) string {
+	t.Helper()
+	folder, err := os.MkdirTemp("", "ng")
+	if err != nil {
+		t.Fatalf("making a temporary folder failed: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(folder) })
+	return folder
 }
 
 // writeTheConfiguration writes the configuration of a home folder that is

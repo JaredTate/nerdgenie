@@ -1,8 +1,8 @@
-# Coeus
+# Nerd Genie
 
-Coeus is an open-source AI agent for Linux. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
+Nerd Genie is an open-source AI agent that runs on your own Linux machine. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
 
-Coeus is being built, wave by wave, and `docs/PROGRESS.md` says how far it has got. Start with `COEUS.md`, the plain-words explanation of how it works and why it is better. The design is in `docs/COEUS_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
+Nerd Genie is being built, wave by wave, and `docs/PROGRESS.md` says how far it has got. Start with `NERDGENIE.md`, the plain-words explanation of how it works and why it is better. The design is in `docs/NERDGENIE_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
 
 ## The idea
 
@@ -10,7 +10,7 @@ An AI agent is a language model with a program wrapped around it. The model is a
 
 Every agent we studied uses the conversation transcript as its record of the task. The transcript is the full text of everything said so far. On each turn the model re-reads the whole thing to work out where it is. When the transcript grows too long, the agent squeezes it into a summary and hopes nothing important was lost. Picture a video game that loads your saved game by replaying every button you ever pressed since you started. Re-reading the transcript is that replay, and you pay for it on every turn.
 
-Coeus keeps three things apart, which is an old idea from computer science called state.
+Nerd Genie keeps three things apart, which is an old idea from computer science called state.
 
 - **History** is what happened: every message, every tool call, every result. New lines are added at the end and old lines are never changed. It is not put in front of the model by default.
 - **State** is what is true right now. It is a task record of one to three thousand tokens, and it is always in front of the model.
@@ -26,13 +26,13 @@ The result is an agent that always knows what it is working on. It keeps working
 
 ## Any model, big or small
 
-Coeus has one rule for the working context. It is never smaller than the task needs and never bigger than the model can hold. The task record is the same size on every model. Only the window around it changes. On a small model running on your own machine, the window is a few thousand tokens. On a frontier model, it is most of a million. A big model is never held back to suit a small one, and a small model is never asked to hold more than it can.
+Nerd Genie has one rule for the working context. It is never smaller than the task needs and never bigger than the model can hold. The task record is the same size on every model. Only the window around it changes. On a small model running on your own machine, the window is a few thousand tokens. On a frontier model, it is most of a million. A big model is never held back to suit a small one, and a small model is never asked to hold more than it can.
 
 The prompt is built in layers, from the part that changes least to the part that changes most, because model providers charge about a tenth as much for text they have already read. The persona, which says who the agent is and who you are, almost never changes. A skill changes only when a website or a tool changes. The task changes every turn. Keeping the three apart is what makes every turn cheap.
 
 ## The browser, used like a human
 
-Coeus launches a real Chrome web browser with its own user profile, never your daily one. It does not use a website's API. It looks at the page, acts on it at the speed a person would, and checks that the action did what it expected before moving on. When it hits a login wall, a two-factor prompt, or a captcha, it brings the window to the front and hands off to you. It can learn a browser skill by watching you do something once or by reading the documentation, and it replays that skill later without calling the model at all. It can also use the Linux desktop and any command-line tool the same way, and it can visually check an app on screen and report what it sees.
+Nerd Genie launches a real Chrome web browser with its own user profile, never your daily one. It does not use a website's API. It looks at the page, acts on it at the speed a person would, and checks that the action did what it expected before moving on. When it hits a login wall, a two-factor prompt, or a captcha, it brings the window to the front and hands off to you. It can learn a browser skill by watching you do something once or by reading the documentation, and it replays that skill later without calling the model at all. It can also use the Linux desktop and any command-line tool the same way, and it can visually check an app on screen and report what it sees.
 
 ## Safe by design
 
@@ -45,7 +45,7 @@ Nothing irreversible happens without a preview you approve first. Commands run i
 - `/jobs` lists every job with its progress. `/cron` lists the ones with a schedule, in plain words, with when each last ran and when it runs next.
 - `/memory` and `/skills` show what it remembers and what it has learned. Your corrections are kept word for word.
 - `/undo` reverts the last turn's file changes. `/status` shows the model, the cost, and the health.
-- `coeus update` installs a new release and rolls back by itself if the new one does not come up.
+- `nerdgenie update` installs a new release and rolls back by itself if the new one does not come up.
 
 ## Built to grow
 
@@ -59,9 +59,9 @@ Tests are written before the code they prove, at four levels: unit, integration,
 
 | File | What it is |
 |---|---|
-| `COEUS.md` | The plain-words explanation: the problem every agent has, the three things Coeus keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
+| `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
 | `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives |
-| `docs/COEUS_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
+| `docs/NERDGENIE_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
 | `docs/WORK_PLAN.md` | How it gets built: the goal, the rules, the four kinds of tests, the test framework, seven waves of briefs, and where each borrowed design lives in the other code bases |
 | `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |
 | `docs/html/` | The documents as pages with the diagrams drawn |

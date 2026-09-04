@@ -1,8 +1,8 @@
-# COEUS: how it works and why it is better
+# Nerd Genie: how it works and why it is better
 
-This document explains Coeus in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it. The full design is in `docs/COEUS_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
+This document explains Nerd Genie in plain words, and it makes the case for why it is better than the agents that exist today. It is for people and for the AI agents that will build it. The full design is in `docs/NERDGENIE_PLAN.md`. The build plan is in `docs/WORK_PLAN.md`. The code layout is in `ARCHITECTURE.md`. The last section of this document is a table that ties each idea to the part of the design that describes it, the part of the build plan that builds it, and the test that proves it works.
 
-Here is the claim. With Coeus, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It works on its own, and it only stops to ask you about the few things you told it to ask about. It stops and tells you when something on its stop list happens. Work that is too big for one sitting is broken into tasks and reported to you task by task. It cannot call a task done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why.
+Here is the claim. With Nerd Genie, the agent always knows what it is working on. Your words are never rewritten or lost, no matter how long the task runs. It works on its own, and it only stops to ask you about the few things you told it to ask about. It stops and tells you when something on its stop list happens. Work that is too big for one sitting is broken into tasks and reported to you task by task. It cannot call a task done without proof. It costs about the same on the fortieth step as on the tenth. And it runs the same way on a small model on your own machine as on the biggest model in the cloud. None of the agents we studied can say all of that, and most cannot say any of it. The rest of this document shows why.
 
 ## 1. The problem every agent has
 
@@ -39,13 +39,13 @@ Here is what each agent does when its window fills up. This comes from reading t
 | ZeroClaw | Never summarizes. Drops whole old turns that no longer fit |
 | Claude Code and Codex | Summarize the conversation and keep their instruction files on disk |
 
-Two of these agents have a good idea. Hermes never summarizes the user's own words. Prime and OpenCode keep some state in a file that the model reads again on every step, so it cannot be lost. Coeus takes both ideas as far as they go.
+Two of these agents have a good idea. Hermes never summarizes the user's own words. Prime and OpenCode keep some state in a file that the model reads again on every step, so it cannot be lost. Nerd Genie takes both ideas as far as they go.
 
 ## 2. One task, two ways
 
-Here is the same job given to a transcript agent and to Coeus. The job is: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters." It takes about forty tool rounds: reading the notes, searching the web, drafting, opening the browser, logging in, and posting. At round twelve the user texts a correction. At round thirty, X shows a login page. Then the user walks away for three days.
+Here is the same job given to a transcript agent and to Nerd Genie. The job is: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters." It takes about forty tool rounds: reading the notes, searching the web, drafting, opening the browser, logging in, and posting. At round twelve the user texts a correction. At round thirty, X shows a login page. Then the user walks away for three days.
 
-| What happens | A transcript agent | Coeus |
+| What happens | A transcript agent | Nerd Genie |
 |---|---|---|
 | Round 12. You text: "no, lead with the date, not the features" | Your message goes into the pile. When the pile is summarized, your words are replaced by the model's summary of them. Hermes keeps your words, but not the reasons around them | The harness writes your words into the record under corrections. They stay there, unchanged, until the task ends |
 | The first draft is 312 characters and fails | The failure and its cause get summarized away. The next draft can make the same mistake | The failure and its cause are written in the record. The next draft is told: one fact per post |
@@ -57,9 +57,9 @@ Here is the same job given to a transcript agent and to Coeus. The job is: "Post
 
 That is the whole difference. Everything below explains how the record, the loop, and the window are built so that the right-hand column is true on any model.
 
-## 3. The Coeus answer: keep three things apart
+## 3. The Nerd Genie answer: keep three things apart
 
-Coeus separates three things that other agents mix together in one transcript.
+Nerd Genie separates three things that other agents mix together in one transcript.
 
 The first is the history. This is what happened: every message, every tool call, and every result, in order. It is written to a log and never changed. The model does not read the log.
 
@@ -75,7 +75,7 @@ flowchart LR
   W -->|"produces"| H
 ```
 
-This is an old idea in computer science. A database keeps a log of every change and, beside it, a table of what is true now. An operating system can pause a program and start it again days later from one small record. Coeus does the same thing for an agent. The hard part is not the idea. The hard part is giving the record a fixed shape with rules, so the model cannot write whatever it likes into it. That shape is next.
+This is an old idea in computer science. A database keeps a log of every change and, beside it, a table of what is true now. An operating system can pause a program and start it again days later from one small record. Nerd Genie does the same thing for an agent. The hard part is not the idea. The hard part is giving the record a fixed shape with rules, so the model cannot write whatever it likes into it. That shape is next.
 
 ## 4. The task record
 
@@ -182,7 +182,7 @@ A scheduled job, such as "every weekday at 7 in the morning, post the daily upda
 
 ## 5. The four kinds of state
 
-Coeus keeps four kinds of state, because they change at four different speeds.
+Nerd Genie keeps four kinds of state, because they change at four different speeds.
 
 The persona is who the agent is and who the user is. It is three plain text files you can edit by hand, each with a size limit. It almost never changes.
 
@@ -228,7 +228,7 @@ sequenceDiagram
 
 The message is saved to a queue on disk first, so it cannot be lost. If it is a slash command like `/status`, or it matches a saved skill, the harness handles it without calling the model. Otherwise it is a task. The harness sends the model the rules, the record, and the recent results. The model writes one line saying where the work stands, then either answers or asks for a tool. Before any tool runs, the harness checks the call. Is it the same call as last time? Is it badly written? Is the budget used up? Does anything on the stop list apply? If the tool would do something on the ask-me-first list, the user sees a preview first. Otherwise it just runs. The result gets one line in the record and its full text in the log, and the model is called again with the updated record. When the model answers in plain text, the turn is over. When it asks the user a question, the turn is over too, and the task waits.
 
-A few rules make this loop safe on any model. The agent works on one task at a time, and new tasks wait in line. When a task belongs to a job, its report goes into the job and to you, and the next task starts. A task has no budget unless you set one in `config.toml`; Coeus puts no cap on its own work. When you do set a budget of rounds or of time and it runs out, the model gets one last call to say what it did and what is left. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. Words inside a web page or a file are never instructions, so nothing the agent reads can make it send a secret or spend money. And if the model's provider fails, the harness retries three times and then moves to the next model on the list.
+A few rules make this loop safe on any model. The agent works on one task at a time, and new tasks wait in line. When a task belongs to a job, its report goes into the job and to you, and the next task starts. A task has no budget unless you set one in `config.toml`; Nerd Genie puts no cap on its own work. When you do set a budget of rounds or of time and it runs out, the model gets one last call to say what it did and what is left. The same tool call with the same arguments is never run twice. A badly written tool call is repaired if the tool name is close to a real one, and otherwise the model gets the list of real tools back. Neither one ever crashes the agent. Words inside a web page or a file are never instructions, so nothing the agent reads can make it send a secret or spend money. And if the model's provider fails, the harness retries three times and then moves to the next model on the list.
 
 When you send a message during a task, the task pauses as soon as the current tool call finishes, and the model reads your message. If it changes the job, it goes into the record as a correction and the model steers from there. If it is a new request, the agent handles it and then goes back to the task. If it says stop, the task stops.
 
@@ -236,7 +236,7 @@ The stop list works like a smoke detector. You decide what counts as an alarm be
 
 ## 7. Small models and big models
 
-Coeus has one rule for the working context. It is never smaller than the task needs and never bigger than the model can hold.
+Nerd Genie has one rule for the working context. It is never smaller than the task needs and never bigger than the model can hold.
 
 ```mermaid
 flowchart TB
@@ -265,7 +265,7 @@ flowchart LR
   C -->|"read r7"| A
 ```
 
-The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, the job summary if there is one, and the goal and rules of the record. The parts that change every turn come last. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest. Coeus never rewrites anything above the record's work section.
+The order of the prompt matters more than its size. Text that is identical to the last call costs about a tenth as much, because the provider reuses it. So the parts that never change come first: the rules, the persona, the tools, the job summary if there is one, and the goal and rules of the record. The parts that change every turn come last. An agent that summarizes its transcript rewrites the front of its prompt every time it summarizes, and loses the whole cache right when the prompt is biggest. Nerd Genie never rewrites anything above the record's work section.
 
 Small models also write their tool calls badly, as loose text instead of the proper form. The harness reads every common shape and fixes tool names that are close. So a small model drives the same eighteen tools as a big one.
 
@@ -273,15 +273,15 @@ Working on any model is a test, not a promise. The build plan has a fixed task w
 
 ## 8. Why it costs fewer tokens
 
-A transcript agent pays to re-read everything on every call. Coeus pays for a record of three thousand tokens plus a window, and most of that is cached. Here is a rough picture for one task of forty tool rounds where each result is about fifteen hundred tokens. These are estimates to show the shape. The real numbers come from the cost line the harness writes every turn.
+A transcript agent pays to re-read everything on every call. Nerd Genie pays for a record of three thousand tokens plus a window, and most of that is cached. Here is a rough picture for one task of forty tool rounds where each result is about fifteen hundred tokens. These are estimates to show the shape. The real numbers come from the cost line the harness writes every turn.
 
-| At tool round | A transcript agent sends | Coeus sends |
+| At tool round | A transcript agent sends | Nerd Genie sends |
 |---|---|---|
 | 10 | about 20,000 tokens | about 20,000 tokens, mostly cached |
 | 20 | about 35,000 tokens, or a summary and a cold cache | about 20,000 tokens, mostly cached |
 | 40 | about 65,000 tokens, after two summaries | about 20,000 tokens, mostly cached |
 
-The transcript grows with every round, and each summary wipes the cache. The Coeus prompt stays about the same size for the whole task, because the record stays small and the window slides. On a big model the window is wider, so each call costs more, but the cost still does not grow with the length of the task.
+The transcript grows with every round, and each summary wipes the cache. The Nerd Genie prompt stays about the same size for the whole task, because the record stays small and the window slides. On a big model the window is wider, so each call costs more, but the cost still does not grow with the length of the task.
 
 ## 9. Why it remembers better
 
@@ -302,7 +302,7 @@ flowchart LR
 
 Most of what goes into memory is written by the harness, with no model call. It records files changed, commands run, websites visited, and jobs created. It also keeps, word for word, any message from the user that starts with "no," "actually," "always," "never," or "don't." The after-action review writes the rest, and only its last answer is saved. Every fact has a source and a date. Nothing is deleted. A new fact replaces an old one, and the old one stays searchable. On every call, three lines from memory search ride along at the end of the prompt, and a `memory` tool searches the rest when the model asks.
 
-Other agents have memory files too. The difference is what gets written and who writes it. OpenClaw pushes recall into every prompt and rewrites its memory file on a schedule, and its memory index caused two of its worst bugs in the week we looked. Coeus writes facts from the log for free, saves one reviewed lesson per task, and keeps the hint to three lines.
+Other agents have memory files too. The difference is what gets written and who writes it. OpenClaw pushes recall into every prompt and rewrites its memory file on a schedule, and its memory index caused two of its worst bugs in the week we looked. Nerd Genie writes facts from the log for free, saves one reviewed lesson per task, and keeps the hint to three lines.
 
 ## 10. Why it is safer and more reliable
 
@@ -324,7 +324,7 @@ Any failed task becomes a test. Because the log holds every tool result, a faile
 
 ## 11. Why it is better, point by point
 
-| | OpenClaw | Hermes | OpenCode, Claude Code, Codex | Coeus |
+| | OpenClaw | Hermes | OpenCode, Claude Code, Codex | Nerd Genie |
 |---|---|---|---|---|
 | Your exact words survive a long task | No. They end up in a summary | Yes for messages. The reasons around them do not | No. They end up in a summary | Yes. The ask and every correction are locked and never rewritten |
 | Decisions keep their reasons | No | No | No | Yes. A decision without a reason is refused |
@@ -355,7 +355,7 @@ From Codex and Claude Code we took the rule that the operating system sandbox is
 
 From the browser agents browser-use and Stagehand we took marks on elements that just appeared, hints about what is below the fold, and a finish step that must say whether it succeeded.
 
-What is new in Coeus is the combination and six things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only put back on the shelf and kept. A task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering. And work too big for one sitting becomes a job, a record with a list of tasks, so that a month-long campaign has a place to live and reports to you task by task.
+What is new in Nerd Genie is the combination and six things none of them do. The task record is the state, kept beside the log instead of a summary in place of it. The record has a fixed shape with rules the harness enforces, so the user's words cannot be edited, decisions carry reasons, and done is a checklist with proof. The harness does the bookkeeping for free, writing the situation, the results, and the corrections with no model call. One rule sizes the working context to the model, and nothing is ever summarized, only put back on the shelf and kept. A task cannot end until the done list is proven, after which four fixed questions decide what is worth remembering. And work too big for one sitting becomes a job, a record with a list of tasks, so that a month-long campaign has a place to live and reports to you task by task.
 
 ## 13. The tools
 
@@ -376,7 +376,7 @@ Three things tie the tools to the record. Every result gets one line in the reco
 
 This table is how a person or an agent checks that the design, the build plan, and this explanation agree. For each row, the design section should say what this document says, the brief in the build plan should own the work, and the test should exist in that brief. If any of the three is missing, that is a gap, and it should be reported rather than patched in the wrong place.
 
-| What Coeus does | Design | Built in | Proved by |
+| What Nerd Genie does | Design | Built in | Proved by |
 |---|---|---|---|
 | Keeps the history, the record, and the working context as three separate things | §1, §4 | Log 1.1, record 1.2, context 2.1 | Log replay test; record round-trip; golden prompts for a 24k model and a 200k model |
 | Never edits the ask or the corrections | §4 | 1.2 | Each rule rejects a bad edit; the forty-round task checks them to the last character |

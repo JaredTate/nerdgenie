@@ -27,11 +27,11 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 ARCHITECTURE.md
 BENCHMARK.md
 CLAUDE.md
-COEUS.md
 FINISH_PLAN.md
 GPT_BENCHMARK.md
 LICENSE
 Makefile
+NERDGENIE.md
 OPUS_BENCHMARK.md
 QWEN_BENCHMARK.md
 README.md

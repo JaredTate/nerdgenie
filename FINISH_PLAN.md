@@ -220,3 +220,31 @@ Verified against `main` before starting so no wave redoes merged work:
   code-editing wave can run beside it without guaranteed conflicts. Waves 2-4 fire
   five-at-a-time the moment the rename merges; that serialization is inherent to
   choosing rename-first, not idle time.
+
+## Part 7: Progress log
+
+**Wave 2 (the finish work) is done and merged, `make check` green.** Five Opus 4.8
+agents ran in parallel, each test-first, each its own package:
+- Permission stops asking about read-only commands; writes, deletes, sudo, and
+  the ask-me-first list still ask. (98.6% coverage)
+- The job tool refuses an empty job and starts its first task. (96.9%)
+- "Where are we" is answered from the records with no blind new task; a failed
+  task is resumable; `cmd/coeus` coverage 66%→79.9%.
+- Detaching or closing the window leaves the task running, proven by tests.
+- The context builder renders a recent-work block and carries the "a big ask is
+  a job" rule; the block's population is the one leftover, below.
+
+Three integration fallouts were fixed at the gate: the job-panel functional
+test moved to the first-task contract, the tool-description golden regenerated,
+and a pre-existing flaky pseudo-terminal test made reliable with a retry.
+
+**Now running: the rename to Nerd Genie** (Wave 1 of the original plan, done
+last as chosen), one Opus 4.8 agent, informed of the one real wrinkle — the
+Unix socket path exceeds its 108-byte limit once "coeus" becomes the longer
+"nerdgenie", fixed by keeping the socket leaf short (`run/agent.sock`).
+
+**Leftover finish wiring, as the final small wave after the rename** (centralized
+in loop/cmd/tui, so it does not fan out to five): populate the recent-work block
+from the last three tasks; send and draw the panel's plan and job-count fields;
+mark a task interrupted on restart. None is a broken promise — the user-facing
+"where are we" already works from Wave 2's direct record answer.

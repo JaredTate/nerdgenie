@@ -267,6 +267,87 @@ func TestAWholeJobOnTheRealDatabaseSurvivesARestart(t *testing.T) {
 	}
 }
 
+// theTimeARestartedStoreIsGiven is how long a store opened after a restart is
+// given to hand the cut-off task out: it is one read of the claims table on
+// open, so a second is generous.
+const theTimeARestartedStoreIsGiven = time.Second
+
+// TestARestartReleasesTheClaimAProcessThatDiedHeld is a real restart in the
+// middle of a task: the helper process claims the task and exits, and a store
+// opened after it hands the task out within a second rather than after the
+// hour the dead claim used to hold it for.
+func TestARestartReleasesTheClaimAProcessThatDiedHeld(t *testing.T) {
+	ctx := t.Context()
+	home, jobs := openTheRealThing(t)
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: "Do the one task across a restart.", Why: "to prove a restart does not stall it"})
+	if err != nil {
+		t.Fatalf("cannot create the job: %v", err)
+	}
+	taskID, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the task the restart cut off"})
+	if err != nil {
+		t.Fatalf("cannot add the task: %v", err)
+	}
+	if said := askTheHelper(t, home); said != helperClaimedLine+" "+taskID+"\n" {
+		t.Fatalf("the helper said %q, want it to have claimed %s before it died", said, taskID)
+	}
+
+	opened := time.Now()
+	reopened := reopenIn(t, home)
+
+	next, due, err := reopened.NextTask(ctx, time.Now())
+	if err != nil {
+		t.Fatalf("cannot ask the reopened store for the next task: %v", err)
+	}
+	if !due || next.TaskID != taskID {
+		t.Errorf("after the restart the next task is %+v (due %v), want %s, which the dead process's claim must not hold for an hour", next, due, taskID)
+	}
+	if took := time.Since(opened); took > theTimeARestartedStoreIsGiven {
+		t.Errorf("the restarted store took %s to hand the task out, want within %s", took.Round(time.Millisecond), theTimeARestartedStoreIsGiven)
+	}
+}
+
+// TestARestartLeavesAPutDownJobPausedOnItsTask is the put-down rule across a
+// real restart: the helper holds the task the person stopped the job on and
+// dies, the store opened after it releases that claim, and the job is still
+// paused on that task with nothing of it started.
+func TestARestartLeavesAPutDownJobPausedOnItsTask(t *testing.T) {
+	ctx := t.Context()
+	home, jobs := openTheRealThing(t)
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: "Do the one task the person stopped.", Why: "to prove a restart leaves it put down"})
+	if err != nil {
+		t.Fatalf("cannot create the job: %v", err)
+	}
+	taskID, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the task the person stopped"})
+	if err != nil {
+		t.Fatalf("cannot add the task: %v", err)
+	}
+	if said := askTheHelper(t, home); said != helperClaimedLine+" "+taskID+"\n" {
+		t.Fatalf("the helper said %q, want it to have claimed %s before it died", said, taskID)
+	}
+	if err := jobs.Pause(ctx, jobID); err != nil {
+		t.Fatalf("cannot pause the job on its put-down task: %v", err)
+	}
+
+	reopened := reopenIn(t, home)
+
+	listed, err := reopened.List(ctx)
+	if err != nil {
+		t.Fatalf("cannot list the jobs after the restart: %v", err)
+	}
+	if listed[0].State != contract.JobPaused {
+		t.Errorf("after the restart the put-down job is %q, want it still %q on its task", listed[0].State, contract.JobPaused)
+	}
+	if next, due, err := reopened.NextTask(ctx, time.Now()); err != nil || due {
+		t.Errorf("the reopened store handed out %+v (due %v, error %v), and nothing of a paused job runs on its own", next, due, err)
+	}
+	if err := reopened.Resume(ctx, jobID); err != nil {
+		t.Fatalf("cannot set the job running again: %v", err)
+	}
+	if next, due, err := reopened.NextTask(ctx, time.Now()); err != nil || !due || next.TaskID != taskID {
+		t.Errorf("once the job runs again the next task is %+v (due %v, error %v), want %s at once", next, due, err, taskID)
+	}
+}
+
 func TestOpeningOnAFileThatIsNotTheEventLogIsRefused(t *testing.T) {
 	home := contract.NewHome(t.TempDir())
 	if err := os.MkdirAll(filepath.Dir(home.DatabaseFile()), contract.HomeFolderMode); err != nil {

@@ -67,7 +67,7 @@ func TestAClearKeepsTheHeaderTheStatusStripAndTheSidePanel(t *testing.T) {
 		t.Errorf("the status strip is %q after the clear, and it should still say what the program said last", strip)
 	}
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	for _, kept := range []string{"opus", "task 17 running", "the product notes are"} {
+	for _, kept := range []string{"opus", "TASK 17", "the product notes are"} {
 		if !strings.Contains(panel, kept) {
 			t.Errorf("the side panel does not hold %q after the clear, and the panel is drawn from the status, not the transcript:\n%s", kept, panel)
 		}

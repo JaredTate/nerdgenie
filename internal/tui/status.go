@@ -48,10 +48,10 @@ func (screen *Screen) stateWords() string {
 	}
 }
 
-// stateStyle draws a broken link in the error colour and everything else dim.
+// stateStyle draws a broken link loud, in bold white, and everything else dim.
 func (screen *Screen) stateStyle() style {
 	if screen.state == stateDisconnected {
-		return styleError
+		return styleBold
 	}
 	return styleDim
 }

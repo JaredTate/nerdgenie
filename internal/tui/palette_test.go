@@ -52,11 +52,13 @@ func TestThePaletteFiltersAsThePersonTypes(t *testing.T) {
 	screen, _ := screenWithCommands()
 	typeWord(screen, "/st")
 
-	frame := screen.frame()
-	if !strings.Contains(frame, "/status") || !strings.Contains(frame, "/stop") {
+	// The palette's own rows are read rather than the whole frame, because the
+	// welcome under them says "/help" to everyone.
+	listed := plainText(strings.Join(screen.paletteRows(), "\n"))
+	if !strings.Contains(listed, "/status") || !strings.Contains(listed, "/stop") {
 		t.Error("the palette dropped a command that still matches what was typed")
 	}
-	if strings.Contains(frame, "/help") {
+	if strings.Contains(listed, "/help") {
 		t.Error("the palette still lists /help, which does not match what was typed")
 	}
 }

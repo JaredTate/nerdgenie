@@ -144,16 +144,17 @@ func (shown card) takesKeys() bool {
 	return shown.kind == cardPreview || shown.kind == cardHandoff
 }
 
-// titleStyle is how the border and the title of a card are drawn: the bright
-// gold of the palette on a preview, because that is the one card the person must
-// answer and gold on the blue ground is the loudest pairing there is; the error
-// colour on a failure; and dim on the rest.
+// titleStyle is how the border and the title of a card are drawn: the accent
+// on a preview, because that is the one card the person must answer and the
+// accent is the colour of everything on the frame that asks to be acted on;
+// bold white, the loudest thing the palette has, on a failure; and dim on the
+// rest.
 func (shown card) titleStyle() style {
 	switch shown.kind {
 	case cardPreview:
-		return styleWarn
+		return styleAccent
 	case cardError:
-		return styleError
+		return styleBold
 	default:
 		return styleDim
 	}

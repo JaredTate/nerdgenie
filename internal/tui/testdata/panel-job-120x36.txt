@@ -1,22 +1,22 @@
- nerdgenie · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
+ NERDGENIE · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
                                                                                             │ opus                      
                                                                                             │ ctx 12.4k / 262k · 5%     
                                                                                             │ 6.1k in 0.4k out · $0.04  
                                                                                             │                           
-                                                                                            │ task 17 running           
-                                                                                            │ ✓ the product notes are   
-                                                                                            │   read                    
-                                                                                            │ ✓ a draft under 280       
-                                                                                            │   characters is written   
-                                                                                            │ · the tweet is posted     
+                                                                                            │ JOB 4 · Tater Tots Tetris 
+                                                                                            │ ───────────────────────── 
+                                                                                            │ ✓ t17 post the anniversa… 
+                                                                                            │ ▶ t19 draft the blog pie… 
+                                                                                            │   ✓ the product notes ar… 
+                                                                                            │   ✓ a draft under 280 ch… 
+                                                                                            │   ▶ the tweet is posted   
+                                                                                            │ ○ t22 post for day two    
+                                                                                            │ ───────────────────────── 
+                                                                                            │ 1 of 3 done               
                                                                                             │                           
-                                                                                            │ job 4                     
-                                                                                            │ Run the DigiByte annivers 
-                                                                                            │   [x] t17 post the annive 
-                                                                                            │ ▸ [ ] t19 draft the blog  
-                                                                                            │   [ ] t22 post for day tw 
-                                                                                            │ 1 of 3 tasks done         
+                                                                                            │                           
+                                                                                            │                           
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           

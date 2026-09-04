@@ -33,23 +33,61 @@ const (
 	// how many more there are, so that a job of two hundred tasks is not the
 	// whole screen. Twelve is the job in section 4 of NERDGENIE.md drawn whole.
 	maxJobTasks = 12
-	// jobTaskMarkColumns is what a task line spends before its label: the
-	// pointer or its blank, and the mark with the blank after it.
-	jobTaskMarkColumns = 6
+	// stepIndent is how far the running task's plan is drawn in under it, so
+	// that the steps read as part of that task and of no other.
+	stepIndent = 2
 )
 
 const (
 	// panelEdgeGlyph is the thin line down the left of the panel, which is what
 	// separates it from the transcript when there is no colour at all.
 	panelEdgeGlyph = '│'
-	// doneStepGlyph is the check beside a step of the plan that is finished.
-	doneStepGlyph = '✓'
-	// toDoStepGlyph is the mark beside a step that is not finished yet.
-	toDoStepGlyph = '·'
-	// currentTaskGlyph is the pointer beside the task of the job that is
-	// running now.
-	currentTaskGlyph = '▸'
+	// doneGlyph is the check beside a task or a step that is finished.
+	doneGlyph = '✓'
+	// runningGlyph is the pointer beside the task that is running now, and
+	// beside the step of its plan the work is at.
+	runningGlyph = '▶'
+	// plannedGlyph is the ring beside a task or a step still to come.
+	plannedGlyph = '○'
+	// ellipsisGlyph ends a row that was cut to fit the panel.
+	ellipsisGlyph = '…'
 )
+
+// checkMark is the state of one item on the checklist. One glyph carries it on
+// its own, so that a terminal with no colour still reads the list.
+type checkMark int
+
+const (
+	// markPlanned is an item still to come.
+	markPlanned checkMark = iota
+	// markRunning is the item the work is at.
+	markRunning
+	// markDone is an item that is finished.
+	markDone
+)
+
+// span is the glyph of a mark and the blank after it, in the colour the mark
+// is drawn in: green for a check, DigiByte blue for the pointer, dim for a
+// ring.
+func (mark checkMark) span() span {
+	switch mark {
+	case markDone:
+		return span{style: styleDone, text: string(doneGlyph) + " "}
+	case markRunning:
+		return span{style: styleBrand, text: string(runningGlyph) + " "}
+	default:
+		return span{style: styleDim, text: string(plannedGlyph) + " "}
+	}
+}
+
+// wordsStyle is how the words after a mark are drawn: white on the item the
+// work is at, so the eye lands there, and dim on every other.
+func (mark checkMark) wordsStyle() style {
+	if mark == markRunning {
+		return styleNormal
+	}
+	return styleDim
+}
 
 // showsPanel says whether the terminal is wide enough for the side panel.
 func (screen *Screen) showsPanel() bool {
@@ -99,13 +137,12 @@ func (screen *Screen) panelRows(height int) []string {
 }
 
 // panelLines is what the panel says, in three groups with a blank line between
-// them: which model is answering and what it has cost, the running task and how
-// far through its plan it is, and the job the task belongs to or else how many
-// jobs are waiting. A group the program has said nothing about is left out
-// altogether, blank line and all.
+// them: the model and what it has cost, the checklist of what is being worked
+// on, and how many jobs are waiting. A group the program has said nothing
+// about is left out altogether, blank line and all.
 func (screen *Screen) panelLines() []row {
 	lines := []row{}
-	for _, group := range [][]row{screen.modelPanelLines(), screen.taskPanelLines(), screen.jobPanelLines()} {
+	for _, group := range [][]row{screen.modelPanelLines(), screen.checklistLines(), screen.waitingPanelLines()} {
 		if len(group) == 0 {
 			continue
 		}
@@ -118,13 +155,14 @@ func (screen *Screen) panelLines() []row {
 }
 
 // modelPanelLines are the model in use, how full its context is, and what this
-// session has cost so far.
+// session has cost so far, kept quiet: one dim line each, with no box around
+// them. The context share keeps the header's own colour, so it turns the accent
+// and then bold white at the same places.
 func (screen *Screen) modelPanelLines() []row {
-	lines := []row{}
-	lines = appendPanelWords(lines, styleBold, screen.modelAlias)
+	lines := appendPanelWords(nil, styleDim, screen.modelAlias)
 	if parts := screen.contextParts(); len(parts) > 0 {
 		measure := row{}
-		measure.add(parts[0].style, cutTo(parts[0].text, panelTextColumns-3-displayWidth(parts[1].text)))
+		measure.add(styleDim, cutTo(parts[0].text, panelTextColumns-3-displayWidth(parts[1].text)))
 		measure.add(styleDim, " · ")
 		measure.addSpan(parts[1])
 		lines = append(lines, measure)
@@ -132,89 +170,126 @@ func (screen *Screen) modelPanelLines() []row {
 	return appendPanelWords(lines, styleDim, screen.costWords())
 }
 
-// taskPanelLines are the running task and its plan, a check beside every step
-// that is done.
-func (screen *Screen) taskPanelLines() []row {
-	lines := appendPanelWords(nil, screen.taskStyle(), screen.taskWords())
-	steps := planSteps(screen.plan)
-	shown := steps
-	if len(shown) > maxPlanSteps {
-		shown = shown[:maxPlanSteps]
+// checklistLines is the checklist: a header naming what is being worked on, a
+// rule, one row per item, a rule, and how far the work has got. A job's items
+// are its tasks with the running task's plan under it; a plain task's items
+// are its plan steps. A header with no items under it stands alone, without
+// rules, and no header at all is drawn while nothing is running.
+func (screen *Screen) checklistLines() []row {
+	lines := screen.checklistHeader()
+	if len(lines) == 0 {
+		return nil
 	}
-	for _, step := range shown {
-		lines = append(lines, planStepLines(step)...)
+	items, total, done := screen.checklistItems()
+	if len(items) == 0 {
+		return lines
 	}
-	if len(steps) > len(shown) {
-		lines = appendPanelWords(lines, styleDim, "and "+strconv.Itoa(len(steps)-len(shown))+" more steps")
-	}
-	return lines
+	lines = append(lines, panelRule())
+	lines = append(lines, items...)
+	lines = append(lines, panelRule())
+	return appendPanelWords(lines, styleAccent, strconv.Itoa(done)+" of "+strconv.Itoa(total)+" done")
 }
 
-// jobPanelLines is the job the running task belongs to: its number, its ask,
-// one line per task with a mark on every task that is done and a pointer at
-// the one running now, and how far the job has got. While no job's task is
-// running it is how many jobs are waiting, or nothing at all when the program
-// has not said.
-func (screen *Screen) jobPanelLines() []row {
+// checklistHeader names what is being worked on: "JOB 4 · Tater Tots Tetris"
+// while a job's task is running, with the job's ask on a dim line under it when
+// the job has no name, so an older job still says what it is; "TASK 17" while a
+// plain task runs; and nothing at all when nothing is running.
+func (screen *Screen) checklistHeader() []row {
+	switch {
+	case screen.job != "":
+		lines := []row{checklistTitle("JOB", screen.job, screen.jobName)}
+		if screen.jobName == "" {
+			lines = appendPanelWords(lines, styleDim, screen.jobAsk)
+		}
+		return lines
+	case screen.taskID != "":
+		return []row{checklistTitle("TASK", taskNumber(screen.taskID), "")}
+	default:
+		return nil
+	}
+}
+
+// checklistTitle draws the header: the word in bold white, the number in the
+// accent, and the name, when there is one, in bold white after a dim dot.
+func checklistTitle(word string, number string, name string) row {
+	line := row{}
+	line.add(styleBold, word)
+	line.add(styleAccent, " "+number)
+	if name != "" {
+		line.add(styleDim, " · ")
+		line.add(styleBold, cutWithEllipsis(name, panelTextColumns-line.width))
+	}
+	line.keepWithin(panelTextColumns)
+	return line
+}
+
+// taskNumber is a task's number without the word in front of it, because the
+// program sends "17" from one place and "task 17" from another, and the header
+// writes the word itself.
+func taskNumber(id string) string {
+	return strings.TrimSpace(strings.TrimPrefix(id, "task"))
+}
+
+// checklistItems are the rows between the two rules, with how many items there
+// are in all and how many are done. For a job they are one row per task, at
+// most maxJobTasks of them, with the running task's plan indented under it and
+// under no other; for a plain task they are its plan steps.
+func (screen *Screen) checklistItems() ([]row, int, int) {
 	if screen.job == "" {
-		return appendPanelWords(nil, styleDim, jobWords(screen.jobs))
-	}
-	header := "job " + screen.job
-	if screen.jobName != "" {
-		header += " · " + screen.jobName
-	}
-	lines := appendPanelWords(nil, styleBold, header)
-	// A job with no name of its own falls back to showing its ask, so an older
-	// job or one made without a name still says what it is.
-	if screen.jobName == "" {
-		lines = appendPanelWords(lines, styleDim, screen.jobAsk)
+		steps := planSteps(screen.plan)
+		return planStepLines(steps, 0), len(steps), stepsDone(steps)
 	}
 	tasks := contract.ParseJobTaskLines(screen.jobTasks)
 	shown := tasks
 	if len(shown) > maxJobTasks {
 		shown = shown[:maxJobTasks]
 	}
+	lines := []row{}
 	for _, task := range shown {
-		lines = append(lines, jobTaskLine(task, task.TaskID != "" && task.TaskID == screen.jobTask))
+		running := task.TaskID != "" && task.TaskID == screen.jobTask
+		lines = append(lines, jobTaskLine(task, running))
+		if running {
+			lines = append(lines, planStepLines(planSteps(screen.plan), stepIndent)...)
+		}
 	}
 	if len(tasks) > len(shown) {
 		lines = appendPanelWords(lines, styleDim, "and "+strconv.Itoa(len(tasks)-len(shown))+" more tasks")
 	}
-	if len(tasks) > 0 {
-		lines = appendPanelWords(lines, styleDim, tasksDoneWords(tasks))
-	}
-	return lines
-}
-
-// jobTaskLine draws one task of the job on one line: the pointer when it is
-// the task running now, its mark, and its label and title cut to the room that
-// is left, because a task list is one line per task.
-func jobTaskLine(task contract.JobTask, current bool) row {
-	line := row{}
-	if current {
-		line.add(styleAccent, string(currentTaskGlyph)+" ")
-	} else {
-		line.blanks(2)
-	}
-	words, mark := styleNormal, "[ ] "
-	if task.Done {
-		words, mark = styleDim, "[x] "
-	}
-	line.add(words, mark)
-	line.add(words, cutTo(strings.TrimSpace(task.TaskID+" "+task.Text), panelTextColumns-jobTaskMarkColumns))
-	return line
-}
-
-// tasksDoneWords is the job's progress in the words the design uses, "3 of 12
-// tasks done", counted from the list the program sent.
-func tasksDoneWords(tasks []contract.JobTask) string {
 	done := 0
 	for _, task := range tasks {
 		if task.Done {
 			done++
 		}
 	}
-	return strconv.Itoa(done) + " of " + strconv.Itoa(len(tasks)) + " tasks done"
+	return lines, len(tasks), done
+}
+
+// jobTaskLine draws one task of the job on one row: the glyph of its state,
+// its label dim, and its words, white on the running task and dim on the rest,
+// cut with an ellipsis to the panel, because a checklist is one row per item.
+func jobTaskLine(task contract.JobTask, running bool) row {
+	mark := markPlanned
+	switch {
+	case task.Done:
+		mark = markDone
+	case running:
+		mark = markRunning
+	}
+	line := row{}
+	line.addSpan(mark.span())
+	if task.TaskID != "" {
+		line.add(styleDim, task.TaskID+" ")
+	}
+	line.add(mark.wordsStyle(), cutWithEllipsis(task.Text, panelTextColumns-line.width))
+	return line
+}
+
+// panelRule is the thin line above and below the checklist's rows, in
+// DigiByte's own blue.
+func panelRule() row {
+	line := row{}
+	line.add(styleBrand, strings.Repeat(string(ruleGlyph), panelTextColumns))
+	return line
 }
 
 // jobWords says how many jobs are waiting in the words a person would use. A
@@ -225,21 +300,43 @@ func jobWords(count string) string {
 	case "", "0":
 		return ""
 	case "1":
-		return "1 job"
+		return "1 job waiting"
 	default:
-		return count + " jobs"
+		return count + " jobs waiting"
 	}
 }
 
-// appendPanelWords puts one line of words in the panel, and puts nothing there
-// when there are no words, because the panel says only what the program said.
+// waitingPanelLines is how many jobs are waiting, dim, while no job is on the
+// checklist, or nothing at all when the program has not said.
+func (screen *Screen) waitingPanelLines() []row {
+	if screen.job != "" {
+		return nil
+	}
+	return appendPanelWords(nil, styleDim, jobWords(screen.jobs))
+}
+
+// appendPanelWords puts one line of words in the panel, cut to it with an
+// ellipsis, and puts nothing there when there are no words, because the panel
+// says only what the program said.
 func appendPanelWords(lines []row, chosen style, words string) []row {
 	if words == "" {
 		return lines
 	}
 	line := row{}
-	line.add(chosen, cutTo(words, panelTextColumns))
+	line.add(chosen, cutWithEllipsis(words, panelTextColumns))
 	return append(lines, line)
+}
+
+// cutWithEllipsis shortens text to a number of columns with an ellipsis on the
+// end, and leaves text that already fits alone.
+func cutWithEllipsis(text string, width int) string {
+	if width < 1 {
+		return ""
+	}
+	if displayWidth(text) <= width {
+		return text
+	}
+	return strings.TrimRight(cutTo(text, width-1), " ") + string(ellipsisGlyph)
 }
 
 // planStep is one step of the running task's plan: its words, and whether it is
@@ -271,27 +368,46 @@ func planSteps(plan string) []planStep {
 	return steps
 }
 
-// planStepLines draws one step of the plan: its mark, and its words wrapped
-// under themselves rather than under the mark, so that the marks read as a
-// column of their own.
-func planStepLines(step planStep) []row {
-	mark, marked := toDoStepGlyph, styleDim
-	if step.done {
-		mark, marked = doneStepGlyph, styleAccent
+// stepsDone counts the steps of a plan that are finished.
+func stepsDone(steps []planStep) int {
+	done := 0
+	for _, step := range steps {
+		if step.done {
+			done++
+		}
 	}
-	words := styleNormal
-	if step.done {
-		words = styleDim
+	return done
+}
+
+// planStepLines draws the steps of a plan, each on one row indented by a number
+// of columns: a check on every finished step, the pointer on the first that is
+// not, because that is where the work stands, and a ring on the rest. At most
+// maxPlanSteps are drawn, and a plan with more says how many more there are.
+func planStepLines(steps []planStep, indent int) []row {
+	shown := steps
+	if len(shown) > maxPlanSteps {
+		shown = shown[:maxPlanSteps]
 	}
 	lines := []row{}
-	for at, wrapped := range wrapText(step.text, panelTextColumns-2) {
-		line := row{}
-		if at == 0 {
-			line.add(marked, string(mark)+" ")
-		} else {
-			line.blanks(2)
+	pointed := false
+	for _, step := range shown {
+		mark := markPlanned
+		switch {
+		case step.done:
+			mark = markDone
+		case !pointed:
+			mark, pointed = markRunning, true
 		}
-		line.add(words, wrapped)
+		line := row{}
+		line.blanks(indent)
+		line.addSpan(mark.span())
+		line.add(mark.wordsStyle(), cutWithEllipsis(step.text, panelTextColumns-line.width))
+		lines = append(lines, line)
+	}
+	if len(steps) > len(shown) {
+		line := row{}
+		line.blanks(indent)
+		line.add(styleDim, cutWithEllipsis("and "+strconv.Itoa(len(steps)-len(shown))+" more steps", panelTextColumns-indent))
 		lines = append(lines, line)
 	}
 	return lines

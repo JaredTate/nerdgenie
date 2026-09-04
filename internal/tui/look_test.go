@@ -109,7 +109,7 @@ func TestTheThreeAnswersOnAPreviewAreDrawnAsButtons(t *testing.T) {
 			t.Errorf("the preview card does not draw %q as a button:\n%s", wanted, plainText(frame))
 		}
 	}
-	if !strings.Contains(frame, foregroundOf(accentTextTone, depthTruecolor)+backgroundOf(groundTone, depthTruecolor)+boldCode+"┌ "+previewTitle) {
+	if !strings.Contains(frame, screen.colors.wrap(styleAccent, "┌ ")+screen.colors.wrap(styleAccent, previewTitle)) {
 		t.Error("the preview card's border and title are not in the accent, and it is the one card the person must answer")
 	}
 }

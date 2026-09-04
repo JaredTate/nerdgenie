@@ -1,4 +1,4 @@
- nerdgenie                                                            ● healthy 
+ NERDGENIE · the open-source agent harness                            ● healthy 
  ────────────────────────────────────────────────────────────────────────────── 
  ╰─────────╯                                                                    
  ╭─────────╮                                                                    

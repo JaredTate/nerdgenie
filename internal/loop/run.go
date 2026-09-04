@@ -173,6 +173,15 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	if err := theLoop.logEvent(ctx, running.number, contract.EventMessage, task.Message); err != nil {
 		return nil, err
 	}
+	// The answer a record-less job task is started afresh on follows the task's
+	// own words, in front of the model and in the log, so that a restart reads
+	// the same two messages the model was given.
+	if task.Answer.Text != "" {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: task.Answer.Text})
+		if err := theLoop.logEvent(ctx, running.number, contract.EventMessage, task.Answer); err != nil {
+			return nil, err
+		}
+	}
 	return running, nil
 }
 

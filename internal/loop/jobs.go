@@ -11,17 +11,17 @@ import (
 
 // finishJobTask writes a finished task's report into its job, sends it to the
 // user with the job's progress line on it, and hands back the next task the job
-// wants run. A task that is waiting on the user is not finished at all, so the
-// job is left where it is until the user answers. A task the person stopped is
-// not finished either: it is put down where it is, for the person to pick up
-// with the word that carries on. A stopped task nobody attended has nobody to
-// pick it up, so it is finished as the failure it is, and the schedule's next
-// tick brings its own task.
+// wants run. A task the person stopped, or one that stopped to ask them a
+// question, is not finished at all: it is put down where it is, for the person
+// to pick up with the word that carries on or with their answer. A task nobody
+// attended that stops or asks has nobody to pick it up, so it is finished as
+// the failure it is, and the schedule's next tick brings its own task.
 func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) (Task, bool, error) {
-	if theLoop.options.Jobs == nil || outcome.Status == contract.StatusWaiting {
+	if theLoop.options.Jobs == nil {
 		return Task{}, false, nil
 	}
-	if outcome.Status == contract.StatusStopped && !task.Unattended {
+	putDown := outcome.Status == contract.StatusStopped || outcome.Status == contract.StatusWaiting
+	if putDown && !task.Unattended {
 		return Task{}, false, theLoop.putTheTaskDown(ctx, task, number, outcome)
 	}
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID

@@ -231,14 +231,16 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 }
 
 // waitHere puts the task into waiting, which is where a question leaves it.
-// Nothing is held in any model's memory until the user answers.
+// Nothing is held in any model's memory until the user answers. A job task's
+// question is held back here, the way its report is, because it goes to the
+// person with the job named under it once the job has been put down on it.
 func (running *run) waitHere(ctx context.Context, text string) (Outcome, error) {
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
 	if err := running.setStatus(ctx, contract.StatusWaiting); err != nil {
 		return Outcome{}, err
 	}
-	if err := running.send(ctx, text); err != nil {
+	if err := running.sendUnlessAJob(ctx, text); err != nil {
 		return Outcome{}, err
 	}
 	return Outcome{TaskID: running.taskID(), Status: contract.StatusWaiting, Report: text}, nil

@@ -22,11 +22,19 @@ func readInput(written json.RawMessage) (input, error) {
 	}
 	switch asked.Action {
 	case ActionCreate:
-		if strings.TrimSpace(asked.Ask) == "" {
-			return input{}, errors.New("this job carries no ask, so pass the user's message word for word")
+		// The ask is not checked here, because which ask the job takes depends
+		// on whether the tool has the running task's record, and create knows.
+		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 0 {
+			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list under tasks, then work the first task")
 		}
-		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" {
-			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list, then work the first task")
+		if len(asked.Tasks) > MaxTasksOnCreate {
+			return input{}, fmt.Errorf("this create lists %d tasks and one create takes at most %d, so create the job with the first %d and put the rest on it with add_task",
+				len(asked.Tasks), MaxTasksOnCreate, MaxTasksOnCreate)
+		}
+		for at, task := range asked.Tasks {
+			if strings.TrimSpace(task.Text) == "" {
+				return input{}, fmt.Errorf("task %d of the list says nothing, so write in one line what it does and how it is done", at+1)
+			}
 		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {

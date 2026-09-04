@@ -43,6 +43,9 @@ var (
 	// ErrWhyIsSet is the rule that the one line on why the user wants this is
 	// written once and then stands, like the ask above it.
 	ErrWhyIsSet = errors.New("the why is written once and then stands, so leave it as the user's reason")
+	// ErrNameIsSet is the rule that a job's short name is written once and then
+	// stands, like the ask and the why.
+	ErrNameIsSet = errors.New("the name is written once and then stands, so leave it as it was first set")
 	// ErrFinishedTaskRemoved is the rule that a job never takes a finished task
 	// off its list, however much the rest of the list is rearranged.
 	ErrFinishedTaskRemoved = errors.New("a finished task stays on a job's list, so leave it where it is")

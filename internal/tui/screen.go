@@ -126,6 +126,7 @@ type Screen struct {
 	jobs          string
 	job           string
 	jobAsk        string
+	jobName       string
 	jobTask       string
 	jobTasks      string
 

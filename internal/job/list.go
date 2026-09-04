@@ -35,6 +35,16 @@ func (jobs *Jobs) Load(_ context.Context, jobID string) (contract.Record, error)
 	return held.keeper.Record(), nil
 }
 
+// titleOf is the short name a job is shown by: the name the model gave it when
+// it was made, or the whole ask when it was given no name, so an older job or
+// one made without a name still lists as something rather than nothing.
+func titleOf(goal contract.Goal) string {
+	if goal.Name != "" {
+		return goal.Name
+	}
+	return goal.Ask
+}
+
 // summaryOf builds the one line "/jobs" prints about a job and the header that
 // rides above a task record while one of the job's tasks runs. The caller holds
 // the lock.
@@ -45,9 +55,10 @@ func (jobs *Jobs) summaryOf(ctx context.Context, jobID string, held *heldJob) (c
 		return contract.JobSummary{}, err
 	}
 	listed := held.keeper.Record().Work.Tasks
+	goal := held.keeper.Record().Goal
 	summary := contract.JobSummary{
 		ID:             jobID,
-		Title:          held.keeper.Record().Goal.Ask,
+		Title:          titleOf(goal),
 		State:          held.state.State,
 		TasksTotal:     len(listed),
 		LastRun:        held.state.LastRun,

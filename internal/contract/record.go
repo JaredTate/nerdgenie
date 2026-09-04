@@ -97,6 +97,11 @@ type DoneLine struct {
 type Goal struct {
 	// Ask is the user's message, word for word.
 	Ask string
+	// Name is a short name for the work, a few words, such as "Tater Tots
+	// Tetris". A job carries one so the side panel and the job list can say what
+	// it is without printing the whole ask; a task usually leaves it empty and
+	// is shown by its number and plan instead. Like the why, it is written once.
+	Name string
 	// Why is the one line on why the user wants it, which is what lets the model
 	// act sensibly when the plan breaks.
 	Why string

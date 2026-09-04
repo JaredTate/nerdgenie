@@ -46,7 +46,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)
 	}
-	if strings.Join(names, ",") != "action,ask,why,schedule,task_template,job_id,text,due_at" {
+	if strings.Join(names, ",") != "action,ask,name,why,schedule,task_template,job_id,text,due_at" {
 		t.Errorf("the tool takes the fields %v", names)
 	}
 	if len(spec.Classes) != 1 || spec.Classes[0] != contract.ClassIrreversible {
@@ -228,5 +228,31 @@ func TestListingWithNoJobsAtAllSaysSo(t *testing.T) {
 	}
 	if !strings.Contains(output.Text, "no jobs") {
 		t.Errorf("listing an empty set of jobs said %q", output.Text)
+	}
+}
+
+// TestAJobIsCreatedWithTheNameTheModelGivesIt proves the short name the model
+// passes on create reaches the store and becomes the job's listed title, which
+// is what the side panel and "/jobs" show in place of the whole ask.
+func TestAJobIsCreatedWithTheNameTheModelGivesIt(t *testing.T) {
+	tool, jobs := newTool(t)
+	if _, err := run(t, tool, map[string]any{
+		"action": "create",
+		"ask":    "Build a complete, polished, playable Tetris-style web game with dragons and yetis.",
+		"name":   "Tater Tots Tetris",
+		"why":    "the user wants the whole game built and tested",
+		"text":   "write the failing tests for the core engine",
+	}); err != nil {
+		t.Fatalf("creating a named job was refused: %v", err)
+	}
+	listed, err := jobs.List(context.Background())
+	if err != nil {
+		t.Fatalf("cannot list the jobs: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("the store holds %d jobs, want one", len(listed))
+	}
+	if listed[0].Title != "Tater Tots Tetris" {
+		t.Errorf("the job lists by the title %q, want the name the model gave it", listed[0].Title)
 	}
 }

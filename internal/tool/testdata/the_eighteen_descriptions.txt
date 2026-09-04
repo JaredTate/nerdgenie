@@ -7,7 +7,7 @@ web                25 words  Searches the web, or fetches one public page as tex
 memory             31 words  Searches what the agent knows, brings one fact back by its name, or writes a new fact down with its source. Use read for a file and search for a folder.
 task               34 words  Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, a failure with its cause, or a result pinned to the done line it proves.
 skill              29 words  Shows a saved procedure, runs one on the words you give it, or writes a new one down as a folder of files. Use shell for a one-off command.
-job                38 words  Creates a job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. Use it only when the work needs more than one sitting.
+job                39 words  Creates a named job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. Use it only when the work needs more than one sitting.
 browser_open       31 words  Takes the agent's own Chrome to a web address and hands back the page as an outline. Use web fetch instead for a page that needs no login and no clicking.
 browser_read       33 words  Reads the page the browser is on as a short outline of its elements, each with the reference to act on it by. Use web fetch for a page that needs no login.
 browser_click      26 words  Clicks one element on the page the browser is on and checks that what you expected happened. Read the page first to get the element's reference.

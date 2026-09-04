@@ -337,3 +337,29 @@ func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
 			plainText(without.frame()), plainText(withEmpty.frame()))
 	}
 }
+
+// TestThePanelShowsTheJobsNameInsteadOfItsAsk holds that a job made with a
+// short name is drawn as "job N · Name" with its task list under it, and its
+// long ask is not spelled out, which is what the job structure should look like
+// on the side.
+func TestThePanelShowsTheJobsNameInsteadOfItsAsk(t *testing.T) {
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	status := aStatusWithAJob()
+	status.Fields[contract.StatusFieldJobName] = "Tater Tots Tetris"
+	send(screen, status)
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if !strings.Contains(panel, "job 4 · Tater Tots Tetris") {
+		t.Errorf("the panel does not name the job:\n%s", panel)
+	}
+	if strings.Contains(panel, "Run the DigiByte annivers") {
+		t.Errorf("the panel spells out the ask even though the job has a name:\n%s", panel)
+	}
+	// The task list still shows under the named job.
+	for _, wanted := range []string{"[x] t17 post the annive", "1 of 3 tasks done"} {
+		if !strings.Contains(panel, wanted) {
+			t.Errorf("the named job does not draw its task list %q:\n%s", wanted, panel)
+		}
+	}
+}

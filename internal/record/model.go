@@ -17,6 +17,10 @@ import (
 // the situation, because those belong to the user and to the harness. A list
 // left at nothing is left alone; a list set to an empty one is cleared.
 type Update struct {
+	// Name is a short name for the work, a few words, set once. The job tool
+	// writes it when a job is made so the job list and the side panel can name
+	// the job without the whole ask.
+	Name string
 	// Why is the one line on why the user wants this, which is set once.
 	Why string
 	// DoneWhen is the whole done list, each line with the result or the user's
@@ -78,7 +82,7 @@ type NewJobTask struct {
 // nothingToWrite says whether an update asks for no change at all, which is what
 // most rounds hand over.
 func (update Update) nothingToWrite() bool {
-	return update.Why == "" && update.DoneWhen == nil && update.StopWhen == nil &&
+	return update.Name == "" && update.Why == "" && update.DoneWhen == nil && update.StopWhen == nil &&
 		update.Plan == nil && update.Tasks == nil && update.Decision == nil && update.Failure == nil
 }
 
@@ -145,12 +149,26 @@ func (keeper *Keeper) changeOrWait(ctx context.Context, write func(into *contrac
 // applyUpdate runs every part of an update through its rules and writes it.
 func applyUpdate(into *contract.Record, update Update) error {
 	for _, write := range []func(*contract.Record, Update) error{
-		applyWhy, applyDoneWhen, applyStopWhen, applyPlan, applyTasks, applyDecision, applyFailure,
+		applyName, applyWhy, applyDoneWhen, applyStopWhen, applyPlan, applyTasks, applyDecision, applyFailure,
 	} {
 		if err := write(into, update); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+// applyName holds the rule that a job's name is set once and then stands, the
+// way the ask and the why above it do, so the thing a job is called does not
+// drift out from under a task that is watching it.
+func applyName(into *contract.Record, update Update) error {
+	if update.Name == "" || update.Name == into.Goal.Name {
+		return nil
+	}
+	if into.Goal.Name != "" {
+		return fmt.Errorf("the name already reads %q, and it is written once: %w", into.Goal.Name, ErrNameIsSet)
+	}
+	into.Goal.Name = update.Name
 	return nil
 }
 

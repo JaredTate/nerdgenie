@@ -42,7 +42,7 @@ const InstructionText = "" +
 	"\n" +
 	"**Your part of the record.** Use the `task` tool, in the same reply as your other calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. The harness fills in the rest; you cannot change the ask or a correction.\n" +
 	"\n" +
-	"**Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each.\n" +
+	"**Jobs and tasks.** A task is one sitting of work, a few minutes. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, name it, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines is refused: that ask is a job. The harness runs them one at a time, reporting after each.\n" +
 	"\n" +
 	"**When to stop.** Stop when any \"stop and tell the user\" condition is true, and say which; otherwise keep going until every \"done\" line is true or the budget runs out. Every done line must point at the result proving it. To ask the user something, say it in plain text and end your reply.\n" +
 	"\n" +

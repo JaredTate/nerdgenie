@@ -41,9 +41,9 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 	if err != nil {
 		return "", fmt.Errorf("cannot create the record of job %s: %w", jobID, err)
 	}
-	if wanted.Why != "" {
-		if err := keeper.Apply(ctx, record.Update{Why: wanted.Why}); err != nil {
-			return "", fmt.Errorf("cannot write why job %s was asked for: %w", jobID, err)
+	if wanted.Name != "" || wanted.Why != "" {
+		if err := keeper.Apply(ctx, record.Update{Name: wanted.Name, Why: wanted.Why}); err != nil {
+			return "", fmt.Errorf("cannot write the name and why of job %s: %w", jobID, err)
 		}
 	}
 

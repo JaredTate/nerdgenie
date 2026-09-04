@@ -24,6 +24,7 @@ type fakeTask struct {
 type fakeJobEntry struct {
 	summary  contract.JobSummary
 	ask      string
+	name     string
 	why      string
 	schedule *contract.Schedule
 	template string
@@ -61,6 +62,15 @@ func NewFakeJob(clock contract.Clock) *FakeJob {
 	}
 }
 
+// fakeJobTitle is the short name a fake job lists by, the same rule the real
+// job store uses: the name when it has one, or the whole ask when it does not.
+func fakeJobTitle(name, ask string) string {
+	if name != "" {
+		return name
+	}
+	return ask
+}
+
 // Create starts a job and returns its id.
 func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, error) {
 	if wanted.Ask == "" {
@@ -72,8 +82,9 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 	jobID := strconv.Itoa(jobs.nextJob)
 	jobs.nextJob++
 	entry := &fakeJobEntry{
-		summary:  contract.JobSummary{ID: jobID, Title: wanted.Ask, State: contract.JobRunning},
+		summary:  contract.JobSummary{ID: jobID, Title: fakeJobTitle(wanted.Name, wanted.Ask), State: contract.JobRunning},
 		ask:      wanted.Ask,
+		name:     wanted.Name,
 		why:      wanted.Why,
 		schedule: wanted.Schedule,
 		template: wanted.TaskTemplate,
@@ -228,7 +239,7 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			TasksTotal: entry.summary.TasksTotal,
 			NextDue:    jobs.nextDueLine(entry),
 		},
-		Goal:    contract.Goal{Ask: entry.ask, Why: entry.why},
+		Goal:    contract.Goal{Ask: entry.ask, Name: entry.name, Why: entry.why},
 		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil

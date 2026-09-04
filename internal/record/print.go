@@ -23,6 +23,7 @@ const (
 // list under it has something in it.
 const (
 	labelAsk         = "Ask: "
+	labelName        = "Name: "
 	labelWhy         = "Why: "
 	labelDoneWhen    = "Done when:"
 	labelCorrections = "Corrections:"
@@ -173,6 +174,9 @@ func printGoal(goal contract.Goal) []string {
 	lines := []string{headingGoal}
 	if goal.Ask != "" {
 		lines = append(lines, labelAsk+quoted(goal.Ask))
+	}
+	if goal.Name != "" {
+		lines = append(lines, labelName+foldText(goal.Name))
 	}
 	if goal.Why != "" {
 		lines = append(lines, labelWhy+foldText(goal.Why))

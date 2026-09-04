@@ -65,7 +65,8 @@ func (running *agent) statusForAScreen() map[string]string {
 // that has just gone wrong wants to know which one it was.
 func (running *agent) fillTheJob(fields map[string]string) {
 	for _, field := range []string{
-		contract.StatusFieldJob, contract.StatusFieldJobAsk, contract.StatusFieldJobTask, contract.StatusFieldJobTasks,
+		contract.StatusFieldJob, contract.StatusFieldJobAsk, contract.StatusFieldJobName,
+		contract.StatusFieldJobTask, contract.StatusFieldJobTasks,
 	} {
 		fields[field] = ""
 	}
@@ -87,6 +88,7 @@ func (running *agent) fillTheJob(fields map[string]string) {
 func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held contract.Record) {
 	fields[contract.StatusFieldJob] = fromJob.JobID
 	fields[contract.StatusFieldJobAsk] = onOneLine(held.Goal.Ask)
+	fields[contract.StatusFieldJobName] = onOneLine(held.Goal.Name)
 	fields[contract.StatusFieldJobTask] = fromJob.TaskID
 	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
 }

@@ -299,6 +299,14 @@ func (reading *reader) openGoalList(text string) error {
 		reading.list = ""
 		return nil
 	}
+	if name, found := strings.CutPrefix(text, labelName); found {
+		if name == "" {
+			return reading.fail("the name line is empty, so give the job a short name or leave the line out")
+		}
+		reading.record.Goal.Name = unfoldText(name)
+		reading.list = ""
+		return nil
+	}
 	if why, found := strings.CutPrefix(text, labelWhy); found {
 		if why == "" {
 			return reading.fail("the why line is empty, so say in one line why the user wants this")

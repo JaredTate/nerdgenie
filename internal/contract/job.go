@@ -80,6 +80,9 @@ type JobSummary struct {
 type NewJob struct {
 	// Ask is the user's message, word for word, the same as a task record's ask.
 	Ask string
+	// Name is a short name for the job, a few words, such as "Tater Tots Tetris",
+	// which is what the job list and the side panel show in place of the ask.
+	Name string
 	// Why is the one line on why the user wants it.
 	Why string
 	// Schedule is the job's schedule, or nil when it has none.

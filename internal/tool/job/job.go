@@ -51,6 +51,8 @@ type input struct {
 	Action string `json:"action"`
 	// Ask is the user's message, word for word, when the action is create.
 	Ask string `json:"ask"`
+	// Name is a short name for the job, a few words, when the action is create.
+	Name string `json:"name"`
 	// Why is the one line on why the user wants it.
 	Why string `json:"why"`
 	// Schedule is when the job makes its next task, or nothing.
@@ -79,11 +81,12 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolJob,
-		Description: "Creates a job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. " +
+		Description: "Creates a named job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. " +
 			"Use it only when the work needs more than one sitting.",
 		Fields: []contract.ToolField{
 			{Name: "action", Type: "string", Description: "One of create, add_task, or list.", Required: true},
 			{Name: "ask", Type: "string", Description: "The user's message word for word, when creating a job."},
+			{Name: "name", Type: "string", Description: "A short name for the job, a few words, such as \"Tater Tots Tetris\", shown in the job list and side panel."},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants it."},
 			{Name: "schedule", Type: "object", Description: "When the job makes its next task: kind at, every, or cron."},
 			{Name: "task_template", Type: "string", Description: "What a scheduled job turns into one task each time."},
@@ -122,6 +125,7 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 	}
 	id, err := tool.settings.Jobs.Create(ctx, contract.NewJob{
 		Ask:          asked.Ask,
+		Name:         asked.Name,
 		Why:          asked.Why,
 		Schedule:     schedule,
 		TaskTemplate: asked.TaskTemplate,

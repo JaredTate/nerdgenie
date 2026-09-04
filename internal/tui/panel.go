@@ -159,8 +159,16 @@ func (screen *Screen) jobPanelLines() []row {
 	if screen.job == "" {
 		return appendPanelWords(nil, styleDim, jobWords(screen.jobs))
 	}
-	lines := appendPanelWords(nil, styleBold, "job "+screen.job)
-	lines = appendPanelWords(lines, styleDim, screen.jobAsk)
+	header := "job " + screen.job
+	if screen.jobName != "" {
+		header += " · " + screen.jobName
+	}
+	lines := appendPanelWords(nil, styleBold, header)
+	// A job with no name of its own falls back to showing its ask, so an older
+	// job or one made without a name still says what it is.
+	if screen.jobName == "" {
+		lines = appendPanelWords(lines, styleDim, screen.jobAsk)
+	}
 	tasks := contract.ParseJobTaskLines(screen.jobTasks)
 	shown := tasks
 	if len(shown) > maxJobTasks {

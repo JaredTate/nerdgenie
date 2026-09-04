@@ -1092,6 +1092,7 @@ internal/tool/hardlink_test.go
 internal/tool/job/bounds_test.go
 internal/tool/job/create_test.go
 internal/tool/job/doc.go
+internal/tool/job/fuzz_test.go
 internal/tool/job/job.go
 internal/tool/job/job_test.go
 internal/tool/job/read.go

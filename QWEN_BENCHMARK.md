@@ -21,6 +21,11 @@ transcript harnesses show the model everything it already tried and it
 repeats it; Coeus shows it a short record and refuses a repeated call.
 
 Round 2 is under way on the same rules; its rows are added as they land.
+opencode's round-2 run was stopped by hand after two and a half hours and
+1,587 model calls with its prompt at 230,000 tokens and no sign of ending;
+the user had stopped OpenClaw's equivalent run in round 1 the same way. It is
+recorded as not finished, and its token totals are read from the daemon log
+slice in its run folder.
 
 ## The task
 
@@ -117,8 +122,8 @@ three transcript harnesses say "game works" here and not "green."
 | Harness | Green | Launch to exit | Model calls | Tokens in, all calls | Read afresh | Biggest context | Tokens out | Logic | Plays | Own tests passing |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **Coeus** | **yes** | 12 min 30 s (task in to answer out 11 min 13 s) | 55 | 1,143,152 | 223,330 | 34,520 | 10,984 | 6/6 | 4/4 | 6 of 6 |
-| opencode | running | | | | | | | | | |
-| Hermes | queued | | | | | | | | | |
+| opencode | game works, own tests 4 of 6; **stopped by the orchestrator** | 2 h 35 min when stopped | 1,587 | see note | see note | 230,324 | see note | 6/6 | 4/4 | 4 of 6 |
+| Hermes | running | | | | | | | | | |
 | OpenClaw | queued | | | | | | | | | |
 
 ## What the numbers say

@@ -21,34 +21,24 @@ Two things are true and shape the whole plan:
 
 ---
 
-## Part 1: Decisions I need from you before any wave runs
+## Part 1: Decisions, locked 2026-09-04
 
-These change what the workers do, so answer them on this document:
+You answered these, and the plan below follows them:
 
-1. **The module path.** `github.com/JaredTate/coeus` → `github.com/JaredTate/nerdgenie`?
-   That implies renaming the GitHub repo too. Say the exact path you want.
-2. **The on-disk names.** Change `COEUS_HOME`→`NERDGENIE_HOME`, `~/.coeus`→`~/.nerdgenie`,
-   `coeus.db`→`nerdgenie.db`, `coeus.sock`→`nerdgenie.sock`, the binary to `nerdgenie`,
-   the systemd units to `nerdgenie.service` / `nerdgenie-backup.*`? Recommended yes,
-   since this is pre-release and there are no installs to migrate but your own.
-   If you want the old `COEUS_HOME` to keep working for one release as a shim, say so.
-3. **The command name.** The binary and the slash-command prompt become `nerdgenie`.
-   A shorter alias people type (`ng`, `genie`)? Or just `nerdgenie`?
-4. **The marketing surface.** Product name "Nerd Genie", agent persona already
-   ships as "Nerd Genie" in the init template. Do you want a tagline, and should
-   `README.md` be rewritten as a marketing-facing front page or stay a builder's
-   readme with a marketing line at the top?
-5. **The benchmark name.** Keep "Tater" for the benchmark, or rename it too?
-6. **Order.** I recommend: finish-and-harden waves **first** (1 to 3), then the
-   rename as wave 4, then the release/trial as wave 5. Reason: renaming touches
-   every golden file, so doing it last means it is done once, over finished code,
-   not re-done as features land. The cost is that waves 1 to 3 ship under the old
-   name. Say if you would rather rename first.
-7. **The live session.** Your Tetris run on card B and the benchmark scripts use
-   `bin/coeus` and `COEUS_HOME`. The rename wave will not start until that session
-   is done, or you tell me to stop it, so nothing in flight breaks.
-
----
+1. **Order: rename first, then finish.** Wave 1 is the rename; the harden-and-finish
+   waves land under the new name.
+2. **Module path: `github.com/JaredTate/nerdgenie`**, and the GitHub repo renamed to
+   match. The repo rename and the first push are outward, hard-to-reverse steps, so
+   they wait for your explicit go once the rename branch is green; the code change
+   happens now in a worktree.
+3. **All on-disk names change, no shim:** `COEUS_HOME`→`NERDGENIE_HOME`,
+   `~/.coeus`→`~/.nerdgenie`, `coeus.db`→`nerdgenie.db`, `coeus.sock`→`nerdgenie.sock`,
+   the binary→`nerdgenie`, the units→`nerdgenie.service` / `nerdgenie-backup.*`,
+   the release archives→`nerdgenie-*`.
+4. **The command is `nerdgenie`**, no alias.
+5. The product name is **Nerd Genie**; the agent persona already ships as Nerd Genie.
+6. Benchmark name and README framing are left as they are unless you say otherwise.
+7. Your live session has exited, so nothing is in flight to break.
 
 ## Part 2: Ground truth — what is done, and what is left
 
@@ -94,7 +84,7 @@ full `make check` alone as the gate, regenerates the repo map, and updates
 `ARCHITECTURE.md` and `docs/PROGRESS.md`. No worker pushes; no worker touches
 `cmd/coeus/main.go` or `serve.go`.
 
-### Wave 1 — the agent never loses its place (5 agents)
+### Wave 2 — the agent never loses its place (5 agents)
 
 The theme is the one the Tetris failure exposed: a long job that survives budgets,
 restarts, and status questions.
@@ -120,9 +110,9 @@ restarts, and status questions.
    detaches mid-task and reattaches to the same record.
 
 Contract change I make first: a `RecentWork` field on the status envelope if
-agents 1 and 5 both need it.
+agents 1 and 5 both need it. (All identifiers here are the post-rename names.)
 
-### Wave 2 — fewer stops, more polish (4 agents)
+### Wave 3 — fewer stops, more polish (4 agents)
 
 1. **The permission function stops asking about read-only commands**
    (`internal/permission`): a command that only reads (its whole line is `pwd`,
@@ -140,7 +130,7 @@ agents 1 and 5 both need it.
    every slash command with a line each, including the ones added this session
    (`/think`, `/yolo`, `/clear`), so a new person can discover them.
 
-### Wave 3 — prove it end to end (3 agents)
+### Wave 4 — prove it end to end (3 agents)
 
 1. **The functional suite grows the trial's spine** (`test/functional/`): the
    TRIAL.md checklist's automatable steps become functional tests against the fake
@@ -152,10 +142,12 @@ agents 1 and 5 both need it.
 3. **`make live` full run, recorded** (`docs/PROGRESS.md`): the whole live tier on
    the three real models, numbers written down, as the wave-6 gate always meant to.
 
-### Wave 4 — the rename to Nerd Genie (up to 5 agents, one careful pass)
+### Wave 1 — the rename to Nerd Genie (one careful serialized pass)
 
-This is mechanical but touches everything, so it is its own wave with a hard gate.
-It only starts once your live session is done and you have answered Part 1.
+This runs first, as you chose. It is mechanical but touches everything, so it is
+its own wave with a hard gate. The atomic module-path change cannot be split, so
+one Opus 4.8 agent owns the whole tree for the mechanical pass; the orchestrator
+reviews the golden-file diffs. The GitHub repo rename and the push wait for your go.
 
 1. **The Go module and identifiers** (module path, `cmd/coeus`→`cmd/nerdgenie`,
    every import, every `Coeus`/`coeus` identifier that is not a person-facing
@@ -208,7 +200,7 @@ worker off, its branch holds its work and it resumes, as they did this session.
 
 ---
 
-_Waiting for your review. Tell me the Part 1 answers and the order, and I start
-Wave 1._
+_Decisions locked. Wave 1, the rename, is under way in its own worktree; the
+GitHub repo rename and the push wait for your go once it is green._
 
 https://claude.ai/code/session_01LiBFUY2d6WUqDnzPfpmYZK

@@ -79,7 +79,7 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolJob,
-		Description: "Creates a job for work too big for one sitting, with or without a schedule, adds a task to one, or lists them. " +
+		Description: "Creates a job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. " +
 			"Use it only when the work needs more than one sitting.",
 		Fields: []contract.ToolField{
 			{Name: "action", Type: "string", Description: "One of create, add_task, or list.", Required: true},
@@ -88,7 +88,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "schedule", Type: "object", Description: "When the job makes its next task: kind at, every, or cron."},
 			{Name: "task_template", Type: "string", Description: "What a scheduled job turns into one task each time."},
 			{Name: "job_id", Type: "string", Description: "Which job to add a task to."},
-			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it."},
+			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task, and a job without a schedule needs it."},
 			{Name: "due_at", Type: "string", Description: "When the task may start, as a date and time."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassIrreversible},
@@ -128,6 +128,18 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 	})
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot create the job: %w", err)
+	}
+	// A job with no first task never carries its work, so record the one the
+	// model named and leave it as the task to run next. Adding it through the
+	// store's own AddTask puts it at the front of an empty list, which is where
+	// the loop looks for the next task to run. A scheduled job makes its own
+	// tasks from its template, so it names no first task and needs none here.
+	if strings.TrimSpace(asked.Text) != "" {
+		taskID, err := tool.settings.Jobs.AddTask(ctx, contract.NewTask{JobID: id, Text: asked.Text})
+		if err != nil {
+			return contract.ToolOutput{}, fmt.Errorf("created job %s but cannot record its first task: %w", id, err)
+		}
+		return contract.ToolOutput{Text: fmt.Sprintf("created job %s and started task %s\n", id, taskID)}, nil
 	}
 	return contract.ToolOutput{Text: fmt.Sprintf("created job %s\n", id)}, nil
 }

@@ -25,6 +25,9 @@ func readInput(written json.RawMessage) (input, error) {
 		if strings.TrimSpace(asked.Ask) == "" {
 			return input{}, errors.New("this job carries no ask, so pass the user's message word for word")
 		}
+		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" {
+			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list, then work the first task")
+		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {
 			return input{}, errors.New("this call names no job, so say which job the task belongs to")

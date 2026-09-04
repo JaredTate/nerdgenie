@@ -126,9 +126,9 @@ agents 1 and 5 both need it. (All identifiers here are the post-rename names.)
 3. **The side panel shows the plan and job count** (`internal/tui`,
    `cmd/coeus/status.go`): the two status fields the panel worker left unsent are
    filled, so a person sees the plan and how many jobs wait, not only the running job.
-4. **`/help` and the command list** (`internal/command`): one screen that lists
-   every slash command with a line each, including the ones added this session
-   (`/think`, `/yolo`, `/clear`), so a new person can discover them.
+4. **`/help` covers the new commands** (`internal/command`): a `/help` screen and
+   its golden already exist; the only work is confirming `/think`, `/yolo` and
+   `/clear` appear, and adding them if not. Small; drop if already complete.
 
 ### Wave 4 — prove it end to end (3 agents)
 
@@ -204,3 +204,19 @@ _Decisions locked. Wave 1, the rename, is under way in its own worktree; the
 GitHub repo rename and the push wait for your go once it is green._
 
 https://claude.ai/code/session_01LiBFUY2d6WUqDnzPfpmYZK
+
+## Part 6: Double-check, 2026-09-04
+
+Verified against `main` before starting so no wave redoes merged work:
+- Wave 2 items 1-4 (recent-work layer, status-question answers, job-refuses-empty,
+  interrupted-on-restart) are genuinely absent. Item 5's detach mechanism exists
+  and already leaves the task connected, so that one is a test plus a small guard.
+- Wave 3.1 (the permission over-ask) is real: the "too long to read, so it needs a
+  yes" path is in `internal/permission/decider.go`; the change is to let a
+  read-only command through.
+- Wave 3.4 (`/help`) largely exists already (`internal/command/testdata/help.golden`),
+  so it is trimmed to a check.
+- The rename (Wave 1) rewrites every `.go` file's imports and most docs, so no
+  code-editing wave can run beside it without guaranteed conflicts. Waves 2-4 fire
+  five-at-a-time the moment the rename merges; that serialization is inherent to
+  choosing rename-first, not idle time.

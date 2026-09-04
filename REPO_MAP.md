@@ -709,6 +709,7 @@ internal/record/logfails_test.go
 internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
+internal/record/name_test.go
 internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go

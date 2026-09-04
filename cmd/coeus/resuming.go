@@ -57,6 +57,11 @@ type screenTasks struct {
 	// spokenLast is the screens in the order they last sent something, oldest
 	// first, so that the cap forgets the one that has been quiet longest.
 	spokenLast []string
+	// interrupted is the numbers of the tasks this start found still at running
+	// and reconciled: a shutdown cut them off, so the rebuild marked them stopped
+	// and the first status a screen gets names them. It is set once at start and
+	// read once by the wiring, so it needs no lock of its own.
+	interrupted []string
 }
 
 // newScreenTasks returns an empty memory of what each screen was last doing.
@@ -194,6 +199,11 @@ func normalizeQuestion(said string) string {
 // failed, so that "continue" after a restart picks that task up under the number
 // it already had rather than starting a fresh one.
 //
+// A task still at running was cut off by the shutdown this start recovers from,
+// not left running by this session, which has not begun; tasksToPickUp marks it
+// stopped and hands it back flagged, so it is carried on the same way and named
+// in the interrupted set for the first status.
+//
 // The log says where each task stands in its newest checkpoint, and whose it is
 // in the ask written under its number. A task whose ask is not there is passed
 // over, because there is nothing to say which screen may pick it up. A log that
@@ -211,30 +221,63 @@ func rememberedFromTheLog(ctx context.Context, store contract.Store) (*screenTas
 	if len(standing) > maxTasksLookedBackAt {
 		standing = standing[len(standing)-maxTasksLookedBackAt:]
 	}
+	wasInterrupted := map[string]bool{}
 	for _, task := range standing {
 		number := strconv.Itoa(task.number)
+		if task.interrupted {
+			wasInterrupted[number] = true
+		}
 		screen, found := screenOfTheTask(ctx, store, number)
 		if !found {
 			continue
 		}
 		tasks.remember(screen, loop.Outcome{TaskID: number, Status: task.status})
 	}
+	// Only the interrupted tasks that ended as a screen's newest are named,
+	// because those are the ones "continue" now carries on: a screen whose newer
+	// task is not resumable would be told to continue a task it cannot.
+	tasks.interrupted = tasks.interruptedNewest(wasInterrupted)
 	return tasks, nil
 }
 
-// numberedTask is one task and where its record stands.
-type numberedTask struct {
-	number int
-	status contract.RecordStatus
+// interruptedNewest is the numbers of the interrupted tasks that each stand as
+// their screen's newest, smallest number first, which are the ones "continue"
+// now picks up and the first status names.
+func (tasks *screenTasks) interruptedNewest(wasInterrupted map[string]bool) []string {
+	tasks.guard.Lock()
+	defer tasks.guard.Unlock()
+	named := []string{}
+	for _, held := range tasks.newest {
+		if wasInterrupted[held.number] {
+			named = append(named, held.number)
+		}
+	}
+	sort.Slice(named, func(first int, second int) bool {
+		firstNumber, _ := strconv.Atoi(named[first])
+		secondNumber, _ := strconv.Atoi(named[second])
+		return firstNumber < secondNumber
+	})
+	return named
 }
 
-// tasksToPickUp reads the log once and returns every task whose record stands at
-// waiting, stopped, or failed, oldest first, which is what the newest checkpoint
-// of each task says. A failed task is among them because a failure is a stop the
-// agent did not choose and "continue" must pick it up again after a restart. A
-// job's checkpoints are left out, because a job's key begins with a letter and a
-// task's is its number, and a checkpoint that does not read as a record is
-// passed over rather than stopping the rebuild.
+// numberedTask is one task, where its record stands, and whether this start had
+// to reconcile it from running to stopped because a shutdown cut it off.
+type numberedTask struct {
+	number      int
+	status      contract.RecordStatus
+	interrupted bool
+}
+
+// tasksToPickUp reads the log once and returns every task a start can pick up,
+// oldest first, which is what the newest checkpoint of each task says. A waiting,
+// a stopped, and a failed task are all here, because each is carried on again: a
+// failure is a stop the agent did not choose, and "continue" must reach it after
+// a restart. A task still at running was cut off by a shutdown, so it is marked
+// stopped in the log here and handed back flagged interrupted, so a later start
+// does not keep finding it running and this start names it. A job's checkpoints
+// are left out, because a job's key begins with a letter and a task's is its
+// number, and a checkpoint that does not read as a record is passed over rather
+// than stopping the rebuild.
 func tasksToPickUp(ctx context.Context, store contract.Store) ([]numberedTask, error) {
 	saved, err := store.ByKind(ctx, contract.EventCheckpoint)
 	if err != nil {
@@ -264,10 +307,30 @@ func tasksToPickUp(ctx context.Context, store contract.Store) ([]numberedTask, e
 		switch held.Header.Status {
 		case contract.StatusWaiting, contract.StatusStopped, contract.StatusFailed:
 			found = append(found, numberedTask{number: number, status: held.Header.Status})
+		case contract.StatusRunning:
+			markInterrupted(ctx, store, strconv.Itoa(number))
+			found = append(found, numberedTask{number: number, status: contract.StatusStopped, interrupted: true})
 		}
 	}
 	sort.Slice(found, func(first int, second int) bool { return found[first].number < found[second].number })
 	return found, nil
+}
+
+// markInterrupted marks one task stopped at its last checkpoint, which is how a
+// task left running by a shutdown is reconciled on the next start: an unplanned
+// stop is a stop, so it is written down as one, and "continue" then reaches it
+// the way it reaches any stopped task, with a fresh budget to carry on with.
+//
+// A write that fails here is left for the next start to reconcile: the task is
+// still picked up this session, because the memory holds it as stopped and the
+// resume reads the record whatever it stands at, so nothing is lost by carrying
+// on past the failure.
+func markInterrupted(ctx context.Context, store contract.Store, number string) {
+	keeper, err := record.Load(ctx, store, contract.RecordTask, number)
+	if err != nil {
+		return
+	}
+	_ = keeper.SetStatus(ctx, contract.StatusStopped)
 }
 
 // screenOfTheTask is the screen one task came from, read from the ask written

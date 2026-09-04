@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/JaredTate/coeus/internal/browser"
@@ -53,13 +54,33 @@ func (running *agent) openTheFront(ctx context.Context) error {
 // rebuilt out of the event log so that a restart forgets nothing a person could
 // pick up. A log the rebuild cannot read is noted and the agent starts with an
 // empty memory, so the next message from each screen starts a fresh task rather
-// than nothing at all.
+// than nothing at all. A task the shutdown left running is named in the record
+// line, so the first status a screen gets tells the person it was interrupted
+// and to say "continue".
 func (running *agent) rememberedTasks(ctx context.Context) *screenTasks {
 	lastTasks, err := rememberedFromTheLog(ctx, running.events)
 	if err != nil {
 		running.note("the memory of what each screen was last doing could not be rebuilt from the log, so the next message from each screen starts a fresh task: " + err.Error())
 	}
+	if line := interruptedRecordLine(lastTasks.interrupted); line != "" {
+		running.noteRecordLine(line)
+	}
 	return lastTasks
+}
+
+// interruptedRecordLine is the one line the first status names an interrupted
+// task in, or nothing when the shutdown cut none off. It says which task and
+// what to do, because the person is being told about work they did not stop and
+// can pick up again.
+func interruptedRecordLine(numbers []string) string {
+	switch len(numbers) {
+	case 0:
+		return ""
+	case 1:
+		return "task " + numbers[0] + " was interrupted; say continue"
+	default:
+		return "tasks " + strings.Join(numbers, ", ") + " were interrupted; say continue"
+	}
 }
 
 // openTheModelAndTheScreens opens the model the configuration names, the event

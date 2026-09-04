@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,9 +32,12 @@ func (running *agent) statusForAScreen() map[string]string {
 		running.watched.fillStatus(fields)
 	}
 	if running.loop != nil {
-		fields[contract.StatusFieldTask] = running.loop.Running()
+		number := running.loop.Running()
+		fields[contract.StatusFieldTask] = number
 		running.fillTheJob(fields)
+		running.fillThePlan(fields, number)
 	}
+	running.fillTheWaitingJobs(fields)
 	if running.loopIsBusy() {
 		fields[contract.StatusFieldState] = contract.StateThinking
 	}
@@ -85,6 +89,66 @@ func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held
 	fields[contract.StatusFieldJobAsk] = onOneLine(held.Goal.Ask)
 	fields[contract.StatusFieldJobTask] = fromJob.TaskID
 	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
+}
+
+// fillThePlan writes the running task's plan, which is what the side panel draws
+// under the task: one step per line, each marked done or not. It is sent empty
+// when no task is running or the record holds no plan, so that a screen which
+// drew a plan a moment ago clears it rather than keeping the last one. The
+// number is the loop's running task, which is empty until the task's first tool
+// call writes its record.
+func (running *agent) fillThePlan(fields map[string]string, number string) {
+	fields[contract.StatusFieldPlan] = ""
+	if number == "" || running.events == nil {
+		return
+	}
+	held, ok := loadTaskRecord(context.Background(), running.events, number)
+	if !ok {
+		return
+	}
+	fields[contract.StatusFieldPlan] = planLines(held.Work.Plan)
+}
+
+// planLines writes a task's plan the way StatusFieldPlan carries it: one step
+// per line, each beginning with "[x] " when the step is done and "[ ] " when it
+// is not, then the step's text folded onto the one line. The marks are the ones
+// contract.JobTaskLines uses for a job's tasks, so the panel reads a plan and a
+// task list back the same way.
+func planLines(plan []contract.PlanStep) string {
+	lines := make([]string, 0, len(plan))
+	for _, step := range plan {
+		mark := "[ ] "
+		if step.Done {
+			mark = "[x] "
+		}
+		lines = append(lines, mark+onOneLine(step.Text))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// fillTheWaitingJobs writes how many jobs are waiting, which is what the side
+// panel draws when no job's task is running. A waiting job is one still working
+// through its tasks, so the count is of the jobs the store holds at running; it
+// is sent empty when none are, so a screen draws nothing rather than a zero. A
+// job store that cannot be listed costs the count and nothing more.
+func (running *agent) fillTheWaitingJobs(fields map[string]string) {
+	fields[contract.StatusFieldJobs] = ""
+	if running.jobs == nil {
+		return
+	}
+	listed, err := running.jobs.List(context.Background())
+	if err != nil {
+		return
+	}
+	waiting := 0
+	for _, summary := range listed {
+		if summary.State == contract.JobRunning {
+			waiting++
+		}
+	}
+	if waiting > 0 {
+		fields[contract.StatusFieldJobs] = strconv.Itoa(waiting)
+	}
 }
 
 // commandList is the palette: one command per line, its name and its help with

@@ -177,6 +177,16 @@ const (
 	// when it is not, then the task's label and its text, so that a screen can
 	// draw the list with a check beside every task that is finished.
 	StatusFieldJobTasks = "jobTasks"
+	// StatusFieldPlan is the running task's plan: one step per line, each
+	// beginning with "[x] " when the step is done and "[ ] " when it is not, the
+	// same marks StatusFieldJobTasks carries a job's tasks in, so that a screen
+	// can draw a check beside every step that is finished. It is sent empty when
+	// no task is running.
+	StatusFieldPlan = "plan"
+	// StatusFieldJobs is how many jobs are waiting, written as a number, and sent
+	// empty when none are, which is what a screen draws when no job's task is
+	// running.
+	StatusFieldJobs = "jobs"
 	// ReplyLabel is what a done line names as its result when the answer to
 	// the user is its own proof. The harness writes that answer into the record
 	// as a result of its own and points the line at it.

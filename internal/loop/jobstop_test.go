@@ -221,6 +221,44 @@ func TestContinuePicksAPutDownJobTaskUpUnderItsJob(t *testing.T) {
 	}
 }
 
+// TestContinueOnAFreshLoopPicksUpTheTaskTheStoreSaysWasPutDown is the restart
+// half of the put-down: the memory of which task was put down lives in the
+// job store, not in the loop, so a loop built afresh over the same store,
+// which is what a restart leaves, picks the same task up under the same job
+// on the word that carries on.
+func TestContinueOnAFreshLoopPicksUpTheTaskTheStoreSaysWasPutDown(t *testing.T) {
+	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 2, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The post is up."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	})
+	stopTheJobsTask(t, made, built, waiting)
+	mark, there, err := built.jobs.PutDownTask(t.Context())
+	if err != nil || !there || mark.Task.JobID != jobID || mark.Task.TaskID != "t1" || mark.Run != "1" || !mark.HasRecord || mark.Waiting {
+		t.Fatalf("the store holds the put-down task as %+v (there %v, error %v), want task t1 of job %s, run 1, with a record, stopped rather than asking", mark, there, err, jobID)
+	}
+	fresh, err := loop.New(built.options())
+	if err != nil {
+		t.Fatalf("cannot build a fresh loop over the same store: %v", err)
+	}
+
+	outcome, err := fresh.Run(t.Context(), built.task("continue"))
+	if err != nil {
+		t.Fatalf("carrying the task on from a fresh loop failed: %v", err)
+	}
+
+	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
+		t.Errorf("continue on a fresh loop ended as %+v, want task 1, the one the store says was put down, finished", outcome)
+	}
+	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
+		t.Errorf("the person was sent %v, want the picked-up task's report with the job's progress on it", built.channel.Sent())
+	}
+	if _, there, _ := built.jobs.PutDownTask(t.Context()); there {
+		t.Error("the store still holds a put-down task after it was picked up")
+	}
+}
+
 // TestAPutDownTaskWithNoRecordStartsAfreshUnderItsJob proves the case where the
 // stop landed before the task's first tool call: there is no record to pick
 // up, so the word starts the task again from the beginning, still as the

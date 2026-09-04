@@ -348,6 +348,44 @@ func TestARestartLeavesAPutDownJobPausedOnItsTask(t *testing.T) {
 	}
 }
 
+// TestAPutDownMarkIsReadBackAfterARealRestart is the put-down across a real
+// restart, the way the person meets it: the helper process runs the task and
+// dies, the person had stopped the job on it, and the store opened afterwards
+// still says which task the job holds on and which run to pick up, with the
+// dead process's claim gone so that the run can carry on at once.
+func TestAPutDownMarkIsReadBackAfterARealRestart(t *testing.T) {
+	ctx := t.Context()
+	home, jobs := openTheRealThing(t)
+	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: "Do the one task the person stopped.", Why: "to prove the mark survives"})
+	if err != nil {
+		t.Fatalf("cannot create the job: %v", err)
+	}
+	taskID, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the task the person stopped"})
+	if err != nil {
+		t.Fatalf("cannot add the task: %v", err)
+	}
+	if said := askTheHelper(t, home); said != helperClaimedLine+" "+taskID+"\n" {
+		t.Fatalf("the helper said %q, want it to have claimed %s before it died", said, taskID)
+	}
+	mark := contract.PutDownMark{Task: contract.TaskToRun{JobID: jobID, TaskID: taskID, Text: "the task the person stopped"}, Run: "3", HasRecord: true}
+	if err := jobs.PutDown(ctx, mark); err != nil {
+		t.Fatalf("cannot put the job down on its task: %v", err)
+	}
+
+	reopened := reopenIn(t, home)
+
+	held, there, err := reopened.PutDownTask(ctx)
+	if err != nil || !there || held != mark {
+		t.Errorf("after the restart the put-down task is %+v (there %v, error %v), want %+v", held, there, err, mark)
+	}
+	if err := reopened.RunNow(ctx, jobID); err != nil {
+		t.Fatalf("cannot set the job running again: %v", err)
+	}
+	if next, due, err := reopened.NextTask(ctx, time.Now()); err != nil || !due || next.TaskID != taskID {
+		t.Errorf("once the job runs again the next task is %+v (due %v, error %v), want %s at once, the dead claim gone", next, due, err, taskID)
+	}
+}
+
 func TestOpeningOnAFileThatIsNotTheEventLogIsRefused(t *testing.T) {
 	home := contract.NewHome(t.TempDir())
 	if err := os.MkdirAll(filepath.Dir(home.DatabaseFile()), contract.HomeFolderMode); err != nil {

@@ -206,12 +206,44 @@ func (store unprovedJobStore) Load(ctx context.Context, jobID string) (contract.
 	return record, err
 }
 
+// forgetfulPutDownStore never remembers which task a job was put down on, the
+// way the loop's own memory forgot it across a restart.
+type forgetfulPutDownStore struct{ *testkit.FakeJob }
+
+// PutDownTask never has a put-down task to hand back.
+func (forgetfulPutDownStore) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
+	return contract.PutDownMark{}, false, nil
+}
+
+// clingingPutDownStore keeps the put-down mark after the job is set running
+// again, so a task already picked up would be picked up twice.
+type clingingPutDownStore struct {
+	*testkit.FakeJob
+	mark *contract.PutDownMark
+}
+
+// PutDown keeps a copy of the mark of its own.
+func (store *clingingPutDownStore) PutDown(ctx context.Context, mark contract.PutDownMark) error {
+	store.mark = &mark
+	return store.FakeJob.PutDown(ctx, mark)
+}
+
+// PutDownTask hands the copy back whether or not the job runs again.
+func (store *clingingPutDownStore) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
+	if store.mark == nil {
+		return contract.PutDownMark{}, false, nil
+	}
+	return *store.mark, true, nil
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name string
 		jobs contract.Job
 	}{
+		{"a store that forgets which task a job was put down on", forgetfulPutDownStore{workingJobStore()}},
+		{"a store that keeps the put-down mark after the job runs again", &clingingPutDownStore{FakeJob: workingJobStore()}},
 		{"a store that creates a job with no ask", agreeableJobStore{workingJobStore()}},
 		{"a store that pauses a job that is not there", forgivingJobStore{workingJobStore()}},
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},

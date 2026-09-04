@@ -169,6 +169,105 @@ func TestAJobWhoseLastTaskFinishesClosesOnADoneLinePerTask(t *testing.T) {
 	}
 }
 
+// TestAPutDownMarkSurvivesARestartAndIsForgottenWhenTheJobRunsAgain is the
+// acid test's sixth complaint: the memory of which task a job was put down on
+// lived in the loop's process, so after a restart "continue" found nothing.
+// The mark lives in the store now, beside the job's state, and a restart
+// reads it back; a job set running again forgets it, because the task is
+// picked up and put down no longer.
+func TestAPutDownMarkSurvivesARestartAndIsForgottenWhenTheJobRunsAgain(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do a long thing.")
+	taskID := holding.aTask(t, jobID, "the task the person stopped", time.Time{})
+	mark := contract.PutDownMark{
+		Task: contract.TaskToRun{JobID: jobID, TaskID: taskID, Text: "the task the person stopped"},
+		Run:  "4", HasRecord: true, Waiting: true,
+	}
+	if err := holding.jobs.PutDown(ctx, mark); err != nil {
+		t.Fatalf("cannot put the job down on its task: %v", err)
+	}
+	if state := holding.summaryOf(t, jobID).State; state != contract.JobPaused {
+		t.Fatalf("a job put down on its task is %q, want %q", state, contract.JobPaused)
+	}
+
+	after := holding.restart(t)
+
+	held, there, err := after.jobs.PutDownTask(ctx)
+	if err != nil {
+		t.Fatalf("cannot ask the restarted store for the put-down task: %v", err)
+	}
+	if !there || held != mark {
+		t.Errorf("after the restart the put-down task is %+v (there %v), want the mark written before it: %+v", held, there, mark)
+	}
+	if record, err := after.jobs.Load(ctx, jobID); err != nil || record.Header.Status != contract.StatusWaiting {
+		t.Errorf("the put-down job's record stands at %q (error %v), want %q, which is what /jobs shows for a job holding on a task", record.Header.Status, err, contract.StatusWaiting)
+	}
+	if _, due := after.nextTask(t, theEpoch()); due {
+		t.Error("the restarted store handed the put-down task out on its own, and nothing of a put-down job runs until the person picks it up")
+	}
+	if err := after.jobs.RunNow(ctx, jobID); err != nil {
+		t.Fatalf("cannot set the job running again: %v", err)
+	}
+	if held, there, err := after.jobs.PutDownTask(ctx); err != nil || there {
+		t.Errorf("after the job was set running again the put-down task is %+v (there %v, error %v), want none", held, there, err)
+	}
+	if next, due := after.nextTask(t, theEpoch()); !due || next.TaskID != taskID {
+		t.Errorf("once the job runs again the next task is %+v (due %v), want %s", next, due, taskID)
+	}
+}
+
+// TestTheNewestPutDownTaskIsTheOneHandedBack pins which mark comes back when
+// two jobs are put down: the one whose run is newest, because that is the
+// task the person was just looking at.
+func TestTheNewestPutDownTaskIsTheOneHandedBack(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	older := holding.aJob(t, "The job put down first.")
+	olderTask := holding.aTask(t, older, "its task", time.Time{})
+	newer := holding.aJob(t, "The job put down second.")
+	newerTask := holding.aTask(t, newer, "its task", time.Time{})
+	for _, put := range []contract.PutDownMark{
+		{Task: contract.TaskToRun{JobID: newer, TaskID: newerTask}, Run: "12"},
+		{Task: contract.TaskToRun{JobID: older, TaskID: olderTask}, Run: "9"},
+	} {
+		if err := holding.jobs.PutDown(ctx, put); err != nil {
+			t.Fatalf("cannot put job %s down: %v", put.Task.JobID, err)
+		}
+	}
+
+	held, there, err := holding.jobs.PutDownTask(ctx)
+
+	if err != nil || !there || held.Task.JobID != newer {
+		t.Errorf("the put-down task handed back is %+v (there %v, error %v), want the one of job %s, whose run is newest", held, there, err, newer)
+	}
+	if err := holding.jobs.SwitchOff(ctx, newer); err != nil {
+		t.Fatalf("cannot switch the newer job off: %v", err)
+	}
+	if held, there, _ := holding.jobs.PutDownTask(ctx); !there || held.Task.JobID != older {
+		t.Errorf("with the newer job switched off the put-down task is %+v (there %v), want the older job's, because a job switched off is not picked up", held, there)
+	}
+}
+
+// TestPutDownRefusesWhatItCannotMark pins the two refusals: a job that is not
+// there, and a task that is not on the job's list.
+func TestPutDownRefusesWhatItCannotMark(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do a long thing.")
+	holding.aTask(t, jobID, "the one task", time.Time{})
+
+	if err := holding.jobs.PutDown(ctx, contract.PutDownMark{Task: contract.TaskToRun{JobID: "99", TaskID: "t1"}}); err == nil {
+		t.Error("a job that is not there was put down without an error naming it")
+	}
+	if err := holding.jobs.PutDown(ctx, contract.PutDownMark{Task: contract.TaskToRun{JobID: jobID, TaskID: "t99"}}); err == nil {
+		t.Error("a job was put down on a task that is not on its list without an error naming it")
+	}
+	if _, there, err := holding.jobs.PutDownTask(ctx); err != nil || there {
+		t.Errorf("a refused put-down left a mark behind (there %v, error %v)", there, err)
+	}
+}
+
 func TestTheJobStoreKeepsTheJobContractForAJobWithoutAName(t *testing.T) {
 	holding := newJobs(t)
 	if err := testkit.CheckJobWithoutAName(t.Context(), holding.jobs); err != nil {

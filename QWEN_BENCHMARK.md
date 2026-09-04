@@ -20,7 +20,13 @@ its prompt at 132,000 tokens. The mechanism is in the numbers: the three
 transcript harnesses show the model everything it already tried and it
 repeats it; Coeus shows it a short record and refuses a repeated call.
 
-Round 2 is under way on the same rules; its rows are added as they land.
+Round 2, on the same rules, added the other half of the story: OpenClaw, stopped
+at 623 calls in round 1, finished green in 82 seconds and 20 calls in round 2;
+Hermes needed 504 calls and 81 minutes and still had a red test; opencode had
+to be stopped after 1,587 calls and two and a half hours. Coeus finished green
+both times. Over eight runs, Coeus is the only harness that was green every
+time, and the only one whose prompt never left the range a small model reasons
+well in.
 opencode's round-2 run was stopped by hand after two and a half hours and
 1,587 model calls with its prompt at 230,000 tokens and no sign of ending;
 the user had stopped OpenClaw's equivalent run in round 1 the same way. It is
@@ -124,7 +130,7 @@ three transcript harnesses say "game works" here and not "green."
 | **Coeus** | **yes** | 12 min 30 s (task in to answer out 11 min 13 s) | 55 | 1,143,152 | 223,330 | 34,520 | 10,984 | 6/6 | 4/4 | 6 of 6 |
 | opencode | game works, own tests 4 of 6; **stopped by the orchestrator** | 2 h 35 min when stopped | 1,587 | see note | see note | 230,324 | see note | 6/6 | 4/4 | 4 of 6 |
 | Hermes | game works, one own test red | 1 h 21 min | 504 | see run folder | 660,135 | 214,099 | 66,026 | 6/6 | 4/4 | 5 of 6 |
-| OpenClaw | running | | | | | | | | | |
+| **OpenClaw** | **yes** | 1 min 22 s | 20 | 229,711 | 9,998 | 14,396 | 4,399 | 6/6 | 4/4 | 6 of 6 |
 
 ## What the numbers say
 
@@ -156,15 +162,18 @@ three transcript harnesses say "game works" here and not "green."
    person would have had to. The other three never ask. That is Coeus doing
    what it was built to do, and it is a rule worth loosening for commands
    that only read.
-6. **Runs vary, and the direction does not.** Coeus went from 24 calls to 55
-   between two runs of the same setup; Hermes from 446 calls and 24 minutes to
-   504 calls and 81 minutes with its prompt at 214,000 tokens; opencode from
-   317 calls and 16 minutes to a run that had to be stopped after 1,587 calls
-   and two and a half hours at 230,000 tokens. That is what one small model
-   does with one prompt. Across every run today the shape held: Coeus in tens
-   of calls with a prompt under 35,000 tokens and every one of its own tests
-   green; the others in hundreds or thousands of calls with prompts of 100,000
-   to 230,000 tokens and one or two of their own tests still red.
+6. **Runs vary, and what holds across them is the point.** Coeus went from
+   24 calls to 55 between two runs of the same setup. Hermes went from 446
+   calls and 24 minutes to 504 and 81 minutes, with its prompt at 214,000
+   tokens, red test both times. opencode went from 317 calls and 16 minutes
+   to a run stopped after 1,587 calls and two and a half hours at 230,000
+   tokens, two red tests. OpenClaw went from a run stopped at 623 calls and
+   38 minutes with its prompt at 132,000 tokens to a clean green in 20 calls
+   and 82 seconds, its prompt never past 14,400 tokens. That last pair is the
+   whole lesson in one harness: when the small model happens not to hit the
+   draw-case wall, any harness finishes fast; when it does, a transcript
+   harness has no way out and a record harness does. Over eight runs Coeus
+   was green both times, OpenClaw once, Hermes and opencode never fully.
 
 ## Set aside: the user's tuned setups
 

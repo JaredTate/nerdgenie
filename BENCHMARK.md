@@ -17,9 +17,12 @@ runs, three per harness, from blank folders and blank homes, one at a time,
 effort medium wherever the knob exists, no cap. Every earlier Opus number was
 withdrawn when those runs were made.
 
-## Qwen 3.8 (local, thinking off), two at a time
+## Qwen 3.8 (local, thinking off)
 
-_Running now, one harness at a time on card A._
+The Qwen comparison lives in `QWEN_BENCHMARK.md` at the root: two rounds,
+all four harnesses on shipped defaults, no cap, blank homes, one harness per
+card, the daemon log as the token referee. Coeus was green in both rounds;
+OpenClaw once; Hermes and opencode never fully.
 
 ## What was pinned so the comparison is fair
 

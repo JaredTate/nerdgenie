@@ -3,6 +3,7 @@ package testkit_test
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -236,6 +237,35 @@ func (store *clingingPutDownStore) PutDownTask(context.Context) (contract.PutDow
 	return *store.mark, true, nil
 }
 
+// claimKeepingJobStore keeps the claim a paused run held when the job is set
+// running again, so the task the job was paused on is never handed out again,
+// which is what the fake did and the real store did not.
+type claimKeepingJobStore struct {
+	*testkit.FakeJob
+	guard  sync.Mutex
+	ranNow bool
+}
+
+// RunNow sets the job running again and keeps the claim.
+func (store *claimKeepingJobStore) RunNow(ctx context.Context, jobID string) error {
+	store.guard.Lock()
+	store.ranNow = true
+	store.guard.Unlock()
+	return store.FakeJob.RunNow(ctx, jobID)
+}
+
+// NextTask hands nothing out once the job has been set running again, as a
+// store whose task is still claimed would.
+func (store *claimKeepingJobStore) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
+	store.guard.Lock()
+	kept := store.ranNow
+	store.guard.Unlock()
+	if kept {
+		return contract.TaskToRun{}, false, nil
+	}
+	return store.FakeJob.NextTask(ctx, now)
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -244,6 +274,7 @@ func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	}{
 		{"a store that forgets which task a job was put down on", forgetfulPutDownStore{workingJobStore()}},
 		{"a store that keeps the put-down mark after the job runs again", &clingingPutDownStore{FakeJob: workingJobStore()}},
+		{"a store that keeps the claim a paused run held after the job runs again", &claimKeepingJobStore{FakeJob: workingJobStore()}},
 		{"a store that creates a job with no ask", agreeableJobStore{workingJobStore()}},
 		{"a store that pauses a job that is not there", forgivingJobStore{workingJobStore()}},
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},

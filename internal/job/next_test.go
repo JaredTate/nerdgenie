@@ -298,7 +298,57 @@ func TestAClaimOnATaskOfAPausedJobIsLeftAloneWhenItsBudgetRunsOut(t *testing.T) 
 	}
 	next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+2*time.Minute))
 	if !due || next.TaskID != taskID {
-		t.Errorf("once the job runs again the task is %+v (due %v), want %s given up as a dead claim and offered again", next, due, taskID)
+		t.Errorf("once the job runs again the task is %+v (due %v), want %s offered again, because a job set running again lets go of the claims its paused run held", next, due, taskID)
+	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
+		t.Errorf("once the job ran again the old claim was counted as %d failures, want none: it was let go when the job ran again, not left to run out", failures)
+	}
+}
+
+// TestAJobSetRunningAgainHandsOutThePutDownTaskFirstWithItsOldClaimReleased
+// is the review's first finding. A put-down task kept the claim its run held,
+// and a job set running again by any way but the exact carry-on word, such as
+// "/cron run" or "/resume", skipped that task as running and handed out the
+// one after it; an hour later the old claim ran out and the task was written
+// into the job as a failure. Setting a paused job running again lets go of
+// the claims its tasks hold, so the put-down task is handed out first and its
+// old claim is never counted as a failure.
+func TestAJobSetRunningAgainHandsOutThePutDownTaskFirstWithItsOldClaimReleased(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do two things.")
+	first := holding.aTask(t, jobID, "the task the person stopped", time.Time{})
+	second := holding.aTask(t, jobID, "the task after it", time.Time{})
+	if next, due := holding.nextTask(t, theEpoch()); !due || next.TaskID != first {
+		t.Fatalf("the first task was not handed out to begin with: %+v (due %v)", next, due)
+	}
+	if err := holding.jobs.Pause(ctx, jobID); err != nil {
+		t.Fatalf("cannot pause the job: %v", err)
+	}
+
+	if err := holding.jobs.RunNow(ctx, jobID); err != nil {
+		t.Fatalf("cannot run the job now: %v", err)
+	}
+
+	next, due := holding.nextTask(t, theEpoch().Add(time.Minute))
+	if !due || next.TaskID != first {
+		t.Errorf("a minute after run now the next task is %+v (due %v), want %s, the task the job was paused on, and not %s", next, due, first, second)
+	}
+	// The claim the paused run held would have run out an hour after it was
+	// taken. It was let go instead, so nothing runs out, nothing is counted,
+	// and the task handed out again is still the one running.
+	if next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+30*time.Second)); due {
+		t.Errorf("past the old claim's hour the store handed out %+v, and the task handed out after run now is still running", next)
+	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
+		t.Errorf("the old claim was counted as %d failures, want none", failures)
+	}
+	held, err := holding.jobs.Load(ctx, jobID)
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if len(held.Work.Results) != 0 {
+		t.Errorf("the job holds %d reports, want none: no task failed", len(held.Work.Results))
 	}
 }
 

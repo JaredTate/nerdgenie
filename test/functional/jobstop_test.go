@@ -70,6 +70,68 @@ func aJobWhoseFirstTaskIsStopped(_ string) testkit.Script {
 	})}
 }
 
+// theSteerThePersonGives is what the person types to pick the stopped task
+// up and steer it at once: the word that carries on, then more.
+const theSteerThePersonGives = "continue, but post at noon"
+
+// aJobWhoseFirstTaskIsStoppedAndSteered is the stopped job of
+// aJobWhoseFirstTaskIsStopped picked up with a steer rather than the bare
+// word. The picked-up task carries a correction, so it is reviewed before the
+// second task starts, which is one more reply in the script.
+func aJobWhoseFirstTaskIsStoppedAndSteered(work string) testkit.Script {
+	stopped := aJobWhoseFirstTaskIsStopped(work)
+	steps := slices.Concat(stopped.Steps[:4], []testkit.Step{
+		{
+			Expect: []string{"post at noon", "post the tweet"},
+			Text:   "The tweet is posted, at noon.",
+			Finish: contract.FinishEnd,
+			Usage:  contract.Usage{InputTokens: 300, OutputTokens: 5},
+		},
+		{
+			Text:   "1. The tweet was to be posted.\n2. It was posted at noon.\n3. The person asked for noon.\n4. Post at noon.",
+			Finish: contract.FinishEnd,
+			Usage:  contract.Usage{InputTokens: 500, OutputTokens: 30},
+		},
+	}, stopped.Steps[5:])
+	return testkit.Script{Name: stopped.Name, ContextLength: stopped.ContextLength, Steps: steps}
+}
+
+// TestAMessageThatBeginsWithContinuePicksTheStoppedJobTaskUpAndSteersIt is
+// the review's fourth finding, whole-program: the stopped report used to say
+// both "tell me how to carry on" and "until you say continue", and a person
+// who did what the first line said, "continue, but post at noon", started a
+// plain task while the job stayed paused in silence. The report gives one
+// instruction now, and a message that begins with the word picks the task up
+// under the job and carries the rest to it.
+func TestAMessageThatBeginsWithContinuePicksTheStoppedJobTaskUpAndSteersIt(t *testing.T) {
+	agent := startTheAgentWorkingIn(t, aJobWhoseFirstTaskIsStoppedAndSteered)
+
+	screen := agent.attach(t)
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatIsAJob})
+	first := screen.waitForStatusWhere(t, theTimeAJobsFirstTaskIsGiven, func(fields map[string]string) bool {
+		return fields[contract.StatusFieldJob] == theJobTheModelMakes &&
+			fields[contract.StatusFieldJobTask] == "t1" &&
+			strings.Contains(fields[contract.StatusFieldToolLine], contract.ToolShell)
+	})
+	number := theTaskNumberOf(t, first.Fields[contract.StatusFieldRecordLine])
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "stop"})
+	stopped := screen.waitForReplySaying(t, "I stopped this task", howLongTheFirstTaskWorks+30*time.Second)
+	if strings.Contains(stopped.Text, "Tell me how to carry on") || !strings.Contains(stopped.Text, "Say "+theWordThatCarriesOn) {
+		t.Errorf("the stopped report is %q, want one instruction: say %s to pick the task up", stopped.Text, theWordThatCarriesOn)
+	}
+
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theSteerThePersonGives})
+
+	again := screen.waitForStatusWhere(t, 60*time.Second, func(fields map[string]string) bool {
+		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobTask] == "t1"
+	})
+	if picked := theTaskNumberOf(t, again.Fields[contract.StatusFieldRecordLine]); picked != number {
+		t.Errorf("the steer started task %s of the job, want task %s picked up again", picked, number)
+	}
+	screen.waitForReplySaying(t, "Job "+theJobTheModelMakes+", report j"+theJobTheModelMakes+".1: 1 of 2 tasks done", 60*time.Second)
+	screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)
+}
+
 func TestAStopOnAJobsTaskKeepsTheJobOnThatTaskAndContinuePicksItUp(t *testing.T) {
 	agent := startTheAgentWorkingIn(t, aJobWhoseFirstTaskIsStopped)
 

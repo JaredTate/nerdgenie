@@ -163,13 +163,16 @@ func TestAPersonsStopPutsAJobsTaskDownRatherThanFailingIt(t *testing.T) {
 	if len(sent) != 1 {
 		t.Fatalf("the person was sent %d messages, want the one stopped report: %v", len(sent), sent)
 	}
-	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "continue"} {
+	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "Say continue to pick this task up"} {
 		if !strings.Contains(sent[0], words) {
 			t.Errorf("the stopped report is %q, want it to say %q", sent[0], words)
 		}
 	}
 	if strings.Contains(sent[0], "tasks done") {
 		t.Errorf("the stopped report is %q, and a task that was only stopped has no progress line", sent[0])
+	}
+	if strings.Contains(sent[0], "Tell me how to carry on") {
+		t.Errorf("the stopped report is %q, and it gives two instructions where one is the truth: only the word continue picks a job's task up", sent[0])
 	}
 	if standing := built.held(t, "1").Header.Status; standing != contract.StatusStopped {
 		t.Errorf("the task's record stands at %q, want %q", standing, contract.StatusStopped)
@@ -256,6 +259,105 @@ func TestContinueOnAFreshLoopPicksUpTheTaskTheStoreSaysWasPutDown(t *testing.T) 
 	}
 	if _, there, _ := built.jobs.PutDownTask(t.Context()); there {
 		t.Error("the store still holds a put-down task after it was picked up")
+	}
+}
+
+// jobWhoseRunNowFailsOnce is the fake job store with one store error in it:
+// the first time it is asked to set a job running again, it cannot.
+type jobWhoseRunNowFailsOnce struct {
+	contract.Job
+	guard  sync.Mutex
+	failed bool
+}
+
+// RunNow fails once and then passes the call on.
+func (jobs *jobWhoseRunNowFailsOnce) RunNow(ctx context.Context, jobID string) error {
+	jobs.guard.Lock()
+	first := !jobs.failed
+	jobs.failed = true
+	jobs.guard.Unlock()
+	if first {
+		return errors.New("the job store cannot write right now, so try again")
+	}
+	return jobs.Job.RunNow(ctx, jobID)
+}
+
+// TestAStoreErrorOnContinueLeavesTheTaskPutDownForTheNextContinue is the
+// review's second finding: the loop used to forget the put-down task before
+// the store had set the job running, so a store error on "continue" lost the
+// job's task for good, and the next "continue" ran it as a plain task. The
+// mark lives in the store now and is forgotten only when the store itself
+// sets the job running, so the next "continue" picks the same task up under
+// the job.
+func TestAStoreErrorOnContinueLeavesTheTaskPutDownForTheNextContinue(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The post is up."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	}, scriptedTool("read", "the notes", "the notes"))
+	jobID := aJobOfTwoTasks(t, built)
+	flaky := &jobWhoseRunNowFailsOnce{Job: built.jobs}
+	waiting := aModelThatWaitsOn(2, built.model)
+	options := built.optionsOver(waiting)
+	options.Jobs = flaky
+	made, err := loop.New(options)
+	if err != nil {
+		t.Fatalf("cannot build a loop over the flaky store: %v", err)
+	}
+	stopTheJobsTask(t, made, built, waiting)
+
+	if _, err := made.Run(t.Context(), built.task("continue")); err == nil {
+		t.Fatal("the first continue was answered with no error, and the store refused to set the job running")
+	}
+	outcome, err := made.Run(t.Context(), built.task("continue"))
+	if err != nil {
+		t.Fatalf("the second continue failed: %v", err)
+	}
+
+	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
+		t.Errorf("the second continue ended as %+v, want task 1, the job's put-down task, picked up under the job and finished", outcome)
+	}
+	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
+		t.Errorf("the person was sent %v, want the picked-up task's report in the job", built.channel.Sent())
+	}
+}
+
+// TestAMessageThatBeginsWithContinuePicksThePutDownTaskUpAndCarriesTheRest
+// is the review's fourth finding: a person who says "continue, but post at
+// noon" is carrying the task on and steering it, not starting a new one. The
+// task is picked up under the job, and the whole message is written into its
+// record as a correction, so the steer survives however long the task runs.
+func TestAMessageThatBeginsWithContinuePicksThePutDownTaskUpAndCarriesTheRest(t *testing.T) {
+	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 2, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The post is up, at noon."),
+		aReviewReply("Post at noon."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	})
+	stopTheJobsTask(t, made, built, waiting)
+
+	outcome, err := made.Run(t.Context(), built.task("continue, but post at noon"))
+	if err != nil {
+		t.Fatalf("carrying the task on with a steer failed: %v", err)
+	}
+
+	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
+		t.Errorf("the steered continue ended as %+v, want task 1, the put-down task, picked up under the job and finished", outcome)
+	}
+	held := built.held(t, "1")
+	if len(held.Rules.Corrections) != 1 || held.Rules.Corrections[0].Text != "continue, but post at noon" {
+		t.Errorf("the record's corrections are %+v, want the person's whole message, word for word", held.Rules.Corrections)
+	}
+	if !strings.Contains(requestsJoined(built.model.Requests()), "post at noon") {
+		t.Error("the steer never reached the model")
+	}
+	if first := theJobsFirstTask(t, built, jobID); !first.Done {
+		t.Errorf("the job's task reads %+v, want it done under the job", first)
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobDone {
+		t.Errorf("the job is %q, want it done after both tasks ran", summary.State)
 	}
 }
 
@@ -435,11 +537,13 @@ func (jobs *jobThatHandsOutOneUnattendedTask) FinishTask(ctx context.Context, jo
 	return jobs.Job.FinishTask(ctx, jobID, taskID, report, failed)
 }
 
-// TestAStoppedTaskNobodyAttendedIsFinishedAsTheFailureItIs pins the other
-// side of the rule: a schedule's task that stops has nobody to pick it up, so
-// it is finished as failed, the way it always was, and the next tick brings
-// its own task.
-func TestAStoppedTaskNobodyAttendedIsFinishedAsTheFailureItIs(t *testing.T) {
+// TestAPersonsStopPutsAScheduledJobsTaskDownToo is the review's third
+// finding. A schedule's task is unattended, which means a schedule made it,
+// not that nobody is watching: the person at the terminal who presses Escape
+// on it stopped it on purpose, and it used to be written into the job as a
+// failure and counted toward the three that pause a job. A person's stop puts
+// down any job's task.
+func TestAPersonsStopPutsAScheduledJobsTaskDownToo(t *testing.T) {
 	built := newHarness(t, nil)
 	jobID := aJobOfTwoTasks(t, built)
 	unattended := &jobThatHandsOutOneUnattendedTask{Job: built.jobs}
@@ -453,8 +557,54 @@ func TestAStoppedTaskNobodyAttendedIsFinishedAsTheFailureItIs(t *testing.T) {
 
 	stopTheJobsTask(t, made, built, waiting)
 
+	if len(unattended.finished) != 0 {
+		t.Errorf("the job store was told %v, want nothing: a task the person stopped is put down, not finished", unattended.finished)
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 0 || summary.State != contract.JobPaused {
+		t.Errorf("the job reads %+v, want no failure counted and the job paused on the task the person stopped", summary)
+	}
+	mark, there, err := built.jobs.PutDownTask(t.Context())
+	if err != nil || !there || mark.Task.TaskID != "t1" || !mark.Task.Unattended {
+		t.Errorf("the store holds the put-down task as %+v (there %v, error %v), want the schedule's task t1", mark, there, err)
+	}
+	if !sentSomethingLike(built.channel.Sent(), "Say continue to pick this task up") {
+		t.Errorf("the person was sent %v, want the stopped report with the word that picks the task up", built.channel.Sent())
+	}
+}
+
+// capsWithRoundsPerTask is the shipped caps with a round budget on every task,
+// which is how a test makes the harness itself stop a task.
+func capsWithRoundsPerTask(rounds int) contract.Caps {
+	caps := contract.DefaultConfig().Caps
+	caps.RoundsPerTask = rounds
+	return caps
+}
+
+// TestAStopTheHarnessMadeOnAScheduledJobsTaskIsTheFailureItIs pins the other
+// side of the rule: a schedule's task that the harness stopped, here because
+// its budget ran out, has nobody to pick it up, so it is finished as failed,
+// and the next tick brings its own task.
+func TestAStopTheHarnessMadeOnAScheduledJobsTaskIsTheFailureItIs(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("What I did: I read the notes. What is left: the post."),
+	}, scriptedTool("read", "the notes"))
+	jobID := aJobOfTwoTasks(t, built)
+	unattended := &jobThatHandsOutOneUnattendedTask{Job: built.jobs}
+	options := built.options()
+	options.Jobs = unattended
+	options.Caps = capsWithRoundsPerTask(1)
+	made, err := loop.New(options)
+	if err != nil {
+		t.Fatalf("cannot build a loop over the unattended job: %v", err)
+	}
+
+	if _, err := made.RunNextJobTask(t.Context(), built.channel); err != nil {
+		t.Fatalf("the loop could not run the schedule's task: %v", err)
+	}
+
 	if len(unattended.finished) != 1 || !unattended.finished[0] {
-		t.Errorf("the job store was told %v, want the one stopped task finished as failed", unattended.finished)
+		t.Errorf("the job store was told %v, want the one task the budget stopped finished as failed", unattended.finished)
 	}
 	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 1 || summary.State != contract.JobRunning {
 		t.Errorf("the job reads %+v, want one failure counted and the job still running for its next tick", summary)

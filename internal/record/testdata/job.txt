@@ -2,6 +2,7 @@
 
 ## Goal
 Ask: "Run the DigiByte anniversary campaign this month. One post a day on X, one blog piece, and a summary for me at the end."
+Name: DigiByte anniversary campaign
 Why: keep the anniversary in front of people all month.
 Done when:
 - [ ] one post is up for every weekday of the month

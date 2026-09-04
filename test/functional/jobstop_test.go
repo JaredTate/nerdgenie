@@ -121,6 +121,42 @@ func TestAStopOnAJobsTaskKeepsTheJobOnThatTaskAndContinuePicksItUp(t *testing.T)
 	screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)
 }
 
+// TestContinueAfterARestartPicksUpTheJobsTaskThatWasPutDown is the same stop
+// with "nerdgenie serve" stopped and started again in between, which is what
+// the service manager does and what the acid test's person met. The memory of
+// which task the job was put down on used to live in the process, so after a
+// restart "continue" found nothing; it lives in the job store now, and the
+// dead process's claim on the task is released when the store opens, so the
+// one word picks the same task up under the same job at once.
+func TestContinueAfterARestartPicksUpTheJobsTaskThatWasPutDown(t *testing.T) {
+	agent := startTheAgentWorkingIn(t, aJobWhoseFirstTaskIsStopped)
+
+	screen := agent.attach(t)
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatIsAJob})
+	first := screen.waitForStatusWhere(t, theTimeAJobsFirstTaskIsGiven, func(fields map[string]string) bool {
+		return fields[contract.StatusFieldJob] == theJobTheModelMakes &&
+			fields[contract.StatusFieldJobTask] == "t1" &&
+			strings.Contains(fields[contract.StatusFieldToolLine], contract.ToolShell)
+	})
+	number := theTaskNumberOf(t, first.Fields[contract.StatusFieldRecordLine])
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "stop"})
+	screen.waitForReplySaying(t, "I stopped this task", howLongTheFirstTaskWorks+30*time.Second)
+
+	restarted := agent.restart(t)
+
+	screen = restarted.attach(t)
+	theJobStaysOnTheStoppedTask(t, screen, number)
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theWordThatCarriesOn})
+	again := screen.waitForStatusWhere(t, 60*time.Second, func(fields map[string]string) bool {
+		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobTask] == "t1"
+	})
+	if picked := theTaskNumberOf(t, again.Fields[contract.StatusFieldRecordLine]); picked != number {
+		t.Errorf("continue after the restart started task %s of the job, want task %s picked up again", picked, number)
+	}
+	screen.waitForReplySaying(t, "Job "+theJobTheModelMakes+", report j"+theJobTheModelMakes+".1: 1 of 2 tasks done", 60*time.Second)
+	screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)
+}
+
 // theJobStaysOnTheStoppedTask asks the job store, through the two listing
 // commands, where the job stands after the stop: still listed, none of its
 // tasks done, not switched off, no failure and no report written for the task

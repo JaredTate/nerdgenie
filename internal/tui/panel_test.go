@@ -268,3 +268,72 @@ func TestThePanelIsDrawnAsTheGoldenFilesHaveIt(t *testing.T) {
 	send(inAJob, contract.SocketEnvelope{Type: contract.SocketReply, Text: "Where I stand: the tweet is up, drafting the blog piece next."})
 	testkit.Golden(t, "panel-job-120x36.txt", []byte(inAJob.frame()))
 }
+
+// TestThePanelDrawsOnlySoManyStepsOfALongPlan bounds the plan the way the job
+// list is bounded: a plan of many steps draws maxPlanSteps of them and then says
+// how many more there are, so a fifty-step plan is not the whole panel.
+func TestThePanelDrawsOnlySoManyStepsOfALongPlan(t *testing.T) {
+	status := aStatusWithAPlan()
+	listed := []string{}
+	for at := range maxPlanSteps + 5 {
+		listed = append(listed, "[ ] plan step "+strconv.Itoa(at+1))
+	}
+	status.Fields[statusFieldPlan] = strings.Join(listed, "\n")
+	screen, _ := newTestScreen(120, 40)
+	screen.Update(linkMessage{up: true})
+	send(screen, status)
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if drawn := strings.Count(panel, "plan step "); drawn != maxPlanSteps {
+		t.Errorf("the panel draws %d steps of a plan of %d, want %d:\n%s", drawn, maxPlanSteps+5, maxPlanSteps, panel)
+	}
+	if !strings.Contains(panel, "and 5 more steps") {
+		t.Errorf("the panel does not say %q:\n%s", "and 5 more steps", panel)
+	}
+}
+
+// TestThePanelSaysNothingWhenNoJobsAreWaiting holds that a count of zero draws no
+// jobs line, the same as an empty field, because "0 jobs" is noise the program
+// did not mean to say.
+func TestThePanelSaysNothingWhenNoJobsAreWaiting(t *testing.T) {
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+		contract.StatusFieldModel: "opus",
+		contract.StatusFieldState: contract.StateIdle,
+		statusFieldJobs:           "0",
+	}})
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if strings.Contains(panel, "job") {
+		t.Errorf("the panel counts zero jobs as waiting, want nothing:\n%s", panel)
+	}
+}
+
+// TestThePanelDrawsNothingForEmptyPlanAndJobsFields holds the panel's promise to
+// say only what the program said: a plan and a jobs count sent empty leave the
+// frame exactly as it is without them.
+func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
+	base := map[string]string{
+		contract.StatusFieldModel:     "opus",
+		contract.StatusFieldTask:      "17",
+		contract.StatusFieldTaskState: "running",
+		contract.StatusFieldState:     contract.StateThinking,
+	}
+	without, _ := newTestScreen(120, 36)
+	without.Update(linkMessage{up: true})
+	send(without, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: base})
+
+	empty := map[string]string{statusFieldPlan: "", statusFieldJobs: ""}
+	for name, value := range base {
+		empty[name] = value
+	}
+	withEmpty, _ := newTestScreen(120, 36)
+	withEmpty.Update(linkMessage{up: true})
+	send(withEmpty, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: empty})
+
+	if without.frame() != withEmpty.frame() {
+		t.Errorf("empty plan and jobs fields changed the frame:\nwithout them:\n%s\nwith them empty:\n%s",
+			plainText(without.frame()), plainText(withEmpty.frame()))
+	}
+}

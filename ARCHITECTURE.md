@@ -750,11 +750,17 @@ or the pointer `▸` for the task `StatusFieldJobTask` names, `[x]` or `[ ]`, th
 task's label and its title cut to the room left — then `and 5 more tasks` past
 `maxJobTasks`, and `3 of 12 tasks done` counted from the list. An empty
 `StatusFieldJob` is the program saying no job's task is running, and the group
-goes back to the count of jobs. The plan and the job count are the two things
-on the panel that the status envelope does not carry yet, so `panel.go` names
-the two fields it reads and writes out the `internal/contract` lines it wants
-for them; everything else in the panel is what the header already reads. The
-golden frame for a task inside a job is `testdata/panel-job-120x36.txt`.
+goes back to the count of jobs; a count that is empty or `0` is nothing at all,
+because `0 jobs` is noise the program did not mean to say. The running task's
+plan is drawn the same bounded way: `taskPanelLines` reads the done-when steps
+with `planSteps`, draws each with an accent `✓` when done and a dim `·` when not,
+its words wrapped under themselves so the marks read as a column, and draws at
+most `maxPlanSteps` of them before `and N more steps`, so a fifty-step plan is
+not the whole panel. The plan and the job count come from two status fields of
+their own — `statusFieldPlan` and `statusFieldJobs`, the spellings the program
+now sends — read into `screen.plan` and `screen.jobs`; everything else in the
+panel is what the header already reads. The golden frame for a task inside a job
+is `testdata/panel-job-120x36.txt`.
 
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text

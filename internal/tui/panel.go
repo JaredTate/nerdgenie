@@ -227,10 +227,12 @@ func tasksDoneWords(tasks []contract.JobTask) string {
 	return strconv.Itoa(done) + " of " + strconv.Itoa(len(tasks)) + " tasks done"
 }
 
-// jobWords says how many jobs are waiting in the words a person would use.
+// jobWords says how many jobs are waiting in the words a person would use. A
+// count that is empty or zero is nothing at all, because "0 jobs" is noise the
+// program did not mean to say.
 func jobWords(count string) string {
 	switch count {
-	case "":
+	case "", "0":
 		return ""
 	case "1":
 		return "1 job"

@@ -125,6 +125,50 @@ func TestTheJobStoreKeepsTheJobContract(t *testing.T) {
 	}
 }
 
+// TestAJobWhoseLastTaskFinishesClosesOnADoneLinePerTask is the acid test's
+// third complaint: no job could ever finish, because closing one ran the
+// done-check on a done list nothing lets the model write. When the last task
+// finishes and the job's own done list is empty, the harness writes one done
+// line per task, each pointing at that task's report, the way it writes the
+// one done line of a task whose answer is its own proof; the done-check then
+// passes and the job closes. A done list the model did write is left alone.
+func TestAJobWhoseLastTaskFinishesClosesOnADoneLinePerTask(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Run the two-part campaign.")
+	first := holding.aTask(t, jobID, "post the tweet", time.Time{})
+	second := holding.aTask(t, jobID, "write the summary for the user", time.Time{})
+
+	firstReport := holding.finish(t, jobID, first, "the tweet is posted", false)
+	if state := holding.summaryOf(t, jobID).State; state != contract.JobRunning {
+		t.Fatalf("the job is %q with a task still to run, want %q", state, contract.JobRunning)
+	}
+	secondReport := holding.finish(t, jobID, second, "the summary is written", false)
+
+	if state := holding.summaryOf(t, jobID).State; state != contract.JobDone {
+		t.Errorf("the job is %q after its last task finished, want %q: a job with no done list of its own closes on one line per task", state, contract.JobDone)
+	}
+	held, err := holding.jobs.Load(ctx, jobID)
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if held.Header.Status != contract.StatusDone {
+		t.Errorf("the closed job's record reads %q, want %q", held.Header.Status, contract.StatusDone)
+	}
+	want := []contract.DoneLine{
+		{Text: "post the tweet", Done: true, ResultID: firstReport},
+		{Text: "write the summary for the user", Done: true, ResultID: secondReport},
+	}
+	if len(held.Goal.DoneWhen) != len(want) {
+		t.Fatalf("the job's done list is %+v, want one line per task: %+v", held.Goal.DoneWhen, want)
+	}
+	for at, line := range held.Goal.DoneWhen {
+		if line != want[at] {
+			t.Errorf("done line %d is %+v, want %+v, the task's own words pointing at its report", at+1, line, want[at])
+		}
+	}
+}
+
 func TestTheJobStoreKeepsTheJobContractForAJobWithoutAName(t *testing.T) {
 	holding := newJobs(t)
 	if err := testkit.CheckJobWithoutAName(t.Context(), holding.jobs); err != nil {

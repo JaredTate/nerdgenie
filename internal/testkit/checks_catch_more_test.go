@@ -181,6 +181,31 @@ func (store nameDroppingJobStore) Load(ctx context.Context, jobID string) (contr
 	return record, err
 }
 
+// openEndedJobStore never closes a job: its last task finishes and the listing
+// goes on saying the job is running, which is what the real store did before a
+// job could close on a done line per task.
+type openEndedJobStore struct{ *testkit.FakeJob }
+
+// List reports every job as running, done or not.
+func (store openEndedJobStore) List(ctx context.Context) ([]contract.JobSummary, error) {
+	listed, err := store.FakeJob.List(ctx)
+	for index := range listed {
+		listed[index].State = contract.JobRunning
+	}
+	return listed, err
+}
+
+// unprovedJobStore closes a job without writing the done list its tasks prove,
+// so the record says done and nothing in it says why.
+type unprovedJobStore struct{ *testkit.FakeJob }
+
+// Load hands back the record with its done list taken off.
+func (store unprovedJobStore) Load(ctx context.Context, jobID string) (contract.Record, error) {
+	record, err := store.FakeJob.Load(ctx, jobID)
+	record.Goal.DoneWhen = nil
+	return record, err
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -192,6 +217,8 @@ func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},
 		{"a store that lists a named job by its ask", askListingJobStore{workingJobStore()}},
 		{"a store that loads a named job with its name dropped", nameDroppingJobStore{workingJobStore()}},
+		{"a store that never closes a job whose last task is done", openEndedJobStore{workingJobStore()}},
+		{"a store that closes a job with no done line behind it", unprovedJobStore{workingJobStore()}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

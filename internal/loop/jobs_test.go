@@ -62,9 +62,12 @@ func TestATaskInAJobReportsToTheJobAndStartsTheNext(t *testing.T) {
 	}
 }
 
-// TestTheLastTaskOfAJobClosesItWithItsOwnDoneCheck proves the end of a job: the
-// job's done list is checked the way a task's is, and the user gets the final
-// report.
+// TestTheLastTaskOfAJobClosesItWithItsOwnDoneCheck proves the end of a job:
+// when its last task finishes, the store writes one done line per task
+// pointing at that task's report, the job's done list is checked the way a
+// task's is and passes, the job closes, its review runs, and the user gets the
+// final report. Before this the test asserted the opposite, that the job had
+// run every task and stayed open on a done list nothing could write.
 func TestTheLastTaskOfAJobClosesItWithItsOwnDoneCheck(t *testing.T) {
 	built := newHarness(t, twoTasksAndTheirReview(), scriptedTool("read", "the notes", "the notes"))
 	jobID := aJobOfTwoTasks(t, built)
@@ -73,8 +76,23 @@ func TestTheLastTaskOfAJobClosesItWithItsOwnDoneCheck(t *testing.T) {
 		t.Fatalf("the loop could not run the job's tasks: %v", err)
 	}
 
-	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+" has run every task, and its done list is not proven yet") {
-		t.Errorf("the user was sent %v, want a final report that ran the job's own done-check", built.channel.Sent())
+	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+" is finished: every one of its 2 tasks is done") {
+		t.Errorf("the user was sent %v, want the final report of a job whose done list its tasks prove", built.channel.Sent())
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobDone {
+		t.Errorf("the job is %q after its last task, want %q", summary.State, contract.JobDone)
+	}
+	held, err := built.jobs.Load(t.Context(), jobID)
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if len(held.Goal.DoneWhen) != 2 {
+		t.Fatalf("the job's done list is %+v, want one line per task", held.Goal.DoneWhen)
+	}
+	for at, line := range held.Goal.DoneWhen {
+		if !line.Done || line.ResultID != held.Work.Tasks[at].ReportID {
+			t.Errorf("done line %d is %+v, want it proved by the report of task %s", at+1, line, held.Work.Tasks[at].TaskID)
+		}
 	}
 	if len(factsIn(t, built)) != 1 {
 		t.Error("the job was not reviewed when its last task finished")

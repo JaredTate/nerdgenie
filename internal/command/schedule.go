@@ -12,7 +12,7 @@ import (
 // remembers which ones it stopped, so that "/resume" starts exactly those again
 // and never a job the user had paused for a reason of their own.
 //
-// A job is the scheduled work in Coeus: work too big for one sitting, run task
+// A job is the scheduled work in Nerd Genie: work too big for one sitting, run task
 // by task by the job runner. "/cron" shows the smaller set of jobs that also
 // carry a clock schedule.
 func (commands *Commands) Pause() contract.Command {

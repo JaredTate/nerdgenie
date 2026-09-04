@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-// LocalModelAlias is the name of the model alias Coeus ships with, which points
+// LocalModelAlias is the name of the model alias Nerd Genie ships with, which points
 // at the llama-server daemon on the machine the agent runs on.
 const LocalModelAlias = "local"
 
 // ModelAlias is one model the user can name, with everything needed to reach it.
-// Coeus ships with one, the local model; "nerdgenie init" writes the cloud aliases
+// Nerd Genie ships with one, the local model; "nerdgenie init" writes the cloud aliases
 // after asking which provider the user wants.
 type ModelAlias struct {
 	// Name is what the user and the record call it, such as "local".
@@ -47,7 +47,7 @@ type ModelAlias struct {
 // Caps are the limits from the design that keep the agent from running away.
 // Every one of them is a hard stop, not a target. The three budgets, the rounds
 // and the time of a task and the time of a turn, are off unless the user sets
-// them: a zero, which is the default, means no limit, because Coeus puts no cap
+// them: a zero, which is the default, means no limit, because Nerd Genie puts no cap
 // on its own work unless the user asks for one. The rest are always on.
 type Caps struct {
 	// RoundsPerTask is the tool-round budget of a task. Default 0, which is no

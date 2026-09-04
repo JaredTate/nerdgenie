@@ -113,7 +113,7 @@ func TestADoneLineWhoseCommandFailsSendsTheModelBack(t *testing.T) {
 }
 
 // TestATaskThatWillNotProveItsDoneListIsGivenUpOn proves the nudging is bounded,
-// because every loop in Coeus is bounded.
+// because every loop in Nerd Genie is bounded.
 func TestATaskThatWillNotProveItsDoneListIsGivenUpOn(t *testing.T) {
 	steps := []testkit.Step{
 		callStep("I will read the notes.",

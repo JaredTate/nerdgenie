@@ -1,13 +1,13 @@
 # The Tater Benchmark — what we tested, how, and what it means
 
-This document explains, in plain words, the test we ran to see how Coeus stacks
+This document explains, in plain words, the test we ran to see how Nerd Genie stacks
 up against three other coding agents. It is written so anyone can read it, follow
 it, and judge whether the comparison is fair. Where a number here could mislead,
 the document says so out loud.
 
 ## The question
 
-Coeus is built around one idea: instead of re-reading its whole conversation
+Nerd Genie is built around one idea: instead of re-reading its whole conversation
 every turn, it keeps a short written record shaped like an Army operations order
 and works from that. The claim is that this keeps the model's context small and
 steady, so the agent does not spiral, and the cost per finished task stays
@@ -16,12 +16,12 @@ bounded.
 The Tater benchmark is meant to test that claim honestly, against the agents a
 person might otherwise use:
 
-- **opencode** — the harness we liked best before Coeus. No task record; it
+- **opencode** — the harness we liked best before Nerd Genie. No task record; it
   re-feeds the growing conversation each turn.
 - **Hermes** — a harness with loop guards and a turn limit, also no operations-
   order record.
 - **OpenClaw** — a harness with a code-mode for local models.
-- **Coeus** — ours.
+- **Nerd Genie** — ours.
 
 ## The task
 
@@ -54,7 +54,7 @@ result we read off:
   log. When two harnesses run at once, each is alone on its own card.
 - **A fresh, empty start, for every harness.** Every run gets a new empty work
   folder and a brand-new home folder for the harness: a fresh `COEUS_HOME` for
-  Coeus, fresh `XDG_*` folders and config for opencode, a fresh `HERMES_HOME`
+  Nerd Genie, fresh `XDG_*` folders and config for opencode, a fresh `HERMES_HOME`
   outside `~/.hermes` for Hermes, and a fresh `OPENCLAW_HOME` and config for
   OpenClaw. No memory files, no past sessions, no skills learned earlier, no
   instruction files in or above the work folder. The first Qwen runs did not do
@@ -62,7 +62,7 @@ result we read off:
   memory, skills, past sessions and persona), so those numbers are indicative
   only and every harness is rerun.
 - **The thinking setting.** On Opus every harness runs at effort `medium`. On
-  Qwen thinking is off at the daemon for everyone (above). Coeus has a `/think`
+  Qwen thinking is off at the daemon for everyone (above). Nerd Genie has a `/think`
   command and a `think` setting per model for this.
 - **The judge.** Our own checker (`scripts/bench/check-tater.mjs`) decides pass
   or fail — never the agent's own tests. It checks the game logic six ways (a win
@@ -108,14 +108,14 @@ model.
 The same four harnesses are also run on Opus 4.8, and this time all four are
 real runs, not projections. There are no API keys on this machine and none are
 wanted, so Opus is reached the way a person on a Claude subscription reaches it:
-through the `claude` program, one `claude -p` call per model call. Coeus has a
+through the `claude` program, one `claude -p` call per model call. Nerd Genie has a
 provider that does exactly this. The other three harnesses only speak the
 OpenAI-style HTTP API, so a small local program called the bridge
 (`scripts/bench/bridge/`) accepts their HTTP request and makes one `claude -p`
-call with the identical command line. Every harness, Coeus included, goes
+call with the identical command line. Every harness, Nerd Genie included, goes
 through the bridge for the main run, so the model, its settings, the way tools
 are described, and the way tokens are counted are the same for all four. One
-extra Coeus run uses its own provider directly, as a cross-check that the bridge
+extra Nerd Genie run uses its own provider directly, as a cross-check that the bridge
 changes nothing.
 
 What is pinned on every call, and verified with real calls before the runs:
@@ -127,7 +127,7 @@ What is pinned on every call, and verified with real calls before the runs:
   scratch folder holding nothing but that call's system prompt, so no CLAUDE.md,
   memory, or project settings can reach the prompt.
 - Tool calls are written in one text form (`<tool_call>{...}</tool_call>`),
-  because `claude -p` has no tool interface; the bridge and Coeus use the same
+  because `claude -p` has no tool interface; the bridge and Nerd Genie use the same
   form and the same parser.
 - The program sometimes makes a tiny Haiku side call of its own (about a tenth of
   a cent). It is logged separately and left out of the Opus token columns.
@@ -148,7 +148,7 @@ phase all four harnesses run at the same time, each on its own bridge port with
 its own log. In the Qwen phase two run at a time, one per graphics card, and the
 daemon is restarted before every run so its prompt cache is cold.
 
-- **Coeus:** `coeus serve` on a fresh home, its socket driven with the task by
+- **Nerd Genie:** `coeus serve` on a fresh home, its socket driven with the task by
   `scripts/bench/drive.py`, stopped by the exact process id recorded at launch.
 - **opencode:** `opencode run` in the work folder, JSON output kept.
 - **Hermes:** `hermes chat -q` with the task, its own default limits.
@@ -176,9 +176,9 @@ not capture a harness's variance — opencode, for one, finished the same task i
 
 - **There is no cap of any kind.** The first runs had a thirty-minute cap that
   the orchestrator added and the user never asked for; it is gone, and so is
-  any cap on model calls. The user's rule is that no harness, and Coeus least
+  any cap on model calls. The user's rule is that no harness, and Nerd Genie least
   of all, is capped on any model. Each harness keeps whatever limits it ships
-  with, because those are part of the harness; Coeus's own task budget is off
+  with, because those are part of the harness; Nerd Genie's own task budget is off
   unless a user sets one, and the benchmark config sets none, so it cannot act
   as a cap either, and the result file says so.
 - **One run is not a reliable average.** Where a harness was run more than once,
@@ -188,7 +188,7 @@ not capture a harness's variance — opencode, for one, finished the same task i
 ## Where the results live
 
 - `OPUS_BENCHMARK.md`: nine runs on Opus 4.8, three per harness, through each
-  harness's own subscription path (Coeus's loop against Claude Code's).
+  harness's own subscription path (Nerd Genie's loop against Claude Code's).
 - `GPT_BENCHMARK.md`: GPT-5.6 Sol on the ChatGPT subscription, all four
   harnesses driving the model with their own loops.
 - `QWEN_BENCHMARK.md`: the local Qwen 3.8 on the two cards, all four harnesses

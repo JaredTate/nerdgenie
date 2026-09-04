@@ -144,7 +144,7 @@ func startTheLiveAgent(t *testing.T, model liveModel,
 // the result behind it. Without this line all three models write the file, say
 // they are finished, and leave the task waiting with an empty done list, because
 // a reply with nothing behind it is read as a question.
-const livePersona = "You are Coeus. You do the work with your tools and you keep the task record as you go.\n" +
+const livePersona = "You are Nerd Genie. You do the work with your tools and you keep the task record as you go.\n" +
 	"Before you answer that the work is finished, call the task tool to write the done list, " +
 	"with each line marked done and naming the id of the result that proves it, such as r1."
 

@@ -141,7 +141,7 @@ func LoadFortyStepTask() (FortyStepTask, error) {
 }
 
 // RepositoryRoot walks up from the working directory until it finds the go.mod
-// file. The walk is bounded, because every loop in Coeus is bounded.
+// file. The walk is bounded, because every loop in Nerd Genie is bounded.
 func RepositoryRoot() (string, error) {
 	here, err := os.Getwd()
 	if err != nil {

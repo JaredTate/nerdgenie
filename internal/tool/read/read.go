@@ -1,7 +1,7 @@
 // Reading a file back with one line number in front of each line, so that the
 // edit tool and the model are talking about the same lines, is OpenCode's, at
 // ~/Code/opencode/packages/opencode/src/tool/read.ts and read.txt. The Go here
-// is written fresh, and the past-result label is Coeus's own.
+// is written fresh, and the past-result label is Nerd Genie's own.
 
 package read
 

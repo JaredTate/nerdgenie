@@ -45,5 +45,5 @@ func allowedHere(pairing *Pairing, where contract.CommandContext) error {
 	if pairing.HasApproved() {
 		return nil
 	}
-	return errors.New("nobody is paired yet, so run the pairing command in the terminal on the machine Coeus runs on")
+	return errors.New("nobody is paired yet, so run the pairing command in the terminal on the machine Nerd Genie runs on")
 }

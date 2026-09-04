@@ -12,7 +12,7 @@ type Think string
 // means none of them.
 const (
 	// ThinkDefault is the empty value: nothing is said about thinking and the
-	// provider's own default stands, which is what Coeus sent before this
+	// provider's own default stands, which is what Nerd Genie sent before this
 	// setting existed.
 	ThinkDefault Think = ""
 	// ThinkOff asks the model not to think before it answers. A provider that

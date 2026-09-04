@@ -134,7 +134,7 @@ func (breaker *Breaker) Clear() error {
 // happened and what they can do about it.
 func (breaker *Breaker) message(starts int) string {
 	return fmt.Sprintf(
-		"Coeus stopped and started again %d times in %s, which means something it was doing kept killing it. "+
+		"Nerd Genie stopped and started again %d times in %s, which means something it was doing kept killing it. "+
 			"It will keep answering you, but it will start no task until %s have passed or you restart it yourself. "+
 			"The last task is still in the log, so nothing is lost.",
 		starts, RestartWindow, QuietPeriod)

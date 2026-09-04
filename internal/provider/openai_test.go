@@ -101,7 +101,7 @@ func TestTheOpenAIProviderJoinsTheSystemBlocksAndSendsNoCacheMarkers(t *testing.
 		t.Fatalf("the first message is %v, want the joined system prompt", messages[0])
 	}
 	joined, isText := first["content"].(string)
-	if !isText || !strings.Contains(joined, "You are the reasoning engine inside Coeus.\n\nYou have two tools.") {
+	if !isText || !strings.Contains(joined, "You are the reasoning engine inside Nerd Genie.\n\nYou have two tools.") {
 		t.Errorf("the system blocks were not joined with blank lines between them: %q", first["content"])
 	}
 	for _, forbidden := range []string{"cache_control", "temperature", "top_p", "top_k"} {

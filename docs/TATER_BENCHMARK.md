@@ -26,10 +26,10 @@ harness is, and the quality of what it actually builds.
   moment the tests pass. The same file was handed to every harness, verified by
   its sha before each run.
 - **The starting point.** Every run began in a new, empty, `git init`-ed folder
-  `~/work/bench/tater/<harness>-<run>/`. For Coeus, a fresh home was made with
+  `~/work/bench/tater/<harness>-<run>/`. For Nerd Genie, a fresh home was made with
   `coeus init --yes`, its model left as the local one, its sandbox left off, and
   its work folder set as the only sandbox root. To keep it apples-to-apples with
-  the others — which only know the local daemon — Coeus's cloud fallback chain
+  the others — which only know the local daemon — Nerd Genie's cloud fallback chain
   was emptied, so a stumble on the local model could not silently borrow a cloud
   subscription.
 - **The judge.** One checker, `scripts/bench/check-tater.mjs`, written for this
@@ -60,10 +60,10 @@ length at the end of every call (`stop processing: n_tokens = N`); the full
 prompt that call was sent is that minus what the call generated, and summed over
 the calls this is the **total input tokens**. The **total output tokens** are the
 generated tokens. This reconstruction is from the one shared daemon log, the same
-for all four local harnesses. It was cross-checked against Coeus's own token
+for all four local harnesses. It was cross-checked against Nerd Genie's own token
 accounting, which agreed to within 7 tokens on 1.15M (0.0006%). For the extra
 Opus 4.8 run, which does not touch the daemon, the same two totals are read from
-Coeus's own accounting instead, and the document says so at that row.
+Nerd Genie's own accounting instead, and the document says so at that row.
 
 **Quality** is judged by `check-tater.mjs` on three axes:
 
@@ -92,7 +92,7 @@ setsid ~/llm/igo.sh Vulkan1 19091 262144 mtp > ~/llm/logs/19091.log 2>&1 < /dev/
 # Each harness, on a fresh ~/work/bench/tater/<harness>-<run>/ folder, launched
 # with setsid under a hard 30-minute cap (see scripts/bench/tater_run.sh):
 
-# Coeus — fresh home, sandbox off, work folder as the sole sandbox root, driven
+# Nerd Genie — fresh home, sandbox off, work folder as the sole sandbox root, driven
 # over its socket by scripts/bench/drive.py (which stands in for a person):
 COEUS_HOME=<home> coeus init --yes
 #   config.toml: sandbox_roots = ["<work>"], fallback_chain = []
@@ -124,7 +124,7 @@ harness re-sends. "Largest prefill" is the single biggest such read.
 
 | harness | card | run | wall (s) | model calls | prompt tokens read | avg/call | largest prefill | generated tokens |
 |---|---|---|---|---|---|---|---|---|
-| Coeus | A | 1 | 830 | 62 | 239,040 | 3,855 | 20,804 | 9,568 |
+| Nerd Genie | A | 1 | 830 | 62 | 239,040 | 3,855 | 20,804 | 9,568 |
 | opencode | A | 1 | 1800 (capped) | 517 | 128,090 | 248 | 7,726 | 42,655 |
 | opencode | B | 2 | 98 | 29 | 9,726 | 335 | 7,726 | 4,982 |
 | Hermes | B | 1 | 1573 (250-turn limit) | 252 | 122,594 | 486 | 81,756 | 59,008 |
@@ -135,15 +135,15 @@ identical prompt one run **spiralled to the 30-minute cap** (517 calls, never
 finished) and the other **finished clean in 98 seconds** (29 calls). That is not
 a measurement wrinkle to be averaged away — opencode is **high-variance** without a
 task record to keep it on track. A two-run median (949 s, 273 calls) is shown
-where a single figure is needed, but the spread is the real result. Coeus, Hermes,
-and OpenClaw were single runs (Coeus and Hermes each ran well over ten minutes;
+where a single figure is needed, but the spread is the real result. Nerd Genie, Hermes,
+and OpenClaw were single runs (Nerd Genie and Hermes each ran well over ten minutes;
 OpenClaw did not produce anything — see below).
 
 ## Quality
 
 | harness | correct (/6) | plays (/4) | tests written | tests passing | game.js lines | quality (/6) |
 |---|---|---|---|---|---|---|
-| Coeus | 6 | 4 | 6 | 6 | 38 | 6 |
+| Nerd Genie | 6 | 4 | 6 | 6 | 38 | 6 |
 | opencode (run 1) | 6 | 4 | 6 | 5 | 32 | 6 |
 | opencode (run 2) | 6 | 4 | 6 | 6 | 33 | 6 |
 | Hermes | 6 | 4 | 6 | 4 | 27 | 6 |
@@ -177,27 +177,27 @@ Two ways, per run:
 
 These are tiny tasks, so the absolute cents are small and not the point — **the
 interesting figure is the ratio between harnesses**: how much more one harness
-would cost than another to do the identical job. Coeus's few-but-larger calls
+would cost than another to do the identical job. Nerd Genie's few-but-larger calls
 against opencode's, Hermes's, and OpenClaw's many-smaller-calls show up here, and
 it is reported honestly whichever way it falls.
 
 For opencode, Hermes, and OpenClaw there is no way to run them on Opus here (they
 are wired to the local endpoint and there is no API key), so their Opus figures
-are **the priced projection only**. Only Coeus was actually run on Opus 4.8.
+are **the priced projection only**. Only Nerd Genie was actually run on Opus 4.8.
 
 Input is split as cached / uncached (first-read); "uncached" is the daemon's
 "prompt tokens read".
 
 | harness | total input (cached / uncached) | total output | $ no caching | $ with caching |
 |---|---|---|---|---|
-| Coeus (local Qwen) | 1,154,460 (915,420 / 239,040) | 9,568 | $6.01 | $1.89 |
+| Nerd Genie (local Qwen) | 1,154,460 (915,420 / 239,040) | 9,568 | $6.01 | $1.89 |
 | opencode run 1 (local Qwen) | 45,938,392 (45,810,302 / 128,090) | 42,655 | $230.76 | $24.61 |
 | opencode run 2 (local Qwen) | 303,094 (293,368 / 9,726) | 4,982 | $1.64 | $0.32 |
 | Hermes (local Qwen) | 15,198,571 (15,075,977 / 122,594) | 59,008 | $77.47 | $9.63 |
 | OpenClaw (local Qwen) | | | | |
-| Coeus on real Opus 4.8 (actual bill) | 44,442 | 9,564 | $0.46 (naive) | **$0.71 (measured)** |
+| Nerd Genie on real Opus 4.8 (actual bill) | 44,442 | 9,564 | $0.46 (naive) | **$0.71 (measured)** |
 
-The Opus 4.8 row is the one **actual** charge, not a projection: Coeus's own token
+The Opus 4.8 row is the one **actual** charge, not a projection: Nerd Genie's own token
 accounting reports total input 44,442, total output 9,564, and a cost of **$0.71**.
 A naive input+output figure at list rates is `44,442 × $5/M + 9,564 × $25/M =
 $0.46`; the measured bill is higher because on a task this short the prompt-cache
@@ -205,21 +205,21 @@ $0.46`; the measured bill is higher because on a task this short the prompt-cach
 cache reads to pay for itself. So $0.71 is the honest measured number and $0.46 is
 what a no-cache back-of-envelope would say.
 
-## Coeus: the same harness on local Qwen versus real Opus 4.8
+## Nerd Genie: the same harness on local Qwen versus real Opus 4.8
 
 The most useful control in this benchmark is running **the same harness** on two
 different models on the same task. The Opus 4.8 run was done with `claude -p` on
 the user's subscription (no graphics card, so it did not touch the local card
 runs), in an isolated fresh home with an empty record.
 
-| Coeus on | model calls | total input | total output | wall | finished green? | game.js | cost |
+| Nerd Genie on | model calls | total input | total output | wall | finished green? | game.js | cost |
 |---|---|---|---|---|---|---|---|
 | local Qwen 3.8 (card A) | 62 | 1,154,460 | 9,568 | 13.8 min | yes (6/6, plays) | 38 lines | free locally; $1.89–$6.01 projected at Opus rates |
 | real Opus 4.8 (`claude -p`) | 5 | 44,442 | 9,564 | 3.0 min | yes (6/6, plays) | 27 lines | **$0.71 actual** |
 
 Same harness, same task, both finished green. The strong model just needs far
 fewer rounds: **5 calls against 62**, **44K input tokens against 1.15M**, and
-**3 minutes against 13.8** — and it costs 71 cents. This is the point of Coeus's
+**3 minutes against 13.8** — and it costs 71 cents. This is the point of Nerd Genie's
 model-agnostic design: the *same* operations-order record carried a tiny local
 model to a correct answer slowly and for free, and a frontier model to the same
 answer quickly for pennies, with no change to the harness.
@@ -230,9 +230,9 @@ Each image is the finished game as the checker drove it: after clicking a real
 X-winning sequence in headless Chrome, the status line reads "X wins!". These are
 the four harnesses' own pages, unretouched.
 
-Coeus (local Qwen) — finished green, tests 6/6:
+Nerd Genie (local Qwen) — finished green, tests 6/6:
 
-![Coeus finished game](bench/coeus-1.png)
+![Nerd Genie finished game](bench/nerdgenie-1.png)
 
 opencode run 2 (local Qwen) — the 98-second clean finish:
 
@@ -255,7 +255,7 @@ Same model, same task, same fresh start, same judge, two identical cards. Here i
 how the four harnesses actually stacked up, told straight.
 
 **What everyone that produced a page got right.** Every harness that produced a
-game — Coeus, both opencode runs, and Hermes — produced a *correct* one: 6/6 on
+game — Nerd Genie, both opencode runs, and Hermes — produced a *correct* one: 6/6 on
 the game-logic checks and 4/4 on actually playing in a real browser (nine cells, X
 announced on a real winning line, New game resets, a taken cell is a no-op), and
 6/6 on the small quality rubric. On the narrow question "is the delivered game
@@ -267,43 +267,43 @@ hit its cap empty. (Its default tool mode could not even start: the daemon rejec
 its tool-calling grammar.)
 
 **The real quality differentiator is finishing with your own tests green.** The
-task said to write six tests and make `node --test` pass. Only **Coeus (6/6, one
+task said to write six tests and make `node --test` pass. Only **Nerd Genie (6/6, one
 run)** and **opencode's fast run (6/6)** actually got there. opencode's other run
 was left at **5/6** when it hit the 30-minute cap, and **Hermes at 4/6** when it
 hit its turn limit. Both of those produced a working game but never satisfied the
 task's own done-condition — they got stuck fixing the fiddly draw / illegal-move
-test sequences and ran out of budget. Coeus is the only harness that finished its
+test sequences and ran out of budget. Nerd Genie is the only harness that finished its
 one and only run with everything green.
 
-**Where Coeus clearly wins: bounded cost and steadiness, because of the record.**
-Coeus keeps an operations-order task record instead of re-reading the whole
+**Where Nerd Genie clearly wins: bounded cost and steadiness, because of the record.**
+Nerd Genie keeps an operations-order task record instead of re-reading the whole
 conversation each turn, and the numbers show it: its context never exceeded 28K
 tokens and it finished in 62 calls. The stateless harnesses carry the whole
 growing transcript, so their context ballooned — opencode's bad run to 170K,
-Hermes to 97K — and their total input tokens with it: **Coeus 1.15M** against
+Hermes to 97K — and their total input tokens with it: **Nerd Genie 1.15M** against
 **Hermes 15.2M** and **opencode's bad run 45.9M**. Priced at Opus 4.8 rates that
-is **Coeus $1.89–$6.01** against **Hermes $9.63–$77.47** and **opencode $0.32–$1.64
-on a good run but $24.61–$230.76 on a bad one**. Per *completed* job, Coeus is the
+is **Nerd Genie $1.89–$6.01** against **Hermes $9.63–$77.47** and **opencode $0.32–$1.64
+on a good run but $24.61–$230.76 on a bad one**. Per *completed* job, Nerd Genie is the
 cheapest by a wide margin, and — the more important half — it is *predictable*.
 
-**Where Coeus loses, honestly.** Coeus is **not the fastest**. opencode's clean run
-finished the identical task in **98 seconds and 29 calls**; Coeus took **13.8
-minutes and 62 calls**. When a stateless harness does not spiral, it can beat Coeus
-on raw wall-clock for a task this small, because Coeus's bounded-but-real per-call
+**Where Nerd Genie loses, honestly.** Nerd Genie is **not the fastest**. opencode's clean run
+finished the identical task in **98 seconds and 29 calls**; Nerd Genie took **13.8
+minutes and 62 calls**. When a stateless harness does not spiral, it can beat Nerd Genie
+on raw wall-clock for a task this small, because Nerd Genie's bounded-but-real per-call
 context and its careful step-by-step record cost some overhead per turn, and
-because the small local model made Coeus grind many rounds getting its own test
-sequences right. Coeus trades peak speed for consistency: its worst case and its
+because the small local model made Nerd Genie grind many rounds getting its own test
+sequences right. Nerd Genie trades peak speed for consistency: its worst case and its
 best case are close together, where opencode's are 98 seconds and 30 minutes apart.
-If you get lucky with a stateless harness you finish faster; Coeus is the one you
+If you get lucky with a stateless harness you finish faster; Nerd Genie is the one you
 would bet on to finish *at all*, cheaply, every time.
 
 **opencode's headline is variance, not a flat multiple.** Do not read "opencode is
-40× Coeus" — read "opencode is unpredictable". On the same prompt it went from a
+40× Nerd Genie" — read "opencode is unpredictable". On the same prompt it went from a
 98-second, $0.32 clean finish to a 30-minute, $24.61 capped failure. The task
 record is what removes that variance; without one, opencode is a coin flip between
-Coeus-class and runaway.
+Nerd Genie-class and runaway.
 
-**The model-agnostic bonus.** The same Coeus harness, unchanged, ran the identical
+**The model-agnostic bonus.** The same Nerd Genie harness, unchanged, ran the identical
 task on real Opus 4.8 (`claude -p`, no GPU) and finished in **~17 calls, 44K input
 tokens, 3 minutes, for an actual $0.71** — all tests green. Same record, same code:
 a tiny local model solved it slowly and for free, a frontier model solved it
@@ -312,9 +312,9 @@ quickly for pennies. That portability is the point of the design.
 **Bottom line.** If the question is "which harness builds the most correct game",
 it is a tie among everything that finished — the model is what matters there. If
 the question is "which harness *reliably finishes the whole task, cheaply, on any
-model*", Coeus wins this benchmark: it was the only one to finish its single run
+model*", Nerd Genie wins this benchmark: it was the only one to finish its single run
 with all its own tests green, it did so with the smallest and most bounded token
 footprint by far, and it repeated the feat on a frontier model without a line of
 change. Its honest weakness is that it is not the quickest when a simpler harness
-happens to have a good run — Coeus buys consistency and bounded cost, not the
+happens to have a good run — Nerd Genie buys consistency and bounded cost, not the
 lowest possible wall-clock on an easy day.

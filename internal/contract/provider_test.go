@@ -70,7 +70,7 @@ func TestACommandLineAliasNamesAProgramAndNeedsNoAddressOrKey(t *testing.T) {
 
 // TestACodexAliasNeedsNoAddressNoProgramAndNoKey pins the fourth provider kind:
 // OpenAI's Codex backend on the ChatGPT subscription, reached with the login the
-// codex program keeps. It has one backend, so there is no address to write; Coeus
+// codex program keeps. It has one backend, so there is no address to write; Nerd Genie
 // drives it with its own loop, so there is no program to run; and the login is
 // the subscription's, so there is no key.
 func TestACodexAliasNeedsNoAddressNoProgramAndNoKey(t *testing.T) {

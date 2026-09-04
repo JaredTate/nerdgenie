@@ -343,7 +343,7 @@ func TestAMigrationRunOnADatabaseFromANewerNerdGenieIsRefused(t *testing.T) {
 	})
 
 	if err == nil {
-		t.Fatalf("a database from a newer Coeus was migrated backwards")
+		t.Fatalf("a database from a newer Nerd Genie was migrated backwards")
 	}
 	if !strings.Contains(err.Error(), "0.9.0") {
 		t.Errorf("the refusal does not name the version to use: %v", err)

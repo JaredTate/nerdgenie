@@ -51,7 +51,7 @@ var _ contract.Memory = (*Memory)(nil)
 // folders when they are not there, creates its own tables in the one SQLite
 // file, and brings the index up to date once, inside its per-run cap. The event
 // log must already have been opened on the same file, because internal/log owns
-// that file's identity, and opening a database that is not a Coeus event log is
+// that file's identity, and opening a database that is not a Nerd Genie event log is
 // refused with an error saying so.
 func Open(ctx context.Context, home contract.Home, eventLog contract.Store, clock contract.Clock, caps contract.MemoryCaps) (*Memory, error) {
 	if eventLog == nil {
@@ -125,9 +125,9 @@ func (memory *Memory) checkTheEventLogIsThere(ctx context.Context) error {
 		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'events'")
 	switch err := row.Scan(&name); {
 	case errors.Is(err, sql.ErrNoRows):
-		return fmt.Errorf("the file %s is not a Coeus event log yet, so open internal/log on it before the memory", memory.home.DatabaseFile())
+		return fmt.Errorf("the file %s is not a Nerd Genie event log yet, so open internal/log on it before the memory", memory.home.DatabaseFile())
 	case err != nil:
-		return fmt.Errorf("cannot read the tables in %s to check that it is a Coeus event log: %w", memory.home.DatabaseFile(), err)
+		return fmt.Errorf("cannot read the tables in %s to check that it is a Nerd Genie event log: %w", memory.home.DatabaseFile(), err)
 	default:
 		return nil
 	}

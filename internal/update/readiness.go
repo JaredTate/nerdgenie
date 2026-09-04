@@ -42,7 +42,7 @@ const (
 //
 // Any reply counts as an answer. The words in it are not compared, because what
 // readiness means is that a message went in through the socket, through the
-// queue, and came back out through the router, and a version of Coeus that says
+// queue, and came back out through the router, and a version of Nerd Genie that says
 // it differently is still a version that is up.
 func askIfReady(ctx context.Context, home contract.Home) error {
 	dialer := net.Dialer{Timeout: dialWait}

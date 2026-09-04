@@ -28,7 +28,7 @@ import (
 )
 
 // migrationsTable holds one row per migration that has been applied, with the
-// version of Coeus that applied it, which is what lets an older binary meeting a
+// version of Nerd Genie that applied it, which is what lets an older binary meeting a
 // newer database name the version to go back to.
 const migrationsTable = "schema_migrations"
 
@@ -81,7 +81,7 @@ type MigrateSettings struct {
 	// BackupFolder is where that backup goes, and is the home's backups folder
 	// when it is empty.
 	BackupFolder string
-	// Version is the version of Coeus running the migrations, which is written
+	// Version is the version of Nerd Genie running the migrations, which is written
 	// down beside each one.
 	Version string
 	// StopTheAgent brings the running agent down, and is the service manager's
@@ -237,7 +237,7 @@ func bringTheAgentDown(ctx context.Context, settings MigrateSettings) error {
 	if askIfReady(ctx, settings.Home) != nil {
 		return nil
 	}
-	byHand := fmt.Sprintf("stop Coeus with \"systemctl --user stop %s\" and put the backup back with \"nerdgenie restore\"",
+	byHand := fmt.Sprintf("stop Nerd Genie with \"systemctl --user stop %s\" and put the backup back with \"nerdgenie restore\"",
 		command.ServiceName)
 	if refused != nil {
 		return fmt.Errorf("the agent is still answering on %s after the service manager refused to stop it, so it still has the database open; %s: %w",

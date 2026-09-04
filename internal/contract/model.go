@@ -28,7 +28,7 @@ const (
 	// ProviderCodex is OpenAI's Codex backend on the user's ChatGPT
 	// subscription, reached with the login the codex program keeps on this
 	// machine, so there is no API key. Unlike ProviderCommandLine, only the
-	// login is borrowed: Coeus's own loop drives the model, the backend is
+	// login is borrowed: Nerd Genie's own loop drives the model, the backend is
 	// fixed, so an alias names neither an address nor a program.
 	ProviderCodex ProviderKind = "codex"
 )

@@ -66,7 +66,7 @@ func TestTheCodexProviderSendsTheSystemPromptAsInstructionsAndTheConversationAsI
 		t.Errorf("the request names the model %v, want gpt-5.6-sol", body["model"])
 	}
 	instructions, isText := body["instructions"].(string)
-	if !isText || !strings.Contains(instructions, "You are the reasoning engine inside Coeus.\n\nYou have two tools.") {
+	if !isText || !strings.Contains(instructions, "You are the reasoning engine inside Nerd Genie.\n\nYou have two tools.") {
 		t.Errorf("the system blocks were not joined into the instructions with blank lines between them: %v", body["instructions"])
 	}
 	if body["store"] != false {

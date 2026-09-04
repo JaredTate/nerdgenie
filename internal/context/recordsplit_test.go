@@ -146,7 +146,7 @@ func TestARecordThatHasNotBeenMadeYetSplitsIntoNothing(t *testing.T) {
 }
 
 // sampleRecord is the task record of design section 4, which is the shape every
-// part of Coeus reads and writes.
+// part of Nerd Genie reads and writes.
 func sampleRecord() contract.Record {
 	return contract.Record{
 		Header: contract.Header{

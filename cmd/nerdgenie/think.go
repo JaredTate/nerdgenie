@@ -76,7 +76,7 @@ func (running *agent) useTheThinkLevel(level contract.Think) (string, error) {
 		return "", err
 	}
 	running.rememberTheThinkLevel(name, level)
-	return fmt.Sprintf("%s thinks at %s from now on, and goes back to what config.toml says when Coeus starts again.",
+	return fmt.Sprintf("%s thinks at %s from now on, and goes back to what config.toml says when Nerd Genie starts again.",
 		name, thinkLevelInWords(level)), nil
 }
 

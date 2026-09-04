@@ -109,7 +109,7 @@ func matchChecksum(name string, wanted string, found string) error {
 func putReleaseInPlace(home contract.Home, version string, staging string) (string, error) {
 	unpacked := filepath.Join(staging, BinaryName)
 	if _, err := os.Stat(unpacked); err != nil {
-		return "", fmt.Errorf("the release archive holds no %s program, so it is not a Coeus release and nothing was installed", BinaryName)
+		return "", fmt.Errorf("the release archive holds no %s program, so it is not a Nerd Genie release and nothing was installed", BinaryName)
 	}
 	if err := os.Chmod(unpacked, 0o755); err != nil {
 		return "", fmt.Errorf("the new program %s could not be made runnable: %w", unpacked, err)
@@ -155,7 +155,7 @@ func unpackArchive(path string, into string) error {
 			return err
 		}
 	}
-	return fmt.Errorf("the release archive holds more than %d files, so it is not a release Coeus can install", archiveEntryCap)
+	return fmt.Errorf("the release archive holds more than %d files, so it is not a release Nerd Genie can install", archiveEntryCap)
 }
 
 // unpackEntry writes one entry of the archive and returns how much has been
@@ -173,7 +173,7 @@ func unpackEntry(archive *tar.Reader, header *tar.Header, into string, written i
 		return written, nil
 	case tar.TypeReg:
 		if written+header.Size > unpackedByteCap {
-			return written, fmt.Errorf("the release archive unpacks to more than the %d byte limit, so it is not a release Coeus can install", unpackedByteCap)
+			return written, fmt.Errorf("the release archive unpacks to more than the %d byte limit, so it is not a release Nerd Genie can install", unpackedByteCap)
 		}
 		if err := writeUnpackedFile(archive, path, header); err != nil {
 			return written, err

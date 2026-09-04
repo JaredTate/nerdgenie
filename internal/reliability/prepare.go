@@ -129,11 +129,11 @@ func theRecoveryMessage(found recovery) string {
 		return ""
 	case found.CouldNotRestore != "":
 		return fmt.Sprintf(
-			"Coeus found its database damaged (%s) and moved it to %s. It could not put a backup back (%s), so it is starting with an empty one. Everything it was doing is in the file it moved aside.",
+			"Nerd Genie found its database damaged (%s) and moved it to %s. It could not put a backup back (%s), so it is starting with an empty one. Everything it was doing is in the file it moved aside.",
 			found.WhatWasWrong, found.DatabaseMovedTo, found.CouldNotRestore)
 	default:
 		return fmt.Sprintf(
-			"Coeus found its database damaged (%s), moved it to %s, and put back the backup %s. Anything it learned after that backup is only in the file it moved aside.",
+			"Nerd Genie found its database damaged (%s), moved it to %s, and put back the backup %s. Anything it learned after that backup is only in the file it moved aside.",
 			found.WhatWasWrong, found.DatabaseMovedTo, found.RestoredFrom)
 	}
 }

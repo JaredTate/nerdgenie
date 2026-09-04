@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Qwen round 2: all four harnesses on the daemons already loaded (no restart,
 # the same for everyone), two cards, one harness per card, opencode and Hermes
-# in the setup the user's notes prescribe. Card A: Coeus then opencode. Card B:
+# in the setup the user's notes prescribe. Card A: Nerd Genie then opencode. Card B:
 # Hermes then OpenClaw, starting when the card is free. Each launch records the
 # daemon's cache state first. Nothing is killed by name.
 set -u

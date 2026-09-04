@@ -279,7 +279,7 @@ func clearStaleSocket(path string) error {
 	answering, err := net.DialTimeout("unix", path, time.Second)
 	if err == nil {
 		_ = answering.Close()
-		return fmt.Errorf("another copy of Coeus is already listening on the socket at %s, so stop that one before starting this one", path)
+		return fmt.Errorf("another copy of Nerd Genie is already listening on the socket at %s, so stop that one before starting this one", path)
 	}
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("cannot clear the socket file at %s that an earlier run left behind: %w", path, err)

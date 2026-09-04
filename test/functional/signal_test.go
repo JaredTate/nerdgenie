@@ -2,7 +2,7 @@
 // configuration, the agent starts Signal, "/pair" works on the channel's own
 // codes, and a paired sender's message reaches the model and is answered back
 // over Signal. Finding 62 of the wave 6 gate found signal.NewChannel with no
-// caller at all, so half of what Coeus is did not exist.
+// caller at all, so half of what Nerd Genie is did not exist.
 package functional
 
 import (

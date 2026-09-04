@@ -35,7 +35,7 @@ func NewWatchdog(clock contract.Clock) (*Watchdog, error) {
 	}, nil
 }
 
-// Interval is how long the service manager waits to hear from Coeus, and is
+// Interval is how long the service manager waits to hear from Nerd Genie, and is
 // zero when there is no watchdog.
 func (watchdog *Watchdog) Interval() time.Duration { return watchdog.interval }
 
@@ -44,7 +44,7 @@ func (watchdog *Watchdog) Interval() time.Duration { return watchdog.interval }
 // service started.
 func (watchdog *Watchdog) Ready() error {
 	if _, err := watchdog.notify(daemon.SdNotifyReady); err != nil {
-		return fmt.Errorf("the service manager could not be told that Coeus is ready, so check the NOTIFY_SOCKET the unit passes: %w", err)
+		return fmt.Errorf("the service manager could not be told that Nerd Genie is ready, so check the NOTIFY_SOCKET the unit passes: %w", err)
 	}
 	return nil
 }
@@ -69,7 +69,7 @@ func (watchdog *Watchdog) Feed(ctx context.Context) error {
 			return nil
 		case <-ticker.Ticks():
 			if _, err := watchdog.notify(daemon.SdNotifyWatchdog); err != nil {
-				return fmt.Errorf("the service manager could not be told that Coeus is alive, so it will start the program again: %w", err)
+				return fmt.Errorf("the service manager could not be told that Nerd Genie is alive, so it will start the program again: %w", err)
 			}
 		}
 	}

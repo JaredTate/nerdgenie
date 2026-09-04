@@ -101,7 +101,7 @@ func (screen *Screen) countTheCallAgain(line string) bool {
 
 // toolLineSeparator is what the program writes between a call and what came back
 // of it, which is internal/loop's ToolLineSeparator spelled here because the
-// screen imports nothing of Coeus but the contract and the clock.
+// screen imports nothing of Nerd Genie but the contract and the clock.
 const toolLineSeparator = " · "
 
 // callOf is the part of a tool line that names the call: the tool and its main

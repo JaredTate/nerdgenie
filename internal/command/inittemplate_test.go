@@ -129,7 +129,7 @@ func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing
 // TestTheShippedConfigurationCarriesACommentedOutCodexExampleAfterTheCodexBlock
 // pins the one example block "nerdgenie init" writes for a model it does not set up
 // itself: OpenAI's Codex backend on the ChatGPT subscription, reached with the
-// login the codex program keeps, so that Coeus's own loop drives the model. Every
+// login the codex program keeps, so that Nerd Genie's own loop drives the model. Every
 // line of it is a comment, so the file loads exactly as it did without it, and
 // a person turns it on by uncommenting it. It sits after the codex program's
 // own block, so that the two ways of reaching the same subscription are read

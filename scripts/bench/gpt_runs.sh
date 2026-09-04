@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One clean round of all four harnesses on GPT-5.6 Sol at thinking medium, on
 # the user's ChatGPT/Codex subscription, no API key, each harness driving the
-# model with its own loop: Coeus through its "codex" provider, which borrows
+# model with its own loop: Nerd Genie through its "codex" provider, which borrows
 # the codex program's login and drives the model itself, opencode
 # through its ChatGPT login, Hermes and OpenClaw through the codex login, OpenClaw pinned to its own
 # loop rather than its codex runtime. One
@@ -30,7 +30,7 @@ fresh_work() { # $1 = run folder
 run_nerdgenie() {
   R="$BASE/nerdgenie-$1"; fresh_work "$R"; H="$R/home"
   NERDGENIE_HOME="$H" bin/nerdgenie init --yes >/dev/null 2>&1 || { echo "init failed"; return 1; }
-  # The model is reached through Coeus's "codex" provider: a fresh, uncommented
+  # The model is reached through Nerd Genie's "codex" provider: a fresh, uncommented
   # [[models]] block named "gpt" is appended, whatever the init template wrote
   # (its own codex example is commented out), and made the default.
   python3 - "$H/config.toml" "$R/work" "$MODEL" <<'PY'

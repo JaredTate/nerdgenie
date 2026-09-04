@@ -2,7 +2,7 @@
 // is the design of Hermes' memory entries at
 // ~/Code/hermes-agent/tools/memory_tool.py, written fresh in Go. Hermes joins
 // its entries with a separator character and lets an entry run over many lines;
-// Coeus keeps one fact to one line, so that a person reading MEMORY.md in a
+// Nerd Genie keeps one fact to one line, so that a person reading MEMORY.md in a
 // terminal sees one fact per row and so that a file can be read back a line at
 // a time without a parser that can lose its place.
 

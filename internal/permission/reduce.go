@@ -1,7 +1,7 @@
 // The readable form of a command is the design OpenCode calls its arity table,
 // at ~/Code/opencode/packages/opencode/src/permission/arity.ts: a command line is
 // worth reading only once the arguments that change every time are gone. The
-// table below is written fresh for Coeus and holds only the programs Coeus rules
+// table below is written fresh for Nerd Genie and holds only the programs Nerd Genie rules
 // on, plus the two git subcommands whose flags decide whether anything is
 // destroyed.
 

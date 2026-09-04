@@ -2,7 +2,7 @@
 // Hermes' session search at ~/Code/hermes-agent/tools/session_search_tool.py,
 // written fresh in Go: one full-text search table in the same SQLite file the
 // rest of the state lives in, ranked by the search table's own relevance
-// measure, with no model call anywhere in it. What Coeus adds is that the facts
+// measure, with no model call anywhere in it. What Nerd Genie adds is that the facts
 // and the notes ride in the same table as the messages, so that one search
 // covers everything the agent knows.
 

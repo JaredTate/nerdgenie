@@ -14,14 +14,14 @@ import (
 
 // The desktop worker drives this machine's screen through a native library that
 // reads the accessibility tree, and on this machine one run of it turned GNOME's
-// screen reader on and Orca began reading the screen aloud. Nothing in Coeus
-// writes that setting, so the guard cannot be a check of Coeus's own code: it
+// screen reader on and Orca began reading the screen aloud. Nothing in Nerd Genie
+// writes that setting, so the guard cannot be a check of Nerd Genie's own code: it
 // has to be a check of the machine, taken before and after this package's tests
 // run. TestMain is where that fits, because it is the one place that wraps every
 // test in the package, the tagged ones included.
 
 // screenReaderSettings are the two desktop settings that turn the accessibility
-// bus and the screen reader on. Coeus must leave both exactly as it found them.
+// bus and the screen reader on. Nerd Genie must leave both exactly as it found them.
 var screenReaderSettings = [][2]string{
 	{"org.gnome.desktop.a11y.applications", "screen-reader-enabled"},
 	{"org.gnome.desktop.interface", "toolkit-accessibility"},

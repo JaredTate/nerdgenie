@@ -12,8 +12,8 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
-// initSubcommand sets Coeus up on a machine that has never run it: the home
-// folder, the folder Coeus may work in, the model, and the API key when the
+// initSubcommand sets Nerd Genie up on a machine that has never run it: the home
+// folder, the folder Nerd Genie may work in, the model, and the API key when the
 // model needs one. It asks at most six questions and takes every one of them as
 // a flag instead, so a container can run it with no keyboard.
 //
@@ -24,7 +24,7 @@ import (
 // The orchestrator adds this value to the table in main.go.
 var initSubcommand = subcommand{
 	name: "init",
-	help: "Sets Coeus up on this machine: the home folder, the folders it may work in, and the model.",
+	help: "Sets Nerd Genie up on this machine: the home folder, the folders it may work in, and the model.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		home, err := config.HomeFolder()
 		if err != nil {

@@ -71,7 +71,7 @@ func newContextTurn(t *testing.T) *contextTurn {
 		t.Fatalf("cannot load the forty-step fixture: %v", err)
 	}
 	home := testkit.NewTempHome(t)
-	if err := os.WriteFile(home.SoulFile(), []byte("You are Coeus."), contract.DataFileMode); err != nil {
+	if err := os.WriteFile(home.SoulFile(), []byte("You are Nerd Genie."), contract.DataFileMode); err != nil {
 		t.Fatalf("cannot write SOUL.md: %v", err)
 	}
 	keeper, err := record.New(t.Context(), testkit.NewFakeStore(), record.Start{

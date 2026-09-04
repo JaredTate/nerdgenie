@@ -13,7 +13,7 @@ import (
 // Every one of them has to come back either as a configuration that obeys the
 // rules or as an error saying what is wrong, and never as a panic, because the
 // configuration file is the first outside text the program reads and a crash
-// there stops Coeus from starting at all.
+// there stops Nerd Genie from starting at all.
 func FuzzTheLoaderNeverPanics(f *testing.F) {
 	f.Add("")
 	f.Add("default_model = \"local\"\n")

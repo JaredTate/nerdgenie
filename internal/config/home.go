@@ -9,13 +9,13 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// HomeVariable is the one environment variable Coeus reads. It moves the whole
+// HomeVariable is the one environment variable Nerd Genie reads. It moves the whole
 // home folder somewhere else, which is what a test, a container, and a second
 // copy on the same machine all need. Nothing else in the configuration can be
 // set from the environment.
 const HomeVariable = "NERDGENIE_HOME"
 
-// Root returns the folder Coeus keeps everything in: the folder HomeVariable
+// Root returns the folder Nerd Genie keeps everything in: the folder HomeVariable
 // names when that variable is set to something, and .nerdgenie under the user's own
 // home directory otherwise.
 func Root() (string, error) {

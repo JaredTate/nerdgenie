@@ -18,7 +18,7 @@ const systemPromptFileFlag = "--system-prompt-file"
 
 // firstLineOfTheSystemPrompt is a sentence from the request every test in this
 // package sends, so that a test can look for the system prompt by its words.
-const firstLineOfTheSystemPrompt = "You are the reasoning engine inside Coeus."
+const firstLineOfTheSystemPrompt = "You are the reasoning engine inside Nerd Genie."
 
 func TestTheClaudeProgramGetsItsSystemPromptInAFileAndNeverOnItsCommandLine(t *testing.T) {
 	record := installFakeProgram(t, contract.ClaudeProgram, claudeFixture, 0)

@@ -19,11 +19,11 @@ import (
 func (guard *Guard) WhyNoNewTask() string {
 	if tripped, err := guard.breaker.Tripped(); err == nil && tripped {
 		return fmt.Sprintf(
-			"Coeus stopped and started several times in a row, so it is answering you but starting no task until it has been quiet for %s. Ask again then, or restart Coeus yourself.",
+			"Nerd Genie stopped and started several times in a row, so it is answering you but starting no task until it has been quiet for %s. Ask again then, or restart Nerd Genie yourself.",
 			QuietPeriod)
 	}
 	if why := guard.drain.Why(); why != "" {
-		return "Coeus is finishing the task it has and starting no new one, because " + why + ". Ask again in a few minutes."
+		return "Nerd Genie is finishing the task it has and starting no new one, because " + why + ". Ask again in a few minutes."
 	}
 	return ""
 }
@@ -58,7 +58,7 @@ func (guard *Guard) Deliver(ctx context.Context, taskID string, channel string, 
 		return err
 	}
 	if err := guard.settings.Send(ctx, channel, text); err != nil {
-		return fmt.Errorf("the reply was written down and could not be sent, so Coeus will send it again when it next starts: %w", err)
+		return fmt.Errorf("the reply was written down and could not be sent, so Nerd Genie will send it again when it next starts: %w", err)
 	}
 	return guard.ledger.MarkDelivered(ctx, reply)
 }

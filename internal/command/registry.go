@@ -25,7 +25,7 @@ var ErrNoSuchCommand = errors.New("there is no command by that name")
 // terminalOnlyRefusal is the one line a terminal-only command answers with
 // anywhere else. It is a reply rather than an error, because the user did
 // nothing wrong: they asked in the wrong place.
-const terminalOnlyRefusal = "the /%s command works only in the terminal, so open a terminal on the machine Coeus runs on and try there"
+const terminalOnlyRefusal = "the /%s command works only in the terminal, so open a terminal on the machine Nerd Genie runs on and try there"
 
 // Registry holds every slash command the program answers, in the order they
 // were registered, which is the order the help listing prints them in.
@@ -94,7 +94,7 @@ func (registry *Registry) Help() string {
 	}
 
 	written := &strings.Builder{}
-	written.WriteString("these are the commands Coeus answers:\n\n")
+	written.WriteString("these are the commands Nerd Genie answers:\n\n")
 	for _, command := range registry.All() {
 		fmt.Fprintf(written, "  %-*s  %s\n", widest, "/"+command.Name, command.Help)
 	}
@@ -103,7 +103,7 @@ func (registry *Registry) Help() string {
 
 // Run reads the command out of a line the user typed and runs it. A
 // terminal-only command asked for anywhere but the terminal comes back as one
-// plain line rather than as an error, and a line naming no command Coeus holds
+// plain line rather than as an error, and a line naming no command Nerd Genie holds
 // comes back as ErrNoSuchCommand, so that the caller can send it to the model
 // instead.
 func (registry *Registry) Run(ctx context.Context, line string, where contract.CommandContext) (string, error) {

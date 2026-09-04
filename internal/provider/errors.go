@@ -2,7 +2,7 @@
 // was read from Prime Agent's overflow detection at
 // ~/Code/prime-agent/packages/ai/src/utils/overflow.ts. That file keeps a phrase
 // for every provider its author ever met; this keeps only what the three servers
-// Coeus talks to actually say, plus the one generic code, because a phrase list
+// Nerd Genie talks to actually say, plus the one generic code, because a phrase list
 // nobody can test is a list nobody can trust.
 
 package provider
@@ -18,7 +18,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// overflowPhrases are the ways the three servers Coeus talks to say that the
+// overflowPhrases are the ways the three servers Nerd Genie talks to say that the
 // prompt was longer than the model can hold. They are matched against a refusal
 // body that already came back with a 400 or a 413, so a phrase cannot be
 // mistaken for anything else.
@@ -105,7 +105,7 @@ func isRetryableStatus(status int) bool {
 }
 
 // looksLikeOverflow says whether a refusal's text is one of the ways the servers
-// Coeus talks to report a prompt longer than the window.
+// Nerd Genie talks to report a prompt longer than the window.
 func looksLikeOverflow(said string) bool {
 	lowered := strings.ToLower(said)
 	for _, phrase := range overflowPhrases {

@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/vault"
 )
 
-// signalProgram is the program Coeus talks to Signal through, whose presence
+// signalProgram is the program Nerd Genie talks to Signal through, whose presence
 // decides whether the Signal question is worth asking.
 const signalProgram = "signal-cli"
 
@@ -33,13 +33,13 @@ func makeTheLayout(home contract.Home) error {
 	return writeBrowserSkill(home)
 }
 
-// askWorkFolders asks which folders Coeus may work in, checking every answer
+// askWorkFolders asks which folders Nerd Genie may work in, checking every answer
 // against the same rule the configuration checks it against, so that the whole
 // home directory is refused here with the reason rather than at the next start.
 func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFlags) ([]string, error) {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("your home directory could not be found, and the folders Coeus works in are measured from it, so set the HOME variable: %w", err)
+		return nil, fmt.Errorf("your home directory could not be found, and the folders Nerd Genie works in are measured from it, so set the HOME variable: %w", err)
 	}
 	fallback := contract.DefaultSandboxRoots(userHome)
 
@@ -50,7 +50,7 @@ func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFl
 		return makeWorkFolders(fallback, userHome, setup.Home.Root)
 	}
 
-	question := "Which folders may Coeus work in? Nothing outside them can be read or written.\nSeparate several with commas."
+	question := "Which folders may Nerd Genie work in? Nothing outside them can be read or written.\nSeparate several with commas."
 	for tries := 0; tries < maxTriesPerQuestion; tries++ {
 		answer, err := ask.line(ctx, question, strings.Join(fallback, ", "))
 		if err != nil {
@@ -62,7 +62,7 @@ func (setup Setup) askWorkFolders(ctx context.Context, ask *asker, chosen initFl
 		}
 		fmt.Fprintf(ask.output, "%v\n", err)
 	}
-	return nil, fmt.Errorf("no folder Coeus may work in was given in %d tries%s", maxTriesPerQuestion, pickUpThere)
+	return nil, fmt.Errorf("no folder Nerd Genie may work in was given in %d tries%s", maxTriesPerQuestion, pickUpThere)
 }
 
 // expandFolders turns every answer into a full path.
@@ -87,7 +87,7 @@ func expandFolders(written []string, userHome string) []string {
 // somewhere else is measured, on every start after this one.
 func makeWorkFolders(roots []string, userHome string, agentHome string) ([]string, error) {
 	if len(roots) == 0 {
-		return nil, fmt.Errorf("no folder was named, so Coeus could reach nothing; name one such as %s", contract.DefaultSandboxRoots(userHome)[0])
+		return nil, fmt.Errorf("no folder was named, so Nerd Genie could reach nothing; name one such as %s", contract.DefaultSandboxRoots(userHome)[0])
 	}
 	for _, root := range roots {
 		if err := contract.CheckSandboxRoot(root, userHome, agentHome); err != nil {
@@ -127,7 +127,7 @@ func (setup Setup) askModel(ctx context.Context, ask *asker, chosen initFlags, f
 	for _, choice := range menu {
 		lines = append(lines, choice.description)
 	}
-	at, err := ask.choice(ctx, "Which model should Coeus use?", lines, 0)
+	at, err := ask.choice(ctx, "Which model should Nerd Genie use?", lines, 0)
 	if err != nil {
 		return modelChoice{}, err
 	}
@@ -207,7 +207,7 @@ func (setup Setup) readKey(_ context.Context, chosen initFlags, picked modelChoi
 	return strings.TrimSpace(key), nil
 }
 
-// askSignal asks whether the user wants to talk to Coeus over Signal too, which
+// askSignal asks whether the user wants to talk to Nerd Genie over Signal too, which
 // is only worth asking when signal-cli is installed.
 func (setup Setup) askSignal(ctx context.Context, ask *asker, chosen initFlags) (bool, error) {
 	if chosen.signal != "" {

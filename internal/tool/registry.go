@@ -1,7 +1,7 @@
 // The idea of one registry that names every tool the model may call, with the
 // description kept beside the tool and checked at registration, is OpenCode's,
 // at ~/Code/opencode/packages/opencode/src/tool/registry.ts. The Go here is
-// written fresh, and the forty-word cap and the result cap are Coeus rules.
+// written fresh, and the forty-word cap and the result cap are Nerd Genie rules.
 
 package tool
 

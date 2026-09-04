@@ -1,7 +1,7 @@
 // The split between a forgiving listing and a strict load is OpenCode's skill
 // loader at ~/Code/opencode/packages/opencode/src/skill/index.ts, where a folder
 // that will not parse is logged and passed over rather than allowed to break
-// the session. Coeus keeps that for the listing, which rides in every prompt,
+// the session. Nerd Genie keeps that for the listing, which rides in every prompt,
 // and refuses a broken folder by name when a skill is actually used.
 
 package skill

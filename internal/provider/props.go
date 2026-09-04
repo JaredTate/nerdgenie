@@ -4,7 +4,7 @@
 // default_generation_settings from the props endpoint, and it sends a
 // thinking-off hint only to a server known to understand one, at
 // ~/Code/hermes-agent/plugins/model-providers/custom/__init__.py. Hermes tries
-// several endpoints in a waterfall; Coeus asks one question of one kind of
+// several endpoints in a waterfall; Nerd Genie asks one question of one kind of
 // server, because there is one kind of local server on the machine it runs on.
 
 package provider

@@ -47,7 +47,7 @@ func decodeEvent(sequence int64, occurred string, taskID string, kind string, bo
 		return contract.Event{}, fmt.Errorf("cannot read the time %s on event %d, so the file is damaged and should be restored from a backup: %w", shortened([]byte(occurred)), sequence, err)
 	}
 	if !contract.KnownEventKind(contract.EventKind(kind)) {
-		return contract.Event{}, fmt.Errorf("event %d is of the kind %s, which this version of Coeus does not know, so update Coeus and open the log again", sequence, shortened([]byte(kind)))
+		return contract.Event{}, fmt.Errorf("event %d is of the kind %s, which this version of Nerd Genie does not know, so update Nerd Genie and open the log again", sequence, shortened([]byte(kind)))
 	}
 	if len(body) > 0 && !json.Valid(body) {
 		return contract.Event{}, fmt.Errorf("the body of event %d is not JSON, so the file is damaged and should be restored from a backup", sequence)

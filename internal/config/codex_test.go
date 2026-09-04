@@ -10,7 +10,7 @@ import (
 
 // oneCodexAlias is a model reached through OpenAI's Codex backend on the ChatGPT
 // subscription, written the way "nerdgenie init" writes it: no address, because the
-// backend is fixed, and no program, because Coeus's own loop drives the model.
+// backend is fixed, and no program, because Nerd Genie's own loop drives the model.
 const oneCodexAlias = `
 default_model = "gpt"
 
@@ -39,7 +39,7 @@ func TestACodexAliasIsAcceptedWithNoAddressAndNoProgram(t *testing.T) {
 		t.Errorf("the alias is reached through %q, want %q", alias.Provider, contract.ProviderCodex)
 	}
 	if alias.Program != "" {
-		t.Errorf("the alias carries the program %q, and a codex alias runs none because Coeus's own loop drives the model", alias.Program)
+		t.Errorf("the alias carries the program %q, and a codex alias runs none because Nerd Genie's own loop drives the model", alias.Program)
 	}
 	if alias.ModelName != "gpt-5.6-sol" || alias.ContextLength != 400000 || alias.Think != contract.ThinkMedium {
 		t.Errorf("the alias was read as %+v, want the model name, the context length, and the think level as written", alias)

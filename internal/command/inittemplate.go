@@ -24,8 +24,8 @@ type personaFile struct {
 func personaFiles(home contract.Home) []personaFile {
 	return []personaFile{{
 		path: home.SoulFile(),
-		text: "# Who Coeus is\n\n" +
-			"You are Nerd Genie, the agent inside Coeus. When you talk to the person, in the terminal or over Signal, " +
+		text: "# Who Nerd Genie is\n\n" +
+			"You are Nerd Genie, the agent inside Nerd Genie. When you talk to the person, in the terminal or over Signal, " +
 			"you talk like Doc Brown from Back to the Future: wide-eyed, warm, certain, delighted by a good problem, " +
 			"the odd \"Great Scott!\" when something surprises you, and a line about where this is going. " +
 			"Keep the science real and the sentences short; the voice is the seasoning, the answer is the meal. " +
@@ -34,11 +34,11 @@ func personaFiles(home contract.Home) []personaFile {
 	}, {
 		path: home.UserFactsFile(),
 		text: "# Who you are\n\n" +
-			"Write here the facts about you that Coeus should always know, such as your name, where you are, and how you like to be answered.\n",
+			"Write here the facts about you that Nerd Genie should always know, such as your name, where you are, and how you like to be answered.\n",
 	}, {
 		path: home.WorldFactsFile(),
-		text: "# What Coeus knows about the world\n\n" +
-			"Write here the facts that are not about you, such as the names of your machines and the sites Coeus works on. Coeus adds to this file as it learns.\n",
+		text: "# What Nerd Genie knows about the world\n\n" +
+			"Write here the facts that are not about you, such as the names of your machines and the sites Nerd Genie works on. Nerd Genie adds to this file as it learns.\n",
 	}}
 }
 
@@ -88,7 +88,7 @@ const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescript
 // skill folder carries one, and this one says where the skill came from and how
 // to be rid of it.
 const browserSkillChangelog = "# changelog for " + browserSkillName + "\n\n" +
-	"- shipped with Coeus. The SKILL.md beside this file is the whole skill: it says how to work the browser tools, and there are no steps to replay. To undo: /skills remove " + browserSkillName + "\n"
+	"- shipped with Nerd Genie. The SKILL.md beside this file is the whole skill: it says how to work the browser tools, and there are no steps to replay. To undo: /skills remove " + browserSkillName + "\n"
 
 // browserSkillFiles are the files of the browser skill folder: the SKILL.md that
 // carries the whole of it, and the three companions the skill store gives every
@@ -123,14 +123,14 @@ func writeBrowserSkill(home contract.Home) error {
 
 // configurationText is the config.toml a fresh install starts from: the model
 // chosen, every other model that was found on this machine as a fallback, the
-// folders Coeus may work in, and a comment above every line saying what it does.
+// folders Nerd Genie may work in, and a comment above every line saying what it does.
 func configurationText(chosen modelChoice, found []modelChoice, roots []string) string {
 	written := &strings.Builder{}
-	written.WriteString("# The Coeus configuration, written by \"nerdgenie init\".\n")
+	written.WriteString("# The Nerd Genie configuration, written by \"nerdgenie init\".\n")
 	written.WriteString("# Every setting has a default, so a line you delete goes back to the default\n")
 	written.WriteString("# rather than switching anything off. Run \"nerdgenie doctor\" after editing it.\n\n")
 
-	written.WriteString("# The model Coeus talks to when nothing else says otherwise.\n")
+	written.WriteString("# The model Nerd Genie talks to when nothing else says otherwise.\n")
 	fmt.Fprintf(written, "default_model = %s\n\n", quoted(chosen.name))
 
 	written.WriteString("# The models to try, in order, when the one above cannot be reached.\n")
@@ -175,7 +175,7 @@ func codexExampleBlock() string {
 	written := &strings.Builder{}
 	written.WriteString("\n# One more model you can add: OpenAI's Codex backend on the ChatGPT\n")
 	written.WriteString("# subscription, reached with the login the codex program keeps on this\n")
-	written.WriteString("# machine, so that Coeus's own loop drives the model rather than handing the\n")
+	written.WriteString("# machine, so that Nerd Genie's own loop drives the model rather than handing the\n")
 	written.WriteString("# turn to the program. No key and no address are needed. To turn it on,\n")
 	written.WriteString("# uncomment the lines below and name \"" + codexExampleAlias + "\" in default_model or fallback_chain.\n")
 	written.WriteString("# [[models]]\n")
@@ -188,13 +188,13 @@ func codexExampleBlock() string {
 }
 
 // capsBlock is the [caps] table of the file, with every budget written as a
-// comment: the three are off unless the user sets one, because Coeus puts no
+// comment: the three are off unless the user sets one, because Nerd Genie puts no
 // cap on its own work, and a person who wants one takes the "#" off the line.
 // The table header is written out so that an uncommented line lands in the
 // right table rather than at the top level, where the loader would refuse it.
 func capsBlock() string {
-	return "\n# How much one task may spend before Coeus stops it and reports what is\n" +
-		"# left. All three are off unless you set them: Coeus puts no cap on its own\n" +
+	return "\n# How much one task may spend before Nerd Genie stops it and reports what is\n" +
+		"# left. All three are off unless you set them: Nerd Genie puts no cap on its own\n" +
 		"# work. To turn one on, take the \"#\" off its line and give it a number above\n" +
 		"# zero, such as the ones shown. A command that hangs is still killed after\n" +
 		"# time_per_tool, seven minutes, which is a safety limit and not a budget.\n" +
@@ -235,10 +235,10 @@ func aliasesToWrite(chosen modelChoice, found []modelChoice) []modelChoice {
 func aliasBlock(choice modelChoice) string {
 	alias := choice.alias
 	written := &strings.Builder{}
-	written.WriteString("\n# One model Coeus can talk to. Add a block like this for another.\n")
+	written.WriteString("\n# One model Nerd Genie can talk to. Add a block like this for another.\n")
 	if !choice.detected && !choice.needsKey {
 		written.WriteString("# This server was not answering when \"nerdgenie init\" ran. Start it, then run\n")
-		written.WriteString("# \"nerdgenie doctor\" to check that Coeus can reach it.\n")
+		written.WriteString("# \"nerdgenie doctor\" to check that Nerd Genie can reach it.\n")
 	}
 	written.WriteString("[[models]]\n")
 	written.WriteString("# The short name you call this model by.\n")

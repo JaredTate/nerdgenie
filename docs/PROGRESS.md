@@ -1,4 +1,4 @@
-# Coeus progress
+# Nerd Genie progress
 
 This file is the record of how the build went, one section per wave. Each section
 holds three lines from the orchestrator at the wave gate saying what was built and

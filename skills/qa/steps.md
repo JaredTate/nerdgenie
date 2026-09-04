@@ -5,7 +5,7 @@
 
 2. Say who is reporting.
    tool: browser_type
-   input: {"intent":"Say who is reporting.","role":"textbox","name":"Your name","text":"Coeus","expectation":"the name box holds what was typed"}
+   input: {"intent":"Say who is reporting.","role":"textbox","name":"Your name","text":"Nerd Genie","expectation":"the name box holds what was typed"}
    expect: the name box holds what was typed
 
 3. Say what happened.

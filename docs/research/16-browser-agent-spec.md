@@ -1,6 +1,6 @@
-# 16 — Browser agent deep dive and the Coeus browser spec
+# 16 — Browser agent deep dive and the Nerd Genie browser spec
 
-Date: 2026-09-02. Author: research pass for Coeus. Code paths are cited as `file:line`. Web claims carry URL + date. "Not verified" means I could not confirm it from code or a primary source.
+Date: 2026-09-02. Author: research pass for Nerd Genie. Code paths are cited as `file:line`. Web claims carry URL + date. "Not verified" means I could not confirm it from code or a primary source.
 
 Repos read: OpenClaw at `/Users/jt/Code/openclaw` (extensions/browser, 13.8k lines of src), Hermes at `/Users/jt/Code/hermes-agent`, browser-use cloned to `scratchpad/ext/browser-use` (commit 564007d, 2026-09-01), ZeroClaw and Moltis in `scratchpad/ext`.
 
@@ -10,9 +10,9 @@ Repos read: OpenClaw at `/Users/jt/Code/openclaw` (extensions/browser, 13.8k lin
 
 - Every serious browser agent in 2026 runs the same loop: **text snapshot with element refs → model picks a ref and an action → harness acts → harness re-reads the page**. Screenshots verify; they are not the main input.
 - OpenClaw (Playwright) has the best snapshot/ref machinery. Hermes (`agent-browser` CLI) has the best "use the real profile" story. browser-use has the best **agent loop** (per-step self-evaluation, memory, plan, `done` with a success flag, a judge).
-- The benchmark leaders (Online-Mind2Web 90–99%, June 2026) share three things: a frontier model, a hybrid DOM+screenshot view, and explicit verification of the previous step before choosing the next one. They also run in cloud browsers with CAPTCHA solving, which Coeus must not do.
+- The benchmark leaders (Online-Mind2Web 90–99%, June 2026) share three things: a frontier model, a hybrid DOM+screenshot view, and explicit verification of the previous step before choosing the next one. They also run in cloud browsers with CAPTCHA solving, which Nerd Genie must not do.
 - For social accounts, the safety rule is not fingerprint tricks. It is: **real Chrome binary, JT's own persistent profile per persona, headed, home IP, human pacing and daily caps, never copy cookies around**. Chrome 136 (2025-03) and DBSC (2026) both push in that direction.
-- Recommendation for Coeus: **a long-lived spawned `playwright-core` worker (patchright as an opt-in swap) attached over CDP to a real Chrome that Coeus launches with the persona's `--user-data-dir`**. Runner-up: Vercel's `agent-browser` Rust daemon attached the same way. Not recommended: chromedp in-process (you would rewrite Playwright's actionability and snapshot layers; OpenClaw needed 14k lines for that).
+- Recommendation for Nerd Genie: **a long-lived spawned `playwright-core` worker (patchright as an opt-in swap) attached over CDP to a real Chrome that Nerd Genie launches with the persona's `--user-data-dir`**. Runner-up: Vercel's `agent-browser` Rust daemon attached the same way. Not recommended: chromedp in-process (you would rewrite Playwright's actionability and snapshot layers; OpenClaw needed 14k lines for that).
 
 ---
 
@@ -165,7 +165,7 @@ Benchmark claims: README lines 130-132 cite their own 100-task "BU Bench" and "#
 
 **Vercel agent-browser.** Rust CLI + Rust daemon speaking CDP directly; the Node/Playwright daemon was removed in v0.20.0 (2026-03-13); v0.36.0 shipped 2026-09-01; daemon memory 8 MB (https://agent-browser.dev/changelog and README, fetched 2026-09-02). Commands: `open, click, fill, type, press, scroll, wait, screenshot, get, find, select, hover, drag, upload, snapshot (-i -c -d -s), eval, tab, frame, dialog, cookies, state, batch`. Options: `--session`, `--profile` (v0.24.1 copies a Chrome profile to a temp dir), `--cdp`, `--auto-connect`, `--executable-path`, `--headed`, `--allowed-domains`. Default browser is Chrome for Testing; Linux ARM64/x64 native; "No built-in stealth mode."
 
-**Anthropic computer use.** Tool type `computer_toolset_20260801` (no beta header on Opus 4.8+/Sonnet 5/Opus 5/Fable); 17 actions: `screenshot`, `zoom` (`region: [x0,y0,x1,y1]`), five click kinds with optional `coordinate`, `left_click_drag`, `mouse_move`, `left_mouse_down/up`, `cursor_position`, `scroll` (`scroll_direction`, `scroll_amount`), `type`, `key`, `hold_key`, `wait`. Images up to 2576 px / 4784 visual tokens; a screenshot costs ~1000–1800 tokens; keep ≤20 images per request; recommended web resolution 1280x800 (https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool, fetched 2026-09-02). The docs suggest `<robot_credentials>` tags for logins; Coeus will not (section 8).
+**Anthropic computer use.** Tool type `computer_toolset_20260801` (no beta header on Opus 4.8+/Sonnet 5/Opus 5/Fable); 17 actions: `screenshot`, `zoom` (`region: [x0,y0,x1,y1]`), five click kinds with optional `coordinate`, `left_click_drag`, `mouse_move`, `left_mouse_down/up`, `cursor_position`, `scroll` (`scroll_direction`, `scroll_amount`), `type`, `key`, `hold_key`, `wait`. Images up to 2576 px / 4784 visual tokens; a screenshot costs ~1000–1800 tokens; keep ≤20 images per request; recommended web resolution 1280x800 (https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool, fetched 2026-09-02). The docs suggest `<robot_credentials>` tags for logins; Nerd Genie will not (section 8).
 
 **Claude for Chrome.** Extension launched 2025-08-25; site-level permissions, confirmations before "publishing, purchasing, or sharing personal data", blocked categories; prompt-injection success fell from 23.6% to 11.2% after mitigations (https://claude.com/blog/claude-for-chrome, updated 2025-12-18). Secondary sources say it uses Chrome's debugger API for DOM and clicks plus screenshots (https://www.contextstudios.ai/blog/claude-code-chrome-extension-the-complete-guide-to-browser-native-ai-automation, 2026; not verified against Anthropic docs).
 
@@ -202,7 +202,7 @@ Benchmark claims: README lines 130-132 cite their own 100-task "BU Bench" and "#
 - **WebVoyager** (643 tasks, 15 sites): CUA 87% (Jan 2025). Mostly saturated.
 - **Mind2Web-Live**: not tracked on the boards I checked — not verified.
 
-What the leaders share: (1) a frontier model with thinking on; (2) a hybrid view: DOM/AX text for targeting, a screenshot for verification; (3) an explicit "did my last action work?" step and a judge; (4) retries with a different strategy rather than the same click; (5) plan/memory for long tasks; (6) cloud browsers with CAPTCHA solving and proxies — which Coeus deliberately gives up, so Coeus should expect lower raw scores on hostile sites and higher trust on JT's own accounts.
+What the leaders share: (1) a frontier model with thinking on; (2) a hybrid view: DOM/AX text for targeting, a screenshot for verification; (3) an explicit "did my last action work?" step and a judge; (4) retries with a different strategy rather than the same click; (5) plan/memory for long tasks; (6) cloud browsers with CAPTCHA solving and proxies — which Nerd Genie deliberately gives up, so Nerd Genie should expect lower raw scores on hostile sites and higher trust on JT's own accounts.
 
 ---
 
@@ -211,13 +211,13 @@ What the leaders share: (1) a frontier model with thinking on; (2) a hybrid view
 The rule for LinkedIn, X, Instagram, Facebook, Reddit is: **behave like JT on JT's machine**. Not "hide that a program is running". Sources:
 
 - **Chrome 136 (2025-03-17)**: `--remote-debugging-port`/`--remote-debugging-pipe` are ignored on the default user data dir; you must pass a non-default `--user-data-dir`, which also uses a different cookie encryption key (https://developer.chrome.com/blog/remote-debugging-port). So an agent cannot attach to JT's everyday profile over CDP; it needs its own profile dir, logged in once by hand, or an extension relay.
-- **DBSC** (device-bound session credentials): GA on Windows in Chrome 146 (April 2026), then macOS; Google Workspace rollout from 2026-05-25; Linux not yet covered (https://developer.chrome.com/docs/web-platform/device-bound-session-credentials; https://pbxscience.com/chromes-dbsc-stops-cookie-theft-but-linux-is-left-behind/, 2026). Where DBSC is on, copied cookies die within minutes. Cookie copying (OpenClaw importprofile, Hermes profile snapshot) is a dead end for Google-family logins and will spread. Coeus logs in inside the agent profile and keeps it.
+- **DBSC** (device-bound session credentials): GA on Windows in Chrome 146 (April 2026), then macOS; Google Workspace rollout from 2026-05-25; Linux not yet covered (https://developer.chrome.com/docs/web-platform/device-bound-session-credentials; https://pbxscience.com/chromes-dbsc-stops-cookie-theft-but-linux-is-left-behind/, 2026). Where DBSC is on, copied cookies die within minutes. Cookie copying (OpenClaw importprofile, Hermes profile snapshot) is a dead end for Google-family logins and will spread. Nerd Genie logs in inside the agent profile and keeps it.
 - **Playwright's Chromium is not Chrome**: different TLS/JA3 and codec surface (https://github.com/feder-cr/invisible_playwright/wiki/chromium-is-not-chrome; https://cside.com/blog/headless-browser-detection, 2026). Use the installed Google Chrome binary.
 - **The control channel is the loudest signal**: a May 2026 benchmark over 31 targets (Cloudflare Turnstile, DataDome, F5, Radware) found nodriver 0 blocked, Patchright 3, Camoufox 3, vanilla Playwright 5, and named Playwright's startup `Runtime.enable` as the main tell; system Chrome via `channel=chrome` beat bundled Chromium (https://ianlpaterson.com/blog/anti-detect-browser-benchmark-patchright-nodriver-curl-cffi/, 2026-05-13, updated 2026-08-15). Patchright is a drop-in Playwright fork that removes those leaks; nodriver drives Chrome over CDP directly; Camoufox is a Firefox fork with C++-level fingerprint spoofing (https://scrapewise.ai/blogs/playwright-stealth-2026, 2026).
 - **Do they matter for a logged-in personal account?** Mostly no. LinkedIn looks at "browser fingerprints, IP and timezone consistency, action pacing, message similarity, and acceptance-rate patterns", DOM-injecting extensions, and "multi-tab actions and mouse events that could not physically come from one user" (https://www.linkednav.com/can-linkedin-detect-automation, 2026). 2025–2026 enforcement hit tools, not careful individuals (Apollo dropped native LinkedIn automation 2026-01-30; HeyReach's page removed March 2026, https://www.joinvalley.co/blog/linkedin-automation-safety-2026). Camoufox/patchright/nodriver exist for scraping at scale from rented IPs; for JT they are optional hardening for Cloudflare-fronted sites. A fresh fingerprint every session is itself suspicious on an account that has always used one machine.
 - **Headed beats headless.** New headless shares the cookie store but still leaks window/screen signals and the "HeadlessChrome" tell (https://cside.com/blog/headless-browser-detection, 2026). rosie has a display: run headed on a dedicated virtual desktop so JT can watch and step in.
 - **No cloud proxies.** Home IP + the same timezone/locale as JT is the point.
-- **Pacing.** Real LinkedIn users act "with delays between 40 seconds and several minutes", and daily caps exist (https://www.yalc.ai/blog/linkedin-automation-limits-and-rules/, 2026). Coeus needs per-site pacing profiles and caps, and never two social tabs at once.
+- **Pacing.** Real LinkedIn users act "with delays between 40 seconds and several minutes", and daily caps exist (https://www.yalc.ai/blog/linkedin-automation-limits-and-rules/, 2026). Nerd Genie needs per-site pacing profiles and caps, and never two social tabs at once.
 - **Session hygiene.** One profile per persona, never shared with scrapers; never export cookies; never log in from a second machine with the same profile; keep Chrome updated (fingerprint drift matches JT's real Chrome because it *is* JT's Chrome).
 
 ---
@@ -248,11 +248,11 @@ Hand off to JT when: the site has no vault entry; a CAPTCHA/Turnstile is visible
 
 ### 8.4 sudo
 
-Hermes caches a sudo password per session after a masked prompt (`tools/terminal_tool.py:247-340`), pipes it with `sudo -S -p ''` on stdin (764, 1035-1037) with a trailing newline (1112). Coeus's equivalent: vault entry `sudo`. Run privileged commands with `SUDO_ASKPASS=/usr/libexec/nerdgenie-askpass sudo -A ...`, where the askpass helper reads the secret from the Coeus daemon over a per-invocation unix socket token. This keeps the password off stdin (so nested pipelines still work) and out of the process list and model context. First sudo in a session requires a yes/no confirmation from JT over TUI/Signal; after that it is silent until the session ends. Never print sudo output before redaction.
+Hermes caches a sudo password per session after a masked prompt (`tools/terminal_tool.py:247-340`), pipes it with `sudo -S -p ''` on stdin (764, 1035-1037) with a trailing newline (1112). Nerd Genie's equivalent: vault entry `sudo`. Run privileged commands with `SUDO_ASKPASS=/usr/libexec/nerdgenie-askpass sudo -A ...`, where the askpass helper reads the secret from the Nerd Genie daemon over a per-invocation unix socket token. This keeps the password off stdin (so nested pipelines still work) and out of the process list and model context. First sudo in a session requires a yes/no confirmation from JT over TUI/Signal; after that it is silent until the session ends. Never print sudo output before redaction.
 
 ---
 
-## 9. THE COEUS BROWSER SPEC
+## 9. THE Nerd Genie BROWSER SPEC
 
 ### 9.1 Engine choice for Linux
 
@@ -264,7 +264,7 @@ Hermes caches a sudo password per session after a masked prompt (`tools/terminal
 
 Why not chromedp: the value is in the 10k+ lines around CDP (OpenClaw's `browser/` is where the reliability lives). Why not agent-browser first: no control over mouse paths, keystroke cadence, or settle logic beyond its CLI, and its snapshot is still moving. Why playwright-core despite +85 MB / +135 ms (prior benchmark): it is one long-lived helper per persona, started once, not per call — noise on a 60 GB desktop. `patchright` (same API, removes `Runtime.enable` and other leaks) is a config-flag swap for Cloudflare-heavy sites; parity of its `ariaSnapshot({mode:"ai"})` is not verified.
 
-Attach model: Coeus launches `/usr/bin/google-chrome --user-data-dir=~/.nerdgenie/browser/<persona>/user-data --remote-debugging-port=0 --no-first-run --no-default-browser-check --disable-sync --disable-background-networking --disable-component-update --password-store=basic --window-size=1400,900` (headed on rosie's display; `--headless=new` only for the throwaway persona), reads `DevToolsActivePort` like Hermes (`browser_tool.py:1835-1850`), and the worker does `chromium.connectOverCDP("http://127.0.0.1:<port>")`. No `--disable-blink-features=AutomationControlled` games; real Chrome with a real profile does not set `navigator.webdriver` unless driven by WebDriver.
+Attach model: Nerd Genie launches `/usr/bin/google-chrome --user-data-dir=~/.nerdgenie/browser/<persona>/user-data --remote-debugging-port=0 --no-first-run --no-default-browser-check --disable-sync --disable-background-networking --disable-component-update --password-store=basic --window-size=1400,900` (headed on rosie's display; `--headless=new` only for the throwaway persona), reads `DevToolsActivePort` like Hermes (`browser_tool.py:1835-1850`), and the worker does `chromium.connectOverCDP("http://127.0.0.1:<port>")`. No `--disable-blink-features=AutomationControlled` games; real Chrome with a real profile does not set `navigator.webdriver` unless driven by WebDriver.
 
 ### 9.2 Tool set (10 tools)
 

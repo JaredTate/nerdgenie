@@ -2,7 +2,7 @@
 // ~/Code/openclaw/docs/channels/signal.md and from Hermes' Signal setup text in
 // ~/Code/hermes-agent/hermes_cli/gateway.py, both of which tell the user to run
 // "signal-cli link -n <name>" and scan what it prints. Neither draws the code
-// itself; Coeus does, so that the whole of linking happens in one place. The
+// itself; Nerd Genie does, so that the whole of linking happens in one place. The
 // lines signal-cli prints were read from signal-cli 0.13.23.
 
 package signal

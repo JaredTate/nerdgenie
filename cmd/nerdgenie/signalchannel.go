@@ -11,7 +11,7 @@ import (
 
 // openTheSignalChannel starts Signal when the configuration names an account.
 //
-// Signal is half of what Coeus is: the sentence that opens CLAUDE.md says a
+// Signal is half of what Nerd Genie is: the sentence that opens CLAUDE.md says a
 // person talks to it in a terminal or through Signal. Until this ran, the only
 // piece of Signal the program used was the pairing store behind "/pair", so a
 // sender could be paired and then had nowhere to write.
@@ -74,7 +74,7 @@ func (running *agent) signalChannel() *signalchannel.Channel {
 func theSignalProgram(note func(line string)) string {
 	found, err := exec.LookPath(signalProgramName)
 	if err != nil {
-		note("signal-cli is not on the PATH, so Coeus will talk to a daemon somebody else is running rather than start one")
+		note("signal-cli is not on the PATH, so Nerd Genie will talk to a daemon somebody else is running rather than start one")
 		return ""
 	}
 	return found

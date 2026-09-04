@@ -18,7 +18,7 @@ func theLevelIsCarriedOn(t *testing.T, model *testkit.FakeModel) contract.Think 
 	return sent[len(sent)-1].Think
 }
 
-// TestACallCarriesNoThinkLevelUntilOneIsChosen holds the behaviour Coeus had
+// TestACallCarriesNoThinkLevelUntilOneIsChosen holds the behaviour Nerd Genie had
 // before "/think" existed: nothing is said about thinking, and the level on the
 // model alias in config.toml is the only thing the provider reads.
 func TestACallCarriesNoThinkLevelUntilOneIsChosen(t *testing.T) {

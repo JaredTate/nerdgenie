@@ -42,7 +42,7 @@ func TestAScreenshotSaysWhichWindowsAreOnTheScreenAndWhichApplicationItIsOf(t *t
 	if err != nil {
 		t.Fatalf("taking a screenshot failed: %v", err)
 	}
-	if len(picture.Windows) != 2 || picture.Windows[0] != "Coeus fixture window" || picture.Windows[1] != "Firefox" {
+	if len(picture.Windows) != 2 || picture.Windows[0] != "Nerd Genie fixture window" || picture.Windows[1] != "Firefox" {
 		t.Errorf("the windows are %q, want the two titles the worker sent, so that the model knows what it is looking at", picture.Windows)
 	}
 	if picture.Application != "zenity" {

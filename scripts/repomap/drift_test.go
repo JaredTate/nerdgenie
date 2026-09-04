@@ -84,7 +84,7 @@ func TestTheDriftTestFailsWhenAFileIsAddedWithoutRegenerating(t *testing.T) {
 
 // repositoryRoot walks up from this test's folder until it finds the go.mod
 // file, which is the root of this module. The walk is bounded, because every
-// loop in Coeus is bounded.
+// loop in Nerd Genie is bounded.
 func repositoryRoot(t *testing.T) string {
 	t.Helper()
 	here, err := os.Getwd()

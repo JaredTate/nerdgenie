@@ -148,7 +148,7 @@ func liveHome(t *testing.T) contract.Home {
 			t.Fatalf("the folder %s for the live run could not be made: %v", folder, err)
 		}
 	}
-	writePersonaFile(t, home.SoulFile(), "You are Coeus. You are careful, you say what you are doing, and you never guess.")
+	writePersonaFile(t, home.SoulFile(), "You are Nerd Genie. You are careful, you say what you are doing, and you never guess.")
 	writePersonaFile(t, home.UserFactsFile(), "The user is Jared. He works on DigiByte and prefers short answers.")
 	writePersonaFile(t, home.WorldFactsFile(), "DigiByte launched on the tenth of January 2014.")
 	return home

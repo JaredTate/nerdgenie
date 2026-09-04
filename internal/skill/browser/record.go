@@ -1,7 +1,7 @@
 // Writing down a resolved element descriptor so that the step can be acted out
 // again later with no model call is Stagehand's observe-then-act idea, described
 // in docs/research/16-browser-agent-spec.md sections 9.13 and its table of page
-// representations. Coeus keeps the observe half in front of every action rather
+// representations. Nerd Genie keeps the observe half in front of every action rather
 // than only in front of the first one, because the page it is acting on may have
 // been redrawn since the last snapshot.
 

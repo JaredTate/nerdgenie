@@ -156,8 +156,8 @@ func TestAMethodTheWorkerDoesNotHaveIsReportedAsAFaultInNerdGenie(t *testing.T) 
 	browser := world.browser(t, nil)
 
 	err := browser.call(context.Background(), "wobble", map[string]any{}, nil)
-	if err == nil || !strings.Contains(err.Error(), "a fault in Coeus") {
-		t.Fatalf("asking for a method that does not exist said %v, and it should have named itself a fault in Coeus", err)
+	if err == nil || !strings.Contains(err.Error(), "a fault in Nerd Genie") {
+		t.Fatalf("asking for a method that does not exist said %v, and it should have named itself a fault in Nerd Genie", err)
 	}
 	if started, _ := world.starts.counts(); started != 1 {
 		t.Fatalf("%d workers were started, and a method that does not exist is no reason to start another", started)

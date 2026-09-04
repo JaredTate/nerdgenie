@@ -12,7 +12,7 @@ import (
 
 // The two lines the command answers with when it cannot do what was asked.
 const (
-	onlyInTheTerminal = "the vault works only in the terminal, so open a terminal on the machine Coeus runs on and try there"
+	onlyInTheTerminal = "the vault works only in the terminal, so open a terminal on the machine Nerd Genie runs on and try there"
 	vaultUsage        = "the vault understands four words: list, add <name> <site> <domain,domain> <username>, remove <name>, and test <name>. " +
 		"Only the password and the two-factor secret are asked for, and neither is shown while you type it. The machine password is just: add sudo"
 )
@@ -23,7 +23,7 @@ const (
 func NewCommand(store *Vault) contract.Command {
 	return contract.Command{
 		Name:         "vault",
-		Help:         "Lists, adds, removes, and tests the logins Coeus holds: add <name> <site> <domain,domain> <username>, with the password asked for without being shown. Terminal only.",
+		Help:         "Lists, adds, removes, and tests the logins Nerd Genie holds: add <name> <site> <domain,domain> <username>, with the password asked for without being shown. Terminal only.",
 		TerminalOnly: true,
 		Run: func(ctx context.Context, arguments string, where contract.CommandContext) (string, error) {
 			return runVault(ctx, store, arguments, where)

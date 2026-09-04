@@ -145,7 +145,7 @@ func TestADescriptionOverTheCapIsRefusedWithTheGuidesMessage(t *testing.T) {
 // answerWithTools is the smallest stand-in for the agent loop that can run a
 // tool: ask the model, run whatever it asked for through the registry, hand the
 // results back, and send its next answer to the user. It is the sample test's
-// answerOneMessage with tool rounds added, and like every loop in Coeus it has a
+// answerOneMessage with tool rounds added, and like every loop in Nerd Genie it has a
 // limit.
 func answerWithTools(ctx context.Context, inbound <-chan contract.Inbound, model contract.Model, registry contract.ToolRegistry, channel contract.Channel) error {
 	var message contract.Inbound

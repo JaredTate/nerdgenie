@@ -81,7 +81,7 @@ func (commands *Commands) switchSession(ctx context.Context, listed []Session, w
 // with the one the user is in marked, and the line saying how to switch.
 func sessionListing(listed []Session) string {
 	if len(listed) == 0 {
-		return "there are no sessions yet, so say something and Coeus will start one.\n"
+		return "there are no sessions yet, so say something and Nerd Genie will start one.\n"
 	}
 
 	widest := 0

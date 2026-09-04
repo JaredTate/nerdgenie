@@ -24,7 +24,7 @@ import { DesktopSession } from "../src/session.js"
 import type { Mark } from "../src/marks.js"
 
 /** The title the fixture window carries, which is how the worker finds it. */
-const fixtureTitle = "Coeus desktop fixture"
+const fixtureTitle = "Nerd Genie desktop fixture"
 
 /** haveZenity says whether the fixture application is on this machine. */
 function haveZenity(): boolean {

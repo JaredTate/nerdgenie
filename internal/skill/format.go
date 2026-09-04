@@ -1,4 +1,4 @@
-// The folder format is Hermes' skill format written fresh for Coeus, at
+// The folder format is Hermes' skill format written fresh for Nerd Genie, at
 // ~/Code/hermes-agent/tools/skills_tool.py: SKILL.md is the one file a folder
 // cannot do without, a listing reads only its head, and the name is a lowercase
 // hyphenated word of at most sixty-four characters. The rule that a name holds

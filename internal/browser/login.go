@@ -134,7 +134,7 @@ func (browser *Browser) loginFields(ctx context.Context, site string, page contr
 // last moment is often refused by the time the form is submitted.
 func (browser *Browser) freshCode(ctx context.Context, site string) (string, error) {
 	if browser.options.Codes == nil {
-		return "", fmt.Errorf("the vault entry %q has a two-factor secret but nothing was wired to make codes, which is a fault in how Coeus was started", site)
+		return "", fmt.Errorf("the vault entry %q has a two-factor secret but nothing was wired to make codes, which is a fault in how Nerd Genie was started", site)
 	}
 	code, secondsLeft, err := browser.options.Codes.Code(site)
 	if err != nil {

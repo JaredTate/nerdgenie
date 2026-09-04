@@ -21,7 +21,7 @@
 //
 // The doctor looks at a home folder and reports what is there, what is missing,
 // what has the wrong mode, whether the configuration loads, whether the outside
-// programs Coeus needs are on the path, and whether the local model daemon
+// programs Nerd Genie needs are on the path, and whether the local model daemon
 // answers its health check. It never changes anything: "nerdgenie init" and "nerdgenie
 // doctor" in wave 3 both print what it found.
 package config

@@ -1,7 +1,7 @@
 // Package loop runs one turn of work: orient, call the model, guard, permit,
 // run the tools, update the record, and repeat until the task ends.
 //
-// This is the core of Coeus. One task runs at a time, and every dependency it
+// This is the core of Nerd Genie. One task runs at a time, and every dependency it
 // has is an interface in internal/contract, so the whole of it is driven by the
 // fakes in internal/testkit in tests. A task starts from a message or from a
 // job's next task and ends in one of four states: done, waiting on the user,

@@ -153,7 +153,7 @@ func TestBorrowedHeaderRuleWantsAPathBesideTheProjectName(t *testing.T) {
 	}
 }
 
-// theNineBorrowedProjects is every project Coeus took a design from, written the
+// theNineBorrowedProjects is every project Nerd Genie took a design from, written the
 // way CLAUDE.md teaches a worker to write it: the folder name beside this
 // repository, or the folder under docs/reference for a project not on disk.
 var theNineBorrowedProjects = []string{
@@ -185,7 +185,7 @@ func TestTheBorrowedHeaderRuleKnowsEveryProjectByItsFolderName(t *testing.T) {
 }
 
 func TestAVendorsProgramNamedAsAProgramIsNotABorrowedDesign(t *testing.T) {
-	// "codex" is both a project Coeus read a design from and the name of the
+	// "codex" is both a project Nerd Genie read a design from and the name of the
 	// program that runs GPT on the user's subscription. A header that says how to
 	// run the program is not naming a borrowed design.
 	source := "// Package example runs \"codex exec\" in a scratch folder and reads the text back.\n\npackage example\n"

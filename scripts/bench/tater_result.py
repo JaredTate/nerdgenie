@@ -12,7 +12,7 @@ out as one flat JSON object and the same numbers in plain words.
      the daemon log this run wrote. That is the only place the token counts for
      a local model exist, and every harness is counted the same way from it.
   2. The harness's own report of what it used, read from wherever that harness
-     keeps it: Coeus's driver log, opencode's step_finish lines, Hermes's
+     keeps it: Nerd Genie's driver log, opencode's step_finish lines, Hermes's
      sessions row, OpenClaw's JSON envelope. Each of those is kept beside the
      daemon's numbers as a cross-check, never in place of them.
   3. The checker's verdict on the work folder, which is the quality half.
@@ -78,7 +78,7 @@ def read_countcalls(path):
 # ---- 2. what the harness itself says it used -------------------------------
 
 def nerdgenie_own_report():
-    """count what the driver had to say to Coeus, from its log of envelopes."""
+    """count what the driver had to say to Nerd Genie, from its log of envelopes."""
     text = read(os.path.join(HOME, "drive.log"))
     done = [line for line in text.splitlines() if "== done in" in line]
     report = {"own_source": "the driver's log of every envelope, drive.log"}
@@ -94,8 +94,8 @@ def nerdgenie_own_report():
         except ValueError:
             continue
     report.setdefault("own_continues", 0)
-    # Coeus's own running totals come over the socket as status fields, so the
-    # last one the driver saw is what Coeus itself thinks it spent.
+    # Nerd Genie's own running totals come over the socket as status fields, so the
+    # last one the driver saw is what Nerd Genie itself thinks it spent.
     for field in ("tokensIn", "tokensOut", "cost", "contextTokens"):
         seen = [line for line in text.splitlines() if ("%s=" % field) in line]
         if not seen:
@@ -325,7 +325,7 @@ lines = [
     "  wall clock: %d minutes %d seconds" % (minutes, seconds),
     "  call cap: %s, and it was hit: %s" % (result["cap"], say(result["cap_hit"])),
     "  wall-clock cap: %s" % result["minutes_cap"],
-    "  Coeus's own task budget raised out of the way: %s" % say(result.get("budget_raised", False)),
+    "  Nerd Genie's own task budget raised out of the way: %s" % say(result.get("budget_raised", False)),
     "",
     "What the model did (from %s)" % result["model_source"],
     "  model calls: %s" % say(result.get("calls")),

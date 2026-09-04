@@ -181,7 +181,7 @@ func (worker *scriptedWorker) answerTo(line []byte) (string, bool) {
 func aDiff(met bool, seen string) map[string]any {
 	return map[string]any{
 		"titleChanged":   false,
-		"title":          "Coeus fixture window",
+		"title":          "Nerd Genie fixture window",
 		"newMarks":       []any{},
 		"goneMarks":      0,
 		"marks":          []any{},
@@ -200,8 +200,8 @@ func aScreenshot() map[string]any {
 			map[string]any{"number": 2, "role": "button", "name": "OK"},
 		},
 		"application": "zenity",
-		"title":       "Coeus fixture window",
+		"title":       "Nerd Genie fixture window",
 		"hidden":      0,
-		"windows":     []any{"Coeus fixture window", "Firefox"},
+		"windows":     []any{"Nerd Genie fixture window", "Firefox"},
 	}
 }

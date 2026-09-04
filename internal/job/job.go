@@ -106,7 +106,7 @@ type heldJob struct {
 // Open opens the jobs in a home folder: it makes its own table in the one SQLite
 // file and rebuilds every job by replaying the event log. The event log must
 // already have been opened on the same file, because internal/log owns that
-// file's identity, and opening a database that is not a Coeus event log is
+// file's identity, and opening a database that is not a Nerd Genie event log is
 // refused with an error saying so.
 func Open(ctx context.Context, home contract.Home, eventLog contract.Store, clock contract.Clock) (*Jobs, error) {
 	if eventLog == nil {
@@ -203,9 +203,9 @@ func (jobs *Jobs) checkTheEventLogIsThere(ctx context.Context) error {
 		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'events'")
 	switch err := row.Scan(&name); {
 	case errors.Is(err, sql.ErrNoRows):
-		return fmt.Errorf("the file %s is not a Coeus event log yet, so open internal/log on it before the jobs", jobs.home.DatabaseFile())
+		return fmt.Errorf("the file %s is not a Nerd Genie event log yet, so open internal/log on it before the jobs", jobs.home.DatabaseFile())
 	case err != nil:
-		return fmt.Errorf("cannot read the tables in %s to check that it is a Coeus event log: %w", jobs.home.DatabaseFile(), err)
+		return fmt.Errorf("cannot read the tables in %s to check that it is a Nerd Genie event log: %w", jobs.home.DatabaseFile(), err)
 	default:
 		return nil
 	}

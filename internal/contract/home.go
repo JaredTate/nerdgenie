@@ -23,7 +23,7 @@ const (
 	DataFileMode fs.FileMode = 0o644
 )
 
-// Home is the agent's home folder and every path inside it. Nothing in Coeus
+// Home is the agent's home folder and every path inside it. Nothing in Nerd Genie
 // builds one of these paths by hand, so that the layout lives in one place.
 type Home struct {
 	// Root is the folder itself, normally "~/.nerdgenie".

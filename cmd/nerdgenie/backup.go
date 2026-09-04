@@ -13,7 +13,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/reliability"
 )
 
-// backupSubcommand writes one encrypted archive of everything Coeus keeps and
+// backupSubcommand writes one encrypted archive of everything Nerd Genie keeps and
 // removes all but the newest few. The nightly systemd timer that "nerdgenie install"
 // writes runs exactly this.
 //
@@ -86,7 +86,7 @@ var restoreSubcommand = subcommand{
 		}
 
 		fmt.Fprintf(output, "put %s back into %s.\n", archive, home.Root)
-		fmt.Fprintf(output, "Start Coeus again to work from what it holds.\n")
+		fmt.Fprintf(output, "Start Nerd Genie again to work from what it holds.\n")
 		return contract.ExitOK
 	},
 }

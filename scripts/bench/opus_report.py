@@ -2,8 +2,8 @@
 """Turn the nine clean Opus 4.8 runs under ~/work/bench/opus3 into the tables
 for OPUS_BENCHMARK.md, reading every number from its primary source.
 
-Coeus: its driver log (task in, answer out, and the cumulative counters that
-Coeus's own provider took from each `claude -p` result line, differenced per
+Nerd Genie: its driver log (task in, answer out, and the cumulative counters that
+Nerd Genie's own provider took from each `claude -p` result line, differenced per
 call, with the cache split taken from Claude Code's own bill per call). OpenClaw and Hermes: the Claude
 Code session file each run left behind, one row per unique model call. Quality
 for all three: check-tater.mjs's verdict. Prices are Anthropic's list prices
@@ -65,7 +65,7 @@ def session_calls(work_folder):
 
 
 def nerdgenie_calls(run_folder):
-    """Coeus's per-call counters, differenced from its driver log, with the
+    """Nerd Genie's per-call counters, differenced from its driver log, with the
     cache split taken from Claude Code's own bill for each call."""
     log = open(os.path.join(run_folder, "home", "drive.log")).read().splitlines()
     rows, previous = [], (0.0, 0, 0)
@@ -78,7 +78,7 @@ def nerdgenie_calls(run_folder):
             continue
         rows.append({"cost_program": now[0] - previous[0], "in": now[1] - previous[1], "out": now[2] - previous[2]})
         previous = now
-    # Coeus's counters merge fresh, cache write and cache read into one "in"
+    # Nerd Genie's counters merge fresh, cache write and cache read into one "in"
     # figure, so the split is taken from Claude Code's own bill for the call:
     # a read costs 0.50 where a write costs 10, so the gap between the all-write
     # price and the bill says how many tokens were read. A tiny Haiku side call
@@ -203,7 +203,7 @@ def main():
     for run in runs:
         for index, c in enumerate(run["calls"], 1):
             think = "" if c["thinking"] is None else str(c["thinking"])
-            tools = ", ".join(c["tools"]) if c["tools"] else ("Coeus's own tools" if run["harness"] == "nerdgenie" else "none")
+            tools = ", ".join(c["tools"]) if c["tools"] else ("Nerd Genie's own tools" if run["harness"] == "nerdgenie" else "none")
             print(f"| {run['harness']} {run['number']} | {index} | {c['fresh']:,} | {c['write']:,} | {c['read']:,} | {c['out']:,} | {think} | {c['fresh'] + c['write'] + c['read']:,} | ${cost(c['fresh'], c['write'], c['read'], c['out']):.3f} | {tools} |")
     print("\n## Notes per run\n")
     for run in runs:

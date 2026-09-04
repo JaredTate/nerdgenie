@@ -271,7 +271,7 @@ func TestAThinkLevelIsReadOffAnAliasAndAnUnknownOneNamesTheGoodOnes(t *testing.T
 			"context_length = 262144\nthink = \""+string(level)+"\"", 1)
 		settings, err := config.Load(writeConfig(t, document))
 		if err != nil {
-			t.Fatalf("the think level %q was refused, and it is one Coeus offers: %v", level, err)
+			t.Fatalf("the think level %q was refused, and it is one Nerd Genie offers: %v", level, err)
 		}
 		if settings.Models[0].Think != level {
 			t.Errorf("the alias thinks at %q, want %q", settings.Models[0].Think, level)

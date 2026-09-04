@@ -3,7 +3,7 @@
 // There every way of talking to the agent is one small trait: a name, a send, a
 // listen that pushes what arrives into one shared sender, an approval prompt
 // that comes back as one of a fixed set of answers, and a health check, so the
-// runtime never learns which surface it is talking to. Coeus keeps that shape in
+// runtime never learns which surface it is talking to. Nerd Genie keeps that shape in
 // contract.Channel and makes the local socket the first thing to implement it,
 // so the terminal is a channel exactly as Signal is.
 

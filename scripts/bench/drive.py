@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drive the Coeus serve over its socket with one prompt and log every envelope.
+"""Drive the Nerd Genie serve over its socket with one prompt and log every envelope.
 
 Usage: drive.py SOCKET PROMPT_FILE LOG [TIMEOUT_MINUTES]
 

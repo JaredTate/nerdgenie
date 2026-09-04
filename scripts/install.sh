@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install Coeus on Ubuntu or Debian, from the web with
+# Install Nerd Genie on Ubuntu or Debian, from the web with
 #   curl -fsSL https://raw.githubusercontent.com/JaredTate/nerdgenie/main/scripts/install.sh | sh
 # or from a checkout with "sh scripts/install.sh". Anything after a bare "--" is
 # handed to "nerdgenie init", so a machine with no keyboard can answer every question
@@ -47,7 +47,7 @@ usage() {
 usage: install.sh [options] [-- <flags for nerdgenie init>]
   --from <path>    install this archive from "make release" instead of downloading one
   --version <tag>  download this release rather than the newest one
-  --no-signal      leave signal-cli out; Coeus needs it only to talk over Signal
+  --no-signal      leave signal-cli out; Nerd Genie needs it only to talk over Signal
   --help           print this and stop
 With every question answered on the command line:
   sh install.sh -- --model local --work-folder ~/nerdgenie --signal off --yes
@@ -87,7 +87,7 @@ architecture=$(uname -m)
 case "$architecture" in
 x86_64) architecture=amd64 ;;
 aarch64 | arm64) architecture=arm64 ;;
-*) die "Coeus is released for x86_64 and aarch64, and this machine is $architecture, so build it yourself with \"make release\"" ;;
+*) die "Nerd Genie is released for x86_64 and aarch64, and this machine is $architecture, so build it yourself with \"make release\"" ;;
 esac
 
 # Step one: get the archive and be sure of it before anything on this machine is
@@ -120,7 +120,7 @@ else
 	say "the checksum of $(basename "$archive") matches SHA256SUMS"
 fi
 
-# Step two: the programs Coeus runs. None of these is fatal: a machine missing one
+# Step two: the programs Nerd Genie runs. None of these is fatal: a machine missing one
 # runs with that one tool switched off, and "nerdgenie doctor" says which.
 if apt_can; then
 	say "installing bubblewrap and ripgrep with apt-get"
@@ -130,7 +130,7 @@ else
 	warn "this installer knows how to install packages on Ubuntu and Debian only, and this is $distribution, so install bubblewrap, ripgrep, and signal-cli yourself with its package manager"
 fi
 if [ "$install_signal" != yes ]; then
-	say "signal-cli was left out because of --no-signal; install it later if you want to talk to Coeus over Signal"
+	say "signal-cli was left out because of --no-signal; install it later if you want to talk to Nerd Genie over Signal"
 elif apt_can && as_root apt-get install -y -qq signal-cli 2>/dev/null; then
 	say "signal-cli came from apt-get"
 elif [ "$architecture" != amd64 ]; then
@@ -171,7 +171,7 @@ fi
 
 say "Google Chrome is yours to install: get it from https://www.google.com/chrome, or run \"sudo apt-get install chromium\". The browser tools need one of the two; everything else works without it."
 mkdir -p "$work_folder"
-say "the work folder $work_folder is ready, and Coeus may read and write there and nowhere else"
+say "the work folder $work_folder is ready, and Nerd Genie may read and write there and nowhere else"
 
 # Step four: put the release where the service unit looks for it. "current" is a
 # link to one version's binary, and the updater of brief 6.3 moves that link.

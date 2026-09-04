@@ -167,7 +167,7 @@ func refuseADowngrade(request *http.Request, sent []*http.Request) error {
 			len(sent), maxRedirects)
 	}
 	if len(sent) > 0 && sent[0].URL.Scheme == "https" && request.URL.Scheme != "https" {
-		return fmt.Errorf("the release address %s sent Coeus on to %s, which is not https, so nothing was read; a release is only as trustworthy as the manifest that names its checksums, so name an https address with --from",
+		return fmt.Errorf("the release address %s sent Nerd Genie on to %s, which is not https, so nothing was read; a release is only as trustworthy as the manifest that names its checksums, so name an https address with --from",
 			sent[0].URL, request.URL)
 	}
 	return nil

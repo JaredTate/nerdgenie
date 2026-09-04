@@ -18,7 +18,7 @@ import (
 // can be a golden file.
 func theModelMenu(t *testing.T, printed string, daemon string, lmStudio string) []byte {
 	t.Helper()
-	const question = "Which model should Coeus use?"
+	const question = "Which model should Nerd Genie use?"
 	begins := strings.Index(printed, question)
 	if begins < 0 {
 		t.Fatalf("nerdgenie init never printed the model menu:\n%s", printed)

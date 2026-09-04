@@ -22,7 +22,7 @@ import (
 )
 
 // maxVaultFileBytes caps how much plaintext one vault file may hold, because
-// every buffer in Coeus has a cap and a real vault is a few kilobytes.
+// every buffer in Nerd Genie has a cap and a real vault is a few kilobytes.
 const maxVaultFileBytes = 1 << 20
 
 // Vault is the encrypted secret store: the entries, the key that opens them,

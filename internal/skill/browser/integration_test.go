@@ -152,7 +152,7 @@ func installTheShippedQualitySkill(ctx context.Context, t *testing.T, store *ski
 	if err != nil {
 		t.Fatalf("the installed quality skill has no changelog: %v", err)
 	}
-	if !strings.Contains(changelog, "shipped with Coeus") {
+	if !strings.Contains(changelog, "shipped with Nerd Genie") {
 		t.Errorf("the changelog does not say where the skill came from:\n%s", changelog)
 	}
 }

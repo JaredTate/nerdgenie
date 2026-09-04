@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// MaxConfigBytes is the largest configuration file Coeus will read. A settings
+// MaxConfigBytes is the largest configuration file Nerd Genie will read. A settings
 // file is a page or two, so anything past this is a mistake or a file that is
 // not a configuration at all, and reading it whole into memory helps nobody.
 const MaxConfigBytes = 1 << 20

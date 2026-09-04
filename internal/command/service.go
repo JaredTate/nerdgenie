@@ -25,7 +25,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// ServiceName is the name of the systemd user unit Coeus runs under.
+// ServiceName is the name of the systemd user unit Nerd Genie runs under.
 const ServiceName = "nerdgenie.service"
 
 // The two units that run the nightly backup. The service does one backup and
@@ -43,7 +43,7 @@ const (
 	backupSpread = 900
 )
 
-// WatchdogSeconds is how long systemd waits to hear from Coeus before it
+// WatchdogSeconds is how long systemd waits to hear from Nerd Genie before it
 // decides that the program is stuck and starts it again.
 const WatchdogSeconds = 60
 
@@ -60,7 +60,7 @@ func UnitText(home contract.Home) string {
 		writtenByInstall,
 		"",
 		"[Unit]",
-		"Description=Coeus, an assistant that runs on your own computer",
+		"Description=Nerd Genie, an assistant that runs on your own computer",
 		"After=network-online.target",
 		"Wants=network-online.target",
 		"",
@@ -89,7 +89,7 @@ func BackupServiceText(home contract.Home) string {
 		writtenByInstall,
 		"",
 		"[Unit]",
-		"Description=Coeus nightly backup of the database, the vault, and the browser profile",
+		"Description=Nerd Genie nightly backup of the database, the vault, and the browser profile",
 		"",
 		"[Service]",
 		"Type=oneshot",
@@ -107,7 +107,7 @@ func BackupTimerText(home contract.Home) string {
 		writtenByInstall,
 		"",
 		"[Unit]",
-		"Description=Coeus nightly backup",
+		"Description=Nerd Genie nightly backup",
 		"",
 		"[Timer]",
 		"OnCalendar=" + backupTime,

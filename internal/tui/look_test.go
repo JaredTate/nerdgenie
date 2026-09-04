@@ -79,7 +79,7 @@ func TestANarrowTerminalGetsTheWordmarkInPlainLettersRatherThanBlocks(t *testing
 	if strings.Contains(frame, string(blockGlyph)) {
 		t.Errorf("a forty-column terminal drew the block letters, which do not fit:\n%s", frame)
 	}
-	if !strings.Contains(frame, "COEUS AGENT") {
+	if !strings.Contains(frame, "NERD GENIE AGENT") {
 		t.Errorf("a forty-column terminal lost the wordmark altogether:\n%s", frame)
 	}
 	for number, line := range strings.Split(frame, "\n") {

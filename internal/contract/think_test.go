@@ -66,7 +66,7 @@ func TestAModelAliasAndACallBothCarryAThinkLevel(t *testing.T) {
 }
 
 // TestAFreshConfigurationNamesNoThinkLevel holds that the shipped alias keeps
-// the behaviour Coeus had before this setting existed: nothing is sent, and the
+// the behaviour Nerd Genie had before this setting existed: nothing is sent, and the
 // provider's own default stands.
 func TestAFreshConfigurationNamesNoThinkLevel(t *testing.T) {
 	for _, alias := range contract.DefaultConfig().Models {

@@ -22,7 +22,7 @@ import (
 // can hold, which is more time than any program will see.
 const noLimit = time.Duration(math.MaxInt64)
 
-// ErrDeadlineExpired is what every deadline in Coeus reports when the work ran
+// ErrDeadlineExpired is what every deadline in Nerd Genie reports when the work ran
 // out of time. It is our own limit and never the model provider's, so a caller
 // can tell the two apart.
 var ErrDeadlineExpired = errors.New("the work ran out of the time it was given")
@@ -57,7 +57,7 @@ func NoDeadline(clock contract.Clock, label string) Deadline {
 }
 
 // TurnDeadline is the limit on one whole turn. It is off unless the user set
-// time_per_turn, because Coeus puts no cap on its own work unless asked to.
+// time_per_turn, because Nerd Genie puts no cap on its own work unless asked to.
 func TurnDeadline(clock contract.Clock, caps contract.Caps) Deadline {
 	if caps.TimePerTurn <= 0 {
 		return NoDeadline(clock, "the turn")

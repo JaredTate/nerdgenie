@@ -18,7 +18,7 @@ const (
 
 // wordmarkText is what the banner says, and the letters the block font has to
 // know how to draw.
-const wordmarkText = "COEUS AGENT"
+const wordmarkText = "NERD GENIE AGENT"
 
 // taglineText is the one line under the wordmark: what this agent is for, in
 // the fewest words that say it.
@@ -31,21 +31,20 @@ const taglineText = "the agent that does not forget what it is doing"
 const commandHintText = "type / to see the commands"
 
 // blockLetters is the five-row block font the wordmark is drawn in, written here
-// rather than taken from a library because nine letters are nine letters. A
-// space is drawn by the gap between the two words rather than by a letter.
+// rather than taken from a library because eight letters are eight letters. A
+// space is drawn by the gap between words rather than by a letter.
 var blockLetters = map[rune][blockRows]string{
-	'C': {"█████", "█    ", "█    ", "█    ", "█████"},
-	'O': {"█████", "█   █", "█   █", "█   █", "█████"},
-	'E': {"█████", "█    ", "████ ", "█    ", "█████"},
-	'U': {"█   █", "█   █", "█   █", "█   █", "█████"},
-	'S': {"█████", "█    ", "█████", "    █", "█████"},
-	'A': {"█████", "█   █", "█████", "█   █", "█   █"},
-	'G': {"█████", "█    ", "█  ██", "█   █", "█████"},
 	'N': {"█   █", "██  █", "█ █ █", "█  ██", "█   █"},
+	'E': {"█████", "█    ", "████ ", "█    ", "█████"},
+	'R': {"████ ", "█   █", "████ ", "█  █ ", "█   █"},
+	'D': {"████ ", "█   █", "█   █", "█   █", "████ "},
+	'G': {"█████", "█    ", "█  ██", "█   █", "█████"},
+	'I': {"█████", "  █  ", "  █  ", "  █  ", "█████"},
+	'A': {"█████", "█   █", "█████", "█   █", "█   █"},
 	'T': {"█████", "  █  ", "  █  ", "  █  ", "  █  "},
 }
 
-// wordmarkRows draws COEUS AGENT in block letters, five rows tall, or says
+// wordmarkRows draws NERD GENIE AGENT in block letters, five rows tall, or says
 // false when the terminal is too narrow to hold them.
 func wordmarkRows(width int) ([blockRows]string, bool) {
 	drawn := [blockRows]string{}

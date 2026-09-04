@@ -33,7 +33,7 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 // lines of the record's header.
 //
 // The record's body used to sit above the messages, and a measurement on the
-// local daemon says what that cost. On one Coeus call it reported 18,658 prompt
+// local daemon says what that cost. On one Nerd Genie call it reported 18,658 prompt
 // tokens of which 4,322 were reused, which is the system blocks and not one
 // byte more, so 14,336 tokens were read from scratch: forty seconds of prefill
 // for forty-five generated tokens, while opencode on the same model and the

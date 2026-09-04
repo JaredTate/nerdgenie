@@ -71,7 +71,7 @@ func (model *commandLineModel) claudeArguments(folder, systemText string, level 
 // The think level goes on the same way, as the configuration override
 // model_reasoning_effort, which is the only way the program takes one. Asked for
 // a level it did not know, the program's own refusal named the ones it does:
-// none, minimal, low, medium, high, xhigh, and max. Every level Coeus offers is
+// none, minimal, low, medium, high, xhigh, and max. Every level Nerd Genie offers is
 // one of those, with "off" going over as "none", which is no reasoning at all.
 func (model *commandLineModel) codexArguments(folder, systemText string, level contract.Think) ([]string, error) {
 	path, err := model.writeSystemPrompt(folder, instructionsFileName, systemText)

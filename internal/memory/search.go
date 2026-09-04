@@ -3,7 +3,7 @@
 // fresh in Go: search over MEMORY.md, USER.md, the markdown files under the
 // memory folder, and the indexed past conversations, with a second call that
 // reads one of them back in full by the name the search gave it. OpenClaw makes
-// the corpus a parameter the model has to choose; Coeus searches all of it at
+// the corpus a parameter the model has to choose; Nerd Genie searches all of it at
 // once and says in the id of each result which kind of thing it is, because a
 // model that has to pick a corpus first will pick the wrong one.
 

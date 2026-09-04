@@ -26,7 +26,7 @@
 //
 // The numbers are why the tail is where it is. The record's body used to be the
 // first thing under the cache line, above the conversation. Measured on the
-// local llama-server daemon, one Coeus call then read 18,658
+// local llama-server daemon, one Nerd Genie call then read 18,658
 // prompt tokens of which the daemon reused 4,322, which is the system blocks and
 // not one byte more: 14,336 tokens read from scratch, forty seconds of prefill
 // for forty-five generated tokens, on a task another agent finished in two

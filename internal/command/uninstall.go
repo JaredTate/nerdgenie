@@ -15,7 +15,7 @@ import (
 
 // PurgeConfirmation is the word that has to be typed, exactly and with nothing
 // else on the line, before "nerdgenie uninstall --purge" removes the home folder.
-// Everything Coeus has learned is in there, so a slip of the finger must not be
+// Everything Nerd Genie has learned is in there, so a slip of the finger must not be
 // enough.
 const PurgeConfirmation = "delete"
 
@@ -39,7 +39,7 @@ func (service Service) Uninstall(ctx context.Context, arguments []string) error 
 	purge := false
 	set := flag.NewFlagSet("nerdgenie uninstall", flag.ContinueOnError)
 	set.SetOutput(service.Output)
-	set.BoolVar(&purge, "purge", false, "remove the home folder and everything Coeus has learned, after asking")
+	set.BoolVar(&purge, "purge", false, "remove the home folder and everything Nerd Genie has learned, after asking")
 	if err := set.Parse(arguments); err != nil {
 		return fmt.Errorf("nerdgenie uninstall could not read its flags, so nothing was changed: %w", err)
 	}
@@ -76,7 +76,7 @@ func (service Service) Uninstall(ctx context.Context, arguments []string) error 
 // purgeHome asks for the confirmation word and removes the home folder only
 // when exactly that word was typed.
 func (service Service) purgeHome() error {
-	fmt.Fprintf(service.Output, "\n%s holds every task, memory, skill, and secret Coeus has.\n", service.Home.Root)
+	fmt.Fprintf(service.Output, "\n%s holds every task, memory, skill, and secret Nerd Genie has.\n", service.Home.Root)
 	fmt.Fprintf(service.Output, "Type %s to remove it, or press Enter to keep it.\n", PurgeConfirmation)
 
 	typed, err := readConfirmation(service.Input)

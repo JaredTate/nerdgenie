@@ -1,6 +1,6 @@
 # The GPT-5.6 Sol Benchmark: all four harnesses, each driving the model itself
 
-One clean round on 2026-09-03: Coeus, opencode, Hermes and OpenClaw on
+One clean round on 2026-09-03: Nerd Genie, opencode, Hermes and OpenClaw on
 GPT-5.6 Sol at thinking medium, on the user's ChatGPT subscription with no API
 key, on the same tic-tac-toe task as the Opus and Qwen phases. This is the
 comparison the Opus phase could not give: every harness here drives the model
@@ -11,16 +11,16 @@ used by outside tools and Anthropic does not.
 driving the model with its own loop on the subscription, no API key: opencode
 in 76 seconds and 5 calls for about eight cents, OpenClaw's own loop in 88
 seconds and 5 turns for about fourteen cents, Hermes in 2 min 2 s and 10
-calls for about twenty-four cents, Coeus in 2 min 28 s and 10 calls for about
+calls for about twenty-four cents, Nerd Genie in 2 min 28 s and 10 calls for about
 twenty-eight cents, through a provider built this afternoon after its first
 route proved unusable.
-**Coeus's first attempt could not be measured**, for a defect in Coeus proved
+**Nerd Genie's first attempt could not be measured**, for a defect in Nerd Genie proved
 below: the `codex` program it ran describes its own tools to the model inside
 a developer message that no switch removes, so the model used those tools in
-a read-only sandbox and Coeus's own tools were never called. The fix was a
+a read-only sandbox and Nerd Genie's own tools were never called. The fix was a
 new provider, `provider = "codex"`, that talks to OpenAI's Codex backend
 directly with the codex login, the way the other three do, built and gated
-the same afternoon; round 2 above is the result: Coeus green in ten calls,
+the same afternoon; round 2 above is the result: Nerd Genie green in ten calls,
 2 min 28 s, about 28 cents.
 
 
@@ -33,13 +33,13 @@ browser in the current folder, `game.js` with three pure functions, an
 `tests/game.test.mjs` for Node's test runner with six named cases, run the
 tests, make them pass, install nothing, stop when they pass.
 
-## How each harness reaches GPT-5.6 Sol, and what went wrong for Coeus
+## How each harness reaches GPT-5.6 Sol, and what went wrong for Nerd Genie
 
-| | Coeus | opencode | Hermes | OpenClaw |
+| | Nerd Genie | opencode | Hermes | OpenClaw |
 |---|---|---|---|---|
 | Login | the `codex` program, logged in to the subscription | opencode's own "ChatGPT Plus/Pro" login | the codex login, which Hermes's `openai-codex` provider reads | the codex login, through OpenClaw's `openai` provider |
-| How the model is called | round 1: `codex exec` as a bare model (unusable, see below); round 2: its `codex` provider, straight to OpenAI's Codex backend with the codex login; Coeus's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | **by default, the codex program** (OpenClaw's "codex" runtime, a wrapper like claude-cli); its own embedded loop only when `agentRuntime.id = "openclaw"` is pinned on the model in its config |
-| Whose loop | Coeus | opencode | Hermes | codex by default; OpenClaw when pinned |
+| How the model is called | round 1: `codex exec` as a bare model (unusable, see below); round 2: its `codex` provider, straight to OpenAI's Codex backend with the codex login; Nerd Genie's tools do the work | its own loop, straight to OpenAI's Codex backend | its own loop, straight to OpenAI's Codex backend | **by default, the codex program** (OpenClaw's "codex" runtime, a wrapper like claude-cli); its own embedded loop only when `agentRuntime.id = "openclaw"` is pinned on the model in its config |
+| Whose loop | Nerd Genie | opencode | Hermes | codex by default; OpenClaw when pinned |
 | Thinking | `think = "medium"` in its config, sent as the request's reasoning effort | `--variant medium` | `--reasoning medium` | `--thinking medium` |
 | Command | `coeus serve` on a fresh home, driven over its socket by `scripts/bench/drive.py` | `opencode run -m openai/gpt-5.6-sol --variant medium --format json "<task>"` | `hermes chat -q "<task>" --provider openai-codex -m gpt-5.6-sol --reasoning medium --yolo --in <work>` | `openclaw agent exec --message-file task.txt --model openai/gpt-5.6-sol --thinking medium --cwd <work> --timeout 0 --json` |
 
@@ -56,11 +56,11 @@ labelled. Hermes's session shows its own tool calls and seven API calls of its
 own, so Hermes ran its own loop.
 
 
-**Why Coeus's row is not a result.** Coeus's `codex` provider runs `codex exec`
+**Why Nerd Genie's row is not a result.** Nerd Genie's `codex` provider runs `codex exec`
 once per model call with its shell tools switched off (`--disable shell_tool
---disable unified_exec`), Coeus's system prompt in place, and a read-only
+--disable unified_exec`), Nerd Genie's system prompt in place, and a read-only
 sandbox, expecting the program to behave as a bare model and to write tool
-calls in Coeus's text form. It does not. A local listener stood in for the
+calls in Nerd Genie's text form. It does not. A local listener stood in for the
 backend and recorded the exact request the program sends: the `tools` field is
 empty, but the `input` carries a developer item of type `additional_tools`,
 18,472 characters long, describing the program's own tools (its exec, its file
@@ -70,14 +70,14 @@ off (`shell_tool`, `unified_exec`, `multi_agent`, `apps`, `web_search`,
 8,142 characters and does not go away. So the model always has the program's
 tools in front of it, prefers them, tried to write the files with them inside
 the read-only sandbox, was refused, looped inside the program for 146,933
-tokens, and told Coeus "the workspace is read-only, so file creation was
-rejected." Coeus's own `write` and `shell` tools were never asked for. The
-run is recorded, but it measures the codex program, not Coeus.
+tokens, and told Nerd Genie "the workspace is read-only, so file creation was
+rejected." Nerd Genie's own `write` and `shell` tools were never asked for. The
+run is recorded, but it measures the codex program, not Nerd Genie.
 
 The fix is not a flag. It is a provider that speaks to OpenAI's Codex backend
 directly with the codex login, the route Hermes, OpenClaw and opencode use, so
-that Coeus's loop and tools drive the model. That provider is being built and
-this file gets Coeus's row when it is in.
+that Nerd Genie's loop and tools drive the model. That provider is being built and
+this file gets Nerd Genie's row when it is in.
 
 ## What was held equal
 
@@ -86,11 +86,11 @@ this file gets Coeus's row when it is in.
   (`COEUS_HOME`; fresh `XDG` folders for opencode, holding only a copy of its
   login file; a fresh `HERMES_HOME` outside `~/.hermes`; OpenClaw's own
   throw-away state folder). No memory, no past session, no instruction file.
-- **One at a time.** Coeus, opencode, Hermes, OpenClaw, in that order.
+- **One at a time.** Nerd Genie, opencode, Hermes, OpenClaw, in that order.
 - **Thinking medium** on every one, by the flag or setting each harness has for it.
-- **No cap of any kind.** Coeus's own task budget raised out of reach.
+- **No cap of any kind.** Nerd Genie's own task budget raised out of reach.
 - **The same judge**, `scripts/bench/check-tater.mjs`, after the harness exited.
-- **The same clock**: task in to final answer out. For Coeus that is its
+- **The same clock**: task in to final answer out. For Nerd Genie that is its
   driver's log; for the others, launch to exit.
 - **The same prices**, OpenAI's list for GPT-5.6 Sol on 2026-09-03: input $4,
   cached input $0.40, output $20, per million tokens. Every harness reports its
@@ -99,18 +99,18 @@ this file gets Coeus's row when it is in.
 ## Where the token numbers come from, and one caution
 
 Each harness counts its own tokens, from the usage the API returned to it:
-Coeus from each `codex exec` result, opencode from its per-step records,
+Nerd Genie from each `codex exec` result, opencode from its per-step records,
 Hermes from its session database, OpenClaw from its run envelope. There is no
 outside referee on this path the way the daemon log is on Qwen, so the counts
 are only as honest as each harness's bookkeeping. OpenClaw's envelope reports a
-run total and no per-call rows; Hermes reports a run total too. Coeus's cached
+run total and no per-call rows; Hermes reports a run total too. Nerd Genie's cached
 count comes from its record's per-turn line, which rounds to the hundred.
 Reasoning tokens are inside the output count wherever the harness reports
 them, and shown apart where it does.
 ## Results: the round that counts (round 2, all four driving the model themselves)
 
 Run at 15:15 to 15:23 on 2026-09-03, one harness at a time from blank folders
-and blank homes, Coeus through its new `codex` provider, OpenClaw pinned to its
+and blank homes, Nerd Genie through its new `codex` provider, OpenClaw pinned to its
 own loop, thinking medium everywhere.
 
 | Harness | Run | Green | Task in to answer out | Model calls | Tool calls | Tokens in | of which cached | Tokens out | of which reasoning | Cost | Logic | Plays | Tests | game.js |
@@ -122,20 +122,20 @@ own loop, thinking medium everywhere.
 
 Cost is OpenAI's list price for GPT-5.6 Sol on 2026-09-03: input $4, cached
 input $0.40, output $20, per million tokens, applied to each harness's own
-token counts. Coeus's cached count comes from its record's per-turn line,
-rounded to the hundred; Coeus's provider does not count reasoning tokens
+token counts. Nerd Genie's cached count comes from its record's per-turn line,
+rounded to the hundred; Nerd Genie's provider does not count reasoning tokens
 apart from output.
 
 **Reading it.** All four finished green with their own loop and their own
 tools, the same correct game, the same six tests. opencode was the fastest and
 cheapest (five calls, 76 seconds, about eight cents). OpenClaw's own loop took
-five turns and about fourteen cents. Coeus took ten calls: it writes its record
+five turns and about fourteen cents. Nerd Genie took ten calls: it writes its record
 first (the why, the done list, the stop list, the plan) before touching a file,
 reads the folder, writes the three files, runs the tests, and checks the done
 list, and on this run it also read its browser skill; the record costs calls
 on a three-file task and pays for itself on a forty-round one. Hermes took ten
 calls and twenty tool calls and re-sent a large prompt each time (206,000 of
-its 233,000 tokens were cache reads). Time is task in to answer out for Coeus
+its 233,000 tokens were cache reads). Time is task in to answer out for Nerd Genie
 and launch to exit for the others.
 
 ## Results: round 1, kept for what it taught
@@ -178,19 +178,19 @@ and launch to exit for the others.
    $0.15 at list prices (OpenClaw's own figure says $0.20), with its own
    `exec` and `apply_patch` tools. That is OpenClaw's harness, and it is the
    row to compare with the others.
-5. **Coeus is missing for a reason that is Coeus's fault**, explained above,
+5. **Nerd Genie is missing for a reason that is Nerd Genie's fault**, explained above,
    with the fix under way.
 6. **Two runs failed for reasons that were the benchmark's fault, not the
    harness's**, and both are recorded: Hermes's first run never started
    because the fresh home had no codex login (fixed by copying the login file
-   into the fresh home, exactly as opencode's run does); Coeus's run is the
+   into the fresh home, exactly as opencode's run does); Nerd Genie's run is the
    provider defect.
 
 ## What this comparison can say
 
 On GPT-5.6 Sol the three other harnesses are measured driving the model
 themselves (OpenClaw only in its pinned own-loop run), which is what the Opus
-phase could not do. When Coeus's Codex
+phase could not do. When Nerd Genie's Codex
 backend provider lands, this becomes the first four-way, loop-against-loop
 comparison on a frontier cloud model with no API key, and the round is rerun
 in full so all four rows come from the same hour.

@@ -16,7 +16,7 @@ import (
 // cache boundaries where the design puts them.
 func TestTheLayersArriveInTheOrderTheDesignPutsThem(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
-	writePersonaFile(t, builder.home.SoulFile(), "I am Coeus.")
+	writePersonaFile(t, builder.home.SoulFile(), "I am Nerd Genie.")
 
 	input := sampleInput()
 	input.JobSummary = "# job 4   running   3 of 12 tasks done"

@@ -15,7 +15,7 @@ import (
 
 // theThreeWordsAsked is the whole of what the person wanted, and the whole of
 // what proves the done line.
-const theThreeWordsAsked = "Coeus is running."
+const theThreeWordsAsked = "Nerd Genie is running."
 
 // aTaskTheAnswerItselfProves is one whole task in two calls: write down what
 // done looks like, naming the answer as the proof of the one line, and then

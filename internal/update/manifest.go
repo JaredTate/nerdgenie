@@ -78,7 +78,7 @@ func ParseManifest(written []byte) (Manifest, error) {
 // trust what it says.
 func (manifest Manifest) check() error {
 	if !plainName(manifest.Version) {
-		return fmt.Errorf("the release manifest gives the version as %q, which cannot be a folder name, so the address is serving something other than a Coeus manifest",
+		return fmt.Errorf("the release manifest gives the version as %q, which cannot be a folder name, so the address is serving something other than a Nerd Genie manifest",
 			manifest.Version)
 	}
 	if len(manifest.Architectures) == 0 {
@@ -86,7 +86,7 @@ func (manifest Manifest) check() error {
 	}
 	for _, architecture := range manifest.Architectures {
 		if !plainName(architecture) {
-			return fmt.Errorf("the release manifest names %q as an architecture, which cannot be part of a file name, so the manifest is not one Coeus can use", architecture)
+			return fmt.Errorf("the release manifest names %q as an architecture, which cannot be part of a file name, so the manifest is not one Nerd Genie can use", architecture)
 		}
 		if _, err := manifest.ChecksumFor(architecture); err != nil {
 			return err

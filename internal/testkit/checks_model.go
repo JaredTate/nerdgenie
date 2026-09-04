@@ -22,7 +22,7 @@ func CheckModel(ctx context.Context, model contract.Model) error {
 	reply, err := model.Send(ctx, contract.Request{
 		SystemBlocks: []contract.SystemBlock{{
 			Name:     "harness rules and persona",
-			Text:     "You are the reasoning engine inside Coeus.",
+			Text:     "You are the reasoning engine inside Nerd Genie.",
 			Boundary: contract.CacheBoundaryA,
 		}},
 		Messages:        []contract.Message{{Role: contract.RoleUser, Text: "Say anything at all."}},

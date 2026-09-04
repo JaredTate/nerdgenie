@@ -1,6 +1,6 @@
 // The three answers a user may give, and the rule that the last matching rule
 // wins, are OpenCode's permission design, at
-// ~/Code/opencode/packages/opencode/src/permission/index.ts. Coeus keeps the
+// ~/Code/opencode/packages/opencode/src/permission/index.ts. Nerd Genie keeps the
 // answers in memory for one session only, because nothing durable belongs in a
 // decision the user can take back by restarting.
 

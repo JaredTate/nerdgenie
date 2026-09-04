@@ -129,7 +129,7 @@ func TestASourceFileOverTheCapIsRefusedRatherThanReadWhole(t *testing.T) {
 	_, err := lint.CheckPackage(root)
 
 	if err == nil {
-		t.Fatal("a source file over the cap was read whole, and every buffer in Coeus has a cap")
+		t.Fatal("a source file over the cap was read whole, and every buffer in Nerd Genie has a cap")
 	}
 	if !strings.Contains(err.Error(), "huge.go") {
 		t.Errorf("the failure does not name the file that is too big: %v", err)

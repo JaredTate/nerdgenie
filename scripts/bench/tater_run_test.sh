@@ -123,7 +123,7 @@ if [ ! -f "$TASK" ]; then
   exit 1
 fi
 if [ ! -x "$REPO/bin/nerdgenie" ]; then
-  echo "There is no Coeus binary at $REPO/bin/nerdgenie; run \"make build\" first." >&2
+  echo "There is no Nerd Genie binary at $REPO/bin/nerdgenie; run \"make build\" first." >&2
   exit 1
 fi
 
@@ -238,7 +238,7 @@ base_address = "$url"
 model_name = "$model"
 context_length = $context
 
-# The benchmark puts no cap on any harness, so Coeus's own task budget is
+# The benchmark puts no cap on any harness, so Nerd Genie's own task budget is
 # raised out of the way. Every other cap is left at its default.
 [caps]
 rounds_per_task = 1000000

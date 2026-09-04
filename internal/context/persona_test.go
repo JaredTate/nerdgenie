@@ -42,7 +42,7 @@ func TestAHomeWithNoPersonaFilesBuildsAnEmptyPersona(t *testing.T) {
 // line.
 func TestTheThreeFilesArriveInOrderAndInTheRightHalves(t *testing.T) {
 	home := testkit.NewTempHome(t)
-	writePersonaFile(t, home.SoulFile(), "I am Coeus.")
+	writePersonaFile(t, home.SoulFile(), "I am Nerd Genie.")
 	writePersonaFile(t, home.UserFactsFile(), "Jared runs DigiByte.")
 	writePersonaFile(t, home.WorldFactsFile(), "DigiByte launched in 2014.")
 
@@ -55,7 +55,7 @@ func TestTheThreeFilesArriveInOrderAndInTheRightHalves(t *testing.T) {
 		t.Fatalf("cannot read what the agent knows: %v", err)
 	}
 
-	if !strings.Contains(persona, "I am Coeus.") {
+	if !strings.Contains(persona, "I am Nerd Genie.") {
 		t.Errorf("the persona does not carry SOUL.md:\n%s", persona)
 	}
 	for _, unwanted := range []string{"Jared runs DigiByte.", "DigiByte launched in 2014."} {
@@ -69,7 +69,7 @@ func TestTheThreeFilesArriveInOrderAndInTheRightHalves(t *testing.T) {
 			t.Errorf("what the agent knows does not carry %q:\n%s", wanted, known)
 		}
 	}
-	if strings.Contains(known, "I am Coeus.") {
+	if strings.Contains(known, "I am Nerd Genie.") {
 		t.Errorf("what the agent knows carries SOUL.md, which belongs in the persona:\n%s", known)
 	}
 	if user, world := strings.Index(known, "Jared"), strings.Index(known, "DigiByte launched"); user > world {

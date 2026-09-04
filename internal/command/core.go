@@ -9,7 +9,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// Help is the "/help" command: the one listing of everything Coeus answers, in
+// Help is the "/help" command: the one listing of everything Nerd Genie answers, in
 // the order the commands were registered.
 func (commands *Commands) Help() contract.Command {
 	return contract.Command{
@@ -95,7 +95,7 @@ func (commands *Commands) costLine() string {
 }
 
 // jobLines are the jobs line and one line per job. A job is the scheduled work
-// in Coeus: "/cron" shows only the ones that also carry a clock schedule.
+// in Nerd Genie: "/cron" shows only the ones that also carry a clock schedule.
 func (commands *Commands) jobLines(ctx context.Context) []string {
 	if commands.deps.Jobs == nil {
 		return []string{"jobs: no job store in this build"}

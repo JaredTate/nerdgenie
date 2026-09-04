@@ -1,4 +1,4 @@
-# Coeus build targets. Every target in docs/WORK_PLAN.md Part 1 is here, and the
+# Nerd Genie build targets. Every target in docs/WORK_PLAN.md Part 1 is here, and the
 # same table is in CLAUDE.md. `make check` is the gate: a wave does not pass until
 # it is clean, and continuous integration runs it on every push.
 

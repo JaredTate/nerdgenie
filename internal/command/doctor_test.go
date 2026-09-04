@@ -97,7 +97,7 @@ func TestDoctorSaysWhatIsMissingWhenTheSandboxCannotFence(t *testing.T) {
 	written := &strings.Builder{}
 
 	if !command.Doctor(context.Background(), home, written) {
-		t.Errorf("the doctor called a machine without bubblewrap broken, and Coeus runs with the shell tool off:\n%s", written)
+		t.Errorf("the doctor called a machine without bubblewrap broken, and Nerd Genie runs with the shell tool off:\n%s", written)
 	}
 	for _, wanted := range []string{sandboxFindingName, "bubblewrap"} {
 		if !strings.Contains(written.String(), wanted) {

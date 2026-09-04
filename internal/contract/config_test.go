@@ -66,7 +66,7 @@ func TestDefaultConfigCarriesTheCapsFromTheDesign(t *testing.T) {
 	}
 }
 
-// TestTheThreeBudgetsAreOffUnlessTheUserSetsThem is the user's rule: Coeus puts
+// TestTheThreeBudgetsAreOffUnlessTheUserSetsThem is the user's rule: Nerd Genie puts
 // no cap on its own work unless the user asks for one. The round budget, the
 // task time, and the turn time all default to zero, which the loop, the record,
 // and the status line read as no limit at all.

@@ -22,7 +22,7 @@ const HealthProbeWait = 2 * time.Second
 
 // Doctor looks at a home folder and reports what it finds: which parts of the
 // layout are there, which have a mode that lets other accounts read them,
-// whether the configuration loads, which of the outside programs Coeus uses are
+// whether the configuration loads, which of the outside programs Nerd Genie uses are
 // on the PATH, and whether the local model daemon answers its health check. It
 // changes nothing at all, so it is safe to run at any time; "nerdgenie init" and
 // "nerdgenie doctor" both print what it found.
@@ -157,7 +157,7 @@ func oneFileFinding(what string, path string, wanted fs.FileMode, whenMissing st
 	}
 }
 
-// outsideProgram is one program Coeus runs that it does not ship: the names to
+// outsideProgram is one program Nerd Genie runs that it does not ship: the names to
 // look for on the PATH, and what stops working when none of them is there.
 type outsideProgram struct {
 	names       []string
@@ -165,8 +165,8 @@ type outsideProgram struct {
 	whenMissing string
 }
 
-// theOutsidePrograms is every program Coeus calls out to. None of them stops
-// Coeus from running, so a missing one is a warning that names what it switches
+// theOutsidePrograms is every program Nerd Genie calls out to. None of them stops
+// Nerd Genie from running, so a missing one is a warning that names what it switches
 // off.
 func theOutsidePrograms() []outsideProgram {
 	return []outsideProgram{

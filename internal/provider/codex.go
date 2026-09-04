@@ -43,7 +43,7 @@ const (
 	// lets through, which is the codex program's own.
 	codexOriginator = "codex_cli_rs"
 	// codexUserAgent is shaped like the codex program's, for the same reason.
-	codexUserAgent = "codex_cli_rs/0.0.0 (Coeus)"
+	codexUserAgent = "codex_cli_rs/0.0.0 (Nerd Genie)"
 	// codexBetaHeader is the Responses API's beta flag the codex program sends.
 	codexBetaHeader = "responses=experimental"
 	// codexHomeVariable names the folder the codex program keeps its files in

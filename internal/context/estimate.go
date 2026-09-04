@@ -3,7 +3,7 @@ package context
 import "github.com/JaredTate/nerdgenie/internal/contract"
 
 // The three numbers this package counts tokens with. They live here together,
-// because the size of a prompt is measured the same way everywhere in Coeus and
+// because the size of a prompt is measured the same way everywhere in Nerd Genie and
 // there is only one place to change it.
 //
 // It is an estimate and not a tokenizer. Every model has its own tokenizer, the

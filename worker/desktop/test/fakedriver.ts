@@ -15,7 +15,7 @@ import type { KeyChord } from "../src/keys.js"
 /** The fixture window's tree, which is the zenity entry the real tests drive. */
 export function fixtureElements(): DriverElement[] {
   return [
-    { element_index: 0, element_token: "s1:0", role: "dialog", label: "Coeus fixture window", enabled: true, frame: { x: 0, y: 0, w: 300, h: 220 } },
+    { element_index: 0, element_token: "s1:0", role: "dialog", label: "Nerd Genie fixture window", enabled: true, frame: { x: 0, y: 0, w: 300, h: 220 } },
     { element_index: 1, element_token: "s1:1", role: "text box", label: "Type here", enabled: true, frame: { x: 50, y: 100, w: 200, h: 30 } },
     { element_index: 2, element_token: "s1:2", role: "button", label: "Cancel", enabled: true, frame: { x: 20, y: 170, w: 120, h: 40 } },
     { element_index: 3, element_token: "s1:3", role: "button", label: "OK", enabled: true, frame: { x: 160, y: 170, w: 120, h: 40 } },
@@ -34,7 +34,7 @@ export class FakeDriver implements DesktopDriver {
   /** The tree the granted window carries now. */
   elements: DriverElement[] = fixtureElements()
   /** The title the granted window carries now. */
-  title = "Coeus fixture window"
+  title = "Nerd Genie fixture window"
   /** The picture the window returns, already encoded as base64 text. */
   picture = "iVBORw0KGgoFAKE"
   /** The picture of the whole screen, told apart from the window's by its text. */
@@ -148,5 +148,5 @@ export class FakeDriver implements DesktopDriver {
 
 /** aWindow is one entry of the machine's window list. */
 export function aWindow(overrides: Partial<DriverWindow> = {}): DriverWindow {
-  return { pid: 4242, windowId: 77, title: "Coeus fixture window", application: "zenity", ...overrides }
+  return { pid: 4242, windowId: 77, title: "Nerd Genie fixture window", application: "zenity", ...overrides }
 }

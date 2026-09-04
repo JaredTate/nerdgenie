@@ -103,7 +103,7 @@ func testOptions(t *testing.T, clock *waitingClock) (provider.Options, *noteReco
 func requestWithEverything() contract.Request {
 	return contract.Request{
 		SystemBlocks: []contract.SystemBlock{
-			{Name: "harness rules and persona", Text: "You are the reasoning engine inside Coeus.", Boundary: contract.CacheBoundaryA},
+			{Name: "harness rules and persona", Text: "You are the reasoning engine inside Nerd Genie.", Boundary: contract.CacheBoundaryA},
 			{Name: "tools", Text: "You have two tools.", Boundary: contract.CacheBoundaryB},
 			{Name: "the record's goal and rules", Text: "Goal: post the tweet.", Boundary: contract.CacheBoundaryC},
 			{Name: "the record's work and lessons", Text: "Work: nothing done yet."},

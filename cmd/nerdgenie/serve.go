@@ -47,7 +47,7 @@ var serveSubcommand = subcommand{
 	run:  runServe,
 }
 
-// The bounds the serving loops run inside, because every loop in Coeus has one.
+// The bounds the serving loops run inside, because every loop in Nerd Genie has one.
 const (
 	// maxMessagesInOnePass is how many queued messages one pass of the drainer
 	// takes before it goes round again.
@@ -158,7 +158,7 @@ func exitCodeFor(err error) int {
 	if errors.As(err, &problem) {
 		return contract.ExitBadConfiguration
 	}
-	// A database from a newer Coeus is not something a restart will fix, and a
+	// A database from a newer Nerd Genie is not something a restart will fix, and a
 	// service that tried every five seconds would fill the log and change
 	// nothing.
 	if errors.Is(err, update.ErrDatabaseFromANewerNerdGenie) {
@@ -167,7 +167,7 @@ func exitCodeFor(err error) int {
 	return contract.ExitFailure
 }
 
-// agent is one running Coeus and everything it owns. Every field is built by one
+// agent is one running Nerd Genie and everything it owns. Every field is built by one
 // package, and this struct is the only place they meet.
 type agent struct {
 	home     contract.Home
@@ -259,7 +259,7 @@ func (running *agent) note(line string) {
 func makeHomeFolders(home contract.Home) error {
 	for _, folder := range home.Folders() {
 		if err := os.MkdirAll(folder, contract.HomeFolderMode); err != nil {
-			return fmt.Errorf("cannot make the folder %s that Coeus keeps its work in, so check who owns %s: %w", folder, home.Root, err)
+			return fmt.Errorf("cannot make the folder %s that Nerd Genie keeps its work in, so check who owns %s: %w", folder, home.Root, err)
 		}
 	}
 	return nil
@@ -331,7 +331,7 @@ func (running *agent) openTheStores(ctx context.Context) error {
 // failed it, and putting the newest archive back. The guard will not start until
 // it has run, because a log opened on a damaged file is a program that cannot
 // say what happened to it. Then the schema is looked at, because an older binary
-// must never open a database a newer Coeus has migrated: it would read the file
+// must never open a database a newer Nerd Genie has migrated: it would read the file
 // wrong, and reading a record wrong is worse than not reading it at all.
 func (running *agent) theDatabaseToOpen(ctx context.Context, now contract.Clock) (string, error) {
 	databaseFile, err := reliability.PrepareDatabase(ctx, reliability.RecoverySettings{

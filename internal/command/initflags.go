@@ -9,11 +9,11 @@ import (
 )
 
 // initFlags are the answers "nerdgenie init" accepts on the command line, so that a
-// container with no keyboard can set Coeus up in one line.
+// container with no keyboard can set Nerd Genie up in one line.
 type initFlags struct {
 	// model is the name of one of the six models, or empty to ask.
 	model string
-	// workFolders are the folders Coeus may work in, or empty to ask.
+	// workFolders are the folders Nerd Genie may work in, or empty to ask.
 	workFolders []string
 	// apiKeyFromEnvironment names the environment variable holding the API key,
 	// so that a key never appears on a command line.
@@ -36,7 +36,7 @@ func readInitFlags(arguments []string, output io.Writer) (initFlags, error) {
 	set := flag.NewFlagSet("nerdgenie init", flag.ContinueOnError)
 	set.SetOutput(output)
 	set.StringVar(&chosen.model, "model", "", "which model to use: local, lmstudio, claude, codex, anthropic, or openai")
-	set.StringVar(&folders, "work-folder", "", "the folders Coeus may work in, separated by commas")
+	set.StringVar(&folders, "work-folder", "", "the folders Nerd Genie may work in, separated by commas")
 	set.StringVar(&chosen.apiKeyFromEnvironment, "api-key-from-env", "", "the name of the environment variable holding the API key")
 	set.StringVar(&chosen.signal, "signal", "", "whether to offer Signal: on or off")
 	set.BoolVar(&chosen.yes, "yes", false, "take the default answer to every question and ask nothing")

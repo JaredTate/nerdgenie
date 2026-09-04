@@ -31,7 +31,7 @@ func TestRecordingAMigrationInAFileWithNoSchemaVersionTableIsRefused(t *testing.
 	err := recordMigration(context.Background(), database, Migration{To: 2, Name: "one that cannot be written down"}, "0.8.0", theTestMoment)
 
 	if err == nil {
-		t.Fatalf("a migration was written down in a file that is not a Coeus database")
+		t.Fatalf("a migration was written down in a file that is not a Nerd Genie database")
 	}
 	if !strings.Contains(err.Error(), "schema version") {
 		t.Errorf("the refusal does not say which write failed: %v", err)
@@ -45,7 +45,7 @@ func TestAnEmptySchemaVersionTableIsRefused(t *testing.T) {
 	}
 
 	if _, err := readSchemaVersion(context.Background(), database); err == nil {
-		t.Errorf("a file with an empty schema version table was read as a Coeus database")
+		t.Errorf("a file with an empty schema version table was read as a Nerd Genie database")
 	}
 }
 

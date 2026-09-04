@@ -15,7 +15,7 @@ import (
 // sense the work plan means. The reader must never panic, and it must never hand
 // back more than the caps allow.
 func FuzzThePersonaReaderTakesAnyBytes(f *testing.F) {
-	f.Add("I am Coeus.", "The user is Jared.", "DigiByte launched in 2014.", 40)
+	f.Add("I am Nerd Genie.", "The user is Jared.", "DigiByte launched in 2014.", 40)
 	f.Add("", "", "", 1)
 	f.Add(strings.Repeat("a", 5000), "\x00\xff", "日本語", 7)
 	f.Add("a\nb\rc", "-----", "\xed\xa0\x80", 0)

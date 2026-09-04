@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	// stateVersion is written into both files, so that a later version of Coeus
+	// stateVersion is written into both files, so that a later version of Nerd Genie
 	// can tell what it is looking at.
 	stateVersion = 1
 	// MaxRememberedRequests is how many senders the store remembers having heard

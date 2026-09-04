@@ -27,7 +27,7 @@ func twoSkills() []contract.SkillSummary {
 // persona does, so they ride in the persona block, above cache boundary A.
 func TestTheSkillListRidesInThePersonaLayerAboveBoundaryA(t *testing.T) {
 	builder := newTestBuilder(t, Options{Skills: twoSkills()})
-	writePersonaFile(t, builder.home.SoulFile(), "I am Coeus.")
+	writePersonaFile(t, builder.home.SoulFile(), "I am Nerd Genie.")
 
 	request, err := builder.Build(t.Context(), sampleInput())
 	if err != nil {
@@ -49,7 +49,7 @@ func TestTheSkillListRidesInThePersonaLayerAboveBoundaryA(t *testing.T) {
 			t.Errorf("the persona block does not carry the line %q:\n%s", wanted, persona.Text)
 		}
 	}
-	if soul, skills := strings.Index(persona.Text, "I am Coeus."), strings.Index(persona.Text, skillsHeading); soul > skills {
+	if soul, skills := strings.Index(persona.Text, "I am Nerd Genie."), strings.Index(persona.Text, skillsHeading); soul > skills {
 		t.Errorf("the skill list at %d comes before SOUL.md at %d, and who the agent is comes first", skills, soul)
 	}
 	if !strings.Contains(skillsHeading, "`skill`") {
@@ -84,7 +84,7 @@ func TestASkillListAloneMakesAPersonaBlock(t *testing.T) {
 // the list: no heading, and with no SOUL.md either, no persona block at all.
 func TestAnEmptySkillListWritesNothing(t *testing.T) {
 	withSoul := newTestBuilder(t, Options{})
-	writePersonaFile(t, withSoul.home.SoulFile(), "I am Coeus.")
+	writePersonaFile(t, withSoul.home.SoulFile(), "I am Nerd Genie.")
 	request, err := withSoul.Build(t.Context(), sampleInput())
 	if err != nil {
 		t.Fatalf("cannot build the working context: %v", err)

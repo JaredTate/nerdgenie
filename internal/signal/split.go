@@ -3,7 +3,7 @@
 // ~/Code/openclaw/src/auto-reply/chunk.ts, and the rule that a break is chosen
 // by preference, a line break first and a word boundary second, from Hermes'
 // truncate_message at ~/Code/hermes-agent/gateway/platforms/base.py. Neither
-// caps the number of messages; Coeus does, because every loop has a limit.
+// caps the number of messages; Nerd Genie does, because every loop has a limit.
 
 package signal
 

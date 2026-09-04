@@ -57,7 +57,7 @@ func TestNoDeadlineOnThisPackageIsLongerThanAMinute(t *testing.T) {
 			t.Errorf("the deadline for %s is %s, and no step on the desktop may wait longer than %s", method, deadline, longest)
 		}
 		if deadline <= 0 {
-			t.Errorf("the deadline for %s is %s, and every wait in Coeus has one", method, deadline)
+			t.Errorf("the deadline for %s is %s, and every wait in Nerd Genie has one", method, deadline)
 		}
 	}
 	if defaultMethodDeadline > longest || defaultMethodDeadline <= 0 {

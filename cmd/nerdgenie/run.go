@@ -36,7 +36,7 @@ const (
 // the ordinary output and everything else on the error output, and leaves with
 // nothing on the ordinary output but the answer.
 //
-// It is how Coeus is used from a shell script, a cron line, or another program,
+// It is how Nerd Genie is used from a shell script, a cron line, or another program,
 // and it never runs a model of its own: the agent it talks to does the work.
 var runSubcommand = subcommand{
 	name: "run",

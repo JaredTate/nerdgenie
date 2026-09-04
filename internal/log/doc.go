@@ -5,7 +5,7 @@
 // permission decision, file change, record change, checkpoint, and reply is one
 // row in it, carrying a sequence number that only ever grows, the time it
 // happened, the task it belongs to, its kind, and its own fields as JSON.
-// Nothing is ever changed or removed, which is what lets the rest of Coeus treat
+// Nothing is ever changed or removed, which is what lets the rest of Nerd Genie treat
 // the log as the ledger: a reply is written here before it is sent, so a crash
 // between the writing and the sending leaves a record saying the reply may have
 // gone out, and after a crash the agent replays the log to rebuild what it was
@@ -24,5 +24,5 @@
 // of an answer; the way to read the rest is ByRange, page by page, or Replay,
 // which streams and has no cap. Every call takes a context and gives up when it
 // is cancelled. The caller supplies the time on each event, because time in
-// Coeus is read from contract.Clock and never from the machine directly.
+// Nerd Genie is read from contract.Clock and never from the machine directly.
 package log

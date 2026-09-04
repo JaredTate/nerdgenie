@@ -31,7 +31,7 @@ const (
 	maxPlanSteps = 8
 	// maxJobTasks is how many tasks of a job the panel draws before it says
 	// how many more there are, so that a job of two hundred tasks is not the
-	// whole screen. Twelve is the job in section 4 of COEUS.md drawn whole.
+	// whole screen. Twelve is the job in section 4 of NERDGENIE.md drawn whole.
 	maxJobTasks = 12
 	// jobTaskMarkColumns is what a task line spends before its label: the
 	// pointer or its blank, and the mark with the blank after it.

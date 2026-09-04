@@ -12,7 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/update"
 )
 
-// updateSubcommand installs a newer Coeus beside the running one, switches the
+// updateSubcommand installs a newer Nerd Genie beside the running one, switches the
 // link, and switches it back if the new version does not come up. It is the only
 // way a machine changes version, and the model never runs it.
 //

@@ -183,7 +183,7 @@ func TestTheArchiveIsShapedTheWayTheUpdaterUnpacksOne(t *testing.T) {
 		// internal/update unpacks into a folder it made and then looks for the
 		// program at the top of it, so the archive carries no folder of its own.
 		if !slices.Contains(namesInArchive(t, archive), update.BinaryName) {
-			t.Errorf("the %s archive has no %q at its top, so internal/update would say it is not a Coeus release",
+			t.Errorf("the %s archive has no %q at its top, so internal/update would say it is not a Nerd Genie release",
 				architecture, update.BinaryName)
 		}
 		// And it refuses any entry that is not a plain file or a folder, because a

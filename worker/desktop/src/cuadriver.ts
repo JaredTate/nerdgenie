@@ -5,7 +5,7 @@
 // the life of the worker, and shut it down in order. The whole-screen picture
 // is OpenClaw's reading of the driver's desktop state, at
 // ~/Code/openclaw/extensions/cua-computer/src/commands.ts. Written fresh for
-// Coeus and narrowed to the twelve calls DesktopDriver names.
+// Nerd Genie and narrowed to the twelve calls DesktopDriver names.
 
 import type { DesktopDriver, DriverSnapshot, DriverWindow, Point, WindowTarget } from "./driver.js"
 import type { KeyChord } from "./keys.js"

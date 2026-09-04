@@ -2,7 +2,7 @@
 // Agent's design, from the scheduled runs at
 // ~/Code/prime-agent/packages/coding-agent/src/core/scheduler.ts, where a job
 // that fires on a clock reports one line rather than a page. The Go here is
-// written fresh, and what it checks is Coeus's own memory and skills.
+// written fresh, and what it checks is Nerd Genie's own memory and skills.
 
 package replay
 

@@ -3,7 +3,7 @@
 // processor at ~/Code/opencode/packages/opencode/src/session/processor.ts
 // publishes every turn event to, and it is written fresh in Go. There one
 // emitter carries every event and any number of listeners attach to it, so the
-// part producing the events never learns who is reading them. Coeus keeps that
+// part producing the events never learns who is reading them. Nerd Genie keeps that
 // shape and adds the one thing a long-running agent needs: a reader that falls
 // behind is dropped rather than allowed to stall the loop, because the loop must
 // never wait on a screen.

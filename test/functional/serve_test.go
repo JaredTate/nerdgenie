@@ -36,7 +36,7 @@ func TestAMessageSentOverTheSocketComesBackAsTheModelsReply(t *testing.T) {
 		Name:          "local",
 		ContextLength: 32768,
 		Steps: []testkit.Step{{
-			Expect: []string{"Say hello in five words.", "You are the reasoning engine inside Coeus"},
+			Expect: []string{"Say hello in five words.", "You are the reasoning engine inside Nerd Genie"},
 			Text:   theReplyTheModelIsScriptedToGive,
 			Finish: contract.FinishEnd,
 			Usage:  contract.Usage{InputTokens: 300, OutputTokens: 8},

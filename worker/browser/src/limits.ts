@@ -1,7 +1,7 @@
 /**
  * Every bound the browser worker keeps, in one place.
  *
- * Coeus says: bound everything. Every loop has a limit, every wait a timeout,
+ * Nerd Genie says: bound everything. Every loop has a limit, every wait a timeout,
  * every buffer a cap, every outside call a failure path. Keeping the numbers
  * together means the checker that validates a request and the code that runs it
  * can never disagree about a limit.

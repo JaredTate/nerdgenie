@@ -54,13 +54,13 @@ func readIdentity(path string) (*age.X25519Identity, error) {
 	}
 	identity, err := age.ParseX25519Identity(strings.TrimSpace(string(written)))
 	if err != nil {
-		return nil, fmt.Errorf("the vault key file %s does not hold an age private key, so move it aside and let Coeus make a new one: %w", path, err)
+		return nil, fmt.Errorf("the vault key file %s does not hold an age private key, so move it aside and let Nerd Genie make a new one: %w", path, err)
 	}
 	return identity, nil
 }
 
 // createIdentity makes a new private key and publishes it without replacing an
-// existing one, so that two copies of Coeus starting at once cannot leave one
+// existing one, so that two copies of Nerd Genie starting at once cannot leave one
 // of them holding a key the file no longer has. The copy that loses the race
 // reads the winner's key instead, and does so once rather than trying again.
 func createIdentity(path string) (*age.X25519Identity, error) {
@@ -105,7 +105,7 @@ func publishKeyFile(path string, key string) error {
 // read, or that belongs to somebody else.
 func checkKeyFile(path string, info fs.FileInfo) error {
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("the vault key file %s is not a plain file, so move whatever is there aside and let Coeus make a new key", path)
+		return fmt.Errorf("the vault key file %s is not a plain file, so move whatever is there aside and let Nerd Genie make a new key", path)
 	}
 	owner, known := fileOwner(info)
 	if !known {
@@ -115,15 +115,15 @@ func checkKeyFile(path string, info fs.FileInfo) error {
 }
 
 // checkKeyFileSafety holds the two rules a key file must keep: nobody but the
-// owner may read it, and the owner is the account Coeus runs as. It takes the
+// owner may read it, and the owner is the account Nerd Genie runs as. It takes the
 // mode and the owner rather than reading them, so that a test can hand it the
 // cases a test cannot create.
 func checkKeyFileSafety(path string, mode fs.FileMode, ownerID int, currentUserID int) error {
 	if mode&0o077 != 0 {
-		return fmt.Errorf("the vault key file %s has mode %#o, which lets other accounts on this machine read it, so run chmod 0600 %s and start Coeus again", path, uint32(mode.Perm()), path)
+		return fmt.Errorf("the vault key file %s has mode %#o, which lets other accounts on this machine read it, so run chmod 0600 %s and start Nerd Genie again", path, uint32(mode.Perm()), path)
 	}
 	if ownerID != currentUserID {
-		return fmt.Errorf("the vault key file %s belongs to user %d and Coeus runs as user %d, so move the file aside and let Coeus make a key of its own", path, ownerID, currentUserID)
+		return fmt.Errorf("the vault key file %s belongs to user %d and Nerd Genie runs as user %d, so move the file aside and let Nerd Genie make a key of its own", path, ownerID, currentUserID)
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func fileOwner(info fs.FileInfo) (int, bool) {
 }
 
 // readShortFile reads a file that is meant to be small, and refuses one that is
-// not, because every buffer in Coeus has a cap.
+// not, because every buffer in Nerd Genie has a cap.
 func readShortFile(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {

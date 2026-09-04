@@ -120,7 +120,7 @@ func (leases *Leases) take(session string) (*Lease, error) {
 		return nil, nil
 	}
 	if len(leases.held) >= MaxLeases {
-		return nil, fmt.Errorf("%d turns are already running, which is all Coeus runs at once, so this turn was not started: wait for one to finish",
+		return nil, fmt.Errorf("%d turns are already running, which is all Nerd Genie runs at once, so this turn was not started: wait for one to finish",
 			len(leases.held))
 	}
 	lease := &Lease{leases: leases, session: session}

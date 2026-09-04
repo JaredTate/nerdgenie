@@ -14,7 +14,7 @@ import (
 )
 
 // waitLimit is how long a test waits for the prompt to print something before
-// it gives up, because every wait in Coeus has a limit.
+// it gives up, because every wait in Nerd Genie has a limit.
 const waitLimit = 5 * time.Second
 
 // pseudoTerminal is a pair of files that behave exactly like a terminal and the

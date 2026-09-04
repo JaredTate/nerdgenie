@@ -6,7 +6,7 @@ const mark = (number: number, role: string, name: string): Mark => ({ number, ro
 
 const nothingChanged = {
   titleChanged: false,
-  title: "Coeus fixture window",
+  title: "Nerd Genie fixture window",
   newMarks: [] as Mark[],
   goneMarks: 0,
 }

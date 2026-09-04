@@ -3,7 +3,7 @@
 // the modifiers one way, name the special keys one way, and refuse a single
 // character that is not a letter, because the driver carries a base key and not
 // the shift state a keyboard layout puts on a punctuation mark. Written fresh
-// for Coeus.
+// for Nerd Genie.
 
 import { DesktopErrorCode, ProtocolError } from "./wire.js"
 

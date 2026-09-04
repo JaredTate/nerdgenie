@@ -1,6 +1,6 @@
 # The desktop worker protocol
 
-This document is the contract between the Go side of Coeus and the desktop
+This document is the contract between the Go side of Nerd Genie and the desktop
 worker. The Go side is `internal/desktop` and the worker is `worker/desktop`, a
 TypeScript program on Node that drives the machine's own screen, mouse, and
 keyboard through `@trycua/cua-driver`. The fake desktop in `internal/testkit`
@@ -73,9 +73,9 @@ that the desktop publishes for screen readers.
     { "number": 3, "role": "button", "name": "OK" }
   ],
   "application": "zenity",
-  "title": "Coeus fixture window",
+  "title": "Nerd Genie fixture window",
   "hidden": 0,
-  "windows": ["Coeus fixture window", "DigiByte - Firefox"]
+  "windows": ["Nerd Genie fixture window", "DigiByte - Firefox"]
 }
 ```
 
@@ -108,7 +108,7 @@ expected actually happened.
 ```json
 {
   "titleChanged": false,
-  "title": "Coeus fixture window",
+  "title": "Nerd Genie fixture window",
   "newMarks": [{ "number": 4, "role": "button", "name": "Save" }],
   "goneMarks": 0,
   "marks": [{ "number": 1, "role": "text box", "name": "Type here" }],
@@ -177,7 +177,7 @@ the user's grant for it; the worker does not ask.
 
 Request: `{"jsonrpc":"2.0","id":1,"method":"launch","params":{"application":"zenity","expectation":"a window opens"}}`
 
-Response: `{"jsonrpc":"2.0","id":1,"result":{"titleChanged":true,"title":"Coeus fixture window","newMarks":[],"goneMarks":0,"marks":[{"number":1,"role":"text box","name":"Type here"}],"expectationMet":true,"seen":"","settled":true,"application":"zenity"}}`
+Response: `{"jsonrpc":"2.0","id":1,"result":{"titleChanged":true,"title":"Nerd Genie fixture window","newMarks":[],"goneMarks":0,"marks":[{"number":1,"role":"text box","name":"Type here"}],"expectationMet":true,"seen":"","settled":true,"application":"zenity"}}`
 
 An application that is already open is brought forward rather than opened twice.
 An application name that resolves to nothing launchable is -32004, and the
@@ -192,9 +192,9 @@ besides `health` that needs no `launch` before it.
 
 Request: `{"jsonrpc":"2.0","id":2,"method":"screenshot","params":{}}`
 
-Response: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"role":"text box","name":"Type here"}],"application":"zenity","title":"Coeus fixture window","hidden":0,"windows":["Coeus fixture window"]}}`
+Response: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"role":"text box","name":"Type here"}],"application":"zenity","title":"Nerd Genie fixture window","hidden":0,"windows":["Nerd Genie fixture window"]}}`
 
-Before any launch: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[],"application":"","title":"","hidden":0,"windows":["Coeus fixture window","DigiByte - Firefox"]}}`
+Before any launch: `{"jsonrpc":"2.0","id":2,"result":{"pngBase64":"iVBORw0KGgo...","marks":[],"application":"","title":"","hidden":0,"windows":["Nerd Genie fixture window","DigiByte - Firefox"]}}`
 
 ### `click`
 
@@ -204,7 +204,7 @@ is -32000 with a fresh screenshot in `data`.
 
 Request: `{"jsonrpc":"2.0","id":3,"method":"click","params":{"mark":3,"expectation":"the dialog closes"}}`
 
-Response: `{"jsonrpc":"2.0","id":3,"result":{"titleChanged":false,"title":"Coeus fixture window","newMarks":[],"goneMarks":3,"marks":[],"expectationMet":true,"seen":"","settled":true}}`
+Response: `{"jsonrpc":"2.0","id":3,"result":{"titleChanged":false,"title":"Nerd Genie fixture window","newMarks":[],"goneMarks":3,"marks":[],"expectationMet":true,"seen":"","settled":true}}`
 
 ### `type`
 
@@ -214,7 +214,7 @@ typing at one control instead. Text longer than 10,000 characters is -32602.
 
 Request: `{"jsonrpc":"2.0","id":4,"method":"type","params":{"text":"nine years of DigiByte","expectation":"the text box holds the post"}}`
 
-Response: `{"jsonrpc":"2.0","id":4,"result":{"titleChanged":false,"title":"Coeus fixture window","newMarks":[],"goneMarks":0,"marks":[{"number":1,"role":"text box","name":"Type here"}],"expectationMet":true,"seen":"","settled":true}}`
+Response: `{"jsonrpc":"2.0","id":4,"result":{"titleChanged":false,"title":"Nerd Genie fixture window","newMarks":[],"goneMarks":0,"marks":[{"number":1,"role":"text box","name":"Type here"}],"expectationMet":true,"seen":"","settled":true}}`
 
 ### `press`
 
@@ -225,7 +225,7 @@ letter loses its layout's shift state on the way through the driver, so it is
 
 Request: `{"jsonrpc":"2.0","id":5,"method":"press","params":{"keys":"ctrl+s","expectation":"a save dialog appears"}}`
 
-Response: `{"jsonrpc":"2.0","id":5,"result":{"titleChanged":false,"title":"Coeus fixture window","newMarks":[{"number":5,"role":"button","name":"Save"}],"goneMarks":0,"marks":[],"expectationMet":true,"seen":"","settled":true}}`
+Response: `{"jsonrpc":"2.0","id":5,"result":{"titleChanged":false,"title":"Nerd Genie fixture window","newMarks":[{"number":5,"role":"button","name":"Save"}],"goneMarks":0,"marks":[],"expectationMet":true,"seen":"","settled":true}}`
 
 ### `drag`
 
@@ -234,7 +234,7 @@ the way a hand moves.
 
 Request: `{"jsonrpc":"2.0","id":6,"method":"drag","params":{"fromMark":1,"toMark":2,"expectation":"the file moves"}}`
 
-Response: `{"jsonrpc":"2.0","id":6,"result":{"titleChanged":false,"title":"Coeus fixture window","newMarks":[],"goneMarks":0,"marks":[],"expectationMet":false,"seen":"nothing changed","settled":true}}`
+Response: `{"jsonrpc":"2.0","id":6,"result":{"titleChanged":false,"title":"Nerd Genie fixture window","newMarks":[],"goneMarks":0,"marks":[],"expectationMet":false,"seen":"nothing changed","settled":true}}`
 
 ### `clipboardGet`
 

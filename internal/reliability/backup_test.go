@@ -101,7 +101,7 @@ func TestABackupHoldsTheVaultAndTheBrowserProfileAndARestoreBringsThemBack(t *te
 		t.Fatalf("the archive was not written: %v", err)
 	}
 	if info.Mode().Perm() != contract.SecretFileMode {
-		t.Errorf("the archive has mode %#o, want %#o, because it holds everything Coeus knows", info.Mode().Perm(), contract.SecretFileMode)
+		t.Errorf("the archive has mode %#o, want %#o, because it holds everything Nerd Genie knows", info.Mode().Perm(), contract.SecretFileMode)
 	}
 
 	restored := anEmptyHome(t)

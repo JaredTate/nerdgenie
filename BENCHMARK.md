@@ -1,4 +1,4 @@
-# The Tater Benchmark: Coeus against opencode, Hermes and OpenClaw
+# The Tater Benchmark: Nerd Genie against opencode, Hermes and OpenClaw
 
 One task, four coding agents, two models. Every agent gets the same words, starts
 from nothing, and is judged by the same checker. This file is the report. The
@@ -21,7 +21,7 @@ withdrawn when those runs were made.
 
 The Qwen comparison lives in `QWEN_BENCHMARK.md` at the root: two rounds,
 all four harnesses on shipped defaults, no cap, blank homes, one harness per
-card, the daemon log as the token referee. Coeus was green in both rounds;
+card, the daemon log as the token referee. Nerd Genie was green in both rounds;
 OpenClaw once; Hermes and opencode never fully.
 
 ## What was pinned so the comparison is fair
@@ -29,10 +29,10 @@ OpenClaw once; Hermes and opencode never fully.
 | Thing | Opus 4.8 phase | Qwen 3.8 phase |
 |---|---|---|
 | Model | `claude-opus-4-8` on the user's Claude subscription, no API key, each harness through its own supported path (the first row of the Opus table says which) | Qwen 3.8 27B, TurboQuant llama-server, one daemon per card, byte-identical settings, thinking off at the daemon |
-| Thinking setting | each program's own default; Coeus gains a `think` setting and a `/think` command for pinning it | off at the daemon for everyone |
+| Thinking setting | each program's own default; Nerd Genie gains a `think` setting and a `/think` command for pinning it | off at the daemon for everyone |
 | State | fresh home and fresh work folder per run, no memory, no past sessions, no instruction files, for every harness | same |
 | Task | the same bytes, checked by hash | same |
-| Cap | none of any kind; Coeus's own task budget raised so it cannot act as one | same |
+| Cap | none of any kind; Nerd Genie's own task budget raised so it cannot act as one | same |
 | Counting | each harness's own report, and for OpenClaw the Claude Code session it left behind | the daemon log, `scripts/bench/countcalls.sh`, the same for all four |
 | Judge | `scripts/bench/check-tater.mjs`: six logic checks, four play-through checks in a headless browser, tests written and passing | same |
 

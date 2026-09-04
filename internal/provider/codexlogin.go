@@ -2,7 +2,7 @@
 // treats a token about to expire as already expired, were borrowed from Hermes
 // Agent's _codex_access_token_is_expiring and _decode_jwt_claims in
 // ~/Code/hermes-agent/hermes_cli/auth.py. Hermes reads the same file to import
-// the login into its own store; Coeus only reads it, every time, and never
+// the login into its own store; Nerd Genie only reads it, every time, and never
 // writes it, because the codex program owns that file and refreshes it itself.
 
 package provider
@@ -45,11 +45,11 @@ type codexLogin struct {
 	Expires time.Time
 }
 
-// codexLoginFile is the part of the codex program's login file that Coeus
+// codexLoginFile is the part of the codex program's login file that Nerd Genie
 // reads. The file also holds the sign-in mode, an id token, a refresh token,
-// and the time of the last refresh, none of which Coeus needs.
+// and the time of the last refresh, none of which Nerd Genie needs.
 type codexLoginFile struct {
-	// Tokens holds the two values Coeus needs, under the keys the codex
+	// Tokens holds the two values Nerd Genie needs, under the keys the codex
 	// program writes them with.
 	Tokens struct {
 		AccessToken string `json:"access_token"`
@@ -122,7 +122,7 @@ func readCodexLoginFile(path string) ([]byte, error) {
 // codexTokenExpiry reads the expiry out of the access token, which is a JSON
 // web token: three base64url parts joined by dots, the middle one a JSON object
 // whose exp claim is the expiry in Unix seconds. The signature is not checked,
-// because Coeus is not the party the token is meant to convince; it only needs
+// because Nerd Genie is not the party the token is meant to convince; it only needs
 // to know when the token runs out. The error it returns finishes the sentence
 // "the access token ..." and never quotes the token.
 func codexTokenExpiry(token string) (time.Time, error) {

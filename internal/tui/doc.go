@@ -7,7 +7,7 @@
 // header, a rule, the transcript, a rule, the input box, and a status strip. The
 // frame is painted edge to edge on the DigiByte blue ground, with the person's
 // words in a bubble leaning right, the agent's in a bubble leaning left, each
-// tool call as a small filled pill, and the COEUS AGENT wordmark in block
+// tool call as a small filled pill, and the NERD GENIE AGENT wordmark in block
 // letters while there is nothing to show yet. The frame is drawn before the link
 // is made, so the person sees the screen at once, and the status strip tells the
 // truth about the link the whole time. The drawing this package implements is

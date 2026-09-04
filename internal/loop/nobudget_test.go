@@ -14,7 +14,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// The tests in this file hold the user's rule in the loop: Coeus has no cap on
+// The tests in this file hold the user's rule in the loop: Nerd Genie has no cap on
 // its own work unless the user sets one. On the defaults a task runs past a
 // hundred rounds and past an hour and is never stopped for either, its record
 // says it has no budget, and a stop the person asks for costs no model call. A

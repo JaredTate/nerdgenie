@@ -309,17 +309,17 @@ through the redactor. Either the claim goes or the pass does. This is a
 documentation-versus-code decision for the orchestrator, not a code fix a worker
 should make on its own.
 
-### 17. High: the browser Coeus launches turns the screen reader on, and it spoke aloud twice during this review
+### 17. High: the browser Nerd Genie launches turns the screen reader on, and it spoke aloud twice during this review
 
 This is the thing the brief asked about, and the review found the real cause,
-which is not the one the brief expected. **Nothing in Coeus writes the setting.**
+which is not the one the brief expected. **Nothing in Nerd Genie writes the setting.**
 I read every file under `worker/desktop/src`, `worker/desktop/test`,
 `internal/desktop`, `worker/browser/src` and `internal/browser`: there is no call
 to `gsettings`, `dconf`, `gio`, D-Bus or `org.gnome.*` anywhere in the
 repository, the word "orca" does not appear in it, no Chrome flag asks for
 accessibility (`worker/browser/src/chrome.ts:66-84`), and the only environment
 variables either worker writes are `GDK_BACKEND` and `QT_QPA_PLATFORM`
-(`worker/desktop/src/cuadriver.ts:171-172`). What Coeus does do is hand
+(`worker/desktop/src/cuadriver.ts:171-172`). What Nerd Genie does do is hand
 `DBUS_SESSION_BUS_ADDRESS` to two third-party programs — Google Chrome, through
 `internal/browser/process.go:42`, and the native `@trycua/cua-driver`, through
 `internal/desktop/process.go:37` — and a program handed the session bus can bring
@@ -539,7 +539,7 @@ the call whoever asked for it. Against an injection that goes through a skill, i
 does not hold at all (finding 1), and that is the most serious thing in this
 review.
 
-**The accessibility bus — no Coeus code touches it, and that is the problem.**
+**The accessibility bus — no Nerd Genie code touches it, and that is the problem.**
 Finding 17 has the whole of it, including the correction to what the brief
 assumed: it is the real Chrome the browser worker launches, not the desktop
 worker, that brings the bridge up, and it did it twice during this review, the

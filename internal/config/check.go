@@ -75,7 +75,7 @@ func (checker settingsChecker) checkOneAlias(where string, alias contract.ModelA
 		return checker.complain(where+".name", "this model alias has no name, so give it the short name you want to call it by, such as \"local\"")
 	case !contract.KnownProviderKind(alias.Provider):
 		return checker.complain(where+".provider", fmt.Sprintf(
-			"the provider %q is not one Coeus knows, so use one of %s", alias.Provider, listOfProviderKinds()))
+			"the provider %q is not one Nerd Genie knows, so use one of %s", alias.Provider, listOfProviderKinds()))
 	case strings.TrimSpace(alias.ModelName) == "":
 		return checker.complain(where+".model_name", "this model alias does not say which model to ask for, so set model_name to the name the server or the program knows it by")
 	case alias.ContextLength <= 0:
@@ -121,7 +121,7 @@ func (checker settingsChecker) checkAliasReach(where string, alias contract.Mode
 	return nil
 }
 
-// checkDefaultAndFallback holds the rule that the model Coeus reaches for, and
+// checkDefaultAndFallback holds the rule that the model Nerd Genie reaches for, and
 // every model it falls back to, is an alias the file actually defines.
 func (checker settingsChecker) checkDefaultAndFallback() error {
 	named := make([]string, 0, len(checker.settings.Models))
@@ -260,7 +260,7 @@ func (checker settingsChecker) checkLengthsOfTime() error {
 	return nil
 }
 
-// checkSignalAccount holds the rule that the phone number Coeus is linked to is
+// checkSignalAccount holds the rule that the phone number Nerd Genie is linked to is
 // written the way Signal writes it, with a plus and a country code.
 func (checker settingsChecker) checkSignalAccount() error {
 	account := checker.settings.SignalAccount

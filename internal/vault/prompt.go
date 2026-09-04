@@ -42,7 +42,7 @@ var ErrPromptInterrupted = errors.New("the prompt was stopped before a secret wa
 func AskSecret(terminal *os.File, prompt string) (string, error) {
 	settings, err := readTerminalSettings(terminal)
 	if err != nil {
-		return "", fmt.Errorf("%s is not a terminal, so what you type could not be hidden; enter the secret in the terminal where Coeus is running: %w", terminal.Name(), err)
+		return "", fmt.Errorf("%s is not a terminal, so what you type could not be hidden; enter the secret in the terminal where Nerd Genie is running: %w", terminal.Name(), err)
 	}
 
 	quiet := settings

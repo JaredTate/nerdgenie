@@ -37,7 +37,7 @@ const MaxEventsPerRead = 10000
 // ten thousand rows first. Nothing but a test ever changes it.
 var eventsPerReadCap = MaxEventsPerRead
 
-// The two tables one Coeus log holds. A file with other tables in it belongs to
+// The two tables one Nerd Genie log holds. A file with other tables in it belongs to
 // another program, and opening it is refused.
 const (
 	eventsTable  = "events"
@@ -90,7 +90,7 @@ var _ contract.Store = (*Log)(nil)
 // Open opens the event log in one SQLite file, making the file and its schema
 // when they are not there yet. The caller passes the path, which in a running
 // agent is the DatabaseFile of the home folder. Opening a file that belongs to
-// another program, or one written by a newer Coeus, is an error that names the
+// another program, or one written by a newer Nerd Genie, is an error that names the
 // file and says what to do about it.
 func Open(ctx context.Context, path string) (*Log, error) {
 	if strings.ContainsRune(path, '?') {
@@ -165,7 +165,7 @@ func (eventLog *Log) prepare(ctx context.Context) error {
 		return eventLog.createSchema(ctx)
 	}
 	if !slices.Contains(tables, eventsTable) || !slices.Contains(tables, versionTable) {
-		return fmt.Errorf("the file %s is not a Coeus event log, because it holds the tables %s rather than %s and %s, so point Coeus at a different file or move this one aside",
+		return fmt.Errorf("the file %s is not a Nerd Genie event log, because it holds the tables %s rather than %s and %s, so point Nerd Genie at a different file or move this one aside",
 			eventLog.path, strings.Join(tables, ", "), eventsTable, versionTable)
 	}
 	return eventLog.checkVersion(ctx)
@@ -178,7 +178,7 @@ func (eventLog *Log) tableNames(ctx context.Context) ([]string, error) {
 	rows, err := eventLog.writer.QueryContext(ctx,
 		"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
 	if err != nil {
-		return nil, fmt.Errorf("cannot read the tables in %s, so it is not a database Coeus can use; point Coeus at a different file or move this one aside: %w", eventLog.path, err)
+		return nil, fmt.Errorf("cannot read the tables in %s, so it is not a database Nerd Genie can use; point Nerd Genie at a different file or move this one aside: %w", eventLog.path, err)
 	}
 	defer rows.Close()
 
@@ -222,7 +222,7 @@ func (eventLog *Log) createSchema(ctx context.Context) error {
 }
 
 // checkVersion reads the schema version out of a file that already has one and
-// refuses a file written by a newer Coeus, which would have tables this version
+// refuses a file written by a newer Nerd Genie, which would have tables this version
 // does not understand.
 func (eventLog *Log) checkVersion(ctx context.Context) error {
 	version := 0
@@ -230,12 +230,12 @@ func (eventLog *Log) checkVersion(ctx context.Context) error {
 		"SELECT version FROM "+versionTable+" ORDER BY version DESC LIMIT 1")
 	if err := row.Scan(&version); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("the file %s has an empty schema_version table, so it is not a Coeus event log; point Coeus at a different file or move this one aside", eventLog.path)
+			return fmt.Errorf("the file %s has an empty schema_version table, so it is not a Nerd Genie event log; point Nerd Genie at a different file or move this one aside", eventLog.path)
 		}
 		return fmt.Errorf("cannot read the schema version of %s: %w", eventLog.path, err)
 	}
 	if version > SchemaVersion {
-		return fmt.Errorf("the file %s was written by a newer Coeus, whose schema version is %d where this one understands %d, so update Coeus before opening this log", eventLog.path, version, SchemaVersion)
+		return fmt.Errorf("the file %s was written by a newer Nerd Genie, whose schema version is %d where this one understands %d, so update Nerd Genie before opening this log", eventLog.path, version, SchemaVersion)
 	}
 	return nil
 }

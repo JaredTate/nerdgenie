@@ -55,7 +55,7 @@ describe("launching an application", () => {
 
     expect(driver.calls).toContain("launch zenity")
     expect(launched.application).toBe("zenity")
-    expect(launched.title).toBe("Coeus fixture window")
+    expect(launched.title).toBe("Nerd Genie fixture window")
     expect(launched.marks.map((mark) => mark.name)).toEqual(["Type here", "Cancel", "OK"])
     expect(launched.expectationMet).toBe(true)
   })
@@ -90,7 +90,7 @@ describe("launching an application", () => {
 
     const launched = await session.launch("zenity", "")
 
-    expect(launched.title).toBe("Coeus fixture window")
+    expect(launched.title).toBe("Nerd Genie fixture window")
     expect(driver.calls).toContain("bring window 9 to the front")
   })
 })
@@ -104,7 +104,7 @@ describe("taking a screenshot with nothing open", () => {
     expect(picture.pngBase64).toBe("iVBORw0KGgoWHOLE")
     expect(picture.marks).toEqual([])
     expect(picture.application).toBe("")
-    expect(picture.windows).toEqual(["Coeus fixture window", "DigiByte - Firefox"])
+    expect(picture.windows).toEqual(["Nerd Genie fixture window", "DigiByte - Firefox"])
     expect(driver.calls).toContain("read the whole screen")
     expect(driver.calls.some((call) => call.startsWith("read window") || call.startsWith("bring window"))).toBe(false)
   })
@@ -142,7 +142,7 @@ describe("taking a screenshot with nothing open", () => {
     const picture = await quiet.screenshot()
 
     expect(picture.pngBase64).toBe("")
-    expect(picture.windows).toEqual(["Coeus fixture window"])
+    expect(picture.windows).toEqual(["Nerd Genie fixture window"])
     expect(logged.some((line) => line.includes("BadMatch"))).toBe(true)
   })
 
@@ -186,7 +186,7 @@ describe("taking a screenshot", () => {
 
     const picture = await session.screenshot()
 
-    expect(picture.windows).toEqual(["Coeus fixture window", "DigiByte - Firefox"])
+    expect(picture.windows).toEqual(["Nerd Genie fixture window", "DigiByte - Firefox"])
     expect(driver.calls).not.toContain("read the whole screen")
     expect(driver.calls).toContain("read window 77 with a picture")
   })

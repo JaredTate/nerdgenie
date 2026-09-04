@@ -14,7 +14,7 @@ import (
 // that the program starting can tell this refusal from any other trouble and
 // leave with contract.ExitBadConfiguration, which is the code that stops the
 // service manager from starting the same losing program again and again.
-var ErrDatabaseFromANewerNerdGenie = errors.New("the database was written by a newer version of Coeus")
+var ErrDatabaseFromANewerNerdGenie = errors.New("the database was written by a newer version of Nerd Genie")
 
 // executor is the part of a database handle that writing a row needs, so that
 // the same code writes inside a transaction and outside one.
@@ -23,7 +23,7 @@ type executor interface {
 	ExecContext(ctx context.Context, statement string, arguments ...any) (sql.Result, error)
 }
 
-// CheckSchema refuses a database written by a newer Coeus and names the version
+// CheckSchema refuses a database written by a newer Nerd Genie and names the version
 // to use instead, which is the version that applied the newest migration the
 // file has had. A file that is not there yet, and a file this program
 // understands, are both fine and say nothing.
@@ -48,7 +48,7 @@ func CheckSchema(ctx context.Context, path string) error {
 	if at <= SchemaVersion() {
 		return nil
 	}
-	return fmt.Errorf("%w: %s is at schema version %d and this Coeus understands %d%s",
+	return fmt.Errorf("%w: %s is at schema version %d and this Nerd Genie understands %d%s",
 		ErrDatabaseFromANewerNerdGenie, path, at, SchemaVersion(), whichVersionToUse(ctx, database, at))
 }
 
@@ -61,25 +61,25 @@ func whichVersionToUse(ctx context.Context, database *sql.DB, at int) string {
 	if err := row.Scan(&written); err != nil || written == "" {
 		return "; run \"nerdgenie update\" to get a version that understands it"
 	}
-	return fmt.Sprintf("; use Coeus %s or newer, which is the version that wrote it", written)
+	return fmt.Sprintf("; use Nerd Genie %s or newer, which is the version that wrote it", written)
 }
 
 // readSchemaVersion is the highest version the file says it has been brought up
-// to. A file with no version table is not a Coeus database at all.
+// to. A file with no version table is not a Nerd Genie database at all.
 func readSchemaVersion(ctx context.Context, database *sql.DB) (int, error) {
 	version := 0
 	row := database.QueryRowContext(ctx, "SELECT max(version) FROM schema_version")
 	if err := row.Scan(&version); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, errors.New("the database has an empty schema version table, so it is not a Coeus database; point Coeus at a different file or move this one aside")
+			return 0, errors.New("the database has an empty schema version table, so it is not a Nerd Genie database; point Nerd Genie at a different file or move this one aside")
 		}
-		return 0, fmt.Errorf("the schema version could not be read, so this is not a Coeus database: %w", err)
+		return 0, fmt.Errorf("the schema version could not be read, so this is not a Nerd Genie database: %w", err)
 	}
 	return version, nil
 }
 
 // recordMigration writes down that the schema has been brought to a version and
-// which Coeus did it, in the two tables that together answer "how far has this
+// which Nerd Genie did it, in the two tables that together answer "how far has this
 // file come and what wrote it".
 func recordMigration(ctx context.Context, database executor, migration Migration, version string, now time.Time) error {
 	if _, err := database.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS "+migrationsTable+` (

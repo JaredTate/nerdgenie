@@ -19,7 +19,7 @@ const element = (index: number, role: string, label: string, extra: Partial<Driv
 })
 
 const fixtureWindow: DriverElement[] = [
-  element(0, "dialog", "Coeus fixture window"),
+  element(0, "dialog", "Nerd Genie fixture window"),
   element(1, "text box", "Type here"),
   element(2, "button", "Cancel"),
   element(3, "button", "OK"),

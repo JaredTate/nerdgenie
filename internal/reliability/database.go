@@ -30,7 +30,7 @@ const maxCheckLines = 5
 const databaseWait = "?_pragma=busy_timeout(5000)"
 
 // CheckDatabase runs SQLite's own quick check over the file and returns an error
-// saying what is wrong when the file is not a database Coeus can use. A file
+// saying what is wrong when the file is not a database Nerd Genie can use. A file
 // that is not there yet is not a fault, because a fresh home has no database
 // until the first event is written.
 func CheckDatabase(ctx context.Context, path string) error {

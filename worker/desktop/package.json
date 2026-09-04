@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "The Coeus desktop worker: it drives one granted application on this machine's screen and speaks PROTOCOL.md over its standard input and output.",
+  "description": "The Nerd Genie desktop worker: it drives one granted application on this machine's screen and speaks PROTOCOL.md over its standard input and output.",
   "license": "MIT",
   "scripts": {
     "build": "tsc --project tsconfig.json",

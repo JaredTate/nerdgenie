@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nine clean runs on Opus 4.8: three each of Coeus, OpenClaw and Hermes, one at
+# Nine clean runs on Opus 4.8: three each of Nerd Genie, OpenClaw and Hermes, one at
 # a time, every run from a brand-new empty work folder and a brand-new home,
 # effort medium wherever the knob exists, no cap of any kind. Old data is purged
 # first. Nothing is killed by name.

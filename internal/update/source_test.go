@@ -109,7 +109,7 @@ func TestAnAddressWithAnUnknownSchemeIsRefused(t *testing.T) {
 	_, err := update.Source{Address: "ftp://example.invalid/releases"}.Manifest(context.Background())
 
 	if err == nil {
-		t.Fatalf("an address Coeus cannot read was accepted")
+		t.Fatalf("an address Nerd Genie cannot read was accepted")
 	}
 	if !strings.Contains(err.Error(), "ftp://example.invalid/releases") {
 		t.Errorf("the refusal does not name the address: %v", err)

@@ -188,7 +188,7 @@ func TestMovingFactsIntoADatedNoteIsWrittenDownInTheLog(t *testing.T) {
 	}
 	for _, name := range []string{"MEMORY.md", "MEMORY-2026-09-02.md"} {
 		if !written[name] {
-			t.Errorf("the log holds no file change for %s, and every memory file Coeus writes is logged", name)
+			t.Errorf("the log holds no file change for %s, and every memory file Nerd Genie writes is logged", name)
 		}
 	}
 }

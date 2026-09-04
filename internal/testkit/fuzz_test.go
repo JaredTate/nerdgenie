@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Everything in Coeus that parses bytes from outside the program has a fuzz
+// Everything in Nerd Genie that parses bytes from outside the program has a fuzz
 // target. Two of them live here, in the package rather than beside it, because
 // the browser protocol server's answer function is not exported and driving it
 // over its socket would be far too slow to fuzz.

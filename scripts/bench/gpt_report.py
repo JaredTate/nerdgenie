@@ -2,7 +2,7 @@
 """Turn the GPT-5.6 Sol runs under ~/work/bench/gpt into the tables for
 GPT_BENCHMARK.md, reading every number from each harness's own primary source:
 
-- Coeus: its driver log (task in, answer out, and the cumulative counters its
+- Nerd Genie: its driver log (task in, answer out, and the cumulative counters its
   provider took from each `codex exec` result, differenced per call) and its
   record's per-turn cached counts (rounded to the hundred).
 - opencode: the `step_finish` lines of its JSON output, one per model call.

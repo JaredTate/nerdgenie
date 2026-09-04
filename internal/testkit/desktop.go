@@ -185,7 +185,7 @@ func (desktop *FakeDesktop) knownMark(mark int) error {
 }
 
 // fixtureWindowTitle is what the one window the fake desktop shows is called.
-const fixtureWindowTitle = "Coeus fixture window"
+const fixtureWindowTitle = "Nerd Genie fixture window"
 
 // fixtureDesktopMarks is the one window the fake desktop shows.
 func fixtureDesktopMarks() []contract.DesktopMark {

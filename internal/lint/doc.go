@@ -1,4 +1,4 @@
-// Package lint checks that Coeus source obeys the plain-English rules in
+// Package lint checks that Nerd Genie source obeys the plain-English rules in
 // CLAUDE.md, and it is used only by make check.
 //
 // Six of the seven rules read one file at a time: a comment on a declaration is

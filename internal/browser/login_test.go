@@ -166,7 +166,7 @@ func TestACodeWithAMomentLeftIsThrownAwayForAFreshOne(t *testing.T) {
 }
 
 // A vault entry with a two-factor secret and nothing wired to make codes is a
-// fault in how Coeus was started, and says so.
+// fault in how Nerd Genie was started, and says so.
 func TestATwoFactorSecretWithNoCodeMakerSaysSo(t *testing.T) {
 	world := newWorld(t)
 	world.secrets.Add("fixture-account", theFixtureLogin)
@@ -177,7 +177,7 @@ func TestATwoFactorSecretWithNoCodeMakerSaysSo(t *testing.T) {
 	}
 
 	_, err := browser.Login(context.Background(), "fixture-account", LoginRefs{})
-	if err == nil || !strings.Contains(err.Error(), "fault in how Coeus was started") {
+	if err == nil || !strings.Contains(err.Error(), "fault in how Nerd Genie was started") {
 		t.Fatalf("a two-factor login with no code maker said %v, and it should have named itself a fault in the wiring", err)
 	}
 }

@@ -35,10 +35,10 @@ func readStateFile(path string, into any) (bool, error) {
 		return false, fmt.Errorf("the file %s could not be read: %w", path, err)
 	}
 	if len(written) > maxStateFileBytes {
-		return false, fmt.Errorf("the file %s is longer than %d bytes, so it is not one Coeus wrote: move it aside", path, maxStateFileBytes)
+		return false, fmt.Errorf("the file %s is longer than %d bytes, so it is not one Nerd Genie wrote: move it aside", path, maxStateFileBytes)
 	}
 	if err := json.Unmarshal(written, into); err != nil {
-		return false, fmt.Errorf("the file %s does not hold the fields Coeus wrote, so move it aside and let Coeus write a new one: %w", path, err)
+		return false, fmt.Errorf("the file %s does not hold the fields Nerd Genie wrote, so move it aside and let Nerd Genie write a new one: %w", path, err)
 	}
 	return true, nil
 }

@@ -1,5 +1,5 @@
 // The whole-program test for the one thing an older binary must never do: open
-// a database a newer Coeus has already migrated. It stops rather than reading it
+// a database a newer Nerd Genie has already migrated. It stops rather than reading it
 // wrong, and it stops in the way the service manager reads as "do not restart",
 // because starting again every five seconds against a file it will never
 // understand helps nobody.
@@ -36,13 +36,13 @@ func TestServeStopsOnADatabaseFromANewerNerdGenie(t *testing.T) {
 			code, contract.ExitBadConfiguration)
 	}
 	if said := whatItSaid(agent.saidPath); !strings.Contains(said, "newer version") {
-		t.Errorf("the agent did not say the database was written by a newer Coeus:\n%s", said)
+		t.Errorf("the agent did not say the database was written by a newer Nerd Genie:\n%s", said)
 	}
 }
 
 // makeADatabaseFromTheFuture writes a real event log and then sets its schema
 // version one above the one this binary knows, which is what a home folder looks
-// like after a newer Coeus has run on it.
+// like after a newer Nerd Genie has run on it.
 func makeADatabaseFromTheFuture(t *testing.T, home contract.Home) {
 	t.Helper()
 	ctx := context.Background()

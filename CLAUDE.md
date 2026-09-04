@@ -1,10 +1,10 @@
-# Coeus — Agent Instructions
+# Nerd Genie — Agent Instructions
 
-**Coeus** is an open-source AI agent that runs on any Linux machine. You talk to it in a terminal or through Signal. It works with any language model, large or small, local or cloud, and it does not forget what it is doing, because it keeps a task record shaped like an Army operations order instead of re-reading its whole conversation every turn.
+**Nerd Genie** is an open-source AI agent that runs on any Linux machine. You talk to it in a terminal or through Signal. It works with any language model, large or small, local or cloud, and it does not forget what it is doing, because it keeps a task record shaped like an Army operations order instead of re-reading its whole conversation every turn.
 
 ## Get up to speed (read in this order)
 
-1. `COEUS.md` — the plain-words explanation: what Coeus is, how its state works, why it is better than the other agents, and a check table that ties every claim to a design section, a brief, and a test.
+1. `NERDGENIE.md` — the plain-words explanation: what Nerd Genie is, how its state works, why it is better than the other agents, and a check table that ties every claim to a design section, a brief, and a test.
 2. `docs/NERDGENIE_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the four kinds of state, what the model is told.
 3. `ARCHITECTURE.md` — how the code is put together and what each wave built. Updated every wave.
 4. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.

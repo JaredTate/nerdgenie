@@ -10,7 +10,7 @@ import (
 )
 
 // inboundQueueSize caps how many messages a test may push before anything reads
-// them, because every buffer in Coeus has a cap.
+// them, because every buffer in Nerd Genie has a cap.
 const inboundQueueSize = 64
 
 // SentFile is one file the harness sent through a channel.

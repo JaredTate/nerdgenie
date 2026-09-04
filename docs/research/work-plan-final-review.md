@@ -275,7 +275,7 @@ Security (the plan builds a sandbox, then leaves a door):
 | 132 | No CI | Brief 0.1 | Fixed | L192 GitHub Actions on Linux with bwrap; no nightly live job, acceptable given "development machine only" |
 | 133 | No Makefile | Brief 0.1 | **Gap (minor)** | Targets named (L192); `make test` defined only in CL L34 and runs no integration or functional tests (item 6) |
 | 134 | No `go.mod`, Node version | Brief 0.1 | **Gap (minor)** | `go.mod` yes; `worker/browser/package.json` and a Node pin nowhere |
-| 135 | No license, no third-party notes | Brief 0.1 | **Gap (minor)** | `THIRD_PARTY.md` exists in the repo already; the Coeus license is still "a `LICENSE` file" with no name |
+| 135 | No license, no third-party notes | Brief 0.1 | **Gap (minor)** | `THIRD_PARTY.md` exists in the repo already; the Nerd Genie license is still "a `LICENSE` file" with no name |
 | 136 | No security review | Brief 7.5 | **Gap** | One review at the end; no threat-model document, no gate at waves 3 or 4 |
 | 123 (doc) | Browser protocol document before the fake | `PROTOCOL.md` in wave 0 | Fixed | L192; method list differs between WP L192 and AR L77 (item 12 #6) |
 

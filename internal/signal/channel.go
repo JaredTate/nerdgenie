@@ -73,7 +73,7 @@ type ChannelOptions struct {
 	// Account is the phone number the daemon is linked to, which is what "nerdgenie
 	// signal link" writes into the configuration.
 	Account string
-	// Program is the signal-cli to run. When it is empty, Coeus starts no
+	// Program is the signal-cli to run. When it is empty, Nerd Genie starts no
 	// daemon and talks to one somebody else is already running at the host and
 	// port below, which is what a machine running signal-cli in a container
 	// wants.
@@ -169,7 +169,7 @@ func (channel *Channel) Connections() int { return channel.stream.Connections() 
 // Delivered is how many messages have been handed to the agent.
 func (channel *Channel) Delivered() int { return int(channel.delivered.Load()) }
 
-// Receive starts the daemon if this Coeus is the one running it, opens the event
+// Receive starts the daemon if this Nerd Genie is the one running it, opens the event
 // stream, and hands back the messages from paired senders. Calling it again
 // hands back the same stream rather than opening a second one.
 func (channel *Channel) Receive(ctx context.Context) (<-chan contract.Inbound, error) {
@@ -275,7 +275,7 @@ func (channel *Channel) Health(ctx context.Context) contract.ChannelHealth {
 	return channel.client.Health(ctx)
 }
 
-// Close stops the event stream and, when this Coeus started it, signal-cli.
+// Close stops the event stream and, when this Nerd Genie started it, signal-cli.
 func (channel *Channel) Close() error {
 	channel.guard.Lock()
 	stop := channel.stop

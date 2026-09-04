@@ -57,7 +57,7 @@ func (setup Setup) lmStudioAddress() string {
 // sitting in front of any more.
 const SetupWait = 20 * time.Minute
 
-// Init sets Coeus up on a machine that has never run it: it makes the home
+// Init sets Nerd Genie up on a machine that has never run it: it makes the home
 // folder and the work folder, writes the three persona files, asks at most six
 // questions, writes config.toml, runs the doctor, and prints the commands a new
 // user needs.
@@ -93,7 +93,7 @@ func Init(ctx context.Context, setup Setup, arguments []string) error {
 // work in, the model with the key when the model needs one, and Signal.
 func (setup Setup) run(ctx context.Context, chosen initFlags) error {
 	ask := newAsker(setup.Input, setup.Output, chosen.yes)
-	fmt.Fprintf(setup.Output, "Setting Coeus up in %s.\n", setup.Home.Root)
+	fmt.Fprintf(setup.Output, "Setting Nerd Genie up in %s.\n", setup.Home.Root)
 	if err := makeTheLayout(setup.Home); err != nil {
 		return err
 	}
@@ -130,14 +130,14 @@ func (setup Setup) finish(ctx context.Context, signalWanted bool) error {
 // Signal one left out when Signal is switched off or signal-cli is not there.
 func nextSteps(signalWanted bool) string {
 	written := &strings.Builder{}
-	written.WriteString("\nCoeus is ready. Here is what to type next:\n\n")
-	written.WriteString("  nerdgenie              talk to Coeus in this terminal\n")
+	written.WriteString("\nNerd Genie is ready. Here is what to type next:\n\n")
+	written.WriteString("  nerdgenie              talk to Nerd Genie in this terminal\n")
 	if signalWanted && onThePath(signalProgram) {
-		written.WriteString("  nerdgenie signal link  link Coeus to your Signal account\n")
+		written.WriteString("  nerdgenie signal link  link Nerd Genie to your Signal account\n")
 	}
-	written.WriteString("  nerdgenie doctor       check that everything Coeus needs is here\n")
+	written.WriteString("  nerdgenie doctor       check that everything Nerd Genie needs is here\n")
 	written.WriteString("\nAnd once you are talking to it:\n\n")
 	written.WriteString("  /help              the list of commands\n")
-	written.WriteString("  /tasks             what Coeus is working on\n")
+	written.WriteString("  /tasks             what Nerd Genie is working on\n")
 	return written.String()
 }

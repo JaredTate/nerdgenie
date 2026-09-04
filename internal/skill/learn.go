@@ -4,7 +4,7 @@
 // from the source word for word with one example of each rather than invented.
 // Offering a finished task's procedure back to the user is ZeroClaw's creator at
 // ~/Code/zeroclaw/crates/zeroclaw-runtime/src/skills/creator.rs, which builds a
-// skill out of the tool calls a finished run made; Coeus asks before it writes,
+// skill out of the tool calls a finished run made; Nerd Genie asks before it writes,
 // because a skill saved without a yes is a procedure nobody chose.
 
 package skill

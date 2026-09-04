@@ -24,7 +24,7 @@
 #                  a number of minutes to stop the harness after that long.
 #   TATER_ROOT     where run folders go. Default ~/work/bench/tater2.
 #   TATER_TASK     the canonical task. Default ~/work/bench/canonical/task.txt.
-#   TATER_NERDGENIE_BIN  the Coeus binary. Default <repo>/bin/nerdgenie, built if absent.
+#   TATER_NERDGENIE_BIN  the Nerd Genie binary. Default <repo>/bin/nerdgenie, built if absent.
 #
 # Everything one run needs and everything it writes lives in one folder,
 # ~/work/bench/tater2/<phase>-<harness>-<label>/, which is deleted and made
@@ -182,12 +182,12 @@ printf '%s\n' "$PORT" > "$RUN/port"
 printf '%s\n' "$PHASE" > "$RUN/phase"
 printf '%s\n' "$CARD" > "$RUN/card"
 
-# ---- the Coeus binary ------------------------------------------------------
+# ---- the Nerd Genie binary ------------------------------------------------------
 
 if [ "$HARNESS" = "nerdgenie" ] && [ ! -x "$NERDGENIE_BIN" ]; then
-  echo "building the Coeus binary, which is missing from $NERDGENIE_BIN"
+  echo "building the Nerd Genie binary, which is missing from $NERDGENIE_BIN"
   if ! (cd "$REPO" && timeout 900 make build); then
-    echo "tater_run.sh: \"make build\" failed, so there is no Coeus binary to run" >&2
+    echo "tater_run.sh: \"make build\" failed, so there is no Nerd Genie binary to run" >&2
     exit 2
   fi
 fi
@@ -204,13 +204,13 @@ BUDGET_RAISED=no
 case "$HARNESS" in
 
   nerdgenie)
-    # Coeus keeps everything under NERDGENIE_HOME: config, record, memory, logs.
+    # Nerd Genie keeps everything under NERDGENIE_HOME: config, record, memory, logs.
     if ! NERDGENIE_HOME="$HOMEDIR" "$NERDGENIE_BIN" init --yes > "$RUN/init.out" 2>&1; then
       echo "tater_run.sh: \"nerdgenie init --yes\" failed; its output is in $RUN/init.out" >&2
       exit 2
     fi
-    # Coeus ships its own task budget, a hundred tool rounds and an hour, which
-    # would cap Coeus and nothing else. The benchmark has no cap, so the budget
+    # Nerd Genie ships its own task budget, a hundred tool rounds and an hour, which
+    # would cap Nerd Genie and nothing else. The benchmark has no cap, so the budget
     # is raised to a number no run reaches, and the raise is recorded.
     python3 - "$HOMEDIR/config.toml" "$WORK" "$BASE_URL" "$MODEL" "$CONTEXT" <<'PYTHON'
 import sys
@@ -246,7 +246,7 @@ base_address = "%s"
 model_name = "%s"
 context_length = %s
 
-# The benchmark puts no cap on any harness, so Coeus's own task budget is
+# The benchmark puts no cap on any harness, so Nerd Genie's own task budget is
 # raised out of the way. Every other cap is left at its default.
 [caps]
 rounds_per_task = 1000000

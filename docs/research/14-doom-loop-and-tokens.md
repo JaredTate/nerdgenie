@@ -154,7 +154,7 @@ Estimated fixed tokens per turn, default agent, no project instructions (all est
 | Prime default | ~1 500 | ~2 000 | ~3 500 | `system-prompt.ts` 7.7 KB source |
 | ZeroClaw local_small | must fit in 8k total | text protocol only if exposed | ~1 500-3 000 | `presets.rs:249-270` |
 
-## 5. Recommendation for Coeus
+## 5. Recommendation for Nerd Genie
 
 ### 5.1 Loop guard (five parts)
 
@@ -183,7 +183,7 @@ Anthropic: four `cache_control` markers at A, B, and the last two messages (Herm
 
 ### 5.4 Output-style snippet (74 words)
 
-"You are Coeus, JT's home assistant. Write plain, short English. Match length to the ask: one-line question, one-line answer. No filler, no restating the request, no narrating tool calls. State facts; say 'not sure' when unsure. Use a tool only when needed, and never repeat a call with the same arguments. When work is done, report three things: what changed, what you checked, what is left. Ask at most one question at a time."
+"You are Nerd Genie, JT's home assistant. Write plain, short English. Match length to the ask: one-line question, one-line answer. No filler, no restating the request, no narrating tool calls. State facts; say 'not sure' when unsure. Use a tool only when needed, and never repeat a call with the same arguments. When work is done, report three things: what changed, what you checked, what is left. Ask at most one question at a time."
 
 Tool-result formatting rule: every tool result is plain text. Line 1 is a status: `ok`, `ok (truncated)`, or `error: <one sentence>`. Then the payload. Truncated results end with the file path line above. Error results end with "Options: answer the user, ask one question, or try different arguments." No JSON wrappers, no markdown tables inside results.
 

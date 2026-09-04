@@ -76,7 +76,7 @@ func oneToolRequest(ask string) contract.Request {
 	return contract.Request{
 		SystemBlocks: []contract.SystemBlock{{
 			Name:     "harness rules and persona",
-			Text:     "You are the reasoning engine inside Coeus. Answer briefly and plainly.",
+			Text:     "You are the reasoning engine inside Nerd Genie. Answer briefly and plainly.",
 			Boundary: contract.CacheBoundaryA,
 		}},
 		Messages: []contract.Message{{Role: contract.RoleUser, Text: ask}},

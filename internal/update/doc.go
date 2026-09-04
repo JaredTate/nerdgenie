@@ -1,4 +1,4 @@
-// Package update installs a new version of Coeus beside the running one and
+// Package update installs a new version of Nerd Genie beside the running one and
 // switches back when it does not come up.
 //
 // An update is six steps and every one of them can be undone. It reads the
@@ -23,5 +23,5 @@
 // the backup back, and the update rolls the link back with it. This package
 // owns the list of migrations and the schema version that internal/log created
 // at one, and CheckSchema is how a binary refuses a database written by a newer
-// Coeus while naming the version to use instead.
+// Nerd Genie while naming the version to use instead.
 package update

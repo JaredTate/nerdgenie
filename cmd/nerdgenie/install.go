@@ -13,14 +13,14 @@ import (
 )
 
 // installSubcommand writes the systemd user unit and starts the service, so
-// that Coeus comes up with the user's session and is started again when it
+// that Nerd Genie comes up with the user's session and is started again when it
 // stops. It needs no administrator rights, because a user unit belongs to the
 // account that runs it.
 //
 // The orchestrator adds this value to the table in main.go.
 var installSubcommand = subcommand{
 	name: "install",
-	help: "Installs Coeus as a service that starts with your session and is restarted if it stops.",
+	help: "Installs Nerd Genie as a service that starts with your session and is restarted if it stops.",
 	run: func(arguments []string, output io.Writer, problems io.Writer) int {
 		if len(arguments) > 0 {
 			fmt.Fprintf(problems, "nerdgenie install: this takes no arguments, and was given %q\n", strings.Join(arguments, " "))

@@ -1,8 +1,8 @@
-# 08 — Language and runtime for the Coeus daemon
+# 08 — Language and runtime for the Nerd Genie daemon
 
 Date: 2026-09-02. Host: Apple M2 Max (12 cores, 32 GB), macOS 26.5.1. Toolchains: cargo 1.84.0, go 1.26.5, bun 1.3.5, node 24.14.1, zig 0.16.0, Apple clang 21. All numbers below are **medians of 5 runs** unless marked otherwise. "Measured" means run on this Mac today. "Estimated" means extrapolated and says from what.
 
-Bench sources live in `scratchpad/lang-bench/` (hello programs and a minimal HTTP+SQLite daemon per language) and `scratchpad/realistic/` (a dependency set close to what Coeus will actually need). Raw output: `scratchpad/results/{startup,rss,build}.txt`.
+Bench sources live in `scratchpad/lang-bench/` (hello programs and a minimal HTTP+SQLite daemon per language) and `scratchpad/realistic/` (a dependency set close to what Nerd Genie will actually need). Raw output: `scratchpad/results/{startup,rss,build}.txt`.
 
 ## 1. Measurements
 
@@ -51,7 +51,7 @@ Notes:
 
 ### 1.4 Realistic dependency sets (measured, built today)
 
-These approximate what Coeus needs: HTTP client with TLS, WebSocket, SQLite, cron parser, OS keyring, CLI parsing, logging. Go also pulls in chromedp, the official MCP SDK and the official Anthropic SDK because they were cheap to add.
+These approximate what Nerd Genie needs: HTTP client with TLS, WebSocket, SQLite, cron parser, OS keyring, CLI parsing, logging. Go also pulls in chromedp, the official MCP SDK and the official Anthropic SDK because they were cheap to add.
 
 | Set | Deps | Binary | Linux arm64 | RSS idle 2 s | Clean build (Mac) | Incremental | Cross build |
 |---|---|---|---|---|---|---|---|
@@ -82,7 +82,7 @@ Anchors: Raspberry Pi 5 Geekbench 6 multi-core 1,604 ([raspberrypi.com](https://
 
 | Build on Pi 5 (estimated) | Time |
 |---|---|
-| Go, Coeus-sized (66 modules, ~15k lines), clean | 1–2 min |
+| Go, Nerd Genie-sized (66 modules, ~15k lines), clean | 1–2 min |
 | Go, incremental | 1–3 s |
 | Rust, 239-crate set with a tiny main, clean release | 2–4 min |
 | Rust, ~15k-line app with ~150 deps, clean release | 5–12 min (Mac estimate 60–90 s: 25 s deps + 30–60 s for the app crate itself) |
@@ -108,7 +108,7 @@ Rust on the Pi also needs the rustup toolchain (~1 GB) and 650 MB+ of target dir
 | Claude fluency (my judgment) | Good but slowest loop: borrow checker in async code, trait bounds, `Arc<Mutex<>>` plumbing, crate API drift; multi-round fixes | Very good: one way to do things, gofmt, clear compile errors, verbose but mechanical error handling | Best: most training data, JT reads it, instant feedback, Bun APIs well known | same | Good code, costly debugging (UB, build systems) | Weakest: little training data, std API churn (see below) |
 | Toolchain stability seen today | cargo 1.84 too old for edition-2024 crates | none | none | none | — | `std.posix.write` no longer exists in 0.16 (`bad.zig` fails) |
 
-Library availability for Coeus's requirements (status checked today; URLs in section 5):
+Library availability for Nerd Genie's requirements (status checked today; URLs in section 5):
 
 | Need | Rust | Go | TypeScript |
 |---|---|---|---|
@@ -164,7 +164,7 @@ Shared facts: signal-cli is an external JVM/GraalVM daemon in all cases. Chrome 
 
 ## 4. Recommendation
 
-**Build the Coeus daemon in Go (Architecture B), with a small Bun/TypeScript automation worker as a separately spawned sidecar for Playwright and cua-driver.**
+**Build the Nerd Genie daemon in Go (Architecture B), with a small Bun/TypeScript automation worker as a separately spawned sidecar for Playwright and cua-driver.**
 
 Reasoning, in order of weight:
 

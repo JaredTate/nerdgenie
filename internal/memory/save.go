@@ -18,7 +18,7 @@ const maxMintAttempts = 1000
 
 // maxFactsPerBatch is how many facts one save may carry. A save reads a row of
 // the index for every fact in the batch before it writes anything, so a batch
-// with no limit is a read with no limit; the biggest batch anything in Coeus
+// with no limit is a read with no limit; the biggest batch anything in Nerd Genie
 // writes is one finished task's capture, which is maxCapturedFacts.
 const maxFactsPerBatch = 500
 

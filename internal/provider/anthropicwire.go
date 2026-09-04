@@ -68,7 +68,7 @@ type anthropicTool struct {
 // answers. The only type this harness sends is "adaptive", where the model
 // decides for itself how long to think and the effort below says how far it may
 // go; the older shape, "enabled" with a token budget, is refused by every model
-// Coeus talks to.
+// Nerd Genie talks to.
 //
 // The shape was read from the Claude API reference on this machine, at
 // /tmp/claude-1000/bundled-skills/2.1.259/e40adf0c7c495fe3df7108386b7e2dd8/claude-api/curl/examples.md,
@@ -80,7 +80,7 @@ type anthropicThinking struct {
 
 // anthropicOutputConfig carries how much effort the model may spend on one
 // call. The same reference file writes it as output_config.effort, and the
-// levels it takes are the ones Coeus offers above "off".
+// levels it takes are the ones Nerd Genie offers above "off".
 type anthropicOutputConfig struct {
 	// Effort is the think level, such as "high".
 	Effort string `json:"effort"`
@@ -104,7 +104,7 @@ type anthropicBody struct {
 	// switched the tools off.
 	Tools []anthropicTool `json:"tools,omitempty"`
 	// Thinking asks for adaptive thinking, and is left out when the think level
-	// is off or empty, which is how Coeus called this API before the level
+	// is off or empty, which is how Nerd Genie called this API before the level
 	// existed.
 	Thinking *anthropicThinking `json:"thinking,omitempty"`
 	// OutputConfig carries the effort that goes with the thinking, and is left

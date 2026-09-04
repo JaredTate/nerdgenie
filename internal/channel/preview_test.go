@@ -290,7 +290,7 @@ func TestAPreviewWithNoNumberOfItsOwnIsGivenOne(t *testing.T) {
 	go func() {
 		answer, err := harness.socket.ShowPreview(context.Background(), contract.Preview{
 			Title: "post to X",
-			Body:  "Coeus can now book flights.",
+			Body:  "Nerd Genie can now book flights.",
 		})
 		answers <- previewResult{answer: answer.Answer, reason: answer.Reason, err: err}
 	}()

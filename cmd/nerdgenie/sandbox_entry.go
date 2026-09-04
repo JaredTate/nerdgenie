@@ -17,7 +17,7 @@ import (
 // started it. The orchestrator adds this value to the table in main.go.
 var sandboxEntrySubcommand = subcommand{
 	name: sandbox.EntrySubcommandName,
-	help: "Runs a command inside the sandbox fence. Coeus starts this itself and it is not meant to be typed.",
+	help: "Runs a command inside the sandbox fence. Nerd Genie starts this itself and it is not meant to be typed.",
 	run: func(arguments []string, _ io.Writer, problems io.Writer) int {
 		// On a good day this call never comes back, because the helper becomes
 		// the command it was asked to run.

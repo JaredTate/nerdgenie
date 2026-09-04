@@ -1,6 +1,6 @@
 # The browser worker protocol
 
-This document is the contract between the Go side of Coeus and the browser
+This document is the contract between the Go side of Nerd Genie and the browser
 worker. The Go side is `internal/browser` (wave 5) and the worker is
 `worker/browser` (wave 5), a TypeScript program on Node that drives a real
 Chrome through Playwright. The fake worker in `internal/testkit` speaks this same

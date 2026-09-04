@@ -76,8 +76,8 @@ describe("a page that opens a dialog", () => {
   it("types the text it was given into a prompt before accepting it", async () => {
     const page = await worker.result("open", { url: site.page("dialog.html") });
     await worker.result("click", { ref: refFor(page, "Ask me for a name") });
-    const diff = asDiff(await worker.result("dialog", { action: "accept", text: "Coeus" }));
-    expect(diff.newElements.some((element) => element.name === "Hello Coeus")).toBe(true);
+    const diff = asDiff(await worker.result("dialog", { action: "accept", text: "Nerd Genie" }));
+    expect(diff.newElements.some((element) => element.name === "Hello Nerd Genie")).toBe(true);
   });
 
   it("gives a prompt no answer at all when it is dismissed", async () => {

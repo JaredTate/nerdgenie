@@ -83,7 +83,7 @@ func unpack(ctx context.Context, archive *tar.Reader, settings RestoreSettings) 
 		}
 		path, wanted := pathInHome(settings.Home, header.Name)
 		if !wanted {
-			return fmt.Errorf("the archive %s holds %q, which is not part of a Coeus backup, so nothing more was put back", name, header.Name)
+			return fmt.Errorf("the archive %s holds %q, which is not part of a Nerd Genie backup, so nothing more was put back", name, header.Name)
 		}
 		if settings.OnlyTheDatabase && path != settings.Home.DatabaseFile() {
 			continue
@@ -92,7 +92,7 @@ func unpack(ctx context.Context, archive *tar.Reader, settings RestoreSettings) 
 			return fmt.Errorf("the archive %s could not be put back: %w", name, err)
 		}
 	}
-	return fmt.Errorf("the archive %s holds more than %d files, which is more than a Coeus backup ever has", name, MaxArchiveEntries)
+	return fmt.Errorf("the archive %s holds more than %d files, which is more than a Nerd Genie backup ever has", name, MaxArchiveEntries)
 }
 
 // writeEntry writes one entry and returns how many bytes have been written out
@@ -107,14 +107,14 @@ func writeEntry(archive *tar.Reader, header *tar.Header, path string, written in
 		return written, nil
 	case tar.TypeReg:
 		if header.Size < 0 || written+header.Size > MaxArchiveBytes {
-			return written, fmt.Errorf("%q would take the whole restore past %d bytes, which is more than a Coeus backup ever holds", header.Name, int64(MaxArchiveBytes))
+			return written, fmt.Errorf("%q would take the whole restore past %d bytes, which is more than a Nerd Genie backup ever holds", header.Name, int64(MaxArchiveBytes))
 		}
 		if err := writeRestoredFile(archive, path, header.Size); err != nil {
 			return written, err
 		}
 		return written + header.Size, nil
 	default:
-		return written, fmt.Errorf("%q is neither a plain file nor a folder, and a Coeus backup holds nothing else", header.Name)
+		return written, fmt.Errorf("%q is neither a plain file nor a folder, and a Nerd Genie backup holds nothing else", header.Name)
 	}
 }
 

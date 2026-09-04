@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run Coeus once with no person at the keyboard: start "nerdgenie serve" on a
+# Run Nerd Genie once with no person at the keyboard: start "nerdgenie serve" on a
 # benchmark home folder, drive its socket with the task, then stop it.
 #
 #   run-nerdgenie.sh BINARY HOME_FOLDER TASK_FILE [TIMEOUT_MINUTES]

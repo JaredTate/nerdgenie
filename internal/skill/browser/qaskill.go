@@ -55,7 +55,7 @@ func qaWalk() []Step {
 			Expectation: "the report form is on the screen",
 		},
 		{
-			Number: 2, Intent: "Say who is reporting.", Tool: contract.ToolBrowserType, Typed: "Coeus",
+			Number: 2, Intent: "Say who is reporting.", Tool: contract.ToolBrowserType, Typed: "Nerd Genie",
 			Element:     Descriptor{Role: "textbox", Name: "Your name"},
 			Expectation: "the name box holds what was typed",
 		},
@@ -78,7 +78,7 @@ func qaWalk() []Step {
 // rid of it.
 const qaChangelog = `# changelog for qa
 
-- shipped with Coeus. The walk below the heading in steps.md is an example: edit it for the app you are checking, and give the address of that app as the skill's argument. To undo: /skills remove
+- shipped with Nerd Genie. The walk below the heading in steps.md is an example: edit it for the app you are checking, and give the address of that app as the skill's argument. To undo: /skills remove
 `
 
 // InstallQASkill writes the shipped quality skill into the skills folder. The

@@ -20,7 +20,7 @@ import (
 // integration tests were running. That entry is gone now and the worker is handed
 // NO_AT_BRIDGE=1 instead, which is what
 // TestTheBrowserWorkerIsHandedTheBridgeSwitchedOffAndNoSessionBus below holds.
-// Nothing in Coeus writes the setting, so the guard cannot be a check of Coeus's
+// Nothing in Nerd Genie writes the setting, so the guard cannot be a check of Nerd Genie's
 // own code: it has to be a check of the machine, taken before and after this
 // package's tests run. The same guard is in
 // internal/desktop/accessibility_test.go, and it belongs in internal/testkit so

@@ -22,7 +22,7 @@ func TestTheJobStatusFieldsAreNamed(t *testing.T) {
 	}
 }
 
-// theCampaignTasks is the task list of the job in section 4 of COEUS.md, with
+// theCampaignTasks is the task list of the job in section 4 of NERDGENIE.md, with
 // the check marks and the dates the record carries.
 func theCampaignTasks() []contract.JobTask {
 	return []contract.JobTask{

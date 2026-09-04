@@ -3,7 +3,7 @@
 // provider found on the machine is offered before one that needs a key, and a
 // local provider is marked as local so the user can see that nothing leaves the
 // machine. ZeroClaw reads a registry of dozens of providers; this looks for the
-// six Coeus can actually reach and offers the ones that answered.
+// six Nerd Genie can actually reach and offers the ones that answered.
 
 package command
 
@@ -44,7 +44,7 @@ const (
 )
 
 // The context lengths written into a fresh configuration for the models whose
-// window Coeus cannot ask for. Each one is a starting point with a comment in
+// window Nerd Genie cannot ask for. Each one is a starting point with a comment in
 // the file telling the user to set it to the window their model really has.
 const (
 	// cloudContextLength is the window written for the two cloud models.

@@ -169,7 +169,7 @@ func TestRedactionLeavesOrdinaryTextExactlyAsItWas(t *testing.T) {
 		"there is nothing secret in this sentence",
 		"write to someone@example.com about the invoice",
 		"the commit is a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
-		"Coeus version 1.2.3 is running on this machine",
+		"Nerd Genie version 1.2.3 is running on this machine",
 		"risk-management is a task-oriented discipline",
 		"the file has 123456 lines in it",
 		"the tokenizer=fast setting is the default",

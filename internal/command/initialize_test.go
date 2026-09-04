@@ -20,7 +20,7 @@ import (
 // signalNextStep is the closing line that offers Signal. The doctor's own
 // warning about a missing signal-cli also names the command, so a test that
 // wants to know whether Signal was offered has to look for this whole line.
-const signalNextStep = "nerdgenie signal link  link Coeus to your Signal account"
+const signalNextStep = "nerdgenie signal link  link Nerd Genie to your Signal account"
 
 // emptyHome points the HOME and XDG_CONFIG_HOME variables at folders with
 // nothing in them, which is what a machine looks like before "nerdgenie init" has

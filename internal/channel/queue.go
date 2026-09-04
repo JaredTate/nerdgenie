@@ -4,7 +4,7 @@
 // turned around. There the queue holds work on its way out, and every row
 // carries a state and the number of times it has been claimed, so that a crash
 // between claiming a row and finishing it leaves a row that is claimed again
-// with a higher count rather than a piece of work that is quietly lost. Coeus
+// with a higher count rather than a piece of work that is quietly lost. Nerd Genie
 // queues work on its way in and keeps only that idea: written down before
 // anything looks at it, taken when it is handed to the loop, done when the task
 // it started ends, and handed out again with the duplicate marker when the two
@@ -303,7 +303,7 @@ func (queue *Queue) insert(ctx context.Context, message contract.Inbound, attach
 func (queue *Queue) prepare(ctx context.Context) error {
 	for _, statement := range queueSchemaStatements {
 		if _, err := queue.database.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("cannot make the queue's table in %s, so point Coeus at a different file or move this one aside: %w", queue.path, err)
+			return fmt.Errorf("cannot make the queue's table in %s, so point Nerd Genie at a different file or move this one aside: %w", queue.path, err)
 		}
 	}
 	if _, err := queue.database.ExecContext(ctx,

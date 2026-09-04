@@ -1,6 +1,6 @@
 # Third-party designs and files
 
-Coeus ports designs from these projects. Porting means a worker read the reference file, understood the idea, and wrote it fresh in Go. No code was copied. Each Go file that ports a design names the project and the reference path in a comment at its top.
+Nerd Genie ports designs from these projects. Porting means a worker read the reference file, understood the idea, and wrote it fresh in Go. No code was copied. Each Go file that ports a design names the project and the reference path in a comment at its top.
 
 | Project | License | What was ported |
 |---|---|---|
@@ -25,7 +25,7 @@ in a comment at the top, which the style checker enforces.
 
 ## Verbatim copies in `docs/reference/`
 
-These files are unmodified copies kept for reading, because their projects were cloned only during research and are not on the development machine. They remain under their own licenses, named above, and are not part of the Coeus program.
+These files are unmodified copies kept for reading, because their projects were cloned only during research and are not on the development machine. They remain under their own licenses, named above, and are not part of the Nerd Genie program.
 
 - `docs/reference/browser-use/` — `serializer.py`, `prompts.py`, `views.py` (MIT)
 - `docs/reference/moltis/` — `manager.rs`, `snapshot.rs`, `types.rs` (MIT)

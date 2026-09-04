@@ -20,7 +20,7 @@ import (
 
 // fixtureTitle is what the fixture window is called. The worker finds the
 // window by this title, so nothing the user opened is ever touched.
-const fixtureTitle = "Coeus desktop integration fixture"
+const fixtureTitle = "Nerd Genie desktop integration fixture"
 
 // workerCommand is node and the built worker, or a reason it cannot be run here.
 //

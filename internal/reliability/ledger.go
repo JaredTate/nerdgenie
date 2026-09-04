@@ -24,7 +24,7 @@ import (
 // DuplicateMarker goes in front of a reply that is sent again after a crash,
 // because the first send may have arrived and the user deserves to be told
 // which of the two this is.
-const DuplicateMarker = "(You may have this already. Coeus restarted while it was sending it.)\n\n"
+const DuplicateMarker = "(You may have this already. Nerd Genie restarted while it was sending it.)\n\n"
 
 const (
 	// MaxDeliveryAttempts is how many times one reply is sent again before it is
@@ -35,7 +35,7 @@ const (
 	// helps.
 	DeliveryLifetime = 24 * time.Hour
 	// MaxUndeliveredReplies caps how many undelivered replies are held in memory
-	// while the log is read, because every buffer in Coeus has a cap. A log with
+	// while the log is read, because every buffer in Nerd Genie has a cap. A log with
 	// more than this waiting is a log to read by hand.
 	MaxUndeliveredReplies = 1000
 )
@@ -162,7 +162,7 @@ func (ledger *Ledger) Undelivered(ctx context.Context) ([]Reply, error) {
 		}
 		if _, known := waiting[id]; !known {
 			if len(waiting) >= MaxUndeliveredReplies {
-				return fmt.Errorf("more than %d replies are waiting to be sent, which is more than Coeus holds at once: read the log to see what happened", MaxUndeliveredReplies)
+				return fmt.Errorf("more than %d replies are waiting to be sent, which is more than Nerd Genie holds at once: read the log to see what happened", MaxUndeliveredReplies)
 			}
 			order = append(order, id)
 		}

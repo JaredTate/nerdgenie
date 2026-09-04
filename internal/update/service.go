@@ -4,7 +4,7 @@
 // time. OpenClaw's updater at ~/Code/openclaw/src/cli/update-cli/ is the example
 // avoided here: it edits the service definition during an update, and a
 // permission check on the file it does not own is what stopped an update dead.
-// Coeus writes the unit once at install and the updater only moves a link.
+// Nerd Genie writes the unit once at install and the updater only moves a link.
 
 package update
 
@@ -64,7 +64,7 @@ func (unit service) run(ctx context.Context, wait time.Duration, arguments ...st
 		return string(said), nil
 	}
 	if errors.Is(err, exec.ErrNotFound) {
-		return string(said), fmt.Errorf("systemctl is not on this machine, so Coeus cannot restart itself; install the service with \"nerdgenie install\" on a machine that runs systemd: %w", err)
+		return string(said), fmt.Errorf("systemctl is not on this machine, so Nerd Genie cannot restart itself; install the service with \"nerdgenie install\" on a machine that runs systemd: %w", err)
 	}
 	return string(said), fmt.Errorf("\"systemctl %s\" did not work and said %q, so look at \"systemctl --user status %s\": %w",
 		strings.Join(called, " "), strings.TrimSpace(string(said)), unit.unit, err)

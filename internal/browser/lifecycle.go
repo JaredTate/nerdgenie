@@ -43,7 +43,7 @@ func (browser *Browser) afterAFailedCall(method string, err error) error {
 	var refused *RefusedError
 	if errors.As(err, &refused) {
 		if refused.isBugOnThisSide() {
-			return fmt.Errorf("the browser worker has no method called %s, which is a fault in Coeus rather than in the page: %w", method, err)
+			return fmt.Errorf("the browser worker has no method called %s, which is a fault in Nerd Genie rather than in the page: %w", method, err)
 		}
 		if !refused.needsRestart() {
 			return err

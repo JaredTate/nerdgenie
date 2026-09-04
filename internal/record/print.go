@@ -60,7 +60,7 @@ const (
 )
 
 // Print writes a record in the one text form the design defines, which is the
-// only form anything in Coeus ever writes. Parse reads it back.
+// only form anything in Nerd Genie ever writes. Parse reads it back.
 func Print(record contract.Record) []byte {
 	lines := printHeader(record.Header)
 	for _, part := range [][]string{

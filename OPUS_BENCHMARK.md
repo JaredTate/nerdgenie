@@ -1,21 +1,21 @@
-# The Opus 4.8 Benchmark: Coeus, OpenClaw and Hermes on the same task
+# The Opus 4.8 Benchmark: Nerd Genie, OpenClaw and Hermes on the same task
 
-Nine clean runs on 2026-09-03: three each of Coeus, OpenClaw and Hermes, on
+Nine clean runs on 2026-09-03: three each of Nerd Genie, OpenClaw and Hermes, on
 Claude Opus 4.8, on the user's Claude subscription with no API key, on one
 tic-tac-toe task. This file is the whole record: what was held equal, every
 run, every model call, and what the numbers say. Everything was measured from
 its primary source and can be added up by hand from the tables at the end.
 
 **The short version.** All nine runs finished green: the same correct, playable
-game with six passing tests every time. Coeus, driving Opus with its own loop,
+game with six passing tests every time. Nerd Genie, driving Opus with its own loop,
 took three to five model calls and 34 to 42 seconds. Claude Code's loop,
 launched by OpenClaw, took three calls and 25 to 28 seconds. Hermes's runs are
 Claude Code's loop again, plus about ninety seconds of Hermes managing the job
-on the local Qwen. Priced from a cold cache, Coeus is the cheapest way to get
+on the local Qwen. Priced from a cold cache, Nerd Genie is the cheapest way to get
 the job done with a harness in the path ($0.35 a run against OpenClaw's
-$0.54); priced with a warm cache, Coeus costs a few cents more ($0.30 against
-$0.24), and the whole of that gap is one provider bug in Coeus that is named
-below. Only Coeus's own loop touched Opus today; every other column is Claude
+$0.54); priced with a warm cache, Nerd Genie costs a few cents more ($0.30 against
+$0.24), and the whole of that gap is one provider bug in Nerd Genie that is named
+below. Only Nerd Genie's own loop touched Opus today; every other column is Claude
 Code's loop with a wrapper, and that limit is explained before the numbers.
 
 
@@ -37,15 +37,15 @@ There is no API key on this machine. Every path to Opus 4.8 goes through the
 `-p` it does one job and exits. All three harnesses end up running that one
 program; what differs is what they do around it.
 
-| | Coeus | OpenClaw | Hermes |
+| | Nerd Genie | OpenClaw | Hermes |
 |---|---|---|---|
-| What it does | runs `claude -p` with Claude Code's own tools switched off and Coeus's system prompt in place of Claude Code's, so the program is a bare model; the model asks Coeus for a tool in text, Coeus runs it, writes its record, and calls again | its `claude-cli` mode sends the task to Claude Code once, with Claude Code's own tools on; Claude Code's loop writes the files and runs the tests and hands back the finished folder | its Claude Code skill: Hermes runs on the local Qwen, types `claude -p --model claude-opus-4-8 --effort medium --dangerously-skip-permissions` with the task into its terminal tool, and waits |
-| Whose loop drives Opus | Coeus | Claude Code | Claude Code |
-| Whose tools run | Coeus's (`write`, `shell`, `task`) | Claude Code's (`Write`, `Bash`) | Claude Code's (`Write`, `Bash`) |
+| What it does | runs `claude -p` with Claude Code's own tools switched off and Nerd Genie's system prompt in place of Claude Code's, so the program is a bare model; the model asks Nerd Genie for a tool in text, Nerd Genie runs it, writes its record, and calls again | its `claude-cli` mode sends the task to Claude Code once, with Claude Code's own tools on; Claude Code's loop writes the files and runs the tests and hands back the finished folder | its Claude Code skill: Hermes runs on the local Qwen, types `claude -p --model claude-opus-4-8 --effort medium --dangerously-skip-permissions` with the task into its terminal tool, and waits |
+| Whose loop drives Opus | Nerd Genie | Claude Code | Claude Code |
+| Whose tools run | Nerd Genie's (`write`, `shell`, `task`) | Claude Code's (`Write`, `Bash`) | Claude Code's (`Write`, `Bash`) |
 | Command | `coeus serve` on a fresh home, driven over its socket by `scripts/bench/drive.py` | `openclaw agent exec --message-file task.txt --model anthropic/claude-opus-4-8 --cwd <work> --timeout 0 --json` | `hermes chat -q "<prompt>" --provider bench -m local-coder --yolo --in <work>` with a fresh `HERMES_HOME` |
 
 This is each harness as its own users run it on a subscription, and it means
-the comparison on this path is Coeus's loop against Claude Code's loop with
+the comparison on this path is Nerd Genie's loop against Claude Code's loop with
 OpenClaw or Hermes wrapped around it. The proof is in the tools that ran: the
 sessions OpenClaw and Hermes left behind show Claude Code's own `Write` and
 `Bash`, not OpenClaw's `write` and `exec` or Hermes's `write_file`.
@@ -66,28 +66,28 @@ and the installed copy lists no Anthropic model), so it is not in this phase.
   OpenClaw state folder (which `agent exec` makes and deletes itself), a fresh
   `HERMES_HOME` outside `~/.hermes`. No memory file, no past session, no skill
   learned earlier, no instruction file in or above the work folder.
-- **One at a time.** Coeus, then OpenClaw, then Hermes, three rounds, never
+- **One at a time.** Nerd Genie, then OpenClaw, then Hermes, three rounds, never
   two at once, so no run slowed another.
-- **Effort medium** wherever the knob exists: Coeus through its `think`
+- **Effort medium** wherever the knob exists: Nerd Genie through its `think`
   setting (`--effort medium` on every call), Hermes through the flag it types.
   OpenClaw's claude-cli path has no effort knob; its Claude Code ran at the
   program's default and its sessions show 10 to 20 thinking tokens per run, so
   it is already at the floor.
-- **No cap of any kind.** Coeus's own task budget (a hundred rounds and an hour
+- **No cap of any kind.** Nerd Genie's own task budget (a hundred rounds and an hour
   by default) was raised out of reach so it could not act as one.
 - **The same judge.** `scripts/bench/check-tater.mjs` on the work folder after
   the harness had exited: six logic checks, four play-through checks in a
   headless browser, and the harness's own tests counted and run.
 - **The same clock.** Time is from the task going in to the final answer
-  coming out: for Coeus, the driver's log (the message sent, the reply
-  received); for OpenClaw and Hermes, launch to exit. Coeus's raw launch-to-exit
+  coming out: for Nerd Genie, the driver's log (the message sent, the reply
+  received); for OpenClaw and Hermes, launch to exit. Nerd Genie's raw launch-to-exit
   is longer because the driver waits a fixed quiet period before leaving, and
   that is not the harness's time.
 - **The same prices.** Anthropic's list prices per million tokens: fresh input
   $5, one-hour cache write $10 (the cache Claude Code uses), cache read $0.50,
   output $25. OpenClaw and Hermes rows are computed from the per-call usage in
-  the Claude Code session file; Coeus rows use Claude Code's own bill per call,
-  which Coeus's provider records.
+  the Claude Code session file; Nerd Genie rows use Claude Code's own bill per call,
+  which Nerd Genie's provider records.
 
 ## One thing that cannot be held equal, so it is shown both ways
 
@@ -128,19 +128,19 @@ have cost from a cold cache.
 1. **Everyone finished, and the work is the same.** Nine runs, nine green
    verdicts from the same checker, a `game.js` of 26 to 34 lines, six tests
    each. Quality does not separate them on this task.
-2. **Coeus keeps pace with Claude Code's own loop.** Three calls in two of its
+2. **Nerd Genie keeps pace with Claude Code's own loop.** Three calls in two of its
    runs, five in one; 34, 42 and 35 seconds against Claude Code's 25, 28 and
-   26. The eight to sixteen extra seconds are Coeus's own bookkeeping: writing
+   26. The eight to sixteen extra seconds are Nerd Genie's own bookkeeping: writing
    the done list into the record before the first file, checking the done list
    at the end, and one pause for permission (below).
-3. **Coeus paused twice for a yes.** In runs 1 and 3 Coeus's permission
+3. **Nerd Genie paused twice for a yes.** In runs 1 and 3 Nerd Genie's permission
    function stopped before `cd "$(pwd)" && node --test tests/game.test.mjs`
    because the command "builds part of itself at run time" (the `$(pwd)`),
    showed a preview, and waited. The benchmark driver said yes at once; a
    person at the keyboard would have had to. Claude Code, OpenClaw and Hermes
-   never ask. This is Coeus doing what it was built to do, and it is also a
+   never ask. This is Nerd Genie doing what it was built to do, and it is also a
    rule worth a second look: `$(pwd)` cannot hurt anyone.
-4. **Run 2 of Coeus wandered.** The model wrote a `game.js.placeholder`,
+4. **Run 2 of Nerd Genie wandered.** The model wrote a `game.js.placeholder`,
    deleted it with a shell command, and then updated the record line by line
    in four separate `task` calls. Same green result, five calls and ten tool
    calls instead of three and six, $0.38 instead of $0.26. That is the spread
@@ -148,29 +148,29 @@ have cost from a cold cache.
 5. **Tokens in is not the cost.** OpenClaw's runs send 131,000 tokens and cost
    $0.24 because 118,000 of them are the same 42,000-token Claude Code prompt
    (its system prompt plus OpenClaw's tool definitions) read back three times
-   at fifty cents a million. Coeus's runs send 23,000 to 42,000 tokens and cost
+   at fifty cents a million. Nerd Genie's runs send 23,000 to 42,000 tokens and cost
    $0.26 to $0.38 because most of them are written to the cache at ten dollars
    a million and never read back. A written token costs twenty read tokens.
-6. **Cold, Coeus is the cheapest harness in the path.** Charging every run's
-   first call at the write price, as a first run of the day pays: Coeus $0.35,
+6. **Cold, Nerd Genie is the cheapest harness in the path.** Charging every run's
+   first call at the write price, as a first run of the day pays: Nerd Genie $0.35,
    Hermes $0.26 (plain Claude Code with a small prompt), OpenClaw $0.54
    (Claude Code carrying OpenClaw's 33 tools). Warm, which is what a person
-   running several tasks in an hour pays: Coeus $0.30, OpenClaw $0.24, Hermes
+   running several tasks in an hour pays: Nerd Genie $0.30, OpenClaw $0.24, Hermes
    $0.16. Both are true; the cache favours whoever sends the same big prompt
-   again, and Coeus's provider does not let it do that yet.
-7. **Coeus writes about a thousand more output tokens a run** (2,984 against
+   again, and Nerd Genie's provider does not let it do that yet.
+7. **Nerd Genie writes about a thousand more output tokens a run** (2,984 against
    about 2,000). That is the record: the why, the done list, the plan, and the
    lines that pin each done item to a result, written through the `task` tool.
    At $25 a million it is two and a half cents a run. It is the price of a
    record a person can read, and it is small.
-8. **Effort.** Coeus and Hermes ran at effort medium. OpenClaw's path has no
+8. **Effort.** Nerd Genie and Hermes ran at effort medium. OpenClaw's path has no
    knob and its Claude Code showed 10 to 16 thinking tokens a run, so it was
-   already at the floor. Coeus's counters do not separate thinking from other
+   already at the floor. Nerd Genie's counters do not separate thinking from other
    output; an earlier run at the program's default effort produced 6,753
    output tokens on its first call against 2,277 at medium, which is what led
    to the `think` setting and to pinning it.
 
-## What Coeus should fix, in order
+## What Nerd Genie should fix, in order
 
 1. **Read its own prefix from cache on every call.** On the `claude -p` path
    the provider writes the whole system prompt, the changing record included,
@@ -181,7 +181,7 @@ have cost from a cold cache.
    standard input, where the Anthropic path already puts it) would let the
    persona, rules and tool list, about 4,900 tokens, be read at fifty cents
    instead of written at ten dollars on every call after the first. On these
-   runs that is about nine cents a run: Coeus warm would be about $0.21, under
+   runs that is about nine cents a run: Nerd Genie warm would be about $0.21, under
    OpenClaw's $0.24.
 2. **Do not ask about `$(pwd)`.** A command that only reads its own working
    folder is not a command that "builds part of itself." Two of three runs
@@ -191,7 +191,7 @@ have cost from a cold cache.
 
 ## What this comparison can and cannot say
 
-It can say how Coeus's loop compares with Claude Code's loop on the same task,
+It can say how Nerd Genie's loop compares with Claude Code's loop on the same task,
 model and judge, three times over, and it can say what each wrapper adds on
 top: OpenClaw adds a 42,000-token tool catalogue to every call, Hermes adds a
 second brain on a local card and ninety seconds. It cannot say how OpenClaw's
@@ -206,17 +206,17 @@ The four-way comparison of the loops themselves is the Qwen phase in
 
 | Run | Call | Fresh | Cache write | Cache read | Out | Thinking | Tokens in | Cost | Tools |
 |---|---|---|---|---|---|---|---|---|---|
-| coeus 1 | 1 | 0 | 160 | 4,756 | 2,277 |  | 4,916 | $0.061 | Coeus's own tools |
-| coeus 1 | 2 | 0 | 8,989 | 0 | 296 |  | 8,989 | $0.097 | Coeus's own tools |
-| coeus 1 | 3 | 0 | 9,391 | 0 | 221 |  | 9,391 | $0.099 | Coeus's own tools |
-| coeus 2 | 1 | 0 | 154 | 4,762 | 671 |  | 4,916 | $0.021 | Coeus's own tools |
-| coeus 2 | 2 | 0 | 7,076 | 0 | 1,778 |  | 7,076 | $0.115 | Coeus's own tools |
-| coeus 2 | 3 | 0 | 5,165 | 4,194 | 102 |  | 9,359 | $0.056 | Coeus's own tools |
-| coeus 2 | 4 | 0 | 5,595 | 4,150 | 523 |  | 9,745 | $0.071 | Coeus's own tools |
-| coeus 2 | 5 | 0 | 11,341 | 0 | 216 |  | 11,341 | $0.119 | Coeus's own tools |
-| coeus 3 | 1 | 0 | 154 | 4,762 | 2,223 |  | 4,916 | $0.059 | Coeus's own tools |
-| coeus 3 | 2 | 0 | 9,070 | 0 | 479 |  | 9,070 | $0.103 | Coeus's own tools |
-| coeus 3 | 3 | 0 | 10,205 | 0 | 165 |  | 10,205 | $0.106 | Coeus's own tools |
+| coeus 1 | 1 | 0 | 160 | 4,756 | 2,277 |  | 4,916 | $0.061 | Nerd Genie's own tools |
+| coeus 1 | 2 | 0 | 8,989 | 0 | 296 |  | 8,989 | $0.097 | Nerd Genie's own tools |
+| coeus 1 | 3 | 0 | 9,391 | 0 | 221 |  | 9,391 | $0.099 | Nerd Genie's own tools |
+| coeus 2 | 1 | 0 | 154 | 4,762 | 671 |  | 4,916 | $0.021 | Nerd Genie's own tools |
+| coeus 2 | 2 | 0 | 7,076 | 0 | 1,778 |  | 7,076 | $0.115 | Nerd Genie's own tools |
+| coeus 2 | 3 | 0 | 5,165 | 4,194 | 102 |  | 9,359 | $0.056 | Nerd Genie's own tools |
+| coeus 2 | 4 | 0 | 5,595 | 4,150 | 523 |  | 9,745 | $0.071 | Nerd Genie's own tools |
+| coeus 2 | 5 | 0 | 11,341 | 0 | 216 |  | 11,341 | $0.119 | Nerd Genie's own tools |
+| coeus 3 | 1 | 0 | 154 | 4,762 | 2,223 |  | 4,916 | $0.059 | Nerd Genie's own tools |
+| coeus 3 | 2 | 0 | 9,070 | 0 | 479 |  | 9,070 | $0.103 | Nerd Genie's own tools |
+| coeus 3 | 3 | 0 | 10,205 | 0 | 165 |  | 10,205 | $0.106 | Nerd Genie's own tools |
 | openclaw 1 | 1 | 2 | 10,421 | 31,632 | 1,811 | 16 | 42,055 | $0.165 | Write, Write, Write |
 | openclaw 1 | 2 | 2 | 2,073 | 42,053 | 120 | 0 | 44,128 | $0.045 | Bash |
 | openclaw 1 | 3 | 2 | 307 | 44,126 | 52 | 0 | 44,435 | $0.026 | none |

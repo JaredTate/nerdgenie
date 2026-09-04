@@ -16,7 +16,7 @@ import (
 
 // theWordsAPersonWrote is what a test puts in a persona file to prove that
 // "nerdgenie init" never writes over what somebody wrote themselves.
-const theWordsAPersonWrote = "# Who Coeus is\n\nShort answers. Never apologise. Say the cost.\n"
+const theWordsAPersonWrote = "# Who Nerd Genie is\n\nShort answers. Never apologise. Say the cost.\n"
 
 func TestTheWaitsAreTheOnesTheDesignAsksFor(t *testing.T) {
 	for _, one := range []struct {

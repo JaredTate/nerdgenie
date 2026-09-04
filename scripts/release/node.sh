@@ -4,7 +4,7 @@
 # error, so that a caller can read the path straight out of its output.
 #
 # A release bundles this runtime beside the two TypeScript workers, so that a
-# person installing Coeus does not have to install Node first. It is downloaded
+# person installing Nerd Genie does not have to install Node first. It is downloaded
 # once per machine and kept, because the release for the second architecture
 # wants the same file again.
 #

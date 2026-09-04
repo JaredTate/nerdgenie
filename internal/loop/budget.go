@@ -10,7 +10,7 @@ import (
 )
 
 // This file is everything about a task's budget, which is design section 3,
-// rule 3 under the user's own rule: Coeus puts no cap on its own work unless
+// rule 3 under the user's own rule: Nerd Genie puts no cap on its own work unless
 // the user asks for one. A task's rounds and time are zero unless the caps or
 // a skill set them, and a zero means no limit everywhere below.
 

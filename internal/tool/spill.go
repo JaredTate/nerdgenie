@@ -1,7 +1,7 @@
 // The idea of keeping the whole of a long tool result on disk and handing the
 // model a preview that names the file is OpenCode's, at
 // ~/Code/opencode/packages/opencode/src/tool/truncate.ts. The Go here is written
-// fresh: Coeus names the file by the task it belongs to and caps the folder.
+// fresh: Nerd Genie names the file by the task it belongs to and caps the folder.
 
 package tool
 

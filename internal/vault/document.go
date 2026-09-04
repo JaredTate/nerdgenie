@@ -115,10 +115,10 @@ type storedEntry struct {
 func parseDocument(path string, plaintext []byte) ([]Entry, error) {
 	var document storedDocument
 	if err := json.Unmarshal(plaintext, &document); err != nil {
-		return nil, fmt.Errorf("the vault file %s does not hold the entry list Coeus writes, so restore it from a backup in ~/.nerdgenie/backups: %w", path, err)
+		return nil, fmt.Errorf("the vault file %s does not hold the entry list Nerd Genie writes, so restore it from a backup in ~/.nerdgenie/backups: %w", path, err)
 	}
 	if document.Version != documentVersion {
-		return nil, fmt.Errorf("the vault file %s says it is version %d and this build of Coeus writes version %d, so update Coeus or restore a backup", path, document.Version, documentVersion)
+		return nil, fmt.Errorf("the vault file %s says it is version %d and this build of Nerd Genie writes version %d, so update Nerd Genie or restore a backup", path, document.Version, documentVersion)
 	}
 	if len(document.Entries) > MaxEntries {
 		return nil, fmt.Errorf("the vault file %s holds %d entries and the limit is %d, so it is damaged and should be restored from a backup", path, len(document.Entries), MaxEntries)
@@ -129,7 +129,7 @@ func parseDocument(path string, plaintext []byte) ([]Entry, error) {
 	for _, stored := range document.Entries {
 		entry := Entry(stored)
 		if err := checkEntry(entry); err != nil {
-			return nil, fmt.Errorf("the vault file %s holds an entry Coeus cannot use: %w", path, err)
+			return nil, fmt.Errorf("the vault file %s holds an entry Nerd Genie cannot use: %w", path, err)
 		}
 		if seen[entry.Name] {
 			return nil, fmt.Errorf("the vault file %s holds two entries named %q and every name must be its own, so restore it from a backup", path, entry.Name)

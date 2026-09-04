@@ -1,4 +1,4 @@
-// Package reliability holds the mechanisms that keep Coeus serving through a
+// Package reliability holds the mechanisms that keep Nerd Genie serving through a
 // crash, a restart, a wedged turn, and a broken database, and the encrypted
 // backup that is the last line of defence.
 //

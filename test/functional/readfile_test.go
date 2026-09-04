@@ -60,7 +60,7 @@ func theFileIn(work string) string { return filepath.Join(work, "note.txt") }
 func theReadingScriptFor(work string) testkit.Script {
 	return testkit.Script{Name: "local", ContextLength: 32768, Steps: []testkit.Step{
 		{
-			Expect: []string{theAskThatNeedsAFileRead, "You are the reasoning engine inside Coeus"},
+			Expect: []string{theAskThatNeedsAFileRead, "You are the reasoning engine inside Nerd Genie"},
 			Text:   "Nothing has been read yet. I will open the file the user means.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{

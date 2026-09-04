@@ -15,7 +15,7 @@ import (
 
 // aDatabaseAtVersion makes a real event log in a temporary home and moves its
 // schema version to the number given, which is how a test stands in for a file
-// written by another version of Coeus.
+// written by another version of Nerd Genie.
 func aDatabaseAtVersion(t *testing.T, path string, version int, appliedBy string) {
 	t.Helper()
 	opened, err := log.Open(context.Background(), path)
@@ -33,7 +33,7 @@ func aDatabaseAtVersion(t *testing.T, path string, version int, appliedBy string
 		t.Fatalf("opening the database failed: %v", err)
 	}
 	defer func() { _ = database.Close() }()
-	if err := recordMigration(context.Background(), database, Migration{To: version, Name: "from a later Coeus"}, appliedBy, theTestMoment); err != nil {
+	if err := recordMigration(context.Background(), database, Migration{To: version, Name: "from a later Nerd Genie"}, appliedBy, theTestMoment); err != nil {
 		t.Fatalf("writing the newer schema version failed: %v", err)
 	}
 }
@@ -79,7 +79,7 @@ func TestADatabaseFromANewerNerdGenieIsRefusedWithTheVersionToUse(t *testing.T) 
 	err := CheckSchema(context.Background(), home.DatabaseFile())
 
 	if err == nil {
-		t.Fatalf("a database written by a newer Coeus was accepted")
+		t.Fatalf("a database written by a newer Nerd Genie was accepted")
 	}
 	if !strings.Contains(err.Error(), "0.9.0") {
 		t.Errorf("the refusal does not name the version to use: %v", err)
@@ -107,7 +107,7 @@ func TestADatabaseFromANewerNerdGenieThatNamesNoVersionStillRefuses(t *testing.T
 	err := CheckSchema(context.Background(), home.DatabaseFile())
 
 	if err == nil {
-		t.Fatalf("a database written by a newer Coeus was accepted")
+		t.Fatalf("a database written by a newer Nerd Genie was accepted")
 	}
 	if !strings.Contains(err.Error(), "update") {
 		t.Errorf("the refusal does not say what to do about it: %v", err)
@@ -154,6 +154,6 @@ func TestAFileThatIsNotANerdGenieDatabaseIsRefused(t *testing.T) {
 	}
 
 	if err := CheckSchema(context.Background(), path); err == nil {
-		t.Errorf("a file that is not a Coeus database was accepted")
+		t.Errorf("a file that is not a Nerd Genie database was accepted")
 	}
 }

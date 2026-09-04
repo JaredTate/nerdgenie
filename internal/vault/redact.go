@@ -4,7 +4,7 @@
 // _redact_browser_output: one list of secret shapes compiled once, applied to
 // everything that leaves the program, whether or not the value is one the
 // program itself knows. The list here is shorter and the pass is a single
-// scan, because everything Coeus says goes through it.
+// scan, because everything Nerd Genie says goes through it.
 
 package vault
 

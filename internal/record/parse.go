@@ -9,7 +9,7 @@ import (
 )
 
 // The two caps on the text a record may be read from. A record is one to three
-// thousand tokens by design, so anything past these is not a record Coeus wrote.
+// thousand tokens by design, so anything past these is not a record Nerd Genie wrote.
 const (
 	// MaxRecordBytes is the most text Parse will look at.
 	MaxRecordBytes = 1 << 20
@@ -26,12 +26,12 @@ var headingOrder = []string{headingGoal, headingRules, headingWork, headingLesso
 // the rules of a record forbid rather than quietly repairing it.
 func Parse(text []byte) (contract.Record, error) {
 	if len(text) > MaxRecordBytes {
-		return contract.Record{}, fmt.Errorf("this text is %d bytes and a record is at most %d, so it is not a record Coeus wrote",
+		return contract.Record{}, fmt.Errorf("this text is %d bytes and a record is at most %d, so it is not a record Nerd Genie wrote",
 			len(text), MaxRecordBytes)
 	}
 	lines := strings.Split(strings.TrimSuffix(string(text), "\n"), "\n")
 	if len(lines) > MaxRecordLines {
-		return contract.Record{}, fmt.Errorf("this text is %d lines and a record is at most %d, so it is not a record Coeus wrote",
+		return contract.Record{}, fmt.Errorf("this text is %d lines and a record is at most %d, so it is not a record Nerd Genie wrote",
 			len(lines), MaxRecordLines)
 	}
 

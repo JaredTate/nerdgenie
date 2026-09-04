@@ -15,7 +15,7 @@ type Result string
 const (
 	// Fine means the check found what it was looking for.
 	Fine Result = "ok"
-	// Warning means something Coeus can work without is missing, and says what
+	// Warning means something Nerd Genie can work without is missing, and says what
 	// is switched off because of it.
 	Warning Result = "warning"
 	// Trouble means something is wrong and has to be put right.
@@ -91,11 +91,11 @@ func (report Report) closingSentence() string {
 	}
 	switch report.Verdict() {
 	case Trouble:
-		return fmt.Sprintf("problem: %d things need fixing before Coeus will work properly, and %d more are switched off",
+		return fmt.Sprintf("problem: %d things need fixing before Nerd Genie will work properly, and %d more are switched off",
 			problems, warnings)
 	case Warning:
-		return fmt.Sprintf("warning: Coeus will run, with %d things switched off", warnings)
+		return fmt.Sprintf("warning: Nerd Genie will run, with %d things switched off", warnings)
 	default:
-		return "ok: everything Coeus needs is here"
+		return "ok: everything Nerd Genie needs is here"
 	}
 }

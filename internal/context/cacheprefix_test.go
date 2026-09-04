@@ -213,7 +213,7 @@ func firstLineOf(text string) string {
 }
 
 // TestARewrittenSituationCostsOnlyTheTail is the finding the first benchmark
-// against opencode turned up, on the local daemon: a Coeus call read 18,658
+// against opencode turned up, on the local daemon: a Nerd Genie call read 18,658
 // prompt tokens and the daemon reused only 4,322 of them, which is the system
 // blocks and not one byte more, so 14,336 tokens were read from scratch and one
 // call spent forty seconds of prefill on forty-five words of reply. opencode, on

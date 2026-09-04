@@ -52,7 +52,7 @@ func TestTheMessagesAPIIsAskedForAdaptiveThinkingAndAnEffort(t *testing.T) {
 }
 
 // TestTheMessagesAPIIsToldNothingAboutThinkingByDefault holds the behaviour
-// Coeus had before this setting existed and keeps: with no level, and with the
+// Nerd Genie had before this setting existed and keeps: with no level, and with the
 // level "off", no thinking field and no effort is sent at all, so the model's
 // own default stands.
 func TestTheMessagesAPIIsToldNothingAboutThinkingByDefault(t *testing.T) {
@@ -98,7 +98,7 @@ func TestTheChatCompletionsAPICarriesTheReasoningEffort(t *testing.T) {
 
 // TestTheLocalServerIsToldToThinkOrNotToThink holds the llama-server hint: the
 // server that answered the props probe is told to think for every level above
-// off, and not to think for off and for the default, which is what Coeus sent
+// off, and not to think for off and for the default, which is what Nerd Genie sent
 // before this setting existed.
 func TestTheLocalServerIsToldToThinkOrNotToThink(t *testing.T) {
 	forEachLevel := map[contract.Think]string{

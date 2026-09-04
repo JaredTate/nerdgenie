@@ -47,7 +47,7 @@ func TestARollbackToAVersionThatDoesNotComeUpGoesBackToTheOneThatWasRunning(t *t
 
 // aDatabaseFromANewerNerdGenie makes the one database and writes a schema version
 // above the one this program understands into it, which is what the file looks
-// like after a later version of Coeus has migrated it.
+// like after a later version of Nerd Genie has migrated it.
 func aDatabaseFromANewerNerdGenie(t *testing.T, home contract.Home) {
 	t.Helper()
 	opened, err := log.Open(context.Background(), home.DatabaseFile())

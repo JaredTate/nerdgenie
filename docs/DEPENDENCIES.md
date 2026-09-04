@@ -1,6 +1,6 @@
 # Dependencies
 
-Coeus uses the Go standard library wherever the standard library will do. This
+Nerd Genie uses the Go standard library wherever the standard library will do. This
 file is the complete list of outside libraries the project is allowed to use,
 each with one line saying why the standard library cannot do the job.
 

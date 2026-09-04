@@ -23,7 +23,7 @@ func TestADoneLineProvedByTheReplyItselfCloses(t *testing.T) {
 		callStep("Nothing is written yet. I will write down what done looks like.",
 			taskCall("c1t", `{"why":"the user wants three words","doneWhen":[`+
 				`{"text":"reply to the user with exactly three words","done":true,"resultId":"reply"}]}`)),
-		answerStep("Coeus is running."),
+		answerStep("Nerd Genie is running."),
 	})
 
 	outcome := built.ask(t, "reply with exactly three words")
@@ -31,7 +31,7 @@ func TestADoneLineProvedByTheReplyItselfCloses(t *testing.T) {
 	if outcome.Status != contract.StatusDone {
 		t.Fatalf("the task ended %q, want done: %s", outcome.Status, outcome.Report)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "Coeus is running.") {
+	if !sentSomethingLike(built.channel.Sent(), "Nerd Genie is running.") {
 		t.Errorf("the user was sent %v, want the three words they asked for", built.channel.Sent())
 	}
 	held := built.held(t, outcome.TaskID)

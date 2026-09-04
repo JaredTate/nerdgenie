@@ -14,7 +14,7 @@ type Ticker interface {
 	Stop()
 }
 
-// Clock is where every part of Coeus reads the time, so that a test can control
+// Clock is where every part of Nerd Genie reads the time, so that a test can control
 // it. Nothing calls time.Now directly.
 type Clock interface {
 	// Now is the current time.

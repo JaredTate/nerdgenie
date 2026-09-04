@@ -120,7 +120,7 @@ func TestHelpListsEveryCommandInRegistrationOrder(t *testing.T) {
 	for _, one := range []contract.Command{
 		{Name: "help", Help: "Shows this list.", Run: sayingCommand("help", "", nil).Run},
 		{Name: "status", Help: "Shows the model, the cost so far, the jobs, the answers waiting, and the health of each channel.", Run: sayingCommand("status", "", nil).Run},
-		{Name: "vault", Help: "Lists and manages the logins Coeus holds. Terminal only.", TerminalOnly: true, Run: sayingCommand("vault", "", nil).Run},
+		{Name: "vault", Help: "Lists and manages the logins Nerd Genie holds. Terminal only.", TerminalOnly: true, Run: sayingCommand("vault", "", nil).Run},
 	} {
 		if err := registry.Register(one); err != nil {
 			t.Fatalf("registering %s failed: %v", one.Name, err)
@@ -154,7 +154,7 @@ func TestRunRefusesATerminalOnlyCommandOnAnotherChannel(t *testing.T) {
 	registry := command.NewRegistry()
 	if err := registry.Register(contract.Command{
 		Name:         "vault",
-		Help:         "Lists and manages the logins Coeus holds. Terminal only.",
+		Help:         "Lists and manages the logins Nerd Genie holds. Terminal only.",
 		TerminalOnly: true,
 		Run: func(_ context.Context, _ string, _ contract.CommandContext) (string, error) {
 			ran = true
@@ -190,7 +190,7 @@ func TestRunRefusesATerminalOnlyCommandWithNoChannelAtAll(t *testing.T) {
 	registry := command.NewRegistry()
 	if err := registry.Register(contract.Command{
 		Name:         "vault",
-		Help:         "Lists and manages the logins Coeus holds. Terminal only.",
+		Help:         "Lists and manages the logins Nerd Genie holds. Terminal only.",
 		TerminalOnly: true,
 		Run: func(_ context.Context, _ string, _ contract.CommandContext) (string, error) {
 			return "", errors.New("the vault command should never have run here")

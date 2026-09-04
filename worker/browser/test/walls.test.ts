@@ -127,7 +127,7 @@ describe("ordinary pages", () => {
     [
       "a page of links and buttons",
       evidence({
-        title: "Coeus test page",
+        title: "Nerd Genie test page",
         candidates: [
           { role: "link", name: "Home" },
           { role: "button", name: "Post" },

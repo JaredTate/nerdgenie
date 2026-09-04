@@ -25,10 +25,10 @@ import (
 const sandboxProbeRoot = "/usr"
 
 // Doctor prints what config.Doctor found, adds the one thing only the sandbox
-// can answer, and says whether Coeus will work.
+// can answer, and says whether Nerd Genie will work.
 //
 // It returns false only for a problem, never for a warning: a warning means
-// something Coeus can work without is switched off, such as a browser that is
+// something Nerd Genie can work without is switched off, such as a browser that is
 // not installed, and a machine like that is set up correctly. A problem means
 // something is broken, such as a configuration that will not load or a vault key
 // other accounts can read, and "nerdgenie doctor" then leaves with a failing exit

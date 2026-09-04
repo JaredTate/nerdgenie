@@ -119,7 +119,7 @@ func TestOpenRefusesANewerSchemaVersion(t *testing.T) {
 
 	_, err = Open(context.Background(), path)
 	if err == nil {
-		t.Fatal("opening a log written by a newer Coeus returned no error, and it must refuse")
+		t.Fatal("opening a log written by a newer Nerd Genie returned no error, and it must refuse")
 	}
 	if !strings.Contains(err.Error(), path) {
 		t.Errorf("the error is %q, and it must name the file %s", err, path)

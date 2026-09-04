@@ -2,7 +2,7 @@
 // the mouse. The shape is OpenClaw's driver session at
 // ~/Code/openclaw/extensions/cua-computer/src/driver-client.ts: one object owns
 // the driver's lifetime, every call goes through it, and the rest of the worker
-// never imports the driver at all. Written fresh for Coeus, and narrowed to the
+// never imports the driver at all. Written fresh for Nerd Genie, and narrowed to the
 // nine things worker/desktop/PROTOCOL.md promises.
 
 import type { KeyChord } from "./keys.js"

@@ -1,4 +1,4 @@
-// Package testkit holds every fake a Coeus test runs against, the golden-file
+// Package testkit holds every fake a Nerd Genie test runs against, the golden-file
 // helper, and the forty-step fixture.
 //
 // A fake stands in for something real: a model, a channel, a browser, a clock.

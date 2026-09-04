@@ -1,8 +1,8 @@
 // The changelog and its rollback are Hermes' skill ledger written fresh for
-// Coeus, at ~/Code/hermes-agent/tools/skill_ledger.py: every change is appended
+// Nerd Genie, at ~/Code/hermes-agent/tools/skill_ledger.py: every change is appended
 // rather than edited, the copy a change replaced is kept beside the skill, and a
 // rollback first keeps what it is about to overwrite, so that the rollback is
-// itself undoable. Coeus keeps whole files in numbered folders rather than
+// itself undoable. Nerd Genie keeps whole files in numbered folders rather than
 // content-addressed blobs, because a person reading ~/.nerdgenie by hand should be
 // able to see what the old version said.
 

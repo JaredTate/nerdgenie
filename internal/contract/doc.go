@@ -1,7 +1,7 @@
 // Package contract holds every interface, type, and constant that two packages
-// of Coeus share, and it depends on nothing but the standard library.
+// of Nerd Genie share, and it depends on nothing but the standard library.
 //
-// Coeus is built in waves, and the packages of one wave are written at the same
+// Nerd Genie is built in waves, and the packages of one wave are written at the same
 // time by workers who never see each other's code. This package is how they
 // agree. A fake in internal/testkit and the real implementation written a wave
 // later are both written against the lines in this package, so the two can never

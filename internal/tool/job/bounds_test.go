@@ -113,7 +113,7 @@ func TestAScheduleOfTheKindAtWithNoMomentIsRefused(t *testing.T) {
 
 func TestADateWrittenInTheOtherTwoShapesIsRead(t *testing.T) {
 	tool, jobs := newTool(t)
-	if _, err := run(t, tool, map[string]any{"action": "create", "ask": "the ask"}); err != nil {
+	if _, err := run(t, tool, map[string]any{"action": "create", "ask": "the ask", "text": "the first task"}); err != nil {
 		t.Fatalf("creating a job failed: %v", err)
 	}
 
@@ -124,7 +124,7 @@ func TestADateWrittenInTheOtherTwoShapesIsRead(t *testing.T) {
 			t.Errorf("a date written as %q was refused: %v", written, err)
 		}
 	}
-	if tasks := jobs.Tasks("1"); len(tasks) != 2 {
-		t.Errorf("the job holds %d tasks, want the two that were added", len(tasks))
+	if tasks := jobs.Tasks("1"); len(tasks) != 3 {
+		t.Errorf("the job holds %d tasks, want the first task and the two that were added", len(tasks))
 	}
 }

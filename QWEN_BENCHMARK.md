@@ -123,8 +123,8 @@ three transcript harnesses say "game works" here and not "green."
 |---|---|---|---|---|---|---|---|---|---|---|
 | **Coeus** | **yes** | 12 min 30 s (task in to answer out 11 min 13 s) | 55 | 1,143,152 | 223,330 | 34,520 | 10,984 | 6/6 | 4/4 | 6 of 6 |
 | opencode | game works, own tests 4 of 6; **stopped by the orchestrator** | 2 h 35 min when stopped | 1,587 | see note | see note | 230,324 | see note | 6/6 | 4/4 | 4 of 6 |
-| Hermes | running | | | | | | | | | |
-| OpenClaw | queued | | | | | | | | | |
+| Hermes | game works, one own test red | 1 h 21 min | 504 | see run folder | 660,135 | 214,099 | 66,026 | 6/6 | 4/4 | 5 of 6 |
+| OpenClaw | running | | | | | | | | | |
 
 ## What the numbers say
 

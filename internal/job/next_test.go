@@ -253,3 +253,46 @@ func waitForTheRest(t *testing.T, holding *opened, waiting <-chan error) {
 	}
 	t.Fatal("the job store never rested between two waits")
 }
+
+// TestAClaimOnATaskOfAPausedJobIsLeftAloneWhenItsBudgetRunsOut is the rule a
+// person's stop needs: the loop pauses a job on the task the person stopped
+// and keeps the claim on it, so that nothing of the job runs until they say to
+// carry on. A job that is not running has nothing running, so a claim on one
+// of its tasks is not a dead process's, and it is not given up, counted as a
+// failure, and offered again an hour later. Once the job runs again the claim
+// is a claim like any other, and the old rule takes it.
+func TestAClaimOnATaskOfAPausedJobIsLeftAloneWhenItsBudgetRunsOut(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do a long thing.")
+	taskID := holding.aTask(t, jobID, "the task the person stopped", time.Time{})
+	if _, due := holding.nextTask(t, theEpoch()); !due {
+		t.Fatal("the task was not handed out to begin with")
+	}
+	if err := holding.jobs.Pause(ctx, jobID); err != nil {
+		t.Fatalf("cannot pause the job: %v", err)
+	}
+
+	if next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+time.Minute)); due {
+		t.Errorf("the paused job handed out %+v an hour after the stop, and nothing of a paused job runs", next)
+	}
+
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
+		t.Errorf("the claim on the paused job's task was counted as %d failures, want none: the person stopped it, no process died", failures)
+	}
+	held, err := holding.jobs.Load(ctx, jobID)
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if len(held.Work.Results) != 0 || len(held.Lessons.Failures) != 0 {
+		t.Errorf("the paused job holds %d reports and %d failures, want none written for a task the person stopped",
+			len(held.Work.Results), len(held.Lessons.Failures))
+	}
+	if err := holding.jobs.Resume(ctx, jobID); err != nil {
+		t.Fatalf("cannot resume the job: %v", err)
+	}
+	next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+2*time.Minute))
+	if !due || next.TaskID != taskID {
+		t.Errorf("once the job runs again the task is %+v (due %v), want %s given up as a dead claim and offered again", next, due, taskID)
+	}
+}

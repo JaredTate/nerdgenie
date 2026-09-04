@@ -157,9 +157,14 @@ three transcript harnesses say "game works" here and not "green."
    what it was built to do, and it is a rule worth loosening for commands
    that only read.
 6. **Runs vary, and the direction does not.** Coeus went from 24 calls to 55
-   between two runs of the same setup; that is what one small model does with
-   one prompt. Across every run today the shape held: Coeus in tens of calls
-   with a small context, the others in hundreds with a large one.
+   between two runs of the same setup; Hermes from 446 calls and 24 minutes to
+   504 calls and 81 minutes with its prompt at 214,000 tokens; opencode from
+   317 calls and 16 minutes to a run that had to be stopped after 1,587 calls
+   and two and a half hours at 230,000 tokens. That is what one small model
+   does with one prompt. Across every run today the shape held: Coeus in tens
+   of calls with a prompt under 35,000 tokens and every one of its own tests
+   green; the others in hundreds or thousands of calls with prompts of 100,000
+   to 230,000 tokens and one or two of their own tests still red.
 
 ## Set aside: the user's tuned setups
 

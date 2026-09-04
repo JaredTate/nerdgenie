@@ -80,6 +80,8 @@ cmd/coeus/skillsbox_test.go
 cmd/coeus/starting.go
 cmd/coeus/status.go
 cmd/coeus/status_test.go
+cmd/coeus/statusanswer.go
+cmd/coeus/statusanswer_test.go
 cmd/coeus/streaming.go
 cmd/coeus/subcommands_test.go
 cmd/coeus/taskbudget.go

@@ -36,6 +36,7 @@ type run struct {
 	channel          contract.Channel
 	keeper           *record.Keeper
 	jobSummary       string
+	recentWork       []workingcontext.RecentTask
 	messages         []contract.Message
 	roundsAllowed    int
 	timeAllowed      time.Duration
@@ -146,6 +147,15 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	if err := running.takeANumber(ctx); err != nil {
 		return nil, err
 	}
+	// The recent work is gathered here, once, while the task starts, and reused
+	// for every call it makes. It is read before the resume below writes this
+	// task's own first running checkpoint, so a task picked up again sees the
+	// work finished before it and not, wrongly, itself.
+	recent, err := recentFinishedWork(ctx, theLoop.options.Store, running.number)
+	if err != nil {
+		return nil, err
+	}
+	running.recentWork = recent
 	if err := running.resume(ctx); err != nil {
 		return nil, err
 	}
@@ -375,6 +385,7 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 		Record:        running.recordOrNothing(),
 		ContextLength: running.theLoop.options.Model.ContextLength(),
 		JobSummary:    running.jobSummary,
+		RecentWork:    running.recentWork,
 		Messages:      running.messages,
 		Tools:         running.specs(),
 		Pinned:        running.pinned,

@@ -20,6 +20,11 @@ type BuildInput struct {
 	// JobSummary is the short form of the job this task belongs to, and is
 	// empty when the task belongs to no job.
 	JobSummary string
+	// RecentWork is the few tasks most recently finished, newest first, so the
+	// model can say where things stand even before this task has made a record
+	// of its own. It is gathered once when the task starts and rides on every
+	// call the task makes.
+	RecentWork []workingcontext.RecentTask
 	// Messages are the recent messages and tool results, oldest first.
 	Messages []contract.Message
 	// Tools is the specification of every tool this turn may use.
@@ -74,6 +79,7 @@ func (real realBuilder) Build(ctx context.Context, input BuildInput) (contract.R
 		ContextLength: input.ContextLength,
 		Record:        held,
 		JobSummary:    input.JobSummary,
+		RecentWork:    input.RecentWork,
 		Messages:      input.Messages,
 		Pinned:        input.Pinned,
 		Tools:         tools,

@@ -536,6 +536,8 @@ internal/loop/polling_test.go
 internal/loop/problems_test.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go
+internal/loop/recentwork.go
+internal/loop/recentwork_test.go
 internal/loop/recordline.go
 internal/loop/recordshapes_test.go
 internal/loop/recordwrite.go

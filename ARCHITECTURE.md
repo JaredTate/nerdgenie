@@ -228,6 +228,21 @@ behind. That is where a replay reads the round boundary, and it is what took a
 forty-round task with a long ask from three megabytes of checkpoints to a
 hundred kilobytes. `/tasks 17 back 3` therefore steps back three rounds of work.
 
+**Recent work rides above the record.** When a task starts, `newRun` reads the
+event log once through `recentFinishedWork` and gathers the last three tasks
+whose newest checkpoint stands at done — newest first, the task running now left
+out — each turned into a `context.RecentTask` with its number, the user's own
+ask read back whole through `record.Load`, and one line on where it ended, which
+is its last result's summary or the word "done". The read borrows the design of
+`cmd/coeus/resuming.go`'s `tasksToPickUp` but is written fresh in the loop so the
+core never depends on `cmd`. It is gathered once, before the resume writes this
+task's own first checkpoint so a picked-up task never lists itself, and the list
+rides on `loop.BuildInput.RecentWork` through `buildRequest` into every call the
+task makes — the ordinary rounds and the tools-off final report alike. The
+working-context builder renders it as a short block above the record in the
+cached part of the prompt, so the model can answer "where are we" itself even
+before this task has a record of its own, and an empty list renders nothing.
+
 **The guard, in order.** The budget is checked at the top of every round, when
 the user has set one. Coeus puts no cap on its own work unless the user asks for
 one: `rounds_per_task`, `time_per_task` and `time_per_turn` ship at zero, which

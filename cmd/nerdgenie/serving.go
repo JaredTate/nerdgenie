@@ -156,24 +156,42 @@ func (running *agent) runDueJobs(ctx context.Context) {
 	}
 }
 
-// runWhatIsDue runs the task a job has due now. A task the nightly self-check
-// owns is run by the check itself: it asks the memory its own questions and dry
-// runs the skills, and handing it to the model instead would spend a whole task
-// asking a model to do what the harness can do for nothing.
+// runWhatIsDue runs the task a job has due now, holding the loop for as long as
+// it runs, the way a person's task holds it. A message the person types
+// meanwhile then finds the loop held and is delivered to the running task,
+// where it lands as a correction or as a stop, rather than taking the loop for
+// a task of its own that waits behind the whole job. The loop is taken before
+// the store is asked, because a task taken from the store cannot be taken again
+// until its hour runs out, so one taken beside a person's task would sit there,
+// taken and never run; a pass that finds the loop held finds nothing and rests.
+//
+// A task the nightly self-check owns is run by the check itself: it asks the
+// memory its own questions and dry runs the skills, and handing it to the model
+// instead would spend a whole task asking a model to do what the harness can do
+// for nothing. The check runs nothing through the loop, so the loop is freed
+// before it runs, and a message typed meanwhile starts a task of its own as it
+// should, rather than waiting in the loop for a task that is not running.
 func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
+	if !running.takeTheLoop() {
+		return false, nil
+	}
 	due, there, err := running.jobs.NextTask(ctx, clock.System().Now())
 	if err != nil {
+		running.freeTheLoop()
 		return false, fmt.Errorf("cannot ask the jobs which task is due now: %w", err)
 	}
 	if !there {
+		running.freeTheLoop()
 		return false, nil
 	}
 	if running.nightly.Handles(due) {
+		running.freeTheLoop()
 		if _, err := running.nightly.Run(ctx, due); err != nil {
 			return true, fmt.Errorf("the nightly self-check did not finish: %w", err)
 		}
 		return true, nil
 	}
+	defer running.freeTheLoop()
 	// The task has already been taken from the store above, and a task taken
 	// once cannot be taken again, so the loop is handed the task itself rather
 	// than asked for the next one: asking would take the job's second task and

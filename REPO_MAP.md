@@ -1411,6 +1411,7 @@ test/functional/livefixture_test.go
 test/functional/livehome_test.go
 test/functional/livetask_test.go
 test/functional/loop_test.go
+test/functional/midturnjob_test.go
 test/functional/network_test.go
 test/functional/nightly_test.go
 test/functional/permission_test.go

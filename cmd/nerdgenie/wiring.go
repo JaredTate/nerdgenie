@@ -268,19 +268,19 @@ func (running *agent) openTheFence() contract.Sandbox {
 // registry one running task uses.
 func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.Settings {
 	settings := tool.Settings{
-		Configuration: running.settings,
-		Home:          running.home,
-		UserTools:     running.userTools,
-		UserHome:      userHomeOrEmpty(),
-		TaskID:        taskID,
-		Note:          running.note,
-		Log:           running.events,
-		Sandbox:       running.fence,
-		Permission:    running.decider,
-		Memory:        running.memories,
-		Jobs:          running.jobs,
-		Clock:         clock.System(),
-		NerdGenieProgram:  thisProgramOrEmpty(),
+		Configuration:    running.settings,
+		Home:             running.home,
+		UserTools:        running.userTools,
+		UserHome:         userHomeOrEmpty(),
+		TaskID:           taskID,
+		Note:             running.note,
+		Log:              running.events,
+		Sandbox:          running.fence,
+		Permission:       running.decider,
+		Memory:           running.memories,
+		Jobs:             running.jobs,
+		Clock:            clock.System(),
+		NerdGenieProgram: thisProgramOrEmpty(),
 	}
 	settings.Skills = running.skillsBox
 	if running.browser != nil {

@@ -68,7 +68,7 @@ func builtInTools(settings Settings) []contract.Tool {
 			Permission:       settings.Permission,
 			Clock:            settings.Clock,
 			Home:             settings.Home,
-			NerdGenieProgram:     settings.NerdGenieProgram,
+			NerdGenieProgram: settings.NerdGenieProgram,
 			WorkingDirectory: settings.workingDirectory(),
 			Timeout:          settings.toolTimeout(),
 		}),

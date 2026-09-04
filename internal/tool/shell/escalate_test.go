@@ -45,7 +45,7 @@ func escalatingTool(t *testing.T, permission contract.Permission) *shell.Tool {
 		Permission:       permission,
 		Clock:            testkit.NewFakeClock(theMoment),
 		Home:             home,
-		NerdGenieProgram:     program,
+		NerdGenieProgram: program,
 		WorkingDirectory: t.TempDir(),
 		Timeout:          time.Minute,
 	})

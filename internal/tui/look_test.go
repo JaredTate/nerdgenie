@@ -37,7 +37,10 @@ func theWholeConversation(screen *Screen) {
 }
 
 func TestTheBannerIsDrawnWhileThereIsNothingToShowAndScrollsAwayOnceThereIs(t *testing.T) {
-	screen, _ := newTestScreen(80, 24)
+	// The block wordmark "NERD GENIE AGENT" is eighty-seven columns wide, so it
+	// needs a terminal wide enough to hold it; a narrow one gets the plain words,
+	// which the narrow-terminal test covers.
+	screen, _ := newTestScreen(120, 24)
 	frame := screen.frame()
 
 	for _, wanted := range []string{"the agent that does not forget what it is doing", "connecting"} {

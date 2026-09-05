@@ -87,7 +87,7 @@ func (task *writtenTask) UnmarshalJSON(written []byte) error {
 		if err := json.Unmarshal(trimmed, &object); err != nil {
 			return errNotATask
 		}
-		*task = writtenTask{Text: object.Text, DueAt: object.DueAt}
+		*task = writtenTask(object)
 		return nil
 	default:
 		return errNotATask

@@ -136,7 +136,7 @@ func TestThePanelSaysTheModelTheContextTheCostTheTaskAndTheJobs(t *testing.T) {
 	send(screen, aStatusWithAPlan())
 
 	panel := strings.Join(panelColumnOf(screen), "\n")
-	for _, wanted := range []string{"opus", "ctx 12.4k / 262k", "5%", "6.1k in 0.4k out", "$0.04", "TASK 17", "3 jobs waiting"} {
+	for _, wanted := range []string{"opus", "▰▱▱▱▱▱▱▱▱▱ 12.4k/262k 5%", "6.1k in 0.4k out", "$0.04", "TASK 17", "3 jobs waiting"} {
 		if !strings.Contains(panel, wanted) {
 			t.Errorf("the panel does not say %q:\n%s", wanted, panel)
 		}

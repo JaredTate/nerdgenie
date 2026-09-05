@@ -58,12 +58,14 @@ func TestTheContextMeterIsGreenThenAmberThenRed(t *testing.T) {
 // TestTheCacheShareIsTheCachedTokensOverTheContextTokens holds the number
 // that found this week's speed bug: how much of the last call's input the
 // provider reused, as a whole percentage, capped at a hundred, and minus one
-// when either count is unknown, because a share of nothing is not a fact.
+// when either count is unknown. Nothing cached is read as unknown too,
+// because a provider that never caches reports the same nothing as a cache
+// gone cold, and the screen cannot tell the two apart.
 func TestTheCacheShareIsTheCachedTokensOverTheContextTokens(t *testing.T) {
 	for _, one := range []struct {
 		cached, context, share int
 	}{
-		{92000, 100000, 92}, {0, 100, 0}, {50, 0, -1}, {0, 0, -1}, {150, 100, 100}, {1, 3, 33}, {2, 3, 67},
+		{92000, 100000, 92}, {0, 100, -1}, {50, 0, -1}, {0, 0, -1}, {150, 100, 100}, {1, 3, 33}, {2, 3, 67},
 	} {
 		if share := cacheShare(one.cached, one.context); share != one.share {
 			t.Errorf("%d cached of %d is a share of %d, want %d", one.cached, one.context, share, one.share)

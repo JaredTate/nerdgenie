@@ -83,7 +83,7 @@ func TestTheHeaderSaysTheCacheTheElapsedTimeAndTheRound(t *testing.T) {
 	send(screen, aStatusWithEverything())
 
 	header := plainText(headerOf(screen))
-	wanted := "NERDGENIE · opus · ctx ▰▱▱▱▱▱▱▱▱▱ 10% · task 17 running · 12m · r27 · cache 92% · 6.1k in 0.4k out · $0.04"
+	wanted := "opus · ctx ▰▱▱▱▱▱▱▱▱▱ 10% · task 17 running · 12m · r27 · cache 92% · 6.1k in 0.4k out · $0.04"
 	if !strings.Contains(header, wanted) {
 		t.Errorf("the header is %q, and it should read %q", header, wanted)
 	}

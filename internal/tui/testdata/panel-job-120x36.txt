@@ -1,7 +1,7 @@
- NERDGENIE · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
+ NERDGENIE · opus · ctx ▰▱▱▱▱▱▱▱▱▱ 5% · task 17 running · 6.1k in 0.4k out · $0.04                            ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
                                                                                             │ opus                      
-                                                                                            │ ctx 12.4k / 262k · 5%     
+                                                                                            │ ▰▱▱▱▱▱▱▱▱▱ 12.4k/262k 5%  
                                                                                             │ 6.1k in 0.4k out · $0.04  
                                                                                             │                           
                                                                                             │ JOB 4 · Tater Tots Tetris 

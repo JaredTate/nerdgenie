@@ -165,18 +165,32 @@ func (screen *Screen) panelLines() []row {
 
 // modelPanelLines are the model in use, how full its context is, and what this
 // session has cost so far, kept quiet: one dim line each, with no box around
-// them. The context share keeps the header's own colour, so it turns the accent
-// and then bold white at the same places.
+// them. The context is the header's meter with the numbers beside it, in the
+// header's own colours.
 func (screen *Screen) modelPanelLines() []row {
 	lines := appendPanelWords(nil, styleDim, screen.modelAlias)
-	if parts := screen.contextParts(); len(parts) > 0 {
-		measure := row{}
-		measure.add(styleDim, cutTo(parts[0].text, panelTextColumns-3-displayWidth(parts[1].text)))
-		measure.add(styleDim, " · ")
-		measure.addSpan(parts[1])
+	if measure := screen.contextMeterRow(); measure.width > 0 {
 		lines = append(lines, measure)
 	}
 	return appendPanelWords(lines, styleDim, screen.costWords())
+}
+
+// contextMeterRow is the context meter with the numbers beside it, such as
+// "▰▱▱▱▱▱▱▱▱▱ 12.4k/262k 5%", cut to the panel, or an empty row when the
+// program has not sent both numbers.
+func (screen *Screen) contextMeterRow() row {
+	share := contextShare(screen.contextTokens, screen.contextWindow)
+	measure := row{}
+	if share < 0 {
+		return measure
+	}
+	for _, piece := range meterSpans(share, contextMeterCells, meterStyle(share)) {
+		measure.addSpan(piece)
+	}
+	measure.add(styleDim, " "+tokenWords(screen.contextTokens)+"/"+tokenWords(screen.contextWindow))
+	measure.add(meterStyle(share), " "+strconv.Itoa(share)+"%")
+	measure.keepWithin(panelTextColumns)
+	return measure
 }
 
 // checklistLines is the checklist: a header naming what is being worked on, a

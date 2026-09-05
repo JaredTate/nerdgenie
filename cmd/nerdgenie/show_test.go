@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -196,6 +197,7 @@ func TestAShowOfSomethingNotThereIsAnErrorThatSaysWhatToAsk(t *testing.T) {
 		named     string
 	}{
 		{answering, map[string]string{"id": "r9", "task": "6"}, "r9"},
+		{answering, map[string]string{"id": "r1", "task": "404"}, "404"},
 		{answering, map[string]string{"task": "404"}, "404"},
 		{answering, map[string]string{"job": "9"}, "9"},
 		{withoutJobs, map[string]string{"job": "1"}, "1"},
@@ -248,6 +250,7 @@ func TestAShownTextIsCappedAndSaysHowMuchWasLeftOut(t *testing.T) {
 	answering, keeper := aShowingOverFakes(t)
 	ctx := context.Background()
 	long := strings.Repeat("a line of the very long result\n", 4000)
+	logAToolCall(t, answering.store, "6", "shell", `{"command":"cat big.txt"}`)
 	if _, err := keeper.AddResult(ctx, "a long result", long); err != nil {
 		t.Fatalf("cannot add the long result: %v", err)
 	}
@@ -277,6 +280,46 @@ func TestAShownTextIsCappedAndSaysHowMuchWasLeftOut(t *testing.T) {
 func TestAShortShownTextIsNotCut(t *testing.T) {
 	if got := withinTheShownCap("a short text"); got != "a short text" {
 		t.Errorf("a short text was changed to %q", got)
+	}
+}
+
+// TestTheCapNeverCutsALetterInHalf holds that a text cut at the cap ends on a
+// whole letter, so a screen drawing it never meets a broken one.
+func TestTheCapNeverCutsALetterInHalf(t *testing.T) {
+	wide := strings.Repeat("é", maxShownBytes)
+
+	got := withinTheShownCap(wide)
+
+	if !utf8.ValidString(got) {
+		t.Error("the cut text is not valid text, so a letter was cut in half")
+	}
+	if len(got) > maxShownBytes {
+		t.Errorf("the cut text is %d bytes, want it within the cap of %d", len(got), maxShownBytes)
+	}
+}
+
+// TestACallsInputIsShownAsItWasWhenItIsNotJSON holds that an input the layout
+// cannot read as JSON is shown as the model wrote it, and an empty one adds no
+// line at all.
+func TestACallsInputIsShownAsItWasWhenItIsNotJSON(t *testing.T) {
+	if got := prettyJSON(json.RawMessage(`not json at all`)); got != "not json at all" {
+		t.Errorf("an input that is not JSON was shown as %q, want it as it was", got)
+	}
+	if got := prettyJSON(json.RawMessage("  ")); got != "" {
+		t.Errorf("an empty input was shown as %q, want nothing", got)
+	}
+	bare := callAndResult(contract.ToolCall{Name: "shell"}, true, "r1", "done")
+	if bare != "call: shell\n\nresult:\ndone" {
+		t.Errorf("a call with no input was laid out as %q", bare)
+	}
+}
+
+// TestAShowWithNoLogOpenIsAnError holds that an answerer built before the log
+// is open refuses rather than reading from nothing.
+func TestAShowWithNoLogOpenIsAnError(t *testing.T) {
+	_, err := (&showing{}).answer(context.Background(), map[string]string{"task": "6"})
+	if err == nil || !strings.Contains(err.Error(), "log") {
+		t.Errorf("a show with no log open answered with %v, want an error naming the log", err)
 	}
 }
 

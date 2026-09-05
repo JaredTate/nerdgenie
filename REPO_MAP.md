@@ -85,6 +85,7 @@ cmd/nerdgenie/serving_loops_test.go
 cmd/nerdgenie/serving_midturn_test.go
 cmd/nerdgenie/serving_test.go
 cmd/nerdgenie/serving_turnguard_test.go
+cmd/nerdgenie/show_test.go
 cmd/nerdgenie/signal.go
 cmd/nerdgenie/signal_test.go
 cmd/nerdgenie/signalchannel.go
@@ -126,6 +127,7 @@ cmd/nerdgenie/yolo.go
 cmd/nerdgenie/yolo_test.go
 docs/DEPENDENCIES.md
 docs/EXTENDING.md
+docs/HARNESS.md
 docs/HARNESS_V2.md
 docs/NERDGENIE_PLAN.md
 docs/PROGRESS.md
@@ -261,6 +263,7 @@ internal/channel/router_test.go
 internal/channel/routerskills_test.go
 internal/channel/screen_test.go
 internal/channel/secret_test.go
+internal/channel/show_test.go
 internal/channel/socket.go
 internal/channel/socket_test.go
 internal/channel/sockethelper_test.go
@@ -341,6 +344,7 @@ internal/context/cost.go
 internal/context/cost_test.go
 internal/context/doc.go
 internal/context/donelist_test.go
+internal/context/donelisttail_test.go
 internal/context/estimate.go
 internal/context/estimate_test.go
 internal/context/fixturechecks_test.go
@@ -359,6 +363,7 @@ internal/context/recentwork.go
 internal/context/recentwork_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
+internal/context/resultstable_test.go
 internal/context/reviewmarker_test.go
 internal/context/skills.go
 internal/context/skills_test.go
@@ -516,6 +521,8 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
+internal/loop/carryon.go
+internal/loop/carryon_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
@@ -547,6 +554,7 @@ internal/loop/jobstop_test.go
 internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
 internal/loop/lastround_test.go
+internal/loop/lessonguard_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
@@ -584,12 +592,17 @@ internal/loop/stopnamesjob_test.go
 internal/loop/summary_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/teststate.go
+internal/loop/teststate_behaviour_test.go
+internal/loop/teststate_test.go
 internal/loop/think_test.go
 internal/loop/tooldeadline_test.go
 internal/loop/toolline.go
 internal/loop/toolline_test.go
 internal/loop/turn_test.go
 internal/loop/unattended_test.go
+internal/loop/window.go
+internal/loop/window_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go
@@ -736,6 +749,7 @@ internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
 internal/record/name_test.go
+internal/record/namedproof_test.go
 internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go
@@ -1290,6 +1304,7 @@ internal/tui/screen.go
 internal/tui/screen_test.go
 internal/tui/scroll.go
 internal/tui/scroll_test.go
+internal/tui/seams_test.go
 internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go

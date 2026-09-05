@@ -15,9 +15,11 @@ import (
 )
 
 // theJobsLeftWaitingOnceTheModelsIsDone is what the status counts once the
-// model's job is done: the nightly self-check, which every fresh home
-// registers and which runs for as long as the agent does.
-const theJobsLeftWaitingOnceTheModelsIsDone = "1"
+// model's job is done: nothing, sent as the empty field. The nightly
+// self-check, which every fresh home registers and which runs for as long as
+// the agent does, is the clock's work and is not counted as waiting, so while
+// the model's job runs the count is one and not two.
+const theJobsLeftWaitingOnceTheModelsIsDone = ""
 
 func TestAJobMadeThroughTheToolReachesDoneAndStopsCountingAsWaiting(t *testing.T) {
 	agent := startTheAgentWorkingIn(t, aJobOfTwoTasksMadeByTheModel)
@@ -28,7 +30,7 @@ func TestAJobMadeThroughTheToolReachesDoneAndStopsCountingAsWaiting(t *testing.T
 	// While the job's tasks run the status counts two jobs waiting: the nightly
 	// self-check and the model's.
 	screen.waitForStatusWhere(t, theTimeAJobsFirstTaskIsGiven, func(fields map[string]string) bool {
-		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobs] == "2"
+		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobs] == "1"
 	})
 	screen.waitForReplySaying(t, "Job "+theJobTheModelMakes+", report j"+theJobTheModelMakes+".2: 2 of 2 tasks done", 90*time.Second)
 	final := screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)

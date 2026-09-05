@@ -723,6 +723,7 @@ internal/record/pinned_test.go
 internal/record/plancap_test.go
 internal/record/print.go
 internal/record/print_test.go
+internal/record/prose_test.go
 internal/record/size.go
 internal/record/size_test.go
 internal/record/testdata/fuzz/FuzzParse/f92583f5f7076db2

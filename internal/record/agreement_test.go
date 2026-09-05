@@ -37,8 +37,8 @@ func TestRefusesAnEditThatWouldNotReadBack(t *testing.T) {
 			_, err := task.AddCorrection(ctx, strings.Repeat("x", MaxRecordBytes+1))
 			return err
 		},
-		"a task whose text hides a date behind a comma": func() error {
-			return job.Apply(ctx, Update{Tasks: []NewJobTask{{TaskID: "t1", Text: "post the tweet, then the blog"}}})
+		"a task whose text carries the due mark": func() error {
+			return job.Apply(ctx, Update{Tasks: []NewJobTask{{TaskID: "t1", Text: "post the tweet" + dueMark + "then the blog"}}})
 		},
 	}
 

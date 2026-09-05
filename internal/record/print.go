@@ -58,6 +58,13 @@ const (
 	reasonJoin = ". Reason: "
 	causeJoin  = ". Cause: "
 	fullStop   = "."
+	// dueMark opens the date a job's task must wait for, after the task's
+	// text. It used to be a comma and a space, and the reader took everything
+	// after the last comma of the line for the date, so ordinary task text
+	// with a comma in it read back as a task with a due date and was refused.
+	// The middle dot is the screen's own separator, and no sentence a model
+	// writes carries it followed by the word "due".
+	dueMark = " · due "
 )
 
 // Print writes a record in the one text form the design defines, which is the
@@ -325,11 +332,11 @@ func printPlanStep(step contract.PlanStep) string {
 }
 
 // printJobTask writes one task on a job's list, with the date it must wait for
-// after the last comma of the line.
+// after the due mark, and the report it wrote after the arrow.
 func printJobTask(task contract.JobTask) string {
 	line := itemMark + checkMark(task.Done) + " " + foldText(task.TaskID) + " " + foldText(task.Text)
 	if task.DueAt != "" {
-		line += ", " + foldText(task.DueAt)
+		line += dueMark + foldText(task.DueAt)
 	}
 	if task.ReportID != "" {
 		line += arrow + foldText(task.ReportID)

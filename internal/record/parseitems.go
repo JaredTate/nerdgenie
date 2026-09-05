@@ -159,7 +159,7 @@ func (reading *reader) readPlanStep(text string) error {
 }
 
 // readJobTask reads one task on a job's list, with the date it must wait for
-// after the last comma of its text.
+// after the due mark.
 func (reading *reader) readJobTask(text string) error {
 	done, rest, err := reading.readCheckMark(text)
 	if err != nil {
@@ -211,14 +211,16 @@ func isResultID(candidate string) bool {
 	return valid
 }
 
-// splitDueDate takes the date a task must wait for off the end of its text, which
-// is everything after the last comma.
+// splitDueDate takes the date a task must wait for off the end of its text,
+// which is everything after the last due mark, so that the text before it may
+// carry any punctuation a sentence carries. A line that ends in the mark with
+// nothing after it is text, because the printer never writes an empty date.
 func splitDueDate(text string) (string, string) {
-	at := strings.LastIndex(text, ", ")
-	if at < 0 || at+2 >= len(text) {
+	at := strings.LastIndex(text, dueMark)
+	if at < 0 || at+len(dueMark) >= len(text) {
 		return text, ""
 	}
-	return text[:at], text[at+2:]
+	return text[:at], text[at+len(dueMark):]
 }
 
 // readResultLine reads the one line a result keeps in the record, whose full text

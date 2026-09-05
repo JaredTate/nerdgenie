@@ -26,11 +26,13 @@ type heldRecord struct {
 func (held heldRecord) Record() contract.Record { return held.record }
 
 // newToolOverRecord builds the job tool over the fake job store and a record
-// whose ask is the one given.
+// whose ask is the one given. The record is handed over as the contract's
+// Records, the one reading interface the job tool and the task tool share, so
+// that this package cannot drift back to a Records of its own.
 func newToolOverRecord(t *testing.T, ask string) (*job.Tool, *testkit.FakeJob) {
 	t.Helper()
 	jobs := testkit.NewFakeJob(testkit.NewFakeClock(theMoment))
-	records := heldRecord{record: contract.Record{Goal: contract.Goal{Ask: ask}}}
+	var records contract.Records = heldRecord{record: contract.Record{Goal: contract.Goal{Ask: ask}}}
 	return job.New(job.Settings{Jobs: jobs, Records: records}), jobs
 }
 

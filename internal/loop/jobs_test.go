@@ -64,18 +64,15 @@ func twoTasksAndTheirReview() []testkit.Step {
 
 // TestATaskInAJobReportsToTheJobAndStartsTheNext proves the job half of the
 // loop: a report goes into the job, the user is told with the job's progress on
-// it, and the next task starts.
+// it, and the next task starts on the driver's next ask.
 func TestATaskInAJobReportsToTheJobAndStartsTheNext(t *testing.T) {
 	built := newHarness(t, twoTasksAndTheirReview(), scriptedTool("read", "the notes", "the notes"))
 	jobID := aJobOfTwoTasks(t, built)
 
-	ran, err := built.loop.RunNextJobTask(t.Context(), built.channel)
-	if err != nil {
-		t.Fatalf("the loop could not run the job's task: %v", err)
-	}
+	ran := runTheJobToTheEnd(t, built.loop, built.channel)
 
-	if !ran {
-		t.Fatal("the loop found nothing to run, and the job has two tasks waiting")
+	if ran != 2 {
+		t.Fatalf("the loop ran %d tasks, and the job has two", ran)
 	}
 	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
 		t.Errorf("the user was sent %v, want the first report with the job's progress on it", built.channel.Sent())
@@ -97,9 +94,7 @@ func TestTheLastTaskOfAJobClosesItWithItsOwnDoneCheck(t *testing.T) {
 	built := newHarness(t, twoTasksAndTheirReview(), scriptedTool("read", "the notes", "the notes"))
 	jobID := aJobOfTwoTasks(t, built)
 
-	if _, err := built.loop.RunNextJobTask(t.Context(), built.channel); err != nil {
-		t.Fatalf("the loop could not run the job's tasks: %v", err)
-	}
+	runTheJobToTheEnd(t, built.loop, built.channel)
 
 	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+" is finished: every one of its 2 tasks is done") {
 		t.Errorf("the user was sent %v, want the final report of a job whose done list its tasks prove", built.channel.Sent())
@@ -136,9 +131,7 @@ func TestAJobWhoseDoneListIsProvenSaysSo(t *testing.T) {
 		t.Fatalf("cannot build a loop over the job with a proven done list: %v", err)
 	}
 
-	if _, err := made.RunNextJobTask(t.Context(), built.channel); err != nil {
-		t.Fatalf("the loop could not run the job's tasks: %v", err)
-	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+" is finished") {
 		t.Errorf("the user was sent %v, want the final report of a job whose done list is proven", built.channel.Sent())

@@ -96,6 +96,7 @@ func TestAMessageThatBeginsWithContinuePicksThePutDownTaskUpAndCarriesTheRest(t 
 	if err != nil {
 		t.Fatalf("carrying the task on with a steer failed: %v", err)
 	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
 		t.Errorf("the steered continue ended as %+v, want task 1, the put-down task, picked up under the job and finished", outcome)

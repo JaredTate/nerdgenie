@@ -81,6 +81,7 @@ func TestAJobsTaskThatAsksAQuestionHoldsTheJobOnItAndTheAnswerPicksItUp(t *testi
 	if err != nil {
 		t.Fatalf("answering the question failed: %v", err)
 	}
+	runTheJobToTheEnd(t, built.loop, built.channel)
 
 	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
 		t.Errorf("the answer ended as %+v, want task 1, the one that asked, picked up and finished", outcome)

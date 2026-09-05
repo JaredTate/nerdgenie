@@ -199,6 +199,7 @@ func TestContinuePicksAPutDownJobTaskUpUnderItsJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("carrying the task on failed: %v", err)
 	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
 		t.Errorf("continue ended as %+v, want task 1, the one that was stopped, finished", outcome)
@@ -277,6 +278,7 @@ func TestAPutDownTaskWithNoRecordStartsAfreshUnderItsJob(t *testing.T) {
 	if _, err := made.Run(t.Context(), built.task("Carry on.")); err != nil {
 		t.Fatalf("carrying the task on failed: %v", err)
 	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	lines := built.recordLines()
 	if !sentSomethingLike(lines, "job "+jobID+" task 2 started · post the anniversary tweet") {

@@ -126,6 +126,7 @@ cmd/nerdgenie/yolo.go
 cmd/nerdgenie/yolo_test.go
 docs/DEPENDENCIES.md
 docs/EXTENDING.md
+docs/HARNESS.md
 docs/HARNESS_V2.md
 docs/NERDGENIE_PLAN.md
 docs/PROGRESS.md
@@ -341,6 +342,7 @@ internal/context/cost.go
 internal/context/cost_test.go
 internal/context/doc.go
 internal/context/donelist_test.go
+internal/context/donelisttail_test.go
 internal/context/estimate.go
 internal/context/estimate_test.go
 internal/context/fixturechecks_test.go
@@ -359,6 +361,7 @@ internal/context/recentwork.go
 internal/context/recentwork_test.go
 internal/context/recordsplit.go
 internal/context/recordsplit_test.go
+internal/context/resultstable_test.go
 internal/context/reviewmarker_test.go
 internal/context/skills.go
 internal/context/skills_test.go
@@ -516,6 +519,8 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
+internal/loop/carryon.go
+internal/loop/carryon_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
@@ -547,6 +552,7 @@ internal/loop/jobstop_test.go
 internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
 internal/loop/lastround_test.go
+internal/loop/lessonguard_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
@@ -584,12 +590,17 @@ internal/loop/stopnamesjob_test.go
 internal/loop/summary_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/teststate.go
+internal/loop/teststate_behaviour_test.go
+internal/loop/teststate_test.go
 internal/loop/think_test.go
 internal/loop/tooldeadline_test.go
 internal/loop/toolline.go
 internal/loop/toolline_test.go
 internal/loop/turn_test.go
 internal/loop/unattended_test.go
+internal/loop/window.go
+internal/loop/window_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go
@@ -736,6 +747,7 @@ internal/record/logkey_test.go
 internal/record/model.go
 internal/record/model_test.go
 internal/record/name_test.go
+internal/record/namedproof_test.go
 internal/record/nobudget_test.go
 internal/record/parse.go
 internal/record/parse_test.go
@@ -1262,6 +1274,10 @@ internal/tui/context_test.go
 internal/tui/doc.go
 internal/tui/envelope.go
 internal/tui/example_test.go
+internal/tui/expand.go
+internal/tui/expand_test.go
+internal/tui/focus.go
+internal/tui/focus_test.go
 internal/tui/frame_fuzz_test.go
 internal/tui/frame_test.go
 internal/tui/gate_test.go
@@ -1269,6 +1285,8 @@ internal/tui/geometry.go
 internal/tui/ground_test.go
 internal/tui/header.go
 internal/tui/hint_test.go
+internal/tui/hits.go
+internal/tui/hits_test.go
 internal/tui/input.go
 internal/tui/integration_test.go
 internal/tui/keys.go
@@ -1276,6 +1294,8 @@ internal/tui/look_test.go
 internal/tui/markdown.go
 internal/tui/messages.go
 internal/tui/monitor_test.go
+internal/tui/overlay.go
+internal/tui/overlay_test.go
 internal/tui/palette.go
 internal/tui/palette_test.go
 internal/tui/panel.go
@@ -1290,6 +1310,7 @@ internal/tui/screen.go
 internal/tui/screen_test.go
 internal/tui/scroll.go
 internal/tui/scroll_test.go
+internal/tui/seams_test.go
 internal/tui/secondtrial_test.go
 internal/tui/secret.go
 internal/tui/secret_test.go
@@ -1307,11 +1328,16 @@ internal/tui/testdata/context-measure-80x24.txt
 internal/tui/testdata/conversation-120x40.txt
 internal/tui/testdata/conversation-80x24.txt
 internal/tui/testdata/example-frame.txt
+internal/tui/testdata/expanded-pill-120x40.txt
+internal/tui/testdata/fetching-pill-120x40.txt
 internal/tui/testdata/first-frame.txt
+internal/tui/testdata/focused-pill-120x40.txt
 internal/tui/testdata/fuzz/FuzzTheFrameStaysInsideTheTerminal/761ef5c109d348f4
 internal/tui/testdata/narrow-60-frame.txt
 internal/tui/testdata/narrow-68-frame.txt
 internal/tui/testdata/no-context-measure-80x24.txt
+internal/tui/testdata/overlay-120x40.txt
+internal/tui/testdata/panel-hidden-120x40.txt
 internal/tui/testdata/panel-idle-120x36.txt
 internal/tui/testdata/panel-job-120x36.txt
 internal/tui/testdata/panel-task-120x36.txt

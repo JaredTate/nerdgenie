@@ -269,11 +269,26 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 		task.JobID = id
 		taskID, err := tool.settings.Jobs.AddTask(ctx, task)
 		if err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("created job %s and recorded %d of its tasks but cannot record the next: %w", id, len(added), err)
+			return contract.ToolOutput{}, tool.switchOffTheHalfMadeJob(ctx, id, len(added)+1, len(tasks), err)
 		}
 		added = append(added, taskID)
 	}
 	return contract.ToolOutput{Text: createdLine(id, added)}, nil
+}
+
+// switchOffTheHalfMadeJob is the refusal for a create whose job was made but
+// whose task list the store refused partway. The job is switched off first, so
+// that a model which tries the same create again does not leave an empty
+// running job behind each time: on the real store one such retry loop left
+// twenty-nine empty jobs. The store's own reason goes back in full, because a
+// retry only helps once that reason is fixed.
+func (tool *Tool) switchOffTheHalfMadeJob(ctx context.Context, id string, refused int, wanted int, cause error) error {
+	if err := tool.settings.Jobs.SwitchOff(ctx, id); err != nil {
+		return fmt.Errorf("job %s was made but the store refused task %d of its %d and then refused to switch the job off (%v), so tell the user that job %s may be running with half its list rather than trying the same create again: %w",
+			id, refused, wanted, err, id, cause)
+	}
+	return fmt.Errorf("job %s was made and then switched off, because the store refused task %d of its %d and a job with half its list must not run, so fix what the store refused or tell the user rather than trying the same create again: %w",
+		id, refused, wanted, cause)
 }
 
 // askFor is the ask the new job carries: the running task's, byte for byte,

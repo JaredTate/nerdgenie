@@ -122,3 +122,54 @@ func TestAStopTheHarnessMadeOnAScheduledJobsTaskIsTheFailureItIs(t *testing.T) {
 		t.Errorf("the person was sent %v, want the failure report with the job's progress on it", built.channel.Sent())
 	}
 }
+
+// TestAPickedUpSchedulesTaskIsAttendedSoAnAskMeFirstCallAsks pins what
+// picking a schedule's task up means: the person who says continue is
+// attending it now, so a call on the ask-me-first list shows them a preview
+// rather than stopping the task as it would for a schedule running alone.
+func TestAPickedUpSchedulesTaskIsAttendedSoAnAskMeFirstCallAsks(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The post is up."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	}, scriptedTool("read", "the notes", "the notes"))
+	jobID := aJobOfTwoTasks(t, built)
+	built.rulings.Rule("read", contract.PermissionDecision{
+		Ruling: contract.RulingAsk, Reason: "reading the notes is on the ask-me-first list", PreviewText: "read notes.md",
+	})
+	unattended := &jobThatHandsOutOneUnattendedTask{Job: built.jobs}
+	waiting := aModelThatWaitsOn(1, built.model)
+	options := built.optionsOver(waiting)
+	options.Jobs = unattended
+	made, err := loop.New(options)
+	if err != nil {
+		t.Fatalf("cannot build a loop over the unattended job: %v", err)
+	}
+	stopTheJobsTask(t, made, built, waiting)
+
+	outcome, err := made.Run(t.Context(), built.task("continue"))
+	if err != nil {
+		t.Fatalf("carrying the schedule's task on failed: %v", err)
+	}
+
+	// The rulebook turns an ask into a stop when the request says nobody is
+	// attending, so the flag the loop sends is the whole of the difference.
+	for _, asked := range built.rulings.Requests() {
+		if asked.ToolName == "read" && asked.Unattended {
+			t.Errorf("the loop asked the rulebook about %s as unattended, and the person who picked the task up is attending it", asked.ToolName)
+		}
+	}
+	if previews := built.channel.Previews(); len(previews) != 1 {
+		t.Errorf("the person was shown %d previews, want the one for the call on the ask-me-first list: they picked the task up, so they are there to answer", len(previews))
+	}
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the picked-up task ended as %+v, want it finished after the person answered the preview", outcome)
+	}
+	if first := theJobsFirstTask(t, built, jobID); !first.Done {
+		t.Errorf("the task reads %+v, want it done under the job", first)
+	}
+	if len(unattended.finished) != 1 || unattended.finished[0] {
+		t.Errorf("the job store was told %v, want the one task finished and not failed", unattended.finished)
+	}
+}

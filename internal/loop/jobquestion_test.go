@@ -131,11 +131,18 @@ func TestAQuestionAskedBeforeAnyToolCallStartsTheJobsTaskAfreshWithTheAnswer(t *
 	if lines := built.recordLines(); !sentSomethingLike(lines, "job "+jobID+" task 2 started · post the anniversary tweet") {
 		t.Errorf("the record lines are %v, want the task started afresh as the job's task with the task's own words", lines)
 	}
-	asked := requestsJoined(built.model.Requests())
+	requests := built.model.Requests()
+	asked := requestsJoined(requests)
 	for _, words := range []string{"post the anniversary tweet", theAnswerThePersonGives} {
 		if !strings.Contains(asked, words) {
 			t.Errorf("the model was never told %q, and a task started afresh on an answer is told both what to do and what the person said", words)
 		}
+	}
+	// The fresh start shows the model the question it asked, as its own words,
+	// right before the answer, so that a small model reads question then
+	// answer rather than asking the same question again.
+	if len(requests) < 2 || !saidThenHeard(requests[1], theQuestionTheTaskAsks, theAnswerThePersonGives) {
+		t.Errorf("the fresh start's first request carries %+v, want the question as an assistant message before the answer", requests[min(1, len(requests)-1)].Messages)
 	}
 	if held := built.held(t, "2"); held.Goal.Ask != "post the anniversary tweet" {
 		t.Errorf("the fresh task's ask is %q, want the task's own words and not the answer", held.Goal.Ask)

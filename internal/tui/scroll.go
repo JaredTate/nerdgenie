@@ -12,34 +12,57 @@ import tea "charm.land/bubbletea/v2"
 // moves the transcript.
 const wheelRows = 3
 
-// scrollRows is how far one Page Up or Page Down moves the transcript.
-const scrollRows = 10
+// pageOverlap is how many rows of one screenful Page Up and Page Down keep on
+// the frame from the last, so that the eye has a row it has already read to
+// find its place by.
+const pageOverlap = 2
 
-// wheeled takes one turn of the mouse wheel: up shows older rows, down shows
-// newer ones, and the wheel pushed sideways does nothing.
-func (screen *Screen) wheeled(turn tea.MouseWheelMsg) {
-	switch turn.Button {
-	case tea.MouseWheelUp:
-		screen.scrollBy(wheelRows)
-	case tea.MouseWheelDown:
-		screen.scrollBy(-wheelRows)
-	}
+// pageRows is how far one Page Up or Page Down moves the transcript, or the
+// overlay when one is open: the rows between the two rules less the overlap,
+// and never less than one.
+func (screen *Screen) pageRows() int {
+	return max(screen.shape().transcriptHeight-pageOverlap, 1)
 }
 
-// scrolledWithTheKey holds the four keys that scroll the transcript, and says
+// wheeled takes one turn of the mouse wheel: up shows older rows, down shows
+// newer ones, and the wheel pushed sideways does nothing. While a record is
+// drawn over the transcript the wheel scrolls the record instead, because that
+// is what is under the mouse.
+func (screen *Screen) wheeled(turn tea.MouseWheelMsg) {
+	rows := 0
+	switch turn.Button {
+	case tea.MouseWheelUp:
+		rows = wheelRows
+	case tea.MouseWheelDown:
+		rows = -wheelRows
+	default:
+		return
+	}
+	if screen.overlayOpen() {
+		screen.scrollOverlayBy(-rows)
+		return
+	}
+	screen.scrollBy(rows)
+}
+
+// scrolledWithTheKey holds the keys that scroll the transcript, and says
 // whether the key was one of them. They belong to the screen as a whole rather
 // than to whatever holds the other keys, so that a person can read back while a
-// card waits for an answer or the masked prompt is open.
+// card waits for an answer or the masked prompt is open. End is one of them
+// only while the view is scrolled up; at the bottom it belongs to the input
+// box, where it moves the cursor to the end of the line.
 func (screen *Screen) scrolledWithTheKey(key tea.KeyPressMsg) bool {
 	switch {
 	case key.Code == tea.KeyPgUp:
-		screen.scrollBy(scrollRows)
+		screen.scrollBy(screen.pageRows())
 	case key.Code == tea.KeyPgDown:
-		screen.scrollBy(-scrollRows)
+		screen.scrollBy(-screen.pageRows())
 	case key.Code == tea.KeyUp && key.Mod == tea.ModShift:
 		screen.scrollBy(wheelRows)
 	case key.Code == tea.KeyDown && key.Mod == tea.ModShift:
 		screen.scrollBy(-wheelRows)
+	case key.Code == tea.KeyEnd && key.Mod == 0 && screen.scrolledUp():
+		screen.showTheNewest()
 	default:
 		return false
 	}

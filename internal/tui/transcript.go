@@ -97,27 +97,34 @@ func keepTail(text string) string {
 // ones being read. Drawing from the bottom up is what makes a frame cost the
 // same on the thousandth block as on the first.
 func (screen *Screen) transcriptRows(wanted int) []string {
-	return screen.newestRows(wanted, true)
+	rows, _ := screen.newestRows(wanted, true, noFocus)
+	return rows
 }
 
 // newestRows gathers rows from the newest block backwards until it has as many
-// as were asked for. With wholeAtTheTop set it keeps the rule above, leaving out
-// a block that would fit whole but not in the room left; without it the block is
-// gathered and cut, which is what a view scrolled up by rows needs, because a
-// view moving three rows at a time has to cross every block on its way.
-func (screen *Screen) newestRows(wanted int, wholeAtTheTop bool) []string {
+// as were asked for, and beside them which block each row belongs to, or minus
+// one for the blank between two blocks. With wholeAtTheTop set it keeps the
+// rule above, leaving out a block that would fit whole but not in the room
+// left; without it the block is gathered and cut, which is what a view scrolled
+// up by rows needs, because a view moving three rows at a time has to cross
+// every block on its way. The pill at focused is drawn as the focused one.
+func (screen *Screen) newestRows(wanted int, wholeAtTheTop bool, focused int) ([]string, []int) {
 	gathered := []string{}
+	owners := []int{}
 	for at := len(screen.blocks) - 1; at >= 0 && len(gathered) < wanted; at-- {
-		lines := screen.blockLines(screen.blocks[at])
+		lines := screen.blockLinesAt(at, at == focused)
+		belong := belongingTo(at, len(lines))
 		if at > 0 && blankBetween(screen.blocks[at-1].kind, screen.blocks[at].kind) {
 			lines = append([]string{""}, lines...)
+			belong = append([]int{-1}, belong...)
 		}
 		if wholeAtTheTop && len(gathered)+len(lines) > wanted && len(lines) <= wanted {
 			break
 		}
 		gathered = append(lines, gathered...)
+		owners = append(belong, owners...)
 	}
-	return gathered
+	return gathered, owners
 }
 
 // blankBetween says whether two blocks want a blank line between them. A
@@ -132,13 +139,23 @@ func partOfATurn(kind blockKind) bool {
 	return kind == blockReply || kind == blockTool
 }
 
-// blockLines draws one block as the rows it takes up.
+// blockLinesAt draws the block at one place in the transcript, which is where
+// a pill learns whether it is the focused one.
+func (screen *Screen) blockLinesAt(at int, focused bool) []string {
+	item := screen.blocks[at]
+	if item.kind == blockTool {
+		return screen.toolLines(item, focused)
+	}
+	return screen.blockLines(item)
+}
+
+// blockLines draws one block as the rows it takes up, with no focus on it.
 func (screen *Screen) blockLines(item block) []string {
 	switch item.kind {
 	case blockPerson:
 		return screen.personLines(item.text)
 	case blockTool:
-		return screen.toolLines(item)
+		return screen.toolLines(item, false)
 	case blockCard:
 		return screen.cardLines(item.shown)
 	case blockReply:
@@ -171,13 +188,14 @@ func (screen *Screen) replyLines(text string) []string {
 // "/tasks 17" and "read r3" show on purpose. A call that was made again and
 // again in a row is one pill with a count on the end, such as "× 13", because
 // thirteen rows saying one thing tell the person less than one row that says
-// how many times.
-func (screen *Screen) toolLines(item block) []string {
+// how many times. The focused pill is drawn apart from the rest, and a pill
+// that has been opened draws its text under itself.
+func (screen *Screen) toolLines(item block, focused bool) []string {
 	text := item.text
 	if item.repeats > 1 {
 		text += " " + string(repeatGlyph) + " " + strconv.Itoa(item.repeats)
 	}
-	return screen.pillRows(text, false)
+	return append(screen.pillRows(text, focused), screen.expansionLines(item)...)
 }
 
 // visibleTranscript is the rows of the transcript that fit in the space it has,
@@ -185,20 +203,23 @@ func (screen *Screen) toolLines(item block) []string {
 // that has run off the top is pulled back here, which is the one place that
 // knows how many rows there really are. The rule that a block is drawn whole or
 // not at all holds only for the view resting on the newest row; a view scrolled
-// up is a window moved by rows, and the blocks at its edges are cut.
-func (screen *Screen) visibleTranscript(height int) []string {
+// up is a window moved by rows, and the blocks at its edges are cut. Beside
+// the rows comes which block each one belongs to, or minus one, which is what
+// a click on a row is looked up in; the pill at focused is drawn focused.
+func (screen *Screen) visibleTranscript(height int, focused int) ([]string, []int) {
 	if height < 1 {
-		return []string{}
+		return []string{}, []int{}
 	}
 	if len(screen.blocks) == 0 {
-		return screen.welcomeRows(height)
+		return screen.welcomeRows(height), nobodys(height)
 	}
-	gathered := screen.newestRows(height+screen.scrollBack, !screen.scrolledUp())
+	gathered, owners := screen.newestRows(height+screen.scrollBack, !screen.scrolledUp(), focused)
 	screen.scrollBack = min(screen.scrollBack, max(len(gathered)-height, 0))
 	end := len(gathered) - screen.scrollBack
 	start := max(end-height, 0)
 	shown := gathered[start:end]
-	return append(make([]string, height-len(shown)), shown...)
+	padding := height - len(shown)
+	return append(make([]string, padding), shown...), append(nobodys(padding), owners[start:end]...)
 }
 
 // ruleRow draws one thin dim line across the frame, which is what separates the

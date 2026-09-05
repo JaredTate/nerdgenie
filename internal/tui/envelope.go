@@ -31,7 +31,16 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 		screen.showCard(cardFrom(envelope, cardHandoff, handoffTitle))
 	case contract.SocketStatus:
 		screen.readStatus(envelope.Fields)
+	case contract.SocketShown:
+		if id := envelope.Fields[showFieldID]; id != "" {
+			screen.shownArrived(id, envelope.Text)
+			return
+		}
+		screen.recordArrived(envelope)
 	case contract.SocketError:
+		if screen.errorAnswersAShow(envelope) {
+			return
+		}
 		screen.flushDeltas()
 		screen.showTrouble(troubleWords(envelope))
 	}
@@ -44,13 +53,16 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 // program has not forgotten anything. The last tool line and the last record
 // line the screen has drawn are kept too: the program sends them again on every
 // heartbeat until something changes, and a screen that forgot it had drawn them
-// would draw them straight back into the empty transcript.
+// would draw them straight back into the empty transcript. The pills that were
+// open and the focus go with the transcript, because there is nothing left on
+// the screen for either to be on.
 func (screen *Screen) emptyTheTranscript() {
 	screen.blocks = nil
 	screen.pending = ""
 	screen.streaming = false
 	screen.showTheNewest()
 	screen.waitingFor = 0
+	screen.forgetTheOpenPills()
 }
 
 // maxFilesNamed is how many of a reply's files the transcript names, because a

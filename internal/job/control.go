@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -16,6 +17,58 @@ func (jobs *Jobs) Pause(ctx context.Context, jobID string) error {
 // SwitchOff stops the job for good.
 func (jobs *Jobs) SwitchOff(ctx context.Context, jobID string) error {
 	return jobs.setState(ctx, jobID, contract.JobOff)
+}
+
+// PutDown pauses a job on one of its tasks and writes the mark into the job's
+// state, where a restart reads it back. The record's own status moves to
+// waiting with it, which is what "/jobs" shows for a job holding on a task.
+func (jobs *Jobs) PutDown(ctx context.Context, mark contract.PutDownMark) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	jobID, taskID := mark.Task.JobID, mark.Task.TaskID
+	held, err := jobs.find(jobID)
+	if err != nil {
+		return err
+	}
+	if _, err := unfinishedTask(held, jobID, taskID); err != nil {
+		return err
+	}
+	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(contract.JobPaused)); err != nil {
+		return fmt.Errorf("cannot write the status of job %s put down on task %s: %w", jobID, taskID, err)
+	}
+	changed := held.state
+	changed.State, changed.PutDown = contract.JobPaused, &mark
+	return jobs.saveState(ctx, jobID, held, changed)
+}
+
+// PutDownTask returns the mark of the paused job put down most recently, which
+// is the one whose run is newest, because that is the task the person was just
+// looking at. A job switched off is passed over: the person ended it, and a
+// word that carries on is not meant for it.
+func (jobs *Jobs) PutDownTask(_ context.Context) (contract.PutDownMark, bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	newest, there := contract.PutDownMark{}, false
+	for _, jobID := range jobs.order {
+		held := jobs.held[jobID]
+		if held.state.PutDown == nil || held.state.State != contract.JobPaused {
+			continue
+		}
+		if !there || runNumberOf(held.state.PutDown.Run) > runNumberOf(newest.Run) {
+			newest, there = *held.state.PutDown, true
+		}
+	}
+	return newest, there, nil
+}
+
+// runNumberOf reads a run's number, and is zero for one that is not a number,
+// so that a mark with no run at all is the oldest of any.
+func runNumberOf(run string) int {
+	number, err := strconv.Atoi(run)
+	if err != nil {
+		return 0
+	}
+	return number
 }
 
 // Resume starts a job working again and forgets the failures that stopped it, so
@@ -133,13 +186,23 @@ func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.Job
 	return jobs.saveState(ctx, jobID, held, changed)
 }
 
-// startWorking puts a job back to running and forgets the failures behind it.
-// The caller holds the lock.
+// startWorking puts a job back to running, lets go of the claims its tasks
+// still hold so that the task it was paused on is handed out first rather than
+// skipped as running, forgets the failures behind it and the task it was put
+// down on, and wakes the store, because a job set running has work due at
+// once. The caller holds the lock.
 func (jobs *Jobs) startWorking(ctx context.Context, jobID string, held *heldJob) error {
+	if err := jobs.releaseTheClaimsOf(ctx, jobID); err != nil {
+		return err
+	}
 	if err := held.keeper.SetStatus(ctx, contract.StatusRunning); err != nil {
 		return fmt.Errorf("cannot set job %s running again: %w", jobID, err)
 	}
 	changed := held.state
-	changed.State, changed.FailuresInARow, changed.Backoff = contract.JobRunning, 0, 0
-	return jobs.saveState(ctx, jobID, held, changed)
+	changed.State, changed.FailuresInARow, changed.Backoff, changed.PutDown = contract.JobRunning, 0, 0, nil
+	if err := jobs.saveState(ctx, jobID, held, changed); err != nil {
+		return err
+	}
+	jobs.wake()
+	return nil
 }

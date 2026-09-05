@@ -3,6 +3,7 @@ package testkit_test
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -181,17 +182,106 @@ func (store nameDroppingJobStore) Load(ctx context.Context, jobID string) (contr
 	return record, err
 }
 
+// openEndedJobStore never closes a job: its last task finishes and the listing
+// goes on saying the job is running, which is what the real store did before a
+// job could close on a done line per task.
+type openEndedJobStore struct{ *testkit.FakeJob }
+
+// List reports every job as running, done or not.
+func (store openEndedJobStore) List(ctx context.Context) ([]contract.JobSummary, error) {
+	listed, err := store.FakeJob.List(ctx)
+	for index := range listed {
+		listed[index].State = contract.JobRunning
+	}
+	return listed, err
+}
+
+// unprovedJobStore closes a job without writing the done list its tasks prove,
+// so the record says done and nothing in it says why.
+type unprovedJobStore struct{ *testkit.FakeJob }
+
+// Load hands back the record with its done list taken off.
+func (store unprovedJobStore) Load(ctx context.Context, jobID string) (contract.Record, error) {
+	record, err := store.FakeJob.Load(ctx, jobID)
+	record.Goal.DoneWhen = nil
+	return record, err
+}
+
+// forgetfulPutDownStore never remembers which task a job was put down on, the
+// way the loop's own memory forgot it across a restart.
+type forgetfulPutDownStore struct{ *testkit.FakeJob }
+
+// PutDownTask never has a put-down task to hand back.
+func (forgetfulPutDownStore) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
+	return contract.PutDownMark{}, false, nil
+}
+
+// clingingPutDownStore keeps the put-down mark after the job is set running
+// again, so a task already picked up would be picked up twice.
+type clingingPutDownStore struct {
+	*testkit.FakeJob
+	mark *contract.PutDownMark
+}
+
+// PutDown keeps a copy of the mark of its own.
+func (store *clingingPutDownStore) PutDown(ctx context.Context, mark contract.PutDownMark) error {
+	store.mark = &mark
+	return store.FakeJob.PutDown(ctx, mark)
+}
+
+// PutDownTask hands the copy back whether or not the job runs again.
+func (store *clingingPutDownStore) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
+	if store.mark == nil {
+		return contract.PutDownMark{}, false, nil
+	}
+	return *store.mark, true, nil
+}
+
+// claimKeepingJobStore keeps the claim a paused run held when the job is set
+// running again, so the task the job was paused on is never handed out again,
+// which is what the fake did and the real store did not.
+type claimKeepingJobStore struct {
+	*testkit.FakeJob
+	guard  sync.Mutex
+	ranNow bool
+}
+
+// RunNow sets the job running again and keeps the claim.
+func (store *claimKeepingJobStore) RunNow(ctx context.Context, jobID string) error {
+	store.guard.Lock()
+	store.ranNow = true
+	store.guard.Unlock()
+	return store.FakeJob.RunNow(ctx, jobID)
+}
+
+// NextTask hands nothing out once the job has been set running again, as a
+// store whose task is still claimed would.
+func (store *claimKeepingJobStore) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
+	store.guard.Lock()
+	kept := store.ranNow
+	store.guard.Unlock()
+	if kept {
+		return contract.TaskToRun{}, false, nil
+	}
+	return store.FakeJob.NextTask(ctx, now)
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name string
 		jobs contract.Job
 	}{
+		{"a store that forgets which task a job was put down on", forgetfulPutDownStore{workingJobStore()}},
+		{"a store that keeps the put-down mark after the job runs again", &clingingPutDownStore{FakeJob: workingJobStore()}},
+		{"a store that keeps the claim a paused run held after the job runs again", &claimKeepingJobStore{FakeJob: workingJobStore()}},
 		{"a store that creates a job with no ask", agreeableJobStore{workingJobStore()}},
 		{"a store that pauses a job that is not there", forgivingJobStore{workingJobStore()}},
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},
 		{"a store that lists a named job by its ask", askListingJobStore{workingJobStore()}},
 		{"a store that loads a named job with its name dropped", nameDroppingJobStore{workingJobStore()}},
+		{"a store that never closes a job whose last task is done", openEndedJobStore{workingJobStore()}},
+		{"a store that closes a job with no done line behind it", unprovedJobStore{workingJobStore()}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

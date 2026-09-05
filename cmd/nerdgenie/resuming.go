@@ -32,7 +32,7 @@ const maxTasksLookedBackAt = maxScreensRemembered
 // put down". A person who wants the stopped task back says one of these and
 // nothing else; anything longer is a new ask, even when it begins with one of
 // these words.
-var theWordsForCarryingOn = []string{"continue", "go on", "carry on", "keep going"}
+var theWordsForCarryingOn = contract.CarryOnWords
 
 // endedTask is where one task ended: the number of its record, and whether it is
 // waiting for an answer, was stopped, or is finished. The number is empty when

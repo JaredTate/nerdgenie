@@ -63,6 +63,7 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 	jobs.nextJob++
 	jobs.order = append(jobs.order, jobID)
 	jobs.held[jobID] = held
+	jobs.wake()
 	return jobID, nil
 }
 
@@ -111,6 +112,7 @@ func (jobs *Jobs) addTask(ctx context.Context, jobID string, held *heldJob, text
 	if err := jobs.writeProgress(ctx, jobID, held); err != nil {
 		return "", err
 	}
+	jobs.wake()
 	return taskID, nil
 }
 

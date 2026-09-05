@@ -42,9 +42,23 @@ func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.
 // harness tells a question from an answer by the finish state and by what the
 // reply has behind it: a question puts the task into waiting, and an answer goes
 // to the done-check.
+//
+// A message that arrived while the model was writing this reply is read first,
+// because it is this task's to read and not the next task's: the person said
+// stop, so the task stops, or they corrected it, so the model is sent round once
+// more with their words in front of it and this reply does not stand. Messages
+// that arrive during a tool call are read at the end of the tool calls, so
+// this reads only what came during a reply with no tool call after it.
 func (running *run) endOfTurn(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
+	}
+	ended, more, corrections, err := running.readTheMessages(ctx, running.theLoop.takeDelivered())
+	if err != nil || !more {
+		return ended, false, err
+	}
+	if corrections > 0 {
+		return Outcome{}, true, nil
 	}
 	if running.isAQuestion(text, why) {
 		outcome, err := running.waitHere(ctx, text)
@@ -231,14 +245,16 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 }
 
 // waitHere puts the task into waiting, which is where a question leaves it.
-// Nothing is held in any model's memory until the user answers.
+// Nothing is held in any model's memory until the user answers. A job task's
+// question is held back here, the way its report is, because it goes to the
+// person with the job named under it once the job has been put down on it.
 func (running *run) waitHere(ctx context.Context, text string) (Outcome, error) {
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
 	if err := running.setStatus(ctx, contract.StatusWaiting); err != nil {
 		return Outcome{}, err
 	}
-	if err := running.send(ctx, text); err != nil {
+	if err := running.sendUnlessAJob(ctx, text); err != nil {
 		return Outcome{}, err
 	}
 	return Outcome{TaskID: running.taskID(), Status: contract.StatusWaiting, Report: text}, nil
@@ -268,13 +284,18 @@ func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) 
 // cancelled, and the loop at once made another call they had to press Escape
 // at again. A stop the person asked for ends with the call they stopped.
 func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome, error) {
-	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+	outcome, err := running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+	outcome.ByThePerson = true
+	return outcome, err
 }
 
 // stopAndSay ends the task as stopped and sends the one report the user gets:
-// which line stopped it, where the work stands, and how to carry it on. The four
-// review questions are asked unless the caller has already spent the ending's
-// model call on the words in the middle of that report.
+// which line stopped it, where the work stands, and how to carry it on. A job's
+// task is told how to carry on by the line the job puts under the report, which
+// names the one word that picks it up, so that line is left off here rather
+// than giving two instructions. The four review questions are asked unless the
+// caller has already spent the ending's model call on the words in the middle
+// of that report.
 func (running *run) stopAndSay(ctx context.Context, line string, standing string, askTheQuestions bool) (Outcome, error) {
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
@@ -288,9 +309,11 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 			return Outcome{}, err
 		}
 	}
-	report := running.withTheLesson(fmt.Sprintf(
-		"I stopped this task, because %s.\n%s\nTell me how to carry on and I will pick it up from here.",
-		line, standing))
+	report := fmt.Sprintf("I stopped this task, because %s.\n%s", line, standing)
+	if running.task.FromJob == nil {
+		report += "\nTell me how to carry on and I will pick it up from here."
+	}
+	report = running.withTheLesson(report)
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}

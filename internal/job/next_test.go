@@ -1,6 +1,7 @@
 package job_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -159,6 +160,9 @@ func TestWaitSleepsUntilThereCouldBeWorkAndNeverLongerThanTheClamp(t *testing.T)
 	holding := newJobs(t)
 	jobID := holding.aJob(t, "Do a long thing.")
 	holding.aTask(t, jobID, "the task for next week", theEpoch().Add(7*24*time.Hour))
+	// A task added wakes the store until it looks, so the store looks first and
+	// finds nothing due, which is the state a wait sleeps in.
+	holding.nextTask(t, theEpoch())
 
 	waiting := make(chan error, 1)
 	go func() { waiting <- holding.jobs.Wait(t.Context()) }()
@@ -170,6 +174,7 @@ func TestWaitSleepsUntilThereCouldBeWorkAndNeverLongerThanTheClamp(t *testing.T)
 	}
 
 	holding.aTask(t, jobID, "the task for half a minute from now", theEpoch().Add(90*time.Second))
+	holding.nextTask(t, theEpoch())
 	go func() { waiting <- holding.jobs.Wait(t.Context()) }()
 	waitForSleeper(t, holding)
 	holding.clock.Advance(30 * time.Second)
@@ -293,6 +298,177 @@ func TestAClaimOnATaskOfAPausedJobIsLeftAloneWhenItsBudgetRunsOut(t *testing.T) 
 	}
 	next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+2*time.Minute))
 	if !due || next.TaskID != taskID {
-		t.Errorf("once the job runs again the task is %+v (due %v), want %s given up as a dead claim and offered again", next, due, taskID)
+		t.Errorf("once the job runs again the task is %+v (due %v), want %s offered again, because a job set running again lets go of the claims its paused run held", next, due, taskID)
 	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
+		t.Errorf("once the job ran again the old claim was counted as %d failures, want none: it was let go when the job ran again, not left to run out", failures)
+	}
+}
+
+// TestAJobSetRunningAgainHandsOutThePutDownTaskFirstWithItsOldClaimReleased
+// is the review's first finding. A put-down task kept the claim its run held,
+// and a job set running again by any way but the exact carry-on word, such as
+// "/cron run" or "/resume", skipped that task as running and handed out the
+// one after it; an hour later the old claim ran out and the task was written
+// into the job as a failure. Setting a paused job running again lets go of
+// the claims its tasks hold, so the put-down task is handed out first and its
+// old claim is never counted as a failure.
+func TestAJobSetRunningAgainHandsOutThePutDownTaskFirstWithItsOldClaimReleased(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do two things.")
+	first := holding.aTask(t, jobID, "the task the person stopped", time.Time{})
+	second := holding.aTask(t, jobID, "the task after it", time.Time{})
+	if next, due := holding.nextTask(t, theEpoch()); !due || next.TaskID != first {
+		t.Fatalf("the first task was not handed out to begin with: %+v (due %v)", next, due)
+	}
+	if err := holding.jobs.Pause(ctx, jobID); err != nil {
+		t.Fatalf("cannot pause the job: %v", err)
+	}
+
+	if err := holding.jobs.RunNow(ctx, jobID); err != nil {
+		t.Fatalf("cannot run the job now: %v", err)
+	}
+
+	next, due := holding.nextTask(t, theEpoch().Add(time.Minute))
+	if !due || next.TaskID != first {
+		t.Errorf("a minute after run now the next task is %+v (due %v), want %s, the task the job was paused on, and not %s", next, due, first, second)
+	}
+	// The claim the paused run held would have run out an hour after it was
+	// taken. It was let go instead, so nothing runs out and nothing is
+	// counted: the task handed out again is still running under its fresh
+	// claim, and is neither offered a third time nor written down as failed.
+	if next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+30*time.Second)); due && next.TaskID == first {
+		t.Errorf("past the old claim's hour the store handed out %+v again, and the task handed out after run now is still running", next)
+	}
+	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
+		t.Errorf("the old claim was counted as %d failures, want none", failures)
+	}
+	held, err := holding.jobs.Load(ctx, jobID)
+	if err != nil {
+		t.Fatalf("cannot load the job: %v", err)
+	}
+	if len(held.Work.Results) != 0 {
+		t.Errorf("the job holds %d reports, want none: no task failed", len(held.Work.Results))
+	}
+}
+
+// theTimeAWakeIsGiven is how long, in real time, a wait is given to come back
+// after the store is woken. A wake is a channel send, so a wait that takes
+// longer than this was sleeping on the clock and not listening.
+const theTimeAWakeIsGiven = 2 * time.Second
+
+// waitInTheBackground starts one wait and hands back the channel its answer
+// arrives on.
+func waitInTheBackground(holding *opened) <-chan error {
+	waiting := make(chan error, 1)
+	go func() { waiting <- holding.jobs.Wait(context.Background()) }()
+	return waiting
+}
+
+// mustComeBackAtOnce fails the test when the wait does not come back within
+// the time a wake is given, in real time and with the clock never moved.
+func mustComeBackAtOnce(t *testing.T, waiting <-chan error, what string) {
+	t.Helper()
+	select {
+	case err := <-waiting:
+		if err != nil {
+			t.Fatalf("%s, and the wait failed: %v", what, err)
+		}
+	case <-time.After(theTimeAWakeIsGiven):
+		t.Fatalf("%s, and the wait was still asleep %s later, so the store was sleeping on the clock rather than listening for a wake", what, theTimeAWakeIsGiven)
+	}
+}
+
+// mustStayAsleep fails the test when the wait comes back on its own, which is
+// what a store that has looked for work and found nothing new must not do.
+func mustStayAsleep(t *testing.T, waiting <-chan error, what string) {
+	t.Helper()
+	select {
+	case err := <-waiting:
+		t.Fatalf("%s, and the wait came back (error %v) with nothing new to look at", what, err)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+// TestAJobMadeWhileTheStoreWaitsWakesItAtOnce is the acid test's first
+// complaint: a person's ask became a job, and its first task started a minute
+// later, because the store was asleep for the whole of its clamp and nothing
+// told it a job had been made. A job made or a task added while the store
+// waits wakes it, so the first task is handed out at once.
+func TestAJobMadeWhileTheStoreWaitsWakesItAtOnce(t *testing.T) {
+	holding := newJobs(t)
+	holding.jobs.OnlyStartWorkWhen(func() bool { return true })
+	// The store has looked once and found nothing, so it is asleep for the whole
+	// of its clamp when the job is made.
+	holding.nextTask(t, theEpoch())
+	waiting := waitInTheBackground(holding)
+	waitForSleeper(t, holding)
+
+	jobID := holding.aJob(t, "Run the campaign this month.")
+	taskID := holding.aTask(t, jobID, "post the anniversary tweet", time.Time{})
+
+	mustComeBackAtOnce(t, waiting, "a job with a task was made while the store waited")
+	next, due := holding.nextTask(t, theEpoch())
+	if !due || next.TaskID != taskID {
+		t.Errorf("after the wake the next task is %+v (due %v), want %s handed out with the clock never moved", next, due, taskID)
+	}
+}
+
+// TestAWakeLastsUntilTheStoreLooksForWork pins the two ends of a wake. A
+// driver that is woken while its own task runs cannot take the work yet and
+// waits again, so the wake must still be there when it does: it lasts until
+// the store is asked for work. And once the store has looked, the wake is
+// spent, so a store with nothing new goes back to sleep rather than spinning.
+func TestAWakeLastsUntilTheStoreLooksForWork(t *testing.T) {
+	holding := newJobs(t)
+	holding.nextTask(t, theEpoch())
+	jobID := holding.aJob(t, "Run the campaign this month.")
+	holding.aTask(t, jobID, "post the anniversary tweet", time.Time{})
+
+	// Nobody was waiting when the job was made, and nobody has looked since.
+	mustComeBackAtOnce(t, waitInTheBackground(holding), "a job was made before the wait began")
+	holding.clock.Advance(job.RestBetweenWaits)
+	mustComeBackAtOnce(t, waitInTheBackground(holding), "the store was woken and has not looked for work yet")
+
+	holding.nextTask(t, theEpoch())
+	holding.clock.Advance(job.RestBetweenWaits)
+	waiting := waitInTheBackground(holding)
+	waitForSleeper(t, holding)
+	mustStayAsleep(t, waiting, "the store has looked since it was woken")
+}
+
+// TestSettingAJobRunningAgainWakesTheStore covers the third way work appears
+// while the store waits: a paused job told to run now, or picked up again by
+// the person, has a task due at once.
+func TestSettingAJobRunningAgainWakesTheStore(t *testing.T) {
+	holding := newJobs(t)
+	ctx := t.Context()
+	jobID := holding.aJob(t, "Do a long thing.")
+	taskID := holding.aTask(t, jobID, "the task the person paused on", theEpoch().Add(24*time.Hour))
+	if err := holding.jobs.Pause(ctx, jobID); err != nil {
+		t.Fatalf("cannot pause the job: %v", err)
+	}
+	holding.nextTask(t, theEpoch())
+	waiting := waitInTheBackground(holding)
+	waitForSleeper(t, holding)
+
+	if err := holding.jobs.RunNow(ctx, jobID); err != nil {
+		t.Fatalf("cannot run the job now: %v", err)
+	}
+
+	mustComeBackAtOnce(t, waiting, "a paused job was told to run now while the store waited")
+	next, due := holding.nextTask(t, theEpoch())
+	if !due || next.TaskID != taskID {
+		t.Errorf("after run now the next task is %+v (due %v), want %s", next, due, taskID)
+	}
+}
+
+// TestAStoreThatHasJustOpenedLooksBeforeItSleeps is the restart half of the
+// same complaint: a store that has just opened has never looked for work, and
+// a job left running by the process before it must not wait out a clamp.
+func TestAStoreThatHasJustOpenedLooksBeforeItSleeps(t *testing.T) {
+	holding := newJobs(t)
+
+	mustComeBackAtOnce(t, waitInTheBackground(holding), "the store has just opened and has not looked for work")
 }

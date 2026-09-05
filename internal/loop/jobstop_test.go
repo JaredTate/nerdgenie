@@ -163,13 +163,16 @@ func TestAPersonsStopPutsAJobsTaskDownRatherThanFailingIt(t *testing.T) {
 	if len(sent) != 1 {
 		t.Fatalf("the person was sent %d messages, want the one stopped report: %v", len(sent), sent)
 	}
-	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "continue"} {
+	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "Say continue to pick this task up"} {
 		if !strings.Contains(sent[0], words) {
 			t.Errorf("the stopped report is %q, want it to say %q", sent[0], words)
 		}
 	}
 	if strings.Contains(sent[0], "tasks done") {
 		t.Errorf("the stopped report is %q, and a task that was only stopped has no progress line", sent[0])
+	}
+	if strings.Contains(sent[0], "Tell me how to carry on") {
+		t.Errorf("the stopped report is %q, and it gives two instructions where one is the truth: only the word continue picks a job's task up", sent[0])
 	}
 	if standing := built.held(t, "1").Header.Status; standing != contract.StatusStopped {
 		t.Errorf("the task's record stands at %q, want %q", standing, contract.StatusStopped)
@@ -216,8 +219,46 @@ func TestContinuePicksAPutDownJobTaskUpUnderItsJob(t *testing.T) {
 	if !sentSomethingLike(sent, "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
 		t.Errorf("the person was sent %v, want the picked-up task's report with the job's progress on it", sent)
 	}
-	if !sentSomethingLike(sent, "Job "+jobID+" has run every task") {
+	if !sentSomethingLike(sent, "Job "+jobID+" is finished") {
 		t.Errorf("the person was sent %v, want the next task run and the job closed after it", sent)
+	}
+}
+
+// TestContinueOnAFreshLoopPicksUpTheTaskTheStoreSaysWasPutDown is the restart
+// half of the put-down: the memory of which task was put down lives in the
+// job store, not in the loop, so a loop built afresh over the same store,
+// which is what a restart leaves, picks the same task up under the same job
+// on the word that carries on.
+func TestContinueOnAFreshLoopPicksUpTheTaskTheStoreSaysWasPutDown(t *testing.T) {
+	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 2, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The post is up."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	})
+	stopTheJobsTask(t, made, built, waiting)
+	mark, there, err := built.jobs.PutDownTask(t.Context())
+	if err != nil || !there || mark.Task.JobID != jobID || mark.Task.TaskID != "t1" || mark.Run != "1" || !mark.HasRecord || mark.Waiting {
+		t.Fatalf("the store holds the put-down task as %+v (there %v, error %v), want task t1 of job %s, run 1, with a record, stopped rather than asking", mark, there, err, jobID)
+	}
+	fresh, err := loop.New(built.options())
+	if err != nil {
+		t.Fatalf("cannot build a fresh loop over the same store: %v", err)
+	}
+
+	outcome, err := fresh.Run(t.Context(), built.task("continue"))
+	if err != nil {
+		t.Fatalf("carrying the task on from a fresh loop failed: %v", err)
+	}
+
+	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
+		t.Errorf("continue on a fresh loop ended as %+v, want task 1, the one the store says was put down, finished", outcome)
+	}
+	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
+		t.Errorf("the person was sent %v, want the picked-up task's report with the job's progress on it", built.channel.Sent())
+	}
+	if _, there, _ := built.jobs.PutDownTask(t.Context()); there {
+		t.Error("the store still holds a put-down task after it was picked up")
 	}
 }
 
@@ -362,66 +403,5 @@ func TestContinuePicksThePutDownTaskUpWhenItStoppedAfterThePlainTask(t *testing.
 	}
 	if first := theJobsFirstTask(t, built, jobID); !first.Done {
 		t.Errorf("the job's task reads %+v, want it done", first)
-	}
-}
-
-// jobThatHandsOutOneUnattendedTask is the fake job store with two changes: the
-// one task it hands out is a schedule's, so nobody is there to carry it on,
-// and it hands out nothing afterwards, so that the loop's own question after
-// the task ends finds nothing to run.
-type jobThatHandsOutOneUnattendedTask struct {
-	contract.Job
-	guard     sync.Mutex
-	handedOut bool
-	finished  []bool
-}
-
-// NextTask hands the first task out once, as a schedule's.
-func (jobs *jobThatHandsOutOneUnattendedTask) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	if jobs.handedOut {
-		return contract.TaskToRun{}, false, nil
-	}
-	jobs.handedOut = true
-	due, there, err := jobs.Job.NextTask(ctx, now)
-	due.Unattended = true
-	return due, there, err
-}
-
-// FinishTask writes down whether the report was a failure, then passes it on.
-func (jobs *jobThatHandsOutOneUnattendedTask) FinishTask(ctx context.Context, jobID string, taskID string, report string, failed bool) (string, error) {
-	jobs.guard.Lock()
-	jobs.finished = append(jobs.finished, failed)
-	jobs.guard.Unlock()
-	return jobs.Job.FinishTask(ctx, jobID, taskID, report, failed)
-}
-
-// TestAStoppedTaskNobodyAttendedIsFinishedAsTheFailureItIs pins the other
-// side of the rule: a schedule's task that stops has nobody to pick it up, so
-// it is finished as failed, the way it always was, and the next tick brings
-// its own task.
-func TestAStoppedTaskNobodyAttendedIsFinishedAsTheFailureItIs(t *testing.T) {
-	built := newHarness(t, nil)
-	jobID := aJobOfTwoTasks(t, built)
-	unattended := &jobThatHandsOutOneUnattendedTask{Job: built.jobs}
-	waiting := aModelThatWaitsOn(1, built.model)
-	options := built.optionsOver(waiting)
-	options.Jobs = unattended
-	made, err := loop.New(options)
-	if err != nil {
-		t.Fatalf("cannot build a loop over the unattended job: %v", err)
-	}
-
-	stopTheJobsTask(t, made, built, waiting)
-
-	if len(unattended.finished) != 1 || !unattended.finished[0] {
-		t.Errorf("the job store was told %v, want the one stopped task finished as failed", unattended.finished)
-	}
-	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 1 || summary.State != contract.JobRunning {
-		t.Errorf("the job reads %+v, want one failure counted and the job still running for its next tick", summary)
-	}
-	if !sentSomethingLike(built.channel.Sent(), "0 of 2 tasks done") {
-		t.Errorf("the person was sent %v, want the failure report with the job's progress on it", built.channel.Sent())
 	}
 }

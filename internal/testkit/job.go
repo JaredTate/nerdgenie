@@ -30,6 +30,12 @@ type fakeJobEntry struct {
 	template string
 	tasks    []fakeTask
 	reports  []contract.ResultLine
+	// doneWhen is the done list the fake writes when the job closes: one line
+	// per task, pointing at that task's report, the rule the real store keeps.
+	doneWhen []contract.DoneLine
+	// putDown is the mark the job carries while it is put down on one of its
+	// tasks, and nil when it is not.
+	putDown *contract.PutDownMark
 }
 
 // FakeJob holds jobs in memory: create one, add tasks to it, list them, change
@@ -121,9 +127,11 @@ func (jobs *FakeJob) List(_ context.Context) ([]contract.JobSummary, error) {
 }
 
 // RunNow starts the job's next task without waiting for its date: the job runs
-// again and the next unfinished task loses its due date, so that NextTask hands
-// it out at once. A run-now that only changed the state would leave the task
-// waiting for the very date the user just overrode.
+// again, every claim its tasks held is let go, the way the real store lets go
+// of the claims a paused run held, and the next unfinished task loses its due
+// date, so that NextTask hands it out at once. A run-now that only changed the
+// state would leave the task waiting for the very date the user just overrode,
+// or skip it as still running.
 func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -133,9 +141,13 @@ func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 	}
 
 	entry.summary.State = contract.JobRunning
+	entry.putDown = nil
+	for index := range entry.tasks {
+		entry.tasks[index].running = false
+	}
 	for index := range entry.tasks {
 		task := &entry.tasks[index]
-		if task.task.Done || task.running {
+		if task.task.Done {
 			continue
 		}
 		task.dueAt = time.Time{}
@@ -149,6 +161,50 @@ func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 // Pause stops the job after the running task finishes.
 func (jobs *FakeJob) Pause(_ context.Context, jobID string) error {
 	return jobs.setState(jobID, contract.JobPaused)
+}
+
+// PutDown pauses a job on one of its tasks and keeps the mark, which RunNow
+// forgets again.
+func (jobs *FakeJob) PutDown(_ context.Context, mark contract.PutDownMark) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[mark.Task.JobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", mark.Task.JobID)
+	}
+	if jobs.findTask(entry, mark.Task.TaskID) == nil {
+		return fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", mark.Task.JobID, mark.Task.TaskID)
+	}
+	entry.summary.State = contract.JobPaused
+	entry.putDown = &mark
+	return nil
+}
+
+// PutDownTask hands back the mark of the paused job whose run is newest, and
+// false when no job is put down.
+func (jobs *FakeJob) PutDownTask(_ context.Context) (contract.PutDownMark, bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	newest, there := contract.PutDownMark{}, false
+	for _, jobID := range jobs.order {
+		entry := jobs.entries[jobID]
+		if entry.putDown == nil || entry.summary.State != contract.JobPaused {
+			continue
+		}
+		if !there || runNumberOf(entry.putDown.Run) > runNumberOf(newest.Run) {
+			newest, there = *entry.putDown, true
+		}
+	}
+	return newest, there, nil
+}
+
+// runNumberOf reads a run's number, and is zero for one that is not a number.
+func runNumberOf(run string) int {
+	number, err := strconv.Atoi(run)
+	if err != nil {
+		return 0
+	}
+	return number
 }
 
 // SwitchOff stops the job for good.
@@ -211,9 +267,21 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 	}
 	entry.summary.NextTaskID = jobs.firstUnfinished(entry)
 	if entry.summary.NextTaskID == "" && entry.schedule == nil && entry.summary.State == contract.JobRunning {
-		entry.summary.State = contract.JobDone
+		jobs.closeOnADoneLinePerTask(entry)
 	}
 	return reportID, nil
+}
+
+// closeOnADoneLinePerTask closes a job whose last task is done, writing one
+// done line per task, each pointing at that task's report, which is the rule
+// the real store keeps so that a job the model gave no done list can still
+// finish. The caller holds the lock.
+func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
+	entry.doneWhen = nil
+	for _, task := range entry.tasks {
+		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+	}
+	entry.summary.State = contract.JobDone
 }
 
 // Load returns the job as a record: the same four parts as a task, with the
@@ -239,7 +307,10 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			TasksTotal: entry.summary.TasksTotal,
 			NextDue:    jobs.nextDueLine(entry),
 		},
-		Goal:    contract.Goal{Ask: entry.ask, Name: entry.name, Why: entry.why},
+		Goal: contract.Goal{
+			Ask: entry.ask, Name: entry.name, Why: entry.why,
+			DoneWhen: append([]contract.DoneLine(nil), entry.doneWhen...),
+		},
 		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil

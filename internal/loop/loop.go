@@ -11,7 +11,6 @@ package loop
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -104,6 +103,20 @@ type Task struct {
 	// ResumeID is the number of a task that was waiting or stopped and is being
 	// picked up again, and is empty for a new task.
 	ResumeID string
+	// Answer is what the person said when they picked up a job's task that had
+	// made no record: the answer to the question it asked, or the words they
+	// carried it on with. There is nothing to pick up, so the task is started
+	// afresh under the job with its own words as the ask, and the answer is put
+	// in front of the model right after them, so the task is told both what to
+	// do and what the person said. Its text is empty for every other task.
+	Answer contract.Inbound
+	// Correction is the message that picked a job's stopped task up when it
+	// said more than the word that carries on, such as "continue, but post at
+	// noon". The task reads the whole message as the person's words, and it is
+	// written into the record as a correction, the way a message that arrives
+	// mid-task is, so that the steer outlives this sitting. Its text is empty
+	// for every other task.
+	Correction contract.Inbound
 }
 
 // Outcome is where one task ended.
@@ -117,6 +130,11 @@ type Outcome struct {
 	Report string
 	// StopLine is the line of the stop list that fired, when one did.
 	StopLine string
+	// ByThePerson says the person stopped the task, with Escape, "/stop", or
+	// the word stop, rather than the harness stopping it on a line of the stop
+	// list or a spent budget. A person's stop puts a job's task down whoever
+	// made the task; the harness's stop on a schedule's task is a failure.
+	ByThePerson bool
 }
 
 // Loop runs one task at a time. Everything it needs is an interface, so the
@@ -137,13 +155,10 @@ type Loop struct {
 	// memory is held to MaxJobTasksRemembered.
 	jobTasks       map[string]contract.TaskToRun
 	jobTaskNumbers []string
-	// putDown is the job's task the person stopped most recently and has not
-	// yet carried on, and nil when there is none.
-	putDown    *putDownTask
-	highest    int
-	counted    bool
-	thinkModel string
-	thinkLevel contract.Think
+	highest        int
+	counted        bool
+	thinkModel     string
+	thinkLevel     contract.Think
 }
 
 // UseThink sets how hard one model is asked to think, for the rest of the
@@ -424,56 +439,6 @@ func (theLoop *Loop) nowRunningFromJob(fromJob *contract.TaskToRun) {
 	theLoop.guard.Lock()
 	defer theLoop.guard.Unlock()
 	theLoop.runningFromJob = fromJob
-}
-
-// nextTaskNumber is the number the next task takes: one above the highest the
-// log has ever held. The log is read once and the count is kept afterwards.
-//
-// Both the checkpoints and the messages are counted, because a task that
-// answered with no tools made no record and so no checkpoint, but its ask was
-// written under its number; counting checkpoints alone handed that number out
-// again on the next start, and the log then held two tasks' words under one.
-func (theLoop *Loop) nextTaskNumber(ctx context.Context) (string, error) {
-	theLoop.guard.Lock()
-	defer theLoop.guard.Unlock()
-	if !theLoop.counted {
-		for _, kind := range []contract.EventKind{contract.EventCheckpoint, contract.EventMessage} {
-			highest, err := theLoop.highestTaskNumberAmong(ctx, kind)
-			if err != nil {
-				return "", err
-			}
-			theLoop.highest = max(theLoop.highest, highest)
-		}
-		theLoop.counted = true
-	}
-	theLoop.highest++
-	return strconv.Itoa(theLoop.highest), nil
-}
-
-// highestTaskNumberAmong is the highest task number any event of one kind in the
-// log was written under, and zero when there is none.
-func (theLoop *Loop) highestTaskNumberAmong(ctx context.Context, kind contract.EventKind) (int, error) {
-	saved, err := theLoop.options.Store.ByKind(ctx, kind)
-	if err != nil {
-		return 0, fmt.Errorf("cannot read the %s events of the log to number the next task: %w", kind, err)
-	}
-	highest := 0
-	for _, event := range saved {
-		if number, isTask := taskNumberOf(event.TaskID); isTask && number > highest {
-			highest = number
-		}
-	}
-	return highest, nil
-}
-
-// taskNumberOf reads a task's own number out of a log key. A job's key begins
-// with a letter, so this returns false for one.
-func taskNumberOf(logKey string) (int, bool) {
-	number, err := strconv.Atoi(logKey)
-	if err != nil || number < 1 {
-		return 0, false
-	}
-	return number, true
 }
 
 // logEvent writes one event about the running task, and says plainly when the

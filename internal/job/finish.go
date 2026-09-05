@@ -171,6 +171,14 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 // whose done list has nothing behind it stays running rather than closing, which
 // is the same rule a task record keeps: nothing says it is done until something
 // proves it.
+//
+// A job the model gave no done list is a different case: its tasks are what
+// done looks like, each with one clear done line behind it, and each finished
+// one has a report that proves it. So when the last task finishes, the harness
+// writes one done line per task, in the task's own words and pointing at its
+// report, before the check runs, the way it writes the one done line of a task
+// whose answer is its own proof. Without that no job could ever close, because
+// nothing lets the model write a job's done list.
 func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held *heldJob) error {
 	if held.state.Schedule != nil {
 		return nil
@@ -179,6 +187,9 @@ func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held
 		if !task.Done {
 			return nil
 		}
+	}
+	if err := jobs.theTasksAreTheDoneList(ctx, jobID, held); err != nil {
+		return err
 	}
 	if err := record.DoneCheck(held.keeper.Record()); err != nil {
 		return nil
@@ -189,6 +200,24 @@ func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held
 	changed := held.state
 	changed.State = contract.JobDone
 	return jobs.saveState(ctx, jobID, held, changed)
+}
+
+// theTasksAreTheDoneList writes one done line per task into a job whose done
+// list is empty, each pointing at the report of the task it stands for. A done
+// list the model did write is left exactly as it is. The caller holds the lock
+// and has checked that every task is done.
+func (jobs *Jobs) theTasksAreTheDoneList(ctx context.Context, jobID string, held *heldJob) error {
+	if len(held.keeper.Record().Goal.DoneWhen) > 0 {
+		return nil
+	}
+	lines := []contract.DoneLine{}
+	for _, task := range held.keeper.Record().Work.Tasks {
+		lines = append(lines, contract.DoneLine{Text: task.Text, Done: true, ResultID: task.ReportID})
+	}
+	if err := held.keeper.Apply(ctx, record.Update{DoneWhen: lines}); err != nil {
+		return fmt.Errorf("cannot write the done line per task that closes job %s: %w", jobID, err)
+	}
+	return nil
 }
 
 // stopTheJob puts a job into a state it will not work in, writes the reason into

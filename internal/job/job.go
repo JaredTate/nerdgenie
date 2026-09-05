@@ -89,6 +89,12 @@ type Jobs struct {
 	lastWaitEnded time.Time
 	mayStartWork  func() bool
 	tellTheUser   func(ctx context.Context, text string) error
+	// somethingNew says a job was made or changed since the store last looked
+	// for work, and woken is how a wait that is already asleep hears of it. The
+	// flag lasts until NextTask looks, because the driver that is woken may be
+	// running a task of its own and have to wait again before it can look.
+	somethingNew bool
+	woken        chan struct{}
 }
 
 // The job store is the one real job store, so the compiler is asked to say at
@@ -130,11 +136,17 @@ func Open(ctx context.Context, home contract.Home, eventLog contract.Store, cloc
 	opened := &Jobs{
 		home: home, eventLog: eventLog, clock: clock, database: database,
 		owner: thisProcess(), held: map[string]*heldJob{}, nextJob: 1,
+		woken: make(chan struct{}, 1),
 	}
 	if err := opened.prepare(ctx); err != nil {
 		_ = opened.Close()
 		return nil, err
 	}
+	// A store that has just opened has never looked for work, and a job the
+	// process before this one left running must not wait out a clamp.
+	opened.guard.Lock()
+	opened.wake()
+	opened.guard.Unlock()
 	return opened, nil
 }
 
@@ -183,12 +195,16 @@ func (jobs *Jobs) Close() error {
 }
 
 // prepare checks that the file really is the event log's file, makes this
-// package's own table, and rebuilds every job from the log.
+// package's own table, lets go of the claims a process that is gone left in
+// it, and rebuilds every job from the log.
 func (jobs *Jobs) prepare(ctx context.Context) error {
 	if err := jobs.checkTheEventLogIsThere(ctx); err != nil {
 		return err
 	}
 	if err := jobs.createTables(ctx); err != nil {
+		return err
+	}
+	if err := jobs.releaseTheClaimsOfProcessesThatAreGone(ctx); err != nil {
 		return err
 	}
 	return jobs.rebuild(ctx)
@@ -212,9 +228,11 @@ func (jobs *Jobs) checkTheEventLogIsThere(ctx context.Context) error {
 }
 
 // thisProcess is the name a claim is taken under. Two copies of the agent have
-// two process numbers, which is all a claim needs to tell them apart.
+// two process numbers, which is all a claim needs to tell them apart, and the
+// number is what the next store to open asks after to know whether the claim's
+// process is still running.
 func thisProcess() string {
-	return "process " + strconv.Itoa(os.Getpid())
+	return ownerPrefix + strconv.Itoa(os.Getpid())
 }
 
 // jobNumber reads a job identifier as the whole number it is, and says no to

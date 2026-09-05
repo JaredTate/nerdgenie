@@ -367,6 +367,8 @@ internal/context/window.go
 internal/context/window_test.go
 internal/contract/browser.go
 internal/contract/browserevent_test.go
+internal/contract/carryon.go
+internal/contract/carryon_test.go
 internal/contract/channel.go
 internal/contract/clock.go
 internal/contract/command.go
@@ -448,6 +450,7 @@ internal/job/list.go
 internal/job/next.go
 internal/job/next_test.go
 internal/job/notepad.go
+internal/job/openclaims_test.go
 internal/job/schedule.go
 internal/job/schedule_test.go
 internal/job/state.go
@@ -504,7 +507,6 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
-internal/loop/carryon_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
 internal/loop/commands_test.go
@@ -525,15 +527,20 @@ internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go
+internal/loop/jobquestion_test.go
 internal/loop/jobs.go
 internal/loop/jobs_test.go
+internal/loop/jobsteer_test.go
 internal/loop/jobstop_test.go
+internal/loop/jobunattended_test.go
+internal/loop/lastround_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
 internal/loop/nobudget_test.go
+internal/loop/numbering.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
@@ -1410,6 +1417,7 @@ test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/instructionspage_test.go
+test/functional/jobdone_test.go
 test/functional/jobpanel_test.go
 test/functional/jobs_test.go
 test/functional/jobstop_test.go

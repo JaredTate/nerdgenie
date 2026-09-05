@@ -24,6 +24,12 @@ const theAskThatIsAJob = "run the two-part campaign: post the tweet, then write 
 // second.
 const theJobTheModelMakes = "2"
 
+// theTimeAJobsFirstTaskIsGiven is how long a job's first task is given to
+// start once the job is made. A job made wakes the job driver, so the true
+// figure is the few seconds the task that made the job takes to end plus the
+// driver's one-second rest; the rest of the allowance is for a loaded machine.
+const theTimeAJobsFirstTaskIsGiven = 30 * time.Second
+
 // aJobOfTwoTasksMadeByTheModel is one task that makes the job, then the job's
 // two tasks each answered in one call, then the job's review.
 func aJobOfTwoTasksMadeByTheModel(_ string) testkit.Script {
@@ -80,9 +86,10 @@ func TestTheStatusCarriesTheJobAndItsTaskListWhileItsTasksRun(t *testing.T) {
 	screen := agent.attach(t)
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatIsAJob})
 
-	// The job driver notices a job made while it waits within the minute its
-	// timer is clamped to, so the first task may be a minute in coming.
-	first := screen.waitForStatusWhere(t, 120*time.Second, func(fields map[string]string) bool {
+	// A job made wakes the job driver, so the first task starts within a few
+	// seconds of the task that made the job ending; the allowance is for a
+	// loaded machine, not for the minute the driver's timer used to sleep.
+	first := screen.waitForStatusWhere(t, theTimeAJobsFirstTaskIsGiven, func(fields map[string]string) bool {
 		return fields[contract.StatusFieldJob] == theJobTheModelMakes && fields[contract.StatusFieldJobTask] == "t1"
 	})
 	if first.Fields[contract.StatusFieldJobAsk] != theAskThatIsAJob {
@@ -99,9 +106,13 @@ func TestTheStatusCarriesTheJobAndItsTaskListWhileItsTasksRun(t *testing.T) {
 		t.Errorf("while the second task runs the status carries the task list:\n%s\nwant the first task marked done", listed)
 	}
 
-	screen.waitForReplySaying(t, "has run every task", 90*time.Second)
+	screen.waitForReplySaying(t, theWordsOfAFinishedJob, 90*time.Second)
 	screen.waitForStatusWhere(t, 30*time.Second, func(fields map[string]string) bool {
 		_, sent := fields[contract.StatusFieldJob]
 		return sent && fields[contract.StatusFieldJob] == ""
 	})
 }
+
+// theWordsOfAFinishedJob is what the final report of a job says once its last
+// task is done and its done list, one line per task, has passed the check.
+const theWordsOfAFinishedJob = "Job " + theJobTheModelMakes + " is finished"

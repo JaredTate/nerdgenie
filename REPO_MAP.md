@@ -387,6 +387,7 @@ internal/contract/home_test.go
 internal/contract/identifier.go
 internal/contract/identifier_test.go
 internal/contract/job.go
+internal/contract/jobhelpers_test.go
 internal/contract/jobtasklines_test.go
 internal/contract/known_test.go
 internal/contract/memory.go
@@ -441,10 +442,12 @@ internal/job/edges_test.go
 internal/job/extras_test.go
 internal/job/failures_test.go
 internal/job/finish.go
+internal/job/finishwake_test.go
 internal/job/fuzz_test.go
 internal/job/guard.go
 internal/job/integration_test.go
 internal/job/internals_test.go
+internal/job/interrupted.go
 internal/job/job.go
 internal/job/job_test.go
 internal/job/list.go
@@ -452,9 +455,13 @@ internal/job/next.go
 internal/job/next_test.go
 internal/job/notepad.go
 internal/job/openclaims_test.go
+internal/job/openrecord_test.go
+internal/job/resume_test.go
+internal/job/runnow_test.go
 internal/job/schedule.go
 internal/job/schedule_test.go
 internal/job/state.go
+internal/job/statechecks_test.go
 internal/job/support_test.go
 internal/job/testdata/cron-list.golden
 internal/job/testdata/cron-one.golden
@@ -508,6 +515,7 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
+internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
 internal/loop/commands_test.go
@@ -528,11 +536,14 @@ internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go
+internal/loop/jobmarkfails_test.go
 internal/loop/jobquestion_test.go
+internal/loop/jobresume_test.go
 internal/loop/jobs.go
 internal/loop/jobs_test.go
 internal/loop/jobsteer_test.go
 internal/loop/jobstop_test.go
+internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
 internal/loop/lastround_test.go
 internal/loop/listing_test.go
@@ -568,6 +579,7 @@ internal/loop/situation.go
 internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
 internal/loop/stopline_test.go
+internal/loop/stopnamesjob_test.go
 internal/loop/summary_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
@@ -1422,6 +1434,7 @@ test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
 test/functional/instructionspage_test.go
+test/functional/jobchatty_test.go
 test/functional/jobdone_test.go
 test/functional/jobpanel_test.go
 test/functional/jobs_test.go
@@ -1452,6 +1465,7 @@ test/functional/skilllist_test.go
 test/functional/socketreadiness_test.go
 test/functional/status_test.go
 test/functional/stop_test.go
+test/functional/stopwhilejob_test.go
 test/functional/streaming_test.go
 test/functional/think_test.go
 test/functional/toolline_test.go

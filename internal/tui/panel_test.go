@@ -174,11 +174,13 @@ func TestThePanelSaysNothingTheProgramHasNotSaid(t *testing.T) {
 		contract.StatusFieldState: contract.StateIdle,
 	}})
 
+	// The rule after a group's label is the group's own, so only the rules of
+	// the checklist, which run the whole width, say a checklist is drawn.
 	panel := strings.Join(panelColumnOf(screen), "\n")
 	if !strings.Contains(panel, "local") {
 		t.Errorf("the panel does not name the model, which is the one thing the program said:\n%s", panel)
 	}
-	for _, unwanted := range []string{"task", "TASK", "job", "JOB", "ctx", "done", string(ruleGlyph)} {
+	for _, unwanted := range []string{"task", "TASK", "job", "JOB", "ctx", "done", strings.Repeat(string(ruleGlyph), panelTextColumns)} {
 		if strings.Contains(panel, unwanted) {
 			t.Errorf("the panel says %q about a program that never said it:\n%s", unwanted, panel)
 		}
@@ -291,6 +293,43 @@ func TestThePanelIsDrawnAsTheGoldenFilesHaveIt(t *testing.T) {
 	send(inAJob, aStatusWithANamedJob())
 	send(inAJob, contract.SocketEnvelope{Type: contract.SocketReply, Text: "Where I stand: the tweet is up, drafting the blog piece next."})
 	testkit.Golden(t, "panel-job-120x36.txt", []byte(inAJob.frame()))
+}
+
+// TestThePanelIsDrawnAtThreeSizesAsTheGoldenFilesHaveIt draws the panel with
+// a job, with a plain task, and with the state block and the failures filled,
+// at the three sizes the brief names: eighty by twenty-four, where there is
+// no panel and the frame must still hold together, a hundred and twenty by
+// forty, and a hundred and sixty by fifty, where the panel is a third of the
+// screen.
+func TestThePanelIsDrawnAtThreeSizesAsTheGoldenFilesHaveIt(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}, {160, 50}} {
+		name := strconv.Itoa(size[0]) + "x" + strconv.Itoa(size[1])
+
+		inAJob, _ := newTestScreen(size[0], size[1])
+		inAJob.link = &recordingLink{}
+		theWholeConversation(inAJob)
+		send(inAJob, aStatusWithANamedJob())
+		testkit.Golden(t, "panel-job-"+name+".txt", []byte(inAJob.frame()))
+
+		plainTask, _ := newTestScreen(size[0], size[1])
+		plainTask.link = &recordingLink{}
+		theWholeConversation(plainTask)
+		send(plainTask, aStatusWithAPlan())
+		testkit.Golden(t, "panel-task-"+name+".txt", []byte(plainTask.frame()))
+
+		withState, _ := newTestScreen(size[0], size[1])
+		withState.link = &recordingLink{}
+		theWholeConversation(withState)
+		send(withState, aStatusWithTheStateBlock())
+		send(withState, aToolLine("▸ shell npm test"))
+		testkit.Golden(t, "panel-state-"+name+".txt", []byte(withState.frame()))
+
+		themed := newThemedScreen(size[0], size[1])
+		theWholeConversation(themed)
+		send(themed, aStatusWithTheStateBlock())
+		send(themed, aToolLine("▸ shell npm test"))
+		testkit.Golden(t, "themed-panel-state-"+name+".txt", []byte(themed.frame()))
+	}
 }
 
 // TestThePanelDrawsOnlySoManyStepsOfALongPlan bounds the plan the way the job

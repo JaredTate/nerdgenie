@@ -392,6 +392,7 @@ internal/contract/model.go
 internal/contract/permission.go
 internal/contract/provider_test.go
 internal/contract/record.go
+internal/contract/records.go
 internal/contract/sandbox.go
 internal/contract/secrets.go
 internal/contract/secrets_test.go

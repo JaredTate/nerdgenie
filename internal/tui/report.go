@@ -96,9 +96,18 @@ func (screen *Screen) countTheCallAgain(line string) bool {
 	if newest.kind != blockTool || callOf(newest.text) != callOf(line) {
 		return false
 	}
-	newest.repeats = max(newest.repeats, 1) + 1
-	screen.setText(newest, line)
+	screen.countOnThePill(newest, line)
 	return true
+}
+
+// countOnThePill writes one more of the same thing into the pill it already
+// has: the count goes up by one, from one the first time, and the pill takes the
+// newest line, which for a call is the line with its newest result on it. The
+// same call made again and the same record line coming back both go through here,
+// so that the two kinds of pill are counted the same way and drawn the same way.
+func (screen *Screen) countOnThePill(pill *block, line string) {
+	pill.repeats = max(pill.repeats, 1) + 1
+	screen.setText(pill, line)
 }
 
 // toolLineSeparator is what the program writes between a call and what came back
@@ -140,8 +149,17 @@ const recentRecordPills = 8
 // readRecordLine puts one pill in the transcript for the latest change to the
 // record, drawn exactly as a tool call is, so that a person can watch tasks and
 // jobs start and finish without asking. The program sends the same line on every
-// heartbeat until something else changes, so only a line that differs from the
-// last one shown is worth a pill of its own.
+// heartbeat until something else changes, so a line that is what was last shown
+// is not drawn again; and the same line can come back after a different one,
+// which a live run showed as five pills saying "task 1 done" in a column, so a
+// line identical to one of the last few record pills is counted on that pill,
+// the way a call made again is, rather than drawn again. It is a count and not
+// a move to the newest place because a count is what a tool pill does, so the
+// two kinds of pill read the same; because a pill that stays where it is keeps
+// a person's place on the screen, where two lines taking turns would swap
+// places under their eyes; and because the pill's text does not change, so the
+// view held still while the person has scrolled up is the same arithmetic a
+// tool pill already does.
 func (screen *Screen) readRecordLine(fields map[string]string) {
 	line, sent := fields[contract.StatusFieldRecordLine]
 	if !sent || line == "" || line == screen.lastRecord {
@@ -149,7 +167,33 @@ func (screen *Screen) readRecordLine(fields map[string]string) {
 	}
 	screen.lastRecord = line
 	screen.flushDeltas()
-	screen.remember(block{kind: blockTool, text: line, fromRecord: true})
+	if !screen.countTheRecordLineAgain(line) {
+		screen.remember(block{kind: blockTool, text: line, fromRecord: true})
+	}
+}
+
+// countTheRecordLineAgain writes a record line that is already on one of the
+// newest recentRecordPills record pills into that pill with a count, and says
+// whether it did. Only an exact repeat counts: "task 1 started" and "task 1
+// done" are two changes and two pills. The walk goes back from the newest block
+// and stops at the oldest or after that many record pills, whichever is first;
+// the tool pills and replies it passes on the way are not counted against the
+// bound, and the transcript itself keeps at most maxTranscriptBlocks, so the
+// check never grows with the length of a session.
+func (screen *Screen) countTheRecordLineAgain(line string) bool {
+	checked := 0
+	for at := len(screen.blocks) - 1; at >= 0 && checked < recentRecordPills; at-- {
+		pill := &screen.blocks[at]
+		if pill.kind != blockTool || !pill.fromRecord {
+			continue
+		}
+		checked++
+		if pill.text == line {
+			screen.countOnThePill(pill, line)
+			return true
+		}
+	}
+	return false
 }
 
 // readBudget works out how much of the task's budget is left, so that the status

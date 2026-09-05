@@ -172,19 +172,33 @@ func TestTheOrdinarySequenceOfRecordLinesDrawsOnePillEach(t *testing.T) {
 	}
 }
 
-func TestAToolCallBetweenTwoOfTheSameRecordLineDoesNotKeepThemApart(t *testing.T) {
+func TestTheSameRecordLineAroundAToolCallIsOneChange(t *testing.T) {
 	screen := aTrialScreen()
 	send(screen, aRecordLine(theTaskDoneLine))
 	send(screen, aToolLine("▸ read notes.md"))
 	send(screen, aToolLine("▸ read notes.md · r4 read: 12 lines"))
 	send(screen, aRecordLine(theTaskDoneLine))
 
-	said := pillTexts(screen)
-	if len(said) != 2 || said[0] != theTaskDoneLine {
-		t.Fatalf("a record line that came back after a tool call drew the pills %q, and the look-back is over record pills, so the call between does not keep them apart", said)
+	if counts := recordPillCounts(screen); len(counts) != 1 || counts[0] > 1 {
+		t.Errorf("the record pills are counted %v, and the same line on the heartbeats around a tool call is one change, so it is one pill with no count", counts)
 	}
-	if counts := recordPillCounts(screen); len(counts) != 1 || counts[0] != 2 {
-		t.Errorf("the record pill's count is %v, and the line came back once, so it is two", counts)
+}
+
+func TestToolCallsBetweenRecordLinesDoNotCountAgainstTheLookBack(t *testing.T) {
+	screen := aTrialScreen()
+	send(screen, aRecordLine(theTaskDoneLine))
+	for step := 1; step < recentRecordPills; step++ {
+		send(screen, aRecordLine("job 2 task "+strconv.Itoa(step+1)+" started · Add the seven tetrominoes"))
+		send(screen, aToolLine("▸ read notes"+strconv.Itoa(step)+".md"))
+		send(screen, aToolLine("▸ read notes"+strconv.Itoa(step)+".md · r"+strconv.Itoa(step)+" read: 12 lines"))
+	}
+	send(screen, aRecordLine(theTaskDoneLine))
+
+	if said := pillTexts(screen); len(said) != 1+2*(recentRecordPills-1) || said[0] != theTaskDoneLine {
+		t.Errorf("a line that came back after %d record lines and as many tool calls drew the pills %q, and the look-back is over record pills, so the calls between do not push it out", recentRecordPills-1, said)
+	}
+	if counts := recordPillCounts(screen); len(counts) == 0 || counts[0] != 2 {
+		t.Errorf("the counts on the record pills are %v, and the first pill is the one counted twice", counts)
 	}
 }
 

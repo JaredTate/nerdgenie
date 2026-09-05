@@ -65,10 +65,9 @@ type openAIChunk struct {
 	// Usage is the token count, on the last chunk only.
 	Usage *openAICount `json:"usage"`
 	// Timings is what llama-server adds to the last chunk: its own count of
-	// the prompt tokens it read from its cache and the ones it had to process.
-	// A live run showed the usage field's cached count standing still at 5.8k
-	// for twelve rounds while the daemon's log showed it had reused ninety
-	// thousand, so when the timings are there they say what was reused.
+	// the prompt tokens it read from its cache and the ones it had to process,
+	// which is the daemon's own account of what the card did, so when the
+	// timings are there they say what was reused.
 	Timings *openAITimings `json:"timings"`
 	// Error is what a server says when it gives up part way through the stream.
 	Error struct {

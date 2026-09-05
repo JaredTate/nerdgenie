@@ -8,10 +8,9 @@ import (
 // TestTheDaemonsOwnTimingsSayWhatWasReusedWhenTheUsageDoesNot holds the
 // cost line to the daemon's own count. llama-server writes a timings object
 // on the last chunk of a stream with cache_n, the tokens it read from its
-// cache, and prompt_n, the tokens it had to process; in a live run its
-// usage field said 5.8k tokens were cached on twelve rounds in a row while
-// its log showed it had processed only one to eleven thousand of a hundred
-// thousand. The timings are the truth of what the card did, so they win.
+// cache, and prompt_n, the tokens it had to process. The timings are the
+// daemon's own account of what the card did, so when they are there they
+// win over the usage field's count.
 func TestTheDaemonsOwnTimingsSayWhatWasReusedWhenTheUsageDoesNot(t *testing.T) {
 	building := &openAIReply{}
 	chunk := openAIChunk{}

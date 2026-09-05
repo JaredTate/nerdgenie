@@ -15,11 +15,11 @@ func advance(screen *Screen, clock *testkit.FakeClock, duration time.Duration) {
 	screen.Update(tickMessage{at: clock.Now()})
 }
 
-// statusStrip is the last row of the frame, which is the only row a spinner is
-// ever allowed to appear on.
+// statusStrip is the row above the footer's key hints, which is the only row
+// a spinner is ever allowed to appear on.
 func statusStrip(screen *Screen) string {
 	rows := strings.Split(screen.frame(), "\n")
-	return rows[len(rows)-1]
+	return rows[len(rows)-2]
 }
 
 func TestTheSpinnerWaitsHalfASecondBeforeItAppears(t *testing.T) {
@@ -69,7 +69,7 @@ func TestTheSpinnerIsDrawnOnlyInTheStatusStrip(t *testing.T) {
 	advance(screen, clock, 600*time.Millisecond)
 
 	rows := strings.Split(screen.frame(), "\n")
-	for number, line := range rows[:len(rows)-1] {
+	for number, line := range append(rows[:len(rows)-2:len(rows)-2], rows[len(rows)-1]) {
 		if strings.Contains(line, "·  ") || strings.Contains(line, "  ·") {
 			t.Errorf("row %d is %q, and the spinner is only ever drawn in the status strip", number+1, line)
 		}

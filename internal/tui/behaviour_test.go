@@ -266,8 +266,8 @@ func TestANarrowTerminalDropsTheRightHandSideRatherThanWrapping(t *testing.T) {
 	if strings.Contains(headerOf(screen), "healthy") {
 		t.Error("a fifty-column terminal still draws the health dot, and the right side is dropped below sixty")
 	}
-	if strings.Contains(statusStrip(screen), "Ctrl+J") {
-		t.Error("a fifty-column terminal still draws the key hints, and they are dropped below sixty")
+	if hints := hintsRowOf(screen); displayWidth(hints) > 50 {
+		t.Errorf("a fifty-column terminal draws the hints row %q, and the hints are dropped whole from the right until the row fits", hints)
 	}
 	for _, line := range strings.Split(screen.frame(), "\n") {
 		if displayWidth(line) > 50 {

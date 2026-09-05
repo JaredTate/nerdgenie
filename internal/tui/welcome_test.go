@@ -19,13 +19,16 @@ func TestTheWelcomeBlockIsDrawnAtSixtyByFourteenAndNotBelowIt(t *testing.T) {
 		blocks        bool
 		saying        string
 	}{
-		{60, 19, true, "sixty columns by fourteen rows"},
-		{59, 19, false, "fifty-nine columns by fourteen rows"},
-		{60, 18, false, "sixty columns by thirteen rows"},
+		{60, 20, true, "sixty columns by fourteen rows"},
+		{59, 20, false, "fifty-nine columns by fourteen rows"},
+		{60, 19, false, "sixty columns by thirteen rows"},
 	} {
+		// The frame is the header, a rule, the transcript, a rule, the input
+		// box with the status strip under it, and the hints row, so a frame of
+		// twenty rows leaves fourteen for the transcript.
 		screen, _ := newTestScreen(one.width, one.height)
-		if area := screen.height - 4 - len(screen.inputRows()); area != one.height-5 {
-			t.Fatalf("at %s the transcript area is %d rows, and the test meant %d", one.saying, area, one.height-5)
+		if area := screen.height - 4 - len(screen.inputRows()); area != one.height-6 {
+			t.Fatalf("at %s the transcript area is %d rows, and the test meant %d", one.saying, area, one.height-6)
 		}
 		frame := screen.frame()
 		if drawn := strings.Contains(frame, string(blockGlyph)); drawn != one.blocks {

@@ -17,11 +17,6 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// MaxTasksInARow is how many of a job's tasks the loop will run back to back
-// before it hands control back to its caller. A job with more tasks than this
-// carries on the next time the caller asks for work.
-const MaxTasksInARow = 100
-
 // Options is everything the loop needs. The first six are required; the rest
 // switch off the part of the loop that uses them when they are missing.
 type Options struct {
@@ -223,7 +218,9 @@ func New(options Options) (*Loop, error) {
 // Run takes one task to an end state and returns where it ended. A second call
 // waits until the first is finished, because the agent works on one task at a
 // time. A person's message that picks a job's task up, by the word that
-// carries on or by the task's number, is run as that job's task.
+// carries on or by the task's number, is run as that job's task, and its
+// report goes into the job; the job's next task is the driver's to take on
+// its next ask, so that each task runs under a turn of its own.
 func (theLoop *Loop) Run(ctx context.Context, task Task) (Outcome, error) {
 	theLoop.oneAtATime.Lock()
 	defer theLoop.oneAtATime.Unlock()
@@ -235,8 +232,11 @@ func (theLoop *Loop) Run(ctx context.Context, task Task) (Outcome, error) {
 	return theLoop.runTaskAndItsJob(ctx, task)
 }
 
-// RunNextJobTask asks the job store for the task that is due now and runs it
-// unattended. It returns false when nothing is due.
+// RunNextJobTask asks the job store for the task that is due now and runs it,
+// one task per call. It returns false when nothing is due. The job's next task
+// is taken on the caller's next ask, which the store's wake makes cheap, so
+// that the one turn deadline the caller sets covers one task rather than a
+// whole chain of them.
 func (theLoop *Loop) RunNextJobTask(ctx context.Context, where contract.Channel) (bool, error) {
 	if theLoop.options.Jobs == nil {
 		return false, nil
@@ -252,8 +252,8 @@ func (theLoop *Loop) RunNextJobTask(ctx context.Context, where contract.Channel)
 }
 
 // RunJobTask runs one task of a job that its caller has already taken from the
-// job store, and carries on with the job's next tasks the way RunNextJobTask
-// does. The job driver in cmd/nerdgenie asks the store for the due task itself, so
+// job store, and writes its report into the job the way RunNextJobTask does.
+// The job driver in cmd/nerdgenie asks the store for the due task itself, so
 // that it can hand the nightly self-check to the checker rather than to the
 // model, and a task taken once cannot be taken again: a driver that then asked
 // this loop for the next task would run the second task of a job first and
@@ -282,27 +282,16 @@ func nameOf(where contract.Channel) string {
 }
 
 // runTaskAndItsJob runs one task and, when it belongs to a job, writes its
-// report into the job and carries on with the job's next task.
+// report into the job. It used to carry on with the job's next tasks, up to a
+// hundred of them, inside the one call, so the turn deadline the driver set
+// covered the whole chain; one task per call gives each its own turn, and the
+// driver takes the next on its next ask.
 func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, error) {
-	first := Outcome{}
-	for turn := range MaxTasksInARow {
-		outcome, number, err := theLoop.runOne(ctx, task)
-		if turn == 0 {
-			first = outcome
-		}
-		if err != nil {
-			return first, err
-		}
-		if task.FromJob == nil {
-			return first, nil
-		}
-		next, more, err := theLoop.finishJobTask(ctx, task, number, outcome)
-		if err != nil || !more {
-			return first, err
-		}
-		task = next
+	outcome, number, err := theLoop.runOne(ctx, task)
+	if err != nil || task.FromJob == nil {
+		return outcome, err
 	}
-	return first, nil
+	return outcome, theLoop.finishJobTask(ctx, task, number, outcome)
 }
 
 // runOne takes one task through its rounds, and says which number it ran

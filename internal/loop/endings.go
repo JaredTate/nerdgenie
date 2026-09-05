@@ -29,9 +29,16 @@ var errWrapUpTimeUp = errors.New("the ending of the task was given ten seconds t
 // clock, so that a task cut off for any reason is still marked and reported,
 // and a log that will not answer cannot hold the ending forever.
 func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.CancelFunc) {
+	return running.theLoop.timeToWrapUp(ctx)
+}
+
+// timeToWrapUp is the same context for the bookkeeping the loop does after a
+// task of a job ends: its report into the job, or the job put down on it,
+// which must land whether or not the turn's context was cancelled under it.
+func (theLoop *Loop) timeToWrapUp(ctx context.Context) (context.Context, context.CancelFunc) {
 	fresh, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	go func() {
-		if err := running.theLoop.options.Clock.Sleep(fresh, WrapUpTime); err == nil {
+		if err := theLoop.options.Clock.Sleep(fresh, WrapUpTime); err == nil {
 			cancel(errWrapUpTimeUp)
 		}
 	}()

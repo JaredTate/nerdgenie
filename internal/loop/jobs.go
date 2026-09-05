@@ -9,43 +9,51 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
-// finishJobTask writes a finished task's report into its job, sends it to the
-// user with the job's progress line on it, and hands back the next task the job
-// wants run. A task the person stopped, or one that stopped to ask them a
-// question, is not finished at all: it is put down where it is, for the person
-// to pick up with the word that carries on or with their answer. A person's
-// stop puts down any job's task, a schedule's included, because unattended
-// means a schedule made the task and not that nobody is watching: the person
-// at the terminal stopped it on purpose. A schedule's task that the harness
-// stopped, on a spent budget or a line of the stop list, or that asked a
-// question, has nobody to pick it up, so it is finished as the failure it is,
-// and the schedule's next tick brings its own task.
-func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) (Task, bool, error) {
+// finishJobTask writes a finished task's report into its job and sends it to
+// the user with the job's progress line on it. A task the person stopped, or
+// one that stopped to ask them a question, is not finished at all: it is put
+// down where it is, for the person to pick up with the word that carries on
+// or with their answer. A person's stop puts down any job's task, a
+// schedule's included, because unattended means a schedule made the task and
+// not that nobody is watching: the person at the terminal stopped it on
+// purpose. A schedule's task that the harness stopped, on a spent budget or a
+// line of the stop list, or that asked a question, has nobody to pick it up,
+// so it is finished as the failure it is, and the schedule's next tick brings
+// its own task.
+//
+// The bookkeeping runs under a short context of the loop's own, the way the
+// ending of a task does, because a turn cut off by its deadline has a
+// cancelled context: the report and the release of the claim used to fail
+// under it with "context canceled", and the cut-off task sat claimed for the
+// hour of its budget.
+func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) error {
 	if theLoop.options.Jobs == nil {
-		return Task{}, false, nil
+		return nil
 	}
+	ctx, done := theLoop.timeToWrapUp(ctx)
+	defer done()
 	stopped := outcome.Status == contract.StatusStopped
 	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
 	if putDown || (stopped && outcome.ByThePerson) {
-		return Task{}, false, theLoop.putTheTaskDown(ctx, task, number, outcome)
+		return theLoop.putTheTaskDown(ctx, task, number, outcome)
 	}
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	failed := outcome.Status != contract.StatusDone
 	reportID, err := theLoop.options.Jobs.FinishTask(ctx, jobID, taskID, outcome.Report, failed)
 	if err != nil {
-		return Task{}, false, fmt.Errorf("cannot write the report of task %s into job %s: %w", taskID, jobID, err)
+		return fmt.Errorf("cannot write the report of task %s into job %s: %w", taskID, jobID, err)
 	}
 	held, err := theLoop.options.Jobs.Load(ctx, jobID)
 	if err != nil {
-		return Task{}, false, fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
+		return fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
 	}
 	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progressLine(jobID, reportID, held)); err != nil {
-		return Task{}, false, err
+		return err
 	}
 	if everyTaskIsDone(held) {
-		return Task{}, false, theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
+		return theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
 	}
-	return theLoop.nextTaskOfAJob(ctx, task.Channel)
+	return nil
 }
 
 // progressLine is the line every job report carries: which job it was, which
@@ -66,19 +74,6 @@ func everyTaskIsDone(held contract.Record) bool {
 		}
 	}
 	return true
-}
-
-// nextTaskOfAJob asks the job store what is due now and hands it back as a task
-// to run, or says there is nothing to do.
-func (theLoop *Loop) nextTaskOfAJob(ctx context.Context, where contract.Channel) (Task, bool, error) {
-	due, there, err := theLoop.options.Jobs.NextTask(ctx, theLoop.options.Clock.Now())
-	if err != nil {
-		return Task{}, false, fmt.Errorf("cannot ask the jobs which task is due next: %w", err)
-	}
-	if !there {
-		return Task{}, false, nil
-	}
-	return taskFromJob(due, where), true, nil
 }
 
 // closeTheJob runs the job's own done-check and review when its last task has

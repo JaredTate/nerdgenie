@@ -72,6 +72,13 @@ func (jobs *Jobs) finishTask(ctx context.Context, jobID string, held *heldJob, t
 	if err := jobs.afterOneTask(ctx, jobID, held, report, failed); err != nil {
 		return "", err
 	}
+	// The loop runs one task of a job per call and the driver takes the next
+	// on its next look, so a job still running after a task has work due at
+	// once, and a task with no date makes no moment for the wait to sleep
+	// until. Without this the second task of a job started a minute later.
+	if held.state.State == contract.JobRunning {
+		jobs.wake()
+	}
 	return reportID, jobs.writeProgress(ctx, jobID, held)
 }
 

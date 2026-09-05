@@ -184,7 +184,6 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 		return contract.Request{}, err
 	}
 	parts := splitRecord(input.Record)
-	parts.Results = MarkResultLines(builder.boundary, parts.Results)
 
 	request := contract.Request{
 		SystemBlocks:    builder.systemBlocks(persona, input, parts.Stable),

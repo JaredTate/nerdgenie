@@ -33,6 +33,13 @@ const (
 	// SocketCancel withdraws from a preview or a masked prompt by id, which is
 	// what Escape sends, so the program stops waiting at once.
 	SocketCancel SocketMessageType = "cancel"
+	// SocketShow asks the program for the full text of one thing the screen
+	// only has a line for, with no model call: a result by its id, such as
+	// r27, with the task it belongs to in Fields["task"]; a task's whole
+	// record with Fields["task"]; or a job's with Fields["job"]. The program
+	// answers the asking screen alone with a SocketShown. Fields["id"] names
+	// the result; a request naming only a task or a job asks for its record.
+	SocketShow SocketMessageType = "show"
 )
 
 // The message types the program sends to a screen.
@@ -51,13 +58,18 @@ const (
 	SocketStatus SocketMessageType = "status"
 	// SocketError says something went wrong, in plain words.
 	SocketError SocketMessageType = "error"
+	// SocketShown answers a SocketShow: Fields carry back the "id", "task" and
+	// "job" it was asked with, and Text carries the full text, which is the
+	// stored result or the printed record. A thing the program cannot find
+	// comes back as a SocketError instead.
+	SocketShown SocketMessageType = "shown"
 )
 
 // FromScreen says whether a screen sends this kind of message.
 func (kind SocketMessageType) FromScreen() bool {
 	switch kind {
 	case SocketMessage, SocketCommand, SocketApprove, SocketDeny,
-		SocketSecret, SocketAttach, SocketDetach, SocketCancel:
+		SocketSecret, SocketAttach, SocketDetach, SocketCancel, SocketShow:
 		return true
 	default:
 		return false
@@ -68,7 +80,7 @@ func (kind SocketMessageType) FromScreen() bool {
 func (kind SocketMessageType) FromProgram() bool {
 	switch kind {
 	case SocketDelta, SocketReply, SocketPreview, SocketAsk,
-		SocketHandoff, SocketStatus, SocketError:
+		SocketHandoff, SocketStatus, SocketError, SocketShown:
 		return true
 	default:
 		return false
@@ -194,6 +206,25 @@ const (
 	// screen can say there is work queued beyond the running task. It is empty
 	// when none are waiting.
 	StatusFieldJobs = "jobs"
+	// StatusFieldSituation is the running task's situation as the record
+	// holds it: one fact per line, in the record's own words, such as "tests:
+	// all 51 passing" and "last command: npm test, exit 0". Empty when no task
+	// is running or its record cannot be read.
+	StatusFieldSituation = "situation"
+	// StatusFieldFailures is the running task's failures from the record's
+	// lessons, one per line as "F2 <what went wrong> Cause: <why>", newest
+	// last. Empty when there are none.
+	StatusFieldFailures = "failures"
+	// StatusFieldCachedTokens is how many of the last model call's input tokens
+	// the provider read from its cache, written as a number, so a screen can
+	// show the share of the prompt that was reused.
+	StatusFieldCachedTokens = "cachedTokens"
+	// StatusFieldRound is the running task's round number, written as a
+	// number: how many model calls it has made.
+	StatusFieldRound = "round"
+	// StatusFieldTaskStarted is when the running task began, written the RFC
+	// 3339 way, so a screen can show how long it has run.
+	StatusFieldTaskStarted = "taskStarted"
 	// ReplyLabel is what a done line names as its result when the answer to
 	// the user is its own proof. The harness writes that answer into the record
 	// as a result of its own and points the line at it.

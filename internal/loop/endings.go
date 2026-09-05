@@ -118,7 +118,7 @@ func (running *run) closeOrWait(ctx context.Context, text string, why contract.F
 		outcome, err := running.finish(ctx, text)
 		return outcome, false, err
 	}
-	if running.isAQuestion(text, why) {
+	if running.isAQuestion(text, why) && !running.onlyOffersToCarryOn(text) {
 		outcome, err := running.waitHere(ctx, text)
 		return outcome, false, err
 	}
@@ -265,14 +265,14 @@ func lastLine(text string) string {
 // finish closes a task whose done list is proven: the record says done, the
 // review runs if the task was worth reviewing, and the user gets the report.
 func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
-	ctx, done := running.timeToWrapUp(ctx)
-	defer done()
-	if err := running.setStatus(ctx, contract.StatusDone); err != nil {
+	if err := running.closeTheRecord(ctx, contract.StatusDone); err != nil {
 		return Outcome{}, err
 	}
 	if err := running.review(ctx); err != nil {
 		return Outcome{}, err
 	}
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	report := text
 	if strings.TrimSpace(report) == "" {
 		report = "The task is done. Every line of the done list points at the result that proves it."
@@ -337,11 +337,9 @@ func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome,
 // caller has already spent the ending's model call on the words in the middle
 // of that report.
 func (running *run) stopAndSay(ctx context.Context, line string, standing string, askTheQuestions bool) (Outcome, error) {
-	ctx, done := running.timeToWrapUp(ctx)
-	defer done()
 	running.hadStop, running.stopLine = true, line
 	running.forgetTheCalls()
-	if err := running.setStatus(ctx, contract.StatusStopped); err != nil {
+	if err := running.closeTheRecord(ctx, contract.StatusStopped); err != nil {
 		return Outcome{}, err
 	}
 	if askTheQuestions {
@@ -349,6 +347,8 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 			return Outcome{}, err
 		}
 	}
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	report := fmt.Sprintf("I stopped this task, because %s.\n%s", line, standing)
 	if running.task.FromJob == nil {
 		report += "\n" + running.howToCarryOn(ctx)
@@ -407,10 +407,8 @@ func theJobRunsOnLine(summary contract.JobSummary) string {
 // call, and the turn it would run in is over.
 func (running *run) failHere(ctx context.Context, reason error) (Outcome, error) {
 	cutOff := ctx.Err() != nil
-	ctx, done := running.timeToWrapUp(ctx)
-	defer done()
 	running.hadFailure = true
-	if err := running.setStatus(ctx, contract.StatusFailed); err != nil {
+	if err := running.closeTheRecord(ctx, contract.StatusFailed); err != nil {
 		return Outcome{}, err
 	}
 	if !cutOff {
@@ -418,6 +416,8 @@ func (running *run) failHere(ctx context.Context, reason error) (Outcome, error)
 			return Outcome{}, err
 		}
 	}
+	ctx, done := running.timeToWrapUp(ctx)
+	defer done()
 	report := running.withTheLesson(
 		fmt.Sprintf("I could not finish this task: %s\nWhere it stands: %s", reason, running.whereItStands()))
 	if err := running.sendUnlessAJob(ctx, report); err != nil {

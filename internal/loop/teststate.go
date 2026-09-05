@@ -1,0 +1,231 @@
+package loop
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
+)
+
+// MaxFailingTestsNamed is how many failing tests the record names on one line
+// before it says how many more there are, so that a suite with a hundred red
+// tests is one line and not a page.
+const MaxFailingTestsNamed = 5
+
+// testState is what a test runner's own summary says: how many tests ran, how
+// many failed, and which ones. The harness reads it off a shell result for
+// itself, because the live game build listed forty-five test runs in its
+// record as "finished with exit code 0", the model having piped the runner
+// through grep, and so had no memory of what was red but the raw output in the
+// window.
+type testState struct {
+	// total is how many tests the runner said it ran, or zero when it did not say.
+	total int
+	// failed is how many the runner said failed.
+	failed int
+	// failing names the failed tests in the order they were printed, each once.
+	failing []string
+}
+
+// line is the one line the situation and the result carry: the counts, and the
+// first few names.
+func (state testState) line() string {
+	if state.failed == 0 {
+		if state.total > 0 {
+			return fmt.Sprintf("tests: all %d passing", state.total)
+		}
+		return "tests: all passing"
+	}
+	said := fmt.Sprintf("tests: %d failing", state.failed)
+	if state.total > 0 {
+		said += fmt.Sprintf(" of %d", state.total)
+	}
+	if len(state.failing) == 0 {
+		return said
+	}
+	named := state.failing
+	if len(named) > MaxFailingTestsNamed {
+		named = named[:MaxFailingTestsNamed]
+	}
+	said += ": " + strings.Join(named, "; ")
+	if rest := len(state.failing) - len(named); rest > 0 {
+		said += fmt.Sprintf(" and %d more", rest)
+	}
+	return said
+}
+
+// key is what tells one red run from another: the names when the runner gave
+// them, and the count when it did not.
+func (state testState) key() string {
+	if state.failed == 0 {
+		return ""
+	}
+	if len(state.failing) == 0 {
+		return strconv.Itoa(state.failed)
+	}
+	return strings.Join(state.failing, "\n")
+}
+
+// testStateIn reads a test runner's summary out of a shell result, and says
+// whether it found one. It knows the four runners a project on this machine is
+// likely to use: Node's own test runner, Jest, pytest, and Go's. A result with
+// no summary line and no marked test is not a test run, however the word
+// "tests" turns up in it, so a directory listing never puts a line in the
+// record.
+func testStateIn(text string) (testState, bool) {
+	state, found := testState{}, false
+	for _, raw := range strings.Split(text, "\n") {
+		line := strings.TrimSpace(raw)
+		switch {
+		case strings.HasPrefix(line, "✖ ") && !strings.HasSuffix(line, ":"):
+			state.addFailing(withoutItsTiming(strings.TrimPrefix(line, "✖ ")))
+			found = true
+		case strings.HasPrefix(line, "✕ "):
+			state.addFailing(withoutItsTiming(strings.TrimPrefix(line, "✕ ")))
+			found = true
+		case strings.HasPrefix(line, "✔ ") || strings.HasPrefix(line, "✓ "):
+			found = true
+		case strings.HasPrefix(line, "ℹ tests "):
+			state.total, found = numberAfter(line, "ℹ tests "), true
+		case strings.HasPrefix(line, "ℹ fail "):
+			state.failed, found = numberAfter(line, "ℹ fail "), true
+		case strings.HasPrefix(line, "Tests:"):
+			state.readJestSummary(line)
+			found = true
+		case strings.HasPrefix(line, "=") && (strings.Contains(line, " passed") || strings.Contains(line, " failed")):
+			state.readPytestSummary(line)
+			found = true
+		case strings.HasPrefix(line, "FAILED ") && strings.Contains(line, "::"):
+			name, _, _ := strings.Cut(strings.TrimPrefix(line, "FAILED "), " - ")
+			state.addFailing(strings.TrimSpace(name))
+			found = true
+		case strings.HasPrefix(line, "--- FAIL: "):
+			name, _, _ := strings.Cut(strings.TrimPrefix(line, "--- FAIL: "), " ")
+			state.addFailing(name)
+			found = true
+		case line == "PASS" || line == "FAIL" || strings.HasPrefix(line, "ok  \t") || strings.HasPrefix(line, "FAIL\t"):
+			found = true
+		}
+	}
+	if !found {
+		return testState{}, false
+	}
+	if state.failed < len(state.failing) {
+		state.failed = len(state.failing)
+	}
+	return state, true
+}
+
+// addFailing writes down one failing test, once, however many times the
+// runner prints it.
+func (state *testState) addFailing(name string) {
+	if name == "" {
+		return
+	}
+	for _, known := range state.failing {
+		if known == name {
+			return
+		}
+	}
+	state.failing = append(state.failing, name)
+}
+
+// readJestSummary reads "Tests: 1 failed, 5 passed, 6 total".
+func (state *testState) readJestSummary(line string) {
+	for _, part := range strings.Split(strings.TrimPrefix(line, "Tests:"), ",") {
+		words := strings.Fields(part)
+		if len(words) < 2 {
+			continue
+		}
+		count, err := strconv.Atoi(words[0])
+		if err != nil {
+			continue
+		}
+		switch words[1] {
+		case "failed":
+			state.failed = count
+		case "total":
+			state.total = count
+		}
+	}
+}
+
+// readPytestSummary reads "==== 1 failed, 5 passed in 0.12s ====": the total is
+// the failed and the passed together, because pytest never says it.
+func (state *testState) readPytestSummary(line string) {
+	passed := 0
+	words := strings.Fields(strings.Trim(line, "= "))
+	for at := 0; at+1 < len(words); at++ {
+		count, err := strconv.Atoi(words[at])
+		if err != nil {
+			continue
+		}
+		switch strings.TrimSuffix(words[at+1], ",") {
+		case "failed":
+			state.failed = count
+		case "passed":
+			passed = count
+		}
+	}
+	state.total = state.failed + passed
+}
+
+// numberAfter reads the count that follows a label, or zero.
+func numberAfter(line string, label string) int {
+	words := strings.Fields(strings.TrimPrefix(line, label))
+	if len(words) == 0 {
+		return 0
+	}
+	count, err := strconv.Atoi(words[0])
+	if err != nil {
+		return 0
+	}
+	return count
+}
+
+// withoutItsTiming takes the "(0.5ms)" a runner writes after a test's name off
+// the end of it.
+func withoutItsTiming(name string) string {
+	name = strings.TrimSpace(name)
+	if at := strings.LastIndex(name, " ("); at > 0 && strings.HasSuffix(name, ")") {
+		return strings.TrimSpace(name[:at])
+	}
+	return name
+}
+
+// writeWhatTheTestsShow reads a test runner's summary off a shell result and
+// writes it into the record: the state into the situation on the next round,
+// and, when the run is red, what is failing changed, and a file was changed
+// since the last run, a failure with that change as its cause. The record's
+// failures are what keep a small model from trying the same thing twice, and
+// after a hundred and forty-five rounds the live record held none, because the
+// model never wrote one. A red run with no change before it is the state the
+// task found, not something it did, and the same red run seen again is the
+// same failure still standing. A failure the record will not take, which a
+// record at its size cap is, costs the line and nothing more.
+func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.ToolCall, text string, label string) {
+	if call.Name != contract.ToolShell || running.keeper == nil {
+		return
+	}
+	state, found := testStateIn(text)
+	if !found {
+		return
+	}
+	running.testsFact = state.line()
+	changed := running.changedSinceTheLastRun
+	running.changedSinceTheLastRun = nil
+	key := state.key()
+	sameAsBefore := key == running.lastFailingSet
+	running.lastFailingSet = key
+	if state.failed == 0 || len(changed) == 0 || sameAsBefore {
+		return
+	}
+	running.hadFailure = true
+	_ = running.keeper.Apply(ctx, record.Update{Failure: &record.NewFailure{
+		Text:  strings.TrimPrefix(state.line(), "tests: ") + " after changing " + strings.Join(changed, ", "),
+		Cause: "the change to " + strings.Join(changed, ", ") + " before the run " + label,
+	}})
+}

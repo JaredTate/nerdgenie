@@ -22,7 +22,11 @@ const (
 	extraRounds = 2
 	// MaxMessagesKept is how many recent messages the loop carries from one
 	// call to the next. The record is what a task remembers; this is only the
-	// tail of the conversation around it.
+	// tail of the conversation around it. When it is reached the oldest half
+	// leaves at once, not one message a call: the live game build dropped one
+	// message every call from round a hundred on, so the front of the prompt
+	// moved on every call, the daemon reused nothing past the system prompt,
+	// and a round that had cost twenty seconds cost a hundred and seventy.
 	MaxMessagesKept = 200
 	// MaxDoneCheckNudges is how many times the model is sent back to work for a
 	// done list with nothing behind it before the task is given up on.
@@ -35,25 +39,34 @@ const (
 
 // run is one task in flight, with everything that is true only while it runs.
 type run struct {
-	theLoop          *Loop
-	task             Task
-	channel          contract.Channel
-	keeper           *record.Keeper
-	jobSummary       string
-	recentWork       []workingcontext.RecentTask
-	messages         []contract.Message
-	roundsAllowed    int
-	timeAllowed      time.Duration
-	startedAt        time.Time
-	roundsUsed       int
-	failedParses     int
-	doneNudges       int
-	recentCalls      []pastCall
-	lastOrient       string
-	browserFact      string
-	commandFact      string
-	continuedFact    string
-	filesChanged     []string
+	theLoop       *Loop
+	task          Task
+	channel       contract.Channel
+	keeper        *record.Keeper
+	jobSummary    string
+	recentWork    []workingcontext.RecentTask
+	messages      []contract.Message
+	roundsAllowed int
+	timeAllowed   time.Duration
+	startedAt     time.Time
+	roundsUsed    int
+	failedParses  int
+	doneNudges    int
+	recentCalls   []pastCall
+	lastOrient    string
+	browserFact   string
+	commandFact   string
+	continuedFact string
+	filesChanged  []string
+	// changedSinceTheLastRun names the files written or edited since the last
+	// test run, which are the cause a red run is written down with.
+	changedSinceTheLastRun []string
+	// testsFact is the state of the last test run, in one line for the
+	// situation, or empty until a test runner has been seen.
+	testsFact string
+	// lastFailingSet is what was failing on the last red run, so that the same
+	// run seen again is not a second failure.
+	lastFailingSet   string
 	hadCorrection    bool
 	hadFailure       bool
 	hadStop          bool
@@ -459,18 +472,6 @@ func (running *run) memoryHint(ctx context.Context) []string {
 		return nil
 	}
 	return hint
-}
-
-// remember appends one message to the conversation the model sees, keeping only
-// the most recent ones, because every buffer here has a cap.
-func (running *run) remember(message contract.Message) {
-	if message.Text == "" && len(message.ToolCalls) == 0 && len(message.ToolResults) == 0 {
-		return
-	}
-	running.messages = append(running.messages, message)
-	if len(running.messages) > MaxMessagesKept {
-		running.messages = running.messages[len(running.messages)-MaxMessagesKept:]
-	}
 }
 
 // orient takes the model's first line, which says where the work stands, and

@@ -2,8 +2,10 @@ package loop
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -12,6 +14,21 @@ import (
 // RoundsThatDeserveAReview is how many rounds a task has to have taken before
 // it is reviewed even though nothing went wrong.
 const RoundsThatDeserveAReview = 5
+
+// ReviewTime is how long the four questions may take to answer. It is a model
+// call, so it gets a bound of its own rather than the ten seconds the ending's
+// bookkeeping gets: on the local model a cold prompt of sixty thousand tokens
+// takes two and a half minutes to read before a word is written.
+const ReviewTime = 3 * time.Minute
+
+// errReviewTimeUp is why the review's own context is cancelled when the model
+// will not answer the four questions inside ReviewTime.
+var errReviewTimeUp = errors.New("the review was given three minutes to answer the four questions, and used all of it")
+
+// theSignsOfToolMarkup are what a small model writes when the four questions
+// confuse it into starting a tool call instead of answering. An answer that
+// carries one is no lesson.
+var theSignsOfToolMarkup = []string{"<parameter=", "</function>", "<function=", "<tool_call", "</tool_call>", "<invoke"}
 
 // TheFourQuestions is the after-action review, borrowed whole from the U.S.
 // Army's own: what was supposed to happen, what happened, why they differ, and
@@ -34,6 +51,8 @@ func (running *run) review(ctx context.Context) error {
 		return nil
 	}
 	held := running.keeper.Record()
+	ctx, done := running.theLoop.timeForTheReview(ctx)
+	defer done()
 	answer := running.theLoop.askTheFourQuestions(ctx, string(record.Print(held)))
 	if answer == "" {
 		return nil
@@ -118,10 +137,28 @@ func withoutItsNumber(line string) string {
 	return line
 }
 
+// timeForTheReview is the review's own context: the turn's, still cancelled by
+// whatever cancels the turn, with ReviewTime on top, so that a slow model gets
+// its minutes and a hung one does not get the hour.
+func (theLoop *Loop) timeForTheReview(ctx context.Context) (context.Context, context.CancelFunc) {
+	bounded, cancel := context.WithCancelCause(ctx)
+	go func() {
+		if err := theLoop.options.Clock.Sleep(bounded, ReviewTime); err == nil {
+			cancel(errReviewTimeUp)
+		}
+	}()
+	return bounded, func() { cancel(nil) }
+}
+
 // keepTheLesson saves the fourth answer as a fact with the work it came from as
 // its source, and offers it to the user as a skill when it describes a way of
-// doing something.
+// doing something. An answer that is the opening of a tool call is not a lesson
+// and is not kept: the live home's memory file held "<parameter=file_path>" and
+// "</function>" as two of its five facts.
 func (theLoop *Loop) keepTheLesson(ctx context.Context, where contract.Channel, source string, answer string) error {
+	if looksLikeToolMarkup(answer) {
+		return nil
+	}
 	if theLoop.options.Memory != nil {
 		if err := theLoop.options.Memory.Save(ctx, []contract.Fact{{
 			ID:       "review-" + strings.ReplaceAll(source, " ", "-"),
@@ -136,6 +173,17 @@ func (theLoop *Loop) keepTheLesson(ctx context.Context, where contract.Channel, 
 		return nil
 	}
 	return theLoop.offerASkill(ctx, where, source, answer)
+}
+
+// looksLikeToolMarkup says whether an answer is the start of a tool call rather
+// than words.
+func looksLikeToolMarkup(answer string) bool {
+	for _, sign := range theSignsOfToolMarkup {
+		if strings.Contains(answer, sign) {
+			return true
+		}
+	}
+	return false
 }
 
 // looksLikeAProcedure says whether an answer describes a way of doing something

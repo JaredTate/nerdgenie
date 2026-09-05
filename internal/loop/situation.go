@@ -36,7 +36,7 @@ func (running *run) writeCostAndBudget(ctx context.Context, usage contract.Usage
 // writeSituation fills the record's situation from the facts ordinary code can
 // check for itself: that the person asked a stopped task to carry on, the page
 // the browser is on, the files changed in this task, the last command and how it
-// went, and the model's own last orient line.
+// went, the state of the last test run, and the model's own last orient line.
 func (running *run) writeSituation(ctx context.Context) error {
 	if running.keeper == nil {
 		return nil
@@ -51,6 +51,9 @@ func (running *run) writeSituation(ctx context.Context) error {
 	facts = append(facts, "files changed in this task: "+running.filesLine(ctx))
 	if running.commandFact != "" {
 		facts = append(facts, cutToALine(running.commandFact))
+	}
+	if running.testsFact != "" {
+		facts = append(facts, cutToALine(running.testsFact))
 	}
 	if running.lastOrient != "" {
 		facts = append(facts, cutToALine("where the work stands: "+running.lastOrient))
@@ -113,8 +116,12 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 	case call.Name == contract.ToolShell:
 		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)
 	case call.Name == contract.ToolWrite || call.Name == contract.ToolEdit:
-		if path := fieldOfCall(call, "path"); path != "" && !slices.Contains(running.filesChanged, path) {
+		path := fieldOfCall(call, "path")
+		if path != "" && !slices.Contains(running.filesChanged, path) {
 			running.filesChanged = append(running.filesChanged, path)
+		}
+		if path != "" && !failed && !slices.Contains(running.changedSinceTheLastRun, path) {
+			running.changedSinceTheLastRun = append(running.changedSinceTheLastRun, path)
 		}
 	case call.Name == contract.ToolJob && !failed:
 		running.noteTheJobMade(text)

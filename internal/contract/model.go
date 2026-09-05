@@ -113,6 +113,11 @@ type ToolCall struct {
 type ToolResult struct {
 	// CallID is the identifier of the call this answers.
 	CallID string
+	// Label is the id the record gave this result, such as r7, when the loop
+	// wrote it down, so that the working context can tell which of the record's
+	// results are still on the table in full. Empty on a result the record
+	// never saw.
+	Label string
 	// Text is the result, already capped and marked as data rather than
 	// instructions.
 	Text string

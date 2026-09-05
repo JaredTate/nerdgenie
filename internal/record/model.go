@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
@@ -61,19 +60,6 @@ const MaxDoneLines = 5
 // done list at five lines and hid the whole build in a twelve-step plan. A job
 // is not held to this, because a job has a task list and no plan.
 const MaxPlanSteps = 10
-
-// MaxAskWordsForATask is how many words a task's ask may run to and still take
-// a done list or a plan. The two caps above hold the model's own lists, and a
-// small local model met both by compressing: seven features became one done
-// line and a whole game build a ten-step plan, so a very large ask still
-// landed as one task. The one measure the model cannot compress is the ask,
-// because the ask is the user's own words and is never rewritten. A
-// one-sitting ask is a sentence or a paragraph: a paragraph is about a hundred
-// words, the forty-step fixture's own ask is two sentences, and the game ask
-// that was squeezed into one task runs to several hundred. A job is not held
-// to this, because a job is the record a long ask belongs in, and a job's task
-// carries the short text of one piece of the work rather than the whole ask.
-const MaxAskWordsForATask = 250
 
 // NewDecision is a choice the model made, with the reason it must carry so that
 // the model does not argue with itself later.
@@ -212,16 +198,19 @@ func applyWhy(into *contract.Record, update Update) error {
 	return nil
 }
 
-// applyDoneWhen holds three rules: a task takes no done list on an ask past
-// MaxAskWordsForATask words, a task's done list holds at most MaxDoneLines
-// lines, and a done line marked done names the result that proves it, or the
-// user's reply that stands for one.
+// applyDoneWhen holds three rules: a task's done list holds at most
+// MaxDoneLines lines, a done line marked done names the result that proves it
+// or the user's reply that stands for one, and a line that names a result the
+// record holds is done by that fact, mark or no mark. The last rule is there
+// because a live job wrote all five of a task's done lines with their proof
+// and every mark off, and the task waited on a person for work the record
+// already held the proof of. The length of the ask decides nothing here: it
+// used to refuse both the done list and the plan past 250 words and send the
+// model to the job tool, and the model made the job and then kept working in
+// the task with no list at all.
 func applyDoneWhen(into *contract.Record, update Update) error {
 	if update.DoneWhen == nil {
 		return nil
-	}
-	if err := checkTheAskFitsATask(into); err != nil {
-		return err
 	}
 	if into.Header.Kind == contract.RecordTask && len(update.DoneWhen) > MaxDoneLines {
 		return fmt.Errorf("this done list has %d lines and a task's done list holds at most %d, so %w",
@@ -241,7 +230,13 @@ func applyDoneWhen(into *contract.Record, update Update) error {
 			return err
 		}
 	}
-	into.Goal.DoneWhen = keepOrDrop(slices.Clone(update.DoneWhen))
+	lines := slices.Clone(update.DoneWhen)
+	for at := range lines {
+		if lines[at].ResultID != "" {
+			lines[at].Done = true
+		}
+	}
+	into.Goal.DoneWhen = keepOrDrop(lines)
 	return nil
 }
 
@@ -259,8 +254,7 @@ func applyStopWhen(into *contract.Record, update Update) error {
 	return nil
 }
 
-// applyPlan writes a task's plan under two rules, that a task takes no plan on
-// an ask past MaxAskWordsForATask words and that a plan holds at most
+// applyPlan writes a task's plan under one rule, that a plan holds at most
 // MaxPlanSteps steps, numbering the steps from one, and keeps the mark and the
 // result of any step whose words did not change, so that editing a plan never
 // throws away the proof of the work already done.
@@ -270,9 +264,6 @@ func applyPlan(into *contract.Record, update Update) error {
 	}
 	if into.Header.Kind != contract.RecordTask {
 		return fmt.Errorf("a plan belongs to a task and this is a %s, which has a task list: %w", into.Header.Kind, ErrWrongKind)
-	}
-	if err := checkTheAskFitsATask(into); err != nil {
-		return err
 	}
 	if len(update.Plan) > MaxPlanSteps {
 		return fmt.Errorf("this plan has %d steps and a task's plan holds at most %d, so %w",
@@ -377,21 +368,6 @@ func applyFailure(into *contract.Record, update Update) error {
 		Text:  update.Failure.Text,
 		Cause: update.Failure.Cause,
 	})
-	return nil
-}
-
-// checkTheAskFitsATask holds the rule that a task whose ask runs past
-// MaxAskWordsForATask words takes neither a done list nor a plan, because an
-// ask that long is a job however short the model keeps its lists. It is a
-// task's rule: a job is the record a long ask belongs in.
-func checkTheAskFitsATask(into *contract.Record) error {
-	if into.Header.Kind != contract.RecordTask {
-		return nil
-	}
-	if words := len(strings.Fields(into.Goal.Ask)); words > MaxAskWordsForATask {
-		return fmt.Errorf("this ask runs to %d words and a task's ask holds at most %d words, so %w",
-			words, MaxAskWordsForATask, ErrAskIsAJob)
-	}
 	return nil
 }
 

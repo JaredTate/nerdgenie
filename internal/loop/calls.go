@@ -93,7 +93,8 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	}
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
-	result := contract.ToolResult{CallID: call.ID, Text: text, Failed: failed}
+	running.writeWhatTheTestsShow(ctx, call, text, label)
+	result := contract.ToolResult{CallID: call.ID, Label: label, Text: text, Failed: failed}
 	if failed {
 		result.Text = text + "\n" + ThreeOptions
 	}
@@ -236,6 +237,13 @@ func summaryOfResult(name string, text string, failed bool) string {
 	}
 	if name == contract.ToolTask {
 		return "updated the record: " + fieldsWritten(text)
+	}
+	// A test run's first line is its exit code, which says nothing a model can
+	// use, so its line is the runner's own summary: the counts and the names.
+	if name == contract.ToolShell {
+		if state, found := testStateIn(text); found {
+			return state.line()
+		}
 	}
 	if first := firstLine(text); first != "" {
 		return name + ": " + first

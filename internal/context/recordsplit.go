@@ -12,6 +12,10 @@ import (
 const (
 	goalHeading = "## Goal"
 	workHeading = "## Work"
+	// doneListLabel opens the done list inside the goal. The list is written
+	// and marked as the work goes, so it is cut out of the goal and rides in
+	// the tail with the plan.
+	doneListLabel = "Done when:"
 )
 
 // recordParts is one printed record cut into the pieces that change at different
@@ -19,12 +23,18 @@ const (
 // share from the first byte and stops at the first byte that differs, so what
 // changes least goes first and what changes on every call goes last.
 type recordParts struct {
-	// Stable is the goal and the rules. They change only when the user corrects
-	// the work, so they go into the system prompt above cache boundary C.
+	// Stable is the goal without its done list, and the rules. They change
+	// only when the user corrects the work, so they go into the system prompt
+	// above cache boundary C. The done list is not among them: it is written
+	// and then marked line by line as the work is proved, and every one of
+	// those writes used to rewrite the system prompt and cost the whole
+	// conversation under it, a hundred and thirty-five seconds on the local
+	// model at sixty thousand tokens.
 	Stable string
-	// Body is the work and the lessons with the list of results taken out. It
-	// changes only when the model edits its plan or its lists, so it is the
-	// first message below the cache line.
+	// Body is the done list, then the work and the lessons with the list of
+	// results taken out. It changes only when the model edits its plan or its
+	// lists or proves a done line, so it is the first message below the cache
+	// line.
 	Body string
 	// Results is the list of results, label line and all. It grows by a line
 	// every round, so it goes at the tail, where what grows costs only itself.
@@ -53,12 +63,35 @@ func splitRecord(held contract.Record) recordParts {
 		return recordParts{Body: strings.Join(lines, "\n")}
 	}
 	body, results := cutOutTheResults(lines[workAt:])
+	stable, doneList := cutOutTheDoneList(lines[goalAt:workAt])
+	if doneList != "" {
+		body = doneList + "\n\n" + body
+	}
 	return recordParts{
-		Stable:   strings.TrimRight(strings.Join(lines[goalAt:workAt], "\n"), "\n"),
+		Stable:   strings.TrimRight(strings.Join(stable, "\n"), "\n"),
 		Body:     strings.TrimRight(body, "\n"),
 		Results:  results,
 		Standing: strings.TrimRight(strings.Join(lines[:goalAt], "\n"), "\n"),
 	}
+}
+
+// cutOutTheDoneList takes the done list out of the goal's lines and hands it
+// back on its own, label line and all, so that the one part of the goal which
+// changes as the work is proved can ride in the tail. A goal with no done list
+// yet is handed back whole, with nothing beside it.
+func cutOutTheDoneList(goal []string) (rest []string, doneList string) {
+	label := lineAt(goal, doneListLabel)
+	if label < 0 {
+		return goal, ""
+	}
+	end := label + 1
+	for end < len(goal) && strings.HasPrefix(goal[end], resultItemMark) {
+		end++
+	}
+	kept := make([]string, 0, len(goal))
+	kept = append(kept, goal[:label]...)
+	kept = append(kept, goal[end:]...)
+	return kept, strings.Join(goal[label:end], "\n")
 }
 
 // cutOutTheResults takes the list of results out of the work and hands it back

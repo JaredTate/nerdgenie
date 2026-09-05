@@ -130,6 +130,28 @@ type Screen struct {
 	jobName       string
 	jobTask       string
 	jobTasks      string
+	// situation, failures, cachedTokens, round and taskStarted are the record's
+	// own state as the status carries it, drawn in the side panel's state block.
+	situation    string
+	failures     string
+	cachedTokens int
+	round        string
+	taskStarted  time.Time
+	// focusAt is which of the screen's focusable items the keyboard is on,
+	// counted through the transcript's pills and then the panel's rows, or
+	// minus one when none is. expanded holds the result ids whose pills are
+	// open, and shown holds the full texts the program has sent back for them,
+	// by id, so an id is asked for once.
+	focusAt  int
+	expanded map[string]bool
+	shown    map[string]string
+	// overlayTitle and overlayText are the record the person asked to see over
+	// the transcript, empty when none is open; overlayScroll is how far down it
+	// they have scrolled. panelHidden is the side panel put away with its key.
+	overlayTitle  string
+	overlayText   string
+	overlayScroll int
+	panelHidden   bool
 
 	blocks     []block
 	scrollBack int

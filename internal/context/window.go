@@ -3,6 +3,7 @@ package context
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
@@ -47,9 +48,13 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known s
 	if parts.Body != "" {
 		recordBody = append(recordBody, asUserMessage(recordSecondHalfHeading, parts.Body))
 	}
+	// The window is settled against the list of results whole, and the list is
+	// cut to what has left the table only afterwards, so that the list never
+	// widens the window it is cut against: the count is a little low, never
+	// high, which is the safe side.
 	recordResults := []contract.Message{}
 	if parts.Results != "" {
-		recordResults = append(recordResults, asUserMessage(recordResultsHeading, parts.Results))
+		recordResults = append(recordResults, asUserMessage(recordResultsHeading, MarkResultLines(builder.boundary, parts.Results)))
 	}
 	recordHeader := []contract.Message{}
 	if parts.Standing != "" {
@@ -81,15 +86,64 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known s
 		return nil, roomRanOut(fixed+totalTokens(hint), input, builder.maxOutputTokens)
 	}
 
+	onTheTable := fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)
+	recordResults = recordResults[:0]
+	if listed := resultsThatLeftTheTable(parts.Results, labelsOn(onTheTable)); listed != "" {
+		recordResults = append(recordResults, asUserMessage(recordResultsHeading, MarkResultLines(builder.boundary, listed)))
+	}
+
 	below := make([]contract.Message, 0,
-		len(whatIsKnown)+len(pinned)+len(input.Messages)+len(recordBody)+len(recordResults)+len(hint)+len(recordHeader))
+		len(whatIsKnown)+len(pinned)+len(onTheTable)+len(recordBody)+len(recordResults)+len(hint)+len(recordHeader))
 	below = append(below, whatIsKnown...)
 	below = append(below, pinned...)
-	below = append(below, fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)...)
+	below = append(below, onTheTable...)
 	below = append(below, recordBody...)
 	below = append(below, recordResults...)
 	below = append(below, hint...)
 	return append(below, recordHeader...), nil
+}
+
+// labelsOn is the label of every result whose full text is in the window.
+func labelsOn(messages []contract.Message) map[string]bool {
+	labels := map[string]bool{}
+	for _, message := range messages {
+		for _, result := range message.ToolResults {
+			if result.Label != "" {
+				labels[result.Label] = true
+			}
+		}
+	}
+	return labels
+}
+
+// resultsThatLeftTheTable keeps only the lines of the record's list of results
+// whose full text is not in the window, because a result on the table carries
+// its own label and needs no line. The live game build re-read a hundred and
+// twenty of these lines on every call, three thousand tokens, while a hundred
+// of the results they named sat in full a few messages up. A list with nothing
+// left in it is nothing at all, label line and all, so the model is not sent a
+// heading over a blank.
+func resultsThatLeftTheTable(listed string, onTheTable map[string]bool) string {
+	if listed == "" {
+		return ""
+	}
+	lines := strings.Split(listed, "\n")
+	kept := make([]string, 0, len(lines))
+	items := 0
+	for _, line := range lines {
+		if strings.HasPrefix(line, resultItemMark) {
+			label, _, _ := strings.Cut(strings.TrimPrefix(line, resultItemMark), " ")
+			if onTheTable[label] {
+				continue
+			}
+			items++
+		}
+		kept = append(kept, line)
+	}
+	if items == 0 {
+		return ""
+	}
+	return strings.Join(kept, "\n")
 }
 
 // fitNewestFirst keeps as many of the most recent messages as the window holds,
@@ -151,6 +205,13 @@ func wrapToolResults(messages []contract.Message, boundary string) []contract.Me
 		copied.ToolResults = make([]contract.ToolResult, 0, len(message.ToolResults))
 		for _, result := range message.ToolResults {
 			result.Text = WrapAsData(boundary, result.Text)
+			// A result the record labelled carries that label on its first
+			// line, in the harness's own words above the marker, so that the
+			// model can name it in a pin or a done line without a line for it
+			// in the record's list.
+			if result.Label != "" {
+				result.Text = result.Label + ":\n" + result.Text
+			}
 			copied.ToolResults = append(copied.ToolResults, result)
 		}
 		marked = append(marked, copied)

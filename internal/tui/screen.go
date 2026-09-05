@@ -291,6 +291,8 @@ func (screen *Screen) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		screen.pasted(typed.Content)
 	case tea.MouseWheelMsg:
 		screen.wheeled(typed)
+	case tea.MouseClickMsg:
+		screen.clicked(typed)
 	case tickMessage:
 		screen.beat(typed.at)
 		return screen, screen.nextTick()

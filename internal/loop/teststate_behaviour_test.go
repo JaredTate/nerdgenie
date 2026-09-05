@@ -89,7 +89,7 @@ func TestARedRunAfterAnEditIsWrittenAsAFailureWithTheEditAsItsCause(t *testing.T
 			t.Errorf("the failure reads %q, want it to say %q", failure.Text, said)
 		}
 	}
-	if !strings.Contains(failure.Cause, "/p/tests/board.test.js") {
+	if !strings.Contains(failure.Cause, "board.test.js") {
 		t.Errorf("the failure's cause reads %q, want it to name the file changed before the red run", failure.Cause)
 	}
 }

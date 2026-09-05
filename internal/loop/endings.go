@@ -67,29 +67,55 @@ func (running *run) endOfTurn(ctx context.Context, text string, why contract.Fin
 	if corrections > 0 {
 		return Outcome{}, true, nil
 	}
-	if running.isAQuestion(text, why) {
-		outcome, err := running.waitHere(ctx, text)
-		return outcome, false, err
-	}
 	if running.keeper == nil {
+		if running.isAQuestion(text, why) {
+			outcome, err := running.waitHere(ctx, text)
+			return outcome, false, err
+		}
 		outcome, err := running.answerWithNoRecord(ctx, text)
 		return outcome, false, err
 	}
-	if err := running.theReplyProvesItsLines(ctx, text); err != nil {
-		return Outcome{}, false, err
-	}
-	if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
+	return running.closeOrWait(ctx, text, why)
+}
+
+// closeOrWait ends a task that has a record: the done-check says whether the
+// work is done, and a question is read only where there is something left to
+// ask about.
+//
+// The done-check comes before the question, because a small model ends a
+// finished reply with a chatty question, "Anything else?", and the loop used
+// to read that one character first: a task with every done line proven, the
+// file written and the test printing PASS, went into waiting instead of
+// closing, and a job's task so ended put the job down at "1 of 3" with
+// nothing left to do. A record with no done list is the one exception, and
+// keeps its old reading: there is nothing to close on, so a question mark or
+// a plain-words ask on the last line is a question, and only a reply that
+// asks nothing is written in as the whole of the done list.
+func (running *run) closeOrWait(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
+	if running.theRecordHasNoDoneList() {
+		if running.isAQuestion(text, why) {
+			outcome, err := running.waitHere(ctx, text)
+			return outcome, false, err
+		}
+		if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
+			return Outcome{}, false, err
+		}
+	} else if err := running.theReplyProvesItsLines(ctx, text); err != nil {
 		return Outcome{}, false, err
 	}
 	problem, err := running.doneCheck(ctx)
 	if err != nil {
 		return Outcome{}, false, err
 	}
-	if problem != "" {
-		return running.backToWork(ctx, problem)
+	if problem == "" {
+		outcome, err := running.finish(ctx, text)
+		return outcome, false, err
 	}
-	outcome, err := running.finish(ctx, text)
-	return outcome, false, err
+	if running.isAQuestion(text, why) {
+		outcome, err := running.waitHere(ctx, text)
+		return outcome, false, err
+	}
+	return running.backToWork(ctx, problem)
 }
 
 // theReplyProvesItsLines writes the answer the model has just given into the

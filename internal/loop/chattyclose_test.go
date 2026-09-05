@@ -53,18 +53,19 @@ func TestAProvenDoneListClosesTheTaskWhateverQuestionEndsTheReply(t *testing.T) 
 // is the same on a job's task, which is where it was caught: the task reports
 // to the job and the job is not put down.
 func TestAJobsTaskWithAProvenDoneListClosesAndReportsWhateverQuestionEndsTheReply(t *testing.T) {
-	built := newHarness(t, scriptThatProvesItsDoneLineAndThenAsks(), scriptedTool("read", "the notes"))
+	steps := append(scriptThatProvesItsDoneLineAndThenAsks(),
+		answerStep("The summary is written."),
+		aReviewReply("Close on the done list, not on the last character."))
+	built := newHarness(t, steps, scriptedTool("read", "the notes"))
 	jobID := aJobOfTwoTasks(t, built)
 
-	if _, err := built.loop.RunNextJobTask(t.Context(), built.channel); err != nil {
-		t.Fatalf("the loop could not run the job's task: %v", err)
-	}
+	runTheJobToTheEnd(t, built.loop, built.channel)
 
 	if first := theJobsFirstTask(t, built, jobID); !first.Done || first.ReportID == "" {
 		t.Errorf("the job's task reads %+v, want it done with its report in the job", first)
 	}
-	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobRunning {
-		t.Errorf("the job is %q, want it still running its next task rather than put down on a finished one", summary.State)
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobDone {
+		t.Errorf("the job is %q, want it done after both tasks ran, rather than put down on a finished one", summary.State)
 	}
 	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
 		t.Errorf("the person was sent %v, want the finished task's report with the job's progress on it", built.channel.Sent())

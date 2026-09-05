@@ -27,6 +27,31 @@ func aJobOfTwoTasks(t *testing.T, built *harness) string {
 	return jobID
 }
 
+// MaxTasksARunToTheEndRuns is how many of a job's tasks runTheJobToTheEnd
+// will run before it gives up, so that a job whose task is handed out again
+// and again cannot hang a test.
+const MaxTasksARunToTheEndRuns = 10
+
+// runTheJobToTheEnd asks the loop for the job's due task again and again,
+// the way the driver in cmd/nerdgenie does, until nothing is due, and says how
+// many tasks ran.
+func runTheJobToTheEnd(t *testing.T, made *loop.Loop, where contract.Channel) int {
+	t.Helper()
+	ran := 0
+	for range MaxTasksARunToTheEndRuns {
+		more, err := made.RunNextJobTask(t.Context(), where)
+		if err != nil {
+			t.Fatalf("the loop could not run the job's task: %v", err)
+		}
+		if !more {
+			return ran
+		}
+		ran++
+	}
+	t.Fatalf("the job still had a task due after %d ran", MaxTasksARunToTheEndRuns)
+	return ran
+}
+
 // twoTasksAndTheirReview is the script for a job of two tasks, each of which
 // writes its done list, proves it, and reports, and the review of the job.
 func twoTasksAndTheirReview() []testkit.Step {

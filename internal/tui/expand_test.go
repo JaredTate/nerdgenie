@@ -22,7 +22,7 @@ func aShownResult(id string, text string) contract.SocketEnvelope {
 	}}
 }
 
-// pillRowsOnTheFrame is every row of the frame from the pill's own row down to
+// rowsUnderThePill is every row of the frame between the pill's own row and
 // the reply under it, with the paint out to the panel taken off, which is
 // where whatever hangs under the pill is drawn.
 func rowsUnderThePill(screen *Screen) []string {

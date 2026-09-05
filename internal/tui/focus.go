@@ -130,20 +130,46 @@ func (screen *Screen) clearFocus() {
 }
 
 // pressedOnTheFocus holds the keys the focus takes: Tab and Shift+Tab move it,
-// and Esc lets go of it. It says whether the key was one of them; every other
-// key goes on to whoever holds the keys.
+// Enter opens what it is on, and Esc lets go of it, or folds every open pill
+// when nothing is focused, one of those per press. It says whether the key was
+// one of them; every other key goes on to whoever holds the keys.
 func (screen *Screen) pressedOnTheFocus(key tea.KeyPressMsg) bool {
 	switch {
 	case key.Code == tea.KeyTab && key.Mod == tea.ModShift:
 		screen.moveFocus(-1)
 	case key.Code == tea.KeyTab && key.Mod == 0:
 		screen.moveFocus(1)
-	case key.Code == tea.KeyEsc && screen.focusAt >= 0:
-		screen.clearFocus()
+	case key.Code == tea.KeyEnter && key.Mod == 0 && screen.focusAt >= 0:
+		screen.openTheFocused()
+	case key.Code == tea.KeyEsc:
+		return screen.letGoWithEsc()
 	default:
 		return false
 	}
 	return true
+}
+
+// letGoWithEsc does the one thing Esc does on this side of the screen: it
+// clears the focus, or when nothing is focused folds every open pill. It says
+// whether there was anything to do, so that an Esc with nothing to let go of
+// goes on to whoever holds the keys, and from there to stopping the task.
+func (screen *Screen) letGoWithEsc() bool {
+	switch {
+	case screen.focusAt >= 0:
+		screen.clearFocus()
+	case len(screen.expanded) > 0:
+		screen.collapseEveryPill()
+	default:
+		return false
+	}
+	return true
+}
+
+// openTheFocused opens what the focus is on, which is a pill.
+func (screen *Screen) openTheFocused() {
+	if item := screen.focused(); item.block >= 0 {
+		screen.togglePillAt(item.block)
+	}
 }
 
 // focusedPanelRow draws one line of the panel as the focused one: the panel's

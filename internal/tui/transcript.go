@@ -188,13 +188,14 @@ func (screen *Screen) replyLines(text string) []string {
 // "/tasks 17" and "read r3" show on purpose. A call that was made again and
 // again in a row is one pill with a count on the end, such as "× 13", because
 // thirteen rows saying one thing tell the person less than one row that says
-// how many times. The focused pill is drawn apart from the rest.
+// how many times. The focused pill is drawn apart from the rest, and a pill
+// that has been opened draws its text under itself.
 func (screen *Screen) toolLines(item block, focused bool) []string {
 	text := item.text
 	if item.repeats > 1 {
 		text += " " + string(repeatGlyph) + " " + strconv.Itoa(item.repeats)
 	}
-	return screen.pillRows(text, focused)
+	return append(screen.pillRows(text, focused), screen.expansionLines(item)...)
 }
 
 // visibleTranscript is the rows of the transcript that fit in the space it has,

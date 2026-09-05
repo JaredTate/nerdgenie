@@ -16,16 +16,16 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// jobWhoseRunNowFailsOnce is the fake job store with one store error in it:
+// jobWhoseResumeFailsOnce is the fake job store with one store error in it:
 // the first time it is asked to set a job running again, it cannot.
-type jobWhoseRunNowFailsOnce struct {
+type jobWhoseResumeFailsOnce struct {
 	contract.Job
 	guard  sync.Mutex
 	failed bool
 }
 
-// RunNow fails once and then passes the call on.
-func (jobs *jobWhoseRunNowFailsOnce) RunNow(ctx context.Context, jobID string) error {
+// Resume fails once and then passes the call on.
+func (jobs *jobWhoseResumeFailsOnce) Resume(ctx context.Context, jobID string) error {
 	jobs.guard.Lock()
 	first := !jobs.failed
 	jobs.failed = true
@@ -33,7 +33,7 @@ func (jobs *jobWhoseRunNowFailsOnce) RunNow(ctx context.Context, jobID string) e
 	if first {
 		return errors.New("the job store cannot write right now, so try again")
 	}
-	return jobs.Job.RunNow(ctx, jobID)
+	return jobs.Job.Resume(ctx, jobID)
 }
 
 // TestAStoreErrorOnContinueLeavesTheTaskPutDownForTheNextContinue is the
@@ -51,7 +51,7 @@ func TestAStoreErrorOnContinueLeavesTheTaskPutDownForTheNextContinue(t *testing.
 		aReviewReply("Keep a stopped task where it was."),
 	}, scriptedTool("read", "the notes", "the notes"))
 	jobID := aJobOfTwoTasks(t, built)
-	flaky := &jobWhoseRunNowFailsOnce{Job: built.jobs}
+	flaky := &jobWhoseResumeFailsOnce{Job: built.jobs}
 	waiting := aModelThatWaitsOn(2, built.model)
 	options := built.optionsOver(waiting)
 	options.Jobs = flaky
@@ -96,6 +96,7 @@ func TestAMessageThatBeginsWithContinuePicksThePutDownTaskUpAndCarriesTheRest(t 
 	if err != nil {
 		t.Fatalf("carrying the task on with a steer failed: %v", err)
 	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
 		t.Errorf("the steered continue ended as %+v, want task 1, the put-down task, picked up under the job and finished", outcome)

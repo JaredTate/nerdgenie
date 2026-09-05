@@ -104,6 +104,17 @@ func TestACorrectionDeliveredDuringTheLastRoundIsReadBeforeTheTaskEnds(t *testin
 	if len(held.Rules.Corrections) != 1 || held.Rules.Corrections[0].Text != "no, lead with the date, not the features" {
 		t.Errorf("the record's corrections are %+v, want the person's words, word for word", held.Rules.Corrections)
 	}
+	// The one more round reads the correction against the reply it corrects:
+	// the request carries that reply as the model's own words, and the person's
+	// words after it, so the model is not shown a correction with nothing
+	// before it but tool results.
+	requests := built.model.Requests()
+	if len(requests) < 3 {
+		t.Fatalf("the model saw %d requests, want at least the three before the review", len(requests))
+	}
+	if !saidThenHeard(requests[2], "The post leads with the features.", "no, lead with the date, not the features") {
+		t.Errorf("the one more round's request carries %+v, want the reply that was corrected as an assistant message before the correction", requests[2].Messages)
+	}
 	second, err := made.Run(t.Context(), built.task("do the second thing"))
 	if err != nil {
 		t.Fatalf("the next task did not finish: %v", err)
@@ -137,4 +148,19 @@ func TestAStopDeliveredDuringTheLastRoundStopsTheTask(t *testing.T) {
 	if calls := delivering.callsMade(); calls != 2 {
 		t.Errorf("the model was called %d times, want 2: a stop asks the model nothing more", calls)
 	}
+}
+
+// saidThenHeard says whether the request carries the model's own words as an
+// assistant message and the person's words as a user message after it.
+func saidThenHeard(request contract.Request, said string, heard string) bool {
+	saidAt := -1
+	for at, message := range request.Messages {
+		if message.Role == contract.RoleAssistant && strings.HasPrefix(message.Text, said) {
+			saidAt = at
+		}
+		if message.Role == contract.RoleUser && message.Text == heard && saidAt >= 0 && saidAt < at {
+			return true
+		}
+	}
+	return false
 }

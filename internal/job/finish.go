@@ -72,6 +72,13 @@ func (jobs *Jobs) finishTask(ctx context.Context, jobID string, held *heldJob, t
 	if err := jobs.afterOneTask(ctx, jobID, held, report, failed); err != nil {
 		return "", err
 	}
+	// The loop runs one task of a job per call and the driver takes the next
+	// on its next look, so a job still running after a task has work due at
+	// once, and a task with no date makes no moment for the wait to sleep
+	// until. Without this the second task of a job started a minute later.
+	if held.state.State == contract.JobRunning {
+		jobs.wake()
+	}
 	return reportID, jobs.writeProgress(ctx, jobID, held)
 }
 
@@ -168,6 +175,9 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 
 // closeIfEveryTaskIsDone finishes a job whose last task is done. A job with a
 // schedule is never finished, because its next tick will add another task. A job
+// closes only while it is running: one the person switched off, or one that
+// paused itself on failures, keeps the report and the mark on the task and
+// stays where the person left it, so that "/cron off" means off. A job
 // whose done list has nothing behind it stays running rather than closing, which
 // is the same rule a task record keeps: nothing says it is done until something
 // proves it.
@@ -180,7 +190,7 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 // whose answer is its own proof. Without that no job could ever close, because
 // nothing lets the model write a job's done list.
 func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held *heldJob) error {
-	if held.state.Schedule != nil {
+	if held.state.Schedule != nil || held.state.State != contract.JobRunning {
 		return nil
 	}
 	for _, task := range held.keeper.Record().Work.Tasks {
@@ -233,7 +243,7 @@ func (jobs *Jobs) stopTheJob(ctx context.Context, jobID string, held *heldJob,
 	if err != nil {
 		return fmt.Errorf("cannot write into job %s why it stopped: %w", jobID, err)
 	}
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(state)); err != nil {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(state)); err != nil {
 		return fmt.Errorf("cannot write the status of job %s: %w", jobID, err)
 	}
 	changed := held.state
@@ -263,20 +273,6 @@ func (jobs *Jobs) sayTheJobStopped(ctx context.Context, jobID string, why string
 		return fmt.Errorf("job %s stopped and the user was not told why: %w", jobID, err)
 	}
 	return nil
-}
-
-// recordStatusOfJob maps where a job stands onto the statuses a record prints.
-func recordStatusOfJob(state contract.JobState) contract.RecordStatus {
-	switch state {
-	case contract.JobPaused:
-		return contract.StatusWaiting
-	case contract.JobOff:
-		return contract.StatusStopped
-	case contract.JobDone:
-		return contract.StatusDone
-	default:
-		return contract.StatusRunning
-	}
 }
 
 // recordHoldsReport says whether a report with that identifier is on the job's

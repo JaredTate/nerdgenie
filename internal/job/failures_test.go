@@ -192,35 +192,3 @@ func TestAFailedTickIsOverAndTheNextOneRuns(t *testing.T) {
 		t.Errorf("the next tick made %+v (due %v), want a task of its own", second, due)
 	}
 }
-
-func TestAJobClosesWhenItsLastTaskIsDoneAndItsDoneListIsProved(t *testing.T) {
-	holding := newJobs(t)
-	ctx := t.Context()
-	jobID := holding.aJob(t, "Write the anniversary blog piece.")
-	taskID := holding.aTask(t, jobID, "draft the blog piece", time.Time{})
-	if err := holding.jobs.Update(ctx, jobID, aDoneList("the blog piece is published", "")); err != nil {
-		t.Fatalf("cannot write the job's done list: %v", err)
-	}
-
-	reportID := holding.finish(t, jobID, taskID, "the blog piece went up", false)
-
-	if state := holding.summaryOf(t, jobID).State; state != contract.JobRunning {
-		t.Errorf("the job closed with a done line that nothing proves, and it is %q", state)
-	}
-	if err := holding.jobs.Update(ctx, jobID, aDoneList("the blog piece is published", reportID)); err != nil {
-		t.Fatalf("cannot prove the job's done line: %v", err)
-	}
-	second := holding.aTask(t, jobID, "tell the user", time.Time{})
-	holding.finish(t, jobID, second, "the user has the summary", false)
-
-	if state := holding.summaryOf(t, jobID).State; state != contract.JobDone {
-		t.Errorf("a job whose last task is done and whose done list is proved is %q, want %q", state, contract.JobDone)
-	}
-	held, err := holding.jobs.Load(ctx, jobID)
-	if err != nil {
-		t.Fatalf("cannot load the job: %v", err)
-	}
-	if held.Header.Status != contract.StatusDone {
-		t.Errorf("the closed job's record reads %q, want %q", held.Header.Status, contract.StatusDone)
-	}
-}

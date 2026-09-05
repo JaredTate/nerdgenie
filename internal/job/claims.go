@@ -43,48 +43,54 @@ func (jobs *Jobs) createTables(ctx context.Context) error {
 
 // releaseTheClaimsOfProcessesThatAreGone gives up every claim held by a process
 // that is no longer running, which is what a process that died or was restarted
-// in the middle of a task leaves behind. Without this the task it was running
-// sat claimed for the hour of its budget, and a job cut off by a restart stood
-// still for that hour. A claim held by a process that is still running is left
-// alone, because a second store opened beside a live one, as the integration
-// tests open, must not take a task away from it. The job a released claim
-// belongs to is not touched: one the person put down stays paused on its task.
-func (jobs *Jobs) releaseTheClaimsOfProcessesThatAreGone(ctx context.Context) error {
-	owners, err := jobs.claimOwners(ctx)
+// in the middle of a task leaves behind, and hands back the tasks those claims
+// were on. Without this the task it was running sat claimed for the hour of
+// its budget, and a job cut off by a restart stood still for that hour. A
+// claim held by a process that is still running is left alone, because a
+// second store opened beside a live one, as the integration tests open, must
+// not take a task away from it. The job a released claim belongs to is not
+// touched here: one the person put down stays paused on its task, and one
+// whose task the dead process left a record of is put down on it once the
+// jobs are rebuilt.
+func (jobs *Jobs) releaseTheClaimsOfProcessesThatAreGone(ctx context.Context) ([]claimedTask, error) {
+	claims, err := jobs.everyClaim(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, owner := range owners {
-		if processIsRunning(owner) {
+	left := []claimedTask{}
+	for _, claim := range claims {
+		if processIsRunning(claim.owner) {
 			continue
 		}
-		if _, err := jobs.database.ExecContext(ctx, `DELETE FROM job_claims WHERE owner = ?`, owner); err != nil {
-			return fmt.Errorf("cannot release the claims left behind by %s: %w", owner, err)
+		if err := jobs.release(ctx, claim.jobID, claim.taskID); err != nil {
+			return nil, fmt.Errorf("cannot release the claim left behind by %s: %w", claim.owner, err)
 		}
+		left = append(left, claim)
 	}
-	return nil
+	return left, nil
 }
 
-// claimOwners is every process named on a claim, each once.
-func (jobs *Jobs) claimOwners(ctx context.Context) ([]string, error) {
-	rows, err := jobs.database.QueryContext(ctx, `SELECT DISTINCT owner FROM job_claims ORDER BY owner`)
+// everyClaim is every row of the claims table: which job's task, and which
+// process took it.
+func (jobs *Jobs) everyClaim(ctx context.Context) ([]claimedTask, error) {
+	rows, err := jobs.database.QueryContext(ctx, `SELECT job_id, task_id, owner FROM job_claims ORDER BY job_id, task_id`)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read whose claims the table holds: %w", err)
+		return nil, fmt.Errorf("cannot read the claims the table holds: %w", err)
 	}
 	defer rows.Close()
 
-	owners := []string{}
+	claims := []claimedTask{}
 	for rows.Next() {
-		owner := ""
-		if err := rows.Scan(&owner); err != nil {
-			return nil, fmt.Errorf("cannot read the owner of a claim: %w", err)
+		claim := claimedTask{}
+		if err := rows.Scan(&claim.jobID, &claim.taskID, &claim.owner); err != nil {
+			return nil, fmt.Errorf("cannot read one claim of the table: %w", err)
 		}
-		owners = append(owners, owner)
+		claims = append(claims, claim)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("cannot read the owners of the claims to the end: %w", err)
+		return nil, fmt.Errorf("cannot read the claims of the table to the end: %w", err)
 	}
-	return owners, nil
+	return claims, nil
 }
 
 // processIsRunning says whether the process a claim was taken under is still

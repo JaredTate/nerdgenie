@@ -27,6 +27,10 @@ const (
 	// MaxDoneCheckNudges is how many times the model is sent back to work for a
 	// done list with nothing behind it before the task is given up on.
 	MaxDoneCheckNudges = 3
+	// MaxJobsMadeNoted is how many of the jobs one task makes are written down
+	// so that its stopped report can name the one now running. One is the rule
+	// and a handful is plenty; past that the oldest is forgotten.
+	MaxJobsMadeNoted = 8
 )
 
 // run is one task in flight, with everything that is true only while it runs.
@@ -58,6 +62,7 @@ type run struct {
 	stopNow          string
 	pinned           []workingcontext.Pin
 	provedByTheReply []string
+	jobsMade         []string
 	number           string
 	perTask          contract.ToolRegistry
 }
@@ -175,8 +180,11 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	}
 	// The answer a record-less job task is started afresh on follows the task's
 	// own words, in front of the model and in the log, so that a restart reads
-	// the same two messages the model was given.
+	// the same two messages the model was given. The question it answers goes
+	// between the two as the model's own words, so the model reads question
+	// then answer; it is already in the log, under the run that asked it.
 	if task.Answer.Text != "" {
+		running.remember(contract.Message{Role: contract.RoleAssistant, Text: task.Question})
 		running.remember(contract.Message{Role: contract.RoleUser, Text: task.Answer.Text})
 		if err := theLoop.logEvent(ctx, running.number, contract.EventMessage, task.Answer); err != nil {
 			return nil, err

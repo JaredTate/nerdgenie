@@ -196,7 +196,9 @@ func (jobs *Jobs) Close() error {
 
 // prepare checks that the file really is the event log's file, makes this
 // package's own table, lets go of the claims a process that is gone left in
-// it, and rebuilds every job from the log.
+// it, rebuilds every job from the log, and puts a job down on a task the dead
+// process had run far enough to leave a record of, so that the person's
+// "continue" picks that run up rather than the driver running it again.
 func (jobs *Jobs) prepare(ctx context.Context) error {
 	if err := jobs.checkTheEventLogIsThere(ctx); err != nil {
 		return err
@@ -204,10 +206,14 @@ func (jobs *Jobs) prepare(ctx context.Context) error {
 	if err := jobs.createTables(ctx); err != nil {
 		return err
 	}
-	if err := jobs.releaseTheClaimsOfProcessesThatAreGone(ctx); err != nil {
+	left, err := jobs.releaseTheClaimsOfProcessesThatAreGone(ctx)
+	if err != nil {
 		return err
 	}
-	return jobs.rebuild(ctx)
+	if err := jobs.rebuild(ctx); err != nil {
+		return err
+	}
+	return jobs.putDownWhatADeadProcessLeft(ctx, left)
 }
 
 // checkTheEventLogIsThere refuses a database file the event log has not made its

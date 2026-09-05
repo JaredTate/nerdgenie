@@ -57,18 +57,44 @@ func (theLoop *Loop) jobTaskBehind(number string) (contract.TaskToRun, bool) {
 // task's report carries its progress line. The newest put-down task is the one
 // picked up: it is the one the person was just looking at, and a job put down
 // before it stays paused until they start it again by hand.
+//
+// The report goes out whatever the store says about the mark. A mark the
+// store refuses used to skip the report, so the question was never sent and
+// never logged and the program moved on past a question nobody saw; now the
+// report carries a line saying the job could not be marked and what to do,
+// and the store's error is still handed back once the report has gone.
 func (theLoop *Loop) putTheTaskDown(ctx context.Context, task Task, number string, outcome Outcome) error {
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	waiting := outcome.Status == contract.StatusWaiting
 	mark := contract.PutDownMark{Task: *task.FromJob, Run: number, HasRecord: outcome.TaskID != "", Waiting: waiting}
-	if err := theLoop.options.Jobs.PutDown(ctx, mark); err != nil {
-		return fmt.Errorf("cannot put job %s down on its task %s: %w", jobID, taskID, err)
-	}
 	under := pausedOnLine(jobID, taskID)
 	if waiting {
 		under = waitingOnLine(jobID, taskID)
+		mark.Question = outcome.Report
 	}
-	return theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+under)
+	marking := theLoop.options.Jobs.PutDown(ctx, mark)
+	if marking != nil {
+		marking = fmt.Errorf("cannot put job %s down on its task %s: %w", jobID, taskID, marking)
+		under = couldNotMarkLine(jobID, taskID, waiting, marking)
+	}
+	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+under); err != nil {
+		return err
+	}
+	return marking
+}
+
+// couldNotMarkLine is the line under a job task's report when the store would
+// not write the mark: what could not be marked, why, and what to do, which for
+// a stopped task is the word that tries again and for a question is the
+// answer itself, because the program still names the task on the person's
+// next message and the task is put down again when it ends.
+func couldNotMarkLine(jobID string, taskID string, waiting bool, why error) string {
+	if waiting {
+		return fmt.Sprintf("I could not mark job %s as waiting on task %s (%v). Your answer still reaches the task, and I will try to mark it again when the task next stops.",
+			jobID, taskID, why)
+	}
+	return fmt.Sprintf("I could not mark job %s as paused on task %s (%v). Say %s to try again.",
+		jobID, taskID, why, contract.CarryOnWords[0])
 }
 
 // pausedOnLine is the line under a stopped job task's report: which job waits
@@ -105,7 +131,7 @@ func (theLoop *Loop) pickUpTheJobsTask(ctx context.Context, task Task) (Task, er
 		return theLoop.carryOn(ctx, task, putDown)
 	}
 	if fromJob, known := theLoop.jobTaskBehind(task.ResumeID); known {
-		task.FromJob, task.Unattended = &fromJob, fromJob.Unattended
+		task.FromJob, task.Unattended = &fromJob, false
 	}
 	return task, nil
 }
@@ -167,32 +193,40 @@ func isNewer(number string, other string) bool {
 }
 
 // carryOn turns the person's word, or their answer, into the job's task it
-// picks up. The job is set running again first, which forgets the mark and
-// lets go of the claim the stopped run held, so that the next task starts as
-// usual when this one finishes; then the run that was stopped or asked is
+// picks up. The job is set running again first, through Resume and never
+// RunNow, because the person means "carry on where you were": Resume forgets
+// the mark and lets go of the claim the stopped run held and touches nothing
+// else, where RunNow would take the date off the first unfinished task, which
+// may be one dated next week and not the one picked up, and fire a scheduled
+// job's tick at once; then the run that was stopped or asked is
 // picked up under the job when it made a record, and the task is started
 // afresh under the job, with its own words as the ask, when the stop or the
 // question came before its first tool call. What the person said beyond the
 // word, the answer to the task's question or a steer such as "but post at
 // noon", reaches the task too: a task picked up from its record has it written
 // in as a correction, and a task started afresh is told it right after its own
-// words, so the model is told both what to do and what the person said.
+// words, so the model is told both what to do and what the person said. A
+// task the person picks up is attended from then on, whoever made it: the
+// person is there to answer a preview, so a call on the ask-me-first list
+// asks them rather than stopping the task as it would for a schedule running
+// alone.
 func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.PutDownMark) (Task, error) {
 	jobID, taskID := putDown.Task.JobID, putDown.Task.TaskID
-	if err := theLoop.options.Jobs.RunNow(ctx, jobID); err != nil {
+	if err := theLoop.options.Jobs.Resume(ctx, jobID); err != nil {
 		return Task{}, fmt.Errorf("cannot set job %s running again to carry on its task %s: %w", jobID, taskID, err)
 	}
 	rest, _ := contract.CarryOn(task.Message.Text)
 	saidMore := putDown.Waiting || rest != ""
 	if !putDown.HasRecord {
 		fresh := taskFromJob(putDown.Task, task.Channel)
+		fresh.Unattended = false
 		if saidMore {
-			fresh.Answer = task.Message
+			fresh.Answer, fresh.Question = task.Message, putDown.Question
 		}
 		return fresh, nil
 	}
 	fromJob := putDown.Task
-	task.FromJob, task.Unattended, task.ResumeID = &fromJob, fromJob.Unattended, putDown.Run
+	task.FromJob, task.Unattended, task.ResumeID = &fromJob, false, putDown.Run
 	if !putDown.Waiting && rest != "" {
 		task.Correction = task.Message
 	}

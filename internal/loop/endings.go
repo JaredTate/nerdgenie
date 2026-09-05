@@ -29,9 +29,16 @@ var errWrapUpTimeUp = errors.New("the ending of the task was given ten seconds t
 // clock, so that a task cut off for any reason is still marked and reported,
 // and a log that will not answer cannot hold the ending forever.
 func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.CancelFunc) {
+	return running.theLoop.timeToWrapUp(ctx)
+}
+
+// timeToWrapUp is the same context for the bookkeeping the loop does after a
+// task of a job ends: its report into the job, or the job put down on it,
+// which must land whether or not the turn's context was cancelled under it.
+func (theLoop *Loop) timeToWrapUp(ctx context.Context) (context.Context, context.CancelFunc) {
 	fresh, cancel := context.WithCancelCause(context.WithoutCancel(ctx))
 	go func() {
-		if err := running.theLoop.options.Clock.Sleep(fresh, WrapUpTime); err == nil {
+		if err := theLoop.options.Clock.Sleep(fresh, WrapUpTime); err == nil {
 			cancel(errWrapUpTimeUp)
 		}
 	}()
@@ -49,10 +56,17 @@ func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.
 // more with their words in front of it and this reply does not stand. Messages
 // that arrive during a tool call are read at the end of the tool calls, so
 // this reads only what came during a reply with no tool call after it.
+//
+// The reply itself goes into the conversation before any of that is read, so
+// that the round a correction or a done-check nudge sends the model on shows
+// the person's words after the reply they answer. Only a reply with tool calls
+// used to be written down, and the one more round was handed a correction with
+// nothing before it but tool results.
 func (running *run) endOfTurn(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
 	}
+	running.remember(contract.Message{Role: contract.RoleAssistant, Text: text})
 	ended, more, corrections, err := running.readTheMessages(ctx, running.theLoop.takeDelivered())
 	if err != nil || !more {
 		return ended, false, err
@@ -60,29 +74,55 @@ func (running *run) endOfTurn(ctx context.Context, text string, why contract.Fin
 	if corrections > 0 {
 		return Outcome{}, true, nil
 	}
-	if running.isAQuestion(text, why) {
-		outcome, err := running.waitHere(ctx, text)
-		return outcome, false, err
-	}
 	if running.keeper == nil {
+		if running.isAQuestion(text, why) {
+			outcome, err := running.waitHere(ctx, text)
+			return outcome, false, err
+		}
 		outcome, err := running.answerWithNoRecord(ctx, text)
 		return outcome, false, err
 	}
-	if err := running.theReplyProvesItsLines(ctx, text); err != nil {
-		return Outcome{}, false, err
-	}
-	if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
+	return running.closeOrWait(ctx, text, why)
+}
+
+// closeOrWait ends a task that has a record: the done-check says whether the
+// work is done, and a question is read only where there is something left to
+// ask about.
+//
+// The done-check comes before the question, because a small model ends a
+// finished reply with a chatty question, "Anything else?", and the loop used
+// to read that one character first: a task with every done line proven, the
+// file written and the test printing PASS, went into waiting instead of
+// closing, and a job's task so ended put the job down at "1 of 3" with
+// nothing left to do. A record with no done list is the one exception, and
+// keeps its old reading: there is nothing to close on, so a question mark or
+// a plain-words ask on the last line is a question, and only a reply that
+// asks nothing is written in as the whole of the done list.
+func (running *run) closeOrWait(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
+	if running.theRecordHasNoDoneList() {
+		if running.isAQuestion(text, why) {
+			outcome, err := running.waitHere(ctx, text)
+			return outcome, false, err
+		}
+		if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
+			return Outcome{}, false, err
+		}
+	} else if err := running.theReplyProvesItsLines(ctx, text); err != nil {
 		return Outcome{}, false, err
 	}
 	problem, err := running.doneCheck(ctx)
 	if err != nil {
 		return Outcome{}, false, err
 	}
-	if problem != "" {
-		return running.backToWork(ctx, problem)
+	if problem == "" {
+		outcome, err := running.finish(ctx, text)
+		return outcome, false, err
 	}
-	outcome, err := running.finish(ctx, text)
-	return outcome, false, err
+	if running.isAQuestion(text, why) {
+		outcome, err := running.waitHere(ctx, text)
+		return outcome, false, err
+	}
+	return running.backToWork(ctx, problem)
 }
 
 // theReplyProvesItsLines writes the answer the model has just given into the
@@ -311,13 +351,54 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 	}
 	report := fmt.Sprintf("I stopped this task, because %s.\n%s", line, standing)
 	if running.task.FromJob == nil {
-		report += "\nTell me how to carry on and I will pick it up from here."
+		report += "\n" + running.howToCarryOn(ctx)
 	}
 	report = running.withTheLesson(report)
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
 	return Outcome{TaskID: running.taskID(), Status: contract.StatusStopped, Report: report, StopLine: line}, nil
+}
+
+// howToCarryOn is the last line of a person's stopped report: the invitation
+// to say how to carry on, or, when this task made a job that is running now,
+// which job and which task of it runs next and how to stop that too. The live
+// run found the invitation misleading there: the task's work had become the
+// job's, the driver started the job's first task the moment the task ended,
+// and the person's "continue" landed on that task. A job store that cannot
+// be read costs the report that line and nothing more, because the stop
+// itself must not wait on it.
+func (running *run) howToCarryOn(ctx context.Context) string {
+	theInvitation := "Tell me how to carry on and I will pick it up from here."
+	if len(running.jobsMade) == 0 || running.theLoop.options.Jobs == nil {
+		return theInvitation
+	}
+	listed, err := running.theLoop.options.Jobs.List(ctx)
+	if err != nil {
+		return theInvitation
+	}
+	for at := len(running.jobsMade) - 1; at >= 0; at-- {
+		for _, summary := range listed {
+			if summary.ID == running.jobsMade[at] && summary.State == contract.JobRunning {
+				return theJobRunsOnLine(summary)
+			}
+		}
+	}
+	return theInvitation
+}
+
+// theJobRunsOnLine says which job the stopped task made is running and which
+// of its tasks comes next, and how to stop that too.
+func theJobRunsOnLine(summary contract.JobSummary) string {
+	which := "next"
+	if summary.TasksDone == 0 {
+		which = "first"
+	}
+	if summary.NextTaskID == "" {
+		return fmt.Sprintf("Job %s, which this task made, is running; watch it on the side, and say stop to stop that too.", summary.ID)
+	}
+	return fmt.Sprintf("Job %s, which this task made, is running: its %s task, %s, starts as soon as this one ends. Watch it on the side, and say stop to stop that too.",
+		summary.ID, which, summary.NextTaskID)
 }
 
 // failHere ends a task that could not be finished, and says what went wrong. A

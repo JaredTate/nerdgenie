@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -21,7 +20,10 @@ func (jobs *Jobs) SwitchOff(ctx context.Context, jobID string) error {
 
 // PutDown pauses a job on one of its tasks and writes the mark into the job's
 // state, where a restart reads it back. The record's own status moves to
-// waiting with it, which is what "/jobs" shows for a job holding on a task.
+// waiting with it, which is what "/jobs" shows for a job holding on a task. A
+// job that is switched off is refused, because the person ended it and a mark
+// would let "continue" start it again behind their back; a task that is
+// finished is refused, because there is nothing of it left to pick up.
 func (jobs *Jobs) PutDown(ctx context.Context, mark contract.PutDownMark) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -30,11 +32,21 @@ func (jobs *Jobs) PutDown(ctx context.Context, mark contract.PutDownMark) error 
 	if err != nil {
 		return err
 	}
+	if held.state.State == contract.JobOff {
+		return fmt.Errorf("job %s is switched off, so its task %s is not put down; run /cron run %s to start the job again",
+			jobID, taskID, jobID)
+	}
 	if _, err := unfinishedTask(held, jobID, taskID); err != nil {
 		return err
 	}
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(contract.JobPaused)); err != nil {
-		return fmt.Errorf("cannot write the status of job %s put down on task %s: %w", jobID, taskID, err)
+	return jobs.putDown(ctx, jobID, held, mark)
+}
+
+// putDown writes the mark and pauses the job on it. The caller holds the lock
+// and has checked that the job may be put down on that task.
+func (jobs *Jobs) putDown(ctx context.Context, jobID string, held *heldJob, mark contract.PutDownMark) error {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(contract.JobPaused)); err != nil {
+		return fmt.Errorf("cannot write the status of job %s put down on task %s: %w", jobID, mark.Task.TaskID, err)
 	}
 	changed := held.state
 	changed.State, changed.PutDown = contract.JobPaused, &mark
@@ -54,27 +66,19 @@ func (jobs *Jobs) PutDownTask(_ context.Context) (contract.PutDownMark, bool, er
 		if held.state.PutDown == nil || held.state.State != contract.JobPaused {
 			continue
 		}
-		if !there || runNumberOf(held.state.PutDown.Run) > runNumberOf(newest.Run) {
+		if !there || contract.RunNumberOf(held.state.PutDown.Run) > contract.RunNumberOf(newest.Run) {
 			newest, there = *held.state.PutDown, true
 		}
 	}
 	return newest, there, nil
 }
 
-// runNumberOf reads a run's number, and is zero for one that is not a number,
-// so that a mark with no run at all is the oldest of any.
-func runNumberOf(run string) int {
-	number, err := strconv.Atoi(run)
-	if err != nil {
-		return 0
-	}
-	return number
-}
-
-// Resume starts a job working again and forgets the failures that stopped it, so
-// that the next failure starts the count afresh rather than stopping it at once.
-//
-// The contract has no Resume yet, so "/resume" reaches it through this type.
+// Resume sets a paused job running again and nothing else: every task keeps
+// its date, a schedule keeps its next tick, the claims the paused run held are
+// let go, and the mark of a job put down on a task is forgotten. It also
+// forgets the failures that stopped the job, so that the next failure starts
+// the count afresh rather than stopping it at once. It is what the loop picks
+// a put-down task up with, and what "/resume" does.
 func (jobs *Jobs) Resume(ctx context.Context, jobID string) error {
 	return jobs.setState(ctx, jobID, contract.JobRunning)
 }
@@ -83,7 +87,10 @@ func (jobs *Jobs) Resume(ctx context.Context, jobID string) error {
 // taken off the next unfinished task rather than merely ignored once, because a
 // run-now that only changed where the job stood would leave the task waiting for
 // the very date the user has just overridden. A job with a schedule ticks at
-// once as well.
+// once as well. A job put down on a task runs that task first, with its claim
+// let go and the mark forgotten, and every other task keeps its date: the
+// task the person stopped is the one they mean, and a run-now that took the
+// date off the first unfinished task ran a task dated next week ahead of it.
 func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -91,6 +98,7 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	if err != nil {
 		return err
 	}
+	next := theTaskRunNowStarts(held)
 	if err := jobs.startWorking(ctx, jobID, held); err != nil {
 		return err
 	}
@@ -98,12 +106,11 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	if changed.Schedule != nil {
 		changed.NextRun = jobs.clock.Now()
 	}
-	next := ""
 	written := []record.NewJobTask{}
 	for _, task := range held.keeper.Record().Work.Tasks {
 		due := task.DueAt
-		if !task.Done && next == "" {
-			next, due = task.TaskID, ""
+		if task.TaskID == next {
+			due = ""
 		}
 		written = append(written, record.NewJobTask{TaskID: task.TaskID, Text: task.Text, DueAt: due})
 	}
@@ -117,6 +124,22 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 		return err
 	}
 	return jobs.writeProgress(ctx, jobID, held)
+}
+
+// theTaskRunNowStarts is the task a run-now starts without waiting: the task
+// the job is put down on when it is put down on one, and the first unfinished
+// task otherwise, or nothing when every task is done. The caller holds the
+// lock.
+func theTaskRunNowStarts(held *heldJob) string {
+	if held.state.PutDown != nil {
+		return held.state.PutDown.Task.TaskID
+	}
+	for _, task := range held.keeper.Record().Work.Tasks {
+		if !task.Done {
+			return task.TaskID
+		}
+	}
+	return ""
 }
 
 // SetMonitor says whether a job is watching for a change. A job that is watching
@@ -178,7 +201,7 @@ func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.Job
 	if state == contract.JobRunning {
 		return jobs.startWorking(ctx, jobID, held)
 	}
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(state)); err != nil {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(state)); err != nil {
 		return fmt.Errorf("cannot write the status of job %s: %w", jobID, err)
 	}
 	changed := held.state
@@ -190,7 +213,9 @@ func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.Job
 // still hold so that the task it was paused on is handed out first rather than
 // skipped as running, forgets the failures behind it and the task it was put
 // down on, and wakes the store, because a job set running has work due at
-// once. The caller holds the lock.
+// once. A job whose every task finished while it was paused closes here, the
+// way it would have closed had it been running when the last one finished,
+// because there is nothing left for it to run. The caller holds the lock.
 func (jobs *Jobs) startWorking(ctx context.Context, jobID string, held *heldJob) error {
 	if err := jobs.releaseTheClaimsOf(ctx, jobID); err != nil {
 		return err
@@ -204,5 +229,5 @@ func (jobs *Jobs) startWorking(ctx context.Context, jobID string, held *heldJob)
 		return err
 	}
 	jobs.wake()
-	return nil
+	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held)
 }

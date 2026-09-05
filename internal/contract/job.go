@@ -2,6 +2,7 @@ package contract
 
 import (
 	"context"
+	"strconv"
 	"time"
 )
 
@@ -114,8 +115,11 @@ type TaskToRun struct {
 	TaskID string
 	// Text is the one line saying what the task does.
 	Text string
-	// Unattended says a schedule made the task, so nobody is there to answer a
-	// preview, and anything on the ask-me-first list stops the task instead.
+	// Unattended says a schedule made the task and nobody has picked it up, so
+	// nobody is there to answer a preview, and anything on the ask-me-first
+	// list stops the task instead. A task the person picks up, with the word
+	// that carries on or with an answer, is attended from then on whoever made
+	// it.
 	Unattended bool
 }
 
@@ -137,6 +141,39 @@ type PutDownMark struct {
 	// answers it. Otherwise the person stopped it, and only the word that
 	// carries on picks it up.
 	Waiting bool
+	// Question is the question the task asked, when Waiting, so that a task
+	// started afresh on the answer is shown its own question before the answer
+	// rather than asking it again. It is empty for a task the person stopped.
+	Question string
+}
+
+// RunNumberOf reads the run a put-down mark carries as the number it is, and
+// is zero for one that is not a number, so that a mark with no run at all is
+// the oldest of any. The real job store and the fake both pick the newest
+// put-down task by it, so it lives here rather than in each of them.
+func RunNumberOf(run string) int {
+	number, err := strconv.Atoi(run)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+
+// RecordStatusOfJob maps where a job stands onto the status its record prints:
+// a paused job is waiting, a job that is off is stopped, a done job is done,
+// and anything else is running. The real job store and the fake both print
+// it, so it lives here rather than in each of them.
+func RecordStatusOfJob(state JobState) RecordStatus {
+	switch state {
+	case JobPaused:
+		return StatusWaiting
+	case JobOff:
+		return StatusStopped
+	case JobDone:
+		return StatusDone
+	default:
+		return StatusRunning
+	}
 }
 
 // Job is a piece of work too big for one sitting: the same four parts as a task
@@ -151,8 +188,17 @@ type Job interface {
 	AddTask(ctx context.Context, task NewTask) (string, error)
 	// List returns every job, newest first.
 	List(ctx context.Context) ([]JobSummary, error)
-	// RunNow starts the job's next task without waiting for its date.
+	// RunNow starts the job's next task without waiting for its date: the date
+	// is taken off that task, a schedule ticks at once, and a job put down on a
+	// task runs that task first and forgets its mark.
 	RunNow(ctx context.Context, jobID string) error
+	// Resume sets a paused job running again and nothing else: every task keeps
+	// its date, a schedule keeps its next tick, the claims the paused run held
+	// are let go, and the mark of a job put down on a task is forgotten. It is
+	// what picks a put-down task up, because the person's word means "carry on
+	// where you were" and not "run now". A job that is not there is refused with
+	// an error naming it.
+	Resume(ctx context.Context, jobID string) error
 	// Pause stops the job after the running task finishes.
 	Pause(ctx context.Context, jobID string) error
 	// SwitchOff stops the job for good and tells the user.

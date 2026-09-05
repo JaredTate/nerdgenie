@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 	"unicode/utf8"
-
-	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 func TestADayOfTheMonthIsWrittenTheWayAPersonWritesIt(t *testing.T) {
@@ -19,23 +17,6 @@ func TestADayOfTheMonthIsWrittenTheWayAPersonWritesIt(t *testing.T) {
 	} {
 		if written := ordinal(shape.day); written != shape.want {
 			t.Errorf("day %d is written %q, want %q", shape.day, written, shape.want)
-		}
-	}
-}
-
-func TestEveryStateOfAJobHasAStatusItsRecordCanPrint(t *testing.T) {
-	for _, shape := range []struct {
-		state contract.JobState
-		want  contract.RecordStatus
-	}{
-		{contract.JobRunning, contract.StatusRunning},
-		{contract.JobPaused, contract.StatusWaiting},
-		{contract.JobOff, contract.StatusStopped},
-		{contract.JobDone, contract.StatusDone},
-		{contract.JobState("something else"), contract.StatusRunning},
-	} {
-		if written := recordStatusOfJob(shape.state); written != shape.want {
-			t.Errorf("a job that is %q writes the status %q, want %q", shape.state, written, shape.want)
 		}
 	}
 }

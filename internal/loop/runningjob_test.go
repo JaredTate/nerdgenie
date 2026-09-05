@@ -41,9 +41,7 @@ func TestTheLoopSaysWhichJobsTaskIsRunning(t *testing.T) {
 	jobID := aJobOfTwoTasks(t, built)
 	made, seen, _ := aLoopThatNotesTheRunningJobTask(t, built)
 
-	if _, err := made.RunNextJobTask(t.Context(), built.channel); err != nil {
-		t.Fatalf("the loop could not run the job's tasks: %v", err)
-	}
+	runTheJobToTheEnd(t, made, built.channel)
 
 	if len(*seen) != 2 {
 		t.Fatalf("the loop named a job's task at %d starts, want both tasks of the job: %+v", len(*seen), *seen)
@@ -99,9 +97,7 @@ func TestALoopRunsTheJobTaskItIsHanded(t *testing.T) {
 		t.Errorf("the user was sent %v, want the first task's report, so the task the driver claimed is the one that ran",
 			built.channel.Sent())
 	}
-	for _, task := range built.jobs.Tasks(jobID) {
-		if !task.Done {
-			t.Errorf("the task %s is not done after the loop ran the job through: %+v", task.TaskID, task)
-		}
+	if first := theJobsFirstTask(t, built, jobID); !first.Done {
+		t.Errorf("the task the driver handed over is not done after the loop ran it: %+v", first)
 	}
 }

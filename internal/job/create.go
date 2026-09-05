@@ -116,31 +116,6 @@ func (jobs *Jobs) addTask(ctx context.Context, jobID string, held *heldJob, text
 	return taskID, nil
 }
 
-// Update writes the model's half of a job's record: the why, the done list, the
-// stop list, the whole task list, a decision, or a failure. It is the same
-// update a task takes, because a job has the same four parts and the same rules.
-//
-// The contract has no method for this yet, so the job tool reaches it through
-// this type. Without it a job can never be closed, because closing one runs the
-// done-check and only the model writes a done list.
-func (jobs *Jobs) Update(ctx context.Context, jobID string, update record.Update) error {
-	for _, task := range update.Tasks {
-		if err := checkItCannotRestartTheAgent(task.Text); err != nil {
-			return err
-		}
-	}
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	held, err := jobs.find(jobID)
-	if err != nil {
-		return err
-	}
-	if err := held.keeper.Apply(ctx, update); err != nil {
-		return fmt.Errorf("cannot write the change to job %s: %w", jobID, err)
-	}
-	return jobs.writeProgress(ctx, jobID, held)
-}
-
 // highestTaskNumber is the largest number the task list has reached, which is
 // what the next task counts up from. A job lists its tasks in order, so a new
 // task always takes a number above every one before it.

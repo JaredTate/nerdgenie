@@ -116,6 +116,27 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 		if path := fieldOfCall(call, "path"); path != "" && !slices.Contains(running.filesChanged, path) {
 			running.filesChanged = append(running.filesChanged, path)
 		}
+	case call.Name == contract.ToolJob && !failed:
+		running.noteTheJobMade(text)
+	}
+}
+
+// noteTheJobMade writes down a job this task made, read off the job tool's
+// answer, which begins "created job 4". The stopped report of a person's task
+// names the job it made when that job is running, because the person's next
+// word would otherwise be taken for the task and land on the job's.
+func (running *run) noteTheJobMade(answer string) {
+	rest, made := strings.CutPrefix(firstLine(answer), "created job ")
+	if !made {
+		return
+	}
+	jobID, _, _ := strings.Cut(rest, " ")
+	if jobID == "" || slices.Contains(running.jobsMade, jobID) {
+		return
+	}
+	running.jobsMade = append(running.jobsMade, jobID)
+	if len(running.jobsMade) > MaxJobsMadeNoted {
+		running.jobsMade = running.jobsMade[1:]
 	}
 }
 

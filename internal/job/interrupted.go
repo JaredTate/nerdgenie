@@ -95,7 +95,7 @@ func (jobs *Jobs) newestRunsOf(ctx context.Context, left []claimedTask) (map[str
 			if err := json.Unmarshal(event.Body, &asked); err != nil || !wanted[asked.ID] {
 				return nil
 			}
-			if newest, known := runs[asked.ID]; known && runNumberOf(newest.number) >= runNumberOf(event.TaskID) {
+			if newest, known := runs[asked.ID]; known && contract.RunNumberOf(newest.number) >= contract.RunNumberOf(event.TaskID) {
 				return nil
 			}
 			delete(taskOfRun, runs[asked.ID].number)

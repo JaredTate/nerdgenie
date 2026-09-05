@@ -2,6 +2,7 @@ package contract
 
 import (
 	"context"
+	"strconv"
 	"time"
 )
 
@@ -144,6 +145,35 @@ type PutDownMark struct {
 	// started afresh on the answer is shown its own question before the answer
 	// rather than asking it again. It is empty for a task the person stopped.
 	Question string
+}
+
+// RunNumberOf reads the run a put-down mark carries as the number it is, and
+// is zero for one that is not a number, so that a mark with no run at all is
+// the oldest of any. The real job store and the fake both pick the newest
+// put-down task by it, so it lives here rather than in each of them.
+func RunNumberOf(run string) int {
+	number, err := strconv.Atoi(run)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+
+// RecordStatusOfJob maps where a job stands onto the status its record prints:
+// a paused job is waiting, a job that is off is stopped, a done job is done,
+// and anything else is running. The real job store and the fake both print
+// it, so it lives here rather than in each of them.
+func RecordStatusOfJob(state JobState) RecordStatus {
+	switch state {
+	case JobPaused:
+		return StatusWaiting
+	case JobOff:
+		return StatusStopped
+	case JobDone:
+		return StatusDone
+	default:
+		return StatusRunning
+	}
 }
 
 // Job is a piece of work too big for one sitting: the same four parts as a task

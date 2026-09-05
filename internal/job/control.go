@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -46,7 +45,7 @@ func (jobs *Jobs) PutDown(ctx context.Context, mark contract.PutDownMark) error 
 // putDown writes the mark and pauses the job on it. The caller holds the lock
 // and has checked that the job may be put down on that task.
 func (jobs *Jobs) putDown(ctx context.Context, jobID string, held *heldJob, mark contract.PutDownMark) error {
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(contract.JobPaused)); err != nil {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(contract.JobPaused)); err != nil {
 		return fmt.Errorf("cannot write the status of job %s put down on task %s: %w", jobID, mark.Task.TaskID, err)
 	}
 	changed := held.state
@@ -67,21 +66,11 @@ func (jobs *Jobs) PutDownTask(_ context.Context) (contract.PutDownMark, bool, er
 		if held.state.PutDown == nil || held.state.State != contract.JobPaused {
 			continue
 		}
-		if !there || runNumberOf(held.state.PutDown.Run) > runNumberOf(newest.Run) {
+		if !there || contract.RunNumberOf(held.state.PutDown.Run) > contract.RunNumberOf(newest.Run) {
 			newest, there = *held.state.PutDown, true
 		}
 	}
 	return newest, there, nil
-}
-
-// runNumberOf reads a run's number, and is zero for one that is not a number,
-// so that a mark with no run at all is the oldest of any.
-func runNumberOf(run string) int {
-	number, err := strconv.Atoi(run)
-	if err != nil {
-		return 0
-	}
-	return number
 }
 
 // Resume sets a paused job running again and nothing else: every task keeps
@@ -212,7 +201,7 @@ func (jobs *Jobs) setState(ctx context.Context, jobID string, state contract.Job
 	if state == contract.JobRunning {
 		return jobs.startWorking(ctx, jobID, held)
 	}
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(state)); err != nil {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(state)); err != nil {
 		return fmt.Errorf("cannot write the status of job %s: %w", jobID, err)
 	}
 	changed := held.state

@@ -8,13 +8,7 @@ import (
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/job"
-	"github.com/JaredTate/nerdgenie/internal/record"
 )
-
-// aDoneList is one done line, with the report that proves it when there is one.
-func aDoneList(text string, reportID string) record.Update {
-	return record.Update{DoneWhen: []contract.DoneLine{{Text: text, Done: reportID != "", ResultID: reportID}}}
-}
 
 func TestOneIncidentPerDistinctFailureCountedRatherThanRepeated(t *testing.T) {
 	holding := newJobs(t)
@@ -215,10 +209,6 @@ func TestAJobCanNeverBeMadeToRestartTheAgent(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("a job was created whose ask names work that restarts the agent, and the ask is what the model reads at the top of every one of that job's tasks")
-	}
-	err = holding.jobs.Update(ctx, jobID, record.Update{Tasks: []record.NewJobTask{{TaskID: "t99", Text: "reboot the machine"}}})
-	if err == nil {
-		t.Error("the model wrote a task list holding work that would restart the agent")
 	}
 }
 

@@ -236,7 +236,7 @@ func (jobs *Jobs) stopTheJob(ctx context.Context, jobID string, held *heldJob,
 	if err != nil {
 		return fmt.Errorf("cannot write into job %s why it stopped: %w", jobID, err)
 	}
-	if err := held.keeper.SetStatus(ctx, recordStatusOfJob(state)); err != nil {
+	if err := held.keeper.SetStatus(ctx, contract.RecordStatusOfJob(state)); err != nil {
 		return fmt.Errorf("cannot write the status of job %s: %w", jobID, err)
 	}
 	changed := held.state
@@ -266,20 +266,6 @@ func (jobs *Jobs) sayTheJobStopped(ctx context.Context, jobID string, why string
 		return fmt.Errorf("job %s stopped and the user was not told why: %w", jobID, err)
 	}
 	return nil
-}
-
-// recordStatusOfJob maps where a job stands onto the statuses a record prints.
-func recordStatusOfJob(state contract.JobState) contract.RecordStatus {
-	switch state {
-	case contract.JobPaused:
-		return contract.StatusWaiting
-	case contract.JobOff:
-		return contract.StatusStopped
-	case contract.JobDone:
-		return contract.StatusDone
-	default:
-		return contract.StatusRunning
-	}
 }
 
 // recordHoldsReport says whether a report with that identifier is on the job's

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
-	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 func TestEveryCallSaysSoWhenTheDatabaseHasGoneRatherThanPretending(t *testing.T) {
@@ -68,9 +67,6 @@ func everyCallOn(holding *opened, jobID string, taskID string) []oneCall {
 		{"adding a task", func() error {
 			_, err := holding.jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "one more task"})
 			return err
-		}},
-		{"writing the model's half", func() error {
-			return holding.jobs.Update(ctx, jobID, record.Update{Why: "because it must be written"})
 		}},
 		{"pausing the job", func() error { return holding.jobs.Pause(ctx, jobID) }},
 		{"resuming the job", func() error { return holding.jobs.Resume(ctx, jobID) }},

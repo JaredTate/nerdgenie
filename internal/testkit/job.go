@@ -127,9 +127,11 @@ func (jobs *FakeJob) List(_ context.Context) ([]contract.JobSummary, error) {
 }
 
 // RunNow starts the job's next task without waiting for its date: the job runs
-// again and the next unfinished task loses its due date, so that NextTask hands
-// it out at once. A run-now that only changed the state would leave the task
-// waiting for the very date the user just overrode.
+// again, every claim its tasks held is let go, the way the real store lets go
+// of the claims a paused run held, and the next unfinished task loses its due
+// date, so that NextTask hands it out at once. A run-now that only changed the
+// state would leave the task waiting for the very date the user just overrode,
+// or skip it as still running.
 func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -141,8 +143,11 @@ func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
 	entry.summary.State = contract.JobRunning
 	entry.putDown = nil
 	for index := range entry.tasks {
+		entry.tasks[index].running = false
+	}
+	for index := range entry.tasks {
 		task := &entry.tasks[index]
-		if task.task.Done || task.running {
+		if task.task.Done {
 			continue
 		}
 		task.dueAt = time.Time{}

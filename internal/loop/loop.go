@@ -103,12 +103,20 @@ type Task struct {
 	// ResumeID is the number of a task that was waiting or stopped and is being
 	// picked up again, and is empty for a new task.
 	ResumeID string
-	// Answer is the person's answer to a question this job's task asked before
-	// it had made a record. There is nothing to pick up, so the task is started
+	// Answer is what the person said when they picked up a job's task that had
+	// made no record: the answer to the question it asked, or the words they
+	// carried it on with. There is nothing to pick up, so the task is started
 	// afresh under the job with its own words as the ask, and the answer is put
 	// in front of the model right after them, so the task is told both what to
 	// do and what the person said. Its text is empty for every other task.
 	Answer contract.Inbound
+	// Correction is the message that picked a job's stopped task up when it
+	// said more than the word that carries on, such as "continue, but post at
+	// noon". The task reads the whole message as the person's words, and it is
+	// written into the record as a correction, the way a message that arrives
+	// mid-task is, so that the steer outlives this sitting. Its text is empty
+	// for every other task.
+	Correction contract.Inbound
 }
 
 // Outcome is where one task ended.
@@ -122,6 +130,11 @@ type Outcome struct {
 	Report string
 	// StopLine is the line of the stop list that fired, when one did.
 	StopLine string
+	// ByThePerson says the person stopped the task, with Escape, "/stop", or
+	// the word stop, rather than the harness stopping it on a line of the stop
+	// list or a spent budget. A person's stop puts a job's task down whoever
+	// made the task; the harness's stop on a schedule's task is a failure.
+	ByThePerson bool
 }
 
 // Loop runs one task at a time. Everything it needs is an interface, so the

@@ -127,6 +127,19 @@ func (jobs *Jobs) claim(ctx context.Context, jobID string, taskID string, now ti
 	return changed == 1, nil
 }
 
+// releaseTheClaimsOf gives up every claim on one job's tasks, which is what
+// setting a paused job running again does. Nothing of a paused job is running,
+// so a claim one of its tasks still holds is the run the person stopped it on;
+// kept, it would make the store skip that task as running and hand out the one
+// after it, and then count it as a failure when the claim ran out an hour on.
+func (jobs *Jobs) releaseTheClaimsOf(ctx context.Context, jobID string) error {
+	_, err := jobs.database.ExecContext(ctx, `DELETE FROM job_claims WHERE job_id = ?`, jobID)
+	if err != nil {
+		return fmt.Errorf("cannot release the claims on the tasks of job %s: %w", jobID, err)
+	}
+	return nil
+}
+
 // release gives up the claim on one task, which is what finishing it does.
 func (jobs *Jobs) release(ctx context.Context, jobID string, taskID string) error {
 	_, err := jobs.database.ExecContext(ctx,

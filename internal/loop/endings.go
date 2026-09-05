@@ -284,13 +284,18 @@ func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) 
 // cancelled, and the loop at once made another call they had to press Escape
 // at again. A stop the person asked for ends with the call they stopped.
 func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome, error) {
-	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+	outcome, err := running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+	outcome.ByThePerson = true
+	return outcome, err
 }
 
 // stopAndSay ends the task as stopped and sends the one report the user gets:
-// which line stopped it, where the work stands, and how to carry it on. The four
-// review questions are asked unless the caller has already spent the ending's
-// model call on the words in the middle of that report.
+// which line stopped it, where the work stands, and how to carry it on. A job's
+// task is told how to carry on by the line the job puts under the report, which
+// names the one word that picks it up, so that line is left off here rather
+// than giving two instructions. The four review questions are asked unless the
+// caller has already spent the ending's model call on the words in the middle
+// of that report.
 func (running *run) stopAndSay(ctx context.Context, line string, standing string, askTheQuestions bool) (Outcome, error) {
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
@@ -304,9 +309,11 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 			return Outcome{}, err
 		}
 	}
-	report := running.withTheLesson(fmt.Sprintf(
-		"I stopped this task, because %s.\n%s\nTell me how to carry on and I will pick it up from here.",
-		line, standing))
+	report := fmt.Sprintf("I stopped this task, because %s.\n%s", line, standing)
+	if running.task.FromJob == nil {
+		report += "\nTell me how to carry on and I will pick it up from here."
+	}
+	report = running.withTheLesson(report)
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}

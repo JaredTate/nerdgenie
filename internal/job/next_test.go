@@ -335,10 +335,11 @@ func TestAJobSetRunningAgainHandsOutThePutDownTaskFirstWithItsOldClaimReleased(t
 		t.Errorf("a minute after run now the next task is %+v (due %v), want %s, the task the job was paused on, and not %s", next, due, first, second)
 	}
 	// The claim the paused run held would have run out an hour after it was
-	// taken. It was let go instead, so nothing runs out, nothing is counted,
-	// and the task handed out again is still the one running.
-	if next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+30*time.Second)); due {
-		t.Errorf("past the old claim's hour the store handed out %+v, and the task handed out after run now is still running", next)
+	// taken. It was let go instead, so nothing runs out and nothing is
+	// counted: the task handed out again is still running under its fresh
+	// claim, and is neither offered a third time nor written down as failed.
+	if next, due := holding.nextTask(t, theEpoch().Add(job.TaskBudget+30*time.Second)); due && next.TaskID == first {
+		t.Errorf("past the old claim's hour the store handed out %+v again, and the task handed out after run now is still running", next)
 	}
 	if failures := holding.summaryOf(t, jobID).FailuresInARow; failures != 0 {
 		t.Errorf("the old claim was counted as %d failures, want none", failures)

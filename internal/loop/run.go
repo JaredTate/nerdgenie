@@ -182,6 +182,11 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 			return nil, err
 		}
 	}
+	if task.Correction.Text != "" {
+		if err := running.steerFromTheStart(ctx, task.Correction.Text); err != nil {
+			return nil, err
+		}
+	}
 	return running, nil
 }
 

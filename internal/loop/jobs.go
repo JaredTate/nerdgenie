@@ -13,15 +13,20 @@ import (
 // user with the job's progress line on it, and hands back the next task the job
 // wants run. A task the person stopped, or one that stopped to ask them a
 // question, is not finished at all: it is put down where it is, for the person
-// to pick up with the word that carries on or with their answer. A task nobody
-// attended that stops or asks has nobody to pick it up, so it is finished as
-// the failure it is, and the schedule's next tick brings its own task.
+// to pick up with the word that carries on or with their answer. A person's
+// stop puts down any job's task, a schedule's included, because unattended
+// means a schedule made the task and not that nobody is watching: the person
+// at the terminal stopped it on purpose. A schedule's task that the harness
+// stopped, on a spent budget or a line of the stop list, or that asked a
+// question, has nobody to pick it up, so it is finished as the failure it is,
+// and the schedule's next tick brings its own task.
 func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) (Task, bool, error) {
 	if theLoop.options.Jobs == nil {
 		return Task{}, false, nil
 	}
-	putDown := outcome.Status == contract.StatusStopped || outcome.Status == contract.StatusWaiting
-	if putDown && !task.Unattended {
+	stopped := outcome.Status == contract.StatusStopped
+	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
+	if putDown || (stopped && outcome.ByThePerson) {
 		return Task{}, false, theLoop.putTheTaskDown(ctx, task, number, outcome)
 	}
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID

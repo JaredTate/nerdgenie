@@ -217,16 +217,7 @@ func (keeper *Keeper) MarkPlanStep(ctx context.Context, number int, resultID str
 		return err
 	}
 	return keeper.change(ctx, func(into *contract.Record) error {
-		if number < 1 || number > len(into.Work.Plan) {
-			return fmt.Errorf("there is no plan step numbered %d, and this plan has %d steps in it", number, len(into.Work.Plan))
-		}
-		if !recordHoldsResult(into, resultID) {
-			return fmt.Errorf("the plan step numbered %d would be marked done by %q, which this record never wrote: %w",
-				number, resultID, ErrPlanStepNeedsResult)
-		}
-		into.Work.Plan[number-1].Done = true
-		into.Work.Plan[number-1].ResultID = resultID
-		return nil
+		return markStep(into, number, resultID)
 	})
 }
 

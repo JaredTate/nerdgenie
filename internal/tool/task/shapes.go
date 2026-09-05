@@ -38,6 +38,8 @@ type writtenCall struct {
 	Cause json.RawMessage `json:"cause"`
 	// Line is which done line to pin a result to, counting from one.
 	Line json.RawMessage `json:"line"`
+	// Step is which plan step to mark done, counting from one.
+	Step json.RawMessage `json:"step"`
 	// Result is the result to pin, such as r7.
 	Result json.RawMessage `json:"result"`
 	// ResultOneWord is the same label under the name the fixture uses.

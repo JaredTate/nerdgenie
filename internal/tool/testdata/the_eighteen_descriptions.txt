@@ -5,7 +5,7 @@ search             37 words  Finds the files whose names match a pattern and the
 shell              36 words  Runs a command in the sandbox. After ten seconds it hands back an id to poll, tail, or kill. Set escalate with a written reason to ask for administrator powers. Use read and search for files.
 web                25 words  Searches the web, or fetches one public page as text. Anything behind a login, a click, or a form belongs to the browser tools instead.
 memory             31 words  Searches what the agent knows, brings one fact back by its name, or writes a new fact down with its source. Use read for a file and search for a folder.
-task               34 words  Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, a failure with its cause, or a result pinned to the done line it proves.
+task               37 words  Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, a failure with its cause, a result pinned to its done line, or a plan step marked done.
 skill              29 words  Shows a saved procedure, runs one on the words you give it, or writes a new one down as a folder of files. Use shell for a one-off command.
 job                39 words  Creates a named job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. Use it only when the work needs more than one sitting.
 browser_open       31 words  Takes the agent's own Chrome to a web address and hands back the page as an outline. Use web fetch instead for a page that needs no login and no clicking.

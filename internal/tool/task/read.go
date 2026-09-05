@@ -84,6 +84,9 @@ func readTheRest(held writtenCall, asked *input) error {
 	if asked.Line, err = readNumber(held.Line, "line"); err != nil {
 		return err
 	}
+	if asked.Step, err = readNumber(held.Step, "step"); err != nil {
+		return err
+	}
 	if asked.Decision, err = readPair(held.Decision, "decision"); err != nil {
 		return err
 	}
@@ -105,7 +108,7 @@ func operationOf(asked input) (string, error) {
 	}
 	known, itIs := theOperations[plainName(asked.Operation)]
 	if !itIs {
-		return "", fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, or pin_result", asked.Operation)
+		return "", fmt.Errorf("the operation %q is not one this tool knows, so use why, done_when, stop_when, plan, decision, failure, pin_result, or step_done", asked.Operation)
 	}
 	return known, nil
 }
@@ -120,6 +123,7 @@ var theOperations = map[string]string{
 	"decision":  OperationDecision,
 	"failure":   OperationFailure,
 	"pinresult": OperationPinResult,
+	"stepdone":  OperationStepDone,
 }
 
 // theWordsInFront are the words a model puts in front of an operation because
@@ -159,6 +163,8 @@ func inferredOperation(asked input) string {
 		return OperationFailure
 	case asked.Line > 0 && strings.TrimSpace(asked.Result) != "":
 		return OperationPinResult
+	case asked.Step > 0 && strings.TrimSpace(asked.Result) != "":
+		return OperationStepDone
 	default:
 		return operationSections
 	}
@@ -195,6 +201,8 @@ func check(asked input) error {
 		return needsText(asked.Failure.Text, "a failure is something that went wrong, so write what went wrong in one line")
 	case OperationPinResult:
 		return checkPin(asked)
+	case OperationStepDone:
+		return checkStep(asked)
 	default:
 		return checkSections(asked)
 	}
@@ -226,6 +234,17 @@ func checkPin(asked input) error {
 	}
 	if strings.TrimSpace(asked.Result) == "" {
 		return errors.New("this call names no result, so give the label of the result that proves the line, such as r7")
+	}
+	return nil
+}
+
+// checkStep refuses a step mark that names no step or no result.
+func checkStep(asked input) error {
+	if asked.Step < 1 {
+		return errors.New("this call names no plan step, so say which step is done, counting from one")
+	}
+	if strings.TrimSpace(asked.Result) == "" {
+		return errors.New("this call names no result, so give the label of the result that proves the step, such as r7")
 	}
 	return nil
 }

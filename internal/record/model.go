@@ -37,6 +37,18 @@ type Update struct {
 	Decision *NewDecision
 	// Failure is one thing that went wrong to add, with the cause it must carry.
 	Failure *NewFailure
+	// StepDone marks one step of a task's plan done and points it at the
+	// result that proves it, which is the check mark the side panel draws.
+	StepDone *StepDone
+}
+
+// StepDone is one plan step to mark done: its number, counting from one, and
+// the result that proves it.
+type StepDone struct {
+	// Number is which step, counting from one.
+	Number int
+	// ResultID is the result that proves the step, such as r7.
+	ResultID string
 }
 
 // MaxDoneLines is how many lines a task's done list may hold. A task is one
@@ -96,7 +108,7 @@ type NewJobTask struct {
 // most rounds hand over.
 func (update Update) nothingToWrite() bool {
 	return update.Name == "" && update.Why == "" && update.DoneWhen == nil && update.StopWhen == nil &&
-		update.Plan == nil && update.Tasks == nil && update.Decision == nil && update.Failure == nil
+		update.Plan == nil && update.Tasks == nil && update.Decision == nil && update.Failure == nil && update.StepDone == nil
 }
 
 // Apply writes the model's half of the record. It is all or nothing: every rule
@@ -162,7 +174,7 @@ func (keeper *Keeper) changeOrWait(ctx context.Context, write func(into *contrac
 // applyUpdate runs every part of an update through its rules and writes it.
 func applyUpdate(into *contract.Record, update Update) error {
 	for _, write := range []func(*contract.Record, Update) error{
-		applyName, applyWhy, applyDoneWhen, applyStopWhen, applyPlan, applyTasks, applyDecision, applyFailure,
+		applyName, applyWhy, applyDoneWhen, applyStopWhen, applyPlan, applyStepDone, applyTasks, applyDecision, applyFailure,
 	} {
 		if err := write(into, update); err != nil {
 			return err
@@ -349,6 +361,37 @@ func applyDecision(into *contract.Record, update Update) error {
 		Text:   update.Decision.Text,
 		Reason: update.Decision.Reason,
 	})
+	return nil
+}
+
+// applyStepDone marks one step of a task's plan done, through the same rules
+// MarkPlanStep holds: the step must be one the plan has, and the result must
+// be one the record wrote. It is the write behind the task tool's step_done,
+// which a live build showed the record needed: its plan stood at "0 of 9 done"
+// on the panel after the engine, the hazards and the UI were finished,
+// because nothing ever marked a step.
+func applyStepDone(into *contract.Record, update Update) error {
+	if update.StepDone == nil {
+		return nil
+	}
+	if into.Header.Kind != contract.RecordTask {
+		return fmt.Errorf("a plan step belongs to a task and this is a %s, which has a task list: %w", into.Header.Kind, ErrWrongKind)
+	}
+	return markStep(into, update.StepDone.Number, update.StepDone.ResultID)
+}
+
+// markStep is the check mark itself, shared by the model's step_done and the
+// harness's MarkPlanStep.
+func markStep(into *contract.Record, number int, resultID string) error {
+	if number < 1 || number > len(into.Work.Plan) {
+		return fmt.Errorf("there is no plan step numbered %d, and this plan has %d steps in it", number, len(into.Work.Plan))
+	}
+	if !recordHoldsResult(into, resultID) {
+		return fmt.Errorf("the plan step numbered %d would be marked done by %q, which this record never wrote: %w",
+			number, resultID, ErrPlanStepNeedsResult)
+	}
+	into.Work.Plan[number-1].Done = true
+	into.Work.Plan[number-1].ResultID = resultID
 	return nil
 }
 

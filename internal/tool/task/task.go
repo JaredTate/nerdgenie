@@ -28,6 +28,9 @@ const (
 	OperationFailure = "failure"
 	// OperationPinResult points one done line at the result that proves it.
 	OperationPinResult = "pin_result"
+	// OperationStepDone marks one plan step done with the result that proves
+	// it, which is the check mark the side panel draws.
+	OperationStepDone = "step_done"
 	// The three the turn loop answers before this tool is ever asked: the
 	// model declaring one of its own stop lines has come true, and pinning or
 	// unpinning a result so it stays in front of the model. They are named
@@ -82,7 +85,9 @@ type input struct {
 	Cause string
 	// Line is which done line to pin a result to, counting from one.
 	Line int
-	// Result is the result to pin, such as r7.
+	// Step is which plan step to mark done, counting from one.
+	Step int
+	// Result is the result to pin, or the result that proves the step, such as r7.
 	Result string
 	// Decision is the choice this call adds, with the reason it must carry.
 	Decision *writtenPair
@@ -110,9 +115,9 @@ func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolTask,
 		Description: "Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, " +
-			"a failure with its cause, or a result pinned to the done line it proves.",
+			"a failure with its cause, a result pinned to its done line, or a plan step marked done.",
 		Fields: []contract.ToolField{
-			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result; or stop_now, pin_evidence, unpin_evidence, which the harness answers at once.", Required: true},
+			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result, step_done; or stop_now, pin_evidence, unpin_evidence, which the harness answers at once.", Required: true},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once (the text field is taken for it too)."},
 			{Name: "done_when", Type: "array", Description: "The whole done list, at most five lines: each line as a string, or as an object with text, done, and the result that proves it; a line only your answer to the user can prove names \"reply\" as its result. More than five lines is a job."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
@@ -121,7 +126,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "reason", Type: "string", Description: "Why the choice was made."},
 			{Name: "cause", Type: "string", Description: "Why the thing went wrong."},
 			{Name: "line", Type: "integer", Description: "Which done line to pin a result to, counting from one."},
-			{Name: "result", Type: "string", Description: "The result to pin, such as r7."},
+			{Name: "step", Type: "integer", Description: "With step_done, which plan step is finished, counting from one. Mark each step the moment it is done."},
+			{Name: "result", Type: "string", Description: "The result to pin, or the result that proves the step, such as r7."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassWrite},
 	}
@@ -163,6 +169,16 @@ type theChangeMade struct {
 	Decision *writtenPair `json:"decision,omitempty"`
 	// Failure is what went wrong, with its cause.
 	Failure *writtenPair `json:"failure,omitempty"`
+	// StepDone is the plan step marked done, with the result that proves it.
+	StepDone *stepMade `json:"step_done,omitempty"`
+}
+
+// stepMade is the plan step a write marked done, as the tool answers it.
+type stepMade struct {
+	// Step is which step, counting from one.
+	Step int `json:"step"`
+	// Result is the result that proves it.
+	Result string `json:"result"`
 }
 
 // theDoneLineMade is one line of the done list as it comes back, under the
@@ -209,6 +225,7 @@ func theChangeIn(update record.Update) (theChangeMade, []string) {
 		{len(update.Plan) > 0, "plan"},
 		{update.Decision != nil, "decision"},
 		{update.Failure != nil, "failure"},
+		{update.StepDone != nil, "step_done"},
 	} {
 		if part.wrote {
 			names = append(names, part.name)
@@ -219,6 +236,9 @@ func theChangeIn(update record.Update) (theChangeMade, []string) {
 	}
 	if update.Failure != nil {
 		made.Failure = &writtenPair{Text: update.Failure.Text, Cause: update.Failure.Cause}
+	}
+	if update.StepDone != nil {
+		made.StepDone = &stepMade{Step: update.StepDone.Number, Result: update.StepDone.ResultID}
 	}
 	return made, names
 }
@@ -233,6 +253,8 @@ func (tool *Tool) updateFor(asked input) (record.Update, error) {
 		return record.Update{Failure: &record.NewFailure{Text: asked.Failure.Text, Cause: asked.Failure.Cause}}, nil
 	case OperationPinResult:
 		return tool.pinResult(asked)
+	case OperationStepDone:
+		return record.Update{StepDone: &record.StepDone{Number: asked.Step, ResultID: asked.Result}}, nil
 	default:
 		return sectionsUpdate(asked), nil
 	}

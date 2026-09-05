@@ -56,3 +56,22 @@ func TestALineNumberIsReadAsANumberOrAsAQuotedOne(t *testing.T) {
 		}
 	}
 }
+
+// TestTheLoopsOwnTaskToolReadsAStepDone holds the loop's copy of the task
+// tool to the same door: step_done with a step and a result reads as a step
+// mark and nothing else.
+func TestTheLoopsOwnTaskToolReadsAStepDone(t *testing.T) {
+	update, err := readRecordUpdate(json.RawMessage(`{"operation":"step_done","step":2,"result":"r1"}`), contract.Record{})
+	if err != nil {
+		t.Fatalf("a step_done write was refused: %v", err)
+	}
+	if update.StepDone == nil || update.StepDone.Number != 2 || update.StepDone.ResultID != "r1" {
+		t.Errorf("the write reads %+v, want step 2 marked by r1", update.StepDone)
+	}
+	if update.Plan != nil || update.DoneWhen != nil {
+		t.Errorf("the write also carries a plan or a done list: %+v", update)
+	}
+	if _, err := readRecordUpdate(json.RawMessage(`{"operation":"step_done","result":"r1"}`), contract.Record{}); err == nil {
+		t.Error("a step_done naming no step was taken")
+	}
+}

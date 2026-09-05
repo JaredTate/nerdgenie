@@ -29,7 +29,8 @@ var TheTaskToolSpec = contract.ToolSpec{
 		{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 		{Name: "decision", Type: "object", Description: "A choice, as a text and the reason it was made."},
 		{Name: "failure", Type: "object", Description: "Something that went wrong, as a text and its cause."},
-		{Name: "operation", Type: "string", Description: "One of stop_now, pin_evidence, unpin_evidence, or left out to write the record."},
+		{Name: "operation", Type: "string", Description: "One of stop_now, pin_evidence, unpin_evidence, step_done, or left out to write the record."},
+		{Name: "step", Type: "integer", Description: "With step_done, which plan step is finished, counting from one; mark each step the moment it is done, with the result that proves it."},
 		{Name: "text", Type: "string", Description: "With stop_now, the line of the stop list that has come true."},
 		{Name: "result", Type: "string", Description: "With pin_evidence or unpin_evidence, the result to pin or unpin, such as r7."},
 	},
@@ -73,6 +74,8 @@ type recordWrite struct {
 	Cause string `json:"cause"`
 	// Line is which done line to point at a result, counting from one.
 	Line wholeNumber `json:"line"`
+	// Step is which plan step to mark done, counting from one.
+	Step wholeNumber `json:"step"`
 	// Result is the result to point that line at, such as "r7".
 	Result string `json:"result"`
 }
@@ -175,6 +178,8 @@ func readRecordUpdate(arguments json.RawMessage, held contract.Record) (record.U
 	switch written.Operation {
 	case operationPinResult:
 		return pinTheResultToItsLine(written, held)
+	case operationStepDone:
+		return markTheStepDone(written)
 	case operationDecision:
 		written.Decision = &pairWrite{Text: written.Text, Reason: written.Reason}
 	case operationFailure:
@@ -218,7 +223,21 @@ const (
 	operationFailure = "failure"
 	// operationPinResult points one done line at the result that proves it.
 	operationPinResult = "pin_result"
+	// operationStepDone marks one plan step done with the result that proves it.
+	operationStepDone = "step_done"
 )
+
+// markTheStepDone reads a step_done: the step's number and the result that
+// proves it, both of which the record checks against what it holds.
+func markTheStepDone(written recordWrite) (record.Update, error) {
+	if written.Step < 1 {
+		return record.Update{}, errors.New("this call names no plan step, so say which step is done, counting from one")
+	}
+	if strings.TrimSpace(written.Result) == "" {
+		return record.Update{}, errors.New("this call names no result, so give the label of the result that proves the step, such as r7")
+	}
+	return record.Update{StepDone: &record.StepDone{Number: int(written.Step), ResultID: written.Result}}, nil
+}
 
 // pinTheResultToItsLine marks one done line proven and points it at the result
 // that proves it, by writing the whole done list back with that one line
@@ -252,13 +271,13 @@ func eitherWay[Item any](first []Item, second []Item) []Item {
 // nothingWritten says whether an update would change nothing at all.
 func nothingWritten(update record.Update) bool {
 	return update.Why == "" && update.DoneWhen == nil && update.StopWhen == nil &&
-		update.Plan == nil && update.Tasks == nil && update.Decision == nil && update.Failure == nil
+		update.Plan == nil && update.Tasks == nil && update.Decision == nil && update.Failure == nil && update.StepDone == nil
 }
 
 // whatTheTaskToolTakes names the fields of the task tool, so that a model whose
 // write was refused is told what to write instead.
 func whatTheTaskToolTakes() string {
-	return `Write one object with any of: "why", "done_when", "stop_when", "plan", "tasks", "decision" (with a reason), "failure" (with a cause).`
+	return `Write one object with any of: "why", "done_when", "stop_when", "plan", "tasks", "decision" (with a reason), "failure" (with a cause); or "step_done" with "step" and "result".`
 }
 
 // fieldsWritten names the parts of the record one write touched, in order, for

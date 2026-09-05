@@ -977,10 +977,12 @@ internal/testkit/browserserver_test.go
 internal/testkit/channel.go
 internal/testkit/channel_test.go
 internal/testkit/checks_catch_job_test.go
+internal/testkit/checks_catch_lifecycle_test.go
 internal/testkit/checks_catch_more_test.go
 internal/testkit/checks_catch_test.go
 internal/testkit/checks_channel.go
 internal/testkit/checks_job.go
+internal/testkit/checks_joblifecycle.go
 internal/testkit/checks_jobputdown.go
 internal/testkit/checks_model.go
 internal/testkit/checks_run.go
@@ -1006,6 +1008,8 @@ internal/testkit/home_test.go
 internal/testkit/integration_test.go
 internal/testkit/job.go
 internal/testkit/job_test.go
+internal/testkit/jobcontrol.go
+internal/testkit/joblifecycle_test.go
 internal/testkit/jobstate_test.go
 internal/testkit/memory.go
 internal/testkit/memory_test.go

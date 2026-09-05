@@ -126,95 +126,11 @@ func (jobs *FakeJob) List(_ context.Context) ([]contract.JobSummary, error) {
 	return listed, nil
 }
 
-// RunNow starts the job's next task without waiting for its date: the job runs
-// again, every claim its tasks held is let go, the way the real store lets go
-// of the claims a paused run held, and the next unfinished task loses its due
-// date, so that NextTask hands it out at once. A run-now that only changed the
-// state would leave the task waiting for the very date the user just overrode,
-// or skip it as still running.
-func (jobs *FakeJob) RunNow(_ context.Context, jobID string) error {
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	entry, held := jobs.entries[jobID]
-	if !held {
-		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
-	}
-
-	entry.summary.State = contract.JobRunning
-	entry.putDown = nil
-	for index := range entry.tasks {
-		entry.tasks[index].running = false
-	}
-	for index := range entry.tasks {
-		task := &entry.tasks[index]
-		if task.task.Done {
-			continue
-		}
-		task.dueAt = time.Time{}
-		task.task.DueAt = ""
-		entry.summary.NextDue = time.Time{}
-		break
-	}
-	return nil
-}
-
-// Pause stops the job after the running task finishes.
-func (jobs *FakeJob) Pause(_ context.Context, jobID string) error {
-	return jobs.setState(jobID, contract.JobPaused)
-}
-
-// PutDown pauses a job on one of its tasks and keeps the mark, which RunNow
-// forgets again.
-func (jobs *FakeJob) PutDown(_ context.Context, mark contract.PutDownMark) error {
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	entry, held := jobs.entries[mark.Task.JobID]
-	if !held {
-		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", mark.Task.JobID)
-	}
-	if jobs.findTask(entry, mark.Task.TaskID) == nil {
-		return fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", mark.Task.JobID, mark.Task.TaskID)
-	}
-	entry.summary.State = contract.JobPaused
-	entry.putDown = &mark
-	return nil
-}
-
-// PutDownTask hands back the mark of the paused job whose run is newest, and
-// false when no job is put down.
-func (jobs *FakeJob) PutDownTask(_ context.Context) (contract.PutDownMark, bool, error) {
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	newest, there := contract.PutDownMark{}, false
-	for _, jobID := range jobs.order {
-		entry := jobs.entries[jobID]
-		if entry.putDown == nil || entry.summary.State != contract.JobPaused {
-			continue
-		}
-		if !there || runNumberOf(entry.putDown.Run) > runNumberOf(newest.Run) {
-			newest, there = *entry.putDown, true
-		}
-	}
-	return newest, there, nil
-}
-
-// runNumberOf reads a run's number, and is zero for one that is not a number.
-func runNumberOf(run string) int {
-	number, err := strconv.Atoi(run)
-	if err != nil {
-		return 0
-	}
-	return number
-}
-
-// SwitchOff stops the job for good.
-func (jobs *FakeJob) SwitchOff(_ context.Context, jobID string) error {
-	return jobs.setState(jobID, contract.JobOff)
-}
-
 // NextTask hands out the first unfinished task whose due time has passed, from
 // the oldest running job, making one from the template first when a schedule's
-// tick has come.
+// tick has come. A task whose date has not come is read past rather than
+// stopped at, as the real store reads past it, so that an undated task behind
+// a task dated for the end of the month still runs.
 func (jobs *FakeJob) NextTask(_ context.Context, now time.Time) (contract.TaskToRun, bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -226,11 +142,8 @@ func (jobs *FakeJob) NextTask(_ context.Context, now time.Time) (contract.TaskTo
 		jobs.tickSchedule(entry, now)
 		for index := range entry.tasks {
 			task := &entry.tasks[index]
-			if task.task.Done || task.running {
+			if task.task.Done || task.running || task.dueAt.After(now) {
 				continue
-			}
-			if task.dueAt.After(now) {
-				break
 			}
 			task.running = true
 			return contract.TaskToRun{JobID: jobID, TaskID: task.task.TaskID, Text: task.task.Text, Unattended: task.unattended}, true, nil
@@ -459,20 +372,6 @@ func recordStatusOfJob(state contract.JobState) contract.RecordStatus {
 	default:
 		return contract.StatusRunning
 	}
-}
-
-// setState changes one job's state and reports plainly when there is no such
-// job. It leaves LastRun alone: that is when a task last finished, and pausing a
-// job finishes nothing.
-func (jobs *FakeJob) setState(jobID string, state contract.JobState) error {
-	jobs.guard.Lock()
-	defer jobs.guard.Unlock()
-	entry, held := jobs.entries[jobID]
-	if !held {
-		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
-	}
-	entry.summary.State = state
-	return nil
 }
 
 // firstUnfinished is the id of the next task to run, or an empty string when

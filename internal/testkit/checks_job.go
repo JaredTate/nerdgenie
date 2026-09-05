@@ -47,9 +47,20 @@ type theJobUnderCheck struct {
 	// dueLine is the date the record showed on the dated task when it was
 	// added, which every later read must show unchanged.
 	dueLine string
+	// waiting and behind are the two tasks the lifecycle steps add once the
+	// plain task has finished: waiting is dated for a day the check never
+	// reaches, and behind is undated and runs ahead of it.
+	waiting, behind string
 	// now is the moment the check first asks for work. Every later moment is
 	// counted on from it.
 	now time.Time
+}
+
+// afterThePutDownSteps is the moment the check asks for work once the put-down
+// steps are over: their last ask was two claims' time on from the first, so
+// this is a claim's time later still.
+func (under theJobUnderCheck) afterThePutDownSteps() time.Time {
+	return under.now.Add(3 * theTimeAClaimIsGiven)
 }
 
 // CheckJob asserts what every job store promises: a job needs an ask, a job that
@@ -211,7 +222,19 @@ func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, under theJobUnd
 	if _, err := jobs.Load(ctx, "no-such-job"); err == nil {
 		return errors.New("loading a job that is not there returned no error, and it must name what is missing")
 	}
+	if err := checkJobRefusesAPutDownOnAFinishedTask(ctx, jobs, under); err != nil {
+		return err
+	}
+	if err := addTheWaitingTasks(ctx, jobs, &under); err != nil {
+		return err
+	}
 	if err := checkJobRunsItsProseTasks(ctx, jobs, under); err != nil {
+		return err
+	}
+	if err := checkJobReadsPastATaskThatWaits(ctx, jobs, under); err != nil {
+		return err
+	}
+	if err := checkAJobThatIsNotRunningDoesNotClose(ctx, jobs, under); err != nil {
 		return err
 	}
 	return checkJobClosesOnItsTasks(ctx, jobs, under.jobID)
@@ -220,13 +243,10 @@ func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, under theJobUnd
 // checkJobRunsItsProseTasks runs the two prose tasks after the plain one: each
 // is handed out in its turn, the dated one first because its date has come,
 // carrying its text byte for byte, and once both have finished the record still
-// shows the texts, the date as it was first shown, and a report on each. The
-// check asks for them after the put-down steps, whose last ask was two claims'
-// time on from the first, so it asks a claim's time later still.
+// shows the texts, the date as it was first shown, and a report on each.
 func checkJobRunsItsProseTasks(ctx context.Context, jobs contract.Job, under theJobUnderCheck) error {
-	afterThePutDownSteps := under.now.Add(3 * theTimeAClaimIsGiven)
 	for _, wanted := range []struct{ id, text string }{{under.dated, theDatedProseTasksText}, {under.prose, theProseTasksText}} {
-		next, due, err := jobs.NextTask(ctx, afterThePutDownSteps)
+		next, due, err := jobs.NextTask(ctx, under.afterThePutDownSteps())
 		if err != nil {
 			return fmt.Errorf("asking for the next task after the plain one finished failed: %w", err)
 		}
@@ -293,9 +313,16 @@ const theNamelessJobsAsk = "The contract check made this job without a name."
 // no name is listed by its whole ask, so that an older job or one the model did
 // not name still lists as something, and its record carries no name at all. It
 // stands apart from CheckJob because it needs a job of its own, and the tests
-// that call CheckJob count the one job it makes.
+// that call CheckJob count the one job it makes. Its job has a schedule as
+// well, because CheckJob's job must close and a job with a schedule never
+// does, and the run-now rule for a scheduled job is held here on it.
 func CheckJobWithoutAName(ctx context.Context, jobs contract.Job) error {
-	jobID, err := jobs.Create(ctx, contract.NewJob{Ask: theNamelessJobsAsk, Why: "to check the contract"})
+	jobID, err := jobs.Create(ctx, contract.NewJob{
+		Ask:          theNamelessJobsAsk,
+		Why:          "to check the contract",
+		Schedule:     &contract.Schedule{Kind: contract.ScheduleEvery, Every: time.Hour},
+		TaskTemplate: theNamelessJobsTemplate,
+	})
 	if err != nil {
 		return fmt.Errorf("creating a job with no name failed: %w", err)
 	}
@@ -304,11 +331,13 @@ func CheckJobWithoutAName(ctx context.Context, jobs contract.Job) error {
 		return fmt.Errorf("listing the jobs failed: %w", err)
 	}
 	found := false
+	before := time.Time{}
 	for _, summary := range listed {
 		if summary.ID != jobID {
 			continue
 		}
 		found = true
+		before = summary.NextRun
 		if summary.Title != theNamelessJobsAsk {
 			return fmt.Errorf("the job with no name is listed under the title %q, want its whole ask, because a job given no name lists by its ask so that it still lists as something", summary.Title)
 		}
@@ -323,5 +352,5 @@ func CheckJobWithoutAName(ctx context.Context, jobs contract.Job) error {
 	if record.Goal.Name != "" {
 		return fmt.Errorf("the record of a job given no name carries the name %q, want none, because the name is only ever the one given on create", record.Goal.Name)
 	}
-	return nil
+	return checkRunNowPullsTheTickForward(ctx, jobs, jobID, before)
 }

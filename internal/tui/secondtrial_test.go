@@ -119,6 +119,9 @@ func TestThePersonsCardLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
 		t.Errorf("the card holds %q, and it should hold the whole message", joined)
 	}
 
+	// In plain text the card's blank of padding on the right is a blank like
+	// the margin beside it, so the words stop the padding and the margin
+	// short of the edge, and the card is its bar, its words and its padding.
 	first := rows[0]
 	left := displayWidth(first) - displayWidth(strings.TrimLeft(first, " "))
 	right := screen.transcriptColumns() - displayWidth(strings.TrimRight(first, " "))
@@ -126,14 +129,14 @@ func TestThePersonsCardLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
 		t.Errorf("the card has %d columns to its left and %d to its right, and the person's card leans against the right-hand edge",
 			left, right)
 	}
-	if right != marginColumns {
-		t.Errorf("the card stops %d columns short of the transcript's right-hand edge, and the design leaves it the one blank margin", right)
+	if right != marginColumns+bubblePadding {
+		t.Errorf("the card's words stop %d columns short of the transcript's right-hand edge, and the design leaves the padding and the one blank margin", right)
 	}
 	widest := 0
 	for _, one := range said {
 		widest = max(widest, displayWidth(one))
 	}
-	if wide := displayWidth(strings.TrimRight(first, " ")) - left; wide != widest+bubbleFrame {
+	if wide := displayWidth(strings.TrimRight(first, " ")) - left + bubblePadding; wide != widest+bubbleFrame {
 		t.Errorf("the card is %d columns wide for %d columns of words, and it is only as wide as its words", wide, widest)
 	}
 }

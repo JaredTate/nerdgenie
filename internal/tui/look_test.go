@@ -100,7 +100,7 @@ func TestTheCardsAreDrawnOnTheDeeperNavyWithTheirBarsInTheTwoBlues(t *testing.T)
 	if !strings.Contains(mine, colors.wrap(styleCard, "post it")) {
 		t.Errorf("the person's words are not white on the card: %q", mine)
 	}
-	for _, wanted := range []string{colors.wrap(styleCard, "posting"), colors.wrap(styleKey, "it"), colors.wrap(styleCardDim, "now")} {
+	for _, wanted := range []string{colors.wrap(styleCard, "posting"), colors.wrap(styleKey, " it"), colors.wrap(styleCardDim, " now")} {
 		if !strings.Contains(theirs, wanted) {
 			t.Errorf("the reply %q does not hold %q, and markdown inside a card is drawn on the card", theirs, wanted)
 		}
@@ -176,7 +176,7 @@ func TestAToolLineIsDrawnAsACompactPill(t *testing.T) {
 		colors.wrap(styleDone, string(doneGlyph)),
 		colors.wrap(styleKey, "read"),
 		colors.wrap(styleCardDim, " memory/product.md"),
-		colors.wrap(styleCardDim, " · 2,100 characters"),
+		colors.wrap(styleCardDim, " ·") + colors.wrap(styleCardDim, " 2,100") + colors.wrap(styleCardDim, " characters"),
 		colors.wrap(styleNormal, " ") + colors.wrap(styleKey, " r3 "),
 	} {
 		if !strings.Contains(drawn[0], wanted) {

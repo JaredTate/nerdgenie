@@ -22,15 +22,15 @@
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
-   ╭──────────────────────────────────────────────────────────────────────────────────────╮ │                           
-   ▎ Post a tweet about the DigiByte anniversary. Use the product notes and keep it under │ │                           
-   ▎ 280 characters.                                                                      │ │                           
-   ╰──────────────────────────────────────────────────────────────────────────────────────╯ │                           
                                                                                             │                           
- ╭───────────────────────────────────────────────────╮                                      │                           
- │ Where I stand: the notes are read, drafting next. │                                      │                           
- ╰───────────────────────────────────────────────────╯                                      │                           
-    ▸ read memory/product.md · 2,100 characters · r3                                        │                           
+                                                                                            │                           
+                                                                                            │                           
+                                                                                            │                           
+    ▌ Post a tweet about the DigiByte anniversary. Use the product notes and keep it under  │                           
+    ▌ 280 characters.                                                                       │                           
+                                                                                            │                           
+ ▌ Where I stand: the notes are read, drafting next.                                        │                           
+   ✓  read memory/product.md · 2,100 characters   r3                                        │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
  thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 

@@ -28,9 +28,9 @@
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
- ╭───────────────────────────────────────────────────────────────╮                          │                           
- │ Where I stand: the tweet is up, drafting the blog piece next. │                          │                           
- ╰───────────────────────────────────────────────────────────────╯                          │                           
+                                                                                            │                           
+                                                                                            │                           
+ ▌ Where I stand: the tweet is up, drafting the blog piece next.                            │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
  thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 

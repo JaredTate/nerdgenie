@@ -366,6 +366,8 @@ internal/context/window.go
 internal/context/window_test.go
 internal/contract/browser.go
 internal/contract/browserevent_test.go
+internal/contract/carryon.go
+internal/contract/carryon_test.go
 internal/contract/channel.go
 internal/contract/clock.go
 internal/contract/command.go
@@ -504,7 +506,6 @@ internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
 internal/loop/calls.go
-internal/loop/carryon_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
 internal/loop/commands_test.go

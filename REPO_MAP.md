@@ -766,6 +766,7 @@ internal/record/print_test.go
 internal/record/prose_test.go
 internal/record/size.go
 internal/record/size_test.go
+internal/record/stepdone_test.go
 internal/record/testdata/fuzz/FuzzParse/f92583f5f7076db2
 internal/record/testdata/job.txt
 internal/record/testdata/task.txt
@@ -1225,6 +1226,7 @@ internal/tool/task/fortystep_test.go
 internal/tool/task/read.go
 internal/tool/task/shapes.go
 internal/tool/task/shapes_test.go
+internal/tool/task/stepdone_test.go
 internal/tool/task/task.go
 internal/tool/task/task_test.go
 internal/tool/task/testdata/a_pinned_result.txt

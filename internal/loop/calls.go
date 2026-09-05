@@ -36,6 +36,7 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 		}
 	}
 	running.remember(contract.Message{Role: contract.RoleUser, ToolResults: results})
+	running.sayTheProbeLine()
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
 	}
@@ -94,6 +95,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
 	running.noteWhatTheResultShows(call, text, failed)
 	running.writeWhatTheTestsShow(ctx, call, text, label)
+	running.countTheProbe(call)
 	result := contract.ToolResult{CallID: call.ID, Label: label, Text: text, Failed: failed}
 	if failed {
 		result.Text = text + "\n" + ThreeOptions

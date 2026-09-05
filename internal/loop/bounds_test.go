@@ -31,6 +31,7 @@ func TestEveryBoundOfThisPackageIsTheNumberItSays(t *testing.T) {
 		{"MaxDoneCheckNudges", MaxDoneCheckNudges, 3},
 		{"MaxFailingTestsNamed", MaxFailingTestsNamed, 5},
 		{"MaxChangedFilesNamed", MaxChangedFilesNamed, 3},
+		{"MaxProbesBetweenEdits", MaxProbesBetweenEdits, 5},
 		{"MaxJobsMadeNoted", MaxJobsMadeNoted, 8},
 		{"MaxJobTasksRemembered", MaxJobTasksRemembered, 100},
 		{"IdenticalCallsAllowed", IdenticalCallsAllowed, 2},

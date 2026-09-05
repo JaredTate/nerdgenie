@@ -66,7 +66,10 @@ type run struct {
 	testsFact string
 	// lastFailingSet is what was failing on the last red run, so that the same
 	// run seen again is not a second failure.
-	lastFailingSet   string
+	lastFailingSet string
+	// probesSinceEdit counts throwaway scripts since the last edit; probeLineDue says the count hit its cap this round.
+	probesSinceEdit  int
+	probeLineDue     bool
 	hadCorrection    bool
 	hadFailure       bool
 	hadStop          bool

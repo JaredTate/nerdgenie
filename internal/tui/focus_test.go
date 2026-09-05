@@ -147,8 +147,11 @@ func TestFocusDoesNotStealTheLetters(t *testing.T) {
 
 func TestAPanelRowWithATargetIsFocusedAfterThePillsAndDrawnReversed(t *testing.T) {
 	screen, _ := aScreenWithAPill()
-	items := screen.focusablesFrom([]int{-1, 0, 0, 1, 1, -1}, []string{"", "job:4", "task:t3", ""}, 6)
-	wanted := []focusable{{block: 0, line: -1}, {block: 1, line: -1}, {block: -1, line: 1, target: "job:4"}, {block: -1, line: 2, target: "task:t3"}}
+	send(screen, aToolLine("▸ read notes.md · r28 read: 12 lines"))
+	// The blocks are the person's ask, the first pill, the reply, and the
+	// second pill, so the rows handed over belong to blocks one and three.
+	items := screen.focusablesFrom([]int{-1, 1, 1, 3, 3, -1}, []string{"", "job:4", "task:t3", ""}, 6)
+	wanted := []focusable{{block: 1, line: -1}, {block: 3, line: -1}, {block: -1, line: 1, target: "job:4"}, {block: -1, line: 2, target: "task:t3"}}
 	if !slices.Equal(items, wanted) {
 		t.Errorf("the focusable items are %+v, want %+v", items, wanted)
 	}

@@ -128,6 +128,26 @@ func callOf(line string) string {
 	return strings.TrimSpace(call)
 }
 
+// resultIDOf is the result id a tool line carries straight after the
+// separator, such as "r27" in "shell npm test · r27 tests: all passing", which
+// is what the program stores the call's full text under. It is empty for a
+// line with no id there: a call still in flight, a record line, or a file the
+// program sent, none of which has a text to ask for.
+func resultIDOf(line string) string {
+	_, rest, found := strings.Cut(line, toolLineSeparator)
+	if !found {
+		return ""
+	}
+	words := strings.Fields(rest)
+	if len(words) == 0 {
+		return ""
+	}
+	if _, isOne := contract.ParseResultID(words[0]); !isOne {
+		return ""
+	}
+	return words[0]
+}
+
 // replacePill writes a newer line into the pill an older one is already drawn
 // in, when the newer line is the older one with more added to the end of it,
 // which is what a call gaining its result looks like. It says whether it found

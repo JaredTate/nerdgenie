@@ -130,7 +130,7 @@ type Screen struct {
 	jobName       string
 	jobTask       string
 	jobTasks      string
-	// situation, failures, cachedTokens, round and taskStarted are the record's
+	// The situation, failures, cachedTokens, round and taskStarted are the record's
 	// own state as the status carries it, drawn in the side panel's state block.
 	situation    string
 	failures     string
@@ -200,6 +200,7 @@ func New(options Options) *Screen {
 		now:          reading.Now(),
 		state:        stateConnecting,
 		commands:     options.Commands,
+		focusAt:      noFocus,
 	}
 	if options.Dialer != nil {
 		screen.client = NewClient(options.Dialer, reading)
@@ -323,28 +324,50 @@ func (screen *Screen) View() tea.View {
 // input box, and the status strip, in exactly the number of rows the terminal
 // has.
 func (screen *Screen) frame() string {
+	shape := screen.shape()
+	focus := screen.focusIn(shape)
+	middle, _ := screen.composeMiddle(shape, focus.block)
+	rows := []string{screen.headerRow(), screen.ruleRow()}
+	rows = append(rows, screen.besideThePanel(middle)...)
+	screen.drawTheFocusedPanelRow(rows, middle, focus)
+	rows = append(rows, screen.ruleRow())
+	rows = append(rows, shape.input...)
+	rows = append(rows, screen.statusRow())
+	for at, drawn := range rows {
+		rows[at] = screen.paintToTheEdge(drawn)
+	}
+	return strings.Join(rows, "\n")
+}
+
+// frameShape is how the rows of one frame are shared out: the input box's rows,
+// the palette's, and how many rows are left between the two rules for the
+// transcript.
+type frameShape struct {
+	// input is the rows of the input box, cut from the top when the terminal
+	// is too short for all of them.
+	input []string
+	// palette is the rows of the command palette, cut to the room left.
+	palette []string
+	// transcriptHeight is how many rows the transcript has.
+	transcriptHeight int
+}
+
+// shape works out the shape of the next frame: the header, the two rules and
+// the status strip take four rows, the input box takes its own and gives them
+// up from the top when the terminal is too short, the palette takes what it can
+// of the rest, and the transcript has what is left.
+func (screen *Screen) shape() frameShape {
 	input := screen.inputRows()
 	spare := screen.height - 4 - len(input)
 	for spare < 0 && len(input) > 1 {
 		input = input[1:]
 		spare++
 	}
-
 	palette := screen.paletteRows()
 	if len(palette) > spare {
 		palette = palette[:max(spare, 0)]
 	}
-
-	middle := append(screen.visibleTranscript(spare-len(palette)), palette...)
-	rows := []string{screen.headerRow(), screen.ruleRow()}
-	rows = append(rows, screen.besideThePanel(middle)...)
-	rows = append(rows, screen.ruleRow())
-	rows = append(rows, input...)
-	rows = append(rows, screen.statusRow())
-	for at, drawn := range rows {
-		rows[at] = screen.paintToTheEdge(drawn)
-	}
-	return strings.Join(rows, "\n")
+	return frameShape{input: input, palette: palette, transcriptHeight: spare - len(palette)}
 }
 
 // paintToTheEdge fills the rest of a row out to the right-hand edge of the

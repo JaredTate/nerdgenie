@@ -30,21 +30,15 @@ const MaxListed = 25
 // shows. The rest go on with add_task.
 const MaxTasksOnCreate = MaxListed
 
-// Records is the record of the task running now, as this tool reads it, which
-// is the keeper in internal/record. Only the one method here is used, because
-// this tool takes the ask from the record and never writes to it.
-type Records interface {
-	// Record returns a copy of the record as it stands.
-	Record() contract.Record
-}
-
 // Settings is what the job tool needs to do its work.
 type Settings struct {
 	// Jobs is the store of jobs and their task lists.
 	Jobs contract.Job
 	// Records is the record of the task running now, whose ask the job takes
-	// word for word. When it is nil the ask the model wrote is used instead.
-	Records Records
+	// word for word and whose ask says whether the task is a job's. This tool
+	// only reads it, so the contract's one-method Records is all it asks for.
+	// When it is nil the ask the model wrote is used instead.
+	Records contract.Records
 }
 
 // writtenTask is one task as the model lists it on create, in either of the two

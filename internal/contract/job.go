@@ -114,8 +114,11 @@ type TaskToRun struct {
 	TaskID string
 	// Text is the one line saying what the task does.
 	Text string
-	// Unattended says a schedule made the task, so nobody is there to answer a
-	// preview, and anything on the ask-me-first list stops the task instead.
+	// Unattended says a schedule made the task and nobody has picked it up, so
+	// nobody is there to answer a preview, and anything on the ask-me-first
+	// list stops the task instead. A task the person picks up, with the word
+	// that carries on or with an answer, is attended from then on whoever made
+	// it.
 	Unattended bool
 }
 
@@ -137,6 +140,10 @@ type PutDownMark struct {
 	// answers it. Otherwise the person stopped it, and only the word that
 	// carries on picks it up.
 	Waiting bool
+	// Question is the question the task asked, when Waiting, so that a task
+	// started afresh on the answer is shown its own question before the answer
+	// rather than asking it again. It is empty for a task the person stopped.
+	Question string
 }
 
 // Job is a piece of work too big for one sitting: the same four parts as a task

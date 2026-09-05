@@ -70,6 +70,7 @@ func (theLoop *Loop) putTheTaskDown(ctx context.Context, task Task, number strin
 	under := pausedOnLine(jobID, taskID)
 	if waiting {
 		under = waitingOnLine(jobID, taskID)
+		mark.Question = outcome.Report
 	}
 	marking := theLoop.options.Jobs.PutDown(ctx, mark)
 	if marking != nil {
@@ -130,7 +131,7 @@ func (theLoop *Loop) pickUpTheJobsTask(ctx context.Context, task Task) (Task, er
 		return theLoop.carryOn(ctx, task, putDown)
 	}
 	if fromJob, known := theLoop.jobTaskBehind(task.ResumeID); known {
-		task.FromJob, task.Unattended = &fromJob, fromJob.Unattended
+		task.FromJob, task.Unattended = &fromJob, false
 	}
 	return task, nil
 }
@@ -204,7 +205,11 @@ func isNewer(number string, other string) bool {
 // word, the answer to the task's question or a steer such as "but post at
 // noon", reaches the task too: a task picked up from its record has it written
 // in as a correction, and a task started afresh is told it right after its own
-// words, so the model is told both what to do and what the person said.
+// words, so the model is told both what to do and what the person said. A
+// task the person picks up is attended from then on, whoever made it: the
+// person is there to answer a preview, so a call on the ask-me-first list
+// asks them rather than stopping the task as it would for a schedule running
+// alone.
 func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.PutDownMark) (Task, error) {
 	jobID, taskID := putDown.Task.JobID, putDown.Task.TaskID
 	if err := theLoop.options.Jobs.Resume(ctx, jobID); err != nil {
@@ -214,13 +219,14 @@ func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.Pu
 	saidMore := putDown.Waiting || rest != ""
 	if !putDown.HasRecord {
 		fresh := taskFromJob(putDown.Task, task.Channel)
+		fresh.Unattended = false
 		if saidMore {
-			fresh.Answer = task.Message
+			fresh.Answer, fresh.Question = task.Message, putDown.Question
 		}
 		return fresh, nil
 	}
 	fromJob := putDown.Task
-	task.FromJob, task.Unattended, task.ResumeID = &fromJob, fromJob.Unattended, putDown.Run
+	task.FromJob, task.Unattended, task.ResumeID = &fromJob, false, putDown.Run
 	if !putDown.Waiting && rest != "" {
 		task.Correction = task.Message
 	}

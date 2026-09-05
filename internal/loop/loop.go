@@ -117,6 +117,12 @@ type Task struct {
 	// mid-task is, so that the steer outlives this sitting. Its text is empty
 	// for every other task.
 	Correction contract.Inbound
+	// Question is the question a job's task asked before it made a record,
+	// when Answer is the person's answer to it. It is put in front of the model
+	// as its own words right before the answer, so that a task started afresh
+	// reads question then answer rather than asking the question again. It is
+	// empty for every other task.
+	Question string
 }
 
 // Outcome is where one task ended.

@@ -49,10 +49,17 @@ func (running *run) timeToWrapUp(ctx context.Context) (context.Context, context.
 // more with their words in front of it and this reply does not stand. Messages
 // that arrive during a tool call are read at the end of the tool calls, so
 // this reads only what came during a reply with no tool call after it.
+//
+// The reply itself goes into the conversation before any of that is read, so
+// that the round a correction or a done-check nudge sends the model on shows
+// the person's words after the reply they answer. Only a reply with tool calls
+// used to be written down, and the one more round was handed a correction with
+// nothing before it but tool results.
 func (running *run) endOfTurn(ctx context.Context, text string, why contract.FinishReason) (Outcome, bool, error) {
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
 	}
+	running.remember(contract.Message{Role: contract.RoleAssistant, Text: text})
 	ended, more, corrections, err := running.readTheMessages(ctx, running.theLoop.takeDelivered())
 	if err != nil || !more {
 		return ended, false, err

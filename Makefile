@@ -99,8 +99,9 @@ check:
 	@$(MAKE) --no-print-directory test
 
 # The live suite needs the development machine: the llama-server daemon on port
-# 19091, an Anthropic key, and an OpenAI key. A missing key is a failure, never a
-# skip. Until wave 1 there are no live tests and the target passes trivially.
+# 19091 and the two signed-in command-line programs, claude and codex, on the
+# user's subscriptions. There are no API keys. A missing program, a program that
+# is not logged in, or a daemon that is down is a failure, never a skip.
 live:
 	go test -tags live ./test/functional/... ./internal/...
 

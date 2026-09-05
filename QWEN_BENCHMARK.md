@@ -76,7 +76,7 @@ nothing. So every run here is at thinking off, which is the floor; "low" and
 - **Blank start, every run.** Before the round, every earlier Qwen run folder
   was deleted. Every run gets a new, empty work folder holding only
   `task.txt` and an empty git repository, and a new home for the harness: a
-  fresh `COEUS_HOME`; fresh `XDG` folders and config for opencode; a fresh
+  fresh `NERDGENIE_HOME`; fresh `XDG` folders and config for opencode; a fresh
   `HERMES_HOME` outside `~/.hermes`; a fresh `OPENCLAW_HOME` and config for
   OpenClaw. No memory, no past session, no instruction file.
 - **One harness per card.** Round 1: Nerd Genie and opencode on card A, Hermes and

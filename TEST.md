@@ -53,7 +53,7 @@ result we read off:
   harness can change it — confirmed by zero `<think>` blocks in either card's
   log. When two harnesses run at once, each is alone on its own card.
 - **A fresh, empty start, for every harness.** Every run gets a new empty work
-  folder and a brand-new home folder for the harness: a fresh `COEUS_HOME` for
+  folder and a brand-new home folder for the harness: a fresh `NERDGENIE_HOME` for
   Nerd Genie, fresh `XDG_*` folders and config for opencode, a fresh `HERMES_HOME`
   outside `~/.hermes` for Hermes, and a fresh `OPENCLAW_HOME` and config for
   OpenClaw. No memory files, no past sessions, no skills learned earlier, no
@@ -148,7 +148,7 @@ phase all four harnesses run at the same time, each on its own bridge port with
 its own log. In the Qwen phase two run at a time, one per graphics card, and the
 daemon is restarted before every run so its prompt cache is cold.
 
-- **Nerd Genie:** `coeus serve` on a fresh home, its socket driven with the task by
+- **Nerd Genie:** `nerdgenie serve` on a fresh home, its socket driven with the task by
   `scripts/bench/drive.py`, stopped by the exact process id recorded at launch.
 - **opencode:** `opencode run` in the work folder, JSON output kept.
 - **Hermes:** `hermes chat -q` with the task, its own default limits.

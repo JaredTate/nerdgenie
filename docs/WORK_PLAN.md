@@ -346,7 +346,7 @@ The first review found 24 blockers; the second found that only 8 were truly fixe
 | Coverage ungated; fuzz inside `make check`; the live forty-step variant undefined; the replayer too early | Threshold in `make check`; `make fuzz` separate; the live variant defined and joining the gate from wave 2; the replayer in wave 6 |
 | Plain English not required of documents | Rule 6 covers documents; the glossary is in Part 5 |
 | Every brief's reading list missing | The first paragraph of every brief, in Part 1 |
-| The instruction text was 361 words against a "under 300" claim | The design now says under four hundred words and the test in 2.1 asserts it |
+| The instruction text was 361 words against a "under 300" claim | The design now says under five hundred words and the test in 2.1 asserts it |
 | The seven browser tools were counted, not named | Named in 2.5 |
 | The protocol method list differed between documents | Twelve methods, the same list in 0.1, `ARCHITECTURE.md`, and `PROTOCOL.md` |
 | One message versus chunks; monthly versus nightly; handoff blocking undefined | One message when it fits, else split at paragraphs (3.5); the memory test runs at every gate and nightly (4.5, 6.4); handoff blocks with a configured timeout (5.2) |

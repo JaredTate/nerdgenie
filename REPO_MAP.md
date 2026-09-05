@@ -976,9 +976,12 @@ internal/testkit/browserserver.go
 internal/testkit/browserserver_test.go
 internal/testkit/channel.go
 internal/testkit/channel_test.go
+internal/testkit/checks_catch_job_test.go
 internal/testkit/checks_catch_more_test.go
 internal/testkit/checks_catch_test.go
 internal/testkit/checks_channel.go
+internal/testkit/checks_job.go
+internal/testkit/checks_jobputdown.go
 internal/testkit/checks_model.go
 internal/testkit/checks_run.go
 internal/testkit/checks_screen.go

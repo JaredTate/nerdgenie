@@ -1,13 +1,13 @@
  NERDGENIE · the open-source agent harness · opus · task 17 running · 6.1k in 0.4k out · $0.04                ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+                                                                                            │ MODEL ─────────────────── 
                                                                                             │ opus                      
                                                                                             │ 6.1k in 0.4k out · $0.04  
                                                                                             │                           
+                                                                                            │ NOW ───────────────────── 
+                                                                                            │ waiting for you           
+                                                                                            │                           
                                                                                             │ TASK 17                   
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           

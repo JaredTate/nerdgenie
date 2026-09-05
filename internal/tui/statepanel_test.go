@@ -217,12 +217,14 @@ func TestTheNowGroupSaysWhatIsHappening(t *testing.T) {
 // the tests line green when it says all and red when it says failing, and a
 // long fact cut with an ellipsis rather than wrapped.
 func TestTheStateGroupIsOneLinePerFactWithTheTestsLineColoured(t *testing.T) {
-	screen := newThemedScreen(120, 60)
+	// At a hundred and sixty columns the panel's words are fifty wide, which
+	// holds the first two facts whole and cuts the third.
+	screen := newThemedScreen(160, 60)
 	screen.Update(linkMessage{up: true})
 	send(screen, aStatusWithTheStateBlock())
 	rows := panelRowsOf(screen)
 	start := rowStarting(rows, "STATE")
-	for at, wanted := range []string{"STATE", "tests: all 51 passing", "last command: npm test, ", "files changed in this ta"} {
+	for at, wanted := range []string{"STATE", "tests: all 51 passing", "last command: npm test, exit 0", "files changed in this task: game.js, index.html"} {
 		if start < 0 || start+at >= len(rows) || !strings.HasPrefix(rows[start+at], wanted) {
 			t.Errorf("row %d of the state group is %q, want it to begin %q:\n%s", at+1, rows[start+at], wanted, strings.Join(rows, "\n"))
 		}

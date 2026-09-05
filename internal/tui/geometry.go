@@ -55,10 +55,14 @@ const (
 // that its width is worked out from the letters alone and the escape codes are
 // added only at the very end.
 type span struct {
-	// style is how this run of text is drawn.
+	// style is how the text is drawn.
 	style style
-	// text is the letters themselves, with no escape codes in them.
+	// text is the words.
 	text string
+	// glued says the span begins where the one before it ended, with no blank
+	// between them in the writer's text, so that wrapping never puts one there:
+	// a code span and the comma after it are two spans and one word.
+	glued bool
 }
 
 // row is one line of the frame while it is being built.

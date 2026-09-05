@@ -108,9 +108,9 @@ func wrapSpans(spans []span, width int) []row {
 	drawn := []row{}
 	current := row{}
 	for _, one := range wordsOf(spans) {
-		for _, part := range splitLongWord(one.text, width) {
+		for at, part := range splitLongWord(one.text, width) {
 			separator := " "
-			if current.width == 0 {
+			if current.width == 0 || (at == 0 && one.glued) {
 				separator = ""
 			}
 			if current.width > 0 && current.width+displayWidth(separator+part) > width {
@@ -125,13 +125,23 @@ func wrapSpans(spans []span, width int) []row {
 }
 
 // wordsOf splits styled runs of text into the words inside them, each keeping
-// the style of the run it came from.
+// the style of the run it came from. The first word of a run that begins
+// where the last run ended, with no blank on either side of the seam, is
+// glued to the word before it, so that "`add`," is drawn as one word and not
+// as "add ,".
 func wordsOf(spans []span) []span {
 	words := []span{}
+	endedWithABlank := true
 	for _, piece := range spans {
-		for _, one := range strings.Fields(piece.text) {
-			words = append(words, span{style: piece.style, text: one})
+		if piece.text == "" {
+			continue
 		}
+		startsWithABlank := strings.HasPrefix(piece.text, " ") || strings.HasPrefix(piece.text, "\t")
+		for number, one := range strings.Fields(piece.text) {
+			glued := number == 0 && !startsWithABlank && !endedWithABlank && len(words) > 0
+			words = append(words, span{style: piece.style, text: one, glued: glued})
+		}
+		endedWithABlank = strings.HasSuffix(piece.text, " ") || strings.HasSuffix(piece.text, "\t")
 	}
 	return words
 }

@@ -10,12 +10,15 @@ import (
 
 // FuzzReadInput holds the rules for whatever the model writes as a call: the
 // reader never panics, a call it takes names one of the three actions, and a
-// task list it takes is within the cap with no task that says nothing.
+// create it takes writes at most the cap of tasks counting text, with no task
+// that says nothing.
 func FuzzReadInput(f *testing.F) {
 	for _, seed := range []string{
 		`{"action":"create","ask":"the ask","why":"the why","text":"the first task"}`,
 		`{"action":"create","why":"the why","tasks":["write the failing tests","implement the engine"]}`,
 		`{"action":"create","why":"the why","text":"the first task","tasks":[{"text":"the second task","due_at":"2026-03-02T14:00:00Z"},"the third task"]}`,
+		`{"action":"create","why":"the why","text":"write tests","tasks":["write tests","build it"]}`,
+		`{"action":"create","text":"the first task","tasks":[` + strings.Repeat(`"a task",`, MaxTasksOnCreate-1) + `"the last one"]}`,
 		`{"action":"add_task","job_id":"1","text":"the task","due_at":"2026-03-01 14:00"}`,
 		`{"action":"list"}`,
 		`{"action":"create","ask":"check the site every morning","schedule":{"kind":"every","every":"24h"},"task_template":"check the site and report"}`,
@@ -42,6 +45,9 @@ func FuzzReadInput(f *testing.F) {
 		}
 		if len(asked.Tasks) > MaxTasksOnCreate {
 			t.Fatalf("the reader took %d tasks, and the cap is %d", len(asked.Tasks), MaxTasksOnCreate)
+		}
+		if asked.Action == ActionCreate && asked.taskCount() > MaxTasksOnCreate {
+			t.Fatalf("the reader took a create of %d tasks counting text, and the cap is %d", asked.taskCount(), MaxTasksOnCreate)
 		}
 		for at, task := range asked.Tasks {
 			if strings.TrimSpace(task.Text) == "" {

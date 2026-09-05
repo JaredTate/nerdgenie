@@ -25,8 +25,9 @@ const (
 // MaxListed is how many jobs one listing shows, newest first.
 const MaxListed = 25
 
-// MaxTasksOnCreate is how many tasks one create can list under tasks, the same
-// number as a listing shows. The rest go on with add_task.
+// MaxTasksOnCreate is how many tasks one create can write, counting the one
+// under text with the ones listed under tasks, the same number as a listing
+// shows. The rest go on with add_task.
 const MaxTasksOnCreate = MaxListed
 
 // Records is the record of the task running now, as this tool reads it, which
@@ -173,11 +174,32 @@ type input struct {
 	JobID string `json:"job_id"`
 	// Text says what the task does, with one clear done line behind it.
 	Text string `json:"text"`
-	// Tasks is the whole task list on create, in order, after Text when there
-	// is one.
+	// Tasks is the task list on create, in order. Text and Tasks are one list,
+	// Text first, and a Text that repeats the first listed task is that task
+	// written twice, so it counts once.
 	Tasks writtenTasks `json:"tasks"`
 	// DueAt is when the task may start, written as a date and time.
 	DueAt string `json:"due_at"`
+}
+
+// textIsAnotherTask says whether text names a task the list does not begin
+// with: a blank text is no task, and a text that is the first listed task word
+// for word is that task written twice.
+func (asked input) textIsAnotherTask() bool {
+	text := strings.TrimSpace(asked.Text)
+	if text == "" {
+		return false
+	}
+	return len(asked.Tasks) == 0 || strings.TrimSpace(asked.Tasks[0].Text) != text
+}
+
+// taskCount is how many tasks a create writes, counting text with the list.
+func (asked input) taskCount() int {
+	count := len(asked.Tasks)
+	if asked.textIsAnotherTask() {
+		count++
+	}
+	return count
 }
 
 // Tool is the job tool.
@@ -204,8 +226,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "schedule", Type: "object", Description: "When the job makes its next task: kind at, every, or cron."},
 			{Name: "task_template", Type: "string", Description: "What a scheduled job turns into one task each time."},
 			{Name: "job_id", Type: "string", Description: "Which job to add a task to."},
-			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task."},
-			{Name: "tasks", Type: "array", Description: "On create, the whole task list in order, each item either the task's text as a string or an object with text and, when it must wait for a date, due_at. At most twenty-five. A job without a schedule needs at least one task, here or under text."},
+			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task, given once: here or as the first item of tasks, not both."},
+			{Name: "tasks", Type: "array", Description: "On create, the task list in order, each item either the task's text as a string or an object with text and, when it must wait for a date, due_at. Give the first task once, here or under text; text and tasks are one list of at most twenty-five."},
 			{Name: "due_at", Type: "string", Description: "When the task may start, as a date and time."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassIrreversible},
@@ -308,11 +330,13 @@ func (tool *Tool) askFor(asked input) (string, error) {
 	return ask, nil
 }
 
-// tasksOf is the task list a create writes, in order: the text first, when
-// there is one, and then every task listed under tasks with its date read.
+// tasksOf is the task list a create writes, in order: the text first, when it
+// names a task the list does not begin with, and then every task listed under
+// tasks with its date read. A text that repeats the first listed task is that
+// task written twice, so the listed one stands alone and keeps its date.
 func tasksOf(asked input) ([]contract.NewTask, error) {
 	tasks := make([]contract.NewTask, 0, len(asked.Tasks)+1)
-	if strings.TrimSpace(asked.Text) != "" {
+	if asked.textIsAnotherTask() {
 		tasks = append(tasks, contract.NewTask{Text: asked.Text})
 	}
 	for at, written := range asked.Tasks {

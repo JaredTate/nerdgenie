@@ -35,6 +35,12 @@ func readInput(written json.RawMessage) (input, error) {
 		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 0 {
 			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list under tasks, then work the first task")
 		}
+		// Text and tasks are one list, so the cap counts them together; the
+		// list's own reader has already held the list alone to the cap.
+		if count := asked.taskCount(); count > MaxTasksOnCreate {
+			return input{}, fmt.Errorf("this create writes %d tasks counting text and one create takes at most %d, so create the job with the first %d and put the rest on it with add_task",
+				count, MaxTasksOnCreate, MaxTasksOnCreate)
+		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {
 			return input{}, errors.New("this call names no job, so say which job the task belongs to")

@@ -137,3 +137,7 @@ func (manyJobs) PutDown(context.Context, contract.PutDownMark) error { return ni
 func (manyJobs) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
 	return contract.PutDownMark{}, false, nil
 }
+
+// Resume is here so that manyJobs keeps to the job contract, which gained it; this
+// double never resumes a job.
+func (manyJobs) Resume(context.Context, string) error { return nil }

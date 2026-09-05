@@ -168,3 +168,7 @@ func TestACreateThatCannotSwitchItsBrokenJobOffSaysSo(t *testing.T) {
 		}
 	}
 }
+
+// Resume is here so that brokenJobs keeps to the job contract, which gained it; this
+// double never resumes a job.
+func (jobs *brokenJobs) Resume(context.Context, string) error { return nil }

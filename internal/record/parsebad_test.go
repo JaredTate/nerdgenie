@@ -75,12 +75,12 @@ func brokenJobLines() []brokenLine {
 			"- [x] t17 post the anniversary tweet -> j4.1",
 			"- [x] t17 post the anniversary tweet"},
 		{"a job task whose identifier is not a task identifier",
-			"- [ ] t31 post for day three, today at 14:00",
-			"- [ ] x31 post for day three, today at 14:00"},
+			"- [ ] t31 post for day three · due today at 14:00",
+			"- [ ] x31 post for day three · due today at 14:00"},
 		{"job tasks that are not listed in order",
-			"- [ ] t32 post for day four, tomorrow at 14:00",
-			"- [ ] t30 post for day four, tomorrow at 14:00"},
-		{"a job task with no text on it", "- [ ] t31 post for day three, today at 14:00", "- [ ] t31"},
+			"- [ ] t32 post for day four · due tomorrow at 14:00",
+			"- [ ] t30 post for day four · due tomorrow at 14:00"},
+		{"a job task with no text on it", "- [ ] t31 post for day three · due today at 14:00", "- [ ] t31"},
 		{"a report that counts backwards",
 			"- j4.2 draft saved to blog/anniversary.md, 900 words",
 			"- j4.1 draft saved to blog/anniversary.md, 900 words"},
@@ -144,11 +144,11 @@ func TestNamesTheRuleThatWasBroken(t *testing.T) {
 	})
 
 	checkTheRuleIsNamed(t, "job.txt", map[string]error{
-		"- [ ] t30 post for day four, tomorrow at 14:00": ErrTasksOutOfOrder,
-		"- [x] t17 post the anniversary tweet":           ErrJobTaskNeedsReport,
+		"- [ ] t30 post for day four · due tomorrow at 14:00": ErrTasksOutOfOrder,
+		"- [x] t17 post the anniversary tweet":                ErrJobTaskNeedsReport,
 	}, map[string]string{
-		"- [ ] t30 post for day four, tomorrow at 14:00": "- [ ] t32 post for day four, tomorrow at 14:00",
-		"- [x] t17 post the anniversary tweet":           "- [x] t17 post the anniversary tweet -> j4.1",
+		"- [ ] t30 post for day four · due tomorrow at 14:00": "- [ ] t32 post for day four · due tomorrow at 14:00",
+		"- [x] t17 post the anniversary tweet":                "- [x] t17 post the anniversary tweet -> j4.1",
 	})
 }
 

@@ -168,8 +168,8 @@ Tasks:
 - [x] t17 post the anniversary tweet -> j4.1
 - [x] t19 draft the blog piece -> j4.2
 - [x] t22 post for day two -> j4.3
-- [ ] t31 post for day three, today at 14:00
-- [ ] t40 write the summary for the user, after the last post
+- [ ] t31 post for day three · due today at 14:00
+- [ ] t40 write the summary for the user · due after the last post
 Reports (read any of them in full with `read j4.2`):
 - j4.1 posted, 236 characters, link saved
 - j4.2 draft saved to blog/anniversary.md, 900 words

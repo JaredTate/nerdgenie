@@ -210,8 +210,8 @@ func checkItReadsBack(held contract.Record) error {
 		return fmt.Errorf("this change writes a record that cannot be read back, so shorten it or rephrase it: %w", err)
 	}
 	if !reflect.DeepEqual(read, held) {
-		return fmt.Errorf("this change writes a record that reads back as something else, so rephrase the text: it may not carry %q, %q, %q, or %q where a line of a record puts its own marks",
-			arrow, ", ", reasonJoin, causeJoin)
+		return fmt.Errorf("this change writes a record that reads back as something else, so rephrase the text: a line of a record uses %q before a result label, %q before a due date, and %q and %q inside a lesson as its own marks, and the text may not carry one of them where the reader would take it for the record's",
+			arrow, dueMark, reasonJoin, causeJoin)
 	}
 	return nil
 }

@@ -10,7 +10,7 @@ Why: because the user asked
 Tasks:
 - [x] t1 post the anniversary tweet -> j1.1
 - [ ] t2 draft the blog piece
-- [ ] t3 post for day three, on 3 September 2026 at 14:00 UTC
+- [ ] t3 post for day three · due on 3 September 2026 at 14:00 UTC
 Reports (read any of them in full with `read j4.2`):
 - j1.1 posted, 236 characters, link saved
 

@@ -57,18 +57,43 @@ func (theLoop *Loop) jobTaskBehind(number string) (contract.TaskToRun, bool) {
 // task's report carries its progress line. The newest put-down task is the one
 // picked up: it is the one the person was just looking at, and a job put down
 // before it stays paused until they start it again by hand.
+//
+// The report goes out whatever the store says about the mark. A mark the
+// store refuses used to skip the report, so the question was never sent and
+// never logged and the program moved on past a question nobody saw; now the
+// report carries a line saying the job could not be marked and what to do,
+// and the store's error is still handed back once the report has gone.
 func (theLoop *Loop) putTheTaskDown(ctx context.Context, task Task, number string, outcome Outcome) error {
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	waiting := outcome.Status == contract.StatusWaiting
 	mark := contract.PutDownMark{Task: *task.FromJob, Run: number, HasRecord: outcome.TaskID != "", Waiting: waiting}
-	if err := theLoop.options.Jobs.PutDown(ctx, mark); err != nil {
-		return fmt.Errorf("cannot put job %s down on its task %s: %w", jobID, taskID, err)
-	}
 	under := pausedOnLine(jobID, taskID)
 	if waiting {
 		under = waitingOnLine(jobID, taskID)
 	}
-	return theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+under)
+	marking := theLoop.options.Jobs.PutDown(ctx, mark)
+	if marking != nil {
+		marking = fmt.Errorf("cannot put job %s down on its task %s: %w", jobID, taskID, marking)
+		under = couldNotMarkLine(jobID, taskID, waiting, marking)
+	}
+	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+under); err != nil {
+		return err
+	}
+	return marking
+}
+
+// couldNotMarkLine is the line under a job task's report when the store would
+// not write the mark: what could not be marked, why, and what to do, which for
+// a stopped task is the word that tries again and for a question is the
+// answer itself, because the program still names the task on the person's
+// next message and the task is put down again when it ends.
+func couldNotMarkLine(jobID string, taskID string, waiting bool, why error) string {
+	if waiting {
+		return fmt.Sprintf("I could not mark job %s as waiting on task %s (%v). Your answer still reaches the task, and I will try to mark it again when the task next stops.",
+			jobID, taskID, why)
+	}
+	return fmt.Sprintf("I could not mark job %s as paused on task %s (%v). Say %s to try again.",
+		jobID, taskID, why, contract.CarryOnWords[0])
 }
 
 // pausedOnLine is the line under a stopped job task's report: which job waits

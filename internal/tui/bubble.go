@@ -126,7 +126,11 @@ func (screen *Screen) bubbleBodyRow(shape bubble, line row, widest int, indent i
 
 // pillRows draws one tool call as a small filled pill: the arrow, the tool, its
 // main argument, and its short summary, and never the result text.
-func (screen *Screen) pillRows(text string) []string {
+func (screen *Screen) pillRows(text string, focused bool) []string {
+	arrow := styleChip
+	if focused {
+		arrow = styleReverse
+	}
 	inner := screen.bubbleWidth() - bubbleFrame
 	wrapped := wrapText(withoutLeadingArrow(text), max(inner-2, 1))
 	widest := 0
@@ -140,7 +144,7 @@ func (screen *Screen) pillRows(text string) []string {
 		pill.blanks(marginColumns + gutterColumns)
 		pill.padWith(styleChip, bubblePadding)
 		if number == 0 {
-			pill.add(styleChip, string(toolArrowGlyph)+" ")
+			pill.add(arrow, string(toolArrowGlyph)+" ")
 		} else {
 			pill.padWith(styleChip, 2)
 		}

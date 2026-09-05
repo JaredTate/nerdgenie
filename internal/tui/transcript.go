@@ -177,7 +177,7 @@ func (screen *Screen) toolLines(item block) []string {
 	if item.repeats > 1 {
 		text += " " + string(repeatGlyph) + " " + strconv.Itoa(item.repeats)
 	}
-	return screen.pillRows(text)
+	return screen.pillRows(text, false)
 }
 
 // visibleTranscript is the rows of the transcript that fit in the space it has,

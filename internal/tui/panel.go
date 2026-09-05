@@ -91,7 +91,16 @@ func (mark checkMark) wordsStyle() style {
 
 // showsPanel says whether the terminal is wide enough for the side panel.
 func (screen *Screen) showsPanel() bool {
-	return screen.width >= panelFrom
+	return screen.width >= panelFrom && !screen.panelHidden
+}
+
+// panelTargets names what a click on each line of the panel lands on, one
+// entry per line panelLines draws: "job:4" on a job's header, "task:t3" on
+// one of its tasks, and "" on a line that is nothing to click. The two are
+// built from the same items, so a row on the screen maps to the thing under
+// it.
+func (screen *Screen) panelTargets() []string {
+	return make([]string, len(screen.panelLines()))
 }
 
 // transcriptColumns is how many columns the transcript and everything in it is

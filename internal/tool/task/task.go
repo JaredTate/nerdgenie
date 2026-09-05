@@ -44,11 +44,13 @@ const (
 const MaxLines = 50
 
 // Records is the record this tool writes through, which is the keeper in
-// internal/record. Only the two methods here are used, because every other way
-// into a record belongs to the harness.
+// internal/record: the contract's Records, the one reading interface this tool
+// and the job tool share, with Apply beside it here alone, because the update
+// it writes is the record package's type and the contract must not import
+// that package. Only these two methods are used, because every other way into
+// a record belongs to the harness.
 type Records interface {
-	// Record returns a copy of the record as it stands.
-	Record() contract.Record
+	contract.Records
 	// Apply writes the model's half of the record, all or nothing.
 	Apply(ctx context.Context, update record.Update) error
 }

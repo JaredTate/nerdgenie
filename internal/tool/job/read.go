@@ -35,12 +35,30 @@ func readInput(written json.RawMessage) (input, error) {
 		if asked.Schedule == nil && strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 0 {
 			return input{}, errors.New("this job has no first task, so a job needs at least one task: create it with its task list under tasks, then work the first task")
 		}
+		// Text and tasks are one list, so the cap counts them together; the
+		// list's own reader has already held the list alone to the cap.
+		if count := asked.taskCount(); count > MaxTasksOnCreate {
+			return input{}, fmt.Errorf("this create writes %d tasks counting text and one create takes at most %d, so create the job with the first %d and put the rest on it with add_task",
+				count, MaxTasksOnCreate, MaxTasksOnCreate)
+		}
 	case ActionAddTask:
 		if strings.TrimSpace(asked.JobID) == "" {
 			return input{}, errors.New("this call names no job, so say which job the task belongs to")
 		}
+		// add_task takes one task as text, and create has just taught the
+		// model to list its work under tasks, so one task listed alone there
+		// is read as the same thing and more than one is refused by name.
+		if len(asked.Tasks) > 1 {
+			return input{}, fmt.Errorf("add_task takes one task as text and this call lists %d under tasks, so add them one call at a time, each as text", len(asked.Tasks))
+		}
+		if strings.TrimSpace(asked.Text) == "" && len(asked.Tasks) == 1 {
+			asked.Text = asked.Tasks[0].Text
+			if strings.TrimSpace(asked.DueAt) == "" {
+				asked.DueAt = asked.Tasks[0].DueAt
+			}
+		}
 		if strings.TrimSpace(asked.Text) == "" {
-			return input{}, errors.New("this task says nothing, so write in one line what it does and how it is done")
+			return input{}, errors.New("this task says nothing, and add_task takes one task as text, so write in one line under text what it does and how it is done")
 		}
 	case ActionList:
 		return asked, nil

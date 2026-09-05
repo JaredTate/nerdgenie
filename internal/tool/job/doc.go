@@ -10,6 +10,10 @@
 // carries, and calls the method each word means. A job without a schedule must
 // list at least one task, and create writes the whole list under the new job in
 // order and leaves the first for the loop to run next: a job that never carried
-// a task is the bug this guards against. Making a job is the one thing here
-// that cannot be undone, which is why the tool carries that class.
+// a task is the bug this guards against. A create is all or nothing: a task the
+// store refuses switches the new job off, so no empty job is left running. A
+// job's task does not make a job, because a job's plan is its task list, so a
+// create from inside one is refused and sent to add_task. Making a job is the
+// one thing here that cannot be undone, which is why the tool carries that
+// class.
 package job

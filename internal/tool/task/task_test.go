@@ -55,6 +55,20 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	}
 }
 
+// TestTheTaskToolsRecordsIsTheContractsRecordsWithApplyBeside pins the one
+// shared interface to the contract: what this tool writes through is the
+// contract's Records, which the job tool reads through too, with Apply beside
+// it here alone, because the update it writes is the record package's type and
+// the contract imports nothing outside the standard library.
+func TestTheTaskToolsRecordsIsTheContractsRecordsWithApplyBeside(t *testing.T) {
+	_, keeper := newTool(t)
+	var records task.Records = keeper
+	var shared contract.Records = records
+	if shared.Record().Goal.Ask != "write up the release notes" {
+		t.Errorf("the contract's Records reads the ask %q through the keeper, want the one the record was started with", shared.Record().Goal.Ask)
+	}
+}
+
 func TestTheWhyIsWrittenOnceAndThenStands(t *testing.T) {
 	tool, keeper := newTool(t)
 

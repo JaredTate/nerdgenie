@@ -25,25 +25,20 @@ const (
 // MaxListed is how many jobs one listing shows, newest first.
 const MaxListed = 25
 
-// MaxTasksOnCreate is how many tasks one create can list under tasks, the same
-// number as a listing shows. The rest go on with add_task.
+// MaxTasksOnCreate is how many tasks one create can write, counting the one
+// under text with the ones listed under tasks, the same number as a listing
+// shows. The rest go on with add_task.
 const MaxTasksOnCreate = MaxListed
-
-// Records is the record of the task running now, as this tool reads it, which
-// is the keeper in internal/record. Only the one method here is used, because
-// this tool takes the ask from the record and never writes to it.
-type Records interface {
-	// Record returns a copy of the record as it stands.
-	Record() contract.Record
-}
 
 // Settings is what the job tool needs to do its work.
 type Settings struct {
 	// Jobs is the store of jobs and their task lists.
 	Jobs contract.Job
 	// Records is the record of the task running now, whose ask the job takes
-	// word for word. When it is nil the ask the model wrote is used instead.
-	Records Records
+	// word for word and whose ask says whether the task is a job's. This tool
+	// only reads it, so the contract's one-method Records is all it asks for.
+	// When it is nil the ask the model wrote is used instead.
+	Records contract.Records
 }
 
 // writtenTask is one task as the model lists it on create, in either of the two
@@ -66,7 +61,8 @@ type taskObject struct {
 }
 
 // errNotATask is what a listed item that is neither a string nor an object
-// comes back as. The list's reader puts the item's position in front of it.
+// comes back as. The list's reader puts the item's position in front of it, so
+// the model reads both where the item is and what it is not.
 var errNotATask = errors.New("this task is neither a string nor an object, so write the task's text as a string or an object with text")
 
 // UnmarshalJSON reads one listed task: a string first, which is an undated task
@@ -119,7 +115,7 @@ func (tasks *writtenTasks) UnmarshalJSON(written []byte) error {
 	for at, item := range items {
 		task := writtenTask{}
 		if err := task.UnmarshalJSON(item); err != nil {
-			return listRefusal{line: fmt.Sprintf("task %d of the list is not one this tool can read, so write the task's text as a string or an object with text", at+1)}
+			return listRefusal{line: fmt.Sprintf("task %d of the list: %v", at+1, err)}
 		}
 		if strings.TrimSpace(task.Text) == "" {
 			return listRefusal{line: fmt.Sprintf("task %d of the list says nothing, so write in one line what it does and how it is done", at+1)}
@@ -173,11 +169,32 @@ type input struct {
 	JobID string `json:"job_id"`
 	// Text says what the task does, with one clear done line behind it.
 	Text string `json:"text"`
-	// Tasks is the whole task list on create, in order, after Text when there
-	// is one.
+	// Tasks is the task list on create, in order. Text and Tasks are one list,
+	// Text first, and a Text that repeats the first listed task is that task
+	// written twice, so it counts once.
 	Tasks writtenTasks `json:"tasks"`
 	// DueAt is when the task may start, written as a date and time.
 	DueAt string `json:"due_at"`
+}
+
+// textIsAnotherTask says whether text names a task the list does not begin
+// with: a blank text is no task, and a text that is the first listed task word
+// for word is that task written twice.
+func (asked input) textIsAnotherTask() bool {
+	text := strings.TrimSpace(asked.Text)
+	if text == "" {
+		return false
+	}
+	return len(asked.Tasks) == 0 || strings.TrimSpace(asked.Tasks[0].Text) != text
+}
+
+// taskCount is how many tasks a create writes, counting text with the list.
+func (asked input) taskCount() int {
+	count := len(asked.Tasks)
+	if asked.textIsAnotherTask() {
+		count++
+	}
+	return count
 }
 
 // Tool is the job tool.
@@ -204,8 +221,8 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "schedule", Type: "object", Description: "When the job makes its next task: kind at, every, or cron."},
 			{Name: "task_template", Type: "string", Description: "What a scheduled job turns into one task each time."},
 			{Name: "job_id", Type: "string", Description: "Which job to add a task to."},
-			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task."},
-			{Name: "tasks", Type: "array", Description: "On create, the whole task list in order, each item either the task's text as a string or an object with text and, when it must wait for a date, due_at. At most twenty-five. A job without a schedule needs at least one task, here or under text."},
+			{Name: "text", Type: "string", Description: "What the task does, with one clear done line behind it. On create it is the job's first task, given once: here or as the first item of tasks, not both."},
+			{Name: "tasks", Type: "array", Description: "On create, the task list in order, each item either the task's text as a string or an object with text and, when it must wait for a date, due_at. Give the first task once, here or under text; text and tasks are one list of at most twenty-five."},
 			{Name: "due_at", Type: "string", Description: "When the task may start, as a date and time."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassIrreversible},
@@ -238,6 +255,15 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
+	// A job's task does not make a job: a job's plan is its task list, so work
+	// found inside one of its tasks goes on that list.
+	jobID, inside, err := tool.jobOfTheRunningTask(ctx)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	if inside {
+		return contract.ToolOutput{}, fmt.Errorf("this task belongs to job %s; add tasks to that job with add_task instead of making a job inside it", jobID)
+	}
 	schedule, err := readSchedule(asked.Schedule)
 	if err != nil {
 		return contract.ToolOutput{}, err
@@ -269,35 +295,98 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 		task.JobID = id
 		taskID, err := tool.settings.Jobs.AddTask(ctx, task)
 		if err != nil {
-			return contract.ToolOutput{}, fmt.Errorf("created job %s and recorded %d of its tasks but cannot record the next: %w", id, len(added), err)
+			return contract.ToolOutput{}, tool.switchOffTheHalfMadeJob(ctx, id, len(added)+1, len(tasks), err)
 		}
 		added = append(added, taskID)
 	}
 	return contract.ToolOutput{Text: createdLine(id, added)}, nil
 }
 
+// switchOffTheHalfMadeJob is the refusal for a create whose job was made but
+// whose task list the store refused partway. The job is switched off first, so
+// that a model which tries the same create again does not leave an empty
+// running job behind each time: on the real store one such retry loop left
+// twenty-nine empty jobs. The store's own reason goes back in full, because a
+// retry only helps once that reason is fixed.
+func (tool *Tool) switchOffTheHalfMadeJob(ctx context.Context, id string, refused int, wanted int, cause error) error {
+	if err := tool.settings.Jobs.SwitchOff(ctx, id); err != nil {
+		return fmt.Errorf("job %s was made but the store refused task %d of its %d and then refused to switch the job off (%v), so tell the user that job %s may be running with half its list rather than trying the same create again: %w",
+			id, refused, wanted, err, id, cause)
+	}
+	return fmt.Errorf("job %s was made and then switched off, because the store refused task %d of its %d and a job with half its list must not run, so fix what the store refused or tell the user rather than trying the same create again: %w",
+		id, refused, wanted, cause)
+}
+
+// jobOfTheRunningTask is the job whose task is running now, when the running
+// task is a job's. The record carries no mark of its job, so the one signal in
+// this tool's reach is the ask itself: the loop starts a job's task with the
+// task's own text as its ask, so a record whose ask is, word for word, an
+// unfinished task of a running job is that job's task. A finished task never
+// runs again, so its words are a person's ask. It reads at most MaxListed jobs,
+// and a store that cannot be read refuses the create rather than letting a job
+// be made inside another.
+func (tool *Tool) jobOfTheRunningTask(ctx context.Context) (string, bool, error) {
+	if tool.settings.Records == nil {
+		return "", false, nil
+	}
+	ask := strings.TrimSpace(tool.settings.Records.Record().Goal.Ask)
+	if ask == "" {
+		return "", false, nil
+	}
+	summaries, err := tool.settings.Jobs.List(ctx)
+	if err != nil {
+		return "", false, fmt.Errorf("cannot list the jobs to tell whether this task belongs to one, so try again once the job store answers: %w", err)
+	}
+	for at, summary := range summaries {
+		if at >= MaxListed {
+			break
+		}
+		if summary.State != contract.JobRunning {
+			continue
+		}
+		held, err := tool.settings.Jobs.Load(ctx, summary.ID)
+		if err != nil {
+			return "", false, fmt.Errorf("cannot read job %s to tell whether this task belongs to it, so try again once the job store answers: %w", summary.ID, err)
+		}
+		for _, task := range held.Work.Tasks {
+			if !task.Done && strings.TrimSpace(task.Text) == ask {
+				return summary.ID, true, nil
+			}
+		}
+	}
+	return "", false, nil
+}
+
 // askFor is the ask the new job carries: the running task's, byte for byte,
 // when the tool has that record, because the ask is the user's words and never
 // the model's, so an ask the model wrote beside it is dropped. A tool with no
-// record, or a record with no ask yet, takes the one the model wrote.
+// record, or a record with no ask yet, takes the one the model wrote. When
+// there is no ask anywhere the fault is the wiring's or the harness's, not the
+// model's, because the ask field tells the model to leave it empty, so the
+// refusal says so rather than sending the model to retype the user's words.
 func (tool *Tool) askFor(asked input) (string, error) {
-	ask := asked.Ask
-	if tool.settings.Records != nil {
-		if held := tool.settings.Records.Record().Goal.Ask; strings.TrimSpace(held) != "" {
-			ask = held
+	if tool.settings.Records == nil {
+		if strings.TrimSpace(asked.Ask) == "" {
+			return "", errors.New("this job carries no ask because the tool was built without the task's record, which is a fault in the wiring and not in this call, so wire the record in before making a job")
 		}
+		return asked.Ask, nil
 	}
-	if strings.TrimSpace(ask) == "" {
-		return "", errors.New("this job carries no ask, so pass the user's message word for word")
+	if held := tool.settings.Records.Record().Goal.Ask; strings.TrimSpace(held) != "" {
+		return held, nil
 	}
-	return ask, nil
+	if strings.TrimSpace(asked.Ask) == "" {
+		return "", errors.New("this job carries no ask because the task's record has none yet, which is a fault in the harness and not in this call, so the record must carry the user's message before a job is made")
+	}
+	return asked.Ask, nil
 }
 
-// tasksOf is the task list a create writes, in order: the text first, when
-// there is one, and then every task listed under tasks with its date read.
+// tasksOf is the task list a create writes, in order: the text first, when it
+// names a task the list does not begin with, and then every task listed under
+// tasks with its date read. A text that repeats the first listed task is that
+// task written twice, so the listed one stands alone and keeps its date.
 func tasksOf(asked input) ([]contract.NewTask, error) {
 	tasks := make([]contract.NewTask, 0, len(asked.Tasks)+1)
-	if strings.TrimSpace(asked.Text) != "" {
+	if asked.textIsAnotherTask() {
 		tasks = append(tasks, contract.NewTask{Text: asked.Text})
 	}
 	for at, written := range asked.Tasks {

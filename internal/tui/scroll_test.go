@@ -226,7 +226,7 @@ func TestPageUpPageDownShiftUpAndShiftDownScrollByTheKeyboard(t *testing.T) {
 	height := len(atTheBottom)
 
 	pressKey(screen, tea.KeyPgUp)
-	expectRows(t, "Page Up shows the view ten rows older", transcriptOnTheFrame(screen), olderRows(every, height, scrollRows))
+	expectRows(t, "Page Up shows the view a screen of rows older, less two so that the eye keeps its place", transcriptOnTheFrame(screen), olderRows(every, height, height-2))
 	expectMark(t, screen, true, "after Page Up")
 	pressKey(screen, tea.KeyPgDown)
 	expectRows(t, "Page Down brings the view back", transcriptOnTheFrame(screen), atTheBottom)
@@ -242,6 +242,27 @@ func TestPageUpPageDownShiftUpAndShiftDownScrollByTheKeyboard(t *testing.T) {
 		t.Errorf("a plain Up put %q in the box, and Up without shift still recalls what was sent", screen.input.text())
 	}
 	expectMark(t, screen, false, "after a plain Up, which belongs to the history")
+}
+
+func TestEndBringsTheViewBackToTheNewestAndOtherwiseMovesTheCursor(t *testing.T) {
+	screen, _ := screenWithLink()
+	aLongConversation(screen)
+	atTheBottom := transcriptOnTheFrame(screen)
+	wheelTimes(screen, tea.MouseWheelUp, 3)
+	typeWord(screen, "abc")
+	screen.input.cursor = 0
+
+	pressKey(screen, tea.KeyEnd)
+	expectRows(t, "End while scrolled up brings the view back to the newest row", transcriptOnTheFrame(screen), atTheBottom)
+	expectMark(t, screen, false, "after End")
+	if screen.input.cursor != 0 {
+		t.Errorf("End while scrolled up moved the cursor to %d, and it went to the transcript alone", screen.input.cursor)
+	}
+
+	pressKey(screen, tea.KeyEnd)
+	if screen.input.cursor != 3 {
+		t.Errorf("End with the view already at the bottom left the cursor at %d, and it belongs to the input box then", screen.input.cursor)
+	}
 }
 
 func TestTheScrollKeysStillWorkWhileACardHoldsTheKeys(t *testing.T) {

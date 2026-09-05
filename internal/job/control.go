@@ -71,10 +71,12 @@ func runNumberOf(run string) int {
 	return number
 }
 
-// Resume starts a job working again and forgets the failures that stopped it, so
-// that the next failure starts the count afresh rather than stopping it at once.
-//
-// The contract has no Resume yet, so "/resume" reaches it through this type.
+// Resume sets a paused job running again and nothing else: every task keeps
+// its date, a schedule keeps its next tick, the claims the paused run held are
+// let go, and the mark of a job put down on a task is forgotten. It also
+// forgets the failures that stopped the job, so that the next failure starts
+// the count afresh rather than stopping it at once. It is what the loop picks
+// a put-down task up with, and what "/resume" does.
 func (jobs *Jobs) Resume(ctx context.Context, jobID string) error {
 	return jobs.setState(ctx, jobID, contract.JobRunning)
 }

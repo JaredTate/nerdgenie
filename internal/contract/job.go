@@ -151,8 +151,17 @@ type Job interface {
 	AddTask(ctx context.Context, task NewTask) (string, error)
 	// List returns every job, newest first.
 	List(ctx context.Context) ([]JobSummary, error)
-	// RunNow starts the job's next task without waiting for its date.
+	// RunNow starts the job's next task without waiting for its date: the date
+	// is taken off that task, a schedule ticks at once, and a job put down on a
+	// task runs that task first and forgets its mark.
 	RunNow(ctx context.Context, jobID string) error
+	// Resume sets a paused job running again and nothing else: every task keeps
+	// its date, a schedule keeps its next tick, the claims the paused run held
+	// are let go, and the mark of a job put down on a task is forgotten. It is
+	// what picks a put-down task up, because the person's word means "carry on
+	// where you were" and not "run now". A job that is not there is refused with
+	// an error naming it.
+	Resume(ctx context.Context, jobID string) error
 	// Pause stops the job after the running task finishes.
 	Pause(ctx context.Context, jobID string) error
 	// SwitchOff stops the job for good and tells the user.

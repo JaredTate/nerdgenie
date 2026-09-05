@@ -167,9 +167,12 @@ func isNewer(number string, other string) bool {
 }
 
 // carryOn turns the person's word, or their answer, into the job's task it
-// picks up. The job is set running again first, which forgets the mark and
-// lets go of the claim the stopped run held, so that the next task starts as
-// usual when this one finishes; then the run that was stopped or asked is
+// picks up. The job is set running again first, through Resume and never
+// RunNow, because the person means "carry on where you were": Resume forgets
+// the mark and lets go of the claim the stopped run held and touches nothing
+// else, where RunNow would take the date off the first unfinished task, which
+// may be one dated next week and not the one picked up, and fire a scheduled
+// job's tick at once; then the run that was stopped or asked is
 // picked up under the job when it made a record, and the task is started
 // afresh under the job, with its own words as the ask, when the stop or the
 // question came before its first tool call. What the person said beyond the
@@ -179,7 +182,7 @@ func isNewer(number string, other string) bool {
 // words, so the model is told both what to do and what the person said.
 func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.PutDownMark) (Task, error) {
 	jobID, taskID := putDown.Task.JobID, putDown.Task.TaskID
-	if err := theLoop.options.Jobs.RunNow(ctx, jobID); err != nil {
+	if err := theLoop.options.Jobs.Resume(ctx, jobID); err != nil {
 		return Task{}, fmt.Errorf("cannot set job %s running again to carry on its task %s: %w", jobID, taskID, err)
 	}
 	rest, _ := contract.CarryOn(task.Message.Text)

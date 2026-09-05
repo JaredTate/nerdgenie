@@ -122,6 +122,32 @@ func TestACreateWithNoAskAnywhereIsRefused(t *testing.T) {
 	}
 }
 
+// TestAToolWithNoRecordAndNoAskSaysTheWiringIsAtFault proves the refusal for a
+// tool built without the task's record blames the wiring, not the model: the
+// ask field tells the model to leave it empty, so telling it to pass the user's
+// message would send it to retype words it was told not to.
+func TestAToolWithNoRecordAndNoAskSaysTheWiringIsAtFault(t *testing.T) {
+	tool, jobs := newTool(t)
+
+	_, err := run(t, tool, map[string]any{"action": "create", "why": "the why", "text": "the first task"})
+	if err == nil {
+		t.Fatalf("a create with no ask anywhere made a job")
+	}
+	for _, told := range []string{"record", "wiring"} {
+		if !strings.Contains(err.Error(), told) {
+			t.Errorf("the refusal reads %q and does not say %q", err, told)
+		}
+	}
+	if strings.Contains(err.Error(), "pass the user's message") {
+		t.Errorf("the refusal reads %q and tells the model to retype the ask it was told to leave empty", err)
+	}
+	if summaries, listErr := jobs.List(context.Background()); listErr != nil {
+		t.Fatalf("listing failed: %v", listErr)
+	} else if len(summaries) != 0 {
+		t.Errorf("the refused create still left %d jobs behind", len(summaries))
+	}
+}
+
 // TestACreateWithATaskListWritesEveryTaskInOrder proves the whole task list is
 // written in one call: text first, then the list in order, the first one left
 // as the task the loop runs next, and every label named in the reply.
@@ -336,6 +362,9 @@ func TestATaskInAShapeTheToolCannotReadIsRefusedByItsPosition(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "task 2") || !strings.Contains(err.Error(), "string") {
 			t.Errorf("the refusal for a task written as %v reads %q and does not name position two and the shapes to write", broken, err)
+		}
+		if !strings.Contains(err.Error(), "neither a string nor an object") {
+			t.Errorf("the refusal for a task written as %v reads %q and does not say what the item is not, which is the item reader's own line", broken, err)
 		}
 	}
 	if summaries, listErr := jobs.List(context.Background()); listErr != nil {

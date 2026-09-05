@@ -184,6 +184,60 @@ func TestATaskWithADateWaitsForIt(t *testing.T) {
 	}
 }
 
+// TestAddTaskTakesOneTaskAsTextAndReadsASingleListedOneAsTheSame proves the
+// add_task refusals say what add_task takes, one task as text, because create
+// has just taught the model to list its work under tasks: a list of one is
+// taken as that task, with its date, and a list of more is refused naming text.
+func TestAddTaskTakesOneTaskAsTextAndReadsASingleListedOneAsTheSame(t *testing.T) {
+	tool, jobs := newTool(t)
+	if _, err := run(t, tool, map[string]any{"action": "create", "ask": "the ask", "why": "the why", "text": "the first task"}); err != nil {
+		t.Fatalf("creating a job failed: %v", err)
+	}
+	due := theMoment.Add(48 * time.Hour)
+
+	if _, err := run(t, tool, map[string]any{"action": "add_task", "job_id": "1", "tasks": []any{"write up version one"}}); err != nil {
+		t.Fatalf("adding a task listed alone under tasks was refused: %v", err)
+	}
+	if _, err := run(t, tool, map[string]any{
+		"action": "add_task", "job_id": "1", "tasks": []any{map[string]any{"text": "write up version two", "due_at": due.Format(time.RFC3339)}},
+	}); err != nil {
+		t.Fatalf("adding a dated task listed alone under tasks was refused: %v", err)
+	}
+	tasks := jobs.Tasks("1")
+	if len(tasks) != 3 || tasks[1].Text != "write up version one" || tasks[2].Text != "write up version two" {
+		t.Fatalf("the job holds %v, want the first task and the two listed alone", tasks)
+	}
+	if tasks[2].DueAt == "" {
+		t.Errorf("the dated task listed alone is %v, want one that waits for its date", tasks[2])
+	}
+
+	_, err := run(t, tool, map[string]any{"action": "add_task", "job_id": "1", "tasks": []any{"version three", "version four"}})
+	if err == nil {
+		t.Fatalf("an add_task listing two tasks was taken, and add_task takes one")
+	}
+	for _, told := range []string{"one task", "text", "2"} {
+		if !strings.Contains(err.Error(), told) {
+			t.Errorf("the refusal reads %q and does not say %q", err, told)
+		}
+	}
+	if strings.Contains(err.Error(), "says nothing") {
+		t.Errorf("the refusal reads %q and calls a call that lists two tasks one that says nothing", err)
+	}
+
+	_, err = run(t, tool, map[string]any{"action": "add_task", "job_id": "1"})
+	if err == nil {
+		t.Fatalf("an add_task naming no task was taken")
+	}
+	for _, told := range []string{"one task", "text"} {
+		if !strings.Contains(err.Error(), told) {
+			t.Errorf("the refusal reads %q and does not say %q", err, told)
+		}
+	}
+	if len(jobs.Tasks("1")) != 3 {
+		t.Errorf("the job holds %d tasks after the two refusals, want still three", len(jobs.Tasks("1")))
+	}
+}
+
 func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 	tool, _ := newTool(t)
 

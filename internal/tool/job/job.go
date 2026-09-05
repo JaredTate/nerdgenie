@@ -260,6 +260,15 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
+	// A job's task does not make a job: a job's plan is its task list, so work
+	// found inside one of its tasks goes on that list.
+	jobID, inside, err := tool.jobOfTheRunningTask(ctx)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	if inside {
+		return contract.ToolOutput{}, fmt.Errorf("this task belongs to job %s; add tasks to that job with add_task instead of making a job inside it", jobID)
+	}
 	schedule, err := readSchedule(asked.Schedule)
 	if err != nil {
 		return contract.ToolOutput{}, err
@@ -311,6 +320,46 @@ func (tool *Tool) switchOffTheHalfMadeJob(ctx context.Context, id string, refuse
 	}
 	return fmt.Errorf("job %s was made and then switched off, because the store refused task %d of its %d and a job with half its list must not run, so fix what the store refused or tell the user rather than trying the same create again: %w",
 		id, refused, wanted, cause)
+}
+
+// jobOfTheRunningTask is the job whose task is running now, when the running
+// task is a job's. The record carries no mark of its job, so the one signal in
+// this tool's reach is the ask itself: the loop starts a job's task with the
+// task's own text as its ask, so a record whose ask is, word for word, an
+// unfinished task of a running job is that job's task. A finished task never
+// runs again, so its words are a person's ask. It reads at most MaxListed jobs,
+// and a store that cannot be read refuses the create rather than letting a job
+// be made inside another.
+func (tool *Tool) jobOfTheRunningTask(ctx context.Context) (string, bool, error) {
+	if tool.settings.Records == nil {
+		return "", false, nil
+	}
+	ask := strings.TrimSpace(tool.settings.Records.Record().Goal.Ask)
+	if ask == "" {
+		return "", false, nil
+	}
+	summaries, err := tool.settings.Jobs.List(ctx)
+	if err != nil {
+		return "", false, fmt.Errorf("cannot list the jobs to tell whether this task belongs to one, so try again once the job store answers: %w", err)
+	}
+	for at, summary := range summaries {
+		if at >= MaxListed {
+			break
+		}
+		if summary.State != contract.JobRunning {
+			continue
+		}
+		held, err := tool.settings.Jobs.Load(ctx, summary.ID)
+		if err != nil {
+			return "", false, fmt.Errorf("cannot read job %s to tell whether this task belongs to it, so try again once the job store answers: %w", summary.ID, err)
+		}
+		for _, task := range held.Work.Tasks {
+			if !task.Done && strings.TrimSpace(task.Text) == ask {
+				return summary.ID, true, nil
+			}
+		}
+	}
+	return "", false, nil
 }
 
 // askFor is the ask the new job carries: the running task's, byte for byte,

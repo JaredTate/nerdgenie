@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // serve takes connections on the socket, drains the queue beside it, and runs
@@ -154,6 +155,13 @@ func (running *agent) runDueJobs(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// jobSession is the name a job's task holds its turn lease under. A job's task
+// comes from no screen, so it is named for the job rather than for a channel
+// and a sender, and every task of one job takes its turn under the same name.
+func jobSession(due contract.TaskToRun) string {
+	return "job:" + due.JobID
 }
 
 // runWhatIsDue runs the task a job has due now, holding the loop for as long as

@@ -65,7 +65,9 @@ func (running *run) writeSituation(ctx context.Context) error {
 }
 
 // filesLine names the files this task changed, from the file-change events in
-// the log and from the write and edit calls the loop itself saw.
+// the log and from the write and edit calls the loop itself saw, by their last
+// path element, because the line is rewritten under the conversation on every
+// call and eight full paths were a quarter of a thousand tokens of it.
 func (running *run) filesLine(ctx context.Context) string {
 	changed := slices.Clone(running.filesChanged)
 	for _, path := range running.loggedFileChanges(ctx) {
@@ -76,11 +78,7 @@ func (running *run) filesLine(ctx context.Context) string {
 	if len(changed) == 0 {
 		return "none"
 	}
-	if len(changed) > MaxFilesInTheSituation {
-		return fmt.Sprintf("%s and %d more", strings.Join(changed[:MaxFilesInTheSituation], ", "),
-			len(changed)-MaxFilesInTheSituation)
-	}
-	return strings.Join(changed, ", ")
+	return shortNames(changed, MaxFilesInTheSituation)
 }
 
 // loggedFileChanges is every file the tools wrote down as changed under this

@@ -148,3 +148,21 @@ func TestAFailureNamesAFewChangedFilesByTheirShortNames(t *testing.T) {
 		t.Errorf("the failure reads %q, and a full path is noise on a one-line lesson", failure.Text)
 	}
 }
+
+// TestTheSituationNamesChangedFilesByTheirShortNames keeps the record's tail
+// short: the situation's files line used to carry eight full paths, a
+// quarter of a thousand tokens rewritten under the conversation every call,
+// when the last path element says which file it was.
+func TestTheSituationNamesChangedFilesByTheirShortNames(t *testing.T) {
+	built := aRedThenGreenBuild(t)
+
+	outcome := built.ask(t, "make the board clear full rows")
+
+	held := built.held(t, outcome.TaskID)
+	if !situationHolds(held, "files changed in this task: board.test.js, board.js") {
+		t.Errorf("the situation %v does not name the changed files by their short names", held.Work.Situation)
+	}
+	if situationHolds(held, "/p/src/board.js") {
+		t.Errorf("the situation %v carries a full path, and the short name says which file it was", held.Work.Situation)
+	}
+}

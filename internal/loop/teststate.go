@@ -240,12 +240,18 @@ func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.Too
 // shortNamesOf names files by their last path element, at most
 // MaxChangedFilesNamed of them, and says how many more there were.
 func shortNamesOf(paths []string) string {
+	return shortNames(paths, MaxChangedFilesNamed)
+}
+
+// shortNames names files by their last path element, at most the number given,
+// and says how many more there were.
+func shortNames(paths []string, most int) string {
 	names := make([]string, 0, len(paths))
 	for _, path := range paths {
 		names = append(names, path[strings.LastIndex(path, "/")+1:])
 	}
-	if len(names) <= MaxChangedFilesNamed {
+	if len(names) <= most {
 		return strings.Join(names, ", ")
 	}
-	return fmt.Sprintf("%s and %d more", strings.Join(names[:MaxChangedFilesNamed], ", "), len(names)-MaxChangedFilesNamed)
+	return fmt.Sprintf("%s and %d more", strings.Join(names[:most], ", "), len(names)-most)
 }

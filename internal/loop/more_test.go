@@ -34,8 +34,8 @@ func TestTheSituationNamesTheFilesTheTaskChanged(t *testing.T) {
 	outcome := built.ask(t, "write the draft")
 
 	held := built.held(t, outcome.TaskID)
-	if !situationHolds(held, "drafts/one.md") {
-		t.Errorf("the situation reads %v, and it must name the file the write tool touched", held.Work.Situation)
+	if !situationHolds(held, "one.md") || situationHolds(held, "drafts/one.md") {
+		t.Errorf("the situation reads %v, and it must name the file the write tool touched by its short name", held.Work.Situation)
 	}
 	if !situationHolds(held, "and 2 more") {
 		t.Errorf("the situation reads %v, and it must say how many files it did not name", held.Work.Situation)

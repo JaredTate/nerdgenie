@@ -693,6 +693,7 @@ internal/provider/wire_test.go
 internal/record/agreement_test.go
 internal/record/ask_test.go
 internal/record/askbyreference_test.go
+internal/record/asklength_test.go
 internal/record/bounds_test.go
 internal/record/checkpoint.go
 internal/record/checkpoint_test.go
@@ -1408,6 +1409,7 @@ test/functional/desktop_test.go
 test/functional/eventtime_test.go
 test/functional/extending_test.go
 test/functional/fixturesite_test.go
+test/functional/instructionspage_test.go
 test/functional/jobpanel_test.go
 test/functional/jobs_test.go
 test/functional/jobstop_test.go

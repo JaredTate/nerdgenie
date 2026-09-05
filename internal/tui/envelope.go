@@ -34,7 +34,9 @@ func (screen *Screen) receive(envelope contract.SocketEnvelope) {
 	case contract.SocketShown:
 		if id := envelope.Fields[showFieldID]; id != "" {
 			screen.shownArrived(id, envelope.Text)
+			return
 		}
+		screen.recordArrived(envelope)
 	case contract.SocketError:
 		if screen.errorAnswersAShow(envelope) {
 			return

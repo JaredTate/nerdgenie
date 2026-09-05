@@ -25,14 +25,24 @@ func (screen *Screen) pageRows() int {
 }
 
 // wheeled takes one turn of the mouse wheel: up shows older rows, down shows
-// newer ones, and the wheel pushed sideways does nothing.
+// newer ones, and the wheel pushed sideways does nothing. While a record is
+// drawn over the transcript the wheel scrolls the record instead, because that
+// is what is under the mouse.
 func (screen *Screen) wheeled(turn tea.MouseWheelMsg) {
+	rows := 0
 	switch turn.Button {
 	case tea.MouseWheelUp:
-		screen.scrollBy(wheelRows)
+		rows = wheelRows
 	case tea.MouseWheelDown:
-		screen.scrollBy(-wheelRows)
+		rows = -wheelRows
+	default:
+		return
 	}
+	if screen.overlayOpen() {
+		screen.scrollOverlayBy(-rows)
+		return
+	}
+	screen.scrollBy(rows)
 }
 
 // scrolledWithTheKey holds the keys that scroll the transcript, and says

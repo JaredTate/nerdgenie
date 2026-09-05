@@ -84,20 +84,28 @@ func (screen *Screen) clicked(press tea.MouseClickMsg) {
 	screen.clickedOn(screen.hits().at(press.X, press.Y))
 }
 
-// clickedOn does what a click on one thing does: a pill is toggled.
+// clickedOn does what a click on one thing does: a pill is toggled, and a
+// panel row's record is asked for.
 func (screen *Screen) clickedOn(found hit) {
-	if found.block >= 0 {
+	switch {
+	case found.block >= 0:
 		screen.togglePillAt(found.block)
+	case found.target != "":
+		screen.openTarget(found.target)
 	}
 }
 
 // composeMiddle draws the rows between the two rules for a frame of one shape:
-// the transcript, with the palette under it, and says for every row which
-// block it draws, or minus one for a row that is nobody's, such as the blank
-// between two blocks, the welcome, or the palette. The pill at focused is drawn
-// as the focused one.
+// the transcript, or the record overlay in its place while one is open, with
+// the palette under it, and says for every row which block it draws, or minus
+// one for a row that is nobody's, such as the blank between two blocks, the
+// welcome, the overlay, or the palette. The pill at focused is drawn as the
+// focused one.
 func (screen *Screen) composeMiddle(shape frameShape, focused int) ([]string, []int) {
 	rows, owners := screen.visibleTranscript(shape.transcriptHeight, focused)
+	if screen.overlayOpen() {
+		rows, owners = screen.overlayRows(shape.transcriptHeight), nobodys(shape.transcriptHeight)
+	}
 	rows = append(rows, shape.palette...)
 	owners = append(owners, nobodys(len(shape.palette))...)
 	return rows, owners

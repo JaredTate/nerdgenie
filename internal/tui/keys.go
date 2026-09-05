@@ -21,9 +21,10 @@ func heldWithControl(key tea.KeyPressMsg, letter rune) bool {
 }
 
 // pressed takes one key press and gives it to whatever holds the keys: the card
-// that is waiting for an answer, the reason prompt, or the input box. Two keys
-// belong to the screen as a whole before any of them: Ctrl+B, which puts the
-// side panel away and brings it back, and the keys that scroll. The focus takes
+// that is waiting for an answer, the reason prompt, or the input box. Three
+// things belong to the screen as a whole before any of them: Ctrl+B, which puts
+// the side panel away and brings it back, the keys that scroll the record
+// overlay while one is open, and the keys that scroll. The focus takes
 // its own keys after the palette, which needs Tab to complete a command, and
 // before a card, so that Tab still walks the pills while a card waits.
 func (screen *Screen) pressed(key tea.KeyPressMsg) tea.Cmd {
@@ -33,6 +34,9 @@ func (screen *Screen) pressed(key tea.KeyPressMsg) tea.Cmd {
 	screen.quitArmed = false
 	if heldWithControl(key, 'b') {
 		screen.panelHidden = !screen.panelHidden
+		return nil
+	}
+	if screen.overlayOpen() && screen.scrolledTheOverlay(key) {
 		return nil
 	}
 	if screen.scrolledWithTheKey(key) {

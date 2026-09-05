@@ -182,25 +182,27 @@ func TestEscClosesTheOverlayAndTheInputBoxWorksWhileItIsOpen(t *testing.T) {
 	}
 }
 
-func TestEscLetsGoOfTheFocusThenTheOverlayThenThePills(t *testing.T) {
+// TestEscClosesTheOverlayBeforeItFoldsThePills holds the second and third of
+// Esc's three jobs in order. The first, clearing the focus, is held by the
+// expand tests; the pills are behind the overlay while it is open, so the only
+// focus there could be then is on a panel row, which the panel's stub does not
+// yet name. A focus the pill had before the overlay covered it is on nothing
+// a person can see, and the first Esc goes straight on to the overlay rather
+// than being spent on it.
+func TestEscClosesTheOverlayBeforeItFoldsThePills(t *testing.T) {
 	screen, _ := aScreenWithAPill()
 	expandTheFocusedPill(screen)
 	send(screen, aShownRecord("task", "17", theRecordText))
-	pressTab(screen)
-	if screen.focusAt < 0 {
-		t.Fatal("Tab with the overlay open focused nothing, and the panel's rows and the pills behind it are still there")
+	if screen.focused() != nothingFocused() {
+		t.Fatal("the pill is still focused behind the overlay that covers it")
 	}
 	pressKey(screen, tea.KeyEsc)
-	if screen.focusAt >= 0 || !screen.overlayOpen() || len(screen.expanded) != 1 {
-		t.Fatal("the first Esc did more or less than clear the focus")
-	}
-	pressKey(screen, tea.KeyEsc)
-	if screen.overlayOpen() || len(screen.expanded) != 1 {
-		t.Fatal("the second Esc did more or less than close the overlay")
+	if screen.overlayOpen() || len(screen.expanded) != 1 || screen.focusAt != noFocus {
+		t.Fatal("the first Esc did more or less than close the overlay and let go of the covered focus")
 	}
 	pressKey(screen, tea.KeyEsc)
 	if len(screen.expanded) != 0 {
-		t.Error("the third Esc did not fold the open pill")
+		t.Error("the second Esc did not fold the open pill")
 	}
 }
 

@@ -150,13 +150,22 @@ func (screen *Screen) pressedOnTheFocus(key tea.KeyPressMsg) bool {
 }
 
 // letGoWithEsc does the one thing Esc does on this side of the screen: it
-// clears the focus, or when nothing is focused folds every open pill. It says
-// whether there was anything to do, so that an Esc with nothing to let go of
-// goes on to whoever holds the keys, and from there to stopping the task.
+// clears the focus, or when nothing is focused closes the record overlay, or
+// when none is open folds every open pill. It says whether there was anything
+// to do, so that an Esc with nothing to let go of goes on to whoever holds the
+// keys, and from there to stopping the task. A focus left pointing at a place
+// the list no longer has, because the rows it was counted from have changed,
+// is on nothing a person can see, so it is let go of quietly and the press
+// goes on to the next thing rather than being spent on it.
 func (screen *Screen) letGoWithEsc() bool {
+	if screen.focusAt >= 0 && screen.focused() == nothingFocused() {
+		screen.clearFocus()
+	}
 	switch {
 	case screen.focusAt >= 0:
 		screen.clearFocus()
+	case screen.overlayOpen():
+		screen.closeOverlay()
 	case len(screen.expanded) > 0:
 		screen.collapseEveryPill()
 	default:
@@ -165,10 +174,15 @@ func (screen *Screen) letGoWithEsc() bool {
 	return true
 }
 
-// openTheFocused opens what the focus is on, which is a pill.
+// openTheFocused opens what the focus is on: it toggles a pill, and asks for
+// the record behind a panel row.
 func (screen *Screen) openTheFocused() {
-	if item := screen.focused(); item.block >= 0 {
+	item := screen.focused()
+	switch {
+	case item.block >= 0:
 		screen.togglePillAt(item.block)
+	case item.target != "":
+		screen.openTarget(item.target)
 	}
 }
 

@@ -143,6 +143,7 @@ async function readPdfPage(
       dialog: null,
       download: saved,
       wall: null,
+      errors: [],
     },
     wall: null,
   };
@@ -197,6 +198,7 @@ export async function readPage(
         dialog,
         download,
         wall: null,
+        errors: session.pageErrors.on(page),
       },
       wall: null,
     };
@@ -230,6 +232,7 @@ export async function readPage(
     dialog: null,
     download,
     wall: null,
+    errors: session.pageErrors.on(page),
   };
   const wall = findWall({
     title,

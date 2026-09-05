@@ -30,6 +30,12 @@ export const MAX_ELEMENT_NAME_CHARS = 120;
 /** The most characters of the page's text one snapshot carries. Its last line says how much was cut. */
 export const MAX_PAGE_TEXT_CHARS = 8_000;
 
+/** The most errors one snapshot lists for a page. Past this they are counted, not listed. */
+export const MAX_PAGE_ERRORS = 5;
+
+/** The longest one line about an error may be. */
+export const MAX_PAGE_ERROR_CHARS = 200;
+
 /** The most characters the type method will type in one call. */
 export const MAX_TYPE_CHARS = 10_000;
 

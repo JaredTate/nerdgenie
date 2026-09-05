@@ -4,9 +4,10 @@
  * The worker cannot judge English, so the rule is fixed and every part of it is
  * tested. Split the expectation into words of four or more letters that are not
  * stop words. The expectation is met when any of those words turns up in a new
- * element's name or role, in the new address, in the new title, or in a dialog's
- * message. An expectation with no such words counts as no expectation at all,
- * and is met when anything changed.
+ * element's name or role, in the new address, in the new title, in a dialog's
+ * message, or in the name or role of the box that typing filled. An expectation
+ * with no such words counts as no expectation at all, and is met when anything
+ * changed.
  *
  * The idea of judging every step against what the model said it expected, and of
  * writing back one plain sentence about what happened instead, is borrowed from
@@ -18,7 +19,14 @@ import { meaningfulWords, textHoldsAnyWord } from "./words.js";
 
 export { meaningfulWords } from "./words.js";
 
-/** The element an action was aimed at, as the model named it. */
+/**
+ * The element whose own contents the action changed, as the model named it: the
+ * box that typing filled, which the snapshot cannot show holding anything. A
+ * click has no aim in this sense. The button it lands on is not what it changes,
+ * and on the live game build a click on "Start Game" that started nothing was
+ * judged to have met "the start menu closes" on the strength of the button's own
+ * name, so a click that changed nothing now says that nothing changed.
+ */
 export interface AimedAt {
   role: string;
   name: string;

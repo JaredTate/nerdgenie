@@ -68,8 +68,12 @@ type run struct {
 	// run seen again is not a second failure.
 	lastFailingSet string
 	// probesSinceEdit counts throwaway scripts since the last edit; probeLineDue says the count hit its cap this round.
-	probesSinceEdit  int
-	probeLineDue     bool
+	probesSinceEdit int
+	probeLineDue    bool
+	// rewindsUsed counts the times the conversation was cleared to break a run of the same call; rewindDue says this round earned one.
+	rewindsUsed      int
+	rewindDue        bool
+	stalledOn        string
 	hadCorrection    bool
 	hadFailure       bool
 	hadStop          bool
@@ -475,26 +479,4 @@ func (running *run) memoryHint(ctx context.Context) []string {
 		return nil
 	}
 	return hint
-}
-
-// orient takes the model's first line, which says where the work stands, and
-// keeps it for the record's situation.
-func (running *run) orient(text string, whole string) {
-	said := firstLine(text)
-	if said == "" {
-		said = firstLine(whole)
-	}
-	if said != "" {
-		running.lastOrient = said
-	}
-}
-
-// firstLine is the first line of a piece of text with nothing else on it.
-func firstLine(text string) string {
-	for _, line := range strings.Split(text, "\n") {
-		if trimmed := strings.TrimSpace(line); trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }

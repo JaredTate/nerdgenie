@@ -292,8 +292,17 @@ a line about the work. The identical-call detector keeps the last
 counts the run of consecutive identical ones **whose results also came back
 identical**, so polling a long command, which is the same call every time by
 design, is not a repeat: the first two run, the third is refused with a line
-telling the model to do something different or answer, and the fourth ends the
-turn. **This is a deliberate reading of design section 3, rule 4**, which says
+telling the model to do something different or answer, and the fourth clears
+the conversation: `rewindIfDue` in `guard.go` writes the stall into the record
+as a failure naming the call, drops every message, starts the run the detector
+counts again, and leaves `TheRewindLine` as the one message, so the record is
+all that stands and what was tried is not forgotten, only the going round in
+circles. `RewindsAllowed` (three) is how many times that happens before the
+fourth run of the same call ends the turn. The live game build is why: the model
+read one file four times running because the browser tool had told it a click
+worked when the page said it had not, the third refusal ended the turn, and a
+task from the terminal whose turn ends is a stopped task, which is a stall
+turned into a failure by the harness's own guard. **This is a deliberate reading of design section 3, rule 4**, which says
 the same call is not run twice: the forty-step fixture, which is the design's own
 example task, reads the same page twice in a row on purpose at rounds twenty-nine
 and thirty, and a browser agent that cannot re-read a page is useless, so the rule
@@ -302,8 +311,8 @@ first, and it is blind to results**: the same call with the same arguments, made
 `SameCallHardCap` (six) times in a row whatever each came back with, is refused
 on the seventh with a line saying how many times it was made, that the answers
 did not change what the model did next, and that the model should wait longer
-before asking again or read the result it already has, and the ninth ends the
-turn the way the first rule does. The first human trial is why: the model ran one
+before asking again or read the result it already has, and the ninth clears the
+conversation or ends the turn the way the first rule does. The first human trial is why: the model ran one
 shell command that launched Chrome thirteen times in a row, and every answer
 carried a new process id, so to the first rule no two of them were the same call.
 Both rules count a run, so a different call in between clears both: reading a page
@@ -1113,10 +1122,21 @@ with the cells separated by ` | `, under `MAX_PAGE_TEXT_CHARS` with a last line
 saying how much was cut, which `text` joins and caps. It is there because the
 first human trial asked for a number in a table whose cells were icon buttons
 with no name, and the number was on no element the model was shown;
-`test/page-text.test.ts` reads the rankings fixture and holds it. `diff` compares
-two snapshots, `expectation` judges the result against what the model said it
-expected, and `walls` reports a login form, a prompt for a second code, or a
-captcha. `refs` finds an element again when its ref has gone stale, by role and
+`test/page-text.test.ts` reads the rankings fixture and holds it. `page-errors`
+is the console, kept short: every snapshot carries `errors`, the uncaught script
+errors, console errors, and the page, scripts and stylesheets that failed to load
+or answered an error status, the first five listed and the rest counted, cleared
+when the page moves to another address; `browserread` prints them as `page
+errors:` after the outline and before the text. It is there because on the live
+game build the page's script answered 404, the game never started, and nothing
+in any result said so. `diff` compares two snapshots, `expectation` judges the
+result against what the model said it expected, and the element a click landed
+on is no evidence of what the click did: on that same build a click on "Start
+Game" that started nothing was judged to have met "the start menu closes" on the
+strength of the button's own name, so a click now names no aim and a click that
+changed nothing says so, while the box typing filled still counts, because the
+snapshot cannot show what it holds. `walls` reports a login form, a prompt for a
+second code, or a captcha. `refs` finds an element again when its ref has gone stale, by role and
 name and then by visible text. `actions` and `pacing` do the thing at the speed a
 person would. `person-script` and `events` watch the window for what the person
 does themselves and send it out as an `event` notification. `pdf` saves a PDF page through the browser's own session, because

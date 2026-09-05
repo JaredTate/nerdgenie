@@ -87,7 +87,24 @@ func pageText(page contract.Snapshot, room int) string {
 	written.WriteString(dialogText(page.Dialog))
 	written.WriteString(downloadText(page.Download))
 	written.WriteString(wallText(page.Wall))
+	written.WriteString(errorsText(page.Errors))
 	written.WriteString(textSection(page.Text, room-written.Len()))
+	return written.String()
+}
+
+// errorsText is what went wrong on the page, one line each, after the outline
+// and before the text, so that it is never cut and the model reads it before
+// it reads what the page says. On the live game build the page's script had
+// answered 404, the game never started, and nothing in the result said so.
+func errorsText(errors []string) string {
+	if len(errors) == 0 {
+		return ""
+	}
+	written := &strings.Builder{}
+	written.WriteString("page errors:\n")
+	for _, line := range errors {
+		fmt.Fprintf(written, "- %s\n", fromThePage(line, MaxNameRunes))
+	}
 	return written.String()
 }
 

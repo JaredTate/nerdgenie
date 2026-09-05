@@ -9,12 +9,14 @@
 package loop
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // The numbers the identical-call detector works to.
@@ -26,6 +28,17 @@ const (
 	// does at rounds twenty-nine and thirty. The third is refused and the
 	// fourth ends the turn.
 	IdenticalCallsAllowed = 2
+	// RewindsAllowed is how many times a task's conversation is cleared, with
+	// the record left standing, before a run of the same call ends the task.
+	// On the live game build the model read one file four times running
+	// because a tool had told it a click worked when the page said it had
+	// not; the third refusal ended the turn, and a task whose turn ends
+	// from the terminal is a stopped task. A small model loops because its
+	// conversation is full of the loop. Clearing the messages and leaving the
+	// record is the cheapest way to hand it a fresh start. Each stall is
+	// written into the record as a failure, so the memory of it survives the
+	// clearing; a model that stalls a fourth time is not going to stop.
+	RewindsAllowed = 3
 	// SameCallHardCap is the second rule, beside the first: how many times the
 	// same call with the same arguments may run in a row whatever it answered.
 	// The first human trial ran one shell command thirteen times in a row, and
@@ -50,6 +63,31 @@ type pastCall struct {
 	// result is the fingerprint of what the call came back with, and is empty
 	// while the call has not run or never ran at all.
 	result string
+}
+
+// TheRewindLine is the one message the model reads after its conversation is
+// cleared, in the harness's own words: the record above it is what stands.
+const TheRewindLine = "You asked for the same thing over and over, so the conversation was cleared and the record above is all that stands. Do something different from the last few rounds: check the thing you kept re-reading another way, write what you find into the record as a failure with its cause, and go on from there. The same call again ends the task."
+
+// rewindIfDue clears the conversation after the round's results are remembered,
+// when the round earned it: the stall goes into the record as a failure naming
+// the call, every message goes, the run of calls the detector counts starts
+// again, and the rewind line is the one message left. The record and its
+// results are untouched, because they live outside the messages, and that is
+// the point: what was tried is not forgotten, only the going round in circles.
+func (running *run) rewindIfDue(ctx context.Context) {
+	if !running.rewindDue {
+		return
+	}
+	running.rewindDue = false
+	running.hadFailure = true
+	_ = running.keeper.Apply(ctx, record.Update{Failure: &record.NewFailure{
+		Text:  "stalled: asked for " + running.stalledOn + " over and over, so the conversation was cleared",
+		Cause: "nothing the last rounds returned changed what was asked next",
+	}})
+	running.messages = nil
+	running.recentCalls = nil
+	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRewindLine})
 }
 
 // detectorRefuses says whether this call is one the model has already made over

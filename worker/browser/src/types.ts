@@ -72,6 +72,13 @@ export interface Snapshot {
    * wall it ran into on its diff instead.
    */
   wall: Wall | null;
+  /**
+   * What went wrong on the page since it last moved to an address, as a person
+   * with the console open sees it: uncaught script errors, console errors, and
+   * the page, scripts and stylesheets that failed to load or answered an error
+   * status. The first few, each on one line, then one line counting the rest.
+   */
+  errors: string[];
 }
 
 /** One of the three things that stop the agent and hand the browser to the user. */

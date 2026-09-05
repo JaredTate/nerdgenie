@@ -570,6 +570,8 @@ internal/loop/permit.go
 internal/loop/permit_test.go
 internal/loop/pinned_test.go
 internal/loop/polling_test.go
+internal/loop/probes.go
+internal/loop/probes_test.go
 internal/loop/problems_test.go
 internal/loop/putdown.go
 internal/loop/question_test.go

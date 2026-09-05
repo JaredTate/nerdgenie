@@ -36,6 +36,7 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 		}
 	}
 	running.remember(contract.Message{Role: contract.RoleUser, ToolResults: results})
+	running.rewindIfDue(ctx)
 	running.sayTheProbeLine()
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
@@ -53,7 +54,16 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 	if err := running.theLoop.logEvent(ctx, running.taskID(), contract.EventToolCall, call); err != nil {
 		return contract.ToolResult{}, nil, err
 	}
+	if running.rewindDue {
+		return refusedResult(call, "The conversation is being cleared after this reply, so this call was not run."), nil, nil
+	}
 	refusal, hadEnough := running.detectorRefuses(call)
+	if hadEnough && running.rewindsUsed < RewindsAllowed {
+		running.rewindsUsed++
+		running.rewindDue = true
+		running.stalledOn = call.Name + " " + whatTheCallSays(call)
+		return refusedResult(call, refusal), nil, nil
+	}
 	if hadEnough {
 		ended, err := running.stopHere(ctx, "the model asked for the same thing over and over")
 		return refusedResult(call, refusal), &ended, err

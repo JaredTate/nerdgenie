@@ -148,7 +148,9 @@ function nothingHappened(before: Snapshot, diff: Diff): boolean {
 /**
  * Click one element. A click that produces no visible change is tried once more at
  * the element's place on the screen, because a page that swallows a click on the
- * element often takes one on the pixels.
+ * element often takes one on the pixels. The button clicked is no evidence of
+ * what the click did, so the action names no aim: what changed on the page is
+ * the whole of what the expectation is judged against.
  */
 export async function clickMethod(
   session: Session,
@@ -160,7 +162,7 @@ export async function clickMethod(
   const first = await actAndAssert(session, expectation, async (page) => {
     clicked = await targetOf(session, page, ref, freshSnapshotFor(session, page));
     await clickTarget(session, page, clicked);
-    return aimedAtRef(session, ref);
+    return undefined;
   });
   const before = first.snapshot;
   if (!nothingHappened(before, first) || clicked === undefined) {
@@ -169,7 +171,7 @@ export async function clickMethod(
   let triedAgain = false;
   const second = await actAndAssert(session, expectation, async (page) => {
     triedAgain = await clickAgainAtItsPlace(session, page, clicked!);
-    return aimedAtRef(session, ref);
+    return undefined;
   });
   return triedAgain ? second : first;
 }

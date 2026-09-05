@@ -59,6 +59,12 @@ type Snapshot struct {
 	// Wall is the login form, two-factor prompt, or captcha the page shows, or
 	// nil; "open" and "read" report it here, an action reports it on its diff.
 	Wall *Wall `json:"wall,omitempty"`
+	// Errors is what went wrong on the page since it last moved to an address,
+	// as a person with the console open sees it: uncaught script errors,
+	// console errors, and the page, scripts and stylesheets that failed to
+	// load or answered an error status. The worker lists the first five and
+	// counts the rest on a last line.
+	Errors []string `json:"errors,omitempty"`
 }
 
 // WallKind names the three things that stop the agent and hand the browser to

@@ -49,7 +49,8 @@ tokens, never the page's markup.
   "text": "Compose post\nWhat is happening?\nPost",
   "belowFold": 24,
   "dialog": null,
-  "download": null
+  "download": null,
+  "errors": ["script http://localhost:8090/main.js answered 404"]
 }
 ```
 
@@ -70,6 +71,14 @@ tokens, never the page's markup.
 - `download` is `{"filename":"...","path":"..."}` when the page started one.
 - `wall` is the wall the page shows (see Wall below) or `null`. `open` and `read`
   report a wall here, because a page can be a login page before any action.
+- `errors` is what went wrong on the page since it last moved to an address, as
+  a person with the console open sees it: uncaught script errors as
+  `script error: <message>`, console errors as `console error: <text>`, and the
+  page, its scripts and its stylesheets that failed to load or answered an error
+  status as `<kind> <address> answered <status>` or `<kind> <address> failed to
+  load: <reason>`. Other loads are left out, because a missing image breaks
+  nothing. The first five are listed, each cut to two hundred characters, and a
+  last line counts the rest. It is empty when nothing went wrong.
 
 ### Diff
 
@@ -99,11 +108,13 @@ instead, so that the model can decide rather than guess.
 is fixed: split the expectation into words of four or more letters that are not
 stop words; the expectation is met when any of them appears in a new element's
 name or role, in the new address, in the new title, in a dialog's message, or in
-the name or role of the element the action was aimed at (which is what lets
-"the text box holds the post" hold after typing into the textbox named "Post
-text", since typing changes no element); or when the expectation is empty and
-something changed. Otherwise `expectationMet` is false and `seen` says what did
-change.
+the name or role of the box that typing filled (which is what lets "the text box
+holds the post" hold after typing into the textbox named "Post text", since
+typing changes no element); or when the expectation is empty and something
+changed. Otherwise `expectationMet` is false and `seen` says what did change.
+The element a click landed on is no evidence: a click on a button named "Start
+Game" that changed nothing does not meet "the start menu closes", it reports
+that nothing changed.
 
 `settled` says whether the page came to rest within the limit (see Settling).
 When it did not, the worker still returns the diff from the page as it stood,

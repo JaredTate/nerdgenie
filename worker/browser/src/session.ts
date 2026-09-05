@@ -18,6 +18,7 @@ import { noBrowserOpen } from "./errors.js";
 import { MAX_TABS } from "./limits.js";
 import type { Logger } from "./log.js";
 import { keystrokeGaps, type Chance, type Pacing, type Point } from "./pacing.js";
+import { PageErrorBook } from "./page-errors.js";
 import { RefBook } from "./refs.js";
 import type { DialogReport, DownloadReport, Snapshot } from "./types.js";
 
@@ -36,6 +37,8 @@ export class Session {
   readonly log: Logger;
   /** What every ref handed out was, so a stale one can be looked for again. */
   readonly refs = new RefBook();
+  /** What has gone wrong on every page, as the console would show it. */
+  readonly pageErrors = new PageErrorBook();
 
   private readonly tabIds = new Map<Page, string>();
   private readonly dialogs = new Map<Page, { report: DialogReport; dialog: Dialog }>();
@@ -98,6 +101,7 @@ export class Session {
       this.log(`the page opened a ${dialog.type()} dialog and it is waiting for an answer.`);
     });
     page.on("download", (download) => this.save(page, download));
+    this.pageErrors.watch(page);
     page.on("close", () => {
       this.tabIds.delete(page);
       this.dialogs.delete(page);

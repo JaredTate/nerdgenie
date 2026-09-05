@@ -28,6 +28,15 @@ type openAICount struct {
 	} `json:"prompt_tokens_details"`
 }
 
+// openAITimings is llama-server's own account of the last call, on the final
+// chunk of the stream.
+type openAITimings struct {
+	// CacheN is how many prompt tokens the daemon read from its cache.
+	CacheN int `json:"cache_n"`
+	// PromptN is how many prompt tokens the daemon had to process.
+	PromptN int `json:"prompt_n"`
+}
+
 // openAIDeltaCall is one piece of one tool call. The identifier and the name
 // arrive on the first piece and the arguments in pieces after it.
 type openAIDeltaCall struct {
@@ -55,6 +64,12 @@ type openAIChunk struct {
 	} `json:"choices"`
 	// Usage is the token count, on the last chunk only.
 	Usage *openAICount `json:"usage"`
+	// Timings is what llama-server adds to the last chunk: its own count of
+	// the prompt tokens it read from its cache and the ones it had to process.
+	// A live run showed the usage field's cached count standing still at 5.8k
+	// for twelve rounds while the daemon's log showed it had reused ninety
+	// thousand, so when the timings are there they say what was reused.
+	Timings *openAITimings `json:"timings"`
 	// Error is what a server says when it gives up part way through the stream.
 	Error struct {
 		Message string `json:"message"`
@@ -119,6 +134,9 @@ func (building *openAIReply) take(chunk openAIChunk) (bool, error) {
 			InputTokens:       chunk.Usage.PromptTokens,
 			CachedInputTokens: chunk.Usage.PromptTokensDetails.CachedTokens,
 			OutputTokens:      chunk.Usage.CompletionTokens,
+		}
+		if chunk.Timings != nil && chunk.Timings.CacheN+chunk.Timings.PromptN > 0 {
+			building.usage.CachedInputTokens = chunk.Timings.CacheN
 		}
 	}
 	for _, choice := range chunk.Choices {

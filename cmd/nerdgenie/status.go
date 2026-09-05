@@ -35,7 +35,7 @@ func (running *agent) statusForAScreen() map[string]string {
 		number := running.loop.Running()
 		fields[contract.StatusFieldTask] = number
 		running.fillTheJob(fields)
-		running.fillThePlan(fields, number)
+		running.fillTheTask(fields, number)
 	}
 	running.fillTheWaitingJobs(fields)
 	if running.loopIsBusy() {
@@ -93,14 +93,18 @@ func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held
 	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
 }
 
-// fillThePlan writes the running task's plan, which is what the side panel draws
-// under the task: one step per line, each marked done or not. It is sent empty
-// when no task is running or the record holds no plan, so that a screen which
-// drew a plan a moment ago clears it rather than keeping the last one. The
-// number is the loop's running task, which is empty until the task's first tool
-// call writes its record.
-func (running *agent) fillThePlan(fields map[string]string, number string) {
-	fields[contract.StatusFieldPlan] = ""
+// fillTheTask writes the running task's ask and its plan, which are what the
+// side panel draws for a plain task: the ask folded onto one line beside the
+// task's number, the way the job's ask travels, and the plan one step per
+// line under it, each marked done or not. Both are sent empty when no task is
+// running or its record cannot be read, so that a screen which drew a task a
+// moment ago clears it rather than keeping the last one. The number is the
+// loop's running task, which is empty until the task's first tool call writes
+// its record.
+func (running *agent) fillTheTask(fields map[string]string, number string) {
+	for _, field := range []string{contract.StatusFieldTaskAsk, contract.StatusFieldPlan} {
+		fields[field] = ""
+	}
 	if number == "" || running.events == nil {
 		return
 	}
@@ -108,6 +112,7 @@ func (running *agent) fillThePlan(fields map[string]string, number string) {
 	if !ok {
 		return
 	}
+	fields[contract.StatusFieldTaskAsk] = onOneLine(held.Goal.Ask)
 	fields[contract.StatusFieldPlan] = planLines(held.Work.Plan)
 }
 

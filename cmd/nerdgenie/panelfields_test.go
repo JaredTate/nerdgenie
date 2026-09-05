@@ -51,43 +51,73 @@ func TestTheStatusCarriesTheRunningTasksPlan(t *testing.T) {
 	}
 
 	fields := map[string]string{}
-	running.fillThePlan(fields, "7")
+	running.fillTheTask(fields, "7")
 
 	if got, want := fields[contract.StatusFieldPlan], "[x] first step\n[ ] second step"; got != want {
 		t.Errorf("the status carries the plan %q, want %q", got, want)
 	}
 }
 
-// TestTheStatusOmitsThePlanWhenNoTaskRuns holds that the plan field is sent
-// empty rather than left out while nothing runs, so a screen that drew a plan a
-// moment ago clears it rather than keeping the last one.
-func TestTheStatusOmitsThePlanWhenNoTaskRuns(t *testing.T) {
+// TestTheStatusCarriesTheRunningTasksAsk holds the other half of what the
+// panel draws for a plain task: while a task runs, the status carries that
+// task's ask from its record, folded onto one line the way the job's ask is,
+// so the panel can head the task with the person's own words rather than a
+// bare number.
+func TestTheStatusCarriesTheRunningTasksAsk(t *testing.T) {
+	running := anAgentWithASocket(t)
+	defer func() { _ = running.close() }()
+
+	ctx := context.Background()
+	if _, err := record.New(ctx, running.events, record.Start{
+		Kind: contract.RecordTask, ID: "7", Origin: contract.TerminalChannelName,
+		Ask: "post the tweet\nabout the anniversary", RoundsLeft: 10, MinutesLeft: 10,
+	}); err != nil {
+		t.Fatalf("cannot start the record of task 7: %v", err)
+	}
+
+	fields := map[string]string{}
+	running.fillTheTask(fields, "7")
+
+	if got, want := fields[contract.StatusFieldTaskAsk], "post the tweet about the anniversary"; got != want {
+		t.Errorf("the status carries the task's ask %q, want %q", got, want)
+	}
+}
+
+// TestTheStatusOmitsThePlanAndTheAskWhenNoTaskRuns holds that the task's two
+// panel fields are sent empty rather than left out while nothing runs, so a
+// screen that drew a task a moment ago clears it rather than keeping the last
+// one.
+func TestTheStatusOmitsThePlanAndTheAskWhenNoTaskRuns(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
 
 	fields := running.statusForAScreen()
 
-	value, sent := fields[contract.StatusFieldPlan]
-	if !sent {
-		t.Error("the status does not carry the plan field at all while nothing runs, so a screen keeps whatever plan it drew last")
-	}
-	if value != "" {
-		t.Errorf("the status carries the plan %q while no task runs", value)
+	for _, field := range []string{contract.StatusFieldPlan, contract.StatusFieldTaskAsk} {
+		value, sent := fields[field]
+		if !sent {
+			t.Errorf("the status does not carry %s at all while nothing runs, so a screen keeps whatever task it drew last", field)
+		}
+		if value != "" {
+			t.Errorf("the status carries %s = %q while no task runs", field, value)
+		}
 	}
 }
 
-// TestTheStatusCarriesNoPlanWhenTheRecordIsGone holds that a running number
-// with no record behind it leaves the plan empty rather than failing, which is
-// what the moment before a task's first checkpoint looks like.
-func TestTheStatusCarriesNoPlanWhenTheRecordIsGone(t *testing.T) {
+// TestTheStatusCarriesNoPlanOrAskWhenTheRecordIsGone holds that a running
+// number with no record behind it leaves both fields empty rather than failing,
+// which is what the moment before a task's first checkpoint looks like.
+func TestTheStatusCarriesNoPlanOrAskWhenTheRecordIsGone(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
 
 	fields := map[string]string{}
-	running.fillThePlan(fields, "404")
+	running.fillTheTask(fields, "404")
 
-	if got := fields[contract.StatusFieldPlan]; got != "" {
-		t.Errorf("the status carries the plan %q for a task with no record, want it empty", got)
+	for _, field := range []string{contract.StatusFieldPlan, contract.StatusFieldTaskAsk} {
+		if got := fields[field]; got != "" {
+			t.Errorf("the status carries %s = %q for a task with no record, want it empty", field, got)
+		}
 	}
 }
 

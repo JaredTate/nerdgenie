@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/JaredTate/nerdgenie/internal/clock"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // serve takes connections on the socket, drains the queue beside it, and runs
@@ -156,6 +157,13 @@ func (running *agent) runDueJobs(ctx context.Context) {
 	}
 }
 
+// jobSession is the name a job's task holds its turn lease under. A job's task
+// comes from no screen, so it is named for the job rather than for a channel
+// and a sender, and every task of one job takes its turn under the same name.
+func jobSession(due contract.TaskToRun) string {
+	return "job:" + due.JobID
+}
+
 // runWhatIsDue runs the task a job has due now, holding the loop for as long as
 // it runs, the way a person's task holds it. A message the person types
 // meanwhile then finds the loop held and is delivered to the running task,
@@ -195,6 +203,11 @@ func (running *agent) runWhatIsDue(ctx context.Context) (bool, error) {
 	// The task has already been taken from the store above, and a task taken
 	// once cannot be taken again, so the loop is handed the task itself rather
 	// than asked for the next one: asking would take the job's second task and
-	// leave the first sitting taken until its budget ran out.
-	return true, running.loop.RunJobTask(ctx, due, throughTheLedger(running.userChannel(), running.guard))
+	// leave the first sitting taken until its budget ran out. It runs under the
+	// same lease and turn deadline a person's task gets, one per call, so a
+	// turn that wedges stops when the time the user set runs out rather than
+	// holding the loop forever.
+	return true, running.guard.RunTurn(ctx, jobSession(due), func(turn context.Context) error {
+		return running.loop.RunJobTask(turn, due, throughTheLedger(running.userChannel(), running.guard))
+	})
 }

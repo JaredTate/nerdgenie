@@ -122,6 +122,7 @@ type Screen struct {
 	streamed      int
 	lastRecord    string
 	lastTool      string
+	taskAsk       string
 	plan          string
 	jobs          string
 	job           string

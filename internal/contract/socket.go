@@ -169,6 +169,10 @@ const (
 	StatusFieldJob = "job"
 	// StatusFieldJobAsk is that job's ask, folded onto one line.
 	StatusFieldJobAsk = "jobAsk"
+	// StatusFieldTaskAsk is the running task's ask, folded onto one line, so
+	// that a screen can say what a plain task is beside its number. It is
+	// empty when nothing is running.
+	StatusFieldTaskAsk = "taskAsk"
 	// StatusFieldJobName is the short name the model gave the job, such as
 	// "Tater Tots Tetris", which a screen shows in place of the ask. It is empty
 	// on a job made without a name, and a screen then falls back to the ask.

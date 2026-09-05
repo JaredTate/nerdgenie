@@ -192,8 +192,10 @@ func (screen *Screen) checklistLines() []row {
 
 // checklistHeader names what is being worked on: "JOB 4 · Tater Tots Tetris"
 // while a job's task is running, with the job's ask on a dim line under it when
-// the job has no name, so an older job still says what it is; "TASK 17" while a
-// plain task runs; and nothing at all when nothing is running.
+// the job has no name, so an older job still says what it is; "TASK 17 · Post
+// a tweet a…" while a plain task runs, its ask cut with an ellipsis, or "TASK
+// 17" alone until the ask has reached the screen; and nothing at all when
+// nothing is running.
 func (screen *Screen) checklistHeader() []row {
 	switch {
 	case screen.job != "":
@@ -203,7 +205,7 @@ func (screen *Screen) checklistHeader() []row {
 		}
 		return lines
 	case screen.taskID != "":
-		return []row{checklistTitle("TASK", taskNumber(screen.taskID), "")}
+		return []row{checklistTitle("TASK", taskNumber(screen.taskID), screen.taskAsk)}
 	default:
 		return nil
 	}

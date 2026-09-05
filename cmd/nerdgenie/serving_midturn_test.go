@@ -35,8 +35,9 @@ func (model *aModelThatCallsBack) Send(ctx context.Context, request contract.Req
 const theReviewAnswer = "1. One task was to run.\n2. It ran.\n3. There was no difference.\n4. Keep one task per piece of work."
 
 // aJobWithOneTaskDue puts one job with one task that may start now on the
-// agent's job list, which is what the job driver finds on its next pass.
-func aJobWithOneTaskDue(t *testing.T, running *agent, text string) {
+// agent's job list, which is what the job driver finds on its next pass, and
+// says which job it made.
+func aJobWithOneTaskDue(t *testing.T, running *agent, text string) string {
 	t.Helper()
 	jobID, err := running.jobs.Create(context.Background(), contract.NewJob{
 		Ask: "run the campaign", Name: "the campaign", Why: "the user wants the campaign run",
@@ -47,6 +48,7 @@ func aJobWithOneTaskDue(t *testing.T, running *agent, text string) {
 	if _, err := running.jobs.AddTask(context.Background(), contract.NewTask{JobID: jobID, Text: text}); err != nil {
 		t.Fatalf("adding the job's task failed: %v", err)
 	}
+	return jobID
 }
 
 // TestTheJobDriverHoldsTheLoopWhileAJobsTaskRuns pins that a job's task holds

@@ -38,7 +38,7 @@ func TestARecordLineIsShownAsOnePill(t *testing.T) {
 		t.Fatalf("a record line drew the pills %q, and it is one pill saying what changed", said)
 	}
 	drawn := plainText(strings.Join(screen.blockLines(screen.blocks[0]), "\n"))
-	if !strings.Contains(drawn, string(toolArrowGlyph)+" task 3 started · Build the game") {
+	if !strings.Contains(drawn, string(doneGlyph)+"  task 3 started · Build the game") {
 		t.Errorf("the record line is drawn as %q, and it is drawn exactly as a tool line is", drawn)
 	}
 }

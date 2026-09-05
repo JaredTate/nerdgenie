@@ -66,8 +66,8 @@ func TestAFinishedToolCallIsOneDimLineInTheTranscript(t *testing.T) {
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldToolLine: wanted}})
 
 	frame := screen.frame()
-	if !strings.Contains(frame, string(toolArrowGlyph)+" "+wanted) {
-		t.Errorf("the frame does not hold the tool line %q under the arrow", wanted)
+	if !strings.Contains(frame, string(doneGlyph)+"  read memory/product.md · 2,100 characters") || !strings.Contains(frame, " r3 ") {
+		t.Errorf("the frame does not hold the tool line %q as a finished pill with its result id as a badge:\n%s", wanted, frame)
 	}
 }
 

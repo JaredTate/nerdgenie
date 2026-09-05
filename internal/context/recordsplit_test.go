@@ -10,12 +10,13 @@ import (
 )
 
 // TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges proves the record is cut
-// into four: the goal and the rules, which rarely change and go above the cache
-// line; the work and the lessons, which change when the model edits its plan or
-// its lists; the list of results, which grows by a line every round; and the
-// header, which carries the budget left and the cost of the last call and is
-// written anew every turn. The order is what a prompt cache can reuse, so no
-// piece may carry another one's lines.
+// into four: the goal without its done list, and the rules, which rarely change
+// and go above the cache line; the done list, the work and the lessons, which
+// change when the model edits its plan or its lists or proves a line; the list
+// of results, which grows by a line every round; and the header, which carries
+// the budget left and the cost of the last call and is written anew every turn.
+// The order is what a prompt cache can reuse, so no piece may carry another
+// one's lines.
 func TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges(t *testing.T) {
 	parts := splitRecord(sampleRecord())
 
@@ -27,16 +28,16 @@ func TestTheRecordSplitsInOrderOfHowOftenEachPieceChanges(t *testing.T) {
 			t.Errorf("the stable piece is missing %q:\n%s", wanted, parts.Stable)
 		}
 	}
-	for _, unwanted := range []string{"## Work", "## Lessons", "budget left", "this turn:", "r3"} {
+	for _, unwanted := range []string{"Done when:", "## Work", "## Lessons", "budget left", "this turn:", "r3"} {
 		if strings.Contains(parts.Stable, unwanted) {
 			t.Errorf("the stable piece carries %q, which changes as the task runs:\n%s", unwanted, parts.Stable)
 		}
 	}
 
-	if !strings.HasPrefix(parts.Body, "## Work") {
-		t.Errorf("the body does not start at the work:\n%s", parts.Body)
+	if !strings.HasPrefix(parts.Body, "Done when:") {
+		t.Errorf("the body does not start at the done list:\n%s", parts.Body)
 	}
-	for _, wanted := range []string{"## Work", "Plan:", "## Lessons"} {
+	for _, wanted := range []string{"Done when:", "## Work", "Plan:", "## Lessons"} {
 		if !strings.Contains(parts.Body, wanted) {
 			t.Errorf("the body is missing %q:\n%s", wanted, parts.Body)
 		}

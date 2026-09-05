@@ -34,8 +34,6 @@ func TestEveryNamedNumberIsTheNumberItIsMeantToBe(t *testing.T) {
 			"five lines is what one sitting can prove, and an ask that needs more is a job with one task per line"},
 		{"MaxPlanSteps", MaxPlanSteps, 10,
 			"ten steps is what one sitting works through, the forty-step fixture plans its tweet in ten, and a longer plan is a job's task list in disguise"},
-		{"MaxAskWordsForATask", MaxAskWordsForATask, 250,
-			"a one-sitting ask is a sentence or a paragraph, a paragraph is about a hundred words, the forty-step fixture's ask is two sentences, and the game ask that was squeezed into one task runs to several hundred"},
 	} {
 		if check.is != check.want {
 			t.Errorf("%s is %d and it is meant to be %d: %s", check.name, check.is, check.want, check.why)

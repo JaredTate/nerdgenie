@@ -17,6 +17,7 @@ func TestEveryScreenMessageTypeIsFromTheScreenAndNotFromTheProgram(t *testing.T)
 		contract.SocketSecret,
 		contract.SocketAttach,
 		contract.SocketDetach,
+		contract.SocketShow,
 	}
 	for _, kind := range fromScreen {
 		if !kind.FromScreen() {
@@ -37,6 +38,7 @@ func TestEveryProgramMessageTypeIsFromTheProgramAndNotFromTheScreen(t *testing.T
 		contract.SocketHandoff,
 		contract.SocketStatus,
 		contract.SocketError,
+		contract.SocketShown,
 	}
 	for _, kind := range fromProgram {
 		if !kind.FromProgram() {

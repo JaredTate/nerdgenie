@@ -226,7 +226,7 @@ func TestAShowAskingForNothingKnownIsAnError(t *testing.T) {
 	for _, fields := range []map[string]string{
 		nil,
 		{},
-		{"id": "r1"},
+		{"id": "r1", "job": "1"},
 		{"task": "6", "job": "1"},
 		{"colour": "blue"},
 	} {
@@ -385,4 +385,30 @@ func firstLineOf(text string) string {
 func lastLineOf(text string) string {
 	trimmed := strings.TrimRight(text, "\n")
 	return trimmed[strings.LastIndex(trimmed, "\n")+1:]
+}
+
+// TestAShowOfAResultWithNoTaskNamedUsesTheLatestTask holds the case a screen
+// that attached late is in: its pills carry no task, because the status
+// stopped naming one when the task ended, so a show for a result names only
+// the id. The result belongs to the latest task, which is the one whose pills
+// a screen would have, so the answer comes from that task's record and names
+// it in its fields.
+func TestAShowOfAResultWithNoTaskNamedUsesTheLatestTask(t *testing.T) {
+	answering, _ := aShowingOverFakes(t)
+
+	answer, err := answering.answer(context.Background(), map[string]string{"id": "r1"})
+	if err != nil {
+		t.Fatalf("a show naming only the result was refused: %v", err)
+	}
+	if answer.Type != contract.SocketShown || answer.Fields["task"] != "6" || answer.Fields["id"] != "r1" {
+		t.Errorf("the answer is %+v, want a shown for r1 that names task 6, the latest task", answer)
+	}
+	if !strings.Contains(answer.Text, "file a") {
+		t.Errorf("the answer's text is %q, want the stored result", answer.Text)
+	}
+
+	empty := &showing{store: testkit.NewFakeStore()}
+	if _, err := empty.answer(context.Background(), map[string]string{"id": "r1"}); err == nil {
+		t.Error("a show naming only a result was answered with no task in the log at all")
+	}
 }

@@ -78,12 +78,22 @@ func loadTaskKeeper(ctx context.Context, store contract.Store, number string) (*
 // latest checkpoint. A job's checkpoints are passed over, because a job's key
 // begins with a letter and a task's is its number.
 func latestTaskRecord(ctx context.Context, store contract.Store) (contract.Record, bool) {
-	if store == nil {
+	number, there := latestTaskNumber(ctx, store)
+	if !there {
 		return contract.Record{}, false
+	}
+	return loadTaskRecord(ctx, store, number)
+}
+
+// latestTaskNumber is the number of the newest task the log holds a
+// checkpoint for, or nothing when it holds none.
+func latestTaskNumber(ctx context.Context, store contract.Store) (string, bool) {
+	if store == nil {
+		return "", false
 	}
 	saved, err := store.ByKind(ctx, contract.EventCheckpoint)
 	if err != nil {
-		return contract.Record{}, false
+		return "", false
 	}
 	highest := 0
 	for _, event := range saved {
@@ -96,9 +106,9 @@ func latestTaskRecord(ctx context.Context, store contract.Store) (contract.Recor
 		}
 	}
 	if highest == 0 {
-		return contract.Record{}, false
+		return "", false
 	}
-	return loadTaskRecord(ctx, store, strconv.Itoa(highest))
+	return strconv.Itoa(highest), true
 }
 
 // taskHeaderLine is the one line that says which task it is, where it stands, the

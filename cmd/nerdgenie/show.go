@@ -68,6 +68,14 @@ func (answering *showing) answer(ctx context.Context, fields map[string]string) 
 	id := strings.TrimSpace(fields[showFieldID])
 	task := strings.TrimSpace(fields[showFieldTask])
 	job := strings.TrimSpace(fields[showFieldJob])
+	// A screen that attached after the task ended has pills that carry no
+	// task, because the status stopped naming one; its results belong to the
+	// latest task, so that is the task the show is read against.
+	if id != "" && task == "" && job == "" {
+		if latest, there := latestTaskNumber(ctx, answering.store); there {
+			task = latest
+		}
+	}
 	switch {
 	case id != "" && task != "" && job == "":
 		return answering.showResult(ctx, id, task)

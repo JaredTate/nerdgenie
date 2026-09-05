@@ -131,6 +131,12 @@ func (screen *Screen) replacePill(older string, newer string) bool {
 	return false
 }
 
+// recentRecordPills is how many of the newest record pills are checked before a
+// record line is drawn again. A line already among them is counted on the pill
+// it has rather than given another, and a line that last came round earlier
+// than that is far enough back to be a pill of its own.
+const recentRecordPills = 8
+
 // readRecordLine puts one pill in the transcript for the latest change to the
 // record, drawn exactly as a tool call is, so that a person can watch tasks and
 // jobs start and finish without asking. The program sends the same line on every
@@ -143,7 +149,7 @@ func (screen *Screen) readRecordLine(fields map[string]string) {
 	}
 	screen.lastRecord = line
 	screen.flushDeltas()
-	screen.remember(block{kind: blockTool, text: line})
+	screen.remember(block{kind: blockTool, text: line, fromRecord: true})
 }
 
 // readBudget works out how much of the task's budget is left, so that the status

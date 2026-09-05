@@ -15,6 +15,12 @@ import (
 // tests is one line and not a page.
 const MaxFailingTestsNamed = 5
 
+// MaxChangedFilesNamed is how many changed files a failure names as its cause
+// before it says how many more there were, by their last path element, so
+// that a lesson stays one readable line: the live run's first failure named
+// eight files by their full paths and ran to three hundred characters.
+const MaxChangedFilesNamed = 3
+
 // testState is what a test runner's own summary says: how many tests ran, how
 // many failed, and which ones. The harness reads it off a shell result for
 // itself, because the live game build listed forty-five test runs in its
@@ -224,8 +230,22 @@ func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.Too
 		return
 	}
 	running.hadFailure = true
+	named := shortNamesOf(changed)
 	_ = running.keeper.Apply(ctx, record.Update{Failure: &record.NewFailure{
-		Text:  strings.TrimPrefix(state.line(), "tests: ") + " after changing " + strings.Join(changed, ", "),
-		Cause: "the change to " + strings.Join(changed, ", ") + " before the run " + label,
+		Text:  strings.TrimPrefix(state.line(), "tests: ") + " after changing " + named,
+		Cause: "the change to " + named + " before the run " + label,
 	}})
+}
+
+// shortNamesOf names files by their last path element, at most
+// MaxChangedFilesNamed of them, and says how many more there were.
+func shortNamesOf(paths []string) string {
+	names := make([]string, 0, len(paths))
+	for _, path := range paths {
+		names = append(names, path[strings.LastIndex(path, "/")+1:])
+	}
+	if len(names) <= MaxChangedFilesNamed {
+		return strings.Join(names, ", ")
+	}
+	return fmt.Sprintf("%s and %d more", strings.Join(names[:MaxChangedFilesNamed], ", "), len(names)-MaxChangedFilesNamed)
 }

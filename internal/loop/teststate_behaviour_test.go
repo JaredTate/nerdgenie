@@ -115,3 +115,36 @@ func TestATestRunWithNoChangeBeforeItIsNoFailure(t *testing.T) {
 		t.Errorf("the situation %v does not carry the state of the test run", held.Work.Situation)
 	}
 }
+
+// TestAFailureNamesAFewChangedFilesByTheirShortNames keeps the failure line
+// readable: the live run's first failure named eight files by their full
+// paths and ran to three hundred characters. A failure names the changed files
+// by their last path element, at most three of them, and says how many more.
+func TestAFailureNamesAFewChangedFilesByTheirShortNames(t *testing.T) {
+	steps := []testkit.Step{}
+	for at, name := range []string{"config", "rng", "pieces", "board", "engine"} {
+		steps = append(steps, callStep("I will write "+name+".",
+			callFor("c"+string(rune('1'+at)), contract.ToolWrite, `{"path":"/p/src/`+name+`.js","content":"x"}`)))
+	}
+	steps = append(steps,
+		callStep("Now I will run the tests.", callFor("c9", contract.ToolShell, `{"command":"node --test tests/"}`)),
+		answerStep("Two tests fail."),
+	)
+	built := newHarness(t, steps, scriptedTool(contract.ToolWrite, "wrote", "wrote", "wrote", "wrote", "wrote"), scriptedTool(contract.ToolShell, aRedRun))
+
+	outcome := built.ask(t, "build the engine")
+
+	held := built.held(t, outcome.TaskID)
+	if len(held.Lessons.Failures) != 1 {
+		t.Fatalf("the record holds %d failures, want one", len(held.Lessons.Failures))
+	}
+	failure := held.Lessons.Failures[0]
+	for _, said := range []string{"config.js, rng.js, pieces.js and 2 more"} {
+		if !strings.Contains(failure.Text, said) || !strings.Contains(failure.Cause, said) {
+			t.Errorf("the failure reads %q with cause %q, want both to say %q", failure.Text, failure.Cause, said)
+		}
+	}
+	if strings.Contains(failure.Text, "/p/src") {
+		t.Errorf("the failure reads %q, and a full path is noise on a one-line lesson", failure.Text)
+	}
+}

@@ -177,6 +177,21 @@ describe("a click that changes nothing", () => {
     expect(diff.seen).toBe("nothing changed");
     expect(worker.logLines.join(" ")).toContain("clicked it again at its place on the screen");
   });
+
+  // On the live game build a click on "Start Game" that started nothing was
+  // judged to have met "the start menu closes", because the button's own name
+  // held the word. The button clicked is no evidence of what the click did.
+  it("does not count the button it landed on as the change it expected", async () => {
+    const page = await worker.result("open", { url: site.page("no-change-on-click.html") });
+    const diff = asDiff(
+      await worker.result("click", {
+        ref: refFor(page, "Do nothing"),
+        expectation: "the button goes away and nothing is left",
+      }),
+    );
+    expect(diff.expectationMet).toBe(false);
+    expect(diff.seen).toBe("nothing changed");
+  });
 });
 
 describe("a ref that has gone stale", () => {

@@ -91,31 +91,37 @@ func TestTheSeventhSameCallIsRefusedWhateverItAnswered(t *testing.T) {
 	}
 }
 
-// TestPastTheHardCapPlusTwoTheTurnEnds proves the second rule ends the turn the
-// way the first one does: the seventh and eighth calls are refused, and the
-// ninth ends the turn with the same stopped report the first rule sends.
-func TestPastTheHardCapPlusTwoTheTurnEnds(t *testing.T) {
+// TestPastTheHardCapPlusTwoTheConversationIsCleared proves the second rule
+// breaks a stall the way the first one does: the seventh and eighth calls are
+// refused, and the ninth clears the conversation, with the stall written into
+// the record, rather than ending the turn.
+func TestPastTheHardCapPlusTwoTheConversationIsCleared(t *testing.T) {
 	launching := launchesWithNewProcessIDs(loop.SameCallHardCap + 3)
-	built := newHarness(t, launchSteps(loop.SameCallHardCap+3), launching)
+	steps := append(launchSteps(loop.SameCallHardCap+3), answerStep("The browser is open."))
+	built := newHarness(t, steps, launching)
 
 	outcome := built.ask(t, "open the browser")
 
 	if launching.calls != loop.SameCallHardCap {
 		t.Errorf("the shell tool ran %d times, want %d, because nothing past the cap runs", launching.calls, loop.SameCallHardCap)
 	}
-	if outcome.Status != contract.StatusStopped {
-		t.Errorf("the task ended %q, want stopped, because the model asked for the same thing nine times", outcome.Status)
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and the first stall clears the conversation instead", outcome.StopLine)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "the same thing over and over") {
-		t.Errorf("the user was sent %v, and a task the detector ended says so in its report", built.channel.Sent())
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
+		t.Error("the model was never handed the rewind line after the ninth of the same call")
+	}
+	held := built.held(t, outcome.TaskID)
+	if len(held.Lessons.Failures) != 1 || !strings.Contains(held.Lessons.Failures[0].Text, "stalled") {
+		t.Errorf("the record's failures read %+v, and the stall is written there so it is not forgotten", held.Lessons.Failures)
 	}
 }
 
-// TestTheFirstRuleStillEndsARunWhoseAnswersStopChanging proves the first rule
-// is still there under the second: a poll that keeps saying "done" is refused
-// on its third identical answer and ends the turn on its fourth, long before the
-// hard cap is reached.
-func TestTheFirstRuleStillEndsARunWhoseAnswersStopChanging(t *testing.T) {
+// TestTheFirstRuleStillBreaksARunWhoseAnswersStopChanging proves the first
+// rule is still there under the second: a poll that keeps saying "done" is
+// refused on its third identical answer and clears the conversation on its
+// fourth, long before the hard cap is reached.
+func TestTheFirstRuleStillBreaksARunWhoseAnswersStopChanging(t *testing.T) {
 	polling := &pollingTool{answers: []string{
 		"p1 is still running, 12 seconds in",
 		"p1 is still running, 24 seconds in",
@@ -127,7 +133,7 @@ func TestTheFirstRuleStillEndsARunWhoseAnswersStopChanging(t *testing.T) {
 	}
 	built := newHarness(t, []testkit.Step{
 		same("c1"), same("c2"), same("c3"), same("c4"), same("c5"), same("c6"),
-		answerStep("This answer is never given, because the turn ends before it."),
+		answerStep("The build finished."),
 	}, polling)
 
 	outcome := built.ask(t, "wait for the build")
@@ -139,8 +145,11 @@ func TestTheFirstRuleStillEndsARunWhoseAnswersStopChanging(t *testing.T) {
 	if !strings.Contains(requestsJoined(built.model.Requests()), "Do something different") {
 		t.Error("the model was never told to do something different, and the first rule still says so")
 	}
-	if outcome.Status != contract.StatusStopped {
-		t.Errorf("the task ended %q, want stopped, because the first rule ends a run of the same answer on its fourth call",
-			outcome.Status)
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and the first rule clears the conversation on the fourth of the same answer rather than ending the turn",
+			outcome.StopLine)
+	}
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
+		t.Error("the model was never handed the rewind line after the fourth of the same answer")
 	}
 }

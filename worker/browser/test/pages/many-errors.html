@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Many errors</title>
+  </head>
+  <body>
+    <h1>Many errors</h1>
+    <script>
+      // Eight uncaught errors, each on its own turn of the event loop so that
+      // every one of them reaches the console. The snapshot keeps the first
+      // few and counts the rest.
+      for (var number = 1; number <= 8; number += 1) {
+        setTimeout(
+          (function (which) {
+            return function () {
+              throw new Error("error number " + which);
+            };
+          })(number),
+          0,
+        );
+      }
+    </script>
+  </body>
+</html>

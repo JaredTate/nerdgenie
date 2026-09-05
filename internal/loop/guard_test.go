@@ -3,6 +3,7 @@ package loop_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -89,28 +90,100 @@ func (tool *clockTool) Run(_ context.Context, _ json.RawMessage) (contract.ToolO
 	return contract.ToolOutput{Text: "that took a while"}, nil
 }
 
+// sameReadAgain is the model asking for the same read, which is the shape of
+// every stall the guard is about.
+func sameReadAgain(id string) testkit.Step {
+	return callStep("I will read it again.", callFor(id, "read", `{"path":"notes.md"}`))
+}
+
 // TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn proves rule 4 of
-// design section 3 across the rounds of one task.
+// design section 3 across the rounds of one task: two identical calls run, the
+// third is refused, the fourth clears the conversation, and only when the model
+// has stalled RewindsAllowed times and stalls again does the turn end.
 func TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn(t *testing.T) {
-	same := func(id string) testkit.Step {
-		return callStep("I will read it again.", callFor(id, "read", `{"path":"notes.md"}`))
+	stalls := loop.RewindsAllowed + 1
+	steps := []testkit.Step{}
+	answers := []string{}
+	for stall := 0; stall < stalls; stall++ {
+		for call := 1; call <= 4; call++ {
+			steps = append(steps, sameReadAgain(fmt.Sprintf("c%d", stall*4+call)))
+		}
+		answers = append(answers, "the notes", "the notes")
 	}
 	reading := testkit.NewScriptedTool(contract.ToolSpec{
 		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
-	}, "the notes", "the notes")
-	built := newHarness(t, []testkit.Step{same("c1"), same("c2"), same("c3"), same("c4")}, reading)
+	}, answers...)
+	built := newHarness(t, steps, reading)
 
 	outcome := built.ask(t, "read the notes")
 
-	if len(reading.Inputs()) != 2 {
-		t.Errorf("the tool ran %d times, and the first two identical calls in a row are run and no more",
-			len(reading.Inputs()))
+	if len(reading.Inputs()) != 2*stalls {
+		t.Errorf("the tool ran %d times, want %d: the first two identical calls of each stall are run and no more",
+			len(reading.Inputs()), 2*stalls)
 	}
 	if !strings.Contains(requestsJoined(built.model.Requests()), "Do something different") {
 		t.Error("the model was never told to do something different")
 	}
 	if outcome.Status != contract.StatusStopped {
 		t.Errorf("the task ended %q, want stopped, because the model would not stop asking", outcome.Status)
+	}
+}
+
+// TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord
+// holds what the live game build needed. The model read one file four times
+// running because a tool had told it a click worked when the page said it had
+// not, and the third refusal ended the task. Now the stall clears the
+// conversation instead: the record stays, the stall is written into it as a
+// failure, and the model, reading the record and one line telling it what
+// happened, goes on with something different.
+func TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the brand file")
+	built := newHarness(t, []testkit.Step{
+		sameReadAgain("c1"), sameReadAgain("c2"), sameReadAgain("c3"), sameReadAgain("c4"),
+		callStep("I will read the brand file instead.", callFor("c5", "read", `{"path":"brand.md"}`)),
+		answerStep("The notes and the brand file are read."),
+	}, reading)
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status == contract.StatusStopped {
+		t.Fatalf("the task stopped on the first stall, and the first stall clears the conversation instead")
+	}
+	if len(reading.Inputs()) != 3 {
+		t.Errorf("the tool ran %d times, want 3: two of the stalled read and the different read after the clearing",
+			len(reading.Inputs()))
+	}
+	requests := built.model.Requests()
+	if len(requests) < 5 {
+		t.Fatalf("the model was called %d times, want at least 5: four stalled rounds and the one after the clearing", len(requests))
+	}
+	after := requests[4]
+	sawTheLine := false
+	for _, message := range after.Messages {
+		if message.Text == loop.TheRewindLine {
+			sawTheLine = true
+		}
+		if message.Role == contract.RoleAssistant || len(message.ToolResults) > 0 {
+			t.Errorf("the call after the clearing still carries the stalled rounds: %+v", message)
+		}
+	}
+	if !sawTheLine {
+		t.Errorf("the call after the clearing does not carry the rewind line as a message of its own: %+v", after.Messages)
+	}
+	if !strings.Contains(testkit.WholeRequestText(after), "read the notes") {
+		t.Errorf("the ask left with the messages, and the record is what stands; the call reads:\n%s", testkit.WholeRequestText(after))
+	}
+	held := built.held(t, outcome.TaskID)
+	stalled := false
+	for _, failure := range held.Lessons.Failures {
+		if strings.Contains(failure.Text, "stalled") && strings.Contains(failure.Text, "notes.md") {
+			stalled = true
+		}
+	}
+	if !stalled {
+		t.Errorf("the record's failures read %+v, and a stall is written there naming the call so it is not forgotten", held.Lessons.Failures)
 	}
 }
 

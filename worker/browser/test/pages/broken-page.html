@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Broken page</title>
+    <!-- The stylesheet is not there. A person sees the 404 in the console; the
+         model has to be told. -->
+    <link rel="stylesheet" href="missing.css" />
+  </head>
+  <body>
+    <h1>Broken page</h1>
+    <!-- The game script is not there either, so this button does nothing when it
+         is clicked, which is exactly what happened on the live game build. -->
+    <button type="button" id="start">Start Game</button>
+    <script type="module" src="missing.js"></script>
+    <script>
+      throw new Error("the board never drew");
+    </script>
+  </body>
+</html>

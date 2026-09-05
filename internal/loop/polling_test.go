@@ -3,9 +3,11 @@ package loop_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
@@ -52,8 +54,8 @@ func TestPollingALongCommandIsNotTheSameCallOverAndOver(t *testing.T) {
 }
 
 // TestTheSameCallWithTheSameResultIsStillRefused proves the other half: a call
-// that comes back with the very same result is the same call, and the third one
-// is still refused.
+// that comes back with the very same result is the same call, the third one is
+// still refused, and the fourth clears the conversation.
 func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 	polling := &pollingTool{answers: []string{
 		"p1 is still running",
@@ -64,7 +66,10 @@ func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 	same := func(id string) testkit.Step {
 		return callStep("I will wait for it.", callFor(id, "shell", `{"action":"poll","id":"p1"}`))
 	}
-	built := newHarness(t, []testkit.Step{same("c1"), same("c2"), same("c3"), same("c4")}, polling)
+	built := newHarness(t, []testkit.Step{
+		same("c1"), same("c2"), same("c3"), same("c4"),
+		answerStep("The build is still running, so I will come back to it."),
+	}, polling)
 
 	outcome := built.ask(t, "wait for the build")
 
@@ -72,8 +77,11 @@ func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 		t.Errorf("the shell tool ran %d times, and only the first two identical calls with identical results are run",
 			polling.calls)
 	}
-	if outcome.Status != contract.StatusStopped {
-		t.Errorf("the task ended %q, want stopped, because the model would not stop asking", outcome.Status)
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and the fourth of the same call clears the conversation rather than ending the turn", outcome.StopLine)
+	}
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
+		t.Error("the model was never handed the rewind line after the fourth of the same call")
 	}
 }
 

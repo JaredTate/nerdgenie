@@ -17,6 +17,7 @@ function snapshot(part: Partial<Snapshot>): Snapshot {
     dialog: null,
     download: null,
     wall: null,
+    errors: [],
     ...part,
   };
 }

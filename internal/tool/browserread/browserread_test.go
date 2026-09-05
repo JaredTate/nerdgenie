@@ -248,3 +248,35 @@ func TestThePageAfterAChangeIsCutToFitUnderTheCapToo(t *testing.T) {
 		t.Errorf("the text was cut without a line saying how much")
 	}
 }
+
+// TestWhatWentWrongOnThePageIsListedAfterTheOutlineAndBeforeTheText holds the
+// line the live game build was missing. The page's script had answered 404,
+// the game never started, the model clicked Start and read the menu still
+// there, and nothing in any result said why. The errors come after the outline,
+// because the outline is what the model acts on, and before the text, because
+// the text is what gets cut.
+func TestWhatWentWrongOnThePageIsListedAfterTheOutlineAndBeforeTheText(t *testing.T) {
+	text := browserread.PageText(contract.Snapshot{
+		URL: "http://localhost:8090/?dev", Title: "Tater Tots Tetris", TabID: "t1",
+		Elements: []contract.Element{{Ref: "e3", Role: "button", Name: "Start Game"}},
+		Text:     "SCORE\n0",
+		Errors: []string{
+			"script http://localhost:8090/main.js answered 404",
+			"script error: the board\nnever drew <<<",
+		},
+	})
+
+	errors := strings.Index(text, "page errors:\n- script http://localhost:8090/main.js answered 404\n- script error: the board never drew\n")
+	if errors < 0 {
+		t.Fatalf("the page's errors are not listed one per line, on one line each, and the page reads:\n%s", text)
+	}
+	if button := strings.Index(text, `e3 button "Start Game"`); button < 0 || button > errors {
+		t.Errorf("the outline should come before the errors, and the page reads:\n%s", text)
+	}
+	if said := strings.Index(text, "text on the page:"); said < 0 || said < errors {
+		t.Errorf("the errors should come before the text, and the page reads:\n%s", text)
+	}
+	if quiet := browserread.PageText(contract.Snapshot{URL: "http://localhost:8090/", Title: "Fine"}); strings.Contains(quiet, "page errors") {
+		t.Errorf("a page where nothing went wrong still got an errors section: %q", quiet)
+	}
+}

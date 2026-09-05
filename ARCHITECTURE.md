@@ -602,7 +602,7 @@ The socket is itself a `contract.Channel` named `terminal`, so the terminal is a
 
 `serve.go` supplies the router's five things — `RunCommand`, `FindChannel`, `StartTask`, `StopTask`, and the skill store — the stream's two, the clock and the `Status` function, and the socket's six: the path, the stream, the queue, the vault, the clock, and the answer deadline. Nothing crossing the socket is named in this package any more: the terminal channel's name, the masked-prompt flag, the word for "always", the status field names, the state words, and the command separator are all `contract`'s, so the terminal screen reads them without importing anything of this package's, and a command that may run only in the terminal is checked against one spelling rather than two.
 
-## The terminal screen (built, wave 3; reworked, brief 3.6)
+## The terminal screen (built, wave 3; reworked, brief 3.6; second look, tui-v2)
 
 `internal/tui` is the terminal screen, and `cmd/nerdgenie/tui.go` is the `tui`
 subcommand that opens it, which is also what the bare `nerdgenie` command runs. The
@@ -670,13 +670,14 @@ view scrolled up is a window moved by rows, and the blocks at its edges are cut.
 link, feeds it the bytes a terminal sends for the wheel, and checks that the
 mark appears and that the reporting is off by the time it quits.
 
-**The look.** `style.go` holds the DigiByte palette, named once, as five
-colours and nothing else — the dark blue ground `#002352` behind every row,
-white letters, DigiByte's own blue `#0066CC` for the wordmark's GENIE, the
-checklist's rules, the running-task pointer and the filled shapes, with one
-lighter tint `#4DA3FF` of it for small accent text, a desaturated light blue
-`#8FA9CC` for the quiet parts, and a green `#3DDC84` for check marks only; a test
-reads every source file of the package for a hex colour and fails on any other —
+**The look.** `style.go` holds the DigiByte palette, named once — the dark blue
+ground `#002352` behind every row, white letters, DigiByte's own blue `#0066CC`
+for the wordmark's GENIE, the checklist's rules, the running-task pointer and
+the bar down the agent's card, with one lighter tint `#4DA3FF` of it for small
+accent text and the person's bar, a desaturated light blue `#8FA9CC` for the
+quiet parts, and a green `#3DDC84` for check marks, with the four colours the
+second look added, described below; a test reads every source file of the
+package for a hex colour and fails on any other —
 and turns each of them into escape codes at whatever colour depth the terminal
 reports, stepping from twenty-four bit through the two hundred and fifty-six
 colour cube to the sixteen ordinary colours and down to none. The codes are
@@ -695,10 +696,12 @@ under it alone, a rule, and `1 of 4 done` — so a terminal with no colour reads
 it by the glyphs. `welcome.go` draws the `NERD GENIE` wordmark in a five-row
 block font of its own, NERD white and GENIE blue, while the transcript is empty
 and the area is at least sixty columns by fourteen rows, with the tagline, the
-wish in dim italics, and one line saying `type an ask, or /help`; `header.go`
+wish in dim italics, the model once the program has named it, and three lines
+saying what to type; `header.go`
 draws the same two-colour wordmark on every frame and drops the tagline before
-it cuts the status. `bubble.go` draws the person's filled bubble leaning right,
-the agent's outlined bubble leaning left, and a tool call as a small filled pill.
+it drops the status. `bubble.go` draws the person's card leaning right, the
+agent's card leaning left, and a tool call as a compact pill, as the second
+look below describes.
 
 Time comes from `contract.Clock` and reaches the screen as one heartbeat every
 thirty milliseconds. That heartbeat does three things: it moves the screen's idea
@@ -753,7 +756,8 @@ screen draws. The header measures the last call's context against the model's
 window from `StatusFieldContextTokens` and `StatusFieldContextWindow`, reading
 `ctx 12.4k / 262k · 5%` after the model alias and before the session cost, quiet
 below eighty percent, gold from eighty, and red from ninety-five, and drawn only
-when the program sent both numbers. While the state is thinking, the status strip
+when the program sent both numbers; the second look, below, draws the same two
+numbers as a ten-cell meter with its own colours. While the state is thinking, the status strip
 counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
 `StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count begins
 the moment the program reports the call rather than when the spinner is due, so
@@ -839,6 +843,136 @@ panel is what the header already reads. The golden frame for a task inside a job
 is `testdata/panel-job-120x36.txt`.
 
 **The job's name on the panel.** A job carries the short name the model gave it on `create`, and `jobPanelLines` draws it in the group's header line, `job 3 · Tater Tots Tetris`, read from `StatusFieldJobName`. The line under the header that carried the ask, folded to the panel's width, is drawn only when the name is empty, which is what an older job or one made without a name sends, so such a job still says what it is. `TestThePanelShowsTheJobsNameInsteadOfItsAsk` in `panel_test.go` holds both halves, the name in the header and the ask left off when there is one; the `/jobs` listing makes the same choice through `titleOf` in `internal/job/list.go`. A plain task is headed the same way, `TASK 17 · Post a tweet a…`, its ask read from `StatusFieldTaskAsk` and cut with an ellipsis to the panel, and by its number alone until the ask has reached the screen, which `TestThePanelHeadsAPlainTaskWithItsAsk` and `TestThePanelHeadsAPlainTaskByItsNumberAloneWithoutAnAsk` hold.
+
+**The second look (tui-v2).** The owner looked at OpenCode and asked for its
+flat, dark look with a coloured bar on each message, the keys shown in the
+footer, and the model and the context in the side panel, all in DigiByte's
+colours and still readable on a plain terminal. Seven changes below make that
+look, each test-first, each read by eye in a golden frame at eighty by
+twenty-four, a hundred and twenty by forty and a hundred and sixty by fifty.
+The other half of the same rework — keyboard focus, mouse clicks, expanded
+pills and the overlay — was built at the same time in `keys.go`, `scroll.go`,
+`envelope.go`, `report.go`, `screen.go` and `focus.go`, against three seams
+these files keep: `showsPanel` is false while `screen.panelHidden` is set,
+`panelTargets` answers one entry per line `panelLines` draws, and
+`pillRows(text, focused)` draws a focused pill apart from a plain one. **At the
+merge, `footer.go`'s `extraHints` must be pointed at `focus.go`'s
+`interactionHints`, `extraHints = interactionHints`, so that the footer draws
+the focus keys after the screen's own.** The one line the look needed outside
+its own files is in `input.go`: `inputRows` ends with the footer's hints row,
+because `frame` in `screen.go` draws exactly one row after the input box.
+
+**The theme.** Four tones join DigiByte's six: `cardTone` `#011B40`, a navy a
+step deeper than the ground, which fills the flat cards, the tool pills and the
+keycaps in the footer and is black on a sixteen-colour terminal so it still
+reads as deeper than the ground's blue; `warnTone` `#FFB020`, the amber of a
+measure getting high; `badTone` `#FF5C5C`, the red of a failure, a full
+context, a cold cache or a refused call; and `mutedTone` `#5C7BA6`, the quiet
+blue of an empty meter cell. Nine styles draw in them: `styleCard` and
+`styleCardDim` for white and dim words on a card, `styleWarn`, `styleBad`,
+`styleKey` for bold white on the card fill, which is a keycap, a result-id
+badge and bold markdown inside a reply at once, `styleMeterOn` and
+`styleMeterOff` for a meter's filled and empty cells, and `styleBar` and
+`stylePersonBar` for the two bars, each on the card's own fill so the bar joins
+its card. Every one steps down through the two hundred and fifty-six colour
+table to the sixteen colours and to nothing under `NO_COLOR` the way the first
+six do. `TestEveryStyleHasEnoughContrastToRead` in `theme_test.go` computes
+WCAG's relative luminance and contrast for every paint and holds every style
+that carries words at four and a half to one and every shape-only style at
+WCAG's three to one for graphics; the brand blue on the navy ground, which the
+palette keeps for the block letters, the rules and the pointer, is two and
+three quarters to one and is pinned there as the one named exception, so it
+cannot drift darker unnoticed.
+
+**Messages as flat cards.** `bubble.go` no longer draws a box. A reply is one
+row per line, each beginning with the bar glyph `▌` in DigiByte's own blue,
+the words on the card fill with one blank of padding on each side, padded out
+to the widest line so the card has a straight edge, and no lid or floor, so a
+reply still streaming keeps its shape as every row arrives. The person's
+message is the same shape leaning against the right-hand margin with its bar
+in the light blue. `onTheCard` moves the styles light markdown and the
+person's lines arrive in onto the card's fill as each row is drawn, and the
+wrapping, the widest-transcript rule and the whole-block rule are as they
+were; `transcript.go` still calls `bubbleWidth`, `bubbleFrame`, `bubbleRows`,
+`personBubble` and `agentBubble` by their old names, which is why those names
+stayed.
+
+**Tool pills as compact rows.** `readPill` in `bubble.go` reads a tool line
+into its pieces — the tool, its argument, its summary, its result id and the
+repeat count `toolLines` writes on the end — from the shape `internal/loop`'s
+`toolLineFor` writes, `<tool> <argument> · <id> <summary>`, with the program's
+own arrow taken off the front. The pill is one row: the state glyph on the
+ground, `▶` in the accent while the line has no result yet, a green `✓` once
+it has one, a red `✖` when the result says refused or failed; then the tool's
+name in bold white on the card fill, its argument and its summary dim, and the
+result id moved to the end as a small keycap badge after one blank of ground.
+A long line wraps under its own words with every row filled to the same edge
+and the badge on the last row. A record line, which the transcript draws
+through the same pill, reads as a finished thing. A focused pill draws its
+glyph with the letters and the ground swapped and changes nothing else, which
+`seams_test.go` holds.
+
+**The header.** `meter.go` holds the arithmetic the header and the panel
+share: `meterCells` rounds a share onto a meter of `contextMeterCells`, ten,
+and never draws a context in use as empty; `meterStyle` turns green under
+fifty percent, amber under eighty and red from there; `cacheShare` is the
+cached tokens over the context tokens, unknown when either is nothing, because
+a provider that never caches reports the same nothing as a cache gone cold;
+`cacheStyle` is green from eighty, amber from forty and red below; and
+`elapsedWords` writes a span of time as `42s`, `12m` or `1h 5m`. `header.go`
+draws `ctx` and the meter and its share where the numbers were, and after the
+task adds its elapsed time from `StatusFieldTaskStarted`, its round as `r27`,
+and `cache 92%`, the diagnostic that found this week's speed bug, before the
+cost. `headerPieces` builds the pieces most important first, and `headerRow`
+drops the tagline and then whole pieces from the right until the row fits with
+the health mark and a gap in front of it, so an eighty-column terminal keeps
+the wordmark, the model, the meter and the task and never a piece cut in half.
+
+**The footer.** `footer.go` draws the keys the screen answers to in OpenCode's
+style: `↵ send`, `^J newline`, `esc stop` only while there is something to
+stop, and `^C quit`, each key in a keycap of bold white on the card fill with
+a blank of padding on each side and its verb dim after it, two blanks between
+hints, then whatever `extraHints` answers, never more than `maxFooterHints`;
+a terminal too narrow for them all drops whole hints from the right, and a
+masked prompt, the palette, a refusal's reason and a card with single-key
+answers each put their own keys there. The old `keyHints` text is gone from
+the status strip. The hints row sits between the input box and the strip, and
+the strip keeps the frame's last row, because the strip reports the scroll
+position and only the transcript, which `frame` draws after the input box,
+knows how far there is to scroll; drawn the other way round the strip said
+`↑ older` for one frame over a transcript that fit. The strip's budget bar is
+now drawn in the meter styles.
+
+**The side panel, redesigned.** `panel.go` sizes the panel at twenty-eight
+columns under a hundred and forty columns of screen and a third of the screen
+from there, never wider than fifty-six, and builds its lines and their click
+targets in one walk, `panelItems`, so `panelLines` and `panelTargets` cannot
+drift: `job:4` on a job's header, `task:t19` on each of its task rows,
+`task:17` on a plain task's header, and nothing on every other line. The
+groups come in order — MODEL, NOW, the checklist, STATE, FAILURES, ROUND and
+the count of jobs — each under a small dim upper-case label with the
+checklist's rule after it out to the panel's edge, with a blank line between
+groups, and a group with nothing to say is left out entirely. `statepanel.go`
+draws the new ones: MODEL with the alias, the context meter with the numbers
+beside it, `cache 92%` in its own colour and the cost; NOW with the state
+word, the call in flight while `screen.lastTool` has no result, and the
+seconds and tokens of the model call, or the one word `idle`; STATE with one
+line per fact of `screen.situation`, the label before the colon dim and the
+tests line green when it says all and red when it says failing, each fact cut
+with an ellipsis rather than wrapped and never more than `maxSituationLines`;
+FAILURES with the count of `screen.failures` in red and the newest failure
+wrapped to two lines with the rest cut; and ROUND as `round 27 · 12m in`.
+`checklist.go` is the checklist as it was, moved out of `panel.go` so that no
+file passes five hundred lines, with the panel's width threaded through every
+row it draws. The golden frames are `panel-job-`, `panel-task-` and
+`panel-state-` at each of the three sizes under `testdata`.
+
+**The welcome.** `welcome.go` keeps the block wordmark, the tagline and the
+wish, names the model in use under them once the program has sent it and never
+before, and replaces the one line saying how to start with three: `type a
+message`, `/help` and `/status`, each a keycap with its words dim after it, the
+keycaps padded to one width and the three rows given one indent by
+`centredBlock` so the words line up and the block sits centred as a whole.
 
 Going the other way, an approve carrying `contract.ApproveAlwaysText` means every
 call like this one for the rest of the session and an approve carrying no text

@@ -39,9 +39,8 @@ const (
 	wishText = "your wish is its command."
 	// modelLabel is the dim word in front of the model's alias on the welcome.
 	modelLabel = "model "
-	// askHintText, helpHintText and statusHintText are the three things to
-	// type, each drawn as a keycap, and the words after each say what typing
-	// it does.
+	// The three things to type, each drawn as a keycap, and the words after
+	// each that say what typing it does.
 	askHintText     = "type a message"
 	askHintWords    = "to ask for anything, in your own words"
 	helpHintText    = "/help"

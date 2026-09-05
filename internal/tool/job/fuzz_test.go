@@ -20,6 +20,8 @@ func FuzzReadInput(f *testing.F) {
 		`{"action":"create","why":"the why","text":"write tests","tasks":["write tests","build it"]}`,
 		`{"action":"create","text":"the first task","tasks":[` + strings.Repeat(`"a task",`, MaxTasksOnCreate-1) + `"the last one"]}`,
 		`{"action":"add_task","job_id":"1","text":"the task","due_at":"2026-03-01 14:00"}`,
+		`{"action":"add_task","job_id":"1","tasks":["the task listed alone"]}`,
+		`{"action":"add_task","job_id":"1","tasks":["one task","two tasks"]}`,
 		`{"action":"list"}`,
 		`{"action":"create","ask":"check the site every morning","schedule":{"kind":"every","every":"24h"},"task_template":"check the site and report"}`,
 		`not json`,

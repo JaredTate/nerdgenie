@@ -67,7 +67,8 @@ type taskObject struct {
 }
 
 // errNotATask is what a listed item that is neither a string nor an object
-// comes back as. The list's reader puts the item's position in front of it.
+// comes back as. The list's reader puts the item's position in front of it, so
+// the model reads both where the item is and what it is not.
 var errNotATask = errors.New("this task is neither a string nor an object, so write the task's text as a string or an object with text")
 
 // UnmarshalJSON reads one listed task: a string first, which is an undated task
@@ -120,7 +121,7 @@ func (tasks *writtenTasks) UnmarshalJSON(written []byte) error {
 	for at, item := range items {
 		task := writtenTask{}
 		if err := task.UnmarshalJSON(item); err != nil {
-			return listRefusal{line: fmt.Sprintf("task %d of the list is not one this tool can read, so write the task's text as a string or an object with text", at+1)}
+			return listRefusal{line: fmt.Sprintf("task %d of the list: %v", at+1, err)}
 		}
 		if strings.TrimSpace(task.Text) == "" {
 			return listRefusal{line: fmt.Sprintf("task %d of the list says nothing, so write in one line what it does and how it is done", at+1)}
@@ -365,18 +366,24 @@ func (tool *Tool) jobOfTheRunningTask(ctx context.Context) (string, bool, error)
 // askFor is the ask the new job carries: the running task's, byte for byte,
 // when the tool has that record, because the ask is the user's words and never
 // the model's, so an ask the model wrote beside it is dropped. A tool with no
-// record, or a record with no ask yet, takes the one the model wrote.
+// record, or a record with no ask yet, takes the one the model wrote. When
+// there is no ask anywhere the fault is the wiring's or the harness's, not the
+// model's, because the ask field tells the model to leave it empty, so the
+// refusal says so rather than sending the model to retype the user's words.
 func (tool *Tool) askFor(asked input) (string, error) {
-	ask := asked.Ask
-	if tool.settings.Records != nil {
-		if held := tool.settings.Records.Record().Goal.Ask; strings.TrimSpace(held) != "" {
-			ask = held
+	if tool.settings.Records == nil {
+		if strings.TrimSpace(asked.Ask) == "" {
+			return "", errors.New("this job carries no ask because the tool was built without the task's record, which is a fault in the wiring and not in this call, so wire the record in before making a job")
 		}
+		return asked.Ask, nil
 	}
-	if strings.TrimSpace(ask) == "" {
-		return "", errors.New("this job carries no ask, so pass the user's message word for word")
+	if held := tool.settings.Records.Record().Goal.Ask; strings.TrimSpace(held) != "" {
+		return held, nil
 	}
-	return ask, nil
+	if strings.TrimSpace(asked.Ask) == "" {
+		return "", errors.New("this job carries no ask because the task's record has none yet, which is a fault in the harness and not in this call, so the record must carry the user's message before a job is made")
+	}
+	return asked.Ask, nil
 }
 
 // tasksOf is the task list a create writes, in order: the text first, when it

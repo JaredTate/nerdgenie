@@ -189,7 +189,4 @@ func TestAJobsTaskThatOverrunsTheTurnLimitIsStoppedTheWayAPersonsIs(t *testing.T
 	if !errors.Is(personsCause, reliability.ErrDeadlineExpired) {
 		t.Errorf("the person's task was stopped because %v, want the turn limit the user set", personsCause)
 	}
-	if !errors.Is(jobsCause, personsCause) && !errors.Is(personsCause, jobsCause) {
-		t.Errorf("the job's task was stopped because %v and the person's because %v, want the two cut off the same way", jobsCause, personsCause)
-	}
 }

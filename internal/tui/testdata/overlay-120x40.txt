@@ -1,23 +1,22 @@
- NERDGENIE · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
+ NERDGENIE · opus · ctx ▰▱▱▱▱▱▱▱▱▱ 5% · task 17 running · 6.1k in 0.4k out · $0.04                            ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
- task 17                                                                                    │ opus                      
- # task 17                                                                                  │ ctx 12.4k / 262k · 5%     
-                                                                                            │ 6.1k in 0.4k out · $0.04  
- ask: Post a tweet about the DigiByte anniversary. Use the product notes and keep it under  │                           
- 280 characters.                                                                            │ TASK 17 · Post a tweet a… 
-                                                                                            │ ───────────────────────── 
- plan:                                                                                      │ ✓ the product notes are…  
- [x] the product notes are read                                                             │ ✓ a draft under 280 char… 
- [x] a draft under 280 characters is written                                                │ ▶ the tweet is posted     
+ task 17                                                                                    │ MODEL ─────────────────── 
+ # task 17                                                                                  │ opus                      
+                                                                                            │ ▰▱▱▱▱▱▱▱▱▱ 12.4k/262k 5%  
+ ask: Post a tweet about the DigiByte anniversary. Use the product notes and keep it under  │ 6.1k in 0.4k out · $0.04  
+ 280 characters.                                                                            │                           
+                                                                                            │ NOW ───────────────────── 
+ plan:                                                                                      │ thinking                  
+ [x] the product notes are read                                                             │                           
+ [x] a draft under 280 characters is written                                                │ TASK 17 · Post a tweet a… 
  [ ] the tweet is posted                                                                    │ ───────────────────────── 
+                                                                                            │ ✓ the product notes are…  
+ situation:                                                                                 │ ✓ a draft under 280 char… 
+ notes: read, 2,100 characters                                                              │ ▶ the tweet is posted     
+ draft: 214 characters                                                                      │ ───────────────────────── 
                                                                                             │ 2 of 3 done               
- situation:                                                                                 │                           
- notes: read, 2,100 characters                                                              │ 3 jobs waiting            
- draft: 214 characters                                                                      │                           
-                                                                                            │                           
  results:                                                                                   │                           
- r27 shell npm test: tests: all passing                                                     │                           
-                                                                                            │                           
+ r27 shell npm test: tests: all passing                                                     │ 3 jobs waiting            
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
@@ -37,4 +36,5 @@
                                                                                             │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
- thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 
+  ↵  send   ^J  newline   esc  stop   ^C  quit   tab  focus   ↵  expand   ^B  panel   ⇞⇟  scroll                        
+ thinking · 86 rounds, 51 min left ▰▰▰▰                                                                                 

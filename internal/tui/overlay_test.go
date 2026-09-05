@@ -177,7 +177,7 @@ func TestEscClosesTheOverlayAndTheInputBoxWorksWhileItIsOpen(t *testing.T) {
 	if screen.overlayOpen() {
 		t.Fatal("Esc did not close the overlay")
 	}
-	if !strings.Contains(plainText(screen.frame()), "r27 tests: all passing") {
+	if !strings.Contains(plainText(screen.frame()), "tests: all passing") {
 		t.Error("the transcript is not back after the overlay closed")
 	}
 }
@@ -185,15 +185,14 @@ func TestEscClosesTheOverlayAndTheInputBoxWorksWhileItIsOpen(t *testing.T) {
 // TestEscClosesTheOverlayBeforeItFoldsThePills holds the second and third of
 // Esc's three jobs in order. The first, clearing the focus, is held by the
 // expand tests; the pills are behind the overlay while it is open, so the only
-// focus there could be then is on a panel row, which the panel's stub does not
-// yet name. A focus the pill had before the overlay covered it is on nothing
-// a person can see, and the first Esc goes straight on to the overlay rather
-// than being spent on it.
+// focus there can be then is on a panel row. A focus the pill had before the
+// overlay covered it is on nothing a person can see, and the first Esc goes
+// straight on to the overlay rather than being spent on it.
 func TestEscClosesTheOverlayBeforeItFoldsThePills(t *testing.T) {
 	screen, _ := aScreenWithAPill()
 	expandTheFocusedPill(screen)
 	send(screen, aShownRecord("task", "17", theRecordText))
-	if screen.focused() != nothingFocused() {
+	if screen.focusedBlock() >= 0 {
 		t.Fatal("the pill is still focused behind the overlay that covers it")
 	}
 	pressKey(screen, tea.KeyEsc)

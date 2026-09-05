@@ -3,20 +3,19 @@
                                                                                 
                                                                                 
                                                                                 
-     ╭────────────────────────────────────────────────────────────────────────╮ 
-     ▎ Post a tweet about the DigiByte anniversary. Use the product notes and │ 
-     ▎ keep it under 280 characters.                                          │ 
-     ╰────────────────────────────────────────────────────────────────────────╯ 
                                                                                 
- ╭───────────────────────────────────────────────────╮                          
- │ Where I stand: the notes are read, drafting next. │                          
- ╰───────────────────────────────────────────────────╯                          
-    ▸ read memory/product.md · 2,100 characters · r3                            
-    ▸ task · plan set, done list set                                            
- ╭───────────────────────────────────────────────────────────╮                  
- │ Draft: "Nine years ago today DigiByte …" (236 characters) │                  
- ╰───────────────────────────────────────────────────────────╯                  
-    ▸ browser_open x.com/compose/post · Compose post                            
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+      ▌ Post a tweet about the DigiByte anniversary. Use the product notes and  
+      ▌ keep it under 280 characters.                                           
+                                                                                
+ ▌ Where I stand: the notes are read, drafting next.                            
+   ✓  read memory/product.md · 2,100 characters   r3                            
+   ✓  task · plan set, done list set                                            
+ ▌ Draft: "Nine years ago today DigiByte …" (236 characters)                    
+   ✓  browser_open x.com/compose/post · Compose post                            
                                                                                 
  ┌ Ask me first ──────────────────────────────────────────────────────────────┐ 
  │ browser_click e7 "Post"                                                    │ 
@@ -27,4 +26,5 @@
  └────────────────────────────────────────────────────────────────────────────┘ 
  ────────────────────────────────────────────────────────────────────────────── 
  › _                                                                            
- waiting for you · 86 rounds, 51 min left ▰▰▰▰  a approve · A always · r reject 
+  a  approve   A  always   r  reject   tab  focus   ↵  expand   ^B  panel       
+ waiting for you · 86 rounds, 51 min left ▰▰▰▰                                  

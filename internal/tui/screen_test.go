@@ -61,7 +61,10 @@ func TestTheFirstFrameIsDrawnBeforeTheSocketConnects(t *testing.T) {
 	if !strings.Contains(lines[23], "connecting") {
 		t.Errorf("the status strip is %q, and it should say connecting", lines[23])
 	}
-	if !strings.Contains(lines[22], "›") {
-		t.Errorf("the input row is %q, and it should hold the prompt glyph", lines[22])
+	if !strings.Contains(lines[22], "↵") {
+		t.Errorf("the row above the strip is %q, and it is the footer's key hints", lines[22])
+	}
+	if !strings.Contains(lines[21], "›") {
+		t.Errorf("the input row is %q, and it should hold the prompt glyph", lines[21])
 	}
 }

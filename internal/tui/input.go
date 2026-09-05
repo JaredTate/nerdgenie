@@ -97,8 +97,10 @@ func (typed editor) shownLetters() []rune {
 	return shown
 }
 
-// inputRows draws the input box, and the dim title above it when the program has
-// asked for something in particular.
+// inputRows draws the rows under the second rule: the dim title above the
+// input box when the program has asked for something in particular, the box
+// itself, and the footer's row of key hints under it, which the status strip
+// then follows as the frame's last row.
 func (screen *Screen) inputRows() []string {
 	drawn := []string{}
 	for _, line := range wrapText(screen.inputTitle(), screen.width-2*marginColumns) {
@@ -110,7 +112,8 @@ func (screen *Screen) inputRows() []string {
 		above.add(styleDim, line)
 		drawn = append(drawn, above.render(screen.colors))
 	}
-	return append(drawn, screen.editorRows()...)
+	drawn = append(drawn, screen.editorRows()...)
+	return append(drawn, screen.hintsRow())
 }
 
 // inputTitle is the dim line above the box: what secret the program is asking

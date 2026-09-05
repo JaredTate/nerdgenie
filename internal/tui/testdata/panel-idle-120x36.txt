@@ -1,12 +1,10 @@
  NERDGENIE · the open-source agent harness · opus                                                             ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+                                                                                            │ MODEL ─────────────────── 
                                                                                             │ opus                      
                                                                                             │                           
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
-                                                                                            │                           
+                                                                                            │ NOW ───────────────────── 
+                                                                                            │ idle                      
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
@@ -19,10 +17,11 @@
                                the open-source agent harness                                │                           
                                  your wish is its command.                                  │                           
                                                                                             │                           
-                                   type an ask, or /help                                    │                           
+                                         model opus                                         │                           
                                                                                             │                           
-                                                                                            │                           
-                                                                                            │                           
+            type a message   to ask for anything, in your own words                         │                           
+            /help            to see every command                                           │                           
+            /status          to see the model, the cost, the jobs and the health            │                           
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
@@ -33,4 +32,5 @@
                                                                                             │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
- idle                                                                         Enter send · Ctrl+J newline · Ctrl+C quit 
+  ↵  send   ^J  newline   ^C  quit   tab  focus   ↵  expand   ^B  panel   ⇞⇟  scroll                                    
+ idle                                                                                                                   

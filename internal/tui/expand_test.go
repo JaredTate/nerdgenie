@@ -29,7 +29,7 @@ func rowsUnderThePill(screen *Screen) []string {
 	rows := strings.Split(plainText(screen.frame()), "\n")
 	from := -1
 	for at, drawn := range rows {
-		if strings.Contains(drawn, "r27 tests: all passing") {
+		if strings.Contains(drawn, "tests: all passing") {
 			from = at
 		}
 	}
@@ -38,7 +38,7 @@ func rowsUnderThePill(screen *Screen) []string {
 	}
 	under := []string{}
 	for _, drawn := range rows[from+1:] {
-		if strings.Contains(drawn, "╭") {
+		if strings.Contains(drawn, string(cardBarGlyph)) {
 			break
 		}
 		under = append(under, strings.TrimRight(string([]rune(drawn)[:screen.transcriptColumns()]), " "))

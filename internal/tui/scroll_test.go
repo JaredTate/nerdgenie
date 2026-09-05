@@ -32,14 +32,20 @@ const repliesInALongTalk = 12
 const theCountingMessage = "Count to twelve for me, one reply at a time."
 
 // aLongConversation fills an attached screen with one message from the person
-// and twelve numbered replies, which is more rows than the transcript has room
-// for.
+// and twelve numbered replies of three lines each, which is more rows than the
+// transcript has room for.
 func aLongConversation(screen *Screen) {
 	screen.Update(linkMessage{up: true})
 	typeAndSend(screen, theCountingMessage)
 	for number := 1; number <= repliesInALongTalk; number++ {
-		send(screen, aReply("reply "+strconv.Itoa(number)))
+		send(screen, aReply(aTallReplyText(number)))
 	}
+}
+
+// aTallReplyText is a numbered reply three lines tall, so that a card, which
+// has no lid or floor, still takes the three rows these tests count in.
+func aTallReplyText(number int) string {
+	return "reply " + strconv.Itoa(number) + "\nis here\nand done"
 }
 
 // aReply is one finished reply from the program.
@@ -408,7 +414,7 @@ func TestTheWheelScrollsTheWholeProgramAndMouseReportingIsOffWhenItQuits(t *test
 	program := startTheWholeProgram(t, dialer)
 	socket := dialer.nextLink(t)
 	for number := 1; number <= 8; number++ {
-		socket.push(aReply("reply " + strconv.Itoa(number)))
+		socket.push(aReply(aTallReplyText(number)))
 	}
 	program.wheelUntilScrolled(t)
 

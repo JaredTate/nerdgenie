@@ -7,15 +7,19 @@ import (
 )
 
 // The DigiByte palette, written as the six hex digits the frame is designed in
-// and named once, here. Five colours and nothing else: the dark blue ground,
+// and named once, here. The first five are DigiByte's: the dark blue ground,
 // white letters, DigiByte's own blue for the accent, a desaturated light blue
 // for the quiet parts, and a green for check marks. The accent alone has a
 // second, lighter tint, because pure DigiByte blue on the dark blue ground is
 // too low in contrast for small text; the pure blue keeps the big shapes, which
-// are the wordmark's GENIE, the rules, the pointer, and the filled pills. Each
-// colour also names the nearest of the sixteen colours every terminal has, for
-// the terminals that have no more. Colour never carries a meaning on its own:
-// a glyph carries it too, so a terminal with no colour still reads the frame.
+// are the wordmark's GENIE, the rules, the pointer, and the bar down the side
+// of the agent's card. The second look added four more: a navy a step deeper
+// than the ground for the cards, the pills and the keycaps, an amber and a red
+// for the meters and the failures, and a muted blue for an empty meter cell.
+// Each colour also names the nearest of the sixteen colours every terminal
+// has, for the terminals that have no more. Colour never carries a meaning on
+// its own: a glyph carries it too, so a terminal with no colour still reads
+// the frame.
 //
 // The escape codes are written here rather than by a terminal styling library,
 // because such a library reports "no colour at all" whenever the writer it was
@@ -40,8 +44,25 @@ var (
 	// line, because the pure blue is too dark to read at that size on the
 	// ground.
 	accentTextTone = tone{color: "#4DA3FF", basic: 12}
-	// doneTone is the green of a check mark, and of nothing else.
+	// doneTone is the green of a check mark, of a context with room to spare,
+	// of a warm cache, and of a test line that says every test passes.
 	doneTone = tone{color: "#3DDC84", basic: 10}
+	// cardTone is a navy a step deeper than the ground. It fills the flat
+	// cards the talk is drawn on, the tool pills, and the keycaps in the
+	// footer, so that each sits a little below the ground rather than inside
+	// a box. On a sixteen-colour terminal it is black, the one colour that
+	// reads as deeper than the ground's blue.
+	cardTone = tone{color: "#011B40", basic: 0}
+	// warnTone is the amber of a measure that is getting high: a context past
+	// half full, a cache only partly warm.
+	warnTone = tone{color: "#FFB020", basic: 11}
+	// badTone is the red of something wrong: a context nearly full, a cold
+	// cache, a call that failed, a failure in the record, a test line that
+	// says tests are failing.
+	badTone = tone{color: "#FF5C5C", basic: 9}
+	// mutedTone is the quiet blue-grey of an empty meter cell, which is meant
+	// to recede behind the filled cells beside it.
+	mutedTone = tone{color: "#5C7BA6", basic: 8}
 )
 
 // The escape codes that are not colours: bold letters, slanted letters, and the
@@ -154,8 +175,35 @@ const (
 	// drawn when it sits inside the text rather than at the end.
 	styleReverse
 	// styleChip is white letters on the accent, which is the filled shape the
-	// tool pills, the answer buttons and the person's bubble are made of.
+	// answer buttons on a card are made of.
 	styleChip
+	// styleCard is white letters on the card fill: the words of a reply, of
+	// the person's own message, and of a tool pill's name.
+	styleCard
+	// styleCardDim is dim letters on the card fill: a pill's argument and its
+	// summary, and a code span inside a reply.
+	styleCardDim
+	// styleWarn is amber on the ground: a measure that is getting high.
+	styleWarn
+	// styleBad is red on the ground: a failure, a context nearly full, a cold
+	// cache, and the glyph of a call that failed.
+	styleBad
+	// styleKey is bold white on the card fill, which is the keycap a key in
+	// the footer is drawn as, the badge a result id sits in at the end of a
+	// pill, and the bold text of a reply, since a bold word on a card is the
+	// same paint.
+	styleKey
+	// styleMeterOn is the accent for the filled cells of a meter that has no
+	// warning to give, such as the budget bar in the status strip.
+	styleMeterOn
+	// styleMeterOff is the muted blue of a meter's empty cells.
+	styleMeterOff
+	// styleBar is DigiByte's own blue on the card fill, which draws the bar
+	// down the left of the agent's card, joined to the card by its ground.
+	styleBar
+	// stylePersonBar is the light blue on the card fill, which draws the bar
+	// down the left of the person's card.
+	stylePersonBar
 )
 
 // theme turns a style into the escape codes that draw it. It answers one
@@ -262,8 +310,9 @@ type paint struct {
 	slanted bool
 }
 
-// paintFor says how a style is drawn. Every style but the chip is drawn on the
-// DigiByte ground, which is what fills the whole frame.
+// paintFor says how a style is drawn. Every style is drawn on the DigiByte
+// ground, which is what fills the whole frame, except the chip, which sits on
+// the accent, and the card styles, which sit on the deeper navy of a card.
 func paintFor(chosen style) paint {
 	switch chosen {
 	case styleDim:
@@ -280,8 +329,35 @@ func paintFor(chosen style) paint {
 		return paint{front: dimTone, back: groundTone, slanted: true}
 	case styleChip:
 		return paint{front: textTone, back: accentTone, heavy: true}
+	case styleWarn:
+		return paint{front: warnTone, back: groundTone}
+	case styleBad:
+		return paint{front: badTone, back: groundTone}
+	case styleMeterOn:
+		return paint{front: accentTextTone, back: groundTone}
+	case styleMeterOff:
+		return paint{front: mutedTone, back: groundTone}
+	case styleCard, styleCardDim, styleKey, styleBar, stylePersonBar:
+		return cardPaintFor(chosen)
 	default:
 		return paint{front: textTone, back: groundTone}
+	}
+}
+
+// cardPaintFor says how the styles that sit on a card are drawn: white and
+// dim words, the bold white of a keycap, and the two blues of the bars.
+func cardPaintFor(chosen style) paint {
+	switch chosen {
+	case styleCardDim:
+		return paint{front: dimTone, back: cardTone}
+	case styleKey:
+		return paint{front: textTone, back: cardTone, heavy: true}
+	case styleBar:
+		return paint{front: accentTone, back: cardTone, heavy: true}
+	case stylePersonBar:
+		return paint{front: accentTextTone, back: cardTone, heavy: true}
+	default:
+		return paint{front: textTone, back: cardTone}
 	}
 }
 

@@ -1,16 +1,15 @@
- NERDGENIE · opus · task 17 running · 6.1k in 0.4k out · $0.04      
+ NERDGENIE · opus · task 17 running                       ● healthy 
  ────────────────────────────────────────────────────────────────── 
                                                                     
                                                                     
-   ╭──────────────────────────────────────────────────────────────╮ 
-   ▎ Post a tweet about the DigiByte anniversary. Use the product │ 
-   ▎ notes and keep it under 280 characters.                      │ 
-   ╰──────────────────────────────────────────────────────────────╯ 
                                                                     
- ╭───────────────────────────────────────────────────╮              
- │ Where I stand: the notes are read, drafting next. │              
- ╰───────────────────────────────────────────────────╯              
-    ▸ read memory/product.md · 2,100 characters · r3                
+                                                                    
+                                                                    
+    ▌ Post a tweet about the DigiByte anniversary. Use the product  
+    ▌ notes and keep it under 280 characters.                       
+                                                                    
+ ▌ Where I stand: the notes are read, drafting next.                
+   ✓  read memory/product.md · 2,100 characters   r3                
                                                                     
  ┌ Ask me first ──────────────────────────────────────────────────┐ 
  │ browser_click e7 "Post"                                        │ 
@@ -21,4 +20,5 @@
  └────────────────────────────────────────────────────────────────┘ 
  ────────────────────────────────────────────────────────────────── 
  › _                                                                
+  ↵  send   ^J  newline   esc  stop   ^C  quit   tab  focus         
  thinking · 86 rounds, 51 min left ▰▰▰▰                             

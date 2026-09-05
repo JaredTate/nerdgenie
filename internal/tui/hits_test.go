@@ -67,7 +67,7 @@ func TestAHandBuiltRowMapFindsPillsPanelRowsAndNothing(t *testing.T) {
 func TestTheRowMapIsBuiltFromTheFrame(t *testing.T) {
 	screen, _ := aScreenWithAPill()
 	hits := screen.hits()
-	pillRow := rowHolding(screen, "r27 tests: all passing")
+	pillRow := rowHolding(screen, "tests: all passing")
 	if found := hits.at(5, pillRow); found.block != 1 {
 		t.Errorf("the pill's row %d maps to %+v, and the pill is block 1", pillRow, found)
 	}
@@ -85,7 +85,7 @@ func TestTheRowMapIsBuiltFromTheFrame(t *testing.T) {
 
 func TestAClickOnAnyRowOfAPillTogglesItAndAClickElsewhereDoesNothing(t *testing.T) {
 	screen, link := aScreenWithAPill()
-	pillRow := rowHolding(screen, "r27 tests: all passing")
+	pillRow := rowHolding(screen, "tests: all passing")
 
 	click(screen, 40, pillRow)
 	if len(screen.expanded) != 1 || len(showsSent(link)) != 1 {
@@ -156,7 +156,7 @@ func TestAClickOnAPillInTheWholeProgramAsksForItsText(t *testing.T) {
 		contract.StatusFieldTask:     "17",
 		contract.StatusFieldToolLine: theTestPillLine,
 	}})
-	if !waitUntil(func() bool { return strings.Contains(program.painted(), "r27 tests: all passing") }) {
+	if !waitUntil(func() bool { return strings.Contains(program.painted(), "tests: all passing") }) {
 		t.Fatalf("the pill was never painted; the frame so far was:\n%s", program.painted())
 	}
 

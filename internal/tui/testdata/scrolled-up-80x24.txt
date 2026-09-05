@@ -1,24 +1,24 @@
  NERDGENIE · the open-source agent harness                            ● healthy 
  ────────────────────────────────────────────────────────────────────────────── 
- ╰─────────╯                                                                    
- ╭─────────╮                                                                    
- │ reply 5 │                                                                    
- ╰─────────╯                                                                    
- ╭─────────╮                                                                    
- │ reply 6 │                                                                    
- ╰─────────╯                                                                    
- ╭─────────╮                                                                    
- │ reply 7 │                                                                    
- ╰─────────╯                                                                    
- ╭─────────╮                                                                    
- │ reply 8 │                                                                    
- ╰─────────╯                                                                    
- ╭─────────╮                                                                    
- │ reply 9 │                                                                    
- ╰─────────╯                                                                    
- ╭──────────╮                                                                   
- │ reply 10 │                                                                   
- ╰──────────╯                                                                   
+ ▌ reply 5                                                                      
+ ▌ is here                                                                      
+ ▌ and done                                                                     
+ ▌ reply 6                                                                      
+ ▌ is here                                                                      
+ ▌ and done                                                                     
+ ▌ reply 7                                                                      
+ ▌ is here                                                                      
+ ▌ and done                                                                     
+ ▌ reply 8                                                                      
+ ▌ is here                                                                      
+ ▌ and done                                                                     
+ ▌ reply 9                                                                      
+ ▌ is here                                                                      
+ ▌ and done                                                                     
+ ▌ reply 10                                                                     
+ ▌ is here                                                                      
+ ▌ and done                                                                     
  ────────────────────────────────────────────────────────────────────────────── 
  › _                                                                            
- idle · ↑ older                       Enter send · Ctrl+J newline · Ctrl+C quit 
+  ↵  send   ^J  newline   ^C  quit   tab  focus   ↵  expand   ^B  panel         
+ idle · ↑ older                                                                 

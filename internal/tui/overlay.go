@@ -49,7 +49,11 @@ func (screen *Screen) closeOverlay() {
 
 // recordArrived takes the program's answer to a show for a task's or a job's
 // record and opens the overlay on it, from the top. An answer that names
-// neither is nothing this screen asked for and is left alone.
+// neither is nothing this screen asked for and is left alone. A focus that
+// was on a pill is let go of first, because the overlay covers the pills and
+// the focus is an index into the list of what can be seen: left in place it
+// would slide onto the panel's first row, and the Esc meant for the overlay
+// would be spent on that instead.
 func (screen *Screen) recordArrived(envelope contract.SocketEnvelope) {
 	title := screen.overlayTitleFor(envelope.Fields)
 	if title == "" {
@@ -58,6 +62,9 @@ func (screen *Screen) recordArrived(envelope contract.SocketEnvelope) {
 	text := envelope.Text
 	if text == "" {
 		text = "(the program sent nothing back for this record)"
+	}
+	if screen.focused().block >= 0 {
+		screen.clearFocus()
 	}
 	screen.overlayTitle, screen.overlayText, screen.overlayScroll = title, keepTail(text), 0
 }

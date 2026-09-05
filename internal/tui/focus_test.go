@@ -84,12 +84,16 @@ func TestTabFocusesThePillAndShiftTabWalksBackAndTheFocusWraps(t *testing.T) {
 		t.Fatalf("the second Tab focused block %d, and it should move on to the newer pill after block %d", second, first)
 	}
 	pressTab(screen)
+	if screen.focusedBlock() >= 0 || screen.focused().target != "task:17" {
+		t.Errorf("a third Tab past the last pill focused %+v, and the panel's task row comes after the pills", screen.focused())
+	}
+	pressTab(screen)
 	if screen.focusedBlock() != first {
-		t.Errorf("a third Tab past the last pill focused block %d, and the focus wraps round to the first", screen.focusedBlock())
+		t.Errorf("a Tab past the panel's row focused block %d, and the focus wraps round to the first pill", screen.focusedBlock())
 	}
 	pressShiftTab(screen)
-	if screen.focusedBlock() != second {
-		t.Errorf("Shift+Tab from the first pill focused block %d, and it wraps back to the last", screen.focusedBlock())
+	if screen.focused().target != "task:17" {
+		t.Errorf("Shift+Tab from the first pill focused %+v, and it wraps back to the panel's row", screen.focused())
 	}
 }
 
@@ -171,13 +175,18 @@ func TestAPanelRowWithATargetIsFocusedAfterThePillsAndDrawnReversed(t *testing.T
 	}
 }
 
-// TestFocusablesWorkWithAllEmptyTargets holds that the panel stub, which names
-// no target on any line, adds nothing to the focus list and breaks nothing.
-func TestFocusablesWorkWithAllEmptyTargets(t *testing.T) {
+// TestFocusablesArePillsThenPanelRowsAndNoneOfThePanelWhenItIsPutAway holds
+// the order of the focus list, the pills first and the panel's rows after
+// them, and that a panel put away with its key adds nothing to it.
+func TestFocusablesArePillsThenPanelRowsAndNoneOfThePanelWhenItIsPutAway(t *testing.T) {
 	screen, _ := aScreenWithAPill()
 	items := screen.focusables()
-	if len(items) != 1 || items[0].block < 0 {
-		t.Errorf("the focusable items are %+v, and with no panel targets they are the one pill alone", items)
+	if len(items) != 2 || items[0].block < 0 || items[1].target != "task:17" {
+		t.Errorf("the focusable items are %+v, want the one pill and then the panel's task row", items)
+	}
+	screen.panelHidden = true
+	if items := screen.focusables(); len(items) != 1 || items[0].block < 0 {
+		t.Errorf("with the panel put away the focusable items are %+v, want the one pill alone", items)
 	}
 }
 

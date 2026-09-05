@@ -25,17 +25,23 @@ func newThemedScreen(width int, height int) *Screen {
 }
 
 // theWholeConversation fills a screen with one of every block the transcript
-// draws, so that a golden file shows the bubbles, the pills and the card at
-// once.
+// draws, so that a golden file shows the two cards, a pill in each of its
+// three states, and the preview card at once.
 func theWholeConversation(screen *Screen) {
 	screen.Update(linkMessage{up: true})
 	send(screen, aFullStatus())
 	screen.remember(block{kind: blockPerson, text: "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters."})
 	screen.remember(block{kind: blockReply, text: "Where I stand: the notes are read, drafting next."})
 	screen.remember(block{kind: blockTool, text: "read memory/product.md · 2,100 characters · r3"})
+	screen.remember(block{kind: blockTool, text: "browser_click e9 \"Delete account\" · r4 the call was refused: not on the allowed list"})
+	screen.remember(block{kind: blockTool, text: "▸ browser_open x.com/compose/post"})
 	send(screen, contract.SocketEnvelope{Type: contract.SocketPreview, ID: "3", Text: "browser_click e7 \"Post\""})
 }
 
+// TestThePersonsMessageLeansRightAndTheAgentsReplyLeansLeft holds the shape of
+// the two flat cards: the agent's against the left-hand margin, the person's
+// against the right, each row beginning with the bar, and no lid or floor
+// above or below the words, so a one-line message is one row.
 func TestThePersonsMessageLeansRightAndTheAgentsReplyLeansLeft(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 	screen.remember(block{kind: blockPerson, text: "post it"})
@@ -43,20 +49,83 @@ func TestThePersonsMessageLeansRightAndTheAgentsReplyLeansLeft(t *testing.T) {
 
 	mine := screen.blockLines(screen.blocks[0])
 	theirs := screen.blockLines(screen.blocks[1])
-
+	if len(mine) != 1 || len(theirs) != 1 {
+		t.Fatalf("a one-line message drew %d rows and a one-line reply %d, and a flat card has no lid or floor", len(mine), len(theirs))
+	}
 	if leading := len(mine[0]) - len(strings.TrimLeft(mine[0], " ")); leading <= marginColumns {
-		t.Errorf("the person's bubble starts %d columns in, and it leans to the right", leading)
+		t.Errorf("the person's card starts %d columns in, and it leans to the right", leading)
 	}
 	if leading := len(theirs[0]) - len(strings.TrimLeft(theirs[0], " ")); leading != marginColumns {
-		t.Errorf("the agent's bubble starts %d columns in, and it leans to the left", leading)
+		t.Errorf("the agent's card starts %d columns in, and it leans to the left", leading)
 	}
-	for name, drawn := range map[string][]string{"the person's bubble": mine, "the agent's bubble": theirs} {
-		if !strings.Contains(drawn[0], "╭") || !strings.Contains(drawn[len(drawn)-1], "╯") {
-			t.Errorf("%s has no rounded corners: %q", name, drawn)
+	for name, drawn := range map[string]string{"the person's card": mine[0], "the agent's card": theirs[0]} {
+		if !strings.HasPrefix(strings.TrimLeft(drawn, " "), string(cardBarGlyph)+" ") {
+			t.Errorf("%s does not begin with the bar and one blank of padding: %q", name, drawn)
+		}
+		if strings.ContainsAny(drawn, "╭╮╰╯│") {
+			t.Errorf("%s still has a border: %q", name, drawn)
 		}
 	}
-	if !strings.Contains(strings.Join(mine, "\n"), string(personBarGlyph)) {
-		t.Errorf("the person's bubble has lost its thick left edge: %q", mine)
+	if theirs[0] != " "+string(cardBarGlyph)+" posting it now " {
+		t.Errorf("the agent's card reads %q, and it is the bar, a blank, the words and a blank of padding", theirs[0])
+	}
+}
+
+// TestTheCardsAreDrawnOnTheDeeperNavyWithTheirBarsInTheTwoBlues pins the
+// colours of the two cards: the agent's bar in DigiByte's own blue and the
+// person's in the light blue, both joined to a card filled with the deeper
+// navy, and the padding filled too so the card has a straight edge.
+func TestTheCardsAreDrawnOnTheDeeperNavyWithTheirBarsInTheTwoBlues(t *testing.T) {
+	screen := newThemedScreen(80, 24)
+	screen.remember(block{kind: blockPerson, text: "post it"})
+	screen.remember(block{kind: blockReply, text: "posting **it** `now`"})
+	colors := screen.colors
+
+	mine := screen.blockLines(screen.blocks[0])[0]
+	theirs := screen.blockLines(screen.blocks[1])[0]
+	if !strings.Contains(mine, colors.wrap(stylePersonBar, string(cardBarGlyph))) {
+		t.Errorf("the person's card %q has no bar in the light blue", mine)
+	}
+	if !strings.Contains(theirs, colors.wrap(styleBar, string(cardBarGlyph))) {
+		t.Errorf("the agent's card %q has no bar in DigiByte's own blue", theirs)
+	}
+	for name, drawn := range map[string]string{"the person's card": mine, "the agent's card": theirs} {
+		if strings.Contains(drawn, backgroundOf(accentTone, depthTruecolor)) {
+			t.Errorf("%s is still filled with the accent: %q", name, drawn)
+		}
+		if !strings.HasSuffix(drawn, colors.wrap(styleCard, " ")) {
+			t.Errorf("%s does not end in a blank of padding on the card fill: %q", name, drawn)
+		}
+	}
+	if !strings.Contains(mine, colors.wrap(styleCard, "post it")) {
+		t.Errorf("the person's words are not white on the card: %q", mine)
+	}
+	for _, wanted := range []string{colors.wrap(styleCard, "posting"), colors.wrap(styleKey, " it"), colors.wrap(styleCardDim, " now")} {
+		if !strings.Contains(theirs, wanted) {
+			t.Errorf("the reply %q does not hold %q, and markdown inside a card is drawn on the card", theirs, wanted)
+		}
+	}
+}
+
+// TestAReplyInParagraphsIsOneRowPerLineWithTheBarOnEveryRow holds that a
+// card that grows, which is what a streaming reply does, keeps its shape: the
+// bar on every row, and as many rows as there are lines, wrapped at the widest
+// the transcript ever wraps.
+func TestAReplyInParagraphsIsOneRowPerLineWithTheBarOnEveryRow(t *testing.T) {
+	screen, _ := newTestScreen(200, 40)
+	screen.remember(block{kind: blockReply, text: "first\nsecond\n" + strings.Repeat("a long third line ", 12)})
+
+	drawn := screen.blockLines(screen.blocks[0])
+	if len(drawn) < 4 || !strings.HasPrefix(drawn[0], " "+string(cardBarGlyph)+" first ") || !strings.HasPrefix(drawn[1], " "+string(cardBarGlyph)+" second ") {
+		t.Fatalf("two short lines and one long one drew these rows, want one each for the short lines and the long one wrapped:\n%s", strings.Join(drawn, "\n"))
+	}
+	for number, line := range drawn {
+		if !strings.HasPrefix(line, " "+string(cardBarGlyph)+" ") {
+			t.Errorf("row %d of the card is %q, and every row begins with the bar", number+1, line)
+		}
+		if width := displayWidth(line); width > widestTranscript+bubbleFrame+marginColumns {
+			t.Errorf("row %d of the card is %d columns wide on a 200-column terminal, and a card never wraps wider than %d", number+1, width, widestTranscript)
+		}
 	}
 }
 
@@ -83,19 +152,117 @@ func boxWidth(drawn string) int {
 	return displayWidth(strings.TrimLeft(drawn, " "))
 }
 
-func TestATheToolLineIsDrawnAsASmallPill(t *testing.T) {
+// TestAToolLineIsDrawnAsACompactPill holds the pill's row: the state glyph on
+// the ground in its own colour, then the tool's name in bold, its argument and
+// its summary dim, all on the card fill, and the result id moved to the end as
+// a keycap badge after one blank of ground.
+func TestAToolLineIsDrawnAsACompactPill(t *testing.T) {
 	screen := newThemedScreen(80, 24)
-	screen.remember(block{kind: blockTool, text: "read memory/product.md · r3"})
+	screen.remember(block{kind: blockTool, text: "read memory/product.md · 2,100 characters · r3"})
+	colors := screen.colors
 
 	drawn := screen.blockLines(screen.blocks[0])
 	if len(drawn) != 1 {
 		t.Fatalf("one tool call drew %d rows, and it is one pill", len(drawn))
 	}
-	if !strings.Contains(drawn[0], backgroundOf(accentTone, depthTruecolor)) {
-		t.Errorf("the tool pill is not drawn on the accent: %q", drawn[0])
+	plain := plainText(drawn[0])
+	if !strings.Contains(plain, string(doneGlyph)+"  read memory/product.md · 2,100 characters") {
+		t.Errorf("the pill does not read as its glyph, its name, its argument and its summary: %q", plain)
 	}
-	if !strings.Contains(plainText(drawn[0]), string(toolArrowGlyph)+" read memory/product.md · r3") {
-		t.Errorf("the tool pill does not read as one line: %q", plainText(drawn[0]))
+	if !strings.HasSuffix(plain, " r3 ") {
+		t.Errorf("the pill does not end in the result id as a badge: %q", plain)
+	}
+	for _, wanted := range []string{
+		colors.wrap(styleDone, string(doneGlyph)),
+		colors.wrap(styleKey, "read"),
+		colors.wrap(styleCardDim, " memory/product.md"),
+		colors.wrap(styleCardDim, " ·") + colors.wrap(styleCardDim, " 2,100") + colors.wrap(styleCardDim, " characters"),
+		colors.wrap(styleNormal, " ") + colors.wrap(styleKey, " r3 "),
+	} {
+		if !strings.Contains(drawn[0], wanted) {
+			t.Errorf("the pill %q does not hold %q", drawn[0], wanted)
+		}
+	}
+	if strings.Contains(drawn[0], backgroundOf(accentTone, depthTruecolor)) {
+		t.Errorf("the pill is still filled with the accent: %q", drawn[0])
+	}
+}
+
+// TestAPillsGlyphSaysWhetherTheCallIsInFlightDoneOrFailed reads the three
+// shapes a tool line takes and holds the glyph and colour each gets, and that
+// a record line, which the transcript draws through the same pill, reads as a
+// finished thing.
+func TestAPillsGlyphSaysWhetherTheCallIsInFlightDoneOrFailed(t *testing.T) {
+	screen := newThemedScreen(80, 24)
+	colors := screen.colors
+	for _, one := range []struct {
+		line   string
+		glyph  rune
+		drawn  style
+		saying string
+	}{
+		{"▸ shell npm test", runningGlyph, styleAccent, "a call with no result yet is in flight"},
+		{"shell npm test · r27 tests: all 51 passing", doneGlyph, styleDone, "a call with a result is done"},
+		{"browser_click e9 · refused", failedGlyph, styleBad, "a call the program refused has failed"},
+		{"shell rm -rf / · r4 the call was refused: not on the list", failedGlyph, styleBad, "a call that was refused has failed"},
+		{"shell npm test · r5 tests: 3 failed", failedGlyph, styleBad, "a call whose result says failed has failed"},
+		{"task 3 started · Build the game", doneGlyph, styleDone, "a record line is a finished thing"},
+	} {
+		drawn := screen.pillRows(one.line, false)[0]
+		if !strings.Contains(drawn, colors.wrap(one.drawn, string(one.glyph))) {
+			t.Errorf("the line %q is drawn %q, and %s", one.line, plainText(drawn), one.saying)
+		}
+	}
+}
+
+// TestAPillReadsTheToolTheArgumentTheIdAndTheCountApart holds the reading of
+// a tool line into its pieces, whatever order the program wrote them in.
+func TestAPillReadsTheToolTheArgumentTheIdAndTheCountApart(t *testing.T) {
+	for _, one := range []struct {
+		line string
+		want pillParts
+	}{
+		{"▸ shell npm test", pillParts{tool: "shell", argument: "npm test"}},
+		{"shell npm test · r27 tests: all passing", pillParts{tool: "shell", argument: "npm test", summary: "tests: all passing", id: "r27", done: true}},
+		{"read memory/product.md · 2,100 characters · r3", pillParts{tool: "read", argument: "memory/product.md", summary: "2,100 characters", id: "r3", done: true}},
+		{"web DigiByte · r2 web: 3 results × 3", pillParts{tool: "web", argument: "DigiByte", summary: "web: 3 results", id: "r2", count: "× 3", done: true}},
+		{"▸ web DigiByte × 13", pillParts{tool: "web", argument: "DigiByte", count: "× 13"}},
+		{"browser_click e9 · refused", pillParts{tool: "browser_click", argument: "e9", summary: "refused", done: true, failed: true}},
+		{"task", pillParts{tool: "task"}},
+	} {
+		if got := readPill(one.line); got != one.want {
+			t.Errorf("the line %q reads as %+v, want %+v", one.line, got, one.want)
+		}
+	}
+}
+
+// TestALongPillWrapsUnderItsOwnWordsAndKeepsItsBadgeOnTheLastRow holds the
+// wrapping: a long line breaks into rows indented under the first row's
+// words, every row on the card fill to the same edge, with the badge after the
+// last row and nothing wider than the transcript.
+func TestALongPillWrapsUnderItsOwnWordsAndKeepsItsBadgeOnTheLastRow(t *testing.T) {
+	screen, _ := newTestScreen(60, 24)
+	drawn := screen.pillRows("shell "+strings.Repeat("a long command ", 8)+"· r9 exit 0", false)
+	if len(drawn) < 2 {
+		t.Fatalf("a line far wider than the terminal drew %d rows, and it wraps", len(drawn))
+	}
+	widths := map[int]bool{}
+	for number, line := range drawn {
+		if displayWidth(line) > 60-marginColumns {
+			t.Errorf("row %d of the pill is %d columns wide on a 60-column terminal: %q", number+1, displayWidth(line), line)
+		}
+		if number > 0 && !strings.HasPrefix(line, strings.Repeat(" ", marginColumns+gutterColumns+2)) {
+			t.Errorf("row %d of the pill is %q, and a wrapped row sits under the first row's words", number+1, line)
+		}
+		if number < len(drawn)-1 {
+			widths[displayWidth(line)] = true
+		}
+	}
+	if len(widths) > 1 {
+		t.Errorf("the rows of the pill end at different columns %v, and the card has a straight edge", widths)
+	}
+	if !strings.HasSuffix(drawn[len(drawn)-1], " r9 ") {
+		t.Errorf("the last row %q does not end in the badge", drawn[len(drawn)-1])
 	}
 }
 
@@ -168,7 +335,7 @@ func TestTheHealthDotIsAFilledCircleWhileTheProgramIsAnswering(t *testing.T) {
 }
 
 func TestTheThemedAndThePlainFramesAreDrawnAsTheGoldenFilesHaveThem(t *testing.T) {
-	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+	for _, size := range [][2]int{{80, 24}, {120, 40}, {160, 50}} {
 		name := strconv.Itoa(size[0]) + "x" + strconv.Itoa(size[1])
 
 		plainBanner, _ := newTestScreen(size[0], size[1])

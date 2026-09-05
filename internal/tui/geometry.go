@@ -43,6 +43,12 @@ const (
 	barFullGlyph   = '▰'
 	barEmptyGlyph  = '▱'
 	repeatGlyph    = '×'
+	// cardBarGlyph is the bar down the left of a card, a left half block, so
+	// that its right half shows the card's own fill and the bar reads as part
+	// of the card.
+	cardBarGlyph = '▌'
+	// failedGlyph is the cross beside a call that was refused or failed.
+	failedGlyph = '✖'
 )
 
 // span is one run of text drawn in one style. A row is built out of spans, so

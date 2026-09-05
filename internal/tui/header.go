@@ -11,15 +11,24 @@ import (
 const healthFreshFor = 10 * time.Second
 
 // headerRow draws the one row at the top: the wordmark in its two colours, the
-// tagline, the model alias, the context measure, the task state, what this
+// tagline, the model alias, the context meter, the task and its state, how
+// long it has run and which round it is on, the cache share, what this
 // session has cost so far, and the health dot on the right. Everything after
-// the wordmark is dim except the task state, which is bold while a task runs.
-// The tagline is a nicety and the status is information, so on a terminal too
-// narrow for both the tagline goes first.
+// the wordmark is dim except the task, which is bold while it runs, and the
+// meters, which carry their own colours. On a terminal too narrow for all of
+// it the tagline goes first, and then the pieces go whole from the right,
+// least important last, until the row fits with the health mark and a gap in
+// front of it; a piece is never cut in half while there is a whole piece to
+// drop instead.
 func (screen *Screen) headerRow() string {
-	line := screen.headerLine(true)
+	pieces := screen.headerPieces()
+	line := screen.headerLine(true, pieces)
 	if !screen.headerFits(line) {
-		line = screen.headerLine(false)
+		line = screen.headerLine(false, pieces)
+	}
+	for !screen.headerFits(line) && len(pieces) > 0 {
+		pieces = pieces[:len(pieces)-1]
+		line = screen.headerLine(false, pieces)
 	}
 	if screen.width >= narrowWidth {
 		line.addRightPiece(screen.healthMark(), screen.width)
@@ -29,8 +38,8 @@ func (screen *Screen) headerRow() string {
 }
 
 // headerLine is the left-hand side of the header: the wordmark, the tagline
-// when it is asked for, and the pieces the program reported.
-func (screen *Screen) headerLine(withTagline bool) row {
+// when it is asked for, and the pieces given, each after a dim dot.
+func (screen *Screen) headerLine(withTagline bool, pieces [][]span) row {
 	line := row{}
 	line.blanks(marginColumns)
 	line.add(styleBold, wordmarkFirst)
@@ -38,9 +47,11 @@ func (screen *Screen) headerLine(withTagline bool) row {
 	if withTagline {
 		line.add(styleDim, " · "+taglineText)
 	}
-	for _, piece := range screen.headerParts() {
+	for _, piece := range pieces {
 		line.add(styleDim, " · ")
-		line.addSpan(piece)
+		for _, part := range piece {
+			line.addSpan(part)
+		}
 	}
 	return line
 }
@@ -56,67 +67,95 @@ func (screen *Screen) headerFits(line row) bool {
 	return line.width <= room
 }
 
-// headerParts are the pieces between the wordmark and the health dot. A link
-// that is not there is said in so many words first, and everything the program
+// headerPieces are the pieces between the wordmark and the health dot, most
+// important first, because the header drops them from the right. A link that
+// is not there is said in so many words first, and everything the program
 // last reported is kept behind it, because a person whose link dropped still
-// wants to know which model was running and what the session had cost.
-func (screen *Screen) headerParts() []span {
-	parts := []span{}
+// wants to know which model was running and what the session had cost. Each
+// piece is one or more spans drawn together, so that the meter is dropped
+// whole rather than cell by cell.
+func (screen *Screen) headerPieces() [][]span {
+	pieces := [][]span{}
 	if !screen.attached {
-		parts = append(parts, screen.linkPiece())
+		pieces = append(pieces, []span{screen.linkPiece()})
 	}
 	if screen.modelAlias != "" {
-		parts = append(parts, span{style: styleDim, text: screen.modelAlias})
+		pieces = append(pieces, []span{{style: styleDim, text: screen.modelAlias}})
 	}
-	parts = append(parts, screen.contextParts()...)
+	if meter := screen.contextParts(); len(meter) > 0 {
+		pieces = append(pieces, meter)
+	}
 	if task := screen.taskWords(); task != "" {
-		parts = append(parts, span{style: screen.taskStyle(), text: task})
+		pieces = append(pieces, []span{{style: screen.taskStyle(), text: task}})
+	}
+	if elapsed := screen.taskElapsedWords(); elapsed != "" {
+		pieces = append(pieces, []span{{style: styleDim, text: elapsed}})
+	}
+	if round := screen.roundWords(); round != "" {
+		pieces = append(pieces, []span{{style: styleDim, text: round}})
+	}
+	if cache := screen.cachePart(); cache.text != "" {
+		pieces = append(pieces, []span{cache})
 	}
 	if cost := screen.costWords(); cost != "" {
-		parts = append(parts, span{style: styleDim, text: cost})
+		pieces = append(pieces, []span{{style: styleDim, text: cost}})
+	}
+	return pieces
+}
+
+// headerParts are the header's pieces as one flat run of spans, which is what
+// a test reads them as.
+func (screen *Screen) headerParts() []span {
+	parts := []span{}
+	for _, piece := range screen.headerPieces() {
+		parts = append(parts, piece...)
 	}
 	return parts
 }
 
-// The two shares of the model's context at which the header stops being quiet
-// about how full it is, because a person who cannot see the context filling up
-// finds out when the model forgets something.
-const (
-	// contextShareWarn is the share at which the measure turns the accent.
-	contextShareWarn = 80
-	// contextShareTrouble is the share at which it turns bold white, the
-	// loudest thing the palette has.
-	contextShareTrouble = 95
-)
-
-// contextParts are the two pieces that say how much of the model's context the
-// last call used: the measure itself, always quiet, and the share, which is the
-// piece that turns the accent and then bold white as the context fills. They
-// are drawn only when the program sent both numbers, because a share of a
-// window nobody named is not a fact the screen has.
+// contextParts are the pieces that say how much of the model's context the
+// last call used: a dim label, the ten-cell meter, and the share beside it,
+// the filled cells and the share coloured green, amber or red as the context
+// fills and the empty cells muted. They are drawn only when the program sent
+// both numbers, because a share of a window nobody named is not a fact the
+// screen has.
 func (screen *Screen) contextParts() []span {
-	if screen.contextWindow <= 0 || screen.contextTokens <= 0 {
+	share := contextShare(screen.contextTokens, screen.contextWindow)
+	if share < 0 {
 		return nil
 	}
-	share := (screen.contextTokens*100 + screen.contextWindow/2) / screen.contextWindow
-	measure := "ctx " + tokenWords(screen.contextTokens) + " / " + tokenWords(screen.contextWindow)
-	return []span{
-		{style: styleDim, text: measure},
-		{style: shareStyle(share), text: strconv.Itoa(share) + "%"},
-	}
+	parts := []span{{style: styleDim, text: "ctx "}}
+	parts = append(parts, meterSpans(share, contextMeterCells, meterStyle(share))...)
+	return append(parts, span{style: meterStyle(share), text: " " + strconv.Itoa(share) + "%"})
 }
 
-// shareStyle draws a context with room to spare quietly, one that is filling up
-// in the accent, and one that is nearly full in bold white.
-func shareStyle(share int) style {
-	switch {
-	case share >= contextShareTrouble:
-		return styleBold
-	case share >= contextShareWarn:
-		return styleAccent
-	default:
-		return styleDim
+// cachePart says how much of the last call's input the provider reused, such
+// as "cache 92%", coloured by how warm the cache is, or nothing when the
+// share is unknown.
+func (screen *Screen) cachePart() span {
+	share := cacheShare(screen.cachedTokens, screen.contextTokens)
+	if share < 0 {
+		return span{}
 	}
+	return span{style: cacheStyle(share), text: "cache " + strconv.Itoa(share) + "%"}
+}
+
+// taskElapsedWords is how long the running task has run, such as "12m", or
+// nothing when the program has not said when it began.
+func (screen *Screen) taskElapsedWords() string {
+	if screen.taskStarted.IsZero() {
+		return ""
+	}
+	return elapsedWords(screen.now.Sub(screen.taskStarted))
+}
+
+// roundWords is the task's round the short way, such as "r27", or nothing
+// when the program has not said or the task has not made a call yet.
+func (screen *Screen) roundWords() string {
+	if screen.round == "" || screen.round == "0" {
+		return ""
+	}
+	return "r" + screen.round
 }
 
 // tokenWords writes a count of tokens the short way a status line reads it:
@@ -171,7 +210,7 @@ func taskNamed(id string) string {
 	return "task " + id
 }
 
-// taskStyle draws a running task in the accent colour and every other state
+// taskStyle draws a running task in bold white and every other state
 // plainly, so that the eye finds the one thing that is happening.
 func (screen *Screen) taskStyle() style {
 	if screen.taskRunning() {

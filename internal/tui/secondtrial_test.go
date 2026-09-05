@@ -49,31 +49,27 @@ func typeAndSend(screen *Screen, text string) {
 	pressKey(screen, tea.KeyEnter)
 }
 
-// boxesLeftOpen counts the rounded boxes on a frame that were drawn without
-// their other half: a lid with no box under it, or a box with no lid. Both are
-// what a person sees when a bubble is cut in two.
-func boxesLeftOpen(frame string) int {
-	open, unopened := 0, 0
-	for _, line := range strings.Split(plainText(frame), "\n") {
-		switch {
-		case strings.Contains(line, "╭"):
-			open++
-		case strings.Contains(line, "╰"):
-			if open == 0 {
-				unopened++
-				continue
-			}
-			open--
+// cardRowsOf are the rows of a frame that carry a card's bar, cut to the
+// transcript's columns, which is where the person's message and the agent's
+// replies are drawn.
+func cardRowsOf(screen *Screen) []string {
+	rows := []string{}
+	for _, line := range strings.Split(plainText(screen.frame()), "\n") {
+		beside := string([]rune(line)[:screen.transcriptColumns()])
+		if strings.Contains(beside, string(cardBarGlyph)) {
+			rows = append(rows, beside)
 		}
 	}
-	return open + unopened
+	return rows
 }
 
-func TestThePersonsBubbleIsDrawnWholeOrNotAtAll(t *testing.T) {
+func TestThePersonsCardIsDrawnWholeOrNotAtAll(t *testing.T) {
 	// The transcript fills up as the pills arrive, and every count from a
-	// transcript with room to spare to one long past full has to leave whole
-	// bubbles, because the row the view starts at falls in a different place in
-	// each of them.
+	// transcript with room to spare to one long past full has to leave the
+	// card whole or leave it out, because the row the view starts at falls in
+	// a different place in each of them. A flat card has no lid to catch, so
+	// the proof is that every row with the bar is a row of the message and
+	// that together they are the whole message.
 	for pills := 20; pills <= 34; pills++ {
 		screen := aTrialScreen()
 		typeAndSend(screen, theHaikuMessage)
@@ -81,13 +77,12 @@ func TestThePersonsBubbleIsDrawnWholeOrNotAtAll(t *testing.T) {
 			send(screen, aToolLine("▸ web DigiByte cryptocurrency blockchain overview · r"+strconv.Itoa(at)))
 		}
 
-		frame := screen.frame()
-		if open := boxesLeftOpen(frame); open != 0 {
-			t.Fatalf("with %d pills the frame draws %d box or boxes cut in two, and half a bubble is worse than none:\n%s",
-				pills, open, frame)
+		said := []string{}
+		for _, drawn := range cardRowsOf(screen) {
+			said = append(said, insideTheCard(drawn))
 		}
-		if strings.Contains(plainText(frame), string(personBarGlyph)) && !strings.Contains(plainText(frame), "haiku.txt") {
-			t.Fatalf("with %d pills the person's bubble is drawn with none of the person's words in it:\n%s", pills, frame)
+		if joined := strings.Join(said, " "); len(said) > 0 && joined != theHaikuMessage {
+			t.Fatalf("with %d pills the person's card holds %q, and it is drawn whole or not at all:\n%s", pills, joined, screen.frame())
 		}
 	}
 }
@@ -108,52 +103,49 @@ func TestAReplyTallerThanTheWholeTranscriptIsStillShown(t *testing.T) {
 	}
 }
 
-func TestThePersonsBubbleLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
+func TestThePersonsCardLeansRightAndIsOnlyAsWideAsItsWords(t *testing.T) {
 	screen := aTrialScreen()
 	typeAndSend(screen, theHaikuMessage)
 
-	lid, floor, said := "", "", []string{}
-	for _, line := range strings.Split(plainText(screen.frame()), "\n") {
-		beside := string([]rune(line)[:screen.transcriptColumns()])
-		switch {
-		case strings.Contains(beside, "╭"):
-			lid = beside
-		case strings.Contains(beside, string(personBarGlyph)):
-			said = append(said, insideTheBubble(beside))
-		case strings.Contains(beside, "╰"):
-			floor = beside
-		}
+	rows := cardRowsOf(screen)
+	if len(rows) == 0 {
+		t.Fatalf("the card is not on the frame:\n%s", screen.frame())
 	}
-	if lid == "" || len(said) == 0 || floor == "" {
-		t.Fatalf("the bubble is missing one of its three rows:\n%s", screen.frame())
+	said := []string{}
+	for _, drawn := range rows {
+		said = append(said, insideTheCard(drawn))
 	}
 	if joined := strings.Join(said, " "); joined != theHaikuMessage {
-		t.Errorf("the bubble holds %q, and it should hold the whole message", joined)
+		t.Errorf("the card holds %q, and it should hold the whole message", joined)
 	}
 
-	left := displayWidth(lid) - displayWidth(strings.TrimLeft(lid, " "))
-	right := screen.transcriptColumns() - displayWidth(strings.TrimRight(lid, " "))
+	// In plain text the card's blank of padding on the right is a blank like
+	// the margin beside it, so the words stop the padding and the margin
+	// short of the edge, and the card is its bar, its words and its padding.
+	first := rows[0]
+	left := displayWidth(first) - displayWidth(strings.TrimLeft(first, " "))
+	right := screen.transcriptColumns() - displayWidth(strings.TrimRight(first, " "))
 	if left <= right {
-		t.Errorf("the bubble has %d columns to its left and %d to its right, and the person's bubble leans against the right-hand edge",
+		t.Errorf("the card has %d columns to its left and %d to its right, and the person's card leans against the right-hand edge",
 			left, right)
 	}
-	if right != marginColumns {
-		t.Errorf("the bubble stops %d columns short of the transcript's right-hand edge, and the design leaves it the one blank margin", right)
+	if right != marginColumns+bubblePadding {
+		t.Errorf("the card's words stop %d columns short of the transcript's right-hand edge, and the design leaves the padding and the one blank margin", right)
 	}
 	widest := 0
 	for _, one := range said {
 		widest = max(widest, displayWidth(one))
 	}
-	if wide := displayWidth(strings.TrimRight(lid, " ")) - left; wide != widest+bubbleFrame {
-		t.Errorf("the bubble is %d columns wide for %d columns of words, and it is only as wide as its words", wide, widest)
+	if wide := displayWidth(strings.TrimRight(first, " ")) - left + bubblePadding; wide != widest+bubbleFrame {
+		t.Errorf("the card is %d columns wide for %d columns of words, and it is only as wide as its words", wide, widest)
 	}
 }
 
-// insideTheBubble is the words on one row of a person's bubble, with the bar, the
-// padding and the right-hand border taken off.
-func insideTheBubble(drawn string) string {
-	_, words, _ := strings.Cut(drawn, string(personBarGlyph))
-	return strings.TrimSpace(strings.TrimSuffix(strings.TrimRight(words, " "), "│"))
+// insideTheCard is the words on one row of a card, with the bar and the
+// padding taken off.
+func insideTheCard(drawn string) string {
+	_, words, _ := strings.Cut(drawn, string(cardBarGlyph))
+	return strings.TrimSpace(words)
 }
 
 func TestAToolLineThatArrivesAgainOnEveryHeartbeatDrawsOnePill(t *testing.T) {
@@ -206,11 +198,11 @@ func TestAToolLineThatAlreadyCarriesTheArrowIsNotGivenASecondOne(t *testing.T) {
 	send(screen, aToolLine("▸ read note.txt · r1 read: 1 line"))
 
 	drawn := plainText(strings.Join(screen.blockLines(screen.blocks[0]), "\n"))
-	if strings.Contains(drawn, string(toolArrowGlyph)+" "+string(toolArrowGlyph)) {
-		t.Errorf("the pill is drawn as %q, and the line it was sent already begins with the arrow", drawn)
+	if strings.Contains(drawn, string(toolArrowGlyph)) {
+		t.Errorf("the pill is drawn as %q, and the arrow the program wrote is taken off, since the state glyph stands in its place", drawn)
 	}
-	if !strings.Contains(drawn, string(toolArrowGlyph)+" read note.txt · r1 read: 1 line") {
-		t.Errorf("the pill is drawn as %q, and it should read as one arrow and the line", drawn)
+	if !strings.Contains(drawn, string(doneGlyph)+"  read note.txt · read: 1 line") || !strings.HasSuffix(drawn, " r1 ") {
+		t.Errorf("the pill is drawn as %q, and it should read as the glyph, the line, and the result id as a badge", drawn)
 	}
 }
 

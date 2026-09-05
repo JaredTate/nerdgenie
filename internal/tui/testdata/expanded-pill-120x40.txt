@@ -1,8 +1,12 @@
- NERDGENIE · opus · ctx 12.4k / 262k · 5% · task 17 running · 6.1k in 0.4k out · $0.04                        ● healthy 
+ NERDGENIE · opus · ctx ▰▱▱▱▱▱▱▱▱▱ 5% · task 17 running · 6.1k in 0.4k out · $0.04                            ● healthy 
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+                                                                                            │ MODEL ─────────────────── 
                                                                                             │ opus                      
-                                                                                            │ ctx 12.4k / 262k · 5%     
+                                                                                            │ ▰▱▱▱▱▱▱▱▱▱ 12.4k/262k 5%  
                                                                                             │ 6.1k in 0.4k out · $0.04  
+                                                                                            │                           
+                                                                                            │ NOW ───────────────────── 
+                                                                                            │ thinking                  
                                                                                             │                           
                                                                                             │ TASK 17 · Post a tweet a… 
                                                                                             │ ───────────────────────── 
@@ -16,13 +20,10 @@
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
+    ▌ Post a tweet about the DigiByte anniversary. Use the product notes and keep it under  │                           
+    ▌ 280 characters.                                                                       │                           
                                                                                             │                           
-   ╭──────────────────────────────────────────────────────────────────────────────────────╮ │                           
-   ▎ Post a tweet about the DigiByte anniversary. Use the product notes and keep it under │ │                           
-   ▎ 280 characters.                                                                      │ │                           
-   ╰──────────────────────────────────────────────────────────────────────────────────────╯ │                           
-                                                                                            │                           
-    [7m▸ [0mshell npm test · r27 tests: all passing                                               │                           
+   [7m✓[0m  shell npm test · tests: all passing   r27                                             │                           
      call: shell                                                                            │                           
      command: npm test                                                                      │                           
                                                                                             │                           
@@ -32,9 +33,8 @@
                                                                                             │                           
      ok  internal/tui 1.7s                                                                  │                           
      51 passing                                                                             │                           
- ╭────────────────────────────────────────────────╮                                         │                           
- │ The tests pass, so the draft is ready to post. │                                         │                           
- ╰────────────────────────────────────────────────╯                                         │                           
+ ▌ The tests pass, so the draft is ready to post.                                           │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
- thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 
+  ↵  send   ^J  newline   esc  stop   ^C  quit   tab  focus   ↵  expand   ^B  panel   ⇞⇟  scroll                        
+ thinking · 86 rounds, 51 min left ▰▰▰▰                                                                                 

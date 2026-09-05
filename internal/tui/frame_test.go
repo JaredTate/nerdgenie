@@ -18,10 +18,10 @@ func plainText(frame string) string {
 }
 
 // frameGlyphs are the characters that draw the frame rather than say anything:
-// the bars, the arrows, and the box rules. They change with the width, and the
-// words between them do not.
+// the bars, the pill's state glyphs, and the box rules. They change with the
+// width, and the words between them do not.
 var frameGlyphs = strings.NewReplacer(
-	string(personBarGlyph), " ", string(toolArrowGlyph), " ", string(ruleGlyph), " ",
+	string(cardBarGlyph), " ", string(doneGlyph), " ", string(runningGlyph), " ", string(failedGlyph), " ", string(ruleGlyph), " ",
 	"│", " ", "┌", " ", "┐", " ", "└", " ", "┘", " ")
 
 // transcriptWords is every word the transcript is drawing, with the frame's own
@@ -115,7 +115,7 @@ func TestNoColorRendersTheSameStructure(t *testing.T) {
 	if plainText(colored.frame()) != plain.frame() {
 		t.Error("taking the colour out of the coloured frame does not give the plain frame, so the two do not have the same structure")
 	}
-	for _, carrying := range []string{string(personBarGlyph), string(toolArrowGlyph), string(ruleGlyph), "┌", "└"} {
+	for _, carrying := range []string{string(cardBarGlyph), string(doneGlyph), string(ruleGlyph), "┌", "└"} {
 		if !strings.Contains(plain.frame(), carrying) {
 			t.Errorf("the plain frame has no %q, and without colour the glyphs are what carry the structure", carrying)
 		}

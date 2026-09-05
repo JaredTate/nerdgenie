@@ -2,8 +2,6 @@
  ────────────────────────────────────────────────────────────────────────────── 
                                                                                 
                                                                                 
-                                                                                
-                                                                                
             █   █ █████ ████  ████    █████ █████ █   █ █████ █████             
             ██  █ █     █   █ █   █   █     █     ██  █   █   █                 
             █ █ █ ████  ████  █   █   █  ██ ████  █ █ █   █   ████              
@@ -13,9 +11,11 @@
                          the open-source agent harness                          
                            your wish is its command.                            
                                                                                 
-                             type an ask, or /help                              
+                                  model local                                   
                                                                                 
-                                                                                
+      type a message   to ask for anything, in your own words                   
+      /help            to see every command                                     
+      /status          to see the model, the cost, the jobs and the health      
                                                                                 
                                                                                 
  ────────────────────────────────────────────────────────────────────────────── 

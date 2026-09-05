@@ -122,7 +122,7 @@ func TestTheWelcomeSaysTheModelAndThreeWaysToStart(t *testing.T) {
 	screen := newThemedScreen(80, 24)
 	colors := screen.colors
 	frame := screen.frame()
-	if strings.Contains(plainText(frame), "model") {
+	if strings.Contains(frame, colors.wrap(styleDim, modelLabel)) {
 		t.Errorf("the first frame names a model before the program has:\n%s", plainText(frame))
 	}
 	for _, one := range [][2]string{{askHintText, askHintWords}, {helpHintText, helpHintWords}, {statusHintText, statusHintWords}} {

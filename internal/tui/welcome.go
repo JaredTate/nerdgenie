@@ -37,8 +37,19 @@ const (
 	taglineText = "the open-source agent harness"
 	// wishText is the brand's promise, drawn under the tagline in dim italics.
 	wishText = "your wish is its command."
-	// askHintText is the one line that says how to start.
-	askHintText = "type an ask, or /help"
+	// modelLabel is the dim word in front of the model's alias on the welcome.
+	modelLabel = "model "
+	// askHintText, helpHintText and statusHintText are the three things to
+	// type, each drawn as a keycap, and the words after each say what typing
+	// it does.
+	askHintText     = "type a message"
+	askHintWords    = "to ask for anything, in your own words"
+	helpHintText    = "/help"
+	helpHintWords   = "to see every command"
+	statusHintText  = "/status"
+	statusHintWords = "to see the model, the cost, the jobs and the health"
+	// hintGap is the blanks between a keycap and its words on the welcome.
+	hintGap = 2
 )
 
 // blockLetters is the five-row block font, one shape per letter of the wordmark.
@@ -76,16 +87,23 @@ func blockWord(word string) [blockRows]string {
 
 // welcomeRows draws the welcome into the rows the transcript has while there is
 // nothing in it: the wordmark, the tagline under it, the wish in dim italics,
-// and one line saying how to start, centred in the area it is given. It is gone
-// the moment a conversation starts, because from then on the transcript is the
-// thing worth looking at.
+// the model in use once the program has named it, and three lines saying what
+// to type, centred in the area it is given. It is gone the moment a
+// conversation starts, because from then on the transcript is the thing worth
+// looking at.
 func (screen *Screen) welcomeRows(height int) []string {
 	middle := screen.wordmarkLines(height)
 	middle = append(middle, "")
 	middle = append(middle, screen.centredRow(styleDim, taglineText))
 	middle = append(middle, screen.centredRow(styleItalic, wishText))
+	if screen.modelAlias != "" {
+		line := row{}
+		line.add(styleDim, modelLabel)
+		line.add(styleAccent, screen.modelAlias)
+		middle = append(middle, "", screen.centred(line))
+	}
 	middle = append(middle, "")
-	middle = append(middle, screen.centredRow(styleDim, askHintText))
+	middle = append(middle, screen.howToStartRows()...)
 
 	if len(middle) > height {
 		middle = middle[len(middle)-height:]
@@ -96,6 +114,50 @@ func (screen *Screen) welcomeRows(height int) []string {
 		rows = append(rows, "")
 	}
 	return rows
+}
+
+// howToStartRows are the three things to type, each a keycap with its words
+// dim after it, the keycaps padded to one width so the words line up, and the
+// block as a whole centred in the transcript.
+func (screen *Screen) howToStartRows() []string {
+	hints := [][2]string{{askHintText, askHintWords}, {helpHintText, helpHintWords}, {statusHintText, statusHintWords}}
+	widest := 0
+	for _, hint := range hints {
+		widest = max(widest, displayWidth(hint[0]))
+	}
+	lines := []row{}
+	for _, hint := range hints {
+		line := row{}
+		line.add(styleKey, " "+hint[0]+" ")
+		line.padWith(styleKey, widest-displayWidth(hint[0]))
+		line.blanks(hintGap)
+		line.add(styleDim, hint[1])
+		lines = append(lines, line)
+	}
+	return screen.centredBlock(lines)
+}
+
+// centredBlock draws several rows with one indent, the one that centres the
+// widest of them, so that the rows read as a block whose columns line up
+// rather than as lines each centred on its own.
+func (screen *Screen) centredBlock(lines []row) []string {
+	room := screen.transcriptColumns() - 2*marginColumns
+	widest := 0
+	for at := range lines {
+		lines[at].keepWithin(room)
+		widest = max(widest, lines[at].width)
+	}
+	indent := max((screen.transcriptColumns()-widest)/2, marginColumns)
+	drawn := []string{}
+	for _, line := range lines {
+		full := row{}
+		full.blanks(indent)
+		for _, piece := range line.spans {
+			full.addSpan(piece)
+		}
+		drawn = append(drawn, full.render(screen.colors))
+	}
+	return drawn
 }
 
 // wordmarkLines is the wordmark as rows of the frame: five rows of block

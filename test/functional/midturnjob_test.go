@@ -162,7 +162,7 @@ func TestAMessageTypedWhileAJobsTaskRunsReachesThatTaskAsACorrection(t *testing.
 	if !strings.Contains(report.Text, "1 of 2 tasks done") {
 		t.Errorf("the first task reported:\n%s\nwant it finished with the person's words heard, and the job at 1 of 2 tasks done", report.Text)
 	}
-	screen.waitForReplySaying(t, "has run every task", 90*time.Second)
+	screen.waitForReplySaying(t, "is finished", 90*time.Second)
 
 	written := theReplyToTheCommand(t, screen, "tasks "+number)
 	if !strings.Contains(written, `C1 "`+theCorrectionTypedMidJob+`"`) {

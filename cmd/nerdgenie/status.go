@@ -35,7 +35,7 @@ func (running *agent) statusForAScreen() map[string]string {
 		number := running.loop.Running()
 		fields[contract.StatusFieldTask] = number
 		running.fillTheJob(fields)
-		running.fillThePlan(fields, number)
+		running.fillTheTask(fields, number)
 	}
 	running.fillTheWaitingJobs(fields)
 	if running.loopIsBusy() {
@@ -93,13 +93,13 @@ func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held
 	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
 }
 
-// fillThePlan writes the running task's plan, which is what the side panel draws
+// fillTheTask writes the running task's plan, which is what the side panel draws
 // under the task: one step per line, each marked done or not. It is sent empty
 // when no task is running or the record holds no plan, so that a screen which
 // drew a plan a moment ago clears it rather than keeping the last one. The
 // number is the loop's running task, which is empty until the task's first tool
 // call writes its record.
-func (running *agent) fillThePlan(fields map[string]string, number string) {
+func (running *agent) fillTheTask(fields map[string]string, number string) {
 	fields[contract.StatusFieldPlan] = ""
 	if number == "" || running.events == nil {
 		return

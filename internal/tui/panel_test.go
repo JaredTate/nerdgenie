@@ -9,13 +9,18 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
+// theTaskAsk is the ask of the running task in every status below, which is
+// the design's own example task.
+const theTaskAsk = "Post a tweet about the DigiByte anniversary. Use the product notes and keep it under 280 characters."
+
 // aStatusWithAPlan is what the program says about itself while a task is
-// running: everything the header already reads, and the plan and the job count
-// the side panel reads beside it.
+// running: everything the header already reads, and the task's ask, its plan
+// and the job count the side panel reads beside it.
 func aStatusWithAPlan() contract.SocketEnvelope {
 	return contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
 		contract.StatusFieldModel:         "opus",
 		contract.StatusFieldTask:          "17",
+		contract.StatusFieldTaskAsk:       theTaskAsk,
 		contract.StatusFieldTaskState:     "running",
 		contract.StatusFieldTokensIn:      "6.1k",
 		contract.StatusFieldTokensOut:     "0.4k",
@@ -329,9 +334,49 @@ func TestThePanelSaysNothingWhenNoJobsAreWaiting(t *testing.T) {
 	}
 }
 
+// TestThePanelHeadsAPlainTaskWithItsAsk holds that a plain task is headed the
+// way a job is, "TASK 17 · " and then the person's own words cut with an
+// ellipsis to the panel, so the panel never shows a bare number for work the
+// person named themselves.
+func TestThePanelHeadsAPlainTaskWithItsAsk(t *testing.T) {
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	send(screen, aStatusWithAPlan())
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	wanted := "TASK 17 · Post a tweet a" + string(ellipsisGlyph)
+	if !strings.Contains(panel, wanted) {
+		t.Errorf("the panel does not head the task %q:\n%s", wanted, panel)
+	}
+	for _, line := range checklistRowsOf(screen) {
+		if strings.HasPrefix(line, "TASK") && displayWidth(line) > panelTextColumns {
+			t.Errorf("the header %q runs to %d columns, and the panel's words stop at %d", line, displayWidth(line), panelTextColumns)
+		}
+	}
+}
+
+// TestThePanelHeadsAPlainTaskByItsNumberAloneWithoutAnAsk holds that a task
+// whose ask has not reached the screen, which is what an empty field says, is
+// still headed by its number, with no dot after it pointing at nothing.
+func TestThePanelHeadsAPlainTaskByItsNumberAloneWithoutAnAsk(t *testing.T) {
+	status := aStatusWithAPlan()
+	status.Fields[contract.StatusFieldTaskAsk] = ""
+	screen, _ := newTestScreen(120, 36)
+	screen.Update(linkMessage{up: true})
+	send(screen, status)
+
+	panel := strings.Join(panelColumnOf(screen), "\n")
+	if !strings.Contains(panel, "TASK 17") {
+		t.Errorf("the panel does not head the task by its number:\n%s", panel)
+	}
+	if strings.Contains(panel, "TASK 17 ·") {
+		t.Errorf("the panel draws a dot after the number with no ask behind it:\n%s", panel)
+	}
+}
+
 // TestThePanelDrawsNothingForEmptyPlanAndJobsFields holds the panel's promise to
-// say only what the program said: a plan and a jobs count sent empty leave the
-// frame exactly as it is without them.
+// say only what the program said: a plan, a task's ask and a jobs count sent
+// empty leave the frame exactly as it is without them.
 func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
 	base := map[string]string{
 		contract.StatusFieldModel:     "opus",
@@ -343,7 +388,7 @@ func TestThePanelDrawsNothingForEmptyPlanAndJobsFields(t *testing.T) {
 	without.Update(linkMessage{up: true})
 	send(without, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: base})
 
-	empty := map[string]string{contract.StatusFieldPlan: "", contract.StatusFieldJobs: ""}
+	empty := map[string]string{contract.StatusFieldPlan: "", contract.StatusFieldTaskAsk: "", contract.StatusFieldJobs: ""}
 	for name, value := range base {
 		empty[name] = value
 	}

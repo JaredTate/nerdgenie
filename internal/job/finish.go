@@ -168,6 +168,9 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 
 // closeIfEveryTaskIsDone finishes a job whose last task is done. A job with a
 // schedule is never finished, because its next tick will add another task. A job
+// closes only while it is running: one the person switched off, or one that
+// paused itself on failures, keeps the report and the mark on the task and
+// stays where the person left it, so that "/cron off" means off. A job
 // whose done list has nothing behind it stays running rather than closing, which
 // is the same rule a task record keeps: nothing says it is done until something
 // proves it.
@@ -180,7 +183,7 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 // whose answer is its own proof. Without that no job could ever close, because
 // nothing lets the model write a job's done list.
 func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held *heldJob) error {
-	if held.state.Schedule != nil {
+	if held.state.Schedule != nil || held.state.State != contract.JobRunning {
 		return nil
 	}
 	for _, task := range held.keeper.Record().Work.Tasks {

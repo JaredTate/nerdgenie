@@ -728,7 +728,11 @@ state stops being thinking. A start time the screen cannot read is not counted
 from at all. `StatusFieldRecordLine` is one line about the newest change to the
 record, drawn as a pill exactly as a tool call is; the program sends the same
 line on every heartbeat until something else changes, so only a line that differs
-from the last one shown gets a pill. And Escape now stops whatever is running —
+from the last one shown gets a pill. A line identical to one of the last few
+record pills — `recentRecordPills` of them, checked by `countTheRecordLineAgain`
+in `report.go` — is counted on that pill as `× N` the way a repeated call is,
+rather than drawn again, because a live run drew five pills saying `task 1 done`
+in a column when the same line came back after a different one. And Escape now stops whatever is running —
 the model thinking, a tool running, or a task working through — rather than only
 a busy state, because a plain reply is not a task and the person who wants a
 rambling answer to stop must not wait for it to finish.

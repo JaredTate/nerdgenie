@@ -38,9 +38,14 @@ type block struct {
 	text string
 	// shown is the card, when the kind is a card.
 	shown card
-	// repeats is how many times in a row the same call was made, when the kind
-	// is a tool line. Zero and one both mean once.
+	// repeats is how many times in a row the same call was made, or how many
+	// times the same record line came back, when the kind is a tool line. Zero
+	// and one both mean once.
 	repeats int
+	// fromRecord says the pill holds a record line, one line about the newest
+	// change to the record, rather than a tool call. It is drawn the same, and
+	// it is what a record line that comes back is checked against.
+	fromRecord bool
 }
 
 // remember puts one block on the end of the transcript and drops the oldest when

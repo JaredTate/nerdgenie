@@ -128,3 +128,12 @@ func TestADateWrittenInTheOtherTwoShapesIsRead(t *testing.T) {
 		t.Errorf("the job holds %d tasks, want the first task and the two that were added", len(tasks))
 	}
 }
+
+// PutDown is here so that manyJobs keeps to the job contract, which gained it
+// after this double was written; the job tool never calls it.
+func (manyJobs) PutDown(context.Context, contract.PutDownMark) error { return nil }
+
+// PutDownTask is here for the same reason; nothing is ever put down here.
+func (manyJobs) PutDownTask(context.Context) (contract.PutDownMark, bool, error) {
+	return contract.PutDownMark{}, false, nil
+}

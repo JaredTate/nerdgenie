@@ -30,7 +30,7 @@ type harness struct {
 	rulings    *testkit.FakePermission
 	memory     *testkit.FakeMemory
 	skills     *testkit.FakeSkill
-	jobs       *testkit.FakeJob
+	jobs       *fakeJobThatResumes
 	sandbox    *testkit.FakeSandbox
 	builder    loop.ContextBuilder
 	deltaGuard sync.Mutex
@@ -55,7 +55,7 @@ func newHarness(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *har
 		skills:  testkit.NewFakeSkill(),
 		sandbox: testkit.NewFakeSandbox(),
 	}
-	built.jobs = testkit.NewFakeJob(built.clock)
+	built.jobs = &fakeJobThatResumes{FakeJob: testkit.NewFakeJob(built.clock)}
 	built.tools = testkit.NewFakeToolRegistry(tools...)
 	built.builder = theWorkingContext(t)
 

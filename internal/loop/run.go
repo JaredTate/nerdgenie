@@ -27,6 +27,10 @@ const (
 	// MaxDoneCheckNudges is how many times the model is sent back to work for a
 	// done list with nothing behind it before the task is given up on.
 	MaxDoneCheckNudges = 3
+	// MaxJobsMadeNoted is how many of the jobs one task makes are written down
+	// so that its stopped report can name the one now running. One is the rule
+	// and a handful is plenty; past that the oldest is forgotten.
+	MaxJobsMadeNoted = 8
 )
 
 // run is one task in flight, with everything that is true only while it runs.
@@ -58,6 +62,7 @@ type run struct {
 	stopNow          string
 	pinned           []workingcontext.Pin
 	provedByTheReply []string
+	jobsMade         []string
 	number           string
 	perTask          contract.ToolRegistry
 }

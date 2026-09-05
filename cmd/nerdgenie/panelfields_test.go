@@ -263,3 +263,27 @@ func TestFailureLinesNameEachFailureWithItsCause(t *testing.T) {
 		t.Errorf("no failures wrote %q, want nothing", got)
 	}
 }
+
+// TestAScheduledJobIsNotCountedAsWaiting holds the count to what a person
+// means by waiting work: a job made by the clock, such as the nightly
+// self-check, is always in the running state and always has a next run, and
+// the live screen said "1 job waiting" through a whole day's work because of
+// it.
+func TestAScheduledJobIsNotCountedAsWaiting(t *testing.T) {
+	running := anAgentWithASocket(t)
+	defer func() { _ = running.close() }()
+
+	ctx := context.Background()
+	if _, err := running.jobs.Create(ctx, contract.NewJob{Ask: "check yourself every night", TaskTemplate: "run the nightly self-check", Schedule: &contract.Schedule{Kind: contract.ScheduleCron, Cron: "0 4 * * *"}}); err != nil {
+		t.Fatalf("cannot create a scheduled job: %v", err)
+	}
+	if _, err := running.jobs.Create(ctx, contract.NewJob{Ask: "water the plants"}); err != nil {
+		t.Fatalf("cannot create a job to wait: %v", err)
+	}
+
+	fields := running.statusForAScreen()
+
+	if got := fields[contract.StatusFieldJobs]; got != "1" {
+		t.Errorf("the status counts %q waiting jobs, want 1: the scheduled job is the clock's, not waiting work", got)
+	}
+}

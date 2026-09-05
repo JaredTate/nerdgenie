@@ -81,7 +81,7 @@ func (screen *Screen) readToolLine(fields map[string]string) {
 	}
 	screen.flushDeltas()
 	if !screen.replacePill(screen.lastTool, line) && !screen.countTheCallAgain(line) {
-		screen.remember(block{kind: blockTool, text: line})
+		screen.remember(block{kind: blockTool, text: line, task: screen.taskID})
 	}
 	screen.lastTool = line
 }
@@ -193,7 +193,7 @@ func (screen *Screen) readRecordLine(fields map[string]string) {
 	screen.lastRecord = line
 	screen.flushDeltas()
 	if !screen.countTheRecordLineAgain(line) {
-		screen.remember(block{kind: blockTool, text: line, fromRecord: true})
+		screen.remember(block{kind: blockTool, text: line, fromRecord: true, task: screen.taskID})
 	}
 }
 

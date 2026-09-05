@@ -168,7 +168,10 @@ func tokenWords(count int) string {
 	if count < 100000 {
 		return strings.TrimSuffix(strconv.FormatFloat(float64(count)/1000, 'f', 1, 64), ".0") + "k"
 	}
-	return strconv.Itoa((count+500)/1000) + "k"
+	if count < 1000000 {
+		return strconv.Itoa((count+500)/1000) + "k"
+	}
+	return strings.TrimSuffix(strconv.FormatFloat(float64(count)/1000000, 'f', 1, 64), ".0") + "M"
 }
 
 // linkPiece is what the header says about a link that is not there. A screen
@@ -224,15 +227,39 @@ func (screen *Screen) taskStyle() style {
 func (screen *Screen) costWords() string {
 	words := ""
 	if screen.tokensIn != "" || screen.tokensOut != "" {
-		words = screen.tokensIn + " in " + screen.tokensOut + " out"
+		words = countWords(screen.tokensIn) + " in " + countWords(screen.tokensOut) + " out"
 	}
-	if screen.money == "" {
+	money := moneyWords(screen.money)
+	if money == "" {
 		return words
 	}
 	if words == "" {
-		return screen.money
+		return money
 	}
-	return words + " · " + screen.money
+	return words + " · " + money
+}
+
+// countWords draws a count the program sent as a bare number the way the
+// context meter draws one, "5.9M" or "121k", and leaves a value already
+// written for people, such as "6.1k", as it is.
+func countWords(raw string) string {
+	count, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil {
+		return raw
+	}
+	return tokenWords(count)
+}
+
+// moneyWords draws a cost the program sent as a bare number with a dollar
+// sign and two decimals, "$7.28", and leaves a value already written for
+// people as it is. Nothing is nothing.
+func moneyWords(raw string) string {
+	raw = strings.TrimSpace(raw)
+	amount, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return raw
+	}
+	return "$" + strconv.FormatFloat(amount, 'f', 2, 64)
 }
 
 // healthMark is the dot on the right of the header and the word beside it:

@@ -201,7 +201,7 @@ func TestAToolLineThatAlreadyCarriesTheArrowIsNotGivenASecondOne(t *testing.T) {
 	if strings.Contains(drawn, string(toolArrowGlyph)) {
 		t.Errorf("the pill is drawn as %q, and the arrow the program wrote is taken off, since the state glyph stands in its place", drawn)
 	}
-	if !strings.Contains(drawn, string(doneGlyph)+"  read note.txt · read: 1 line") || !strings.HasSuffix(drawn, " r1 ") {
+	if !strings.Contains(drawn, string(doneGlyph)+"  read note.txt · 1 line") || !strings.HasSuffix(drawn, " r1 ") {
 		t.Errorf("the pill is drawn as %q, and it should read as the glyph, the line, and the result id as a badge", drawn)
 	}
 }

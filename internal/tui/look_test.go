@@ -225,7 +225,7 @@ func TestAPillReadsTheToolTheArgumentTheIdAndTheCountApart(t *testing.T) {
 		{"▸ shell npm test", pillParts{tool: "shell", argument: "npm test"}},
 		{"shell npm test · r27 tests: all passing", pillParts{tool: "shell", argument: "npm test", summary: "tests: all passing", id: "r27", done: true}},
 		{"read memory/product.md · 2,100 characters · r3", pillParts{tool: "read", argument: "memory/product.md", summary: "2,100 characters", id: "r3", done: true}},
-		{"web DigiByte · r2 web: 3 results × 3", pillParts{tool: "web", argument: "DigiByte", summary: "web: 3 results", id: "r2", count: "× 3", done: true}},
+		{"web DigiByte · r2 web: 3 results × 3", pillParts{tool: "web", argument: "DigiByte", summary: "3 results", id: "r2", count: "× 3", done: true}},
 		{"▸ web DigiByte × 13", pillParts{tool: "web", argument: "DigiByte", count: "× 13"}},
 		{"browser_click e9 · refused", pillParts{tool: "browser_click", argument: "e9", summary: "refused", done: true, failed: true}},
 		{"task", pillParts{tool: "task"}},

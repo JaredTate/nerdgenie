@@ -94,26 +94,68 @@ func (screen *Screen) statePanelLines() []row {
 		if fact == "" {
 			continue
 		}
-		if len(lines) == maxSituationLines {
+		if len(lines) >= maxSituationLines {
 			break
 		}
-		lines = append(lines, cutRowWithEllipsis(factRow(fact), width))
+		lines = append(lines, factRows(fact, width)...)
 	}
 	return lines
 }
 
-// factRow draws one fact of the situation: its label dim and the rest in the
-// colour the fact earns, or the whole line plain when it has no label.
-func factRow(fact string) row {
-	line := row{}
+// shortLabels are the record's own labels for the facts of the situation and
+// the short words the panel draws them as, because "files changed in this
+// task:" alone was the whole of a twenty-eight column row and the files were
+// never seen.
+var shortLabels = map[string]string{
+	"files changed in this task": "files",
+	"last command":               "ran",
+	"where the work stands":      "at",
+	"browser":                    "page",
+}
+
+// maxFactRows is how many rows one fact of the situation may take before it
+// ends in an ellipsis, so that a long file list is read and a whole essay is
+// not.
+const maxFactRows = 2
+
+// factRows draws one fact of the situation on up to maxFactRows rows: its
+// label shortened to the panel's word for it, and the rest wrapped after it.
+func factRows(fact string, width int) []row {
 	label, rest, labelled := strings.Cut(fact, ":")
 	if !labelled {
-		line.add(styleNormal, fact)
-		return line
+		return wrapFact("", fact, styleNormal, width)
 	}
-	line.add(styleDim, label)
-	line.add(factStyle(label, rest), ":"+rest)
-	return line
+	label = strings.TrimSpace(label)
+	if short, known := shortLabels[label]; known {
+		label = short
+	}
+	return wrapFact(label, strings.TrimSpace(rest), factStyle(label, rest), width)
+}
+
+// wrapFact wraps a fact's words to the width, at most maxFactRows rows, with
+// the label dim at the front of the first row and the last row cut with an
+// ellipsis when there was more.
+func wrapFact(label string, rest string, chosen style, width int) []row {
+	text := rest
+	if label != "" {
+		text = label + ": " + rest
+	}
+	wrapped := wrapText(text, max(width, 1))
+	if len(wrapped) > maxFactRows {
+		wrapped = wrapped[:maxFactRows]
+		wrapped[maxFactRows-1] = cutWithEllipsis(wrapped[maxFactRows-1]+" …", width)
+	}
+	lines := []row{}
+	for at, words := range wrapped {
+		line := row{}
+		if at == 0 && label != "" && strings.HasPrefix(words, label+":") {
+			line.add(styleDim, label+":")
+			words = strings.TrimPrefix(words, label+":")
+		}
+		line.add(chosen, words)
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 // factStyle is the colour of a fact's words: red when the tests line says

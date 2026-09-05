@@ -46,6 +46,10 @@ type block struct {
 	// change to the record, rather than a tool call. It is drawn the same, and
 	// it is what a record line that comes back is checked against.
 	fromRecord bool
+	// task is the number of the task that was running when a tool pill was
+	// drawn, so that its result can still be asked for by name after the task
+	// has ended and the status no longer names one.
+	task string
 }
 
 // remember puts one block on the end of the transcript and drops the oldest when

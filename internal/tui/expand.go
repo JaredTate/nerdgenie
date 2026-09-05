@@ -57,7 +57,7 @@ func (screen *Screen) togglePillAt(at int) {
 	if screen.expanded[id] {
 		delete(screen.expanded, id)
 	} else {
-		screen.openPill(id)
+		screen.openPill(id, screen.blocks[at].task)
 	}
 	if screen.scrolledUp() {
 		screen.scrollBack = max(screen.scrollBack+len(screen.blockLines(screen.blocks[at]))-before, 0)
@@ -67,7 +67,7 @@ func (screen *Screen) togglePillAt(at int) {
 // openPill marks one pill open and asks for its text when the screen does not
 // have it. The open pills are capped like the texts, letting the oldest on the
 // transcript go, so that the map cannot grow past what a person could open.
-func (screen *Screen) openPill(id string) {
+func (screen *Screen) openPill(id string, task string) {
 	if screen.expanded == nil {
 		screen.expanded = map[string]bool{}
 	}
@@ -75,22 +75,26 @@ func (screen *Screen) openPill(id string) {
 		delete(screen.expanded, screen.oldestPillID(func(held string) bool { return screen.expanded[held] }))
 	}
 	screen.expanded[id] = true
-	screen.askToShow(id)
+	screen.askToShow(id, task)
 }
 
-// askToShow sends one show for a result the screen has no text for, and
-// writes an empty text under its id at once, which is what stops the same id
-// being asked for twice while the answer is on its way. A show that cannot be
-// sent folds the pill back up and says why in an error card, because a pill
-// that said fetching for ever would be a lie.
-func (screen *Screen) askToShow(id string) {
+// askToShow sends one show for a result the screen has no text for, under
+// the task its pill was drawn in, or the running task when the pill remembers
+// none, and writes an empty text under its id at once, which is what stops
+// the same id being asked for twice while the answer is on its way. A show
+// that cannot be sent folds the pill back up and says why in an error card,
+// because a pill that said fetching for ever would be a lie.
+func (screen *Screen) askToShow(id string, task string) {
 	if _, asked := screen.shown[id]; asked {
 		return
 	}
 	screen.rememberShown(id, "")
 	fields := map[string]string{showFieldID: id}
-	if screen.taskID != "" {
-		fields[showFieldTask] = screen.taskID
+	if task == "" {
+		task = screen.taskID
+	}
+	if task != "" {
+		fields[showFieldTask] = task
 	}
 	if err := screen.link.Send(contract.SocketEnvelope{Type: contract.SocketShow, Fields: fields}); err != nil {
 		delete(screen.shown, id)

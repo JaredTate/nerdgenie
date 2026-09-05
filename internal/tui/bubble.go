@@ -158,6 +158,11 @@ func readPill(text string) pillParts {
 		return read
 	}
 	read.summary, read.id = withoutResultID(rest)
+	// The program's summary begins with the tool's name and a colon, which the
+	// pill already says at its front.
+	if rest, said := strings.CutPrefix(read.summary, read.tool+":"); said {
+		read.summary = strings.TrimSpace(rest)
+	}
 	lowered := strings.ToLower(rest)
 	for _, word := range failureWords {
 		if strings.Contains(lowered, word) {

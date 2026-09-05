@@ -212,37 +212,41 @@ func TestTheNowGroupSaysWhatIsHappening(t *testing.T) {
 	}
 }
 
-// TestTheStateGroupIsOneLinePerFactWithTheTestsLineColoured holds the record's
-// situation on the panel: one line per fact, the label before the colon dim,
-// the tests line green when it says all and red when it says failing, and a
-// long fact cut with an ellipsis rather than wrapped.
-func TestTheStateGroupIsOneLinePerFactWithTheTestsLineColoured(t *testing.T) {
+// TestTheStateGroupShowsEachFactUnderAShortLabelWithTheTestsLineColoured
+// holds the record's situation on the panel: each fact under the panel's
+// short word for its label, dim, the tests line green when it says all and
+// red when it says failing, and a fact longer than the panel run onto a
+// second row rather than cut, because "files changed in this task:" alone was
+// the whole of a twenty-eight column row and the files were never seen.
+func TestTheStateGroupShowsEachFactUnderAShortLabelWithTheTestsLineColoured(t *testing.T) {
 	// At a hundred and sixty columns the panel's words are fifty wide, which
-	// holds the first two facts whole and cuts the third.
+	// holds the first two facts whole and runs the third onto a second row.
 	screen := newThemedScreen(160, 60)
 	screen.Update(linkMessage{up: true})
 	send(screen, aStatusWithTheStateBlock())
 	rows := panelRowsOf(screen)
 	start := rowStarting(rows, "STATE")
-	for at, wanted := range []string{"STATE", "tests: all 51 passing", "last command: npm test, exit 0", "files changed in this task: game.js, index.html"} {
+	for at, wanted := range []string{"STATE", "tests: all 51 passing", "ran: npm test, exit 0", "files: game.js, index.html"} {
 		if start < 0 || start+at >= len(rows) || !strings.HasPrefix(rows[start+at], wanted) {
 			t.Errorf("row %d of the state group is %q, want it to begin %q:\n%s", at+1, rows[start+at], wanted, strings.Join(rows, "\n"))
 		}
 	}
-	if line := rows[start+3]; !strings.HasSuffix(line, string(ellipsisGlyph)) || displayWidth(line) > screen.panelTextWidth() {
-		t.Errorf("the long fact is drawn %q, and it is cut to the panel with an ellipsis", line)
+	for at := start + 1; at < len(rows) && rows[at] != ""; at++ {
+		if strings.HasSuffix(rows[at], string(ellipsisGlyph)) || displayWidth(rows[at]) > screen.panelTextWidth() {
+			t.Errorf("row %q of the state group is cut or too wide, and a long fact runs onto a second row instead", rows[at])
+		}
 	}
 	colors := screen.colors
 	frame := screen.frame()
-	if !strings.Contains(frame, colors.wrap(styleDim, "tests")+colors.wrap(styleDone, ": all 51 passing")) {
+	if !strings.Contains(frame, colors.wrap(styleDim, "tests:")+colors.wrap(styleDone, " all 51 passing")) {
 		t.Error("the tests line is not a dim label and green words")
 	}
-	if !strings.Contains(frame, colors.wrap(styleDim, "last command")+colors.wrap(styleNormal, ": npm test, exit 0")) {
+	if !strings.Contains(frame, colors.wrap(styleDim, "ran:")+colors.wrap(styleNormal, " npm test, exit 0")) {
 		t.Error("the last command line is not a dim label and plain words")
 	}
 
 	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldSituation: "tests: 2 failing of 51"}})
-	if !strings.Contains(screen.frame(), colors.wrap(styleDim, "tests")+colors.wrap(styleBad, ": 2 failing of 51")) {
+	if !strings.Contains(screen.frame(), colors.wrap(styleDim, "tests:")+colors.wrap(styleBad, " 2 failing of 51")) {
 		t.Error("a tests line that says failing is not red")
 	}
 }

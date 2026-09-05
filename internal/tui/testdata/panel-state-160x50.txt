@@ -21,8 +21,8 @@
                                                                                                            │                                                    
                                                                                                            │ STATE ──────────────────────────────────────────── 
                                                                                                            │ tests: all 51 passing                              
-                                                                                                           │ last command: npm test, exit 0                     
-                                                                                                           │ files changed in this task: game.js, index.html a… 
+                                                                                                           │ ran: npm test, exit 0                              
+                                                                                                           │ files: game.js, index.html and 3 more              
                                                                                                            │                                                    
                                                                                                            │ FAILURES ───────────────────────────────────────── 
                                                                                                            │ 2 failures                                         

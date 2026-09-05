@@ -171,9 +171,10 @@ func planLines(plan []contract.PlanStep) string {
 
 // fillTheWaitingJobs writes how many jobs are waiting, which is what the side
 // panel draws when no job's task is running. A waiting job is one still working
-// through its tasks, so the count is of the jobs the store holds at running; it
-// is sent empty when none are, so a screen draws nothing rather than a zero. A
-// job store that cannot be listed costs the count and nothing more.
+// through its tasks, so the count is of the jobs the store holds at running
+// that no clock makes the tasks of; it is sent empty when none are, so a screen
+// draws nothing rather than a zero. A job store that cannot be listed costs
+// the count and nothing more.
 func (running *agent) fillTheWaitingJobs(fields map[string]string) {
 	fields[contract.StatusFieldJobs] = ""
 	if running.jobs == nil {
@@ -185,7 +186,11 @@ func (running *agent) fillTheWaitingJobs(fields map[string]string) {
 	}
 	waiting := 0
 	for _, summary := range listed {
-		if summary.State == contract.JobRunning {
+		// A job made by the clock is always running and always has a next
+		// run, and it is the clock's work rather than work waiting for the
+		// loop: the nightly self-check said "1 job waiting" through a whole
+		// day.
+		if summary.State == contract.JobRunning && summary.NextRun.IsZero() {
 			waiting++
 		}
 	}

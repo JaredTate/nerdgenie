@@ -1104,11 +1104,14 @@ internal/tool/foldercap_test.go
 internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go
 internal/tool/job/bounds_test.go
+internal/tool/job/brokenstore_test.go
 internal/tool/job/create_test.go
 internal/tool/job/doc.go
 internal/tool/job/fuzz_test.go
+internal/tool/job/insidejob_test.go
 internal/tool/job/job.go
 internal/tool/job/job_test.go
+internal/tool/job/onelist_test.go
 internal/tool/job/read.go
 internal/tool/job/testdata/the_jobs.txt
 internal/tool/loadonce_test.go

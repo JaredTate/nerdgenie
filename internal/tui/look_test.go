@@ -335,7 +335,7 @@ func TestTheHealthDotIsAFilledCircleWhileTheProgramIsAnswering(t *testing.T) {
 }
 
 func TestTheThemedAndThePlainFramesAreDrawnAsTheGoldenFilesHaveThem(t *testing.T) {
-	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+	for _, size := range [][2]int{{80, 24}, {120, 40}, {160, 50}} {
 		name := strconv.Itoa(size[0]) + "x" + strconv.Itoa(size[1])
 
 		plainBanner, _ := newTestScreen(size[0], size[1])

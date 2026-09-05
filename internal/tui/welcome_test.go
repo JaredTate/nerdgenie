@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestTheWelcomeBlockIsDrawnAtSixtyByFourteenAndNotBelowIt pins the smallest
@@ -108,6 +110,48 @@ func TestTheWelcomeSaysTheTaglineTheWishAndHowToStart(t *testing.T) {
 	}
 	if strings.Contains(plainText(frame), "connecting") && strings.Count(plainText(frame), "connecting") != 2 {
 		t.Errorf("the state is written somewhere other than the header and the strip:\n%s", plainText(frame))
+	}
+}
+
+// TestTheWelcomeSaysTheModelAndThreeWaysToStart holds the second look's
+// first frame: under the tagline and the wish, the model in use once the
+// program has named it, and three lines of what to type, a message, /help
+// and /status, each as a keycap with its words dim after it, the keycaps in
+// one column so the words line up.
+func TestTheWelcomeSaysTheModelAndThreeWaysToStart(t *testing.T) {
+	screen := newThemedScreen(80, 24)
+	colors := screen.colors
+	frame := screen.frame()
+	if strings.Contains(plainText(frame), "model") {
+		t.Errorf("the first frame names a model before the program has:\n%s", plainText(frame))
+	}
+	for _, one := range [][2]string{{askHintText, askHintWords}, {helpHintText, helpHintWords}, {statusHintText, statusHintWords}} {
+		if !strings.Contains(frame, colors.wrap(styleKey, " "+one[0]+" ")) || !strings.Contains(plainText(frame), one[1]) {
+			t.Errorf("the welcome does not draw %q as a keycap with %q after it:\n%s", one[0], one[1], plainText(frame))
+		}
+	}
+	starts := map[int]bool{}
+	for _, line := range strings.Split(plainText(frame), "\n") {
+		for _, words := range []string{askHintWords, helpHintWords, statusHintWords} {
+			if at := strings.Index(line, words); at >= 0 {
+				starts[at] = true
+			}
+		}
+	}
+	if len(starts) != 1 {
+		t.Errorf("the three lines of what to type start their words at the columns %v, and they line up", starts)
+	}
+
+	screen.Update(linkMessage{up: true})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{contract.StatusFieldModel: "opus"}})
+	frame = screen.frame()
+	if !strings.Contains(frame, colors.wrap(styleDim, "model ")+colors.wrap(styleAccent, "opus")) {
+		t.Errorf("the welcome does not name the model once the program has:\n%s", plainText(frame))
+	}
+	for number, line := range strings.Split(plainText(frame), "\n") {
+		if displayWidth(line) > 80 {
+			t.Errorf("row %d of the welcome is %d columns wide", number+1, displayWidth(line))
+		}
 	}
 }
 

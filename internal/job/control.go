@@ -98,7 +98,10 @@ func (jobs *Jobs) Resume(ctx context.Context, jobID string) error {
 // taken off the next unfinished task rather than merely ignored once, because a
 // run-now that only changed where the job stood would leave the task waiting for
 // the very date the user has just overridden. A job with a schedule ticks at
-// once as well.
+// once as well. A job put down on a task runs that task first, with its claim
+// let go and the mark forgotten, and every other task keeps its date: the
+// task the person stopped is the one they mean, and a run-now that took the
+// date off the first unfinished task ran a task dated next week ahead of it.
 func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -106,6 +109,7 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	if err != nil {
 		return err
 	}
+	next := theTaskRunNowStarts(held)
 	if err := jobs.startWorking(ctx, jobID, held); err != nil {
 		return err
 	}
@@ -113,12 +117,11 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 	if changed.Schedule != nil {
 		changed.NextRun = jobs.clock.Now()
 	}
-	next := ""
 	written := []record.NewJobTask{}
 	for _, task := range held.keeper.Record().Work.Tasks {
 		due := task.DueAt
-		if !task.Done && next == "" {
-			next, due = task.TaskID, ""
+		if task.TaskID == next {
+			due = ""
 		}
 		written = append(written, record.NewJobTask{TaskID: task.TaskID, Text: task.Text, DueAt: due})
 	}
@@ -132,6 +135,22 @@ func (jobs *Jobs) RunNow(ctx context.Context, jobID string) error {
 		return err
 	}
 	return jobs.writeProgress(ctx, jobID, held)
+}
+
+// theTaskRunNowStarts is the task a run-now starts without waiting: the task
+// the job is put down on when it is put down on one, and the first unfinished
+// task otherwise, or nothing when every task is done. The caller holds the
+// lock.
+func theTaskRunNowStarts(held *heldJob) string {
+	if held.state.PutDown != nil {
+		return held.state.PutDown.Task.TaskID
+	}
+	for _, task := range held.keeper.Record().Work.Tasks {
+		if !task.Done {
+			return task.TaskID
+		}
+	}
+	return ""
 }
 
 // SetMonitor says whether a job is watching for a change. A job that is watching

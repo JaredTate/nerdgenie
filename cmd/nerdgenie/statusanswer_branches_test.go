@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
+	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
@@ -52,5 +54,31 @@ func TestALongAskIsCutDownForTheStatus(t *testing.T) {
 	}
 	if kept := shortAsk("a short ask"); kept != "a short ask" {
 		t.Errorf("a short ask was changed to %q, and one inside the cap comes back whole", kept)
+	}
+}
+
+func TestLoadingATaskKeeperThatIsNotThereIsFalse(t *testing.T) {
+	if _, ok := loadTaskKeeper(context.Background(), testkit.NewFakeStore(), "404"); ok {
+		t.Error("a task number nothing was written under loaded a keeper")
+	}
+}
+
+// aLogWithNoTasks is a log whose reads by task all fail, the way a damaged
+// file's would, so that a start time has no events to be read from.
+type aLogWithNoTasks struct {
+	contract.Store
+}
+
+// ByTask always fails.
+func (aLogWithNoTasks) ByTask(context.Context, string) ([]contract.Event, error) {
+	return nil, errors.New("the log cannot be read, so check the database file")
+}
+
+func TestTheTaskStartIsEmptyWhenTheLogCannotBeRead(t *testing.T) {
+	if got := taskStartedAt(context.Background(), aLogWithNoTasks{Store: testkit.NewFakeStore()}, "7"); got != "" {
+		t.Errorf("the start of a task in a log that cannot be read is %q, want empty", got)
+	}
+	if got := taskStartedAt(context.Background(), testkit.NewFakeStore(), "7"); got != "" {
+		t.Errorf("the start of a task with no events is %q, want empty", got)
 	}
 }

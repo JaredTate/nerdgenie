@@ -58,6 +58,21 @@ func newSocketHarnessWith(t *testing.T, answerDeadline time.Duration) *socketHar
 // nothing to say about itself, which is what every other harness wants.
 func newSocketHarnessReporting(t *testing.T, answerDeadline time.Duration, status func() map[string]string) *socketHarness {
 	t.Helper()
+	return buildSocketHarness(t, answerDeadline, status, nil)
+}
+
+// newSocketHarnessAnswering is the same harness over a show hook, which is how a
+// test watches a screen ask for the whole of a result or a record and read the
+// answer back. A nil hook is a program with nothing wired to answer a show.
+func newSocketHarnessAnswering(t *testing.T, answerDeadline time.Duration, show showHook) *socketHarness {
+	t.Helper()
+	return buildSocketHarness(t, answerDeadline, nil, show)
+}
+
+// buildSocketHarness is the one place the harness is put together, over
+// whichever of the status function and the show hook the test wants.
+func buildSocketHarness(t *testing.T, answerDeadline time.Duration, status func() map[string]string, show showHook) *socketHarness {
+	t.Helper()
 	folder, err := os.MkdirTemp("", "nerdgenie-socket")
 	if err != nil {
 		t.Fatalf("cannot make a folder for the socket: %v", err)
@@ -84,6 +99,7 @@ func newSocketHarnessReporting(t *testing.T, answerDeadline time.Duration, statu
 		Secrets:        harness.secrets,
 		Clock:          harness.clock,
 		AnswerDeadline: answerDeadline,
+		Show:           show,
 	})
 	if err != nil {
 		t.Fatalf("listening on the socket failed: %v", err)

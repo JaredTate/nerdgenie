@@ -93,27 +93,63 @@ func fillTheJobFields(fields map[string]string, fromJob contract.TaskToRun, held
 	fields[contract.StatusFieldJobTasks] = contract.JobTaskLines(held.Work.Tasks)
 }
 
-// fillTheTask writes the running task's ask and its plan, which are what the
-// side panel draws for a plain task: the ask folded onto one line beside the
-// task's number, the way the job's ask travels, and the plan one step per
-// line under it, each marked done or not. Both are sent empty when no task is
+// fillTheTask writes the seven fields a screen draws for the running task, all
+// read from its record: the ask folded onto one line beside the task's number,
+// the way the job's ask travels; the plan one step per line under it, each
+// marked done or not; the situation one fact per line; the failures one per
+// line with their causes; the cached tokens of the last call; the round, which
+// is the record's latest checkpoint; and when the task began, which is the
+// time of its first event in the log. All seven are sent empty when no task is
 // running or its record cannot be read, so that a screen which drew a task a
 // moment ago clears it rather than keeping the last one. The number is the
 // loop's running task, which is empty until the task's first tool call writes
 // its record.
 func (running *agent) fillTheTask(fields map[string]string, number string) {
-	for _, field := range []string{contract.StatusFieldTaskAsk, contract.StatusFieldPlan} {
+	for _, field := range []string{
+		contract.StatusFieldTaskAsk, contract.StatusFieldPlan, contract.StatusFieldSituation,
+		contract.StatusFieldFailures, contract.StatusFieldCachedTokens, contract.StatusFieldRound,
+		contract.StatusFieldTaskStarted,
+	} {
 		fields[field] = ""
 	}
 	if number == "" || running.events == nil {
 		return
 	}
-	held, ok := loadTaskRecord(context.Background(), running.events, number)
+	ctx := context.Background()
+	keeper, ok := loadTaskKeeper(ctx, running.events, number)
 	if !ok {
 		return
 	}
+	held := keeper.Record()
 	fields[contract.StatusFieldTaskAsk] = onOneLine(held.Goal.Ask)
 	fields[contract.StatusFieldPlan] = planLines(held.Work.Plan)
+	fields[contract.StatusFieldSituation] = strings.Join(held.Work.Situation, "\n")
+	fields[contract.StatusFieldFailures] = failureLines(held.Lessons.Failures)
+	fields[contract.StatusFieldCachedTokens] = strconv.Itoa(held.Header.Cost.CachedInputTokens)
+	fields[contract.StatusFieldRound] = strconv.Itoa(keeper.LatestCheckpoint())
+	fields[contract.StatusFieldTaskStarted] = taskStartedAt(ctx, running.events, number)
+}
+
+// failureLines writes a task's failures the way StatusFieldFailures carries
+// them: one per line, its label, what went wrong, and the cause after the word
+// Cause, each folded onto its one line.
+func failureLines(failures []contract.Failure) string {
+	lines := make([]string, 0, len(failures))
+	for _, failure := range failures {
+		lines = append(lines, onOneLine(failure.ID+" "+failure.Text+" Cause: "+failure.Cause))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// taskStartedAt is when a task began, which is the time of its first event in
+// the log, written the RFC 3339 way. It is empty when the log cannot be read
+// or holds nothing under the number.
+func taskStartedAt(ctx context.Context, store contract.Store, number string) string {
+	events, err := store.ByTask(ctx, number)
+	if err != nil || len(events) == 0 {
+		return ""
+	}
+	return events[0].Occurred.UTC().Format(time.RFC3339)
 }
 
 // planLines writes a task's plan the way StatusFieldPlan carries it: one step

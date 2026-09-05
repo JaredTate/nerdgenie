@@ -27,6 +27,9 @@ type client struct {
 	guard        sync.Mutex
 	subscription *Subscription
 	closed       bool
+	// showsInFlight is how many shows this screen has sent that are not yet
+	// answered, which MaxShowsInFlight caps.
+	showsInFlight int
 }
 
 // newClient wraps one accepted connection.
@@ -185,6 +188,8 @@ func (socket *Socket) handle(attached *client, envelope contract.SocketEnvelope)
 		return socket.answerPrompt(attached, envelope)
 	case contract.SocketCancel:
 		return socket.cancel(attached, envelope)
+	case contract.SocketShow:
+		return socket.show(attached, envelope)
 	default:
 		// The line reader refuses every other type before it reaches here, so
 		// this can only happen if the two ever drift apart, and then doing
@@ -318,7 +323,7 @@ func decodeFromScreen(line []byte) (contract.SocketEnvelope, error) {
 	}
 	if !envelope.Type.FromScreen() {
 		return contract.SocketEnvelope{}, fmt.Errorf(
-			"the socket message type %q is one only the agent sends, so send a message, a command, an approve, a deny, a secret, an attach, or a detach",
+			"the socket message type %q is one only the agent sends, so send a message, a command, an approve, a deny, a secret, an attach, a detach, a cancel, or a show",
 			envelope.Type)
 	}
 	return envelope, nil

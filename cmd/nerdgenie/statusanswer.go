@@ -56,11 +56,22 @@ func (running *agent) currentOrLatestTask(ctx context.Context) (contract.Record,
 // loadTaskRecord reloads one task's record from its latest checkpoint, and is
 // false when there is no such task or its checkpoints cannot be read.
 func loadTaskRecord(ctx context.Context, store contract.Store, number string) (contract.Record, bool) {
-	keeper, err := record.Load(ctx, store, contract.RecordTask, number)
-	if err != nil {
+	keeper, ok := loadTaskKeeper(ctx, store, number)
+	if !ok {
 		return contract.Record{}, false
 	}
 	return keeper.Record(), true
+}
+
+// loadTaskKeeper reloads one task's keeper from its latest checkpoint, which is
+// what a reader that also wants the checkpoint's number asks for, and is false
+// when there is no such task or its checkpoints cannot be read.
+func loadTaskKeeper(ctx context.Context, store contract.Store, number string) (*record.Keeper, bool) {
+	keeper, err := record.Load(ctx, store, contract.RecordTask, number)
+	if err != nil {
+		return nil, false
+	}
+	return keeper, true
 }
 
 // latestTaskRecord is the highest-numbered task the log holds, read from its

@@ -33,7 +33,7 @@ const writeWait = 30 * time.Second
 const firstLineBytes = 4096
 
 // Options are what the socket needs to run. The first six are required and the
-// last two fall back to the limits above.
+// last two fall back to the limits above; the show hook may be left out.
 type Options struct {
 	// Path is where the socket file goes, which is the home folder's SocketFile.
 	Path string
@@ -53,6 +53,14 @@ type Options struct {
 	// default, means the turn has no limit and the question waits as long as
 	// the turn does; only a length below zero is refused.
 	AnswerDeadline time.Duration
+	// Show answers a screen's show: given the request's fields, which name a
+	// result by its id and task, a task, or a job the way contract.SocketShow
+	// says, it returns the envelope to send back to that one screen, which is
+	// a contract.SocketShown, or an error the screen is told in its own words.
+	// It runs under AnswerDeadline, or DefaultShowDeadline when that is zero,
+	// and is cut off with an error past it. Nil means the program answers
+	// every show with an error saying nothing is wired to answer one.
+	Show func(ctx context.Context, fields map[string]string) (contract.SocketEnvelope, error)
 	// MaxClients is how many screens may be connected at once. Zero means
 	// DefaultMaxClients.
 	MaxClients int

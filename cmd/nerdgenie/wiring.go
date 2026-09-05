@@ -104,6 +104,7 @@ func (running *agent) openTheModelAndTheScreens() error {
 		Secrets:        running.secrets,
 		Clock:          clock.System(),
 		AnswerDeadline: running.settings.Caps.TimePerTurn,
+		Show:           running.theShowAnswerer().answer,
 	})
 	return err
 }

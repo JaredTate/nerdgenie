@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -156,5 +158,108 @@ func TestTheStatusOmitsTheJobCountWhenNoneWait(t *testing.T) {
 	}
 	if value != "" {
 		t.Errorf("the status carries the job count %q while no job waits, want it empty", value)
+	}
+}
+
+// theSevenTaskFields are the fields fillTheTask writes for the running task,
+// every one of which is sent empty when nothing runs.
+var theSevenTaskFields = []string{
+	contract.StatusFieldPlan, contract.StatusFieldTaskAsk,
+	contract.StatusFieldSituation, contract.StatusFieldFailures, contract.StatusFieldCachedTokens,
+	contract.StatusFieldRound, contract.StatusFieldTaskStarted,
+}
+
+// TestTheStatusCarriesTheRunningTasksSituationFailuresCacheRoundAndStart
+// holds the five fields the second screen draws for a running task: the
+// situation one fact per line, the failures one per line with the cause, the
+// cached tokens of the last call, the round, and when the task began.
+func TestTheStatusCarriesTheRunningTasksSituationFailuresCacheRoundAndStart(t *testing.T) {
+	running := anAgentWithASocket(t)
+	defer func() { _ = running.close() }()
+
+	ctx := context.Background()
+	keeper, err := record.New(ctx, running.events, record.Start{
+		Kind: contract.RecordTask, ID: "7", Origin: contract.TerminalChannelName, Ask: "do the work", RoundsLeft: 10, MinutesLeft: 10,
+	})
+	if err != nil {
+		t.Fatalf("cannot start the record of task 7: %v", err)
+	}
+	if err := keeper.SetSituation(ctx, []string{"tests: all 51 passing", "last command: npm test, exit 0"}); err != nil {
+		t.Fatalf("cannot write the situation of task 7: %v", err)
+	}
+	for _, failure := range []record.NewFailure{
+		{Text: "the build broke", Cause: "a missing import"},
+		{Text: "the test\nhung", Cause: "a lock never let go"},
+	} {
+		if err := keeper.Apply(ctx, record.Update{Failure: &failure}); err != nil {
+			t.Fatalf("cannot write a failure of task 7: %v", err)
+		}
+	}
+	if err := keeper.SetCost(ctx, contract.CostLine{InputTokens: 900, CachedInputTokens: 600, OutputTokens: 100}); err != nil {
+		t.Fatalf("cannot write the cost of task 7: %v", err)
+	}
+	logged, err := running.events.ByTask(ctx, "7")
+	if err != nil || len(logged) == 0 {
+		t.Fatalf("task 7 has no events in the log to read its start from: %v", err)
+	}
+
+	fields := map[string]string{}
+	running.fillTheTask(fields, "7")
+
+	for field, want := range map[string]string{
+		contract.StatusFieldSituation:    "tests: all 51 passing\nlast command: npm test, exit 0",
+		contract.StatusFieldFailures:     "F1 the build broke Cause: a missing import\nF2 the test hung Cause: a lock never let go",
+		contract.StatusFieldCachedTokens: "600",
+		contract.StatusFieldRound:        strconv.Itoa(keeper.LatestCheckpoint()),
+		contract.StatusFieldTaskStarted:  logged[0].Occurred.UTC().Format(time.RFC3339),
+	} {
+		if fields[field] != want {
+			t.Errorf("the status carries %s = %q, want %q", field, fields[field], want)
+		}
+	}
+}
+
+// TestTheStatusSendsTheFiveNewFieldsEmptyWhenNoTaskRuns holds that every one
+// of the task's fields is sent empty rather than left out while nothing runs,
+// and again when the running number has no record behind it, so a screen
+// clears what it drew rather than keeping the last task's facts.
+func TestTheStatusSendsTheFiveNewFieldsEmptyWhenNoTaskRuns(t *testing.T) {
+	running := anAgentWithASocket(t)
+	defer func() { _ = running.close() }()
+
+	idle := running.statusForAScreen()
+	for _, field := range theSevenTaskFields {
+		value, sent := idle[field]
+		if !sent {
+			t.Errorf("the status does not carry %s at all while nothing runs, so a screen keeps whatever task it drew last", field)
+		}
+		if value != "" {
+			t.Errorf("the status carries %s = %q while no task runs", field, value)
+		}
+	}
+
+	gone := map[string]string{}
+	running.fillTheTask(gone, "404")
+	for _, field := range theSevenTaskFields {
+		if got := gone[field]; got != "" {
+			t.Errorf("the status carries %s = %q for a task with no record, want it empty", field, got)
+		}
+	}
+}
+
+// TestFailureLinesNameEachFailureWithItsCause holds the wire shape of the
+// failures field: one failure per line, its label, what went wrong folded onto
+// the line, and the cause after the word Cause.
+func TestFailureLinesNameEachFailureWithItsCause(t *testing.T) {
+	failures := []contract.Failure{
+		{ID: "F1", Text: "the build broke", Cause: "a missing import"},
+		{ID: "F2", Text: "the test\nhung", Cause: "a lock\nnever let go"},
+	}
+
+	if got, want := failureLines(failures), "F1 the build broke Cause: a missing import\nF2 the test hung Cause: a lock never let go"; got != want {
+		t.Errorf("the failure lines are %q, want %q", got, want)
+	}
+	if got := failureLines(nil); got != "" {
+		t.Errorf("no failures wrote %q, want nothing", got)
 	}
 }

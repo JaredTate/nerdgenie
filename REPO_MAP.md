@@ -38,6 +38,7 @@ README.md
 REPO_MAP.md
 TEST.md
 THIRD_PARTY.md
+Z_PROMPTS.md
 cmd/nerdgenie/askpass.go
 cmd/nerdgenie/askpass_name_test.go
 cmd/nerdgenie/askpass_test.go
@@ -85,6 +86,7 @@ cmd/nerdgenie/serving_loops_test.go
 cmd/nerdgenie/serving_midturn_test.go
 cmd/nerdgenie/serving_test.go
 cmd/nerdgenie/serving_turnguard_test.go
+cmd/nerdgenie/show.go
 cmd/nerdgenie/show_test.go
 cmd/nerdgenie/signal.go
 cmd/nerdgenie/signal_test.go
@@ -263,6 +265,7 @@ internal/channel/router_test.go
 internal/channel/routerskills_test.go
 internal/channel/screen_test.go
 internal/channel/secret_test.go
+internal/channel/show.go
 internal/channel/show_test.go
 internal/channel/socket.go
 internal/channel/socket_test.go

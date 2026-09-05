@@ -7,11 +7,11 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// hintsRowOf is the last row of the frame, which the footer makes its row of
-// key hints, with the escape codes taken out.
+// hintsRowOf is the row of key hints, which sits between the input box and
+// the status strip, with the escape codes taken out.
 func hintsRowOf(screen *Screen) string {
 	rows := strings.Split(plainText(screen.frame()), "\n")
-	return rows[len(rows)-1]
+	return rows[len(rows)-2]
 }
 
 // withExtraHints runs a test with the other worker's hints standing in, and
@@ -23,16 +23,16 @@ func withExtraHints(t *testing.T, hints []string) {
 	t.Cleanup(func() { extraHints = before })
 }
 
-// TestTheFooterIsTwoRowsTheStatusStripAndThenTheKeyHints holds the shape of
-// the footer: the status strip as it was, one row up, and under it a row of
-// the keys the screen answers to, each key and its verb, with the stop key
-// shown only while there is something to stop.
-func TestTheFooterIsTwoRowsTheStatusStripAndThenTheKeyHints(t *testing.T) {
+// TestTheFooterIsTwoRowsTheKeyHintsAndTheStatusStrip holds the shape of the
+// footer: a row of the keys the screen answers to under the input box, each
+// key and its verb, with the stop key shown only while there is something to
+// stop, and the status strip as it was on the frame's last row.
+func TestTheFooterIsTwoRowsTheKeyHintsAndTheStatusStrip(t *testing.T) {
 	screen, _ := newTestScreen(80, 24)
 	rows := strings.Split(plainText(screen.frame()), "\n")
-	strip, hints := rows[len(rows)-2], rows[len(rows)-1]
+	hints, strip := rows[len(rows)-2], rows[len(rows)-1]
 	if !strings.Contains(strip, "connecting") {
-		t.Errorf("the row above the hints is %q, and it is the status strip", strip)
+		t.Errorf("the last row is %q, and it is the status strip", strip)
 	}
 	for _, wanted := range []string{"↵  send", "^J  newline", "^C  quit"} {
 		if !strings.Contains(hints, wanted) {
@@ -60,7 +60,7 @@ func TestEachHintIsAKeycapAndItsVerbTwoBlanksApart(t *testing.T) {
 	screen := newThemedScreen(80, 24)
 	colors := screen.colors
 	rows := strings.Split(screen.frame(), "\n")
-	hints := rows[len(rows)-1]
+	hints := rows[len(rows)-2]
 	wanted := colors.wrap(styleKey, " ↵ ") + colors.wrap(styleDim, " send") + colors.wrap(styleNormal, "  ") + colors.wrap(styleKey, " ^J ") + colors.wrap(styleDim, " newline")
 	if !strings.Contains(hints, wanted) {
 		t.Errorf("the hints row is %q, and it should hold %q", hints, wanted)

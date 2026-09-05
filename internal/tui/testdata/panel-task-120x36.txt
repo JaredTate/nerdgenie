@@ -25,7 +25,6 @@
                                                                                             │                           
                                                                                             │                           
                                                                                             │                           
-                                                                                            │                           
     ▌ Post a tweet about the DigiByte anniversary. Use the product notes and keep it under  │                           
     ▌ 280 characters.                                                                       │                           
                                                                                             │                           
@@ -33,4 +32,5 @@
    ✓  read memory/product.md · 2,100 characters   r3                                        │                           
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  › _                                                                                                                    
- thinking · 86 rounds, 51 min left ▰▰▰▰                                          Enter send · Ctrl+J newline · Esc stop 
+  ↵  send   ^J  newline   esc  stop   ^C  quit                                                                          
+ thinking · 86 rounds, 51 min left ▰▰▰▰                                                                                 

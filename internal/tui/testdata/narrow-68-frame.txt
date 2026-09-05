@@ -5,7 +5,6 @@
                                                                     
                                                                     
                                                                     
-                                                                    
     ▌ Post a tweet about the DigiByte anniversary. Use the product  
     ▌ notes and keep it under 280 characters.                       
                                                                     
@@ -21,4 +20,5 @@
  └────────────────────────────────────────────────────────────────┘ 
  ────────────────────────────────────────────────────────────────── 
  › _                                                                
+  ↵  send   ^J  newline   esc  stop   ^C  quit                      
  thinking · 86 rounds, 51 min left ▰▰▰▰                             

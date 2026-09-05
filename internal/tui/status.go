@@ -62,10 +62,10 @@ func (screen *Screen) busy() bool {
 	return screen.state == stateThinking || screen.state == stateUsingTool
 }
 
-// statusRow draws the one row at the bottom: the spinner when one is due, the
-// state in plain words, the budget while a task runs, the older mark while the
-// person is scrolled up, so that they know why new text is not appearing, and
-// the key hints on the right.
+// statusRow draws the status strip, the last row of the frame, under the
+// footer's key hints: the spinner when one is due, the state in plain words,
+// the budget while a task runs, and the older mark while the person is
+// scrolled up, so that they know why new text is not appearing.
 func (screen *Screen) statusRow() string {
 	line := row{}
 	line.blanks(marginColumns)
@@ -79,15 +79,11 @@ func (screen *Screen) statusRow() string {
 	if screen.budget != "" {
 		line.add(styleDim, " · "+screen.budget)
 		filled, empty := screen.budgetBar()
-		line.add(styleBold, filled)
-		line.add(styleDim, empty)
+		line.add(styleMeterOn, filled)
+		line.add(styleMeterOff, empty)
 	}
 	if screen.scrolledUp() {
 		line.add(styleDim, " · "+string(olderGlyph)+" older")
-	}
-	hints := screen.keyHints()
-	if hints != "" && screen.width >= narrowWidth {
-		line.addRightPiece(span{style: styleDim, text: hints}, screen.width)
 	}
 	line.keepWithin(screen.width - marginColumns)
 	return line.render(screen.colors)
@@ -138,35 +134,4 @@ func (screen *Screen) budgetBar() (string, string) {
 // the budget bar and the accent-coloured task words are drawn.
 func (screen *Screen) taskRunning() bool {
 	return screen.taskState == "running"
-}
-
-// keyHints are the three key hints on the right of the status strip, which
-// change with what the screen is waiting for.
-func (screen *Screen) keyHints() string {
-	switch {
-	case screen.input.secret:
-		return "Enter send · Esc cancel · nothing is shown"
-	case screen.paletteOpen:
-		return "Tab complete · Enter run · Esc close"
-	case screen.askingWhyNot:
-		return "Enter send the reason · Esc go back"
-	case screen.focusedCard() != nil:
-		return screen.focusedCard().keyHints()
-	case screen.busy():
-		return "Enter send · Ctrl+J newline · Esc stop"
-	default:
-		return "Enter send · Ctrl+J newline · Ctrl+C quit"
-	}
-}
-
-// keyHints for a card are the single keys that answer it.
-func (shown card) keyHints() string {
-	switch shown.kind {
-	case cardPreview:
-		return "a approve · A always · r reject"
-	case cardHandoff:
-		return "a finished · r give up"
-	default:
-		return "Enter answer · Esc dismiss"
-	}
 }

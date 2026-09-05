@@ -18,7 +18,7 @@
                                                                                 
                                                                                 
                                                                                 
-                                                                                
  ────────────────────────────────────────────────────────────────────────────── 
  › _                                                                            
- connecting                           Enter send · Ctrl+J newline · Ctrl+C quit 
+  ↵  send   ^J  newline   ^C  quit                                              
+ connecting                                                                     

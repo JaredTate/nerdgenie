@@ -8,7 +8,6 @@
                                                                                 
                                                                                 
                                                                                 
-                                                                                
       ▌ Post a tweet about the DigiByte anniversary. Use the product notes and  
       ▌ keep it under 280 characters.                                           
                                                                                 
@@ -27,4 +26,5 @@
  └────────────────────────────────────────────────────────────────────────────┘ 
  ────────────────────────────────────────────────────────────────────────────── 
  › _                                                                            
- waiting for you · 86 rounds, 51 min left ▰▰▰▰  a approve · A always · r reject 
+  a  approve   A  always   r  reject                                            
+ waiting for you · 86 rounds, 51 min left ▰▰▰▰                                  

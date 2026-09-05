@@ -706,6 +706,7 @@ internal/provider/live_test.go
 internal/provider/openai.go
 internal/provider/openai_test.go
 internal/provider/openaistream.go
+internal/provider/openaitimings_test.go
 internal/provider/openaiwire.go
 internal/provider/options.go
 internal/provider/outputcap_test.go
@@ -1295,6 +1296,7 @@ internal/tui/header.go
 internal/tui/hint_test.go
 internal/tui/hits.go
 internal/tui/hits_test.go
+internal/tui/inlinecode_test.go
 internal/tui/input.go
 internal/tui/integration_test.go
 internal/tui/keys.go
@@ -1334,6 +1336,7 @@ internal/tui/status.go
 internal/tui/status_test.go
 internal/tui/stop_test.go
 internal/tui/stream_test.go
+internal/tui/streamwidth_test.go
 internal/tui/style.go
 internal/tui/testdata/banner-120x40.txt
 internal/tui/testdata/banner-160x50.txt

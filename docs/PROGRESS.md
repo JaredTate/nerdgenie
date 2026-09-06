@@ -243,7 +243,8 @@ The whole-game ask ran five times on the local Qwen 3.8 27B over the day. Runs o
 | 7 | t6, hazard safety | done | 11 | 2 | 9 | 5 | 1 | 1 | 157k (77%) | 1.5k |
 | 8 | t7, the full suite green | done | 9 | 1 | 7 | 3 | 2 | 3 | 102k (83%) | 0.9k |
 | 9 | t8, the Chrome play-test, first try | cut off by the 20:33 restart and, under the old rule, failed | 132 | 50 | 23 | 6 | 0 | 1 | 6.83M (90%) | 27.5k |
-| 10 | t8 again, on the new binary | still running at 21:40, 3 rewinds, 8 failures on the record | 148 | 66 | 27 | 11 | 0 | 6 | 5.08M (80%) | 53.7k |
+| 10 | t8 again, on the new binary | failed at 22:05 on the record's size, seventeen failures on it, five rewinds | 208 | 92 | 26 | 22 | 0 | 9 | 6.41M (77%) | 68.1k |
+| 11 | t8 a third time, over nine sittings and as many harness fixes | done at 23:47, every done line proved; two rewinds, eight failures | 322 | 102 | 19 | 43 | 5 | 54 | 8.99M (75%) | 49.5k |
 
 What the numbers say. The engine and its 152 tests took 41 minutes and the person's task never batched a call, so a fifth of its rounds wrote only the record and an eighth only ran the tests, which is what the self-running tests and the checker after every change now fold away. The job's seven verification tasks took fifteen minutes between them at four to fifteen seconds a round on fresh windows of ten to forty thousand tokens, which is the hand-off working. The play-test task is where the run stands: the game's Start button runs a ghost-piece loop whose condition never changes, the page hangs, and the model, told so by the browser tool, has spent two hours writing play-test drivers through the shell rather than reading the draw code; the meter and the rewinds bound it, the record holds every stall, and the page question (`browser_read`'s `ask` field) is the tool it was missing, live since 21:33.
 

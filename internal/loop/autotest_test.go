@@ -9,8 +9,9 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// theRedRun and theGreenRun are two runs of one small suite as Node prints
-// them, before and after a change.
+// The three answers a scripted shell gives in these tests: a red run and a
+// green run of one small suite as Node prints them, and a syntax check that
+// found nothing wrong.
 const (
 	theRedRun        = "finished with exit code 1\n✖ clears a row (1ms)\n✖ spawns (1ms)\nℹ tests 10\nℹ pass 8\nℹ fail 2\nexit 1"
 	theGreenRun      = "finished with exit code 0\nℹ tests 10\nℹ pass 10\nℹ fail 0\nexit 0"

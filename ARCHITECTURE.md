@@ -240,7 +240,9 @@ no game file written. Now `runOneRound` reads `Finish` before the parse: a
 reply that ended for length is not remembered at all, and the model is told
 it was cut off after that many tokens, that none of it was kept, and that a
 long file goes in parts of at most `MaxLinesInOneWrite` lines, the first by
-write and the rest by edit. **A plan with steps still open says the work is
+write and the rest by edit; `MaxCutOffsSentBack` bounds it at two in a row, and
+the third is heard as it stands, because a long answer to the user cut at the
+cap is not a file to write in parts. **A plan with steps still open says the work is
 not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
 an answer back to the plan when a step is not marked done, naming the steps
 and the one to carry on with, through `sendBackToWork`, which counts the

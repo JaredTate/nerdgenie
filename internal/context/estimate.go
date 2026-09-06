@@ -37,6 +37,9 @@ const (
 	// envelope on top of its own text: the identifier, the type, and the names
 	// of the fields around it.
 	TokensPerToolPart = 12
+	// TokensPerPicture is what one picture costs: a 1024 by 768 screenshot
+	// came to 799 prompt tokens on the local daemon on 6 September 2026.
+	TokensPerPicture = 800
 )
 
 // EstimateTokens counts the tokens in one piece of text, rounding up so that a
@@ -75,6 +78,9 @@ func estimateMessage(message contract.Message) int {
 	}
 	for _, result := range message.ToolResults {
 		counted += TokensPerToolPart + EstimateTokens(result.CallID) + EstimateTokens(result.Text)
+		if result.Picture != "" {
+			counted += TokensPerPicture
+		}
 	}
 	return counted
 }

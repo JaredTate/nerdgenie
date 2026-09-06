@@ -12,6 +12,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/tool/browserlogin"
 	"github.com/JaredTate/nerdgenie/internal/tool/browseropen"
 	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
+	"github.com/JaredTate/nerdgenie/internal/tool/browsershot"
 	"github.com/JaredTate/nerdgenie/internal/tool/browsertype"
 	"github.com/JaredTate/nerdgenie/internal/tool/computer"
 	"github.com/JaredTate/nerdgenie/internal/tool/edit"
@@ -92,6 +93,7 @@ func browserAndDesktopTools(settings Settings) []contract.Tool {
 	return []contract.Tool{
 		browseropen.New(browseropen.Settings{Browser: settings.Browser}),
 		browserread.New(browserread.Settings{Browser: settings.Browser}),
+		browsershot.New(browsershot.Settings{Browser: settings.Browser, SavesTo: screenshotsFolder(settings.Home)}),
 		browserclick.New(browserclick.Settings{Browser: settings.Browser}),
 		browsertype.New(browsertype.Settings{Browser: settings.Browser}),
 		browseract.New(browseract.Settings{Browser: settings.Browser}),

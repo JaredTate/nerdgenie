@@ -60,7 +60,7 @@ func TestTheRegistryHoldsTheEighteenBuiltInTools(t *testing.T) {
 	}
 	wanted := contract.BuiltInToolNames()
 	if strings.Join(names, ",") != strings.Join(wanted, ",") {
-		t.Fatalf("the registry holds %v, want the eighteen built-in tools in the order the design lists them: %v", names, wanted)
+		t.Fatalf("the registry holds %v, want the built-in tools in the order the design lists them: %v", names, wanted)
 	}
 	for _, name := range wanted {
 		if _, held := registry.Lookup(name); !held {
@@ -87,7 +87,7 @@ func TestEveryBuiltInDescriptionFitsInTheCapAndSaysWhenNotToUseTheTool(t *testin
 		}
 		fmt.Fprintf(written, "%-18s %2d words  %s\n", spec.Name, words, spec.Description)
 	}
-	testkit.Golden(t, "the_eighteen_descriptions.txt", []byte(written.String()))
+	testkit.Golden(t, "the_built_in_descriptions.txt", []byte(written.String()))
 }
 
 func TestTheUsersOwnToolsAreAddedAfterTheBuiltInOnes(t *testing.T) {
@@ -106,7 +106,7 @@ echo "it is raining"
 
 	specs := registry.Specs()
 	if len(specs) != len(contract.BuiltInToolNames())+1 {
-		t.Fatalf("the registry holds %d tools, want the eighteen and the user's one", len(specs))
+		t.Fatalf("the registry holds %d tools, want the built-in ones and the user's one", len(specs))
 	}
 	if specs[len(specs)-1].Name != "weather" {
 		t.Errorf("the last tool is %q, and the user's own tools come after the built-in ones", specs[len(specs)-1].Name)
@@ -121,7 +121,7 @@ func TestARegistryWithNothingWiredInStillShowsEveryToolAndRefusesPlainly(t *test
 	}
 
 	if len(registry.Specs()) != len(contract.BuiltInToolNames()) {
-		t.Fatalf("the registry holds %d tools, and every model sees all eighteen on every call", len(registry.Specs()))
+		t.Fatalf("the registry holds %d tools, and every model sees every built-in tool on every call", len(registry.Specs()))
 	}
 	found, held := registry.Lookup(contract.ToolMemory)
 	if !held {

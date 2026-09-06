@@ -139,7 +139,7 @@ func TestAFailedToolResultSaysSoOnEveryWire(t *testing.T) {
 	}
 
 	messages := openAIMessagesFor(contract.Message{Role: contract.RoleUser, ToolResults: []contract.ToolResult{failed}})
-	if len(messages) != 1 || !strings.HasPrefix(messages[0].Content, failedToolResultPrefix) {
+	if text, _ := messages[0].Content.(string); len(messages) != 1 || !strings.HasPrefix(text, failedToolResultPrefix) {
 		t.Errorf("the tool message does not say the tool failed: %+v", messages)
 	}
 

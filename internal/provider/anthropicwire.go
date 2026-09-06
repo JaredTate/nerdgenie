@@ -36,6 +36,8 @@ type anthropicBlock struct {
 	Name string `json:"name,omitempty"`
 	// Input is the arguments the model wrote for a tool.
 	Input json.RawMessage `json:"input,omitempty"`
+	// Source is the picture of an image block.
+	Source *anthropicImageSource `json:"source,omitempty"`
 	// ToolUseID says which call a result answers.
 	ToolUseID string `json:"tool_use_id,omitempty"`
 	// Content is the text of a tool result.
@@ -110,4 +112,14 @@ type anthropicBody struct {
 	// OutputConfig carries the effort that goes with the thinking, and is left
 	// out beside it.
 	OutputConfig *anthropicOutputConfig `json:"output_config,omitempty"`
+}
+
+// anthropicImageSource is a picture given inline as base64.
+type anthropicImageSource struct {
+	// Type is "base64".
+	Type string `json:"type"`
+	// MediaType is the picture's kind, such as "image/png".
+	MediaType string `json:"media_type"`
+	// Data is the picture as base64.
+	Data string `json:"data"`
 }

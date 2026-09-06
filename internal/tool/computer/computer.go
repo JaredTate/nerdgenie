@@ -51,12 +51,6 @@ type Settings struct {
 // as, which is the evidence a play-test asks a screenshot for.
 const ThePictureIsSavedAt = "the picture is saved at "
 
-// ThePictureIsNotShown says plainly what a screenshot is to this model: the
-// fifth game build's play-test task asked for one four times running and read
-// the same window list each time, because nothing said the picture went
-// nowhere.
-const ThePictureIsNotShown = "the picture itself is not shown to you; you read the lines above in its place"
-
 // input is what the model writes when it calls this tool.
 type input struct {
 	// Intent says what this step is for.
@@ -182,8 +176,7 @@ func (tool *Tool) screenshot(ctx context.Context) (contract.ToolOutput, error) {
 	if path, err := tool.savePicture(picture.PNGBase64); err == nil && path != "" {
 		written.WriteString(ThePictureIsSavedAt + path + "\n")
 	}
-	written.WriteString(ThePictureIsNotShown + "\n")
-	return contract.ToolOutput{Text: written.String()}, nil
+	return contract.ToolOutput{Text: written.String(), Picture: picture.PNGBase64}, nil
 }
 
 // savePicture writes the picture as the next numbered file under the folder

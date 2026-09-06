@@ -29,6 +29,9 @@ const (
 	ToolBrowserOpen = "browser_open"
 	// ToolBrowserRead reads the current page as a compact tree.
 	ToolBrowserRead = "browser_read"
+	// ToolBrowserScreenshot takes a picture of the page, numbered, for a model
+	// that can see.
+	ToolBrowserScreenshot = "browser_screenshot"
 	// ToolBrowserClick clicks one element and states what it expects to happen.
 	ToolBrowserClick = "browser_click"
 	// ToolBrowserType types into one element and states what it expects.
@@ -69,7 +72,7 @@ func BuiltInToolNames() []string {
 	return []string{
 		ToolRead, ToolWrite, ToolEdit, ToolSearch, ToolShell, ToolWeb,
 		ToolMemory, ToolTask, ToolSkill, ToolJob,
-		ToolBrowserOpen, ToolBrowserRead, ToolBrowserClick, ToolBrowserType,
+		ToolBrowserOpen, ToolBrowserRead, ToolBrowserScreenshot, ToolBrowserClick, ToolBrowserType,
 		ToolBrowserAct, ToolBrowserLogin, ToolBrowserHandoff, ToolComputer,
 	}
 }

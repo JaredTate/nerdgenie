@@ -366,6 +366,7 @@ func thisProgramOrEmpty() string {
 // and a retry withdraws them, which is brief 6.8.
 func (running *agent) openTheLoop() error {
 	built, err := loop.New(loop.Options{
+		Vision:       running.modelCanSee(),
 		Model:        running.model,
 		Tools:        running.tools,
 		ToolsForTask: running.toolsForTask,

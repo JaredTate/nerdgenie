@@ -131,6 +131,9 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		text, err := listFolder(path)
 		return contract.ToolOutput{Text: text}, err
 	}
+	if isAPicture(path) {
+		return readPicture(path)
+	}
 	text, err := readFile(path, asked)
 	return contract.ToolOutput{Text: text}, err
 }

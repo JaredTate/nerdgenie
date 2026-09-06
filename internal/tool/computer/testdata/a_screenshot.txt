@@ -3,4 +3,3 @@ controls in a-text-editor:
 1 textbox "Document"
 2 button "Save"
 3 menu item "File"
-the picture itself is not shown to you; you read the lines above in its place

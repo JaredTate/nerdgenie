@@ -123,6 +123,9 @@ type ToolResult struct {
 	Text string
 	// Failed says the tool reported an error rather than a result.
 	Failed bool
+	// Picture is a PNG that rides with the result, as base64, sent to the
+	// model as an image; empty when there is none or the model cannot see.
+	Picture string
 }
 
 // Message is one turn of the conversation inside the working context.

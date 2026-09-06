@@ -65,3 +65,10 @@ func (running *agent) keyFor(ctx context.Context, alias contract.ModelAlias) (st
 	}
 	return found.Password, nil
 }
+
+// modelCanSee says whether the model the configuration names by default reads
+// pictures, which is what decides whether a screenshot rides with its result.
+func (running *agent) modelCanSee() bool {
+	alias, found := aliasNamed(running.settings, running.settings.DefaultModel)
+	return found && alias.Vision
+}

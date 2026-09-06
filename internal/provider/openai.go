@@ -161,6 +161,14 @@ func openAIMessagesFor(message contract.Message) []openAIMessage {
 			text = failedToolResultPrefix + text
 		}
 		written = append(written, openAIMessage{Role: "tool", Content: text, ToolCallID: result.CallID})
+		// A tool message's content is text, so a picture follows as a user
+		// message with an image part, named for the result it belongs to.
+		if result.Picture != "" {
+			written = append(written, openAIMessage{Role: "user", Content: []openAIPart{
+				{Type: "text", Text: "the picture that came with " + result.Label + ":"},
+				{Type: "image_url", ImageURL: &openAIImageURL{URL: "data:image/png;base64," + result.Picture}},
+			}})
+		}
 	}
 	if message.Text == "" && len(message.ToolCalls) == 0 {
 		return written

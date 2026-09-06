@@ -13,6 +13,7 @@ func (running *run) remember(message contract.Message) {
 		return
 	}
 	running.messages = append(running.messages, message)
+	running.keepTheNewestPictures()
 	if len(running.messages) <= MaxMessagesKept {
 		return
 	}

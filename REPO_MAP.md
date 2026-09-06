@@ -194,6 +194,8 @@ docs/nightly/2026-09-06-e-with-tetris.md
 docs/nightly/2026-09-06-f-long-ask-is-a-job.md
 docs/nightly/2026-09-06-g-cut-off-found.md
 docs/nightly/2026-09-06-h-double-click-and-vitest.md
+docs/nightly/2026-09-06-i-meter-stopped-the-engine.md
+docs/nightly/2026-09-06-j-thirteenth-five-of-five.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
 docs/reference/browser-use/views.py
@@ -597,6 +599,7 @@ internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
+internal/loop/picture_test.go
 internal/loop/pinned_test.go
 internal/loop/polling_test.go
 internal/loop/probes.go
@@ -1152,6 +1155,7 @@ internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
 internal/tool/browserread/testdata/a_page_with_text.txt
+internal/tool/browsershot/browsershot_test.go
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
 internal/tool/browsertype/doc.go
@@ -1273,7 +1277,7 @@ internal/tool/task/stepdone_test.go
 internal/tool/task/task.go
 internal/tool/task/task_test.go
 internal/tool/task/testdata/a_pinned_result.txt
-internal/tool/testdata/the_eighteen_descriptions.txt
+internal/tool/testdata/the_built_in_descriptions.txt
 internal/tool/usertool.go
 internal/tool/usertool_test.go
 internal/tool/web/address.go
@@ -1679,6 +1683,7 @@ worker/browser/test/pages/new-tab.html
 worker/browser/test/pages/no-change-on-click.html
 worker/browser/test/pages/notes.txt
 worker/browser/test/pages/rankings.html
+worker/browser/test/pages/reacts-late.html
 worker/browser/test/pages/recaptcha-anchor.html
 worker/browser/test/pages/reloads-forever.html
 worker/browser/test/pages/report.pdf

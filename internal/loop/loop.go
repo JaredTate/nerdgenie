@@ -58,6 +58,9 @@ type Options struct {
 	// deadline passes is stopped and the model is told so. When it is nil a tool
 	// call runs under the task's own context and nothing changes.
 	ToolDeadline func(ctx context.Context) (context.Context, context.CancelFunc)
+	// Vision says the model reads pictures, so a picture a tool hands back
+	// rides with its result instead of being said to be unseen.
+	Vision bool
 	// Deltas is where a streamed reply goes as it arrives, and is nil when
 	// nobody is watching.
 	Deltas func(delta string)

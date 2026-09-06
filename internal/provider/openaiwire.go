@@ -42,12 +42,31 @@ type openAIMessage struct {
 	// Role is "system", "user", "assistant", or "tool".
 	Role string `json:"role"`
 	// Content is the message's text, which is empty on a message that carries
-	// only tool calls.
-	Content string `json:"content"`
+	// only tool calls, or the list of parts of a message that carries a
+	// picture beside its words.
+	Content any `json:"content"`
 	// ToolCalls are the tools an assistant message asked for.
 	ToolCalls []openAIToolCall `json:"tool_calls,omitempty"`
 	// ToolCallID says which call a tool message answers.
 	ToolCallID string `json:"tool_call_id,omitempty"`
+}
+
+// openAIPart is one part of a message whose content is a list: a piece of
+// text, or a picture given as a data address.
+type openAIPart struct {
+	// Type is "text" or "image_url".
+	Type string `json:"type"`
+	// Text is the words of a text part.
+	Text string `json:"text,omitempty"`
+	// ImageURL is the picture of an image part.
+	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+}
+
+// openAIImageURL carries a picture as a data address, which is how the local
+// daemon and the API both read one.
+type openAIImageURL struct {
+	// URL is the data address carrying the picture as base64.
+	URL string `json:"url"`
 }
 
 // openAIStreamOptions asks the server to report the token counts at the end of

@@ -35,6 +35,9 @@ type ModelAlias struct {
 	// ContextLength is how many tokens the model can hold, which is the one
 	// number the working-context rule is sized from.
 	ContextLength int `toml:"context_length"`
+	// Vision says the model reads pictures, so a screenshot or a picture file
+	// is sent to it as an image rather than described as unseen.
+	Vision bool `toml:"vision"`
 	// KeyReference is a "secret://name" reference to the API key, and is empty
 	// for a local server that needs none.
 	KeyReference string `toml:"key_reference"`

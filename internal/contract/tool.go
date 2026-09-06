@@ -71,6 +71,10 @@ type ToolOutput struct {
 	// SpillPath names the file holding the rest when the result was over the
 	// cap, and is empty when nothing was cut.
 	SpillPath string
+	// Picture is a PNG the tool took or read, as base64, for a model that can
+	// see; empty when the result has none. The loop drops it and says so for
+	// a model that cannot.
+	Picture string
 }
 
 // Tool is one thing the harness knows how to do on the model's behalf.

@@ -113,7 +113,8 @@ func (running *run) afterADenial(ctx context.Context, call contract.ToolCall, de
 // and checks the result against the stop list.
 func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (contract.ToolResult, *Outcome, error) {
 	running.noteToolLine(toolLineFor(call, "", false))
-	text, failed := running.runOneTool(ctx, call)
+	text, picture, failed := running.runOneTool(ctx, call)
+	text, picture = running.withOrWithoutThePicture(text, picture)
 	running.rememberTheTestCommand(call, text)
 	parses := running.checkTheSyntaxAfter(ctx, call, failed)
 	if parses != "" {
@@ -137,7 +138,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	running.noteWhatTheResultShows(call, text, failed)
 	running.writeWhatTheTestsShow(ctx, call, text, label)
 	running.countTheProbe(call)
-	result := contract.ToolResult{CallID: call.ID, Label: label, Text: text, Failed: failed}
+	result := contract.ToolResult{CallID: call.ID, Label: label, Text: text, Failed: failed, Picture: picture}
 	if failed {
 		result.Text = text + "\n" + ThreeOptions
 	}
@@ -160,25 +161,26 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 
 // runOneTool finds the tool and runs it under the tool time limit, and says
 // whether what came back is a result or an error.
-func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (string, bool) {
+func (running *run) runOneTool(ctx context.Context, call contract.ToolCall) (text string, picture string, failed bool) {
 	if answer, refused, mine := running.theLoopsOwnOperation(ctx, call); mine {
-		return answer, refused
+		return answer, "", refused
 	}
 	tool, found := running.tools().Lookup(call.Name)
 	if !found && call.Name == contract.ToolTask {
-		return running.applyRecordWrite(ctx, call)
+		text, failed = running.applyRecordWrite(ctx, call)
+		return text, "", failed
 	}
 	if !found {
-		return fmt.Sprintf("there is no tool called %q on this agent, so use one of the tools you were given", call.Name), true
+		return fmt.Sprintf("there is no tool called %q on this agent, so use one of the tools you were given", call.Name), "", true
 	}
 	output, err := running.underTheTimeLimit(ctx, tool, call)
 	if err != nil {
-		return err.Error(), true
+		return err.Error(), "", true
 	}
 	if output.SpillPath != "" {
-		return output.Text + "\nThe rest of this result is in " + output.SpillPath + ", which you can read.", false
+		return output.Text + "\nThe rest of this result is in " + output.SpillPath + ", which you can read.", pictureOf(output), false
 	}
-	return output.Text, false
+	return output.Text, pictureOf(output), false
 }
 
 // underTheTimeLimit runs one tool and gives up on it when its time is up. The

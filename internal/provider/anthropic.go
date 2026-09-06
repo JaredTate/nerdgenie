@@ -179,6 +179,9 @@ func anthropicBlocksFor(message contract.Message) []anthropicBlock {
 			Content:   result.Text,
 			IsError:   result.Failed,
 		})
+		if result.Picture != "" {
+			blocks = append(blocks, anthropicBlock{Type: "image", Source: &anthropicImageSource{Type: "base64", MediaType: "image/png", Data: result.Picture}})
+		}
 	}
 	if message.Text != "" {
 		blocks = append(blocks, anthropicBlock{Type: "text", Text: message.Text})

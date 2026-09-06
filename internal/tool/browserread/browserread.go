@@ -58,8 +58,8 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolBrowserRead,
-		Description: "Reads the page the browser is on as a short outline of its elements, each with the reference to act on it by. " +
-			"No picture reaches you: judge a canvas by asking the page. Use web fetch for a page that needs no login.",
+		Description: "Reads the browser's page as an outline of its elements, each with a reference to act on it by. " +
+			"No picture reaches you: judge a canvas by asking the page. Use web fetch for a page needing no login.",
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What this step is for, in one line.", Required: true},
 			{Name: "visible_only", Type: "boolean", Description: "True to read only what is above the fold."},

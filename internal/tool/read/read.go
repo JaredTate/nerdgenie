@@ -6,6 +6,7 @@
 package read
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -98,6 +99,14 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}
 	if label, kind, isLabel := resultLabel(asked.Path); isLabel {
 		text, err := tool.readStored(ctx, label, kind)
+		if err != nil {
+			return contract.ToolOutput{}, err
+		}
+		if asked.Offset < 1 && asked.Limit < 1 {
+			return contract.ToolOutput{Text: text}, nil
+		}
+		from, count, wanted := window(asked)
+		text, err = numbered(bufio.NewReader(strings.NewReader(text)), label, from, count, wanted)
 		return contract.ToolOutput{Text: text}, err
 	}
 	if tool.settings.Allowed == nil {

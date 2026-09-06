@@ -227,8 +227,9 @@ func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 // game build's play-test task after a pick-up: it asked for r25, a read of the
 // whole game script, from line 798, and got the whole script from line 1, a
 // thirteen-thousand-token answer to a question about twelve lines. A past
-// result is read the way a file is: numbered lines, from the offset, for the
-// limit, with the line that says how to read on.
+// result asked for with an offset or a limit is read the way a file is:
+// numbered lines, from the offset, for the limit, with the line that says how
+// to read on; asked for with neither, it comes back whole, as it always has.
 func TestAStoredResultIsReadFromTheOffsetAndForTheLimitLikeAFile(t *testing.T) {
 	lines := make([]string, 0, 900)
 	for number := 1; number <= 900; number++ {
@@ -246,16 +247,7 @@ func TestAStoredResultIsReadFromTheOffsetAndForTheLimitLikeAFile(t *testing.T) {
 	}
 
 	whole, err := run(t, tool, map[string]any{"path": "r25"})
-	if err != nil || !strings.HasPrefix(whole.Text, "1: 1: line 1 of the script\n") || !strings.Contains(whole.Text, "900: 900: line 900 of the script\n") {
-		t.Errorf("reading r25 whole gave %q... (%v), want every line numbered from the first", firstLines(whole.Text, 2), err)
+	if err != nil || whole.Text != strings.Join(lines, "\n")+"\n" {
+		t.Errorf("reading r25 with no offset and no limit gave %d characters (%v), want the whole text as it was stored", len(whole.Text), err)
 	}
-}
-
-// firstLines is the first few lines of a text, for a failure message.
-func firstLines(text string, count int) string {
-	lines := strings.SplitN(text, "\n", count+1)
-	if len(lines) > count {
-		lines = lines[:count]
-	}
-	return strings.Join(lines, "\n")
 }

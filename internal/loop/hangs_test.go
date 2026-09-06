@@ -20,8 +20,11 @@ const theHungPageMessage = "cannot click the element e3: The page could not be r
 // theGamePage is a page with one inline loop and one script of its own.
 const theGamePage = "<!doctype html>\n<title>Tater Tots Tetris</title>\n<script src=\"js/main.js\"></script>\n<script>\nfor (const tot of tots) { fry(tot); }\n</script>\n<button>START GAME</button>\n"
 
-// theGameScript is the script with the loop that never yields on line 3.
-const theGameScript = "function ghost(p) {\n  let cells = p.cells();\n  while (engine.board.canPlace(cells.map(([x, y]) => [x, y + 1]))) {\n    p.y += 0;\n  }\n}\nwhile (arrTimer >= CONFIG.ARR) { arrTimer -= CONFIG.ARR; }\n"
+// theGameScript is the script with the loop that never yields on line 17,
+// behind fourteen counted for loops that draw the board, the way the real
+// game's script had its ghost-piece while behind every for of its renderer.
+var theGameScript = strings.Repeat("for (let i = 0; i < n; i++) draw(i);\n", 14) +
+	"function ghost(p) {\n  let cells = p.cells();\n  while (engine.board.canPlace(cells.map(([x, y]) => [x, y + 1]))) {\n    p.y += 0;\n  }\n}\nwhile (arrTimer >= CONFIG.ARR) { arrTimer -= CONFIG.ARR; }\n"
 
 // aServedGame serves the page and its script the way the model's own server
 // does, from this machine.
@@ -62,7 +65,10 @@ func aPlayTest(t *testing.T, address string, clickAnswer string) (*harness, *tes
 // reading the three while loops in the game's script, which an earlier task of
 // the job had written. When the browser reports a page whose script never
 // yields, the harness reads the page and the scripts it loads from the local
-// server and lists their loops, by file and line, on the same result.
+// server and lists their loops, by file and line, on the same result, the
+// while loops first: the first list the live run got was twelve counted for
+// loops of the renderer, and the ghost-piece while on line 495 fell off its
+// end.
 func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 	server := aServedGame(t)
 	built, shell := aPlayTest(t, server.URL+"/index.html", theHungPageMessage)
@@ -73,10 +79,16 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 		t.Errorf("the shell ran %d times, want never: the scripts are read from the server, not searched on disk", len(shell.Inputs()))
 	}
 	shown := wholeRequestText(built.model.Requests()[2])
-	for _, words := range []string{loop.TheLoopsLine, "main.js:3: while (engine.board.canPlace", "main.js:7: while (arrTimer", "index.html:5: for (const tot of tots)"} {
+	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace", "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
 		if !strings.Contains(shown, words) {
 			t.Errorf("the click's result does not carry %q, and the request after it reads:\n%s", words, shown)
 		}
+	}
+	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:1: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {
+		t.Errorf("the while loops do not come before the for loops:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
+	}
+	if !strings.Contains(shown, "and 5 more for loops") {
+		t.Errorf("the list does not say how many for loops fell off its end:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
 }
 
@@ -116,7 +128,7 @@ func TestAPageOnDiskListsItsLoops(t *testing.T) {
 	built.ask(t, "play-test the game")
 
 	shown := wholeRequestText(built.model.Requests()[2])
-	for _, words := range []string{loop.TheLoopsLine, "main.js:3: while (engine.board.canPlace"} {
+	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace"} {
 		if !strings.Contains(shown, words) {
 			t.Errorf("the click's result does not carry %q, and the request after it reads:\n%s", words, shown)
 		}

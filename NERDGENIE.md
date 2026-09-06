@@ -366,7 +366,7 @@ There are eighteen tools. Every model sees all of them. Each one is described in
 
 | Group | Tools | What they do |
 |---|---|---|
-| Files | `read`, `write`, `edit`, `search` | Read a file, a folder, or a past result by its id. Write or edit a file inside the allowed folders. Find files or lines |
+| Files | `read`, `write`, `edit`, `search` | Read a file, a folder, or a past result by its id, from an offset and for a limit when asked. Write or edit a file inside the allowed folders. Find files or lines |
 | Machine | `shell` | Run a command in the sandbox. If it takes more than ten seconds, it returns a process id you can check on or stop. Asking for sudo needs a written reason and a preview |
 | Web | `web` | Search the web, or fetch a public page as text. Anything behind a login belongs to the browser |
 | Browser | `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_act`, `browser_login`, `browser_handoff` | Use a real Chrome like a person. Open a page, read it, click, type, do one action and check it worked, log in from the vault, or hand the window to the user |

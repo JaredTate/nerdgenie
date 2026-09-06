@@ -426,9 +426,12 @@ func applyFailure(into *contract.Record, update Update) error {
 	if update.Failure.Cause == "" {
 		return fmt.Errorf("the failure %q carries no cause: %w", update.Failure.Text, ErrFailureNeedsCause)
 	}
+	// The words compared are the words the record would keep, because a
+	// whole paragraph shares few of its words with its own first line.
+	kept := cutToALesson(update.Failure.Text)
 	for _, held := range into.Lessons.Failures {
-		if saysTheSame(update.Failure.Text, held.Text) {
-			return fmt.Errorf("the failure %q says what %s already says: %w", update.Failure.Text, held.ID, ErrFailureAlreadyWritten)
+		if saysTheSame(kept, held.Text) {
+			return fmt.Errorf("the failure %q says what %s already says: %w", kept, held.ID, ErrFailureAlreadyWritten)
 		}
 	}
 	number := 1

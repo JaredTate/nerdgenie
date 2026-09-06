@@ -1,2 +1,3 @@
 windows on the screen: "Nerd Genie fixture window"
 no application is open, so no control is numbered; launch one by its program name or its window title to click or type in it
+the picture itself is not shown to you; you read the lines above in its place

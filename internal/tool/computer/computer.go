@@ -2,9 +2,12 @@ package computer
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -39,7 +42,20 @@ const MaxTextRunes = 20000
 type Settings struct {
 	// Desktop is the worker driving the screen, the mouse, and the keyboard.
 	Desktop contract.Desktop
+	// SavesTo is the folder every screenshot is saved in as a file, or empty
+	// to keep none.
+	SavesTo string
 }
+
+// ThePictureIsSavedAt opens the line naming the file a screenshot was saved
+// as, which is the evidence a play-test asks a screenshot for.
+const ThePictureIsSavedAt = "the picture is saved at "
+
+// ThePictureIsNotShown says plainly what a screenshot is to this model: the
+// fifth game build's play-test task asked for one four times running and read
+// the same window list each time, because nothing said the picture went
+// nowhere.
+const ThePictureIsNotShown = "the picture itself is not shown to you; you read the lines above in its place"
 
 // input is what the model writes when it calls this tool.
 type input struct {
@@ -71,6 +87,8 @@ type input struct {
 // Tool is the desktop tool.
 type Tool struct {
 	settings Settings
+	// saved counts the screenshots saved, which numbers their files.
+	saved int
 }
 
 // New returns the desktop tool.
@@ -161,7 +179,33 @@ func (tool *Tool) screenshot(ctx context.Context) (contract.ToolOutput, error) {
 			fmt.Fprintf(written, "%d %s %q\n", mark.Number, mark.Role, mark.Name)
 		}
 	}
+	if path, err := tool.savePicture(picture.PNGBase64); err == nil && path != "" {
+		written.WriteString(ThePictureIsSavedAt + path + "\n")
+	}
+	written.WriteString(ThePictureIsNotShown + "\n")
 	return contract.ToolOutput{Text: written.String()}, nil
+}
+
+// savePicture writes the picture as the next numbered file under the folder
+// the tool saves to, and hands back its path, or nothing when there is no
+// folder or no picture.
+func (tool *Tool) savePicture(pngBase64 string) (string, error) {
+	if tool.settings.SavesTo == "" || pngBase64 == "" {
+		return "", nil
+	}
+	picture, err := base64.StdEncoding.DecodeString(pngBase64)
+	if err != nil {
+		return "", fmt.Errorf("the picture is not base64, so it cannot be saved: %w", err)
+	}
+	if err := os.MkdirAll(tool.settings.SavesTo, contract.HomeFolderMode); err != nil {
+		return "", fmt.Errorf("cannot make the folder for screenshots, so the picture is not saved: %w", err)
+	}
+	tool.saved++
+	path := filepath.Join(tool.settings.SavesTo, fmt.Sprintf("screenshot-%d.png", tool.saved))
+	if err := os.WriteFile(path, picture, 0o644); err != nil {
+		return "", fmt.Errorf("cannot write the screenshot, so the picture is not saved: %w", err)
+	}
+	return path, nil
 }
 
 // windowsLine names the windows on the screen on one line, so that the model

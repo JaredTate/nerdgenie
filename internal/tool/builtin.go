@@ -3,6 +3,7 @@ package tool
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/tool/browseract"
@@ -100,6 +101,15 @@ func browserAndDesktopTools(settings Settings) []contract.Tool {
 			TwoFactorCode: settings.TwoFactorCode,
 		}),
 		browserhandoff.New(browserhandoff.Settings{AskUser: settings.AskUser}),
-		computer.New(computer.Settings{Desktop: settings.Desktop}),
+		computer.New(computer.Settings{Desktop: settings.Desktop, SavesTo: screenshotsFolder(settings.Home)}),
 	}
+}
+
+// screenshotsFolder is where the computer tool saves its screenshots, under
+// the home's run folder, or nowhere when there is no home.
+func screenshotsFolder(home contract.Home) string {
+	if home.Root == "" {
+		return ""
+	}
+	return filepath.Join(home.Root, "run", "screenshots")
 }

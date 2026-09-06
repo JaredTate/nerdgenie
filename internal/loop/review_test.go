@@ -1,6 +1,7 @@
 package loop_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -187,5 +188,47 @@ func TestASkillTheUserRefusesIsNotSaved(t *testing.T) {
 	}
 	if len(factsIn(t, built)) != 1 {
 		t.Error("the lesson itself was not kept as a fact, and every fourth answer is")
+	}
+}
+
+// TestAReviewWhoseFactCannotBeSavedStillEndsTheTaskDone is the nightly
+// game build of 6 September at 03:48: the review of the job's first task
+// tried to save what it taught us under the id "review-task-6", memory
+// already held a fact under that id from an earlier run whose persona files
+// the run had copied, the save was refused, and the refusal ended the task
+// with an error, so the job never got its report and never marked the task.
+// A lesson that cannot be kept costs the lesson and nothing more: the task
+// ends the way it was ending, and the review's id never collides, because it
+// carries the time the task was reviewed.
+func TestAReviewWhoseFactCannotBeSavedStillEndsTheTaskDone(t *testing.T) {
+	steps := append(closingScript("the notes are read"), aReviewReply("Keep the brand file check on every draft."))
+	built, _ := midTurnHarness(t, steps, "no, check the brand file first")
+	built.memory.Refuse(errors.New("the memory file cannot be written"))
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done: a lesson that cannot be kept costs the lesson and nothing more. %s", outcome.Status, outcome.Report)
+	}
+}
+
+// TestTheReviewsOfTwoTasksNeverShareAnId holds the second half: a run whose
+// memory already holds a review of task 1, copied from another home, keeps
+// the new review beside it under an id of its own.
+func TestTheReviewsOfTwoTasksNeverShareAnId(t *testing.T) {
+	steps := append(closingScript("the notes are read"), aReviewReply("Keep the brand file check on every draft."))
+	built, _ := midTurnHarness(t, steps, "no, check the brand file first")
+	if err := built.memory.Save(t.Context(), []contract.Fact{{ID: "review-task-1", Text: "an older run's lesson", Source: "task 1"}}); err != nil {
+		t.Fatalf("cannot seed the older lesson: %v", err)
+	}
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done: %s", outcome.Status, outcome.Report)
+	}
+	facts := factsIn(t, built)
+	if len(facts) != 2 || facts[1].Text != "Keep the brand file check on every draft." || facts[1].ID == facts[0].ID {
+		t.Errorf("memory holds %v, want the older lesson and the new one under an id of its own", facts)
 	}
 }

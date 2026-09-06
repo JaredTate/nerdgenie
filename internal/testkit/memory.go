@@ -15,6 +15,8 @@ import (
 type FakeMemory struct {
 	guard sync.Mutex
 	facts []contract.Fact
+	// refusal is the error every save fails with once a test put one down.
+	refusal error
 }
 
 // NewFakeMemory returns a memory holding the facts given.
@@ -56,17 +58,36 @@ func (memory *FakeMemory) Get(_ context.Context, id string) (contract.Fact, erro
 	return contract.Fact{}, fmt.Errorf("memory holds no fact with the id %q, so search for it instead", id)
 }
 
-// Save writes a batch of facts in one step, the way the real memory does.
+// Save writes a batch of facts in one step, the way the real memory does: a
+// fact with no text is refused, an id memory already holds is refused with
+// the real memory's words, and a refusal a test put down with Refuse comes
+// back for every save.
 func (memory *FakeMemory) Save(_ context.Context, facts []contract.Fact) error {
+	memory.guard.Lock()
+	defer memory.guard.Unlock()
+	if memory.refusal != nil {
+		return memory.refusal
+	}
 	for _, fact := range facts {
 		if fact.Text == "" {
 			return fmt.Errorf("the fact %q has no text, so give every fact something to say", fact.ID)
 		}
+		for _, held := range memory.facts {
+			if fact.ID != "" && held.ID == fact.ID {
+				return fmt.Errorf("memory already holds a fact with the id %q, so supersede it instead of writing over it", fact.ID)
+			}
+		}
 	}
-	memory.guard.Lock()
-	defer memory.guard.Unlock()
 	memory.facts = append(memory.facts, facts...)
 	return nil
+}
+
+// Refuse makes every save from now on fail with the error given, the way a
+// memory whose file cannot be written does.
+func (memory *FakeMemory) Refuse(err error) {
+	memory.guard.Lock()
+	defer memory.guard.Unlock()
+	memory.refusal = err
 }
 
 // Hint returns up to three lines for the end of the prompt, and nothing at all

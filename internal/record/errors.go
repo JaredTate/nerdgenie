@@ -66,6 +66,10 @@ var (
 	ErrAskIsElsewhere = errors.New("the checkpoint that carries the user's ask was not read, so read the whole log of this record")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
+	// ErrStepAlreadyDone says the plan step is marked done already, so the
+	// model should move to the next one rather than mark this one again: the
+	// fifth game build's play-test task marked one step four times running.
+	ErrStepAlreadyDone = errors.New("that plan step is already marked done, so go on to the next step waiting")
 	// ErrFailureAlreadyWritten says the lesson is on the record already: a
 	// failure written twice teaches nothing twice and costs the context every
 	// round after, and the fifth game build's play-test task wrote one ten

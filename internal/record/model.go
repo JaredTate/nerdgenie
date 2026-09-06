@@ -382,7 +382,22 @@ func applyStepDone(into *contract.Record, update Update) error {
 	if into.Header.Kind != contract.RecordTask {
 		return fmt.Errorf("a plan step belongs to a task and this is a %s, which has a task list: %w", into.Header.Kind, ErrWrongKind)
 	}
-	return markStep(into, update.StepDone.Number, update.StepDone.ResultID)
+	number := update.StepDone.Number
+	if number >= 1 && number <= len(into.Work.Plan) && into.Work.Plan[number-1].Done {
+		return fmt.Errorf("step %d is already done, by %s; %s: %w", number, into.Work.Plan[number-1].ResultID, theNextStepWaiting(into), ErrStepAlreadyDone)
+	}
+	return markStep(into, number, update.StepDone.ResultID)
+}
+
+// theNextStepWaiting names the first plan step not yet done, or says every
+// step is done.
+func theNextStepWaiting(into *contract.Record) string {
+	for index, step := range into.Work.Plan {
+		if !step.Done {
+			return fmt.Sprintf("the next step waiting is step %d", index+1)
+		}
+	}
+	return "every step is done"
 }
 
 // markStep is the check mark itself, shared by the model's step_done and the

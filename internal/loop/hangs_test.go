@@ -154,14 +154,15 @@ func writeFile(t *testing.T, path string, text string) {
 	}
 }
 
-// TestAPickedUpTaskRemembersTheHungPageFromTheLog is the fourth sitting of the
-// fifth game build's play-test task: the click before the put-down had listed
-// the marked loop, the pick-up started with an empty browser line because the
-// fact lived in memory, and the model re-read the old result four times and
-// went back to the sound engine. What the newest browser result in the log
-// says, the page and its marked loop, is the situation's browser line from the
-// first round of the pick-up.
-func TestAPickedUpTaskRemembersTheHungPageFromTheLog(t *testing.T) {
+// theInterruptedOpenMessage is what the browser tool says when the page opened
+// again hangs the same way and the open times out: the page is still hung,
+// and the marked loop is still the thing to fix.
+const theInterruptedOpenMessage = "cannot open the page http://localhost:8091/index.html?fresh=1: the browser was interrupted during open and will be started again on the next call: Chrome stopped working: page.goto: Timeout 30000ms exceeded."
+
+// TestAPageThatAnswersAgainClearsTheHungLine is the other side: once a
+// browser result carries the page again, the page answered, and the line
+// goes back to saying where the browser is.
+func TestAPageThatAnswersAgainClearsTheHungLine(t *testing.T) {
 	server := aServedGame(t)
 	address := server.URL + "/index.html"
 	opened := "Tater Tots Tetris\n" + address + "\ntab t1\ne3 button \"START GAME\"\n"
@@ -169,10 +170,42 @@ func TestAPickedUpTaskRemembersTheHungPageFromTheLog(t *testing.T) {
 		callStep("I will open the game and click Start.",
 			callFor("c1", "browser_open", `{"url":"`+address+`","intent":"open the game"}`),
 			callFor("c2", "browser_click", `{"element":"e3","expectation":"the game starts"}`)),
+		callStep("I will read the page again.", callFor("c3", "browser_read", `{"intent":"see the page"}`)),
+		answerStep("The page answers again. What changed: nothing. What I checked: the page. What is left: the fix."),
+	}, scriptedTool("browser_open", opened), scriptedTool("browser_click", theHungPageMessage), scriptedTool("browser_read", opened))
+
+	built.ask(t, "play-test the game")
+
+	requests := built.model.Requests()
+	shown := wholeRequestText(requests[len(requests)-1])
+	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]
+	if strings.Contains(situation, loop.TheHungPageFact) || !strings.Contains(situation, "browser: Tater Tots Tetris") {
+		t.Errorf("after the page answered again the situation still says it hangs, or does not say where the browser is:\n%s", situation)
+	}
+}
+
+// TestAPickedUpTaskRemembersTheHungPageFromTheLog is the fourth sitting of the
+// fifth game build's play-test task: the click before the put-down had listed
+// the marked loop, the pick-up started with an empty browser line because the
+// fact lived in memory, and the model re-read the old result four times and
+// went back to the sound engine. What the browser results in the log say, the
+// page and its marked loop, is the situation's browser line from the first
+// round of the pick-up; and an open that failed after the hung click, because
+// the page still hangs, does not take the marked loop off the line, which the
+// fifth sitting proved when it did.
+func TestAPickedUpTaskRemembersTheHungPageFromTheLog(t *testing.T) {
+	server := aServedGame(t)
+	address := server.URL + "/index.html"
+	opened := "Tater Tots Tetris\n" + address + "\ntab t1\ne3 button \"START GAME\"\n"
+	built := newHarness(t, []testkit.Step{
+		callStep("I will open the game, click Start, and open it again.",
+			callFor("c1", "browser_open", `{"url":"`+address+`","intent":"open the game"}`),
+			callFor("c2", "browser_click", `{"element":"e3","expectation":"the game starts"}`),
+			callFor("c2b", "browser_open", `{"url":"`+address+`?fresh=1","intent":"open the game again"}`)),
 		answerStep("The budget is spent. What changed: nothing. What I checked: the click. What is left: the fix."),
 		callStep("I will read the script.", callFor("c3", contract.ToolRead, `{"path":"main.js"}`)),
 		answerStep("The page hangs in the ghost loop. What changed: nothing. What I checked: the loops. What is left: the fix."),
-	}, scriptedTool("browser_open", opened), scriptedTool("browser_click", theHungPageMessage), scriptedTool(contract.ToolRead, "1: while (x) {}"))
+	}, scriptedTool("browser_open", opened, theInterruptedOpenMessage), scriptedTool("browser_click", theHungPageMessage), scriptedTool(contract.ToolRead, "1: while (x) {}"))
 
 	first := built.task("play-test the game")
 	first.Budget = theOneRoundBudget

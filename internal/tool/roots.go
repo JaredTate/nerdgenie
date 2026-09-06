@@ -38,6 +38,7 @@ func NewPathCheck(roots []string, userHome string, agentHome string, alsoOutside
 		}
 	}
 	excluded := contract.ExcludedFromSandbox(userHome, agentHome, alsoOutside...)
+	handedOut := FoldersTheHarnessHandsOut(agentHome)
 
 	return func(path string) (string, error) {
 		wanted, err := wholePath(path)
@@ -48,6 +49,9 @@ func NewPathCheck(roots []string, userHome string, agentHome string, alsoOutside
 			return "", fmt.Errorf("no folder is configured for the agent to work in, so add one to sandbox_roots in config.toml before asking for %s", wanted)
 		}
 		resolved := resolveLinks(wanted)
+		if insideOne(resolved, handedOut) == nil {
+			return resolved, hasOneNameOnly(resolved)
+		}
 		if err := insideOne(resolved, cleanRoots); err != nil {
 			return "", err
 		}
@@ -76,6 +80,7 @@ func NewPathCheck(roots []string, userHome string, agentHome string, alsoOutside
 // link has no target to follow and its other name may be the vault itself.
 func NewOpenPathCheck(userHome string, agentHome string, alsoOutside ...string) PathCheck {
 	excluded := contract.ExcludedFromSandbox(userHome, agentHome, alsoOutside...)
+	handedOut := FoldersTheHarnessHandsOut(agentHome)
 
 	return func(path string) (string, error) {
 		wanted, err := wholePath(path)
@@ -83,6 +88,9 @@ func NewOpenPathCheck(userHome string, agentHome string, alsoOutside ...string) 
 			return "", err
 		}
 		resolved := resolveLinks(wanted)
+		if insideOne(resolved, handedOut) == nil {
+			return resolved, hasOneNameOnly(resolved)
+		}
 		if err := outsideEvery(resolved, excluded); err != nil {
 			return "", err
 		}
@@ -181,4 +189,17 @@ func reversed(parts []string) []string {
 		back = append(back, parts[at])
 	}
 	return back
+}
+
+// FoldersTheHarnessHandsOut are the folders under the agent's home whose paths
+// the harness itself puts in front of the model, the spill of a long result
+// and the screenshots the computer tool saves, so a read of one is allowed
+// inside the fence and out of it while the rest of the home stays refused.
+// The fifth game build's visual QA task was refused the spill file its own
+// result named, and then the screenshot it had just been told was saved.
+func FoldersTheHarnessHandsOut(agentHome string) []string {
+	if agentHome == "" {
+		return nil
+	}
+	return []string{filepath.Join(agentHome, "run", "spill"), filepath.Join(agentHome, "run", "screenshots")}
 }

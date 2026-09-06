@@ -299,3 +299,67 @@ func TestTheNudgeAfterAFreshFailureAsksForAChangeAndNoMoreFailures(t *testing.T)
 		t.Errorf("the plain stall line, which asks for a failure to be written, was said %d times after one had just been written", count)
 	}
 }
+
+// TestReadingANewPartOfTheSameFileIsProgress is the twelfth nightly run's
+// engine task at round sixty-six: with two tests left red it read its
+// five-hundred-line engine in eighty-line windows, each a part it had not
+// read before, and the meter counted the file once, so it cleared the
+// conversation in the middle of the search and started counting again on
+// the same reads. A window of a file the task has not read is a look at
+// something new.
+func TestReadingANewPartOfTheSameFileIsProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		steps = append(steps, callStep("I will read the next part.", callFor(fmt.Sprintf("w%d", at), contract.ToolRead,
+			fmt.Sprintf(`{"path":"/game/src/core.js","offset":%d,"limit":80}`, at*80))))
+		answers = append(answers, fmt.Sprintf("%d: // part %d of the engine", at*80, at))
+	}
+	steps = append(steps, answerStep("The engine is read. What changed: nothing. What I checked: the engine. What is left: nothing."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolRead, answers...))
+
+	built.ask(t, "find the bug in the engine")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the stall line was said %d times over twelve reads of a file, each of a part not read before", count)
+	}
+}
+
+// TestAShellResultThatSaysSomethingNewIsProgress is the same task's other
+// half: between the reads it probed the engine with small node scripts and
+// searched it with grep, each printing something the task had not seen, and
+// none of it counted. A shell result that says something this task has not
+// seen before is a look at something new; the same result again is not.
+func TestAShellResultThatSaysSomethingNewIsProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		steps = append(steps, callStep("I will probe the engine.", callFor(fmt.Sprintf("p%d", at), contract.ToolShell,
+			fmt.Sprintf(`{"command":"node -e \"console.log(probe(%d))\""}`, at))))
+		answers = append(answers, fmt.Sprintf("finished with exit code 0\nprobe %d says %d\nexit 0", at, at*7))
+	}
+	steps = append(steps, answerStep("The engine is probed. What changed: nothing. What I checked: the engine. What is left: nothing."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolShell, answers...))
+
+	built.ask(t, "find the bug in the engine")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the stall line was said %d times over twelve probes that each printed something new", count)
+	}
+
+	same := []testkit.Step{}
+	sameAnswers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		same = append(same, callStep("I will list the folder.", callFor(fmt.Sprintf("l%d", at), contract.ToolShell,
+			fmt.Sprintf(`{"command":"ls src/ # %d"}`, at))))
+		sameAnswers = append(sameAnswers, "finished with exit code 0\ncore.js\nexit 0")
+	}
+	same = append(same, answerStep("The folder is listed. What changed: nothing. What I checked: the folder. What is left: nothing."))
+	stuck := newHarness(t, same, scriptedTool(contract.ToolShell, sameAnswers...))
+
+	stuck.ask(t, "find the bug in the engine")
+
+	if _, count := requestsCarrying(stuck, loop.TheStallLine); count == 0 {
+		t.Error("twelve listings that each printed the same thing never drew the stall line")
+	}
+}

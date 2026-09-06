@@ -76,3 +76,69 @@ func TestTheDescriptionFitsInTheCap(t *testing.T) {
 		t.Errorf("the description is %d words, and the cap is %d", words, contract.MaxToolDescriptionWords)
 	}
 }
+
+// TestTheRefusalsSayWhatToDo holds the three ways a call is refused: no
+// intent, arguments that are not JSON, and no browser wired in.
+func TestTheRefusalsSayWhatToDo(t *testing.T) {
+	tool, _ := newTool(t)
+	if _, err := run(t, tool, map[string]any{"intent": "  "}); err == nil || !strings.Contains(err.Error(), "names no intent") {
+		t.Errorf("a call with no intent gave %v, want a refusal asking for one", err)
+	}
+	if _, err := tool.Run(context.Background(), json.RawMessage(`{"intent":`)); err == nil || !strings.Contains(err.Error(), "could not be read") {
+		t.Errorf("unreadable arguments gave %v, want a refusal saying so", err)
+	}
+	unwired := browsershot.New(browsershot.Settings{})
+	if _, err := run(t, unwired, map[string]any{"intent": "see the page"}); err == nil || !strings.Contains(err.Error(), "no browser is wired") {
+		t.Errorf("a tool with no browser gave %v, want a refusal saying so", err)
+	}
+}
+
+// TestAScreenshotWithNowhereToSaveStillHandsThePictureBack keeps the picture
+// when no folder was given, and says the page has nothing to click when it
+// has not.
+func TestAScreenshotWithNowhereToSaveStillHandsThePictureBack(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	if _, err := worker.Open(context.Background(), testkit.FixtureSimplePage); err != nil {
+		t.Fatalf("cannot open the fixture page: %v", err)
+	}
+	tool := browsershot.New(browsershot.Settings{Browser: worker})
+
+	output, err := run(t, tool, map[string]any{"intent": "see the page"})
+	if err != nil {
+		t.Fatalf("taking the screenshot failed: %v", err)
+	}
+	if output.Picture == "" || strings.Contains(output.Text, browsershot.ThePictureIsSavedAt) {
+		t.Errorf("with nowhere to save, the answer reads:\n%s\nand carries a picture: %v", output.Text, output.Picture != "")
+	}
+}
+
+// TestAScreenshotThatCannotBeTakenSaysSo passes the worker's own reason on.
+func TestAScreenshotThatCannotBeTakenSaysSo(t *testing.T) {
+	tool := browsershot.New(browsershot.Settings{Browser: testkit.NewFakeBrowserWorker()})
+	if _, err := run(t, tool, map[string]any{"intent": "see the page"}); err == nil || !strings.Contains(err.Error(), "cannot take a picture") {
+		t.Errorf("a screenshot with no page open gave %v, want a refusal saying the picture cannot be taken", err)
+	}
+}
+
+// TestAFolderThatCannotBeMadeCostsTheFileAndNotThePicture keeps the picture
+// when the screenshots folder cannot be made, which is what a folder path
+// that names a file does.
+func TestAFolderThatCannotBeMadeCostsTheFileAndNotThePicture(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	if _, err := worker.Open(context.Background(), testkit.FixtureSimplePage); err != nil {
+		t.Fatalf("cannot open the fixture page: %v", err)
+	}
+	file := filepath.Join(t.TempDir(), "not-a-folder")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatalf("cannot make the file: %v", err)
+	}
+	tool := browsershot.New(browsershot.Settings{Browser: worker, SavesTo: file})
+
+	output, err := run(t, tool, map[string]any{"intent": "see the page"})
+	if err != nil {
+		t.Fatalf("taking the screenshot failed: %v", err)
+	}
+	if output.Picture == "" || strings.Contains(output.Text, browsershot.ThePictureIsSavedAt) {
+		t.Errorf("with a folder that cannot be made, the answer reads:\n%s\nand carries a picture: %v", output.Text, output.Picture != "")
+	}
+}

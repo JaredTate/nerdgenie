@@ -176,11 +176,8 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 	case call.Name == contract.ToolShell:
 		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)
 	case call.Name == contract.ToolTask && !failed && fieldOfCall(call, "operation") == "failure":
-		running.changedSinceTheLastFailure = false
+		running.roundsSinceAFailureWrite = 0
 	case call.Name == contract.ToolWrite || call.Name == contract.ToolEdit:
-		if !failed {
-			running.changedSinceTheLastFailure = true
-		}
 		path := fieldOfCall(call, "path")
 		if path != "" && !slices.Contains(running.filesChanged, path) {
 			running.filesChanged = append(running.filesChanged, path)

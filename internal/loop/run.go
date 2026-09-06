@@ -61,12 +61,13 @@ type run struct {
 	// saidTheMarkHint says the one-time hint about marks on the first line
 	// was said.
 	saidTheMarkHint bool
-	// changedSinceTheLastFailure says a file was written or edited since the
-	// newest failure was written, which is what the nudge at ten rounds reads.
-	changedSinceTheLastFailure bool
-	commandFact                string
-	continuedFact              string
-	filesChanged               []string
+	// roundsSinceAFailureWrite counts the rounds since the model last wrote a
+	// failure, which is what the nudge at ten rounds reads; it starts high so
+	// that a task with no failure reads the plain stall line.
+	roundsSinceAFailureWrite int
+	commandFact              string
+	continuedFact            string
+	filesChanged             []string
 	// changedSinceTheLastRun names the files written or edited since the last
 	// test run, which are the cause a red run is written down with.
 	changedSinceTheLastRun []string
@@ -188,6 +189,8 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 		startedAt:     theLoop.options.Clock.Now(),
 		roundsAllowed: budgetRounds(task, theLoop.options.Caps),
 		timeAllowed:   budgetTime(task, theLoop.options.Caps),
+		// No failure has been written yet, so the first nudge is the plain one.
+		roundsSinceAFailureWrite: NudgeAfterRoundsWithoutProgress + 3,
 	}
 	if err := running.takeANumber(ctx); err != nil {
 		return nil, err

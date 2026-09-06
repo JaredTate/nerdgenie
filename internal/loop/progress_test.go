@@ -251,13 +251,13 @@ func TestTheNudgeNamesTheCauseAlreadyOnTheRecordWhenNothingWasChangedSince(t *te
 
 	built.ask(t, "make the tests pass")
 
-	first, _ := requestsCarrying(built, loop.TheCauseIsKnownLine)
+	first, _ := requestsCarrying(built, loop.TheStallLineAfterAFailure)
 	if first < 0 {
 		t.Fatalf("the nudge never said the cause was already on the record, and the model had written F1 with one and changed nothing since")
 	}
 	shown := wholeRequestText(built.model.Requests()[first])
 	if !strings.Contains(shown, "F1") || !strings.Contains(shown, "lockPiece routes every clear into beginLineClear") {
-		t.Errorf("the nudge does not name F1 and its cause:\n%s", shown[strings.Index(shown, loop.TheCauseIsKnownLine):])
+		t.Errorf("the nudge does not name F1 and its cause:\n%s", shown[strings.Index(shown, loop.TheStallLineAfterAFailure):])
 	}
 	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
 		t.Errorf("the plain stall line was said %d times as well, and one nudge is enough", count)

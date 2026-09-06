@@ -33,12 +33,14 @@ const (
 // rounds in which nothing the harness can measure moved.
 const TheStallLine = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read. Write what these rounds showed into the record as a failure with its cause, then take a different approach; more of the same will not move the count."
 
-// TheCauseIsKnownLine opens the nudge said instead of TheStallLine when the
-// record's newest failure already carries a cause and no file was changed
-// since it was written: the nightly game build at round fifty, and the
-// play-test task the night before, wrote the cause down naming the function
-// to change and then read and searched for ten rounds without touching it.
-const TheCauseIsKnownLine = "That is ten rounds of reading and searching with nothing changed, and the record already names the cause: "
+// TheStallLineAfterAFailure opens the nudge said instead of TheStallLine when
+// the model wrote a failure within the last ten rounds: the nightly game
+// build wrote its line-clear failure, was told by the stall line, which stays
+// in the window, to write what the rounds showed as a failure, and wrote the
+// same one six more times, each refused as already held, until the same-call
+// guard stopped the task. The nudge after a fresh failure names it, quotes its
+// cause, and asks for a change and no more failures.
+const TheStallLineAfterAFailure = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read, and the record already holds "
 
 // theToolsThatRead are the tools whose answer is new information when what
 // they are pointed at is new: a task that reads a different file every round
@@ -140,6 +142,7 @@ func onlyPolls(calls []contract.ToolCall) bool {
 func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []contract.ToolCall) (*Outcome, error) {
 	moved := running.progressThisRound || running.marksMade() > marksBefore
 	running.progressThisRound = false
+	running.roundsSinceAFailureWrite++
 	switch {
 	case moved:
 		running.roundsSinceProgress = 0
@@ -165,19 +168,26 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 }
 
 // theNudge is the line said at ten rounds without progress: the plain stall
-// line, or, when the record's newest failure carries a cause and nothing was
-// changed since it was written, the line that names that cause and says to
-// make the change it calls for.
+// line, which asks for a failure with its cause, or, when the model wrote a
+// failure within the last ten rounds, the line that names that failure,
+// quotes its cause, and asks for a change and no more failures.
 func (running *run) theNudge() string {
-	if running.keeper == nil || running.changedSinceTheLastFailure {
+	// A failure written within the ten rounds the meter counts, or the two
+	// before them, is a fresh one: the round it was written in and one round
+	// of reading something new both sit before the count.
+	if running.keeper == nil || running.roundsSinceAFailureWrite > NudgeAfterRoundsWithoutProgress+2 {
 		return TheStallLine
 	}
 	failures := running.keeper.Record().Lessons.Failures
-	if len(failures) == 0 || failures[len(failures)-1].Cause == "" {
+	if len(failures) == 0 {
 		return TheStallLine
 	}
 	newest := failures[len(failures)-1]
-	return TheCauseIsKnownLine + newest.ID + " says the cause is \"" + newest.Cause + "\". Make the change it calls for, in the file it names, and run the tests."
+	said := TheStallLineAfterAFailure + newest.ID
+	if newest.Cause != "" {
+		said += ", whose cause is \"" + newest.Cause + "\""
+	}
+	return said + ". Write no more failures: make the change it calls for, in the file it names, and run the tests."
 }
 
 // theProgressLine is the situation's line on the meter, and is empty while the

@@ -56,7 +56,11 @@ func looksLikeAProbe(call contract.ToolCall) bool {
 	if strings.HasPrefix(file, "/tmp/") {
 		return true
 	}
-	name := strings.ToLower(path.Base(file))
+	// A model puts an underscore or a dot in front of a file it means to hide
+	// or throw away, so the name is read past those marks: the fifth game
+	// build's play-test task named its probes _probe3.js, _probe4.js and so
+	// on, and the rule never saw them.
+	name := strings.TrimLeft(strings.ToLower(path.Base(file)), "_.")
 	for _, start := range theNamesOfAProbe {
 		if strings.HasPrefix(name, start) {
 			return true

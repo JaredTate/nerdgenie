@@ -85,3 +85,34 @@ func TestOrdinaryShellCallsAreNotProbes(t *testing.T) {
 		}
 	}
 }
+
+// TestAProbeNamedWithALeadingUnderscoreOrDotIsStillAProbe is what the fifth
+// game build's play-test task showed: its throwaway scripts were named
+// _probe3.js, _probe4.js and _probe5.js, and the rule looked at the start of
+// the name and saw an underscore. A name is read past the marks a model puts
+// in front of a file it means to hide.
+func TestAProbeNamedWithALeadingUnderscoreOrDotIsStillAProbe(t *testing.T) {
+	steps := []testkit.Step{}
+	names := []string{"test/_probe3.js", "test/_probe4.js", "test/.tmp-check.js", "test/__debug5.mjs", "test/_probe6.js"}
+	for at, name := range names {
+		steps = append(steps, callStep("One more look.", aProbe(at, name)))
+	}
+	steps = append(steps, answerStep("Checked. What changed: nothing. What I checked: the probes. What is left: nothing."))
+	outputs := []string{}
+	for at := range names {
+		outputs = append(outputs, "finished with exit code 0\n"+string(rune('0'+at)))
+	}
+	built := newHarness(t, steps, scriptedTool(contract.ToolShell, outputs...))
+
+	built.ask(t, "make the tests pass")
+
+	nudged := false
+	for _, request := range built.model.Requests() {
+		if strings.Contains(wholeRequestText(request), loop.TheProbeLine) {
+			nudged = true
+		}
+	}
+	if !nudged {
+		t.Errorf("five probes named with a leading underscore or dot were never counted, and a mark in front of a name hides nothing")
+	}
+}

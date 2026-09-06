@@ -71,31 +71,40 @@ func (running *run) writeSituation(ctx context.Context) error {
 // noteTheBrowserResult keeps what one browser result shows: the page's first
 // line as the situation's browser line, the marked loop of a hung page in its
 // place when there is one, and the page's address for the reading of its
-// scripts.
+// scripts. A hung page's line stands until a result carries a page again,
+// because an open or a click that fails after the hang is the same hang: the
+// fifth sitting lost the marked loop to "cannot open the page" and went back
+// to re-reading.
 func (running *run) noteTheBrowserResult(text string) {
-	if first := firstLine(text); first != "" {
-		running.browserFact = "browser: " + first
-	}
-	if marked := theMarkedLoopIn(text); marked != "" {
+	marked, address := theMarkedLoopIn(text), addressIn(text)
+	switch {
+	case marked != "":
 		running.browserFact = TheHungPageFact + marked
+	case strings.HasPrefix(running.browserFact, TheHungPageFact) && address == "":
+		// The page is still hung, and the loop is still the thing to fix.
+	default:
+		if first := firstLine(text); first != "" {
+			running.browserFact = "browser: " + first
+		}
 	}
-	if address := addressIn(text); address != "" {
+	if address != "" {
 		running.pageAddress = address
 	}
 }
 
 // takeTheBrowserFactBackFromTheLog gives a picked-up task the page it was on
-// and, when the page hung, its marked loop, from the newest browser result the
-// log holds under it. The fourth sitting of the fifth game build's play-test
-// task started with an empty browser line because the fact lived in memory,
-// and the model re-read the old result four times. A log that cannot be read
-// costs the situation one line and nothing more.
+// and, when the page hung, its marked loop, by reading every browser result
+// the log holds under it in order, the way the sittings before it read them.
+// The fourth sitting of the fifth game build's play-test task started with an
+// empty browser line because the fact lived in memory, and the model re-read
+// the old result four times. A log that cannot be read costs the situation
+// one line and nothing more.
 func (running *run) takeTheBrowserFactBackFromTheLog(ctx context.Context) {
 	events, err := running.theLoop.options.Store.ByTask(ctx, running.keeper.LogKey())
 	if err != nil {
 		return
 	}
-	newest, lastCall := "", ""
+	lastCall := ""
 	for _, event := range events {
 		switch event.Kind {
 		case contract.EventToolCall:
@@ -109,12 +118,9 @@ func (running *run) takeTheBrowserFactBackFromTheLog(ctx context.Context) {
 			}
 			result := record.StoredResult{}
 			if err := json.Unmarshal(event.Body, &result); err == nil && result.Text != "" {
-				newest = result.Text
+				running.noteTheBrowserResult(result.Text)
 			}
 		}
-	}
-	if newest != "" {
-		running.noteTheBrowserResult(newest)
 	}
 }
 

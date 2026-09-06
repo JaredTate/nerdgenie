@@ -154,3 +154,43 @@ func TestPollingALongCommandIsNotARoundWithoutProgress(t *testing.T) {
 		t.Errorf("the stall line was said %d times while a build was polled, and waiting is not a stall", count)
 	}
 }
+
+// TestAskingThePageSomethingNewIsProgress is the fifth game build's play-test
+// once its fix landed: twelve rounds of browser_read with a different ask each
+// time, moving the piece, dropping it, pausing, restarting and forcing the
+// dragon, every one answered with new state, and the meter read "rounds since
+// progress: 12" because a browser read was not on its list of reads. A read
+// of the page with a new intent is a read of something new; the same intent
+// again is not.
+func TestAskingThePageSomethingNewIsProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		steps = append(steps, callStep("I will ask the page.", callFor(fmt.Sprintf("a%d", at), "browser_read",
+			fmt.Sprintf(`{"intent":"check the state after move %d","ask":"window.__engine.state"}`, at))))
+		answers = append(answers, fmt.Sprintf("Tater Tots Tetris\nhttp://localhost:8091/\nthe page answered: \"move %d\"\n", at))
+	}
+	steps = append(steps, answerStep("The page moved. What changed: nothing. What I checked: the state. What is left: nothing."))
+	built := newHarness(t, steps, scriptedTool("browser_read", answers...))
+
+	built.ask(t, "play-test the game")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the stall line was said %d times over twelve reads of the page that each asked something new", count)
+	}
+
+	same := []testkit.Step{}
+	sameAnswers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		same = append(same, callStep("I will read the page.", callFor(fmt.Sprintf("s%d", at), "browser_read", `{"intent":"read the page"}`)))
+		sameAnswers = append(sameAnswers, "Tater Tots Tetris\nhttp://localhost:8091/\ne1 heading\n")
+	}
+	same = append(same, answerStep("The page is the same. What changed: nothing. What I checked: the page. What is left: nothing."))
+	stuck := newHarness(t, same, scriptedTool("browser_read", sameAnswers...))
+
+	stuck.ask(t, "play-test the game")
+
+	if _, count := requestsCarrying(stuck, loop.TheStallLine); count == 0 {
+		t.Error("twelve reads of the same page with the same intent never drew the stall line")
+	}
+}

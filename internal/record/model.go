@@ -407,6 +407,11 @@ func applyFailure(into *contract.Record, update Update) error {
 	if update.Failure.Cause == "" {
 		return fmt.Errorf("the failure %q carries no cause: %w", update.Failure.Text, ErrFailureNeedsCause)
 	}
+	for _, held := range into.Lessons.Failures {
+		if saysTheSame(update.Failure.Text, held.Text) {
+			return fmt.Errorf("the failure %q says what %s already says: %w", update.Failure.Text, held.ID, ErrFailureAlreadyWritten)
+		}
+	}
 	into.Lessons.Failures = append(into.Lessons.Failures, contract.Failure{
 		ID:    contract.FailureID(len(into.Lessons.Failures) + 1),
 		Text:  update.Failure.Text,

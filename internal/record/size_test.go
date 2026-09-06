@@ -9,6 +9,19 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
+// theFillerFailures are eight failures that each say their own thing, because
+// a failure that says what one before it says is refused.
+var theFillerFailures = []string{
+	"the draft ran three hundred characters over the limit",
+	"the test for the empty board timed out after a minute",
+	"the page threw on load because the script tag came first",
+	"the server answered four hundred and four for main.js",
+	"the sound engine blocked the click handler on init",
+	"the ghost piece loop never advanced its cells downward",
+	"the rotation table held the wrong kicks for the I piece",
+	"the score line lost its digits when the level changed",
+}
+
 // TestEstimatesTokensFromWords proves the one ratio this package counts with.
 func TestEstimatesTokensFromWords(t *testing.T) {
 	cases := map[string]int{
@@ -154,14 +167,14 @@ func fillTheLessons(t *testing.T, keeper *Keeper) {
 			t.Fatalf("cannot add correction %d: %v", correction+1, err)
 		}
 	}
-	for lesson := range 8 {
+	for lesson := range len(theFillerFailures) {
 		update := Update{
 			Decision: &NewDecision{
 				Text:   fmt.Sprintf("decision %d, the choice made in about ten words", lesson+1),
 				Reason: fmt.Sprintf("the reason for decision %d, in about ten words", lesson+1),
 			},
 			Failure: &NewFailure{
-				Text:  fmt.Sprintf("failure %d, what went wrong in about ten words", lesson+1),
+				Text:  fmt.Sprintf("failure %d, %s", lesson+1, theFillerFailures[lesson]),
 				Cause: fmt.Sprintf("the cause of failure %d, in about ten words", lesson+1),
 			},
 		}

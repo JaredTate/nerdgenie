@@ -222,6 +222,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 - **A cancelled call never falls through the model chain.** Built; every stop used to write three lines of fallback noise.
 - **Vision.** The projector file this machine points at is a broken link into a removed Ollama store. It needs a download of the projector for this model and one flag on the daemon's start line, which is the owner's call, before the harness's image path is worth building.
 
+- Built after t8's second stop: a failure the record already holds is refused with the label of the one that says it (`ErrFailureAlreadyWritten`). Told "rounds since progress: 10", t8 answered by writing the same lesson ten times over as F8 to F16, each a little reworded, and carried all ten in every round after. Nearly the same words count as the same: four in five of the new failure's words already in the held one.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

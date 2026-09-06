@@ -66,6 +66,11 @@ var (
 	ErrAskIsElsewhere = errors.New("the checkpoint that carries the user's ask was not read, so read the whole log of this record")
 	// ErrNoSuchResult says the label names no result this record ever wrote.
 	ErrNoSuchResult = errors.New("no result with that label was written by this record, so check it against the result list")
+	// ErrFailureAlreadyWritten says the lesson is on the record already: a
+	// failure written twice teaches nothing twice and costs the context every
+	// round after, and the fifth game build's play-test task wrote one ten
+	// times over while it stalled.
+	ErrFailureAlreadyWritten = errors.New("the record already holds this failure, so act on it or move on rather than writing it again")
 	// ErrRecordTooLarge is the rule that a record stays small enough to sit in
 	// front of any model, which is what lets a task be put down and picked up on
 	// a smaller one days later. A record that grows past it is not a slow task

@@ -198,3 +198,28 @@ func TestAskingThePageSomethingNewIsProgress(t *testing.T) {
 		t.Error("twelve reads of the same page with the same intent never drew the stall line")
 	}
 }
+
+// TestTheFirstEditOfAFileIsProgress is the fifth game build's visual QA task:
+// it measured the layout at five sizes with a script of its own, edited the
+// stylesheet, measured again, and the meter read five rounds without
+// progress, because only a write of a new file counted and an edit of any
+// file did not. The first edit of a file the task has not changed before is
+// progress, the way the first read of a file is; the same file edited round
+// after round is not, which is the fourth build's stall and stays a stall.
+func TestTheFirstEditOfAFileIsProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		steps = append(steps, callStep("I will change the next file.", callFor(fmt.Sprintf("f%d", at), contract.ToolEdit,
+			fmt.Sprintf(`{"path":"/game/src/file%d.css","old":"a","new":"b"}`, at))))
+		answers = append(answers, fmt.Sprintf("edited /game/src/file%d.css by the exact matcher", at))
+	}
+	steps = append(steps, answerStep("Every file is changed. What changed: the styles. What I checked: the layout. What is left: nothing."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolEdit, answers...), scriptedTool(contract.ToolShell, "finished with exit code 0\nexit 0"))
+
+	built.ask(t, "fix the layout at every size")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the stall line was said %d times over twelve edits that each changed a file for the first time", count)
+	}
+}

@@ -360,3 +360,47 @@ func TestTheOperationsTheLoopAnswersAreNamedToTheModelAndRefusedHere(t *testing.
 		}
 	}
 }
+
+// TestAPinnedOrMarkedResultIsShownAsItsSummaryLine is the fifth game build's
+// play-test task after its fix landed: it pinned four done lines to r184 to
+// r187 and then read all four back, three rounds, to see what it had pinned,
+// and found that none of them proved anything. The answer to a pin, a done
+// list with results, or a step mark says what each named result is, in the
+// one line the record keeps for it, so the model sees its proof at once.
+func TestAPinnedOrMarkedResultIsShownAsItsSummaryLine(t *testing.T) {
+	tool, keeper := newTool(t)
+	if _, err := run(t, tool, map[string]any{
+		"operation": "done_when", "done_when": []any{map[string]any{"text": "the page answers a playing state"}},
+		"plan": []any{"open the page", "start the game"},
+	}); err != nil {
+		t.Fatalf("writing the done list and the plan failed: %v", err)
+	}
+	id, err := keeper.AddResult(context.Background(), "browser_read: Tater Tots Tetris, the page answered a NORMAL state", "the whole page")
+	if err != nil {
+		t.Fatalf("cannot add a result to the record: %v", err)
+	}
+
+	pinned, err := run(t, tool, map[string]any{"operation": "pin_result", "line": 1, "result": id})
+	if err != nil {
+		t.Fatalf("pinning a result failed: %v", err)
+	}
+	if !strings.Contains(pinned.Text, id+" says: browser_read: Tater Tots Tetris, the page answered a NORMAL state") {
+		t.Errorf("the answer to a pin does not say what %s is:\n%s", id, pinned.Text)
+	}
+	marked, err := run(t, tool, map[string]any{"operation": "step_done", "step": 2, "result": id})
+	if err != nil {
+		t.Fatalf("marking a step failed: %v", err)
+	}
+	if !strings.Contains(marked.Text, id+" says: browser_read: Tater Tots Tetris") {
+		t.Errorf("the answer to a step mark does not say what %s is:\n%s", id, marked.Text)
+	}
+	listed, err := run(t, tool, map[string]any{
+		"operation": "done_when", "done_when": []any{map[string]any{"text": "the page answers a playing state", "result": id}},
+	})
+	if err != nil {
+		t.Fatalf("writing the done list with a result failed: %v", err)
+	}
+	if !strings.Contains(listed.Text, id+" says: browser_read: Tater Tots Tetris") {
+		t.Errorf("the answer to a done list with a result does not say what %s is:\n%s", id, listed.Text)
+	}
+}

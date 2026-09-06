@@ -890,7 +890,12 @@ below eighty percent, gold from eighty, and red from ninety-five, and drawn only
 when the program sent both numbers; the second look, below, draws the same two
 numbers as a ten-cell meter with its own colours. While the state is thinking, the status strip
 counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
-`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count begins
+`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count is the
+deltas and what the provider says the model wrote that no delta shows, its
+thinking and its tool calls (`provider.Options.Unseen`, counted by the watched
+model's `countUnseen`), because the tenth nightly run's screen read
+`thinking · 21 s · 0 tokens` through two minutes of the local model writing a
+file; the count begins
 the moment the program reports the call rather than when the spinner is due, so
 it never blinks with the spinner's own delay and hold, and it goes the moment the
 state stops being thinking. A start time the screen cannot read is not counted
@@ -1250,7 +1255,16 @@ on is no evidence of what the click did: on that same build a click on "Start
 Game" that started nothing was judged to have met "the start menu closes" on the
 strength of the button's own name, so a click now names no aim and a click that
 changed nothing says so, while the box typing filled still counts, because the
-snapshot cannot show what it holds. `walls` reports a login form, a prompt for a
+snapshot cannot show what it holds. **A change in the page's text is a
+change.** The eleventh nightly run's page task wrote a counter, and every click
+on it went to 2: the diff knew a change only as a new element, address, title,
+dialog, tab, or download, so 0 becoming 1 was "nothing changed", the click was
+tried again at the element's place on the screen, and the model saw 2 for
+seventy-eight rounds. The diff now carries `newText`, the lines of the page's
+text that were not there before, at most twelve; a number is a meaningful word
+however short; a line that appeared is a place the expectation's words may
+match; and a verdict not met says "the text now says "1"" (`counter.html` in
+the fixtures, and the counter test in `actions.test.ts`). `walls` reports a login form, a prompt for a
 second code, or a captcha. `ask` answers a question about the page: the read
 method takes one expression of at most five hundred characters, evaluates it on
 the page under the scan's own deadline, and puts its value as JSON, cut to two

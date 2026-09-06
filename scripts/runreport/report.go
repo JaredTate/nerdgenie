@@ -30,6 +30,7 @@ type numbers struct {
 	failures         int
 	firstLineMarks   int
 	roundsAtTheCap   int
+	refusedByTool    map[string]int
 	// tasks is how many tasks the numbers cover: one, or a range from an
 	// ask's own task on when the ask became a job.
 	tasks int
@@ -51,7 +52,7 @@ func measureFrom(ctx context.Context, store contract.Store, from string) (number
 	if _, err := fmt.Sscanf(newest, "%d", &last); err != nil || last < first {
 		return numbers{}, fmt.Errorf("the log holds no task from %d on", first)
 	}
-	summed := numbers{taskID: from, callsByTool: map[string]int{}}
+	summed := numbers{taskID: from, callsByTool: map[string]int{}, refusedByTool: map[string]int{}}
 	for number := first; number <= last; number++ {
 		one, err := measure(ctx, store, fmt.Sprintf("%d", number))
 		if err != nil {
@@ -71,6 +72,9 @@ func measureFrom(ctx context.Context, store contract.Store, from string) (number
 		summed.failures += one.failures
 		summed.firstLineMarks += one.firstLineMarks
 		summed.roundsAtTheCap += one.roundsAtTheCap
+		for name, count := range one.refusedByTool {
+			summed.refusedByTool[name] += count
+		}
 		for name, count := range one.callsByTool {
 			summed.callsByTool[name] += count
 		}
@@ -115,7 +119,7 @@ func measure(ctx context.Context, store contract.Store, taskID string) (numbers,
 	if len(events) == 0 {
 		return numbers{}, fmt.Errorf("the log holds no events for task %s", taskID)
 	}
-	measured := numbers{taskID: taskID, callsByTool: map[string]int{}}
+	measured := numbers{taskID: taskID, callsByTool: map[string]int{}, refusedByTool: map[string]int{}}
 	var first, last time.Time
 	round := []contract.ToolCall{}
 	for _, event := range events {
@@ -134,6 +138,8 @@ func measure(ctx context.Context, store contract.Store, taskID string) (numbers,
 				round = append(round, call)
 				measured.callsByTool[call.Name]++
 			}
+		case contract.EventToolResult:
+			measured.countARefusal(event)
 		}
 	}
 	measured.countTheRound(round)
@@ -173,6 +179,23 @@ func (measured *numbers) readTheCheckpoint(event contract.Event) {
 		if strings.HasPrefix(failure.Text, "stalled:") {
 			measured.rewinds++
 		}
+	}
+}
+
+// theRefusalLine is how a refused call's result begins: the tool's name, then
+// "was refused".
+var theRefusalLine = regexp.MustCompile(`^(\S+) was refused`)
+
+// countARefusal counts a result that begins as a refusal against its tool.
+func (measured *numbers) countARefusal(event contract.Event) {
+	result := struct {
+		Summary string `json:"summary"`
+	}{}
+	if err := json.Unmarshal(event.Body, &result); err != nil {
+		return
+	}
+	if found := theRefusalLine.FindStringSubmatch(result.Summary); found != nil {
+		measured.refusedByTool[found[1]]++
 	}
 }
 
@@ -261,13 +284,22 @@ func (measured numbers) String() string {
 	if measured.rounds > 0 {
 		seconds = measured.minutes * 60 / float64(measured.rounds)
 	}
+	refused := make([]string, 0, len(measured.refusedByTool))
+	for _, name := range tools {
+		if count := measured.refusedByTool[name]; count > 0 {
+			refused = append(refused, fmt.Sprintf("%s %d", name, count))
+		}
+	}
+	if len(refused) == 0 {
+		refused = append(refused, "none")
+	}
 	return fmt.Sprintf("task %s: %s after %d rounds in %.0f minutes (%.0f s a round)\n"+
-		"calls: %d (%s); replies with more than one call: %d\n"+
+		"calls: %d (%s); replies with more than one call: %d; refused: %s\n"+
 		"rounds that only wrote the record: %d; rounds that only ran the tests: %d\n"+
 		"tokens: %.1fk in, %.1fk of them cached (%.0f%%), %.1fk out\n"+
 		"rewinds: %d; failures on the record: %d; marks made from the first line: %d; rounds cut off at the output cap: %d",
 		measured.taskID, measured.status, measured.rounds, measured.minutes, seconds,
-		calls, strings.Join(byTool, ", "), measured.repliesBatched,
+		calls, strings.Join(byTool, ", "), measured.repliesBatched, strings.Join(refused, ", "),
 		measured.recordOnlyRounds, measured.testOnlyRounds,
 		float64(measured.tokensIn)/1000, float64(measured.cachedIn)/1000, cache, float64(measured.tokensOut)/1000,
 		measured.rewinds, measured.failures, measured.firstLineMarks, measured.roundsAtTheCap)

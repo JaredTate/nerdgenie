@@ -550,6 +550,7 @@ internal/loop/donecheck.go
 internal/loop/donecheck_test.go
 internal/loop/donecommand_test.go
 internal/loop/endings.go
+internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go

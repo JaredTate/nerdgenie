@@ -340,6 +340,7 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	running.roundsUsed++
 	found := repair.Find(reply, running.specs(), running.failedParses)
 	running.orient(found.Text, reply.Text)
+	running.markFromTheFirstLine(ctx, running.lastOrient)
 	if err := running.writeCostAndBudget(ctx, reply.Usage); err != nil {
 		return Outcome{}, false, err
 	}

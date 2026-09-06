@@ -112,7 +112,7 @@ func instructionTextInTheDesign(t *testing.T) string {
 // its hazards and its UI with the plan standing at "0 of 9 done", because
 // nothing told the model to mark a step and nothing else ever did.
 func TestTheInstructionTextSaysToMarkEachPlanStepDone(t *testing.T) {
-	if !strings.Contains(InstructionText, "Mark each plan step done, with its result, when it is.") {
+	if !strings.Contains(InstructionText, "Mark each plan step done on your first line, as step 3 done: r41") {
 		t.Error("the instruction text does not tell the model to mark each plan step done as it goes")
 	}
 }

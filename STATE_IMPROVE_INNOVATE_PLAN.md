@@ -76,7 +76,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** A scripted write of a source file after one test run yields a result line carrying the fresh tests line; a reply whose first line says "step 2 done, r5" marks step 2 with r5, and one naming a result the record never wrote marks nothing and says so.
 
-**Cost.** The test suite's own run time, capped. **Risk.** A slow suite; the cap and a "tests skipped, suite too slow" line cover it. A model that writes "step 3 done" without a result gets the same refusal the tool gives. **Verdict.** Built, the first half: the tests run themselves after every write or edit once the model has run them once, and the instruction sentence says so. The step mark on the first line is not built yet.
+**Cost.** The test suite's own run time, capped. **Risk.** A slow suite; the cap and a "tests skipped, suite too slow" line cover it. A model that writes "step 3 done" without a result gets the same refusal the tool gives. **Verdict.** Built, both halves: the tests run themselves after every write or edit once the model has run them once, and a step or a done line marked on the reply's first line is marked with no call. The nightly set measures the second half's adoption.
 
 ### 2. A progress meter, and a ladder: nudge, rewind, stop
 
@@ -218,7 +218,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - **A command whose own process has ended but whose background child holds the output.** Twice tonight the model started a server with an ampersand and no redirect, the shell tool waited on a pipe the server held open, and three rounds went to polling and killing. The tool should say "the command finished; something it started still holds its output and is kept as p49". It needs the process id across the sandbox contract, so it waits for a quiet moment.
 - **The `ask` field on `browser_read` for local pages.** Built: one expression, answered as JSON on a page served from this machine or a file, refused anywhere else, with the browser skill telling the model to expose its app's state on `window` and ask.
-- **The step mark on the first line.** Idea 1's second half. Held back on purpose until the nightly set can measure whether a small model adopts it; the same model ignored the batching instruction for 150 rounds.
+- **The step mark on the first line.** Idea 1's second half. Built on the night of 6 September once the nightly set existed to measure it: "step 3 done: r41" and "line 2 done: r41" on the reply's first line mark the record with no call. Whether the local model adopts it is what the nightly run after says.
 - **A cut-off task ends stopped, not failed.** Built after the 20:33 restart abandoned ninety rounds of a play-test task's record: a shutdown or a turn limit now puts a job's task down with its record, and the next message picks it up.
 - **A cancelled call never falls through the model chain.** Built; every stop used to write three lines of fallback noise.
 - **Vision.** The projector file this machine points at is a broken link into a removed Ollama store. It needs a download of the projector for this model and one flag on the daemon's start line, which is the owner's call, before the harness's image path is worth building.

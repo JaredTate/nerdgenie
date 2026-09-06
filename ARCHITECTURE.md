@@ -336,7 +336,7 @@ shell tool and puts "parses" or "does not parse: <the checker's telling line>"
 on the change's own result, and a file that does not parse is not tested. The
 fifth game build's play-test task wrote a diagnostic script with an unbalanced
 bracket and ran it four times, reading "Unexpected token ']'" each time, five
-rounds on a mistake the checker finds in a tenth of a second. **And a hung
+rounds on a mistake the checker finds in a tenth of a second. **A mark rides on the first line** (`firstline.go`): the reply's first line already says where the work stands, and `markFromTheFirstLine` reads "step 3 done: r41" and "line 2 done: r41" off it and makes the marks through the record's own rules (`MarkPlanStep`, and the done list rewritten the way the task tool's pin rewrites it), so a step or a line is marked with no tool call and no round; a mark with no result gets `TheMarkNeedsAResult` on the next request, and one the record refuses gets the refusal. The instruction text says so in one sentence, trimmed under its five hundred words by dropping two that the tools already say. It was idea one's second half, held back until the nightly set could measure whether a small model adopts it: a fifth of all rounds in the fifth game build's last three tasks were lone step marks and pins. **And a hung
 page lists its loops** (`hangs.go`, `pagescripts.go`): when a browser result
 says the page's own script kept it busy, `listTheLoopsAfter` reads the page
 and the scripts it loads, and the modules those scripts import (`theImport`,

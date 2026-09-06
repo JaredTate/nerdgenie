@@ -236,3 +236,25 @@ func TestTheReviewsOfTwoTasksNeverShareAnId(t *testing.T) {
 		t.Errorf("memory holds %v, want the older lesson and the new one under an id of its own", facts)
 	}
 }
+
+// TestTheReviewKeepsTheAnswerAndNotAHeading is the eleventh nightly run's
+// memory, which held "**2. What actually happened?**" and "Why was there a
+// difference? - Let me look at the friction points:" as two of its lessons: a
+// model that writes each question as a heading over its answer puts the
+// fourth non-empty line on a heading. A heading, a question, or a line that
+// ends in a colon is not an answer, and the fourth answer is the fourth line
+// that is one.
+func TestTheReviewKeepsTheAnswerAndNotAHeading(t *testing.T) {
+	steps := append(closingScript("the notes are read"),
+		answerStep("**1. What was asked?**\nThe notes were to be read.\n**2. What actually happened?**\nThey were read.\n"+
+			"**3. Why was there a difference?**\nThere was none.\n**4. What do we keep, and what do we change?**\nKeep: read the notes before the brand file."))
+	built, _ := midTurnHarness(t, steps, "no, check the brand file first")
+	built.channel.AnswerPreviewsWith(contract.AnswerReject)
+
+	built.ask(t, "read the notes")
+
+	facts := factsIn(t, built)
+	if len(facts) != 1 || facts[0].Text != "Keep: read the notes before the brand file." {
+		t.Errorf("the memory holds %+v, want the one answer to the fourth question and no heading", facts)
+	}
+}

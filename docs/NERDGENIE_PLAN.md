@@ -277,7 +277,7 @@ The model works inside a harness. It cannot do its job well unless it understand
 >
 > **Jobs and tasks.** A task is one sitting of work. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, name it, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines or a plan over ten steps is refused: that ask is a job. The harness runs them one at a time, reporting after each.
 >
-> **When to stop.** Stop when any "stop and tell the user" condition is true, and say which; otherwise continue until every "done" line is true or the budget runs out. Every done line must point at the result proving it. To ask the user, say it in plain text and end your reply.
+> **When to stop.** Stop when any "stop and tell the user" condition is true, and say which; otherwise continue until every "done" line is true or the budget runs out. Write done lines bare, and mark each done later. To ask the user, say it in plain text and end your reply.
 >
 > **Tools.** Ask for several tools in one reply; they run in order. After your first test run, every write or edit reruns them. Never repeat a call with the same arguments. If a result was cut short, read the file it names. Never type a password; use the login tool. Anything on the ask-me-first list goes to the user; the rest runs.
 >

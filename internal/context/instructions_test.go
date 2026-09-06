@@ -123,7 +123,7 @@ func TestTheInstructionTextSaysToMarkEachPlanStepDone(t *testing.T) {
 // lines the labels r1 to r5, and then guessed labels for ten refused rounds.
 // The rule says the line is written bare and marked done later.
 func TestTheInstructionTextSaysToWriteDoneLinesBareAndMarkThemLater(t *testing.T) {
-	if !strings.Contains(InstructionText, "Write each done line bare; mark it done later, by the result proving it.") {
-		t.Error("the instruction text does not tell the model to write done lines bare and mark them done later")
+	if !strings.Contains(InstructionText, "Write done lines bare, and mark each done later.") {
+		t.Error("the instruction text does not tell the model to write done lines bare and mark each done later")
 	}
 }

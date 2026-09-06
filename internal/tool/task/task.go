@@ -119,7 +119,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Fields: []contract.ToolField{
 			{Name: "operation", Type: "string", Description: "One of why, done_when, stop_when, plan, decision, failure, pin_result, step_done; or stop_now, pin_evidence, unpin_evidence, which the harness answers at once.", Required: true},
 			{Name: "why", Type: "string", Description: "The one line on why the user wants this, written once (the text field is taken for it too)."},
-			{Name: "done_when", Type: "array", Description: "The whole done list, at most five lines: each line as a string, or as an object with text, done, and the result that proves it; a line only your answer to the user can prove names \"reply\" as its result. More than five lines is a job."},
+			{Name: "done_when", Type: "array", Description: "The whole done list, at most five lines, each a plain string; its proof is pinned later with pin_result, once a result you hold proves it. A line only your answer to the user can prove is an object with text and the result \"reply\". More than five lines is a job."},
 			{Name: "stop_when", Type: "array", Description: "The whole stop list, one line each."},
 			{Name: "plan", Type: "array", Description: "The whole plan, one line per step, in order."},
 			{Name: "text", Type: "string", Description: "The choice, or the thing that went wrong."},

@@ -136,7 +136,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** It is the test.
 
-**Cost.** One card for an hour a night. **Risk.** The set drifts toward what passes; every live failure goes in. **Verdict.** Built: `scripts/runreport` prints one task's numbers off the log, `docs/PROGRESS.md` carries run 5 task by task, and `scripts/nightly` holds four asks with a check each and the runner (`make nightly`), with the Tetris build as the optional fifth. Not yet run, because the daemon has one slot and run 5 holds it.
+**Cost.** One card for an hour a night. **Risk.** The set drifts toward what passes; every live failure goes in. **Verdict.** Built: `scripts/runreport` prints one task's numbers off the log, `docs/PROGRESS.md` carries run 5 task by task, and `scripts/nightly` holds four asks with a check each and the runner (`make nightly`), with the Tetris build as the optional fifth. Run at 00:27 on 6 September once run 5 had closed: four of four checks passed in seven minutes (`docs/nightly/2026-09-06.md`).
 
 ### 7. Put what matters last, and the cost line first
 

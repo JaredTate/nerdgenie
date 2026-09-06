@@ -5,6 +5,7 @@
  * decides what a request means lives here, which is what lets a test drive the
  * whole worker in one process and still exercise the same code the Go side does.
  */
+import { askThePage } from "./ask.js";
 import { asWorkerError, chromeDied } from "./errors.js";
 import { watchWhatThePersonDoes, type ReportEvent } from "./events.js";
 import { launchChrome, type RunningChrome } from "./chrome.js";
@@ -35,6 +36,8 @@ export interface WorkerOptions {
    * shell writes it to standard output as a notification; a test collects it.
    */
   onEvent?: ReportEvent | undefined;
+  /** A deadline for a method, over the built-in table. Only the tests ask for this. */
+  deadlines?: Partial<Record<string, number>> | undefined;
 }
 
 /** A running worker. */
@@ -49,30 +52,62 @@ export interface BrowserWorker {
   session: Session;
 }
 
-/** Run something, but give up after the deadline for its method. */
-async function withDeadline<T>(method: string, work: Promise<T>): Promise<T> {
-  const limit = METHOD_DEADLINE_MS[method] ?? 30_000;
+/** What the model is told when a method ran out of time and the browser is started again. */
+function hungMessage(method: string, afterMs: number): string {
+  return (
+    `the ${method} method was still running after ${afterMs} milliseconds, so the browser is started again. ` +
+    "If this is a page you are building, the page's own script is the likely cause: code that does not yield, " +
+    "such as an endless loop that starts on this action, keeps the page from answering anything. Look in the code this action runs, " +
+    "including what it draws, for a while or a for whose condition never changes, and fix the script before opening the page again."
+  );
+}
+
+/** Wait for the work, or for the alarm, whichever comes first. */
+async function untilTheAlarm<T>(
+  work: Promise<T>,
+  limit: number,
+): Promise<{ finished: true; value: T } | { finished: false }> {
   let timer: NodeJS.Timeout | undefined;
-  const alarm = new Promise<never>((_, ringing) => {
-    timer = setTimeout(
-      () =>
-        ringing(
-          chromeDied(
-            `the ${method} method was still running after ${limit} milliseconds, so the browser is started again. ` +
-              "If this is a page you are building, the page's own script is the likely cause: code that does not yield, " +
-              "such as an endless loop that starts on this action, keeps the page from answering anything. Look in the code this action runs, " +
-              "including what it draws, for a while or a for whose condition never changes, and fix the script before opening the page again.",
-          ),
-        ),
-      limit,
-    );
+  const alarm = new Promise<{ finished: false }>((resolve) => {
+    timer = setTimeout(() => resolve({ finished: false }), limit);
     timer.unref();
   });
   try {
-    return await Promise.race([work, alarm]);
+    return await Promise.race([work.then((value) => ({ finished: true as const, value })), alarm]);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Run something, but give up after the deadline for its method.
+ *
+ * A page that still answers when the deadline rings is alive, only slow: a game
+ * drawing sixty frames a second makes every look at the page slow, and a click
+ * on it with human pacing, two looks and a second click ran past twenty-five
+ * seconds on the fresh Tetris build. Such a page gets the same time again. A
+ * page that cannot answer is hung, and a new browser is the only way out.
+ */
+async function withDeadline<T>(
+  method: string,
+  limit: number,
+  work: Promise<T>,
+  pageStillAnswers: () => Promise<boolean>,
+  log: Logger,
+): Promise<T> {
+  const first = await untilTheAlarm(work, limit);
+  if (first.finished) {
+    return first.value;
+  }
+  if (!(await pageStillAnswers())) {
+    throw chromeDied(hungMessage(method, limit));
+  }
+  log(`the ${method} method has run for ${limit} milliseconds, but the page still answers, so the worker waits as long again.`);
+  const second = await untilTheAlarm(work, limit);
+  if (second.finished) {
+    return second.value;
+  }
+  throw chromeDied(hungMessage(method, 2 * limit));
 }
 
 /** Launch Chrome, attach to it, and hand back a worker that answers requests. */
@@ -99,15 +134,21 @@ export async function startWorker(options: WorkerOptions): Promise<BrowserWorker
   // true here as well, so two requests can never share a page halfway through.
   let inLine: Promise<unknown> = Promise.resolve();
 
+  async function pageStillAnswers(): Promise<boolean> {
+    const page = session.currentPageOrNone();
+    return page !== undefined && (await askThePage(page, "1")) === "1";
+  }
+
   async function answer(request: WorkerRequest): Promise<JsonRpcResponse> {
     if (!chrome.isAlive()) {
       return responseForError(request.id, chromeDied("the browser window is gone."));
     }
+    const limit = options.deadlines?.[request.method] ?? METHOD_DEADLINE_MS[request.method] ?? 30_000;
     // Everything that happens on the page from here until the answer is the
     // worker's own doing, and none of it is reported as something the person did.
     session.startedWorking();
     try {
-      const result = await withDeadline(request.method, runMethod(session, request));
+      const result = await withDeadline(request.method, limit, runMethod(session, request), pageStillAnswers, log);
       return successResponse(request.id, result);
     } catch (problem) {
       const failure = asWorkerError(problem);

@@ -42,3 +42,29 @@ describe("a page whose script never yields after a click", () => {
     expect(failure.message).not.toContain("Open the page again");
   }, 90_000);
 });
+
+describe("a page that is slow after a click but still answers", () => {
+  let worker: TestWorker;
+  let site: FixtureServer;
+
+  beforeAll(async () => {
+    site = await startFixtureServer();
+    worker = await startTestWorker({ deadlines: { click: 2_000 } });
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+    await site.stop();
+  });
+
+  it("waits for it as long again instead of calling Chrome dead", async () => {
+    const page = await worker.result("open", { url: site.page("slow-after-click.html") });
+    const diff = await worker.result("click", {
+      ref: refFor(page, "Start Game"),
+      expectation: "the page says started",
+    });
+    expect(diff["expectationMet"]).toBe(true);
+    expect(diff["newText"]).toContain("started");
+    expect(worker.logLines.join("\n")).toContain("the page still answers");
+  }, 30_000);
+});

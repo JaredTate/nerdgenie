@@ -20,8 +20,12 @@ A response is `{"jsonrpc":"2.0","id":<number>,"result":<object>}` or
 `{"jsonrpc":"2.0","id":<number>,"error":{"code":<number>,"message":<text>,"data":<object>}}`.
 
 The Go side sends one request at a time and waits for its response. Every request
-has a deadline; when it passes, the Go side kills the worker and starts a new
-one, and tells the model that the browser was restarted.
+has a deadline. The worker's own deadline rings first: a page that still answers
+a trivial question then is alive, only slow (a game drawing sixty frames a second
+makes every look at it slow), and the method gets the same time again; a page
+that cannot answer is hung, and the worker answers -32003. When the Go side's
+longer deadline passes, it kills the worker and starts a new one, and tells the
+model that the browser was restarted.
 
 The worker also sends lines nobody asked for, and they are only ever one thing: a
 notification saying what the person did in the window themselves. A notification

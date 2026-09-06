@@ -58,7 +58,9 @@ async function removeWhenChromeHasLetGo(folder: string): Promise<void> {
  * `make test-browser` sets, so that a test run on a machine somebody is using
  * puts no window on their screen.
  */
-export async function startTestWorker(): Promise<TestWorker> {
+export async function startTestWorker(
+  options: { deadlines?: Partial<Record<string, number>> } = {},
+): Promise<TestWorker> {
   const profile = await mkdtemp(join(tmpdir(), "nerdgenie-browser-test-"));
   const logLines: string[] = [];
   const events: PersonEvent[] = [];
@@ -70,6 +72,7 @@ export async function startTestWorker(): Promise<TestWorker> {
       headless: process.env["NERDGENIE_HEADLESS_TESTS"] !== undefined,
       log: (line) => logLines.push(line),
       onEvent: (event) => events.push(event),
+      deadlines: options.deadlines,
     });
   } catch (problem) {
     await rm(profile, { recursive: true, force: true });

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Busy after click</title>
+  </head>
+  <body>
+    <h1>Busy after click</h1>
+    <button type="button" id="start">Start Game</button>
+    <p id="frame">0</p>
+    <script>
+      // The game the fresh Tetris build made: Start begins a loop that changes
+      // the page every frame, so the page never comes to rest again. A page
+      // that never settles is alive, not one that swallowed the click.
+      window.clicks = 0;
+      document.getElementById("start").addEventListener("click", function () {
+        window.clicks += 1;
+        var n = 0;
+        setInterval(function () {
+          n += 1;
+          document.getElementById("frame").textContent = String(n);
+        }, 20);
+      });
+    </script>
+  </body>
+</html>

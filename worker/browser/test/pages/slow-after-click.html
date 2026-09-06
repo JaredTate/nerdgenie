@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Slow after click</title>
+  </head>
+  <body>
+    <h1>Slow after click</h1>
+    <button type="button" id="start">Start Game</button>
+    <p id="state">waiting</p>
+    <script>
+      // The page holds the main thread for two and a half seconds after the
+      // click, then answers again. That is a slow page, not a hung one: the
+      // worker must wait for it, never restart the browser under it.
+      document.getElementById("start").addEventListener("click", function () {
+        var until = Date.now() + 2500;
+        while (Date.now() < until) {}
+        document.getElementById("state").textContent = "started";
+      });
+    </script>
+  </body>
+</html>

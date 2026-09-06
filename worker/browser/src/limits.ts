@@ -100,7 +100,11 @@ export const CHROME_STDERR_TAIL_BYTES = 64 * 1024;
 export const PERSON_TYPING_QUIET_MS = 400;
 export const MAX_PERSON_EVENTS_PER_MINUTE = 240;
 
-/** The deadline for each method, in milliseconds. The Go side has its own, longer, deadline. */
+/**
+ * The deadline for each method, in milliseconds. A page that still answers when
+ * it rings gets the same time again, so a method can take twice this; the Go
+ * side's own deadline is longer than that.
+ */
 export const METHOD_DEADLINE_MS: Readonly<Record<string, number>> = {
   open: 45_000,
   read: 15_000,

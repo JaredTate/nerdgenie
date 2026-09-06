@@ -95,27 +95,28 @@ type diffsAnswer struct {
 	Diffs []contract.Diff `json:"diffs"`
 }
 
-// The deadline for each method. Every one is longer than the worker's own
-// deadline for the same method in worker/browser/src/limits.ts, so that a worker
+// The deadline for each method. Every one is more than twice the worker's own
+// deadline for the same method in worker/browser/src/limits.ts, because the
+// worker gives a page that still answers the same time again, so that a worker
 // which is merely slow answers rather than being restarted underneath itself.
 var methodDeadlines = map[string]time.Duration{
-	"open":       60 * time.Second,
-	"read":       20 * time.Second,
-	"click":      35 * time.Second,
-	"type":       60 * time.Second,
-	"press":      35 * time.Second,
-	"scroll":     35 * time.Second,
-	"act":        150 * time.Second,
-	"tabs":       20 * time.Second,
-	"loginFill":  60 * time.Second,
-	"screenshot": 30 * time.Second,
-	"dialog":     20 * time.Second,
-	"health":     15 * time.Second,
+	"open":       100 * time.Second,
+	"read":       40 * time.Second,
+	"click":      60 * time.Second,
+	"type":       90 * time.Second,
+	"press":      60 * time.Second,
+	"scroll":     60 * time.Second,
+	"act":        250 * time.Second,
+	"tabs":       40 * time.Second,
+	"loginFill":  100 * time.Second,
+	"screenshot": 50 * time.Second,
+	"dialog":     70 * time.Second,
+	"health":     30 * time.Second,
 }
 
 // defaultMethodDeadline is what a method the table does not name gets, so that
 // no call can ever wait without a limit.
-const defaultMethodDeadline = 30 * time.Second
+const defaultMethodDeadline = 70 * time.Second
 
 // startupHealthDeadline is how long the first health check may take. It is the
 // long one because the worker launches Chrome before it answers anything, and

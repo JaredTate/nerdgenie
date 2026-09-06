@@ -85,6 +85,19 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect(String(clicks["answer"])).toBe("1");
   });
 
+  it("does not click again on a page that never settles, because it is alive", async () => {
+    const page = await worker.result("open", { url: site.page("busy-after-click.html") });
+    const diff = asDiff(
+      await worker.result("click", {
+        ref: refFor(page, "Start Game"),
+        expectation: "the game begins",
+      }),
+    );
+    expect(diff.settled).toBe(false);
+    const clicks = await worker.result("read", { ask: "window.clicks" });
+    expect(String(clicks["answer"])).toBe("1");
+  });
+
   it("says what it saw when the expectation does not match what happened", async () => {
     const page = await worker.result("open", { url: site.page("changes-on-click.html") });
     const diff = asDiff(

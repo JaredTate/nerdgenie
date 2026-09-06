@@ -282,3 +282,35 @@ func TestTheFakeBrowserKeepsTheBrowserWorkerContract(t *testing.T) {
 		t.Fatalf("the fake browser worker does not keep the browser contract: %v", err)
 	}
 }
+
+// TestTheFakePageAnswersAQuestionOnlyFromThisMachine holds the fake's copy
+// of the worker's rule: a page on localhost answers the expression a test put
+// down, says it threw for one nobody put down, and a page on another machine
+// refuses the question.
+func TestTheFakePageAnswersAQuestionOnlyFromThisMachine(t *testing.T) {
+	ctx := context.Background()
+	worker := testkit.NewFakeBrowserWorker()
+	defer worker.Close()
+	local := "http://localhost:8091/index.html"
+	worker.AddPage(contract.Snapshot{Title: "Tater Tots Tetris", URL: local})
+	worker.Answer("window.game.state", `"PLAYING"`)
+
+	if _, err := worker.Open(ctx, local); err != nil {
+		t.Fatalf("opening the local page failed: %v", err)
+	}
+	answered, err := worker.Read(ctx, contract.ReadOptions{Ask: "window.game.state"})
+	if err != nil || answered.Answer != `"PLAYING"` {
+		t.Errorf("the page answered %q (%v), want the answer the test put down", answered.Answer, err)
+	}
+	unknown, err := worker.Read(ctx, contract.ReadOptions{Ask: "window.nothing"})
+	if err != nil || !strings.HasPrefix(unknown.Answer, "the page threw: ") {
+		t.Errorf("an expression nobody put down answered %q (%v), want a line saying the page threw", unknown.Answer, err)
+	}
+
+	if _, err := worker.Open(ctx, testkit.FixtureSimplePage); err != nil {
+		t.Fatalf("opening the fixture page failed: %v", err)
+	}
+	if _, err := worker.Read(ctx, contract.ReadOptions{Ask: "window.game.state"}); err == nil || !strings.Contains(err.Error(), "this machine") {
+		t.Errorf("a page on another machine took the question: %v", err)
+	}
+}

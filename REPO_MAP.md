@@ -187,6 +187,7 @@ docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
 docs/html/nerdgenie.html
 docs/html/work-plan.html
+docs/nightly/2026-09-06.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
 docs/reference/browser-use/views.py
@@ -790,7 +791,10 @@ internal/record/pinned_test.go
 internal/record/plancap_test.go
 internal/record/print.go
 internal/record/print_test.go
+internal/record/proof.go
 internal/record/prose_test.go
+internal/record/reports.go
+internal/record/reports_test.go
 internal/record/sameness.go
 internal/record/size.go
 internal/record/size_test.go

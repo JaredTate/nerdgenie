@@ -34,6 +34,7 @@ IDEAS.md
 INSTALL.md
 LICENSE
 LLM_RESEARCH.md
+MVP_Features_Plan.md
 Makefile
 NERDGENIE.md
 OPUS_BENCHMARK.md
@@ -242,6 +243,8 @@ docs/research/2026-09-06-behaviour/behaviour.md
 docs/research/2026-09-06-behaviour/ideas-from-the-documents.md
 docs/research/2026-09-06-behaviour/ideas-from-the-web.md
 docs/research/2026-09-06-behaviour/tables.md
+docs/research/2026-09-06-release-readiness/gaps-against-other-agents.md
+docs/research/2026-09-06-release-readiness/test-health.md
 docs/research/harness-v2-review.md
 docs/research/nerdgenie-plan-review.md
 docs/research/work-plan-final-review.md

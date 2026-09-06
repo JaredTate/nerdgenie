@@ -109,3 +109,21 @@ func TestACallThatFailedAddsNothingToTheSessionCost(t *testing.T) {
 		t.Error("the watched model still says a call is in flight after the call failed")
 	}
 }
+
+// TestTheWatchedModelCountsWhatTheModelWritesUnseen is the strip's count of a
+// call in progress: the deltas are counted, and so is what the provider says
+// it wrote that no delta shows, its thinking and its tool calls, so that a
+// model writing a file for two minutes is not shown as writing nothing.
+func TestTheWatchedModelCountsWhatTheModelWritesUnseen(t *testing.T) {
+	watched, _ := aWatchedModelOver(testkit.Script{Name: "local-coder", ContextLength: 262144, Steps: []testkit.Step{{Text: "done"}}})
+
+	watched.callBegins()
+	watched.counting(nil)("four words of text here")
+	watched.countUnseen(400)
+
+	fields := map[string]string{}
+	watched.fillStatus(fields)
+	if fields[contract.StatusFieldStreamed] != "105" {
+		t.Errorf("the status says %q tokens streamed, want 105: 23 characters of text and 400 written unseen, four characters to a token", fields[contract.StatusFieldStreamed])
+	}
+}

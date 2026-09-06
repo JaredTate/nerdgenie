@@ -249,3 +249,45 @@ func TestTheAnthropicProviderRefusesAnAliasWithNoModelName(t *testing.T) {
 		t.Errorf("the error does not name the alias it is about: %v", err)
 	}
 }
+
+// TestTheAnthropicProviderCountsTheThinkingAndToolCallsItWritesUnseen is the
+// screen's "21 s · 0 tokens" through two minutes of the local model writing a
+// file: only text reaches the delta callback, so a model thinking, or writing
+// a tool call, was shown as writing nothing. The provider now tells the
+// options how many characters it wrote that no delta shows.
+func TestTheAnthropicProviderCountsTheThinkingAndToolCallsItWritesUnseen(t *testing.T) {
+	server := testkit.NewFakeProviderServer(testkit.Script{
+		Name:          "fake provider",
+		ContextLength: 200000,
+		Steps: []testkit.Step{{
+			Thinking:  "The notes come first, then the draft.",
+			Text:      "Reading the notes.",
+			ToolCalls: []contract.ToolCall{{ID: "call_1", Name: contract.ToolRead, Input: json.RawMessage(`{"path":"notes.md"}`)}},
+			Finish:    contract.FinishToolCalls,
+		}},
+	})
+	defer server.Close()
+	options, _ := testOptions(t, newTestClock())
+	options.APIKey = "test-key"
+	unseen := 0
+	options.Unseen = func(characters int) { unseen += characters }
+	model, err := provider.New(contract.ModelAlias{
+		Name: "opus", Provider: contract.ProviderAnthropic, BaseAddress: server.Address(),
+		ModelName: "claude-opus-4-8", ContextLength: 200000,
+	}, options)
+	if err != nil {
+		t.Fatalf("building the Anthropic provider failed: %v", err)
+	}
+
+	reply, streamed, err := sendAndCollect(context.Background(), model, requestWithEverything())
+
+	if err != nil {
+		t.Fatalf("one call to the Anthropic provider failed: %v", err)
+	}
+	if streamed != "Reading the notes." || reply.Text != "Reading the notes." {
+		t.Errorf("the deltas joined to %q and the reply is %q, and the thinking belongs in neither", streamed, reply.Text)
+	}
+	if wanted := len("The notes come first, then the draft.") + len(`{"path":"notes.md"}`); unseen != wanted {
+		t.Errorf("the provider counted %d characters written unseen, want %d: the thinking and the tool call's arguments", unseen, wanted)
+	}
+}

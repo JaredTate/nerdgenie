@@ -249,6 +249,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 06:31 on 6 September, from the twelfth nightly run: the progress meter stopped the engine task while it was debugging its last two tests. Twenty rounds of reading the engine in windows, probing it with node scripts and searching it with grep counted as nothing, because a read counted a file once and a command never; the meter cleared the conversation at round 66 and stopped the task at round 86, and the game job went down at one of six. Now a look or a command whose answer the task has not seen before is progress, and the same answer again is not. The rewind itself stays: it is the right answer to more of the same, and the fault was in what counted as the same.
 
+- Built at 07:35 on 6 September, from the thirteenth nightly run's numbers at five of eleven tasks: forty-three of its 203 rounds only ran the tests, and sixteen of those runs came right after an edit whose result already carried the tests' line, three lines down, where the record's one line ("edit: edited …") never showed it. The line a change keeps now leads with the tests after it: "edit: tests after this change: all 128 passing; edited …". Still to measure on the fourteenth run: how many test-only rounds remain.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

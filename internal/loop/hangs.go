@@ -21,6 +21,11 @@ import (
 // TheLoopsLine opens the list of loops on a hung page's result.
 const TheLoopsLine = "the loops in the scripts this page runs, one of which may be the one that never yields:"
 
+// TheHungPageFact opens the situation line that keeps a hung page's marked
+// loop in front of the model every round, because a list on one result is
+// read once and the live model went back to the sound engine after reading it.
+const TheHungPageFact = "browser: the page's own script hung on the last action, and the loop whose body never touches its condition is "
+
 // theSignsOfAHungPage are the words a browser result carries when the page's
 // own script kept it busy.
 var theSignsOfAHungPage = []string{"keeping it busy", "does not yield"}
@@ -61,6 +66,17 @@ func saysThePageHung(text string) bool {
 		}
 	}
 	return false
+}
+
+// theMarkedLoopIn is the first loop line on a result that carries the mark,
+// without the mark, or empty when none does.
+func theMarkedLoopIn(text string) string {
+	for _, line := range strings.Split(text, "\n") {
+		if loopLine, marked := strings.CutSuffix(line, " "+TheNeverChangesMark); marked {
+			return loopLine
+		}
+	}
+	return ""
 }
 
 // addressIn is the page's address as a browser result carries it on one of

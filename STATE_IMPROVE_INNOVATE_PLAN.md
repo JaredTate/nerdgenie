@@ -226,6 +226,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built after t8's third death: a lesson is one line and a list of lessons holds the newest eight. Task 10 died on the harness's own bookkeeping again, this time on seventeen paragraph-long failures (1,765 tokens) when a read's result line took the record past 3,000; the results list had already trimmed to its floor. A failure's or decision's text and cause are cut to 160 characters after a whole word, the oldest leave (the log keeps them), and labels count on from the last one held.
 
+- Built during t8's fourth sitting: the hung-page list reads the scripts the page itself loads (the play-test task had changed only its drivers), lists while loops first, marks the while whose body never touches its condition and keeps it in the situation every round; a past result reads from an offset like a file (r25 from line 798 had cost 13k tokens); a tool line keeps the word refused on its end (the screen drew a check on the refused click). The live list without the mark was read once and the model went back to the sound engine, which is why the mark and the situation line exist.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

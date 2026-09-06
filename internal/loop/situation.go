@@ -117,6 +117,9 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 		if first := firstLine(text); first != "" {
 			running.browserFact = "browser: " + first
 		}
+		if marked := theMarkedLoopIn(text); marked != "" {
+			running.browserFact = TheHungPageFact + marked
+		}
 		if address := addressIn(text); address != "" {
 			running.pageAddress = address
 		}

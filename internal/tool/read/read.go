@@ -23,10 +23,17 @@ import (
 // of it and a line saying how to ask for the rest, because a result that fills
 // the window leaves no room to think.
 const (
-	// MaxLines is the most lines one read returns.
-	MaxLines = 2000
-	// MaxBytes is the most bytes one read returns.
-	MaxBytes = 256 << 10
+	// MaxLines is the most lines one read returns: four hundred is about sixteen
+	// kilobytes of ordinary code, the byte cap's worth, so the two caps meet on
+	// a real file and a longer read is paged with an offset.
+	MaxLines = 400
+	// MaxBytes is the most bytes one read returns. Sixteen kilobytes is about
+	// four thousand tokens, eight seconds of the local daemon's prompt
+	// processing at five hundred tokens a second: on the fifth game build the
+	// model read its whole thirty-thousand-character script twenty times to
+	// find one function each time, fifteen seconds of every such round, and
+	// the rest is read on with an offset when it is wanted.
+	MaxBytes = 16 << 10
 	// MaxLineRunes is how much of one very long line is shown.
 	MaxLineRunes = 2000
 	// MaxEntries is the most entries one folder listing shows.

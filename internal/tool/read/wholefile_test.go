@@ -60,7 +60,7 @@ func TestAFileFarBiggerThanTheCapIsNotHeldWholeToReadFiveLinesOfIt(t *testing.T)
 	if lines := strings.Count(text, "\n"); lines != 5 {
 		t.Errorf("the read returned %d lines, want the five it was asked for", lines)
 	}
-	// One megabyte is more than the read cap of 256 kilobytes and a great deal
+	// One megabyte is more than the read cap of 16 kilobytes and a great deal
 	// less than the eight megabytes the file holds, so a read that allocates
 	// less than this read what it was asked for and not the whole file.
 	if allocated > 1<<20 {

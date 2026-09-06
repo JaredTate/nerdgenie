@@ -20,10 +20,10 @@ func TestEveryBoundOfTheReadToolIsTheNumberItSays(t *testing.T) {
 		want int
 		why  string
 	}{
-		{"MaxLines", read.MaxLines, 2000,
-			"two thousand numbered lines is about the most a model can hold in mind at once, and a read that fills the window leaves no room to think"},
-		{"MaxBytes", read.MaxBytes, 256 << 10,
-			"a quarter of a megabyte is a large fraction of a small model's whole window, and the rest is read on with an offset"},
+		{"MaxLines", read.MaxLines, 400,
+			"four hundred numbered lines is about sixteen kilobytes of ordinary code, the byte cap's worth, so the two caps meet on a real file and a longer read is paged with an offset"},
+		{"MaxBytes", read.MaxBytes, 16 << 10,
+			"sixteen kilobytes is about four thousand tokens, eight seconds of the local daemon's prompt processing, and the rest is read on with an offset"},
 		{"MaxLineRunes", read.MaxLineRunes, 2000,
 			"a file written as one enormous line must not fill the window on its own, and two thousand characters is a long line by any measure"},
 		{"MaxEntries", read.MaxEntries, 1000,

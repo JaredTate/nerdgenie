@@ -38,7 +38,7 @@ func TestAFileOfManyLinesStopsAtTheLineCapAndSaysHowToReadOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading a long file failed: %v", err)
 	}
-	if !strings.Contains(output.Text, "offset of 2001") {
+	if !strings.Contains(output.Text, "offset of 401") {
 		t.Errorf("the read stopped at the line cap without saying where to read on from")
 	}
 }
@@ -55,8 +55,8 @@ func TestAFileOfManyBytesStopsAtTheByteCap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading a wide file failed: %v", err)
 	}
-	if len(output.Text) > 256<<10+200 {
-		t.Errorf("the read returned %d bytes, and the cap is 256 kilobytes and one line saying so", len(output.Text))
+	if len(output.Text) > 16<<10+200 {
+		t.Errorf("the read returned %d bytes, and the cap is 16 kilobytes and one line saying so", len(output.Text))
 	}
 	if !strings.Contains(output.Text, "bytes") {
 		t.Errorf("the read stopped at the byte cap without saying so")

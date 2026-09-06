@@ -281,8 +281,13 @@ func (measured numbers) String() string {
 		cache = 100 * float64(measured.cachedIn) / float64(measured.tokensIn)
 	}
 	seconds := 0.0
+	uncachedARound := 0.0
 	if measured.rounds > 0 {
 		seconds = measured.minutes * 60 / float64(measured.rounds)
+		// The tokens after the first change in the prompt are what a round
+		// pays to process again; on the local daemon, whose checkpoints are
+		// eight thousand tokens apart, this is most of the round.
+		uncachedARound = float64(measured.tokensIn-measured.cachedIn) / float64(measured.rounds)
 	}
 	refused := make([]string, 0, len(measured.refusedByTool))
 	for _, name := range tools {
@@ -296,11 +301,11 @@ func (measured numbers) String() string {
 	return fmt.Sprintf("task %s: %s after %d rounds in %.0f minutes (%.0f s a round)\n"+
 		"calls: %d (%s); replies with more than one call: %d; refused: %s\n"+
 		"rounds that only wrote the record: %d; rounds that only ran the tests: %d\n"+
-		"tokens: %.1fk in, %.1fk of them cached (%.0f%%), %.1fk out\n"+
+		"tokens: %.1fk in, %.1fk of them cached (%.0f%%), %.1fk uncached a round, %.1fk out\n"+
 		"rewinds: %d; failures on the record: %d; marks made from the first line: %d; rounds cut off at the output cap: %d",
 		measured.taskID, measured.status, measured.rounds, measured.minutes, seconds,
 		calls, strings.Join(byTool, ", "), measured.repliesBatched, strings.Join(refused, ", "),
 		measured.recordOnlyRounds, measured.testOnlyRounds,
-		float64(measured.tokensIn)/1000, float64(measured.cachedIn)/1000, cache, float64(measured.tokensOut)/1000,
+		float64(measured.tokensIn)/1000, float64(measured.cachedIn)/1000, cache, uncachedARound/1000, float64(measured.tokensOut)/1000,
 		measured.rewinds, measured.failures, measured.firstLineMarks, measured.roundsAtTheCap)
 }

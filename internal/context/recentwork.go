@@ -13,9 +13,15 @@ import (
 type RecentTask struct {
 	// Number is the task's number, as in "task 4".
 	Number int
+	// Status is how the task ended: done, or stopped or failed when the person
+	// set it aside. A done task's status is not printed, because done is what
+	// recent work usually is.
+	Status string
 	// Ask is the ask in the user's own words.
 	Ask string
-	// Standing is one line on where the task stood when it was last worked.
+	// Standing is one line on where the task stood when it was last worked:
+	// what it last produced, the files it changed, and where the model said
+	// the work stood.
 	Standing string
 }
 
@@ -30,8 +36,11 @@ const (
 	// MaxRecentAskRunes bounds the ask on one line, after it is cut to its first
 	// sentence.
 	MaxRecentAskRunes = 100
-	// MaxRecentStandingRunes bounds the standing on one line.
-	MaxRecentStandingRunes = 80
+	// MaxRecentStandingRunes bounds the standing on one line. It is long
+	// enough for the files a task changed and where the work stood, because
+	// on the live game build the line named the game and not its folder, and
+	// the next task went looking for the game in the wrong place.
+	MaxRecentStandingRunes = 300
 )
 
 // recentWorkHeading opens the recent-work block and says what its lines are. It
@@ -49,8 +58,12 @@ func recentWorkText(tasks []RecentTask) string {
 	}
 	lines := make([]string, 0, len(tasks))
 	for _, task := range tasks {
-		lines = append(lines, fmt.Sprintf("task %d: %s — %s",
-			task.Number,
+		status := ""
+		if task.Status != "" && task.Status != "done" {
+			status = " (" + task.Status + ")"
+		}
+		lines = append(lines, fmt.Sprintf("task %d%s: %s — %s",
+			task.Number, status,
 			cutToRunes(firstSentence(oneLine(task.Ask)), MaxRecentAskRunes),
 			cutToRunes(oneLine(task.Standing), MaxRecentStandingRunes)))
 	}

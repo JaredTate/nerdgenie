@@ -77,9 +77,9 @@ func interruptedRecordLine(numbers []string) string {
 	case 0:
 		return ""
 	case 1:
-		return "task " + numbers[0] + " was interrupted; say continue"
+		return "task " + numbers[0] + " was interrupted; your next message picks it up"
 	default:
-		return "tasks " + strings.Join(numbers, ", ") + " were interrupted; say continue"
+		return "tasks " + strings.Join(numbers, ", ") + " were interrupted; your next message picks the newest up"
 	}
 }
 

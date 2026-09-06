@@ -119,7 +119,7 @@ func TestRecentWorkTrimsTheAskToASentenceAndBoundsEachLine(t *testing.T) {
 	if strings.Contains(lines[0], "walk the dog") {
 		t.Errorf("the ask kept text past its first sentence: %q", lines[0])
 	}
-	bound := MaxRecentAskRunes + MaxRecentStandingRunes + len([]rune("task 000:  — "))
+	bound := MaxRecentAskRunes + MaxRecentStandingRunes + len([]rune("task 000 (stopped):  — "))
 	for _, line := range lines {
 		if runes := len([]rune(line)); runes > bound {
 			t.Errorf("a recent-work line is %d runes, over the bound of %d: %q", runes, bound, line)
@@ -186,4 +186,20 @@ func blockIndex(request contract.Request, name string) int {
 		}
 	}
 	return -1
+}
+
+// TestRecentWorkNamesHowATaskEndedWhenItWasNotFinished holds that a task the
+// person set aside is shown with the word for it, so the model does not read
+// stopped work as finished work, and a finished task carries no such word.
+func TestRecentWorkNamesHowATaskEndedWhenItWasNotFinished(t *testing.T) {
+	text := recentWorkText([]RecentTask{
+		{Number: 2, Status: "stopped", Ask: "build the game", Standing: "the tests pass"},
+		{Number: 1, Status: "done", Ask: "read the note", Standing: "read: the note"},
+	})
+	if !strings.HasPrefix(text, "task 2 (stopped): build the game") {
+		t.Errorf("the stopped task reads %q, want its status after its number", strings.Split(text, "\n")[0])
+	}
+	if !strings.Contains(text, "\ntask 1: read the note") {
+		t.Errorf("the finished task reads %q, and done is not worth a word", text)
+	}
 }

@@ -64,15 +64,16 @@ func (running *agent) startTask(ctx context.Context, lastTasks *screenTasks, mes
 	// into the log before it sends it, so a crash between the two cannot lose
 	// the answer and the next start sends again what never arrived.
 	session := screenNamed(message.Channel, message.Sender)
-	carryOn := lastTasks.taskToCarryOn(session, message.Text)
+	carryOn, steers := lastTasks.taskToCarryOn(session, message.Text)
 	budget := running.budgetForTheMessage(ctx, message)
 	answering := throughTheLedger(where, running.guard)
+	steer := theSteerIn(message, steers)
 	go func() {
 		defer running.freeTheLoop()
 		defer finished()
 		err := running.guard.RunTurn(context.WithoutCancel(ctx), session, func(turn context.Context) error {
 			outcome, err := running.loop.Run(turn,
-				loop.Task{Message: message, Channel: answering, ResumeID: carryOn, Budget: budget})
+				loop.Task{Message: message, Channel: answering, ResumeID: carryOn, Budget: budget, Correction: steer})
 			// Where the task ended is written down whatever happened, so that a
 			// task that could not be picked up again is not picked up again and
 			// again by every message that follows it.
@@ -144,4 +145,15 @@ func (running *agent) loopIsBusy() bool {
 func (running *agent) stopTask(_ context.Context) error {
 	running.loop.Stop()
 	return nil
+}
+
+// theSteerIn is the message itself when it picks a stopped task up and says
+// more than the bare word, so that it is written into the record as a
+// correction and outlives the conversation the way every other steer does,
+// and nothing when the message steers nothing.
+func theSteerIn(message contract.Inbound, steers bool) contract.Inbound {
+	if !steers {
+		return contract.Inbound{}
+	}
+	return message
 }

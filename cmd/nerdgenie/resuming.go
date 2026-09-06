@@ -105,33 +105,36 @@ func (tasks *screenTasks) remember(screen string, outcome loop.Outcome) {
 	}
 }
 
-// taskToCarryOn is the number of the task this message picks up again, and is
-// empty when the message starts a fresh task.
+// taskToCarryOn is the number of the task this message picks up again, empty
+// when the message starts a fresh task, and whether the message steers the
+// task, which is written into its record as a correction.
 //
-// A waiting task is carried on by any message at all, because the model asked a
-// question and whatever the person typed next is the answer to it. A stopped or
-// a failed task is carried on only when the person says one of the few words
-// that mean "pick it up", because neither takes an answer and the next thing a
-// person types is usually a new ask. A failure is a stop the agent did not
-// choose, so it is picked up again the same way a stop is: the work behind it is
-// not lost, and "continue" resumes it under the number it already had.
-func (tasks *screenTasks) taskToCarryOn(screen string, said string) string {
+// A waiting task is carried on by any message at all, because the model asked
+// a question and whatever the person typed next is the answer to it. A stopped
+// task ends on a question too, "tell me how to carry on", so its next message
+// is the answer as well: unfinished work is what the person's next words are
+// about. It used to take one of the four words for carrying on and nothing
+// else, and on the live game build the person typed "the start game button
+// wont start game" after a stop, a fresh task started with an empty record,
+// and the model asked which game. A person who means to set the work aside
+// clears the screen first. A failure is a stop the agent did not choose, so it
+// is picked up the same way. The bare word says nothing new and steers
+// nothing; any other message is a steer.
+func (tasks *screenTasks) taskToCarryOn(screen string, said string) (string, bool) {
 	tasks.guard.Lock()
 	defer tasks.guard.Unlock()
 
 	last, known := tasks.newest[screen]
 	if !known || last.number == "" {
-		return ""
+		return "", false
 	}
 	switch last.status {
 	case contract.StatusWaiting:
-		return last.number
+		return last.number, false
 	case contract.StatusStopped, contract.StatusFailed:
-		if saysCarryOn(said) {
-			return last.number
-		}
+		return last.number, !saysCarryOn(said)
 	}
-	return ""
+	return "", false
 }
 
 // howManyScreens is how many screens are remembered, which is what the bound is

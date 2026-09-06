@@ -116,8 +116,8 @@ func TestAMessageThatBeginsWithContinuePicksTheStoppedJobTaskUpAndSteersIt(t *te
 	number := theTaskNumberOf(t, first.Fields[contract.StatusFieldRecordLine])
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "stop"})
 	stopped := screen.waitForReplySaying(t, "I stopped this task", howLongTheFirstTaskWorks+30*time.Second)
-	if strings.Contains(stopped.Text, "Tell me how to carry on") || !strings.Contains(stopped.Text, "Say "+theWordThatCarriesOn) {
-		t.Errorf("the stopped report is %q, want one instruction: say %s to pick the task up", stopped.Text, theWordThatCarriesOn)
+	if strings.Contains(stopped.Text, "Tell me how to carry on") || !strings.Contains(stopped.Text, "Your next message picks this task up") {
+		t.Errorf("the stopped report is %q, want one instruction: the next message picks the task up", stopped.Text)
 	}
 
 	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theSteerThePersonGives})

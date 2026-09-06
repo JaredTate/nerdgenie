@@ -208,7 +208,7 @@
     "TaskID": "1",
     "Kind": "reply",
     "Body": {
-      "text": "I stopped this task, because the budget of 2 rounds is used up.\nI read the folder twice and the budget ran out before I could report.\nTell me how to carry on and I will pick it up from here."
+      "text": "I stopped this task, because the budget of 2 rounds is used up.\nI read the folder twice and the budget ran out before I could report.\nTell me how to carry on and I will pick it up from here; type /clear first to set it aside."
     }
   }
 ]

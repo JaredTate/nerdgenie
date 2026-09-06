@@ -19,6 +19,13 @@ import (
 // result whose summary is where the task stood.
 func seedTask(t *testing.T, store *testkit.FakeStore, number int, status contract.RecordStatus, ask string, standing string) {
 	t.Helper()
+	seedTaskWithSituation(t, store, number, status, ask, standing, nil)
+}
+
+// seedTaskWithSituation is seedTask with the situation lines the harness writes
+// as a task runs, which is where the files it changed are named.
+func seedTaskWithSituation(t *testing.T, store *testkit.FakeStore, number int, status contract.RecordStatus, ask string, standing string, situation []string) {
+	t.Helper()
 	held := contract.Record{
 		Header: contract.Header{
 			Kind:          contract.RecordTask,
@@ -29,7 +36,7 @@ func seedTask(t *testing.T, store *testkit.FakeStore, number int, status contrac
 			NoTimeBudget:  true,
 		},
 		Goal: contract.Goal{Ask: ask},
-		Work: contract.Work{Results: []contract.ResultLine{{ID: "r1", Summary: standing}}},
+		Work: contract.Work{Situation: situation, Results: []contract.ResultLine{{ID: "r1", Summary: standing}}},
 	}
 	body, err := json.Marshal(record.Checkpoint{Number: 1, Text: string(record.Print(held))})
 	if err != nil {
@@ -255,5 +262,65 @@ func TestBuildInputCarriesRecentWork(t *testing.T) {
 	input.RecentWork = []workingcontext.RecentTask{{Number: 4, Ask: "a", Standing: "b"}}
 	if len(input.RecentWork) != 1 || input.RecentWork[0].Number != 4 {
 		t.Fatal("BuildInput.RecentWork does not hold the recent tasks handed to it")
+	}
+}
+
+// TestRecentWorkCarriesTheFilesATaskChangedAndWhereItStood is the fix for the
+// live game build's second failure. The task that built the game ended, the
+// person typed a follow-up, and the next task was told "task 1: # Tater Tots
+// Tetris Build a complete, polished..." and nothing else, so it went looking
+// for the game under ~/Code. The line carries the files the task changed and
+// where the model said the work stood, so the next task knows where it is.
+func TestRecentWorkCarriesTheFilesATaskChangedAndWhereItStood(t *testing.T) {
+	built := newHarness(t, []testkit.Step{answerStep("The game is in the Desktop folder.")})
+	seedTaskWithSituation(t, built.store, 1, contract.StatusDone, "Build Tater Tots Tetris in ~/Desktop/Tater Tots Tetrisv1.", "shell: tests: all 62 passing", []string{
+		"files changed in this task: package.json, engine.js, index.html, src/main.js and 4 more",
+		"last command: node --test test/*.test.js, it worked",
+		"tests: all 62 passing",
+		"where the work stands: the UI is written and the tests pass",
+	})
+
+	built.ask(t, "the start game button wont start game")
+
+	shown := firstRequestText(t, built)
+	for _, words := range []string{"task 1: Build Tater Tots Tetris", "files changed in this task: package.json, engine.js, index.html, src/main.js", "where the work stands: the UI is written"} {
+		if !strings.Contains(shown, words) {
+			t.Errorf("the recent-work block never told the model %q, and the request reads:\n%s", words, shown)
+		}
+	}
+	if strings.Contains(shown, "last command:") {
+		t.Error("the recent-work block carries the last command, which is not worth a line once the task has ended")
+	}
+}
+
+// TestRecentWorkNamesATaskThePersonSetAside holds that a stopped task the
+// person cleared away is still named, with the word stopped, because its work
+// is on the disk whatever the record says.
+func TestRecentWorkNamesATaskThePersonSetAside(t *testing.T) {
+	built := newHarness(t, []testkit.Step{answerStep("Noted.")})
+	seedTask(t, built.store, 1, contract.StatusStopped, "build the game", "shell: 62 tests passing")
+
+	built.ask(t, "what were we doing?")
+
+	if shown := firstRequestText(t, built); !strings.Contains(shown, "task 1 (stopped): build the game") {
+		t.Errorf("the stopped task is not named with its status, and the request reads:\n%s", shown)
+	}
+}
+
+// TestATaskPickedUpAgainIsNotListedAsRecentWork holds that a task the message
+// carries on is the running task and not a recent one, so the model does not
+// read its own task as work that ended.
+func TestATaskPickedUpAgainIsNotListedAsRecentWork(t *testing.T) {
+	built := newHarness(t, []testkit.Step{answerStep("Carrying on.")})
+	seedTask(t, built.store, 1, contract.StatusStopped, "build the game", "shell: 62 tests passing")
+
+	task := built.task("the start game button wont start game")
+	task.ResumeID = "1"
+	if _, err := built.loop.Run(t.Context(), task); err != nil {
+		t.Fatalf("picking task 1 up again failed: %v", err)
+	}
+
+	if shown := firstRequestText(t, built); strings.Contains(shown, "task 1 (stopped)") {
+		t.Errorf("the task being picked up is listed as recent work, and the request reads:\n%s", shown)
 	}
 }

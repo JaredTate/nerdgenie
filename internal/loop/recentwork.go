@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -18,11 +19,12 @@ import (
 // The read is written fresh here rather than shared, because the loop must not
 // depend on cmd.
 
-// recentFinishedWork gathers the tasks most recently finished out of the event
-// log: those whose newest checkpoint stands at done, newest first, at most
-// workingcontext.MaxRecentTasks of them, turned into the blocks the working
-// context shows above the record so the model can answer "where are we" itself.
-// The task numbered exclude is left out, because that is the task running now.
+// recentFinishedWork gathers the tasks most recently finished or set aside out
+// of the event log: those whose newest checkpoint stands at done, stopped or
+// failed, newest first, at most workingcontext.MaxRecentTasks of them, turned
+// into the blocks the working context shows above the record so the model can
+// answer "where are we" itself. The task numbered exclude is left out, because
+// that is the task running now, or the one being picked up again.
 //
 // It reads the whole log once, so it is called once when a task starts and its
 // answer reused for every call that task makes, never on every call.
@@ -31,26 +33,7 @@ func recentFinishedWork(ctx context.Context, store contract.Store, exclude strin
 	if err != nil {
 		return nil, fmt.Errorf("cannot read the checkpoints out of the log to gather the recent work: %w", err)
 	}
-
-	// The newest checkpoint of each task, by its number. Only its text is kept,
-	// because that is all the status is read from; a job's key begins with a
-	// letter and so is passed over here.
-	newestText := map[int]string{}
-	newestNumber := map[int]int{}
-	for _, event := range saved {
-		number, isTask := taskNumberOf(event.TaskID)
-		if !isTask {
-			continue
-		}
-		one := record.Checkpoint{}
-		if err := json.Unmarshal(event.Body, &one); err != nil {
-			continue
-		}
-		if held, known := newestNumber[number]; !known || one.Number >= held {
-			newestNumber[number] = one.Number
-			newestText[number] = one.Text
-		}
-	}
+	newestText := newestCheckpointTextOfEachTask(saved)
 
 	// Which of those tasks are finished, read from the newest checkpoint's
 	// header, newest first. The current task is left out whatever it stands at.
@@ -60,7 +43,7 @@ func recentFinishedWork(ctx context.Context, store contract.Store, exclude strin
 			continue
 		}
 		held, err := record.Parse([]byte(text))
-		if err != nil || held.Header.Status != contract.StatusDone {
+		if err != nil || !endedOrSetAside(held.Header.Status) {
 			continue
 		}
 		finished = append(finished, number)
@@ -82,6 +65,7 @@ func recentFinishedWork(ctx context.Context, store contract.Store, exclude strin
 		held := keeper.Record()
 		recent = append(recent, workingcontext.RecentTask{
 			Number:   number,
+			Status:   string(held.Header.Status),
 			Ask:      held.Goal.Ask,
 			Standing: standingOf(held),
 		})
@@ -89,12 +73,59 @@ func recentFinishedWork(ctx context.Context, store contract.Store, exclude strin
 	return recent, nil
 }
 
-// standingOf is one line on where a finished task ended: the summary of its last
-// result, which is what the task produced, and the word "done" when it closed on
-// the user's own word rather than a result.
-func standingOf(held contract.Record) string {
-	if results := held.Work.Results; len(results) > 0 {
-		return results[len(results)-1].Summary
+// newestCheckpointTextOfEachTask is the text of the newest checkpoint of each
+// task, by its number. Only the text is kept, because that is all the status
+// is read from; a job's key begins with a letter and so is passed over here.
+func newestCheckpointTextOfEachTask(saved []contract.Event) map[int]string {
+	newestText := map[int]string{}
+	newestNumber := map[int]int{}
+	for _, event := range saved {
+		number, isTask := taskNumberOf(event.TaskID)
+		if !isTask {
+			continue
+		}
+		one := record.Checkpoint{}
+		if err := json.Unmarshal(event.Body, &one); err != nil {
+			continue
+		}
+		if held, known := newestNumber[number]; !known || one.Number >= held {
+			newestNumber[number] = one.Number
+			newestText[number] = one.Text
+		}
 	}
-	return string(contract.StatusDone)
+	return newestText
+}
+
+// endedOrSetAside says whether a task is one recent work names: finished, or
+// set aside by the person, whose work is still there on the disk.
+func endedOrSetAside(status contract.RecordStatus) bool {
+	return status == contract.StatusDone || status == contract.StatusStopped || status == contract.StatusFailed
+}
+
+// theSituationLinesWorthKeeping are the facts of a task's situation that still
+// matter once it has ended: what it changed, and where the model said the
+// work stood. On the live game build the next task was told the name of the
+// game and not its folder, and went looking for it under ~/Code.
+var theSituationLinesWorthKeeping = []string{"files changed in this task:", "tests:", "where the work stands:"}
+
+// standingOf is one line on where a task ended: the summary of its last result,
+// which is what the task produced, then the facts of its situation worth
+// keeping, and the word "done" when it closed on the user's own word with no
+// result and no situation.
+func standingOf(held contract.Record) string {
+	parts := []string{}
+	if results := held.Work.Results; len(results) > 0 {
+		parts = append(parts, results[len(results)-1].Summary)
+	}
+	for _, fact := range held.Work.Situation {
+		for _, keep := range theSituationLinesWorthKeeping {
+			if strings.HasPrefix(fact, keep) {
+				parts = append(parts, fact)
+			}
+		}
+	}
+	if len(parts) == 0 {
+		return string(contract.StatusDone)
+	}
+	return strings.Join(parts, "; ")
 }

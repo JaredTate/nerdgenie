@@ -150,6 +150,40 @@ func TestTheWordContinueCarriesOnTheTaskThatStoppedAtItsBudget(t *testing.T) {
 	}
 }
 
+// TestAnyMessageAfterAStopCarriesTheTaskOnAndIsWrittenAsACorrection is the
+// fix for the live game build's second failure: the task stopped, the person
+// typed "the start game button wont start game", and a fresh task started with
+// an empty record. A stopped task ends on "tell me how to carry on", so the
+// next message is the answer, and it goes into the record as a correction.
+func TestAnyMessageAfterAStopCarriesTheTaskOnAndIsWrittenAsACorrection(t *testing.T) {
+	agent := startTheAgentWorkingIn(t, aTaskStoppedAtItsBudget,
+		func(home contract.Home, _ string) {
+			addSettingToTheHome(t, home, "[caps]\nrounds_per_task = 1")
+		})
+	writeTheNote(t, agent.work)
+
+	screen := agent.attach(t)
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: theAskThatRunsOutOfBudget})
+	screen.waitForReplySaying(t, "i stopped this task", 60*time.Second)
+
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketMessage, Text: "the cupboard is the one on the left"})
+
+	carriedOn := screen.waitForRecordLineSaying(t, "cupboard is the one on the left", 60*time.Second)
+	if !strings.HasPrefix(carriedOn, "task 1 ") {
+		t.Errorf("a plain message after a stop was written down as %q, and it should carry on task 1 rather than start a task of its own",
+			carriedOn)
+	}
+	// The correction reaches the record's checkpoint with the picked-up
+	// task's next round, so the task is left to end, whichever way it ends,
+	// before the record is read.
+	screen.waitFor(t, contract.SocketReply, 60*time.Second)
+	screen.send(t, contract.SocketEnvelope{Type: contract.SocketCommand, Text: "tasks 1"})
+	shown := screen.waitFor(t, contract.SocketReply, 30*time.Second).Text
+	if !strings.Contains(shown, "Corrections:") || !strings.Contains(shown, "cupboard is the one on the left") {
+		t.Errorf("the record of task 1 reads:\n%s\nand the person's words after the stop should be written in it as a correction", shown)
+	}
+}
+
 // theAskAfterTheFinishedTask is about something else, so it is a task of its own
 // and not a message that carries the finished one on.
 const theAskAfterTheFinishedTask = "and what is on the shelf below?"

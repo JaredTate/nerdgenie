@@ -24,11 +24,11 @@ func TestARunningTaskIsMarkedInterruptedOnRestartAndCarriedOn(t *testing.T) {
 		t.Fatalf("the memory could not be rebuilt from the log: %v", err)
 	}
 
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
 		t.Errorf("continue after the restart picked up %q, want task 5, which was interrupted by the shutdown", picked)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "start something else"); picked != "" {
-		t.Errorf("a new ask after the restart picked up task %q, and an interrupted task is carried on only by the words for it", picked)
+	if picked, steers := remembered.taskToCarryOn(theTerminalScreen, "start something else"); picked != "5" || !steers {
+		t.Errorf("a plain message after the restart picked up task %q with steer %v, want task 5 steered by it, because an interrupted task is unfinished work", picked, steers)
 	}
 	if got := remembered.interrupted; len(got) != 1 || got[0] != "5" {
 		t.Errorf("the interrupted set is %v, want [5], so the first status can name the task that was cut off", got)
@@ -62,7 +62,7 @@ func TestARunningTaskInterruptedIsResilientToASecondRestart(t *testing.T) {
 	if len(remembered.interrupted) != 0 {
 		t.Errorf("the second start named %v as interrupted, and a task already reconciled is not interrupted again", remembered.interrupted)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
 		t.Errorf("continue on the second start picked up %q, want task 5, which is still resumable as a stopped task", picked)
 	}
 }
@@ -100,8 +100,8 @@ func TestTheInterruptedTaskIsNamedInTheFirstStatusAScreenGets(t *testing.T) {
 	running.rememberedTasks(context.Background())
 
 	line := running.statusForAScreen()[contract.StatusFieldRecordLine]
-	if !strings.Contains(line, "task 5") || !strings.Contains(line, "interrupted") || !strings.Contains(line, "continue") {
-		t.Errorf("the first status carries the record line %q, want it to name task 5, say it was interrupted, and say to continue", line)
+	if !strings.Contains(line, "task 5") || !strings.Contains(line, "interrupted") || !strings.Contains(line, "next message picks it up") {
+		t.Errorf("the first status carries the record line %q, want it to name task 5, say it was interrupted, and say the next message picks it up", line)
 	}
 }
 
@@ -122,10 +122,10 @@ func TestTwoScreensEachHaveTheirInterruptedTaskNamed(t *testing.T) {
 	if got := remembered.interrupted; len(got) != 2 || got[0] != "5" || got[1] != "8" {
 		t.Errorf("the interrupted set is %v, want [5 8] smallest first", got)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
 		t.Errorf("the terminal's continue picked up %q, want task 5", picked)
 	}
-	if picked := remembered.taskToCarryOn(theSignalScreen, "continue"); picked != "8" {
+	if picked, _ := remembered.taskToCarryOn(theSignalScreen, "continue"); picked != "8" {
 		t.Errorf("the Signal continue picked up %q, want task 8", picked)
 	}
 }
@@ -161,10 +161,10 @@ func TestInterruptedRecordLineReadsForOneAndForMany(t *testing.T) {
 	if got := interruptedRecordLine(nil); got != "" {
 		t.Errorf("no interrupted task wrote %q, want nothing", got)
 	}
-	if got := interruptedRecordLine([]string{"5"}); got != "task 5 was interrupted; say continue" {
+	if got := interruptedRecordLine([]string{"5"}); got != "task 5 was interrupted; your next message picks it up" {
 		t.Errorf("one interrupted task wrote %q", got)
 	}
-	if got := interruptedRecordLine([]string{"5", "8"}); got != "tasks 5, 8 were interrupted; say continue" {
+	if got := interruptedRecordLine([]string{"5", "8"}); got != "tasks 5, 8 were interrupted; your next message picks the newest up" {
 		t.Errorf("two interrupted tasks wrote %q", got)
 	}
 }

@@ -163,7 +163,7 @@ func TestAPersonsStopPutsAJobsTaskDownRatherThanFailingIt(t *testing.T) {
 	if len(sent) != 1 {
 		t.Fatalf("the person was sent %d messages, want the one stopped report: %v", len(sent), sent)
 	}
-	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "Say continue to pick this task up"} {
+	for _, words := range []string{"I stopped this task", "Job " + jobID, "t1", "Your next message picks this task up"} {
 		if !strings.Contains(sent[0], words) {
 			t.Errorf("the stopped report is %q, want it to say %q", sent[0], words)
 		}
@@ -326,42 +326,6 @@ func TestAJobsTaskPickedUpByItsNumberIsPickedUpAsTheJobsTask(t *testing.T) {
 	}
 	if !sentSomethingLike(built.channel.Sent(), "Job "+jobID+", report j"+jobID+".1: 1 of 2 tasks done.") {
 		t.Errorf("the person was sent %v, want the answered task's report with the job's progress on it", built.channel.Sent())
-	}
-}
-
-// TestContinueLeavesAPutDownTaskAloneWhenAPlainTaskStoppedAfterIt proves which
-// task the word means when two stopped: the one that stopped last, which the
-// program names by its number when it is the person's own.
-func TestContinueLeavesAPutDownTaskAloneWhenAPlainTaskStoppedAfterIt(t *testing.T) {
-	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 1, []testkit.Step{
-		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
-		answerStep("I stopped where I was and read the notes again. What is left: nothing."),
-	})
-	stopTheJobsTask(t, made, built, waiting)
-	// The person's own task makes a record and is then stopped, so the program
-	// remembers it as task 2 and names it on the next word.
-	if err := made.Deliver(contract.Inbound{Text: "stop", Channel: "terminal"}); err != nil {
-		t.Fatalf("cannot hand the loop the word stop: %v", err)
-	}
-	if outcome, err := made.Run(t.Context(), built.task("read the notes")); err != nil || outcome.Status != contract.StatusStopped {
-		t.Fatalf("the person's own task ended as %+v (%v), want it stopped", outcome, err)
-	}
-
-	named := built.task("continue")
-	named.ResumeID = "2"
-	outcome, err := made.Run(t.Context(), named)
-	if err != nil {
-		t.Fatalf("carrying the person's own task on failed: %v", err)
-	}
-
-	if outcome.TaskID != "2" {
-		t.Errorf("continue picked up task %q, want task 2, the person's own, which stopped last", outcome.TaskID)
-	}
-	if first := theJobsFirstTask(t, built, jobID); first.Done {
-		t.Errorf("the job's task reads %+v, want it still put down", first)
-	}
-	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused {
-		t.Errorf("the job is %q, want it still paused on its task", summary.State)
 	}
 }
 

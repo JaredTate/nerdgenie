@@ -211,6 +211,11 @@ docs/research/14-doom-loop-and-tokens.md
 docs/research/15-tool-inventory.md
 docs/research/16-browser-agent-spec.md
 docs/research/17-chatgpt-state-conversation.txt
+docs/research/2026-09-05-state-and-llm/agent-harnesses.md
+docs/research/2026-09-05-state-and-llm/harness-builders.md
+docs/research/2026-09-05-state-and-llm/llm-efficiency.md
+docs/research/2026-09-05-state-and-llm/state-classical.md
+docs/research/2026-09-05-state-and-llm/state-distributed.md
 docs/research/harness-v2-review.md
 docs/research/nerdgenie-plan-review.md
 docs/research/work-plan-final-review.md
@@ -565,6 +570,7 @@ internal/loop/midturn_test.go
 internal/loop/more_test.go
 internal/loop/nobudget_test.go
 internal/loop/numbering.go
+internal/loop/orient.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
@@ -1565,6 +1571,7 @@ worker/browser/src/main.ts
 worker/browser/src/methods.ts
 worker/browser/src/pacing.ts
 worker/browser/src/page-bridge.ts
+worker/browser/src/page-errors.ts
 worker/browser/src/page-script.ts
 worker/browser/src/params.ts
 worker/browser/src/pdf.ts
@@ -1589,8 +1596,10 @@ worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
 worker/browser/test/pacing.test.ts
+worker/browser/test/page-errors.test.ts
 worker/browser/test/page-events.test.ts
 worker/browser/test/page-text.test.ts
+worker/browser/test/pages/broken-page.html
 worker/browser/test/pages/busy-attributes.html
 worker/browser/test/pages/captcha.html
 worker/browser/test/pages/changes-on-click.html
@@ -1602,6 +1611,7 @@ worker/browser/test/pages/keyboard.html
 worker/browser/test/pages/links-and-form.html
 worker/browser/test/pages/login.html
 worker/browser/test/pages/long.html
+worker/browser/test/pages/many-errors.html
 worker/browser/test/pages/more-on-scroll.html
 worker/browser/test/pages/much-text.html
 worker/browser/test/pages/never-settles.html

@@ -75,11 +75,11 @@ func TestTheMemoryOfAStoppedTaskIsRebuiltFromTheLog(t *testing.T) {
 
 	remembered := rebuilt(t, store)
 
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "3" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "3" {
 		t.Errorf("continue after the restart picked up %q, want task 3, which the log says stopped", picked)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "write the release notes"); picked != "" {
-		t.Errorf("a new ask after the restart picked up task %q, and a stopped task is carried on only by the words for it", picked)
+	if picked, steers := remembered.taskToCarryOn(theTerminalScreen, "write the release notes"); picked != "3" || !steers {
+		t.Errorf("a plain message after the restart picked up task %q with steer %v, want task 3 steered by it, because a stopped task is unfinished work", picked, steers)
 	}
 }
 
@@ -92,10 +92,10 @@ func TestTheMemoryOfAWaitingTaskIsRebuiltFromTheLog(t *testing.T) {
 
 	remembered := rebuilt(t, store)
 
-	if picked := remembered.taskToCarryOn(theSignalScreen, "the top one"); picked != "4" {
+	if picked, _ := remembered.taskToCarryOn(theSignalScreen, "the top one"); picked != "4" {
 		t.Errorf("the answer from the Signal screen picked up %q, want task 4, which the log says is waiting on it", picked)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "the top one"); picked != "" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "the top one"); picked != "" {
 		t.Errorf("the terminal picked up task %q, which was asked over Signal", picked)
 	}
 }
@@ -112,7 +112,7 @@ func TestATaskThatEndedIsNotRebuiltIntoTheMemory(t *testing.T) {
 
 	remembered := rebuilt(t, store)
 
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
 		t.Errorf("a task the log says is done was picked up as %q after the restart", picked)
 	}
 }
@@ -126,11 +126,11 @@ func TestAFailedTaskIsRebuiltFromTheLog(t *testing.T) {
 
 	remembered := rebuilt(t, store)
 
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "9" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "9" {
 		t.Errorf("continue after the restart picked up %q, want task 9, which the log says failed", picked)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "start something else"); picked != "" {
-		t.Errorf("a new ask after the restart picked up task %q, and a failed task is carried on only by the words for it", picked)
+	if picked, steers := remembered.taskToCarryOn(theTerminalScreen, "start something else"); picked != "9" || !steers {
+		t.Errorf("a plain message after the restart picked up task %q with steer %v, want task 9 steered by it, because a failed task is unfinished work", picked, steers)
 	}
 }
 
@@ -146,10 +146,10 @@ func TestOnlyTheNewestWaitingOrStoppedTaskOfAScreenIsRebuilt(t *testing.T) {
 
 	remembered := rebuilt(t, store)
 
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "5" {
 		t.Errorf("the terminal's continue picked up %q, want task 5, the newest of its tasks that stopped", picked)
 	}
-	if picked := remembered.taskToCarryOn(theSignalScreen, "yes"); picked != "6" {
+	if picked, _ := remembered.taskToCarryOn(theSignalScreen, "yes"); picked != "6" {
 		t.Errorf("the Signal answer picked up %q, want task 6, which is that screen's own", picked)
 	}
 }
@@ -190,10 +190,10 @@ func TestTheRebuildLooksBackOnlySoFar(t *testing.T) {
 	remembered := rebuilt(t, counting)
 
 	newest := "signal:+1512555" + strconv.Itoa(maxTasksLookedBackAt+5)
-	if picked := remembered.taskToCarryOn(newest, "yes"); picked != strconv.Itoa(maxTasksLookedBackAt+5) {
+	if picked, _ := remembered.taskToCarryOn(newest, "yes"); picked != strconv.Itoa(maxTasksLookedBackAt+5) {
 		t.Errorf("the newest screen picked up %q, want its own task, because the look-back starts from the newest", picked)
 	}
-	if picked := remembered.taskToCarryOn("signal:+15125551", "yes"); picked != "" {
+	if picked, _ := remembered.taskToCarryOn("signal:+15125551", "yes"); picked != "" {
 		t.Errorf("the oldest screen picked up task %q, and it is past the look-back", picked)
 	}
 	if counting.byTask > maxTasksLookedBackAt {
@@ -213,7 +213,7 @@ func TestALogThatCannotBeReadLeavesTheMemoryEmptyAndSaysSo(t *testing.T) {
 	if remembered == nil {
 		t.Fatal("a log that cannot be read left no memory at all, and the agent needs one to start")
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "continue"); picked != "" {
 		t.Errorf("an empty memory picked up task %q", picked)
 	}
 }

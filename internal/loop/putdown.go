@@ -93,16 +93,15 @@ func couldNotMarkLine(jobID string, taskID string, waiting bool, why error) stri
 		return fmt.Sprintf("I could not mark job %s as waiting on task %s (%v). Your answer still reaches the task, and I will try to mark it again when the task next stops.",
 			jobID, taskID, why)
 	}
-	return fmt.Sprintf("I could not mark job %s as paused on task %s (%v). Say %s to try again.",
-		jobID, taskID, why, contract.CarryOnWords[0])
+	return fmt.Sprintf("I could not mark job %s as paused on task %s (%v). Your next message tries again.",
+		jobID, taskID, why)
 }
 
 // pausedOnLine is the line under a stopped job task's report: which job waits
-// on which task, and the one word that picks it up. It is the only instruction
-// the report gives, because a person told to say how to carry on and then to
-// say continue did the first and started a plain task.
+// on which task, and that the next message picks it up. It is the only
+// instruction the report gives.
 func pausedOnLine(jobID string, taskID string) string {
-	return fmt.Sprintf("Job %s is paused on task %s. Say %s to pick this task up.", jobID, taskID, contract.CarryOnWords[0])
+	return fmt.Sprintf("Job %s is paused on task %s. Your next message picks this task up; type /clear first to set it aside.", jobID, taskID)
 }
 
 // waitingOnLine is the line under a job task's question: which job waits on
@@ -137,9 +136,14 @@ func (theLoop *Loop) pickUpTheJobsTask(ctx context.Context, task Task) (Task, er
 }
 
 // thePutDownTaskFor asks the job store for the job's task put down most
-// recently and hands it over when this message picks it up, which for a task
-// that asked a question is any message and for a stopped task is a message
-// that begins with one of the words that carry on. The store is asked rather
+// recently and hands it over when this message picks it up, which is any
+// message at all: a task that asked a question is answered by the next
+// message, and a stopped task ends on "tell me how to carry on", which the
+// next message answers the same way. It used to take only a message that
+// began with one of the words that carry on, and on the live game build the
+// person's plain steer after a stop started a fresh task with an empty
+// record instead. A person who means to set the work aside clears the screen
+// first, which forgets the mark. The store is asked rather
 // than this loop's memory so that a task put down before a restart is still
 // picked up after it, and the store forgets the mark only once it has set the
 // job running again, so a store error on the way leaves the task put down for
@@ -152,9 +156,6 @@ func (theLoop *Loop) thePutDownTaskFor(ctx context.Context, task Task) (contract
 		return contract.PutDownMark{}, false, fmt.Errorf("cannot ask the jobs which task was put down: %w", err)
 	}
 	if !there {
-		return contract.PutDownMark{}, false, nil
-	}
-	if _, carriesOn := contract.CarryOn(task.Message.Text); !putDown.Waiting && !carriesOn {
 		return contract.PutDownMark{}, false, nil
 	}
 	if task.ResumeID != "" && isNewer(task.ResumeID, putDown.Run) {
@@ -215,8 +216,9 @@ func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.Pu
 	if err := theLoop.options.Jobs.Resume(ctx, jobID); err != nil {
 		return Task{}, fmt.Errorf("cannot set job %s running again to carry on its task %s: %w", jobID, taskID, err)
 	}
-	rest, _ := contract.CarryOn(task.Message.Text)
-	saidMore := putDown.Waiting || rest != ""
+	rest, bareOrMore := contract.CarryOn(task.Message.Text)
+	saysMore := !bareOrMore || rest != ""
+	saidMore := putDown.Waiting || saysMore
 	if !putDown.HasRecord {
 		fresh := taskFromJob(putDown.Task, task.Channel)
 		fresh.Unattended = false
@@ -227,7 +229,7 @@ func (theLoop *Loop) carryOn(ctx context.Context, task Task, putDown contract.Pu
 	}
 	fromJob := putDown.Task
 	task.FromJob, task.Unattended, task.ResumeID = &fromJob, false, putDown.Run
-	if !putDown.Waiting && rest != "" {
+	if !putDown.Waiting && saysMore {
 		task.Correction = task.Message
 	}
 	return task, nil

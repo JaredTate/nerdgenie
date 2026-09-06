@@ -76,7 +76,7 @@ func TestAPersonsStopPutsAScheduledJobsTaskDownToo(t *testing.T) {
 	if err != nil || !there || mark.Task.TaskID != "t1" || !mark.Task.Unattended {
 		t.Errorf("the store holds the put-down task as %+v (there %v, error %v), want the schedule's task t1", mark, there, err)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "Say continue to pick this task up") {
+	if !sentSomethingLike(built.channel.Sent(), "Your next message picks this task up") {
 		t.Errorf("the person was sent %v, want the stopped report with the word that picks the task up", built.channel.Sent())
 	}
 }

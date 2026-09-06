@@ -369,7 +369,7 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 // be read costs the report that line and nothing more, because the stop
 // itself must not wait on it.
 func (running *run) howToCarryOn(ctx context.Context) string {
-	theInvitation := "Tell me how to carry on and I will pick it up from here."
+	theInvitation := "Tell me how to carry on and I will pick it up from here; type /clear first to set it aside."
 	if len(running.jobsMade) == 0 || running.theLoop.options.Jobs == nil {
 		return theInvitation
 	}

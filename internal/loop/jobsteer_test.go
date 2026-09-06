@@ -82,6 +82,39 @@ func TestAStoreErrorOnContinueLeavesTheTaskPutDownForTheNextContinue(t *testing.
 // noon" is carrying the task on and steering it, not starting a new one. The
 // task is picked up under the job, and the whole message is written into its
 // record as a correction, so the steer survives however long the task runs.
+// TestAnyMessageAfterAStopPicksThePutDownTaskUpAndSteersIt holds the job half
+// of the live game build's second failure: the person's plain words after a
+// stop, "the start game button wont start game", pick the put-down task up
+// under its job and go into its record as a correction, where they used to
+// start a fresh task with an empty record.
+func TestAnyMessageAfterAStopPicksThePutDownTaskUpAndSteersIt(t *testing.T) {
+	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 2, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("The start button is wired now."),
+		aReviewReply("Check the script path first."),
+		answerStep("The summary is written."),
+		aReviewReply("Keep a stopped task where it was."),
+	})
+	stopTheJobsTask(t, made, built, waiting)
+
+	outcome, err := made.Run(t.Context(), built.task("the start game button wont start game"))
+	if err != nil {
+		t.Fatalf("carrying the task on with plain words failed: %v", err)
+	}
+	runTheJobToTheEnd(t, made, built.channel)
+
+	if outcome.TaskID != "1" || outcome.Status != contract.StatusDone {
+		t.Errorf("the plain words after a stop ended as %+v, want task 1, the put-down task, picked up under the job and finished", outcome)
+	}
+	held := built.held(t, "1")
+	if len(held.Rules.Corrections) != 1 || held.Rules.Corrections[0].Text != "the start game button wont start game" {
+		t.Errorf("the record's corrections are %+v, want the person's words, so that they outlive the conversation", held.Rules.Corrections)
+	}
+	if first := theJobsFirstTask(t, built, jobID); !first.Done {
+		t.Errorf("the job's task reads %+v, want it done under the job", first)
+	}
+}
+
 func TestAMessageThatBeginsWithContinuePicksThePutDownTaskUpAndCarriesTheRest(t *testing.T) {
 	built, made, waiting, jobID := aJobWhoseTaskIsStoppedOn(t, 2, []testkit.Step{
 		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),

@@ -33,7 +33,7 @@ func TestTheClearCommandForgetsTheTerminalsTaskAndTellsTheScreenToClear(t *testi
 	if answer != "" {
 		t.Errorf("/clear answered %q on top of the reply it sends itself, so the screen would be told twice", answer)
 	}
-	if picked := remembered.taskToCarryOn(theTerminalScreen, "the top one"); picked != "" {
+	if picked, _ := remembered.taskToCarryOn(theTerminalScreen, "the top one"); picked != "" {
 		t.Errorf("the next message would carry on task %q after /clear, and a clear means the next message starts a fresh task", picked)
 	}
 

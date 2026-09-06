@@ -141,7 +141,7 @@ func TestAStoppedReportStillReachesThePersonWhenTheJobCannotBeMarked(t *testing.
 	}
 
 	theReportStillWentOut(t, built, jobID, "I stopped this task")
-	if sent := built.channel.Sent(); !strings.Contains(sent[0], "Say continue to try again") {
-		t.Errorf("the person was sent %q, want it to say what to do: say continue to try again", sent[0])
+	if sent := built.channel.Sent(); !strings.Contains(sent[0], "Your next message tries again") {
+		t.Errorf("the person was sent %q, want it to say what to do: the next message tries again", sent[0])
 	}
 }

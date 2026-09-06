@@ -580,6 +580,8 @@ internal/loop/more_test.go
 internal/loop/nobudget_test.go
 internal/loop/numbering.go
 internal/loop/orient.go
+internal/loop/pagescripts.go
+internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
@@ -770,6 +772,7 @@ internal/record/integration_test.go
 internal/record/jobtasks_test.go
 internal/record/keeper.go
 internal/record/keeper_test.go
+internal/record/lessons.go
 internal/record/lessons_test.go
 internal/record/logfails_test.go
 internal/record/logkey_test.go

@@ -9,6 +9,7 @@ import (
 
 	workingcontext "github.com/JaredTate/nerdgenie/internal/context"
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // The bounds on the few facts the harness writes into the record for itself.
@@ -67,6 +68,56 @@ func (running *run) writeSituation(ctx context.Context) error {
 	return nil
 }
 
+// noteTheBrowserResult keeps what one browser result shows: the page's first
+// line as the situation's browser line, the marked loop of a hung page in its
+// place when there is one, and the page's address for the reading of its
+// scripts.
+func (running *run) noteTheBrowserResult(text string) {
+	if first := firstLine(text); first != "" {
+		running.browserFact = "browser: " + first
+	}
+	if marked := theMarkedLoopIn(text); marked != "" {
+		running.browserFact = TheHungPageFact + marked
+	}
+	if address := addressIn(text); address != "" {
+		running.pageAddress = address
+	}
+}
+
+// takeTheBrowserFactBackFromTheLog gives a picked-up task the page it was on
+// and, when the page hung, its marked loop, from the newest browser result the
+// log holds under it. The fourth sitting of the fifth game build's play-test
+// task started with an empty browser line because the fact lived in memory,
+// and the model re-read the old result four times. A log that cannot be read
+// costs the situation one line and nothing more.
+func (running *run) takeTheBrowserFactBackFromTheLog(ctx context.Context) {
+	events, err := running.theLoop.options.Store.ByTask(ctx, running.keeper.LogKey())
+	if err != nil {
+		return
+	}
+	newest, lastCall := "", ""
+	for _, event := range events {
+		switch event.Kind {
+		case contract.EventToolCall:
+			call := contract.ToolCall{}
+			if err := json.Unmarshal(event.Body, &call); err == nil {
+				lastCall = call.Name
+			}
+		case contract.EventToolResult:
+			if !strings.HasPrefix(lastCall, "browser") {
+				continue
+			}
+			result := record.StoredResult{}
+			if err := json.Unmarshal(event.Body, &result); err == nil && result.Text != "" {
+				newest = result.Text
+			}
+		}
+	}
+	if newest != "" {
+		running.noteTheBrowserResult(newest)
+	}
+}
+
 // filesLine names the files this task changed, from the file-change events in
 // the log and from the write and edit calls the loop itself saw, by their last
 // path element, because the line is rewritten under the conversation on every
@@ -114,15 +165,7 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 	}
 	switch {
 	case strings.HasPrefix(call.Name, "browser"):
-		if first := firstLine(text); first != "" {
-			running.browserFact = "browser: " + first
-		}
-		if marked := theMarkedLoopIn(text); marked != "" {
-			running.browserFact = TheHungPageFact + marked
-		}
-		if address := addressIn(text); address != "" {
-			running.pageAddress = address
-		}
+		running.noteTheBrowserResult(text)
 		running.noteAChangedPage(text)
 	case call.Name == contract.ToolShell:
 		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)

@@ -31,6 +31,18 @@ And one thing the numbers made bigger than I had it: output tokens were 52,700 o
 
 Also in today: plan steps can be marked done (`step_done`), the probe rule (five throwaway scripts with no edit sends one line; it fired in run 5 and the model wrote the failure itself), the review runs before the wrap-up clock, tool markup is never saved as a lesson, and the message window drops its oldest half at once.
 
+**Found and fixed later in run 5, after this plan's first draft:**
+
+| Failure seen | What was wrong | What changed | Proof |
+|---|---|---|---|
+| Task 1 failed at its 223rd result with "the record would pass its size" | Result lines were never dropped, so a harness write of the situation hit the 3,000-token cap and failed the task | The results list gives first: oldest lines leave, down to a hundred and never below ten; every one stays readable by label from the log | `internal/record/size_test.go` |
+| The Start button hangs the page; the tool said "open the page again"; the model did, twice | The hung-page error blamed the page, not its script | Both the scan deadline and the method deadline say the page's own script is the likely cause, an endless loop that starts on this action, and to fix the script | `worker/browser/test/hung-page.test.ts` |
+| Eleven desktop launches in a row, never refused | Each call's intent sentence was worded differently, so the guard saw no repeat | The fingerprint leaves out intent, expectation, why, goal and reason | `internal/loop/guard_test.go` |
+| `pkill -f` on its own server, exit 143 | The shell tool ran it | Refused with the reason and the fix: find the id by port, kill that id | `internal/tool/shell/shell_test.go` |
+| Sixty rounds on two tests in run 4; thirty on a hung page in run 5, each round a character different | No meter for progress | Ideas 1 and 2 below are built: the tests run themselves after every change, and rounds without progress climb the ladder | `internal/loop/autotest_test.go`, `progress_test.go` |
+
+And one the job phase proved: when task 1 ended, the driver took the job at once, and tasks t1 through t7 verified and reported in under thirty minutes with fresh windows of ten to forty thousand tokens and rounds of three to five seconds. The hand-off is the right shape.
+
 ## The numbers the ranking rests on
 
 Run 5, first 150 rounds, 41 minutes, all on the local model:
@@ -63,7 +75,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** A scripted write of a source file after one test run yields a result line carrying the fresh tests line; a reply whose first line says "step 2 done, r5" marks step 2 with r5, and one naming a result the record never wrote marks nothing and says so.
 
-**Cost.** The test suite's own run time, capped. **Risk.** A slow suite; the cap and a "tests skipped, suite too slow" line cover it. A model that writes "step 3 done" without a result gets the same refusal the tool gives. **Verdict.** Build first. It is the largest measured win on the list.
+**Cost.** The test suite's own run time, capped. **Risk.** A slow suite; the cap and a "tests skipped, suite too slow" line cover it. A model that writes "step 3 done" without a result gets the same refusal the tool gives. **Verdict.** Built, the first half: the tests run themselves after every write or edit once the model has run them once, and the instruction sentence says so. The step mark on the first line is not built yet.
 
 ### 2. A progress meter, and a ladder: nudge, rewind, stop
 
@@ -75,7 +87,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** A scripted task that edits and runs red tests for twenty-five rounds gets the nudge at ten and the rewind at twenty, and its record holds the failure line; a task whose tests improve every fifth round never sees either.
 
-**Cost.** One line in the Situation. **Risk.** A wrong signal counts as progress, so the five are kept strict; a rewind mid-change loses the model's thread, which the half-drop at round 100 tonight showed it survives. **Verdict.** Build first.
+**Cost.** One line in the Situation. **Risk.** A wrong signal counts as progress, so the signals are kept strict; a rewind mid-change loses the model's thread, which the half-drop at round 100 tonight showed it survives. **Verdict.** Built. A sixth signal was needed the moment the tests ran: a read of something not read before counts, or a research task that reads a different file every round would be stopped at forty.
 
 ### 3. Check the world after every change: a syntax check on every write, and the real error line in every failure
 
@@ -200,6 +212,12 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 **Third:** idea 11, then 12 with the owner.
 
 **After every step:** run the Tetris ask on the local model and write rounds, minutes, output tokens and cache hit rate into `docs/PROGRESS.md`. The number that matters is rounds to a playable game with a browser change and no page errors, not rounds to green tests.
+
+## Follow-ups found in run 5, not yet built
+
+- **A command whose own process has ended but whose background child holds the output.** Twice tonight the model started a server with an ampersand and no redirect, the shell tool waited on a pipe the server held open, and three rounds went to polling and killing. The tool should say "the command finished; something it started still holds its output and is kept as p49". It needs the process id across the sandbox contract, so it waits for a quiet moment.
+- **The `ask` field on `browser_read` for local pages.** Task t8 reached for Puppeteer through the shell to read the game's state and could not launch it. Idea 4's second half is the right answer and is not built yet.
+- **The step mark on the first line.** Idea 1's second half.
 
 ## What was rejected, and why
 

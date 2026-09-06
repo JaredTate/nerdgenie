@@ -85,6 +85,13 @@ func TestTheDoneListFieldSaysFiveLinesIsTheMost(t *testing.T) {
 		if !strings.Contains(field.Description, "at most five lines") {
 			t.Errorf("the done_when field reads %q and does not say that five lines is the most", field.Description)
 		}
+		// The tenth nightly run's play-test task read "the result that proves
+		// it" as a label to give each line, wrote r1 to r5 on a record at r2,
+		// and then guessed labels for ten rounds: the field says a line is a
+		// plain string, and the proof is pinned later.
+		if !strings.Contains(field.Description, "plain string") || !strings.Contains(field.Description, "pin_result") {
+			t.Errorf("the done_when field reads %q and does not say that a line is a plain string whose proof is pinned later with pin_result", field.Description)
+		}
 		return
 	}
 	t.Fatal("the tool has no done_when field")

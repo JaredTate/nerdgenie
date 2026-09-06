@@ -1,6 +1,7 @@
 package record
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -57,6 +58,24 @@ func TestLessonsAreCutToALineAndTheOldestLeaveWhenTheListIsFull(t *testing.T) {
 	}
 	if parsed.Lessons.Failures[0].ID != "F3" || parsed.Lessons.Decisions[0].ID != "D3" {
 		t.Errorf("the record read back starts its lessons at %s and %s, want F3 and D3", parsed.Lessons.Failures[0].ID, parsed.Lessons.Decisions[0].ID)
+	}
+}
+
+// TestALongFailureWrittenTwiceIsRefusedLikeAShortOne is the fifth game
+// build's play-test task an hour after the duplicate rule went in: it wrote a
+// four-hundred-character failure twice and the record took both, because the
+// second was compared whole against the first as the record had cut it, and
+// a whole text shares few of its words with its own first line. The words
+// compared are the words the record would keep.
+func TestALongFailureWrittenTwiceIsRefusedLikeAShortOne(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	long := "Done_when items 1-4 were pinned to results that do not prove them: r184 is a plain page read with no state dump, r185 is a single idle-state probe, r186 is a grep of the dev-control bindings, r187 is a file read, and none of them actually exercises movement, rotation, drops, clears, scoring, pause, restart, game over or the high score, so the done list stands on nothing and the play-test has not begun."
+	if err := keeper.Apply(ctx, Update{Failure: &NewFailure{Text: long, Cause: "the lines were pinned before the play-test ran"}}); err != nil {
+		t.Fatalf("the first failure was refused: %v", err)
+	}
+	if err := keeper.Apply(ctx, Update{Failure: &NewFailure{Text: long, Cause: "the lines were pinned before the play-test ran"}}); !errors.Is(err, ErrFailureAlreadyWritten) {
+		t.Errorf("the same long failure written again gave %v, want a refusal naming F1", err)
 	}
 }
 

@@ -1062,7 +1062,7 @@ from there, never wider than fifty-six, and builds its lines and their click
 targets in one walk, `panelItems`, so `panelLines` and `panelTargets` cannot
 drift: `job:4` on a job's header, `task:t19` on each of its task rows,
 `task:17` on a plain task's header, and nothing on every other line. The
-groups come in order — MODEL, NOW, the checklist, STATE, FAILURES, ROUND and
+groups come in order — MODEL, NOW, LAST (the last record line, how the last task or job ended, kept on the panel only while the program is idle, because the desktop window the morning after the fifth game build showed the model and the word idle with the ending only in the transcript), the checklist, STATE, FAILURES, ROUND and
 the count of jobs — each under a small dim upper-case label with the
 checklist's rule after it out to the panel's edge, with a blank line between
 groups, and a group with nothing to say is left out entirely. `statepanel.go`

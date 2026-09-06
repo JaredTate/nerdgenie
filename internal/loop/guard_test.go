@@ -290,3 +290,32 @@ func sentSomethingLike(sent []string, wanted string) bool {
 	}
 	return false
 }
+
+// TestTheSameCallWithADifferentIntentIsStillTheSameCall is what the fifth game
+// build showed the guard was blind to. The model asked the desktop tool to
+// launch an application it never named eleven times in a row, every call
+// refused with the same line, and the guard never saw a repeat because each
+// call's intent and expectation, the free text that says why, was worded a
+// little differently. What a call does is its fingerprint; what it says about
+// itself is not.
+func TestTheSameCallWithADifferentIntentIsStillTheSameCall(t *testing.T) {
+	launching := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "computer", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "this call names no application, so say which program to open", "this call names no application, so say which program to open")
+	built := newHarness(t, []testkit.Step{
+		callStep("I will launch Chrome.", callFor("c1", "computer", `{"action":"launch","intent":"Launch Chrome to bring the game window to focus","expectation":"Chrome comes to the front"}`)),
+		callStep("I will launch Chrome.", callFor("c2", "computer", `{"action":"launch","intent":"Launch Chrome to bring the game window to focus so I can interact with it","expectation":"Chrome window with the game page comes to the front"}`)),
+		callStep("I will launch Chrome.", callFor("c3", "computer", `{"action":"launch","intent":"Launch Google Chrome to bring the game window to focus","expectation":"the game is in front"}`)),
+		answerStep("I cannot bring the window forward; the page is on port 8091."),
+	}, launching)
+
+	built.ask(t, "open the game")
+
+	if len(launching.Inputs()) != 2 {
+		t.Errorf("the tool ran %d times, want 2: the third launch, worded differently but the same call, is refused",
+			len(launching.Inputs()))
+	}
+	if !strings.Contains(requestsJoined(built.model.Requests()), "Do something different") {
+		t.Error("the model was never told to do something different")
+	}
+}

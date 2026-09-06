@@ -184,19 +184,33 @@ func (running *run) forgetTheCalls() {
 	running.recentCalls = nil
 }
 
+// theFieldsThatSayWhy are the free-text fields of a call that say what the
+// model means by it and change nothing about what the tool does: the intent
+// the browser and desktop tools ask for, and the expectation they judge. On
+// the fifth game build the model asked the desktop tool to launch an
+// application it never named eleven times in a row, and the guard saw no
+// repeat because every call's intent was worded a little differently.
+var theFieldsThatSayWhy = []string{"intent", "why", "goal", "expectation", "reason"}
+
 // fingerprintOf is what makes two calls the same call: the tool's name and its
-// arguments with the whitespace taken out and the fields in one order, so that
-// the same call written twice in two ways is still the same call.
+// arguments with the whitespace taken out, the fields in one order, and the
+// fields that only say why left out, so that the same call written twice in
+// two ways is still the same call.
 func fingerprintOf(call contract.ToolCall) string {
 	return call.Name + "\x00" + canonicalArguments(call.Input)
 }
 
 // canonicalArguments writes one call's arguments in a form that does not depend
-// on how the model spaced or ordered them.
+// on how the model spaced, ordered or explained them.
 func canonicalArguments(arguments json.RawMessage) string {
 	var held any
 	if err := json.Unmarshal(arguments, &held); err != nil {
 		return strings.TrimSpace(string(arguments))
+	}
+	if fields, isObject := held.(map[string]any); isObject {
+		for _, name := range theFieldsThatSayWhy {
+			delete(fields, name)
+		}
 	}
 	written, err := json.Marshal(held)
 	if err != nil {

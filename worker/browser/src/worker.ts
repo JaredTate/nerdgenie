@@ -58,7 +58,9 @@ async function withDeadline<T>(method: string, work: Promise<T>): Promise<T> {
       () =>
         ringing(
           chromeDied(
-            `the ${method} method was still running after ${limit} milliseconds, so the browser can no longer be trusted.`,
+            `the ${method} method was still running after ${limit} milliseconds, so the browser is started again. ` +
+              "If this is a page you are building, the page's own script is the likely cause: code that does not yield, " +
+              "such as an endless loop that starts on this action, keeps the page from answering anything. Fix the script before opening the page again.",
           ),
         ),
       limit,

@@ -317,7 +317,12 @@ shell command that launched Chrome thirteen times in a row, and every answer
 carried a new process id, so to the first rule no two of them were the same call.
 Both rules count a run, so a different call in between clears both: reading a page
 again after each click, or running the tests after each edit, is ordinary work
-however many times it happens. A message from the user, a stop,
+however many times it happens. **A call's fingerprint is what it does, not what
+it says about itself**: `canonicalArguments` leaves out `intent`, `why`, `goal`,
+`expectation` and `reason` before it hashes, because on the fifth game build the
+model asked the desktop tool to launch an application it never named eleven
+times in a row, each call refused with the same line, and the guard saw no
+repeat because every call's intent was worded a little differently. A message from the user, a stop,
 and a resume all clear the run, because the world has changed. Every call then
 goes to `contract.Permission`; a ruling of ask shows the preview through the
 channel and remembers the answer, a ruling of stop ends an unattended task with a
@@ -1136,7 +1141,13 @@ Game" that started nothing was judged to have met "the start menu closes" on the
 strength of the button's own name, so a click now names no aim and a click that
 changed nothing says so, while the box typing filled still counts, because the
 snapshot cannot show what it holds. `walls` reports a login form, a prompt for a
-second code, or a captcha. `refs` finds an element again when its ref has gone stale, by role and
+second code, or a captcha. A page whose own script never yields is named as
+such: when the scan call times out, or a whole method runs past its deadline,
+the error says the page's own script is the likely cause, code that does not
+yield such as an endless loop that starts on this action, and to fix the script
+rather than open the page again, because on the fifth game build the Start
+button ran an endless loop, the error said to open the page again, and the
+model did, twice, and hung twice (`test/hung-page.test.ts`). `refs` finds an element again when its ref has gone stale, by role and
 name and then by visible text. `actions` and `pacing` do the thing at the speed a
 person would. `person-script` and `events` watch the window for what the person
 does themselves and send it out as an `event` notification. `pdf` saves a PDF page through the browser's own session, because

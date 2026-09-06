@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hangs on click</title>
+  </head>
+  <body>
+    <h1>Hangs on click</h1>
+    <!-- The click runs a loop that never yields for twenty seconds, which is
+         what a game with an endless loop in its start code does to the page:
+         the worker's scan cannot run until the loop ends. -->
+    <button type="button" id="start">Start Game</button>
+    <script>
+      // The loop starts on the next turn, after the click has returned, the
+      // way a game's frame loop does; the click itself succeeds and the page
+      // then never yields.
+      document.getElementById("start").addEventListener("click", function () {
+        setTimeout(function () {
+          var until = Date.now() + 20000;
+          while (Date.now() < until) {}
+        }, 0);
+      });
+    </script>
+  </body>
+</html>

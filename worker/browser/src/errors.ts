@@ -59,9 +59,19 @@ export function noSuchReference(ref: string, data: Record<string, unknown>): Wor
 /**
  * The page could not be read at all after the settle limit. A page that merely
  * keeps changing is read as it stands and reported with `settled: false`; this is
- * for a page that throws its own document away faster than it can be looked at.
+ * for a page that throws its own document away faster than it can be looked at,
+ * or, when the scan call itself never answered, for a page whose own script
+ * never yields: on the fifth game build the Start button ran an endless loop,
+ * the error said to open the page again, and the model did, twice, and hung
+ * twice. That case names the script as the cause.
  */
 export function couldNotBeRead(limitMs: number, why: string): WorkerError {
+  if (why.includes("still busy")) {
+    return new WorkerError(
+      ERROR_CODES.didNotSettle,
+      `The page could not be read after ${limitMs} milliseconds: ${why}. That is the page's own script keeping it busy, which is code that does not yield, most often an endless loop that starts on this action. The fix is in the page's script; opening the page again will hang the same way.`,
+    );
+  }
   return new WorkerError(
     ERROR_CODES.didNotSettle,
     `The page could not be read at all after ${limitMs} milliseconds: ${why}. Open the page again, or open a different one.`,

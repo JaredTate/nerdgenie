@@ -42,7 +42,7 @@ const howLongTheToolCallHolds = theSecondsTheToolCallHolds * time.Second
 // not after the job has run every task it has.
 const howLongAStopMidJobMayTake = howLongTheToolCallHolds + 8*time.Second
 
-// theStepsThatMakeTheJob are the three model calls of the person's own task:
+// theStepsThatMakeTheJob is the one model call of the person's own task:
 // make the job with its first task, add the second task and close the task's
 // own done list, and answer.
 func theStepsThatMakeTheJob() []testkit.Step {
@@ -52,26 +52,9 @@ func theStepsThatMakeTheJob() []testkit.Step {
 			Text:   "This needs two sittings, so I will make a job.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{{ID: "call-job", Name: contract.ToolJob, Input: json.RawMessage(
-				`{"action":"create","ask":"` + theAskForTheJobToSteer + `","why":"the user wants the campaign run and summed up","text":"post the tweet"}`)}},
+				`{"action":"create","ask":"` + theAskForTheJobToSteer + `","why":"the user wants the campaign run and summed up",` +
+					`"text":"post the tweet","tasks":["write the summary for the user"]}`)}},
 			Usage: contract.Usage{InputTokens: 400, OutputTokens: 20},
-		},
-		{
-			Expect: []string{"created job " + theJobToSteer},
-			Text:   "The job made its first task; I will add the second.",
-			Finish: contract.FinishToolCalls,
-			ToolCalls: []contract.ToolCall{
-				{ID: "call-task-two", Name: contract.ToolJob, Input: json.RawMessage(
-					`{"action":"add_task","job_id":"` + theJobToSteer + `","text":"write the summary for the user"}`)},
-				{ID: "call-task", Name: contract.ToolTask, Input: json.RawMessage(
-					`{"why":"the user wants the campaign run and summed up",` +
-						`"done_when":[{"text":"the job is made with one task per piece of work","done":true,"result":"reply"}]}`)},
-			},
-			Usage: contract.Usage{InputTokens: 500, OutputTokens: 30},
-		},
-		{
-			Text:   "I made job " + theJobToSteer + " with two tasks. It runs them one at a time.",
-			Finish: contract.FinishEnd,
-			Usage:  contract.Usage{InputTokens: 600, OutputTokens: 20},
 		},
 	}
 }

@@ -39,7 +39,7 @@ var theTaskNumberInARecordLine = regexp.MustCompile(`^job ` + theJobTheModelMake
 // picked up again by "continue" and finished in one call, the second task, and
 // the job's review.
 func aJobWhoseFirstTaskIsStopped(_ string) testkit.Script {
-	making := aJobOfTwoTasksMadeByTheModel("").Steps[:3]
+	making := aJobOfTwoTasksMadeByTheModel("").Steps[:1]
 	seconds := strconv.Itoa(int(howLongTheFirstTaskWorks / time.Second))
 	return testkit.Script{Name: "local", ContextLength: 32768, Steps: slices.Concat(making, []testkit.Step{
 		{
@@ -80,7 +80,7 @@ const theSteerThePersonGives = "continue, but post at noon"
 // second task starts, which is one more reply in the script.
 func aJobWhoseFirstTaskIsStoppedAndSteered(work string) testkit.Script {
 	stopped := aJobWhoseFirstTaskIsStopped(work)
-	steps := slices.Concat(stopped.Steps[:4], []testkit.Step{
+	steps := slices.Concat(stopped.Steps[:2], []testkit.Step{
 		{
 			Expect: []string{"post at noon", "post the tweet"},
 			Text:   "The tweet is posted, at noon.",
@@ -92,7 +92,7 @@ func aJobWhoseFirstTaskIsStoppedAndSteered(work string) testkit.Script {
 			Finish: contract.FinishEnd,
 			Usage:  contract.Usage{InputTokens: 500, OutputTokens: 30},
 		},
-	}, stopped.Steps[5:])
+	}, stopped.Steps[3:])
 	return testkit.Script{Name: stopped.Name, ContextLength: stopped.ContextLength, Steps: steps}
 }
 

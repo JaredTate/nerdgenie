@@ -44,7 +44,15 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 	if ending != nil {
 		return *ending, false, nil
 	}
-	return running.readDelivered(ctx)
+	outcome, more, err := running.readDelivered(ctx)
+	if err != nil || !more {
+		return outcome, more, err
+	}
+	if running.jobToHandTo != "" && !running.theLoop.stopAsked() {
+		handed, err := running.handTheWorkToTheJob(ctx, results)
+		return handed, false, err
+	}
+	return outcome, more, nil
 }
 
 // oneCall puts one tool call through the guard, the permission function, and

@@ -26,15 +26,13 @@ const theSecondsTheMakingTaskLingers = 5
 // that the person's stop lands on the task that made the job while the job
 // is running; then the job's two tasks and its review.
 func aJobWhoseMakingTaskIsStopped(_ string) testkit.Script {
-	making := theStepsThatMakeTheJob()[:2]
-	steps := append(making,
-		testkit.Step{
-			Text:   "The job is made; I will give it a moment before I sum up.",
-			Finish: contract.FinishToolCalls,
-			ToolCalls: []contract.ToolCall{{ID: "call-linger", Name: contract.ToolShell, Input: json.RawMessage(
-				fmt.Sprintf(`{"command":"sleep %d"}`, theSecondsTheMakingTaskLingers))}},
-			Usage: contract.Usage{InputTokens: 600, OutputTokens: 20},
-		},
+	// A task that makes a job with tasks ends the moment the round that made
+	// it does, so the only round a stop can land on is that one: the shell
+	// command lingers in the same reply as the job's making.
+	making := theStepsThatMakeTheJob()[0]
+	making.ToolCalls = append(making.ToolCalls, contract.ToolCall{ID: "call-linger", Name: contract.ToolShell, Input: json.RawMessage(
+		fmt.Sprintf(`{"command":"sleep %d"}`, theSecondsTheMakingTaskLingers))})
+	steps := append([]testkit.Step{making},
 		testkit.Step{
 			Expect: []string{"post the tweet"},
 			Text:   "The tweet is posted.",

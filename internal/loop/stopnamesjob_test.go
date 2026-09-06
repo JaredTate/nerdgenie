@@ -8,6 +8,7 @@ package loop_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -22,9 +23,34 @@ import (
 // task, which is how the loop learns that the task made a job.
 const theJobToolsAnswer = "created job 1 and started task t1\n"
 
+// toolThatWaitsToBeStopped is a tool that says when it is called and then
+// waits to be released, which is how a stop is made to land on a tool call in
+// flight rather than on a model call: the test asks for the stop and then
+// lets the tool go, the way a shell command that was sleeping comes back.
+type toolThatWaitsToBeStopped struct {
+	calling  chan struct{}
+	released chan struct{}
+}
+
+// Spec is what the model is told about the tool.
+func (tool *toolThatWaitsToBeStopped) Spec() contract.ToolSpec {
+	return contract.ToolSpec{Name: "wait", Description: "A tool the test made wait until it is stopped.", Classes: []contract.PermissionClass{contract.ClassRead}}
+}
+
+// Run says it is running and waits to be let go.
+func (tool *toolThatWaitsToBeStopped) Run(ctx context.Context, _ json.RawMessage) (contract.ToolOutput, error) {
+	close(tool.calling)
+	select {
+	case <-tool.released:
+		return contract.ToolOutput{Text: "waited"}, nil
+	case <-ctx.Done():
+		return contract.ToolOutput{}, ctx.Err()
+	}
+}
+
 // stopThePersonsTask runs a person's task in the background, stops it the
-// moment the waiting model call is in flight, and hands back where it ended.
-func stopThePersonsTask(t *testing.T, made *loop.Loop, built *harness, waiting *modelThatWaitsOnOneCall, said string) loop.Outcome {
+// moment the call being waited on is in flight, and hands back where it ended.
+func stopThePersonsTask(t *testing.T, made *loop.Loop, built *harness, calling <-chan struct{}, release func(), said string) loop.Outcome {
 	t.Helper()
 	ended := make(chan loop.Outcome, 1)
 	failed := make(chan error, 1)
@@ -36,8 +62,11 @@ func stopThePersonsTask(t *testing.T, made *loop.Loop, built *harness, waiting *
 		}
 		ended <- outcome
 	}()
-	<-waiting.calling
+	<-calling
 	made.Stop()
+	if release != nil {
+		release()
+	}
 	select {
 	case outcome := <-ended:
 		return outcome
@@ -52,19 +81,22 @@ func stopThePersonsTask(t *testing.T, made *loop.Loop, built *harness, waiting *
 // TestAStoppedTaskThatMadeARunningJobNamesTheJobInsteadOfInvitingACarryOn
 // proves the report: the job and its next task are named, the person is told
 // how to stop that too, and nothing invites them to carry the stopped task on.
+// The stop lands on a tool call in the same reply as the job's making, which
+// is the only round a task that made a job with tasks still runs.
 func TestAStoppedTaskThatMadeARunningJobNamesTheJobInsteadOfInvitingACarryOn(t *testing.T) {
+	lingering := &toolThatWaitsToBeStopped{calling: make(chan struct{}), released: make(chan struct{})}
 	built := newHarness(t, []testkit.Step{
-		callStep("This needs two sittings, so I will make a job.",
-			callFor("c1", contract.ToolJob, `{"action":"create","ask":"run the campaign","text":"post the tweet"}`)),
-	}, scriptedTool(contract.ToolJob, theJobToolsAnswer))
+		callStep("This needs two sittings, so I will make a job and give it a moment.",
+			callFor("c1", contract.ToolJob, `{"action":"create","ask":"run the campaign","text":"post the tweet"}`),
+			callFor("c2", "wait", `{}`)),
+	}, scriptedTool(contract.ToolJob, theJobToolsAnswer), lingering)
 	jobID := aJobOfTwoTasks(t, built)
-	waiting := aModelThatWaitsOn(2, built.model)
-	made, err := loop.New(built.optionsOver(waiting))
+	made, err := loop.New(built.options())
 	if err != nil {
-		t.Fatalf("cannot build a loop over a model that waits: %v", err)
+		t.Fatalf("cannot build the loop: %v", err)
 	}
 
-	outcome := stopThePersonsTask(t, made, built, waiting, "run the two-part campaign")
+	outcome := stopThePersonsTask(t, made, built, lingering.calling, func() { close(lingering.released) }, "run the two-part campaign")
 
 	if outcome.Status != contract.StatusStopped {
 		t.Fatalf("the task ended as %+v, want it stopped", outcome)
@@ -91,7 +123,7 @@ func TestAStoppedTaskThatMadeNoJobStillInvitesACarryOn(t *testing.T) {
 		t.Fatalf("cannot build a loop over a model that waits: %v", err)
 	}
 
-	outcome := stopThePersonsTask(t, made, built, waiting, "read the notes")
+	outcome := stopThePersonsTask(t, made, built, waiting.calling, nil, "read the notes")
 
 	if !strings.Contains(outcome.Report, "Tell me how to carry on") {
 		t.Errorf("the stopped report is %q, want the invitation to carry on, because nothing runs on this task's behalf", outcome.Report)
@@ -113,20 +145,21 @@ func (jobs jobWhoseListCannotBeRead) List(_ context.Context) ([]contract.JobSumm
 // TestAStoppedTaskWhoseJobsCannotBeReadStillStopsWithTheInvitation pins the
 // failure path: the stop is not held up by a store that will not answer.
 func TestAStoppedTaskWhoseJobsCannotBeReadStillStopsWithTheInvitation(t *testing.T) {
+	lingering := &toolThatWaitsToBeStopped{calling: make(chan struct{}), released: make(chan struct{})}
 	built := newHarness(t, []testkit.Step{
-		callStep("This needs two sittings, so I will make a job.",
-			callFor("c1", contract.ToolJob, `{"action":"create","ask":"run the campaign","text":"post the tweet"}`)),
-	}, scriptedTool(contract.ToolJob, theJobToolsAnswer))
+		callStep("This needs two sittings, so I will make a job and give it a moment.",
+			callFor("c1", contract.ToolJob, `{"action":"create","ask":"run the campaign","text":"post the tweet"}`),
+			callFor("c2", "wait", `{}`)),
+	}, scriptedTool(contract.ToolJob, theJobToolsAnswer), lingering)
 	aJobOfTwoTasks(t, built)
-	waiting := aModelThatWaitsOn(2, built.model)
-	options := built.optionsOver(waiting)
+	options := built.options()
 	options.Jobs = jobWhoseListCannotBeRead{Job: built.jobs}
 	made, err := loop.New(options)
 	if err != nil {
 		t.Fatalf("cannot build a loop over the store that cannot be read: %v", err)
 	}
 
-	outcome := stopThePersonsTask(t, made, built, waiting, "run the two-part campaign")
+	outcome := stopThePersonsTask(t, made, built, lingering.calling, func() { close(lingering.released) }, "run the two-part campaign")
 
 	if outcome.Status != contract.StatusStopped || !strings.Contains(outcome.Report, "Tell me how to carry on") {
 		t.Errorf("the task ended as %+v, want it stopped with the plain invitation when the jobs cannot be read", outcome)

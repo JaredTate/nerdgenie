@@ -71,9 +71,11 @@ type run struct {
 	probesSinceEdit int
 	probeLineDue    bool
 	// rewindsUsed counts the times the conversation was cleared to break a run of the same call; rewindDue says this round earned one.
-	rewindsUsed      int
-	rewindDue        bool
-	stalledOn        string
+	rewindsUsed int
+	rewindDue   bool
+	stalledOn   string
+	// jobToHandTo is the job made this round with a first task, whose tasks carry the work from here.
+	jobToHandTo      string
 	hadCorrection    bool
 	hadFailure       bool
 	hadStop          bool

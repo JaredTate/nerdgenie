@@ -139,6 +139,9 @@ func (running *run) noteTheJobMade(answer string) {
 	if jobID == "" || slices.Contains(running.jobsMade, jobID) {
 		return
 	}
+	if strings.Contains(rest, " and started task ") {
+		running.jobToHandTo = jobID
+	}
 	running.jobsMade = append(running.jobsMade, jobID)
 	if len(running.jobsMade) > MaxJobsMadeNoted {
 		running.jobsMade = running.jobsMade[1:]

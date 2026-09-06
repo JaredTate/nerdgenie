@@ -39,26 +39,9 @@ func aJobOfTwoTasksMadeByTheModel(_ string) testkit.Script {
 			Text:   "This needs two sittings, so I will make a job.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{{ID: "call-job", Name: contract.ToolJob, Input: json.RawMessage(
-				`{"action":"create","ask":"` + theAskThatIsAJob + `","why":"the user wants the campaign run and summed up","text":"post the tweet"}`)}},
+				`{"action":"create","ask":"` + theAskThatIsAJob + `","why":"the user wants the campaign run and summed up",` +
+					`"text":"post the tweet","tasks":["write the summary for the user"]}`)}},
 			Usage: contract.Usage{InputTokens: 400, OutputTokens: 20},
-		},
-		{
-			Expect: []string{"created job " + theJobTheModelMakes},
-			Text:   "The job made its first task; I will add the second.",
-			Finish: contract.FinishToolCalls,
-			ToolCalls: []contract.ToolCall{
-				{ID: "call-task-two", Name: contract.ToolJob, Input: json.RawMessage(
-					`{"action":"add_task","job_id":"` + theJobTheModelMakes + `","text":"write the summary for the user"}`)},
-				{ID: "call-task", Name: contract.ToolTask, Input: json.RawMessage(
-					`{"why":"the user wants the campaign run and summed up",` +
-						`"done_when":[{"text":"the job is made with one task per piece of work","done":true,"result":"reply"}]}`)},
-			},
-			Usage: contract.Usage{InputTokens: 500, OutputTokens: 30},
-		},
-		{
-			Text:   "I made job " + theJobTheModelMakes + " with two tasks. It runs them one at a time.",
-			Finish: contract.FinishEnd,
-			Usage:  contract.Usage{InputTokens: 600, OutputTokens: 20},
 		},
 		{
 			Expect: []string{"post the tweet"},

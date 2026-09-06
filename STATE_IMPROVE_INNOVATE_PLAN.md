@@ -231,7 +231,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built during t8's fourth sitting: the hung-page list reads the scripts the page itself loads (the play-test task had changed only its drivers), lists while loops first, marks the while whose body never touches its condition and keeps it in the situation every round; a past result reads from an offset like a file (r25 from line 798 had cost 13k tokens); a tool line keeps the word refused on its end (the screen drew a check on the refused click). The live list without the mark was read once and the model went back to the sound engine, which is why the mark and the situation line exist.
 
-- Not built, seen four times tonight: after every pick-up the model re-reads five to eight of the results it had in its window (r58, r39, r35, r49, r18, r30, r25 on one pick-up), about fifteen thousand tokens and six rounds before it does anything new. A put-down could pin the newest two result texts as evidence, so a pick-up starts with them in the context. Left for a run where the restarts are not the harness builder's own.
+- Looked into and dropped, 01:25 on 6 September: the re-read burst after a pick-up (five to eight results read back, about fifteen thousand tokens and six rounds each time). The window is already rebuilt from the log on a pick-up, so the last rounds' results are in front of the model in full from the first request, which `TestAPickedUpTaskStartsWithItsLastRoundsInFrontOfIt` now pins; the burst was the model choosing to read older results back, which no replay would stop.
 
 ## What was rejected, and why
 

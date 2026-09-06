@@ -192,7 +192,7 @@ docs/nightly/2026-09-06-c-forty-lines-and-read-caps.md
 docs/nightly/2026-09-06-d-first-line-hint.md
 docs/nightly/2026-09-06-e-with-tetris.md
 docs/nightly/2026-09-06-f-long-ask-is-a-job.md
-docs/nightly/2026-09-06.md
+docs/nightly/2026-09-06-g-cut-off-found.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
 docs/reference/browser-use/views.py
@@ -542,6 +542,7 @@ internal/loop/budgetend_test.go
 internal/loop/calls.go
 internal/loop/carryon.go
 internal/loop/carryon_test.go
+internal/loop/carryonwords_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
 internal/loop/commands.go
@@ -1658,6 +1659,7 @@ worker/browser/test/pages/broken-page.html
 worker/browser/test/pages/busy-attributes.html
 worker/browser/test/pages/captcha.html
 worker/browser/test/pages/changes-on-click.html
+worker/browser/test/pages/counter.html
 worker/browser/test/pages/dialog.html
 worker/browser/test/pages/download.html
 worker/browser/test/pages/frame-inner.html

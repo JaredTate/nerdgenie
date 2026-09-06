@@ -18,6 +18,12 @@ const ToolLineSeparator = " · "
 // beside everything else, so it is short.
 const MaxToolLineRunes = 90
 
+// MaxArgumentRunes is the longest the argument on a tool line may be, so that
+// what came back, and the word refused, always have room on the line: the
+// fifth game build's screen drew a green check on a refused click because the
+// click's intent was a whole sentence and the word refused was cut off the end.
+const MaxArgumentRunes = 40
+
 // The names of the arguments that say what a call will do, in the order they are
 // looked for. They are the ones internal/permission already reduces a call by, so
 // a person reads the same words on the strip that they read in a preview.
@@ -32,15 +38,19 @@ var argumentsThatSayWhat = []string{
 func toolLineFor(call contract.ToolCall, came string, failed bool) string {
 	line := ToolLineMark + " " + call.Name
 	if said := whatTheCallSays(call); said != "" {
-		line += " " + said
+		line += " " + cutToRunes(said, MaxArgumentRunes)
+	}
+	ending := ""
+	if failed {
+		// The summary of a refused call begins with the tool's name and "was
+		// refused", which the line's front and end already say.
+		came = strings.Replace(came, call.Name+" was refused: ", "", 1)
+		ending = ToolLineSeparator + "refused"
 	}
 	if came != "" {
 		line += ToolLineSeparator + oneLine(came)
 	}
-	if failed {
-		line += ToolLineSeparator + "refused"
-	}
-	return cutToRunes(line, MaxToolLineRunes)
+	return cutToRunes(line, MaxToolLineRunes-len([]rune(ending))) + ending
 }
 
 // whatTheCallSays is the one argument that says what a call will do: the command

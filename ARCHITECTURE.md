@@ -337,7 +337,10 @@ and the scripts it loads from where the page loads them, the local server the
 model started or the disk when the page is a file, never another machine, and
 puts every line that opens a `while` or a `for` on the same result under
 `TheLoopsLine` as file, line and text, the whiles first and then the fors, at
-most twelve with a line saying how many fors fell off the end, within five
+most twelve with a line saying how many fors fell off the end, on a tool line
+whose argument is cut to forty runes so that what came back and the word
+refused always have room on the ninety (the screen drew a green check on the
+refused click because its intent was a whole sentence), within five
 seconds and two megabytes a script, and a while whose body, up to its closing
 brace, never mentions a word its condition reads carries `TheNeverChangesMark`
 and comes first of all, because that is the loop that never yields nine times

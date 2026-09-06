@@ -1,6 +1,7 @@
 package loop_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -49,7 +50,7 @@ func TestARefusedCallWithALongArgumentStillSaysRefusedOnItsLine(t *testing.T) {
 	built := newHarness(t, []testkit.Step{
 		callStep("I will click Start.", callFor("c1", "browser_click", `{"element":"e3","intent":"`+intent+`"}`)),
 		answerStep("The click was refused. What changed: nothing. What I checked: the click. What is left: the fix."),
-	}, scriptedTool("browser_click", "cannot click the element e3: The page could not be read after 3000 milliseconds: the page did not answer the scan call"))
+	}, &failingTool{name: "browser_click", reason: errors.New("cannot click the element e3: The page could not be read after 3000 milliseconds: the page did not answer the scan call")})
 
 	built.ask(t, "play-test the game")
 

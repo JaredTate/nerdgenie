@@ -34,6 +34,9 @@ type testState struct {
 	failed int
 	// failing names the failed tests in the order they were printed, each once.
 	failing []string
+	// filesFailed and filesTotal are Vitest's count of test files, which is
+	// the only count a file that could not be loaded appears in.
+	filesFailed, filesTotal int
 }
 
 // line is the one line the situation and the result carry: the counts, and the
@@ -76,8 +79,8 @@ func (state testState) key() string {
 }
 
 // testStateIn reads a test runner's summary out of a shell result, and says
-// whether it found one. It knows the four runners a project on this machine is
-// likely to use: Node's own test runner, Jest, pytest, and Go's. A result with
+// whether it found one. It knows the five runners a project on this machine is
+// likely to use: Node's own test runner, Jest, Vitest, pytest, and Go's. A result with
 // no summary line and no marked test is not a test run, however the word
 // "tests" turns up in it, so a directory listing never puts a line in the
 // record.
@@ -101,6 +104,12 @@ func testStateIn(text string) (testState, bool) {
 		case strings.HasPrefix(line, "Tests:"):
 			state.readJestSummary(line)
 			found = true
+		case strings.HasPrefix(line, "Tests ") && strings.Contains(line, "("):
+			state.failed, state.total = readVitestCounts(strings.TrimPrefix(line, "Tests "))
+			found = true
+		case strings.HasPrefix(line, "Test Files ") && strings.Contains(line, "("):
+			state.filesFailed, state.filesTotal = readVitestCounts(strings.TrimPrefix(line, "Test Files "))
+			found = true
 		case strings.HasPrefix(line, "=") && (strings.Contains(line, " passed") || strings.Contains(line, " failed")):
 			state.readPytestSummary(line)
 			found = true
@@ -122,7 +131,27 @@ func testStateIn(text string) (testState, bool) {
 	if state.failed < len(state.failing) {
 		state.failed = len(state.failing)
 	}
+	// A test file Vitest could not load ran no test, so the suite is red by
+	// the files even when every test that ran passed.
+	if state.failed == 0 && state.filesFailed > 0 {
+		state.failed, state.total = state.filesFailed, state.filesTotal
+	}
 	return state, true
+}
+
+// readVitestCounts reads "16 failed | 56 passed (72)", Vitest's shape for both
+// its tests and its files: the failed count, and the total in the brackets.
+func readVitestCounts(text string) (failed int, total int) {
+	words := strings.Fields(text)
+	for at := 0; at+1 < len(words); at++ {
+		if count, err := strconv.Atoi(words[at]); err == nil && words[at+1] == "failed" {
+			failed = count
+		}
+	}
+	if len(words) > 0 {
+		total, _ = strconv.Atoi(strings.Trim(words[len(words)-1], "()"))
+	}
+	return failed, total
 }
 
 // addFailing writes down one failing test, once, however many times the

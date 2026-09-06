@@ -133,6 +133,15 @@ func (browser *Browser) Screenshot(ctx context.Context) (contract.Screenshot, er
 	return picture, nil
 }
 
+// Resize sets the page's size in pixels and reads it again at that size.
+func (browser *Browser) Resize(ctx context.Context, width int, height int) (contract.Snapshot, error) {
+	var page contract.Snapshot
+	if err := browser.call(ctx, "resize", map[string]any{"width": width, "height": height}, &page); err != nil {
+		return contract.Snapshot{}, err
+	}
+	return page, nil
+}
+
 // LoginFill types a username, a password, and a code into the fields it is
 // given, and returns a diff that holds none of them. Every path that fills a
 // login form comes through here, so the check that no value survived the answer

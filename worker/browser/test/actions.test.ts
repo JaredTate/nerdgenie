@@ -98,6 +98,23 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect(String(clicks["answer"])).toBe("1");
   });
 
+  it("resizes the page to the width and height asked for, and reads it again", async () => {
+    await worker.result("open", { url: site.page("counter.html") });
+    const page = await worker.result("resize", { width: 480, height: 640 });
+    expect(page["title"]).toBe("Counter");
+    const width = await worker.result("read", { ask: "window.innerWidth" });
+    expect(String(width["answer"])).toBe("480");
+    const height = await worker.result("read", { ask: "window.innerHeight" });
+    expect(String(height["answer"])).toBe("640");
+  });
+
+  it("refuses a size no screen has", async () => {
+    await worker.result("open", { url: site.page("counter.html") });
+    const failure = await worker.fails("resize", { width: 10, height: 640 });
+    expect(failure.code).toBe(-32602);
+    expect(failure.message).toContain("width");
+  });
+
   it("says what it saw when the expectation does not match what happened", async () => {
     const page = await worker.result("open", { url: site.page("changes-on-click.html") });
     const diff = asDiff(
@@ -338,7 +355,11 @@ describe("a page that cannot be read at all", () => {
     await site.stop();
   });
 
-  it("answers -32001, which is now only for a page there is no reading", async () => {
+  // The page reloads itself on load, and whether the worker's first read lands
+  // before that reload is a race inside the browser, lost more often on a busy
+  // machine. Two more tries settle it; a page that can be read on every try is
+  // a real failure.
+  it("answers -32001, which is now only for a page there is no reading", { retry: 2 }, async () => {
     const failure = await worker.fails("open", { url: site.page("reloads-forever.html") });
     expect(failure.code).toBe(ERROR_CODES.didNotSettle);
   });

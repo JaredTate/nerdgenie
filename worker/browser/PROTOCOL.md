@@ -300,6 +300,17 @@ Request: `{"jsonrpc":"2.0","id":10,"method":"screenshot","params":{}}`
 
 Response: `{"jsonrpc":"2.0","id":10,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"ref":"e7","role":"button","name":"Post"}]}}`
 
+### `resize`
+
+Sets the page's size in pixels, so that a page can be checked at a phone's
+width or a wide screen's without anyone dragging the window, and returns a fresh
+snapshot at that size. The width is between 320 and 3840 and the height between
+240 and 2160; anything else is -32602.
+
+Request: `{"jsonrpc":"2.0","id":11,"method":"resize","params":{"width":480,"height":640}}`
+
+Response: `{"jsonrpc":"2.0","id":11,"result":{"url":"https://example.com/","title":"Example","tabId":"t1","elements":[],"text":"Example","belowFold":0,"hiddenYetDrawn":0,"dialog":null,"download":null,"wall":null,"errors":[]}}`
+
 ### `dialog`
 
 Answers the open dialog box: `accept` presses its confirming button, with `text`

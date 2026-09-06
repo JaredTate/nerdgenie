@@ -300,7 +300,7 @@ type BrowserHealth struct {
 	ChromeVersion string `json:"chromeVersion,omitempty"`
 }
 
-// BrowserWorker is the Go side of the eleven methods in
+// BrowserWorker is the Go side of the twelve methods in
 // worker/browser/PROTOCOL.md, which the real worker speaks over standard input
 // and output as JSON-RPC and the fake worker in internal/testkit speaks over a
 // local socket.
@@ -326,6 +326,10 @@ type BrowserWorker interface {
 	LoginFill(ctx context.Context, fields LoginFields) (Diff, error)
 	// Screenshot returns the page as a numbered picture.
 	Screenshot(ctx context.Context) (Screenshot, error)
+	// Resize sets the page's size in pixels and returns a fresh snapshot at
+	// that size, which is how a page is checked at a phone's width or a wide
+	// screen's without anyone dragging the window.
+	Resize(ctx context.Context, width int, height int) (Snapshot, error)
 	// Health says whether the worker is alive.
 	Health(ctx context.Context) (BrowserHealth, error)
 	// Dialog answers an open dialog box, accepting it with the text given for a

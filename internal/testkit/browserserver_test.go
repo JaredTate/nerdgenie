@@ -107,6 +107,7 @@ func TestTheBrowserProtocolServerAnswersHealthAndTheEightOtherMethods(t *testing
 		`{"jsonrpc":"2.0","id":7,"method":"act","params":{"steps":[{"method":"press","key":"Enter","expectation":"submitted"}]}}`,
 		`{"jsonrpc":"2.0","id":8,"method":"tabs","params":{"action":"list"}}`,
 		`{"jsonrpc":"2.0","id":9,"method":"screenshot","params":{}}`,
+		`{"jsonrpc":"2.0","id":11,"method":"resize","params":{"width":480,"height":640}}`,
 		`{"jsonrpc":"2.0","id":10,"method":"health","params":{}}`,
 	}
 	for _, call := range calls {

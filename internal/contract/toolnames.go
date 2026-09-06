@@ -32,6 +32,9 @@ const (
 	// ToolBrowserScreenshot takes a picture of the page, numbered, for a model
 	// that can see.
 	ToolBrowserScreenshot = "browser_screenshot"
+	// ToolBrowserResize sets the page's size, for checking a page at a
+	// phone's width or a wide screen's.
+	ToolBrowserResize = "browser_resize"
 	// ToolBrowserClick clicks one element and states what it expects to happen.
 	ToolBrowserClick = "browser_click"
 	// ToolBrowserType types into one element and states what it expects.
@@ -66,13 +69,13 @@ const ToolCallTextInstruction = `To use a tool, write ` + ToolCallOpenTag +
 	`{"name": "the tool's name", "arguments": {}}` + ToolCallCloseTag +
 	` on a line of its own, and nothing else on that line.`
 
-// BuiltInToolNames returns the eighteen built-in tool names in the order design
+// BuiltInToolNames returns the twenty built-in tool names in the order design
 // section 7 lists them.
 func BuiltInToolNames() []string {
 	return []string{
 		ToolRead, ToolWrite, ToolEdit, ToolSearch, ToolShell, ToolWeb,
 		ToolMemory, ToolTask, ToolSkill, ToolJob,
-		ToolBrowserOpen, ToolBrowserRead, ToolBrowserScreenshot, ToolBrowserClick, ToolBrowserType,
+		ToolBrowserOpen, ToolBrowserRead, ToolBrowserScreenshot, ToolBrowserResize, ToolBrowserClick, ToolBrowserType,
 		ToolBrowserAct, ToolBrowserLogin, ToolBrowserHandoff, ToolComputer,
 	}
 }

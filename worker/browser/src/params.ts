@@ -239,6 +239,26 @@ function checkDialog(params: Record<string, unknown>): void {
   );
 }
 
+/** The sizes a page may be set to, in pixels: from a small phone to a 4K screen. */
+const LEAST_WIDTH = 320;
+const MOST_WIDTH = 3840;
+const LEAST_HEIGHT = 240;
+const MOST_HEIGHT = 2160;
+
+function checkResize(params: Record<string, unknown>): void {
+  for (const [name, least, most] of [
+    ["width", LEAST_WIDTH, MOST_WIDTH],
+    ["height", LEAST_HEIGHT, MOST_HEIGHT],
+  ] as const) {
+    const value = params[name];
+    if (typeof value !== "number" || !Number.isInteger(value) || value < least || value > most) {
+      throw wrongParameters(
+        `The resize method needs a ${name} in whole pixels between ${least} and ${most}, and this was ${describeValue(value)}.`,
+      );
+    }
+  }
+}
+
 const CHECKERS: Readonly<Record<MethodName, (params: Record<string, unknown>) => void>> = {
   open: checkOpen,
   read: checkRead,
@@ -252,6 +272,7 @@ const CHECKERS: Readonly<Record<MethodName, (params: Record<string, unknown>) =>
   screenshot: () => {},
   dialog: checkDialog,
   health: () => {},
+  resize: checkResize,
 };
 
 /** Check the parameters of one method, throwing a -32602 error when they are wrong. */

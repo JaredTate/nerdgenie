@@ -64,7 +64,7 @@ const browserSkillName = "browser"
 
 // browserSkillDescription is the one line the skill listing carries about the
 // browser skill, which says when to load it.
-const browserSkillDescription = "Read this before the first browser call of a task: how to open, read, click, type, and sign in with the browser tools, and when to hand the window to the person."
+const browserSkillDescription = "Read this before the first browser call of a task: how to open, read, click, type, and sign in with the browser tools, and when to hand over the window."
 
 // browserSkillText is the SKILL.md of the browser skill: the heading the skill
 // loader reads as its name, the one line it reads as its description, and the
@@ -73,17 +73,18 @@ const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescript
 	"## Working a page\n\n" +
 	"- Open a page with browser_open and read what comes back: an outline of the page's elements, each with a reference such as e12.\n" +
 	"- Look again with browser_read when the page may have changed.\n" +
-	"- Ask a page you serve from this machine a question with browser_read's ask field, such as window.game.state.\n" +
+	"- Ask a page served from this machine a question with browser_read's ask field, such as window.game.state.\n" +
 	"- To see the page itself, take a browser_screenshot.\n" +
+	"- To check a page at another size, browser_resize it, then screenshot.\n" +
 	"- Act by reference, never by guessing coordinates: browser_click, browser_type, and browser_act each take the reference of an element from the outline. Never make one up.\n" +
-	"- Use browser_act for a form, one batch of steps rather than a call per box.\n" +
+	"- Use browser_act for a form, one batch of steps, not a call per box.\n" +
 	"- Quote every number exactly as the outline shows it.\n\n" +
 	"## Signing in\n\n" +
 	"- Use browser_login for a site whose credentials are in the vault. It fills the boxes itself, and you never see the password.\n" +
 	"- Call browser_handoff the moment a captcha, a two-factor prompt, or a sign-in the vault does not hold appears. The person finishes it in the window and hands it back. Never guess at it.\n\n" +
 	"## What never to do\n\n" +
 	"- Never start a browser from the shell or a script, headless or not (Playwright, Puppeteer, chrome --headless). The browser tools own the one Chrome window on the screen, where the person watches.\n" +
-	"- When an open fails, read the error and say what it said in your reply. Trying the same open again gets the same error.\n" +
+	"- When an open fails, say what the error said. The same open again gets the same error.\n" +
 	"- The same call over and over is refused. When a page has not changed, do something different, or answer the person.\n"
 
 // browserSkillChangelog is the first line of the shipped skill's changelog. Every

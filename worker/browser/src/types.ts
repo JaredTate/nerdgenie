@@ -19,6 +19,7 @@ export const METHOD_NAMES = [
   "screenshot",
   "dialog",
   "health",
+  "resize",
 ] as const;
 
 export type MethodName = (typeof METHOD_NAMES)[number];

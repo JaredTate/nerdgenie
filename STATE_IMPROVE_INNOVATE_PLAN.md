@@ -265,6 +265,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - **The browser runs on the screen.** Built on 6 September after the owner found an empty desktop: the model was play-testing through its own headless Playwright scripts. The standing instructions say it, the browser skill says it with the library names, and the write and edit tools refuse content that launches a browser with no window. A rule the model can read is not enough on its own; the tools have to hold it.
 
+- **A page at any size.** Built on 6 September when the visual QA task, asked for five sizes, had no way to set one and reached for the desktop tool to drag the window. `browser_resize` sets the page's size and reads it again. A browser tool set that cannot do what the ask needs sends the model around it, and the way around is always worse.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

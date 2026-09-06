@@ -9,13 +9,15 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-func TestThereAreExactlyNineteenBuiltInToolsAndJobReplacedSchedule(t *testing.T) {
+func TestThereAreExactlyTwentyBuiltInToolsAndJobReplacedSchedule(t *testing.T) {
 	names := contract.BuiltInToolNames()
 
-	// The eighteen of design section 7, and the browser screenshot that
-	// came with the model's eyes on 6 September 2026.
-	if len(names) != 19 {
-		t.Errorf("there are %d built-in tool names, want the eighteen from design section 7 and the browser screenshot", len(names))
+	// The eighteen of design section 7, the browser screenshot that came
+	// with the model's eyes on 6 September 2026, and the browser resize that
+	// came the same day when the visual QA task had no way to check a page at
+	// another size.
+	if len(names) != 20 {
+		t.Errorf("there are %d built-in tool names, want the eighteen from design section 7, the browser screenshot and the browser resize", len(names))
 	}
 	if !slices.Contains(names, contract.ToolJob) {
 		t.Errorf("the tool list %v is missing the job tool", names)

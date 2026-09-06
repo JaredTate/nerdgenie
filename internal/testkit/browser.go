@@ -72,9 +72,11 @@ type FakeBrowserWorker struct {
 	nextProblem browserProblem
 	// askAnswers is what the fake page says to each expression a test put down.
 	askAnswers map[string]string
-	openDialog *contract.Dialog
-	answers    []DialogAnswer
-	watchers   []*watcher
+	// width and height are the size the page was last set to.
+	width, height int
+	openDialog    *contract.Dialog
+	answers       []DialogAnswer
+	watchers      []*watcher
 }
 
 // DialogAnswer is one answer a test gave through the Dialog method.

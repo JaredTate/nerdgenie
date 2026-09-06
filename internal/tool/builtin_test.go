@@ -46,7 +46,7 @@ func wholeSettings(t *testing.T) (tool.Settings, contract.Home) {
 	}, home
 }
 
-func TestTheRegistryHoldsTheEighteenBuiltInTools(t *testing.T) {
+func TestTheRegistryHoldsTheTwentyBuiltInTools(t *testing.T) {
 	settings, _ := wholeSettings(t)
 	registry, err := tool.New(context.Background(), settings)
 	if err != nil {

@@ -85,6 +85,23 @@ const health: Method = async (session) => {
   };
 };
 
+/**
+ * Set the page's size and read it again, so that a page can be checked at a
+ * phone's width or a wide screen's without anyone dragging the window. The
+ * fresh game build's visual QA task, with no way to do this, reached for the
+ * desktop tool to drag the Chrome window by hand.
+ */
+const resize: Method = async (session, params) => {
+  const page = session.currentPage();
+  await page.setViewportSize({ width: params["width"] as number, height: params["height"] as number });
+  const reading = await readOrSayItCannotBeRead(session, page, {
+    visibleOnly: false,
+    against: session.previousSnapshot(),
+  });
+  session.rememberSnapshot(reading.snapshot);
+  return { ...reading.snapshot };
+};
+
 const METHODS: Readonly<Record<MethodName, Method>> = {
   open,
   read,
@@ -98,6 +115,7 @@ const METHODS: Readonly<Record<MethodName, Method>> = {
   screenshot: async (session) => screenshotMethod(session),
   dialog: async (session, params) => asDiffResult(await dialogMethod(session, params)),
   health,
+  resize,
 };
 
 /** Run one request against the browser. */

@@ -38,12 +38,12 @@ func TestEveryCrossWaveInterfaceExists(t *testing.T) {
 	}
 }
 
-func TestTheBrowserWorkerHasTheTwelveProtocolMethodsTheEventStreamAndClose(t *testing.T) {
+func TestTheBrowserWorkerHasTheThirteenProtocolMethodsTheEventStreamAndClose(t *testing.T) {
 	worker := reflect.TypeFor[contract.BrowserWorker]()
 
 	wanted := []string{
 		"Open", "Read", "Click", "Type", "Press", "Scroll",
-		"Act", "Tabs", "LoginFill", "Screenshot", "Health", "Dialog", "Events", "Close",
+		"Act", "Tabs", "LoginFill", "Screenshot", "Resize", "Health", "Dialog", "Events", "Close",
 	}
 	for _, name := range wanted {
 		if _, found := worker.MethodByName(name); !found {
@@ -51,7 +51,7 @@ func TestTheBrowserWorkerHasTheTwelveProtocolMethodsTheEventStreamAndClose(t *te
 		}
 	}
 	if worker.NumMethod() != len(wanted) {
-		t.Errorf("BrowserWorker has %d methods, want the twelve protocol methods, the event stream, and Close", worker.NumMethod())
+		t.Errorf("BrowserWorker has %d methods, want the thirteen protocol methods, the event stream, and Close", worker.NumMethod())
 	}
 }
 

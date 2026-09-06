@@ -255,6 +255,8 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 		Key         string                   `json:"key"`
 		Direction   contract.ScrollDirection `json:"direction"`
 		Amount      int                      `json:"amount"`
+		Width       int                      `json:"width"`
+		Height      int                      `json:"height"`
 		Expectation string                   `json:"expectation"`
 		Steps       []contract.ActStep       `json:"steps"`
 		Action      contract.TabAction       `json:"action"`
@@ -288,12 +290,14 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 		return server.loginFill(ctx, call.Params)
 	case "screenshot":
 		return onlyOnSuccess(server.worker.Screenshot(ctx))
+	case "resize":
+		return onlyOnSuccess(server.worker.Resize(ctx, params.Width, params.Height))
 	case "health":
 		return onlyOnSuccess(server.worker.Health(ctx))
 	case "dialog":
 		return onlyOnSuccess(server.dialog(ctx, call.Params))
 	default:
-		return nil, fmt.Errorf("the method %q is not one of the twelve: %w", call.Method, ErrNoSuchMethod)
+		return nil, fmt.Errorf("the method %q is not one of the thirteen: %w", call.Method, ErrNoSuchMethod)
 	}
 }
 

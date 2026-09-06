@@ -110,6 +110,7 @@ var methodDeadlines = map[string]time.Duration{
 	"tabs":       40 * time.Second,
 	"loginFill":  100 * time.Second,
 	"screenshot": 50 * time.Second,
+	"resize":     40 * time.Second,
 	"dialog":     70 * time.Second,
 	"health":     30 * time.Second,
 }

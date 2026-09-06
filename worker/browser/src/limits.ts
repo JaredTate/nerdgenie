@@ -117,6 +117,7 @@ export const METHOD_DEADLINE_MS: Readonly<Record<string, number>> = {
   loginFill: 45_000,
   screenshot: 20_000,
   health: 10_000,
+  resize: 15_000,
 };
 
 /** The deadline for one call into the page. A page holding an open dialog never answers. */

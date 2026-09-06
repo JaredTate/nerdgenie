@@ -56,8 +56,8 @@ NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -timeout 20s "/yolo" | grep -q 'yolo
   echo
   echo "Local Qwen 3.8 through the daemon on 19091, binary $(cd "$ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown), home $HOME_FOLDER."
   echo
-  echo "| ask | ended | check | rounds | minutes | s/round | cache | out tokens |"
-  echo "|---|---|---|---|---|---|---|---|"
+  echo "| ask | ended | check | rounds | minutes | s/round | cache | out tokens | record-only rounds | first-line marks |"
+  echo "|---|---|---|---|---|---|---|---|---|---|"
 } > "$OUT"
 
 passed=0; total=0
@@ -78,9 +78,11 @@ run_one() {
   perround="$(echo "$report" | sed -n 's/.*(\([0-9]*\) s a round).*/\1/p')"
   cache="$(echo "$report" | sed -n 's/.*cached (\([0-9]*\)%).*/\1/p')"
   out="$(echo "$report" | sed -n 's/.*, \([0-9.]*k\) out.*/\1/p')"
+  recordonly="$(echo "$report" | sed -n 's/^rounds that only wrote the record: \([0-9]*\);.*/\1/p')"
+  firstline="$(echo "$report" | sed -n 's/.*marks made from the first line: \([0-9]*\).*/\1/p')"
   if "$check" "$work" "$SCRATCH/nerdgenie.db" > "$work/check.log" 2>&1; then result="pass"; passed=$((passed+1)); else result="FAIL: $(tail -1 "$work/check.log")"; fi
   total=$((total+1))
-  echo "| $name | ${ended:-?} | $result | ${rounds:-?} | ${minutes:-?} | ${perround:-?} | ${cache:-?}% | ${out:-?} |" >> "$OUT"
+  echo "| $name | ${ended:-?} | $result | ${rounds:-?} | ${minutes:-?} | ${perround:-?} | ${cache:-?}% | ${out:-?} | ${recordonly:-?} | ${firstline:-?} |" >> "$OUT"
   echo "$name: ${ended:-?}, $result, ${rounds:-?} rounds in ${minutes:-?} min"
 }
 

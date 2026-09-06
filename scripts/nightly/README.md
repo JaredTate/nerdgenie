@@ -6,7 +6,7 @@ Four real asks, run one after another against the local model on a home of their
     scripts/nightly/run.sh /home/jared/work/ng-nightly/home            # the four
     scripts/nightly/run.sh /home/jared/work/ng-nightly/home --with-tetris
 
-The home is any initialised Nerd Genie home (`nerdgenie init` once), with the work folder beside it as its sandbox root, which is where each ask's fresh folder goes: `nerdgenie init -work-folder /home/jared/work/ng-nightly/work` for the home above. Never run the set beside a live run: the local daemon has one slot. The results go to `docs/nightly/<date>.md`, one row per ask: how the task ended, the check, the rounds, the minutes, the seconds a round, the cache share and the output tokens. Copy the row that matters into `docs/PROGRESS.md` when a change is being judged.
+The home is any initialised Nerd Genie home (`nerdgenie init` once), with the work folder beside it as its sandbox root, which is where each ask's fresh folder goes: `nerdgenie init -work-folder /home/jared/work/ng-nightly/work` for the home above. Never run the set beside a live run: the local daemon has one slot. The results go to `docs/nightly/<date>.md`, one row per ask: how the task ended, the check, the rounds, the minutes, the seconds a round, the cache share, the output tokens, the rounds that only wrote the record, and the marks made from the reply's first line. Copy the row that matters into `docs/PROGRESS.md` when a change is being judged.
 
 | ask | what it proves | the check |
 |---|---|---|

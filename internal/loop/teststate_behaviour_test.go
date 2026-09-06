@@ -1,6 +1,7 @@
 package loop_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -170,5 +171,37 @@ func TestTheSituationNamesChangedFilesByTheirShortNames(t *testing.T) {
 	}
 	if situationHolds(held, "/p/src/board.js") {
 		t.Errorf("the situation %v carries a full path, and the short name says which file it was", held.Work.Situation)
+	}
+}
+
+// TestTheSameTestFailingForADozenRunsDrawsAStuckLine is the fresh Tetris
+// build's yeti task on the morning of 6 September: forty rounds on one
+// failing test, probing and reading and editing, every round counted as
+// progress because each probe said something new, and nothing said what a
+// person watching would have said twenty rounds in. The same failing set on
+// StuckTestRuns test runs in a row draws one line naming the tests and the
+// three ways out: write the cause, fix the test if the test is wrong, or mark
+// the step and go on.
+func TestTheSameTestFailingForADozenRunsDrawsAStuckLine(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.StuckTestRuns; at++ {
+		steps = append(steps,
+			callStep("I will change the engine.", callFor(fmt.Sprintf("e%d", at), contract.ToolEdit, fmt.Sprintf(`{"path":"/p/src/engine.js","old":"a%d","new":"b%d"}`, at, at))),
+			callStep("Now the tests.", callFor(fmt.Sprintf("t%d", at), contract.ToolShell, `{"command":"node --test tests/"}`)))
+		answers = append(answers, aRedRun, aRedRun)
+	}
+	steps = append(steps, answerStep("I cannot make it pass. What changed: the engine. What I checked: the tests. What is left: one test."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolEdit, "edited /p/src/engine.js by 1 line"), scriptedTool(contract.ToolShell, answers...))
+
+	built.ask(t, "make the tests pass")
+
+	first, count := requestsCarrying(built, loop.TheStuckTestLine)
+	if count == 0 {
+		t.Fatalf("the model was never told the same test had failed for %d runs", loop.StuckTestRuns)
+	}
+	shown := wholeRequestText(built.model.Requests()[first])
+	if !strings.Contains(shown, "clears a full row") {
+		t.Errorf("the stuck line does not name the failing test:\n%s", shown[strings.Index(shown, loop.TheStuckTestLine):])
 	}
 }

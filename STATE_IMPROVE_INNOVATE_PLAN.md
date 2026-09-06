@@ -99,7 +99,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** A write with a syntax error yields a result line saying so and a failure with the checker's line as cause; a red run yields a failure whose cause is the assertion.
 
-**Cost.** Under a second per write. **Risk.** A checker missing on the machine; then the line says "no checker for .rs". **Verdict.** Build first.
+**Cost.** Under a second per write. **Risk.** A checker missing on the machine; then the line says "no checker for .rs". **Verdict.** Built, the checker half: `node --check`, `py_compile` and `gofmt -e` run after every write or edit and their line rides on the result, and a file that does not parse is not tested. The assertion line as a failure's cause is not built yet.
 
 ### 4. Done means proof a person would accept, and the model may ask its own page
 

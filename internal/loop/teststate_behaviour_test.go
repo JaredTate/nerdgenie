@@ -132,7 +132,11 @@ func TestAFailureNamesAFewChangedFilesByTheirShortNames(t *testing.T) {
 		callStep("Now I will run the tests.", callFor("c9", contract.ToolShell, `{"command":"node --test tests/"}`)),
 		answerStep("Two tests fail."),
 	)
-	built := newHarness(t, steps, scriptedTool(contract.ToolWrite, "wrote", "wrote", "wrote", "wrote", "wrote"), scriptedTool(contract.ToolShell, aRedRun))
+	// Every write of a JavaScript file is followed by the harness's syntax
+	// check, so the shell answers five checks before the model's red run.
+	checks := "finished with exit code 0\nexit 0"
+	built := newHarness(t, steps, scriptedTool(contract.ToolWrite, "wrote", "wrote", "wrote", "wrote", "wrote"),
+		scriptedTool(contract.ToolShell, checks, checks, checks, checks, checks, aRedRun))
 
 	outcome := built.ask(t, "build the engine")
 

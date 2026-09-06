@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
@@ -113,8 +114,14 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	running.noteToolLine(toolLineFor(call, "", false))
 	text, failed := running.runOneTool(ctx, call)
 	running.rememberTheTestCommand(call, text)
-	if line := running.runTheTestsAfter(ctx, call, failed); line != "" {
-		text += "\n" + line
+	parses := running.checkTheSyntaxAfter(ctx, call, failed)
+	if parses != "" {
+		text += "\n" + parses
+	}
+	if !strings.HasPrefix(parses, TheFileDoesNotParse) {
+		if line := running.runTheTestsAfter(ctx, call, failed); line != "" {
+			text += "\n" + line
+		}
 	}
 	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)

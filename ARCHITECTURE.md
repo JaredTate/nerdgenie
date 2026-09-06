@@ -322,7 +322,15 @@ again, word for word through the same shell tool and under the tool's own
 ten-second yield, after every write or edit that worked, putting "tests after
 this change: ..." on the change's own result and moving the situation's tests
 line and the meter; a run the model did not ask for never writes a failure
-line, and a suite that outruns the yield is left to the model. The live game build is why: the model
+line, and a suite that outruns the yield is left to the model. **And the
+language's own checker runs first** (`syntax.go`): after every write or edit of
+a `.js`, `.mjs`, `.cjs`, `.py` or `.go` file, `checkTheSyntaxAfter` runs `node
+--check`, `python3 -m py_compile` or `gofmt -e` on the file through the same
+shell tool and puts "parses" or "does not parse: <the checker's telling line>"
+on the change's own result, and a file that does not parse is not tested. The
+fifth game build's play-test task wrote a diagnostic script with an unbalanced
+bracket and ran it four times, reading "Unexpected token ']'" each time, five
+rounds on a mistake the checker finds in a tenth of a second. The live game build is why: the model
 read one file four times running because the browser tool had told it a click
 worked when the page said it had not, the third refusal ended the turn, and a
 task from the terminal whose turn ends is a stopped task, which is a stall

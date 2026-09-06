@@ -83,6 +83,9 @@ func pageText(page contract.Snapshot, room int) string {
 		fmt.Fprintf(written, "tab %s\n", fromThePage(page.TabID, MaxNameRunes))
 	}
 	written.WriteString(elementsText(page.Elements))
+	if page.HiddenYetDrawn > 0 {
+		written.WriteString(theHiddenYetDrawnLine(page.HiddenYetDrawn))
+	}
 	if page.BelowFold > 0 {
 		fmt.Fprintf(written, "%d more elements below the fold\n", page.BelowFold)
 	}
@@ -126,6 +129,15 @@ func errorsText(errors []string) string {
 // the GAME OVER card on top of the start card in its own screenshot, without
 // working out why: the page's own display rule was beating the attribute.
 const TheHiddenYetDrawnMark = " (marked hidden, yet drawn: a style rule overrides the hidden attribute)"
+
+// theHiddenYetDrawnLine is the page's own count of nodes its markup hides and
+// a style rule draws, with the one rule that fixes every one of them. It rides
+// above the elements because a badge with no role never reaches the outline,
+// and because the model that built the fresh game fixed the one overlay it was
+// told about and left the badge and the touch controls drawn.
+func theHiddenYetDrawnLine(count int) string {
+	return fmt.Sprintf("%d elements are hidden in the markup yet drawn: a style rule overrides the hidden attribute, and one rule fixes every one: [hidden] { display: none !important; }\n", count)
+}
 
 // elementsText is one line per element, in reading order, up to the cap.
 func elementsText(elements []contract.Element) string {

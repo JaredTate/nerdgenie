@@ -72,6 +72,14 @@ describe("reading a page as a compact tree", () => {
     const start = elements.find((element) => element["name"] === "Press start");
     expect(start?.["hiddenYetDrawn"]).toBeUndefined();
     expect(elements.some((element) => element["name"] === "Not drawn, because nothing overrides it")).toBe(false);
+    // The page's own count covers nodes with no role, which never reach the
+    // outline: the game-over card here; the paragraph nothing overrides is not drawn.
+    expect(page["hiddenYetDrawn"]).toBe(1);
+  });
+
+  it("counts no hidden-yet-drawn element on a page that honours its markup", async () => {
+    const page = await worker.result("open", { url: site.page("counter.html") });
+    expect(page["hiddenYetDrawn"]).toBe(0);
   });
 
   it("never puts the page's markup or its scripts into the answer", async () => {

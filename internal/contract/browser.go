@@ -56,6 +56,10 @@ type Snapshot struct {
 	Text string `json:"text,omitempty"`
 	// BelowFold counts the elements the user would have to scroll to see.
 	BelowFold int `json:"belowFold"`
+	// HiddenYetDrawn counts the nodes whose markup says hidden and which the
+	// browser draws all the same, because a style rule overrides the
+	// attribute. It counts nodes with no role too, which never reach Elements.
+	HiddenYetDrawn int `json:"hiddenYetDrawn,omitempty"`
 	// Dialog is the open dialog box, or nil.
 	Dialog *Dialog `json:"dialog,omitempty"`
 	// Download is a download the page started, or nil.

@@ -1318,6 +1318,7 @@ internal/tool/write/change.go
 internal/tool/write/doc.go
 internal/tool/write/fence_test.go
 internal/tool/write/fieldnames_test.go
+internal/tool/write/headless.go
 internal/tool/write/pinnedbounds_test.go
 internal/tool/write/relativepath_test.go
 internal/tool/write/testdata/a_new_file.txt

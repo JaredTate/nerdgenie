@@ -72,6 +72,12 @@ export interface Snapshot {
   text: string;
   /** How many elements a person would have to scroll to see, plus any the cap cut. */
   belowFold: number;
+  /**
+   * How many nodes the markup says are hidden and the browser draws all the
+   * same, because a style rule overrides the attribute. Nodes with no role
+   * count too, which never reach `elements`: a badge, a row of touch controls.
+   */
+  hiddenYetDrawn: number;
   dialog: DialogReport | null;
   download: DownloadReport | null;
   /**

@@ -29,6 +29,8 @@ export interface FrameScan {
   /** What the document says it is, such as "text/html" or "application/pdf". */
   contentType: string;
   elements: FoundElement[];
+  /** How many nodes the markup hides and a style rule draws, roles or not. */
+  hiddenYetDrawn: number;
   /** What the frame says, as a person reads it. */
   text: FrameText;
 }

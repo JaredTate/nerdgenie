@@ -179,11 +179,17 @@ window.__nerdgenieScan = window.__nerdgenieScan || function (how) {
       shortNumeric: window.__nerdgenieShortNumeric(element)
     });
   });
+  var hiddenYetDrawn = 0;
+  var marked = document.querySelectorAll("[hidden]");
+  for (var at = 0; at < marked.length && at < how.mostNodes; at += 1) {
+    if (window.__nerdgenieRendered(marked[at].getBoundingClientRect(), window.getComputedStyle(marked[at]))) { hiddenYetDrawn += 1; }
+  }
   return {
     url: location.href,
     title: document.title,
     contentType: document.contentType,
     elements: found,
+    hiddenYetDrawn: hiddenYetDrawn,
     text: window.__nerdgeniePageText(how.mostTextCharacters)
   };
 };

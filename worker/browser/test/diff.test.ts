@@ -14,6 +14,7 @@ function snapshot(part: Partial<Snapshot>): Snapshot {
     elements: [],
     text: "",
     belowFold: 0,
+    hiddenYetDrawn: 0,
     dialog: null,
     download: null,
     wall: null,

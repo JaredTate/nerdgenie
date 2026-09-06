@@ -52,6 +52,7 @@ tokens, never the page's markup.
   ],
   "text": "Compose post\nWhat is happening?\nPost",
   "belowFold": 24,
+  "hiddenYetDrawn": 0,
   "dialog": null,
   "download": null,
   "errors": ["script http://localhost:8090/main.js answered 404"]
@@ -62,9 +63,11 @@ tokens, never the page's markup.
   number.
 - `new` marks an element that was not in the previous snapshot, which is how the
   model sees what an action produced.
-- `hiddenYetDrawn` marks an element whose markup says hidden, on it or above it,
-  and which is drawn all the same, because a style rule overrides the attribute.
-  A page with every overlay drawn at once looks like that.
+- `hiddenYetDrawn` on an element marks one whose markup says hidden, on it or
+  above it, and which is drawn all the same, because a style rule overrides the
+  attribute. A page with every overlay drawn at once looks like that. The
+  snapshot's own `hiddenYetDrawn` counts every such node on the page, roles or
+  not, so a badge the outline never lists is counted too.
 - `text` is what the page says, as a person reads it: its visible text in
   reading order, one line per block element, a table as one line per row with
   the cells separated by ` | `, and never the markup or a script. It is capped at

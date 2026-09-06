@@ -36,7 +36,7 @@ func fixturePages() map[string]contract.Snapshot {
 			},
 		},
 		FixtureOverlaysPage: {
-			URL: FixtureOverlaysPage, Title: "Overlays", TabID: "t1",
+			URL: FixtureOverlaysPage, Title: "Overlays", TabID: "t1", HiddenYetDrawn: 2,
 			Elements: []contract.Element{
 				{Ref: "e1", Role: "heading", Name: "Press start"},
 				{Ref: "e2", Role: "button", Name: "Start"},

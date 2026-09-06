@@ -82,9 +82,11 @@ async function scanEveryFrame(
   found: FoundElement[];
   texts: FrameText[];
   frameUrls: string[];
+  hiddenYetDrawn: number;
 }> {
   const frames: Frame[] = page.frames().slice(0, MAX_FRAMES);
   const found: FoundElement[] = [];
+  let hiddenYetDrawn = 0;
   const texts: FrameText[] = [];
   const frameUrls: string[] = [];
   let url = page.url();
@@ -107,6 +109,7 @@ async function scanEveryFrame(
         frameUrls.push(scan.url);
       }
       found.push(...scan.elements);
+      hiddenYetDrawn += scan.hiddenYetDrawn;
       texts.push(scan.text);
     } catch (problem) {
       const why = problem instanceof Error ? problem.message : String(problem);
@@ -117,7 +120,7 @@ async function scanEveryFrame(
       frameUrls.push(frame.url());
     }
   }
-  return { url, title, contentType, found, texts, frameUrls };
+  return { url, title, contentType, found, texts, frameUrls, hiddenYetDrawn };
 }
 
 /**
@@ -140,6 +143,7 @@ async function readPdfPage(
       elements: [{ ref: PDF_LABEL_REF, role: "article", name: pdfElementName(saved, url) }],
       text: "",
       belowFold: 0,
+      hiddenYetDrawn: 0,
       dialog: null,
       download: saved,
       wall: null,
@@ -196,6 +200,7 @@ export async function readPage(
         elements: [],
         text: "",
         belowFold: 0,
+        hiddenYetDrawn: 0,
         dialog,
         download,
         wall: null,
@@ -205,7 +210,7 @@ export async function readPage(
     };
   }
 
-  const { url, title, contentType, found, texts, frameUrls } = await scanEveryFrame(
+  const { url, title, contentType, found, texts, frameUrls, hiddenYetDrawn } = await scanEveryFrame(
     page,
     session.log,
   );
@@ -230,6 +235,7 @@ export async function readPage(
     ),
     text: pageTextOf(texts, MAX_PAGE_TEXT_CHARS),
     belowFold: outOfSight,
+    hiddenYetDrawn,
     dialog: null,
     download,
     wall: null,

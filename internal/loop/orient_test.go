@@ -41,6 +41,13 @@ func TestATaskStartsOrientedWithTheFolderAndThePorts(t *testing.T) {
 	if strings.Contains(text, orientation.TheResultsHeading) {
 		t.Errorf("a new task has no results to show, and the first request shows some:\n%s", text)
 	}
+	// The ask is the last thing the model reads before its first reply. With
+	// the block after the ask, the fresh run of 6 September wrote no plan in
+	// any task but the first, where the run before it had written one in every
+	// task: the model answered the folder listing instead of the ask.
+	if strings.Index(text, orientation.TheHeading) > strings.Index(text, "look around") {
+		t.Errorf("the orientation comes after the ask, and the ask must come last:\n%s", text)
+	}
 }
 
 // TestARewindOpensWithTheNewestResultsInFull: after the conversation is

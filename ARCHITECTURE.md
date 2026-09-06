@@ -209,7 +209,7 @@ context, calls the model with the deltas forwarded, and reads the reply through
 become calls the same way. The reply's first line is the model's orient line and
 goes into the record's situation. A reply with no calls ends the turn: a
 question puts the record into waiting, and anything else goes to the done-check.
-**A question is read by the words of the reply and not by one character**:
+**A question is read by the words of the reply and not by one character**: The block rides before the ask, and before the rewind line, because the last thing the model reads is what it answers: with the block after the ask, the fresh run of 6 September wrote no plan in any task but the first, where the run before had written one in every task.
 a question mark on the last non-empty line says so plainly, and so do the plain
 ways of asking — "tell me", "let me know", "I need to know", "should I", and a
 few more — on the last line of a reply the record has no done list to close on.

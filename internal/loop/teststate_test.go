@@ -57,6 +57,12 @@ func TestTheTestStateIsReadOffJestPytestAndGo(t *testing.T) {
 			"tests: 1 failing of 6: tests/test_game.py::test_draw"},
 		{"go", "--- FAIL: TestTheBoardClears (0.00s)\n    board_test.go:12: the row stayed\nFAIL\nFAIL\tgame\t0.004s\nexit 1",
 			"tests: 1 failing: TestTheBoardClears"},
+		// Jest without --verbose names a failing test only in its failure
+		// header, "● suite › test"; the fresh run of 6 September read "9
+		// failing of 49" with no names and ran Jest itself four times in a
+		// row, through grep, to learn them.
+		{"jest headers", "FAIL tests/engine.test.js\n  ● Piece generation & spawning › pieces cycle through the given type sequence\n\n    Expected: \"O\"\n    Received: \"I\"\n\n  ● Line clears › clears a full row\n\n  ● Console\n\nTests:       2 failed, 47 passed, 49 total\nexit 1",
+			"tests: 2 failing of 49: Piece generation & spawning › pieces cycle through the given type sequence; Line clears › clears a full row"},
 		{"go green", "ok  \tgame\t0.004s\nexit 0", "tests: all passing"},
 		{"node green", "✔ board starts empty (0.5ms)\nℹ tests 51\nℹ pass 51\nℹ fail 0\nexit 0", "tests: all 51 passing"},
 		// Vitest, which the eleventh nightly run's hazards task ran through

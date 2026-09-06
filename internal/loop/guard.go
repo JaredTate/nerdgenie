@@ -88,8 +88,8 @@ func (running *run) rewindIfDue(ctx context.Context) {
 	}})
 	running.messages = nil
 	running.recentCalls = nil
-	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRewindLine})
 	running.rememberTheOrientation(ctx, true)
+	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRewindLine})
 }
 
 // detectorRefuses says whether this call is one the model has already made over

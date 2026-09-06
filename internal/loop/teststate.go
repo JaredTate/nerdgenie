@@ -95,6 +95,11 @@ func testStateIn(text string) (testState, bool) {
 		case strings.HasPrefix(line, "✕ "):
 			state.addFailing(withoutItsTiming(strings.TrimPrefix(line, "✕ ")))
 			found = true
+		// Jest without --verbose names a failing test only in its failure
+		// header, "● suite › test"; "● Console" and the like carry no arrow.
+		case strings.HasPrefix(line, "● ") && strings.Contains(line, " › "):
+			state.addFailing(strings.TrimPrefix(line, "● "))
+			found = true
 		case strings.HasPrefix(line, "✔ ") || strings.HasPrefix(line, "✓ "):
 			found = true
 		case strings.HasPrefix(line, "ℹ tests "):

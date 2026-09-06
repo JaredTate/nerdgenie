@@ -223,3 +223,46 @@ func TestTheResultsListTrimsItsOldestLinesSoALongTaskNeverOverflowsTheRecord(t *
 		t.Errorf("read r1 gave %q (%v), and a result that left the record is still in the log", first, err)
 	}
 }
+
+// TestAResultThatLeftTheListStillProvesTheLineItWasPinnedTo is the fifth game
+// build's play-test task at its last done line: the first four lines had been
+// pinned to r187 through r236 while the list still held them, the list had
+// since trimmed to its newest hundred, and every pin of the fifth line was
+// refused because the whole done list is rewritten by a pin and line one's
+// r228 "was never written by this record". A label the record reached is a
+// label it wrote, whether or not its line is still on the list; only a label
+// past the newest one is refused.
+func TestAResultThatLeftTheListStillProvesTheLineItWasPinnedTo(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	if err := keeper.Apply(ctx, Update{Plan: planStepsOf(2), DoneWhen: []contract.DoneLine{{Text: "the engine works"}, {Text: "the page answers"}}}); err != nil {
+		t.Fatalf("cannot write the plan and the done list: %v", err)
+	}
+	early, err := keeper.AddResult(ctx, "the engine's tests pass", "12 tests passing")
+	if err != nil {
+		t.Fatalf("cannot add the early result: %v", err)
+	}
+	if err := keeper.Apply(ctx, Update{DoneWhen: []contract.DoneLine{{Text: "the engine works", Done: true, ResultID: early}, {Text: "the page answers"}}}); err != nil {
+		t.Fatalf("pinning the early result was refused: %v", err)
+	}
+	late := ""
+	for at := 0; at < MaxResultLinesKept+20; at++ {
+		if late, err = keeper.AddResult(ctx, "another result", "the whole of it"); err != nil {
+			t.Fatalf("cannot add result %d: %v", at, err)
+		}
+	}
+	if held := keeper.Record().Work.Results; len(held) > MaxResultLinesKept || held[0].ID == early {
+		t.Fatalf("the list holds %d lines starting at %s, and the early result was meant to have left it", len(held), held[0].ID)
+	}
+
+	pinLate := Update{DoneWhen: []contract.DoneLine{{Text: "the engine works", Done: true, ResultID: early}, {Text: "the page answers", Done: true, ResultID: late}}}
+	if err := keeper.Apply(ctx, pinLate); err != nil {
+		t.Errorf("pinning the second line, with the first still pointing at %s, was refused: %v", early, err)
+	}
+	if err := keeper.Apply(ctx, Update{StepDone: &StepDone{Number: 1, ResultID: early}}); err != nil {
+		t.Errorf("marking a step with %s, which the record wrote and the list let go, was refused: %v", early, err)
+	}
+	if err := keeper.Apply(ctx, Update{StepDone: &StepDone{Number: 2, ResultID: "r9999"}}); err == nil {
+		t.Error("marking a step with a label past the newest result was accepted")
+	}
+}

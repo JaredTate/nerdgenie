@@ -228,6 +228,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built during t8's fourth sitting: the hung-page list reads the scripts the page itself loads (the play-test task had changed only its drivers), lists while loops first, marks the while whose body never touches its condition and keeps it in the situation every round; a past result reads from an offset like a file (r25 from line 798 had cost 13k tokens); a tool line keeps the word refused on its end (the screen drew a check on the refused click). The live list without the mark was read once and the model went back to the sound engine, which is why the mark and the situation line exist.
 
+- Not built, seen four times tonight: after every pick-up the model re-reads five to eight of the results it had in its window (r58, r39, r35, r49, r18, r30, r25 on one pick-up), about fifteen thousand tokens and six rounds before it does anything new. A put-down could pin the newest two result texts as evidence, so a pick-up starts with them in the context. Left for a run where the restarts are not the harness builder's own.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

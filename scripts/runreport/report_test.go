@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/JaredTate/nerdgenie/internal/log"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -116,5 +118,42 @@ func TestTheCommandLineIsReadAndRefused(t *testing.T) {
 	}
 	if code := run([]string{"--log", t.TempDir() + "/missing/nerdgenie.db"}, &strings.Builder{}, &strings.Builder{}); code == 0 {
 		t.Error("a log that cannot be opened gave 0")
+	}
+}
+
+// TestTheCommandReadsARealLogAndPrintsTheNumbers runs the command the way a
+// person does, over a real log file: the numbers come out, and the exit code
+// is zero.
+func TestTheCommandReadsARealLogAndPrintsTheNumbers(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nerdgenie.db")
+	real, err := log.Open(t.Context(), path)
+	if err != nil {
+		t.Fatalf("cannot open a log at %s: %v", path, err)
+	}
+	held := contract.Record{
+		Header: contract.Header{Kind: contract.RecordTask, ID: "3", Status: contract.StatusDone, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true,
+			Cost: contract.CostLine{InputTokens: 5000, CachedInputTokens: 4000, OutputTokens: 100}},
+		Goal: contract.Goal{Ask: "say hello"},
+	}
+	written, err := json.Marshal(record.Checkpoint{Number: 1, Text: string(record.Print(held))})
+	if err != nil {
+		t.Fatalf("cannot write the checkpoint: %v", err)
+	}
+	if _, err := real.Append(t.Context(), contract.Event{TaskID: "3", Kind: contract.EventCheckpoint, Body: written, Occurred: time.Now()}); err != nil {
+		t.Fatalf("cannot append the checkpoint: %v", err)
+	}
+	if err := real.Close(); err != nil {
+		t.Fatalf("cannot close the log: %v", err)
+	}
+
+	output, problems := &strings.Builder{}, &strings.Builder{}
+	if code := run([]string{"--log", path}, output, problems); code != 0 {
+		t.Fatalf("the command gave %d with %q, want 0", code, problems.String())
+	}
+	if !strings.Contains(output.String(), "task 3: done after 1 rounds") || !strings.Contains(output.String(), "5.0k in, 4.0k of them cached (80%)") {
+		t.Errorf("the command printed:\n%s", output.String())
+	}
+	if code := run([]string{"--log", path, "--task", "9"}, &strings.Builder{}, problems); code == 0 {
+		t.Error("a task the log does not hold gave 0")
 	}
 }

@@ -53,6 +53,7 @@ func aRecordedRun(t *testing.T) *testkit.FakeStore {
 	checkpoint(4, contract.StatusRunning, contract.CostLine{InputTokens: 15000, CachedInputTokens: 14000, OutputTokens: 100},
 		[]contract.Failure{{ID: "F1", Text: "stalled: asked for read engine.js over and over, so the conversation was cleared", Cause: "nothing changed"}})
 	call("read", `{"path":"engine.js"}`)
+	append(contract.EventToolResult, map[string]any{"id": "r5", "summary": "read was refused: cannot open engine.js, so check the path and try again"})
 	checkpoint(5, contract.StatusDone, contract.CostLine{InputTokens: 16000, CachedInputTokens: 15000, OutputTokens: 200},
 		[]contract.Failure{{ID: "F1", Text: "stalled: asked for read engine.js over and over, so the conversation was cleared", Cause: "nothing changed"},
 			{ID: "F2", Text: "2 failing of 10 after changing engine.js", Cause: "the change"}})
@@ -84,11 +85,17 @@ func TestTheNumbersOfARunAreReadOffTheLog(t *testing.T) {
 	if numbers.callsByTool["shell"] != 2 || numbers.callsByTool["task"] != 1 || numbers.callsByTool["write"] != 1 || numbers.callsByTool["read"] != 1 {
 		t.Errorf("the calls by tool read %v", numbers.callsByTool)
 	}
+	// The refusals are counted by tool, off the result line each refusal
+	// begins with: the tenth nightly run's play-test task had ten of its
+	// done-list writes refused, and the table had no number for it.
+	if numbers.refusedByTool["read"] != 1 || len(numbers.refusedByTool) != 1 {
+		t.Errorf("the refusals by tool read %v, want one on read", numbers.refusedByTool)
+	}
 	if numbers.minutes <= 0 || numbers.minutes > 5 {
 		t.Errorf("the run reads %.1f minutes, want the span from the ask to the last checkpoint, a few minutes", numbers.minutes)
 	}
 	text := numbers.String()
-	for _, words := range []string{"task 7: done after 5 rounds", "replies with more than one call: 1", "only wrote the record: 1", "only ran the tests: 1", "67.0k in, 51.0k of them cached (76%), 1.2k out", "rewinds: 1; failures on the record: 2"} {
+	for _, words := range []string{"task 7: done after 5 rounds", "replies with more than one call: 1", "only wrote the record: 1", "only ran the tests: 1", "67.0k in, 51.0k of them cached (76%), 1.2k out", "rewinds: 1; failures on the record: 2", "refused: read 1"} {
 		if !strings.Contains(text, words) {
 			t.Errorf("the report does not say %q:\n%s", words, text)
 		}

@@ -9,7 +9,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
-// theFillerFailures are eight failures that each say their own thing, because
+// theFillerFailures are ten failures that each say their own thing, because
 // a failure that says what one before it says is refused.
 var theFillerFailures = []string{
 	"the draft ran three hundred characters over the limit",
@@ -20,6 +20,8 @@ var theFillerFailures = []string{
 	"the ghost piece loop never advanced its cells downward",
 	"the rotation table held the wrong kicks for the I piece",
 	"the score line lost its digits when the level changed",
+	"the pause key left the timer running behind the overlay",
+	"the high score never reached the browser's storage",
 }
 
 // TestEstimatesTokensFromWords proves the one ratio this package counts with.

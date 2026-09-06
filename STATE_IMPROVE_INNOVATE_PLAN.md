@@ -263,6 +263,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - **The outline says when a page draws what its markup calls hidden.** Built on 6 September after the model read all three overlay headings in one outline and its own screenshot of the GAME OVER card without seeing why: the stylesheet's display rule was beating the `hidden` attribute. The scan marks such an element and the read tool prints the cause after its line. The model's judgment of a picture is the weak link; a structural mark in the words it reads is the cheap second chance.
 
+- **The browser runs on the screen.** Built on 6 September after the owner found an empty desktop: the model was play-testing through its own headless Playwright scripts. The standing instructions say it, the browser skill says it with the library names, and the write and edit tools refuse content that launches a browser with no window. A rule the model can read is not enough on its own; the tools have to hold it.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

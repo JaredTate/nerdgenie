@@ -34,6 +34,27 @@ func newTool(t *testing.T) (*edit.Tool, string, *testkit.FakeStore) {
 	return tool, root, store
 }
 
+func TestAnEditThatStartsAHeadlessBrowserIsRefused(t *testing.T) {
+	tool, root, _ := newTool(t)
+	path := filepath.Join(root, "qa", "playtest.js")
+	seen := "const browser = await chromium.launch({ headless: false });\n"
+	if err := os.MkdirAll(filepath.Dir(path), contract.HomeFolderMode); err != nil {
+		t.Fatalf("cannot make the folder: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(seen), 0o644); err != nil {
+		t.Fatalf("cannot write the script: %v", err)
+	}
+
+	_, err := run(t, tool, map[string]any{"path": path, "old": "headless: false", "new": "headless: true"})
+	if err == nil || !strings.Contains(err.Error(), "browser runs on the screen") {
+		t.Fatalf("an edit that turns a browser headless was made, or refused without the reason: %v", err)
+	}
+	held, readErr := os.ReadFile(path)
+	if readErr != nil || string(held) != seen {
+		t.Fatalf("the refused edit changed the file: %q", string(held))
+	}
+}
+
 // run calls the tool with the fields written as JSON.
 func run(t *testing.T, tool *edit.Tool, fields map[string]any) (contract.ToolOutput, error) {
 	t.Helper()

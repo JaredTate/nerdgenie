@@ -82,9 +82,9 @@ const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescript
 	"- Use browser_login for a site whose credentials are in the vault. It fills the boxes itself, and you never see the password.\n" +
 	"- Call browser_handoff the moment a captcha, a two-factor prompt, or a sign-in the vault does not hold appears. The person finishes it in the window and hands it back. Never guess at it.\n\n" +
 	"## What never to do\n\n" +
-	"- Never launch Chrome through the shell tool. The browser tools own the agent's Chrome window; one started from the shell they cannot see or drive.\n" +
+	"- Never start a browser from the shell or a script, headless or not (Playwright, Puppeteer, chrome --headless). The browser tools own the one Chrome window on the screen, where the person watches.\n" +
 	"- When an open fails, read the error and say what it said in your reply. Trying the same open again gets the same error.\n" +
-	"- The same call with the same arguments, over and over, is refused. When a page has not changed, do something different, or answer the person.\n"
+	"- The same call over and over is refused. When a page has not changed, do something different, or answer the person.\n"
 
 // browserSkillChangelog is the first line of the shipped skill's changelog. Every
 // skill folder carries one, and this one says where the skill came from and how

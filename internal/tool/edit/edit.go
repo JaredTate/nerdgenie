@@ -92,6 +92,9 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot edit the file %s: %w", path, err)
 	}
+	if write.StartsAHeadlessBrowser(after) && !write.StartsAHeadlessBrowser(before) {
+		return contract.ToolOutput{}, errors.New(write.TheOnScreenBrowserLine)
+	}
 
 	mode, err := tool.change.Before(ctx, path)
 	if err != nil {

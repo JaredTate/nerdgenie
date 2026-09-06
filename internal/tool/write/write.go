@@ -79,6 +79,9 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
+	if StartsAHeadlessBrowser(asked.Content) {
+		return contract.ToolOutput{}, errors.New(TheOnScreenBrowserLine)
+	}
 
 	existed, held := fileAsItStands(path)
 	mode, err := tool.change.Before(ctx, path)

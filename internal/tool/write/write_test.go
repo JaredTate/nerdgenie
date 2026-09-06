@@ -35,6 +35,29 @@ func newTool(t *testing.T) (*write.Tool, string, *testkit.FakeStore) {
 	return tool, root, store
 }
 
+func TestAWriteThatStartsAHeadlessBrowserIsRefused(t *testing.T) {
+	tool, root, _ := newTool(t)
+
+	for _, launch := range []string{
+		"const browser = await chromium.launch({ headless: true });\n",
+		"const browser = await puppeteer.launch({headless: 'new'});\n",
+		"exec google-chrome --headless=new --screenshot http://localhost:8091/\n",
+	} {
+		_, err := run(t, tool, map[string]any{"path": "qa/playtest.js", "content": launch})
+		if err == nil || !strings.Contains(err.Error(), "browser runs on the screen") {
+			t.Fatalf("a script that starts a headless browser was written, or refused without the reason: %v", err)
+		}
+		if _, statErr := os.Stat(filepath.Join(root, "qa", "playtest.js")); statErr == nil {
+			t.Fatalf("the refused script landed on disk")
+		}
+	}
+
+	seen := "const browser = await chromium.launch({ headless: false });\n"
+	if _, err := run(t, tool, map[string]any{"path": "qa/seen.js", "content": seen}); err != nil {
+		t.Fatalf("a script that starts a browser on the screen was refused: %v", err)
+	}
+}
+
 // run calls the tool with the fields written as JSON.
 func run(t *testing.T, tool *write.Tool, fields map[string]any) (contract.ToolOutput, error) {
 	t.Helper()

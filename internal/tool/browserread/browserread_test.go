@@ -327,3 +327,15 @@ func TestAskingAPageThatIsNotOnThisMachineIsRefused(t *testing.T) {
 		t.Errorf("asking a page elsewhere gave %v, want a refusal naming the rule", err)
 	}
 }
+
+// TestTheDescriptionSaysNoPictureReachesTheModel is the thirteenth nightly
+// run's polish task, which spent rounds writing a Chrome DevTools script to
+// screenshot its canvas and look at the dragon: nothing told it that no
+// picture reaches it, and that a canvas is judged by asking the page.
+func TestTheDescriptionSaysNoPictureReachesTheModel(t *testing.T) {
+	tool, _ := newTool(t)
+	description := tool.Spec().Description
+	if !strings.Contains(description, "No picture reaches you") || !strings.Contains(description, "asking the page") {
+		t.Errorf("the description reads %q and does not say that no picture reaches the model and a canvas is judged by asking the page", description)
+	}
+}

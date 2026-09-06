@@ -9,14 +9,18 @@ import "strings"
 // harness's own bookkeeping. Every lesson is still whole in the log under its
 // own event; the record holds the line that teaches it.
 
-// MaxLessonRunes is the longest a lesson's text, cause or reason may be.
-const MaxLessonRunes = 160
+// MaxLessonRunes is the longest a lesson's text, cause or reason may be. The
+// lessons sit in the record's second part, behind the messages, read again
+// uncached on every round: at a hundred and sixty runes and eight of each
+// kind they were the largest piece of that tail on the fifth game build's
+// play-test, three thousand characters a round.
+const MaxLessonRunes = 120
 
 // MaxFailuresKept is how many failures the record holds; the oldest leave.
-const MaxFailuresKept = 8
+const MaxFailuresKept = 6
 
 // MaxDecisionsKept is how many decisions the record holds; the oldest leave.
-const MaxDecisionsKept = 8
+const MaxDecisionsKept = 6
 
 // cutToALesson keeps a lesson's line to MaxLessonRunes, cut after a whole
 // word, and says that it was cut.

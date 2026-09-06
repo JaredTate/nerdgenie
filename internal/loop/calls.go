@@ -288,10 +288,30 @@ func summaryOfResult(name string, text string, failed bool) string {
 			return state.line()
 		}
 	}
+	// A change whose tests ran leads with what they said: the thirteenth
+	// nightly run's game job spent forty-three rounds only running tests,
+	// sixteen of them right after an edit whose result carried the tests'
+	// line three lines down, where the record's one line never showed it.
+	if name == contract.ToolWrite || name == contract.ToolEdit {
+		if after := lineStartingWith(text, TheTestsAfterAChange); after != "" {
+			return name + ": " + after + "; " + firstLine(text)
+		}
+	}
 	if first := firstLine(text); first != "" {
 		return name + ": " + first
 	}
 	return name + ": nothing came back"
+}
+
+// lineStartingWith is the first line of the text that begins with the prefix,
+// or empty.
+func lineStartingWith(text string, prefix string) string {
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return line
+		}
+	}
+	return ""
 }
 
 // refusedResult is what the model gets back for a call that never ran.

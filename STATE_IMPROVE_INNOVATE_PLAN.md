@@ -159,7 +159,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** Two identical reads of an unchanged file: the second is the one-line answer; an edit in between makes the third read run.
 
-**Cost.** None. **Risk.** A model that needed the text again pays one `read r3` round. **Verdict.** Build second.
+**Cost.** None. **Risk.** A model that needed the text again pays one `read r3` round. **Verdict.** Tried and dropped on 5 September: the forty-step fixture re-reads a page twice on purpose and expects the text both times, and the repeat guard tells a stall from a poll by comparing result fingerprints, which a one-line answer defeats. The guard already runs a repeat twice and refuses the third, so the saving was one result's text, once. YAGNI.
 
 ### 9. Assert the cache in the fixture, and count failures per tool
 

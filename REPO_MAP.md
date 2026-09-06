@@ -37,6 +37,7 @@ OPUS_BENCHMARK.md
 QWEN_BENCHMARK.md
 README.md
 REPO_MAP.md
+STATE_IMPROVE_INNOVATE_PLAN.md
 STATE_RESEARCH.md
 TEST.md
 THIRD_PARTY.md
@@ -527,6 +528,8 @@ internal/log/replay.go
 internal/log/replay_test.go
 internal/loop/answercloses_test.go
 internal/loop/asknumber_test.go
+internal/loop/autotest.go
+internal/loop/autotest_test.go
 internal/loop/bounds_test.go
 internal/loop/budget.go
 internal/loop/budgetend_test.go
@@ -550,6 +553,8 @@ internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
+internal/loop/handoff.go
+internal/loop/handoff_test.go
 internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
@@ -581,6 +586,8 @@ internal/loop/polling_test.go
 internal/loop/probes.go
 internal/loop/probes_test.go
 internal/loop/problems_test.go
+internal/loop/progress.go
+internal/loop/progress_test.go
 internal/loop/putdown.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go
@@ -602,7 +609,10 @@ internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
 internal/loop/stopline_test.go
 internal/loop/stopnamesjob_test.go
+internal/loop/stoppedreport.go
 internal/loop/summary_test.go
+internal/loop/syntax.go
+internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
 internal/loop/teststate.go
@@ -1560,6 +1570,7 @@ worker/browser/package-lock.json
 worker/browser/package.json
 worker/browser/src/act-methods.ts
 worker/browser/src/actions.ts
+worker/browser/src/ask.ts
 worker/browser/src/batch-methods.ts
 worker/browser/src/chrome.ts
 worker/browser/src/diff.ts
@@ -1592,11 +1603,13 @@ worker/browser/src/words.ts
 worker/browser/src/worker.ts
 worker/browser/test/act-login-screenshot.test.ts
 worker/browser/test/actions.test.ts
+worker/browser/test/ask.test.ts
 worker/browser/test/chrome.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
+worker/browser/test/hung-page.test.ts
 worker/browser/test/pacing.test.ts
 worker/browser/test/page-errors.test.ts
 worker/browser/test/page-events.test.ts
@@ -1609,6 +1622,8 @@ worker/browser/test/pages/dialog.html
 worker/browser/test/pages/download.html
 worker/browser/test/pages/frame-inner.html
 worker/browser/test/pages/frame.html
+worker/browser/test/pages/game-state.html
+worker/browser/test/pages/hangs-on-click.html
 worker/browser/test/pages/keyboard.html
 worker/browser/test/pages/links-and-form.html
 worker/browser/test/pages/login.html

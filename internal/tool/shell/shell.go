@@ -170,6 +170,12 @@ func ReadCall(_ context.Context, written []byte) (Call, error) {
 // passing is not one.
 var theKillsByNamePattern = []string{"pkill", "killall", "pgrep"}
 
+// theWordsBeforeACommand are the shell words a command may stand after and
+// still be the command: the wrappers, the keywords, and the negation. The
+// fifth game build's play-test task polled its own script with "if ! pgrep
+// -f", which the rule read as a mention in passing.
+var theWordsBeforeACommand = []string{"sudo", "exec", "then", "do", "if", "!", "while", "until", "elif", "time", "nohup"}
+
 // killsByNamePattern says whether a command kills or lists processes by a
 // name pattern. On the fifth game build the model ran pkill -f on its own
 // server and got exit code 143, which is its own shell killed: the shell's
@@ -181,7 +187,7 @@ func killsByNamePattern(command string) bool {
 	}) {
 		words := strings.Fields(piece)
 		for at, word := range words {
-			if slices.Contains(theKillsByNamePattern, word) && (at == 0 || words[at-1] == "sudo" || words[at-1] == "exec" || words[at-1] == "then" || words[at-1] == "do") {
+			if slices.Contains(theKillsByNamePattern, word) && (at == 0 || slices.Contains(theWordsBeforeACommand, words[at-1])) {
 				return true
 			}
 		}

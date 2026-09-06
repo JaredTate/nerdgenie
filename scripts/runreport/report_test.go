@@ -1,0 +1,120 @@
+package main
+
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/testkit"
+)
+
+// aRecordedRun writes a small run into a fake log, the way the loop does: a
+// checkpoint after every model call, the calls of each round between them, a
+// cost line on every checkpoint, and a stall the rewind wrote as a failure.
+func aRecordedRun(t *testing.T) *testkit.FakeStore {
+	t.Helper()
+	store := testkit.NewFakeStore()
+	at := time.Date(2026, 9, 5, 22, 0, 0, 0, time.UTC)
+	append := func(kind contract.EventKind, body any) {
+		t.Helper()
+		written, err := json.Marshal(body)
+		if err != nil {
+			t.Fatalf("cannot write the %s: %v", kind, err)
+		}
+		if _, err := store.Append(t.Context(), contract.Event{TaskID: "7", Kind: kind, Body: written, Occurred: at}); err != nil {
+			t.Fatalf("cannot append the %s: %v", kind, err)
+		}
+		at = at.Add(16 * time.Second)
+	}
+	checkpoint := func(number int, status contract.RecordStatus, cost contract.CostLine, failures []contract.Failure) {
+		held := contract.Record{
+			Header:  contract.Header{Kind: contract.RecordTask, ID: "7", Status: status, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true, Cost: cost},
+			Goal:    contract.Goal{Ask: "make the tests pass"},
+			Lessons: contract.Lessons{Failures: failures},
+		}
+		append(contract.EventCheckpoint, record.Checkpoint{Number: number, Text: string(record.Print(held))})
+	}
+	call := func(name string, input string) {
+		append(contract.EventToolCall, contract.ToolCall{ID: name + input[:4], Name: name, Input: json.RawMessage(input)})
+	}
+	append(contract.EventMessage, contract.Inbound{Text: "make the tests pass"})
+	checkpoint(1, contract.StatusRunning, contract.CostLine{InputTokens: 10000, CachedInputTokens: 0, OutputTokens: 300}, nil)
+	call("task", `{"operation":"plan","plan":["fix it"]}`)
+	checkpoint(2, contract.StatusRunning, contract.CostLine{InputTokens: 12000, CachedInputTokens: 10000, OutputTokens: 100}, nil)
+	call("write", `{"path":"engine.js","content":"x"}`)
+	call("shell", `{"command":"node --test test/"}`)
+	checkpoint(3, contract.StatusRunning, contract.CostLine{InputTokens: 14000, CachedInputTokens: 12000, OutputTokens: 500}, nil)
+	call("shell", `{"command":"cd game && node --test test/ 2>&1 | tail"}`)
+	checkpoint(4, contract.StatusRunning, contract.CostLine{InputTokens: 15000, CachedInputTokens: 14000, OutputTokens: 100},
+		[]contract.Failure{{ID: "F1", Text: "stalled: asked for read engine.js over and over, so the conversation was cleared", Cause: "nothing changed"}})
+	call("read", `{"path":"engine.js"}`)
+	checkpoint(5, contract.StatusDone, contract.CostLine{InputTokens: 16000, CachedInputTokens: 15000, OutputTokens: 200},
+		[]contract.Failure{{ID: "F1", Text: "stalled: asked for read engine.js over and over, so the conversation was cleared", Cause: "nothing changed"},
+			{ID: "F2", Text: "2 failing of 10 after changing engine.js", Cause: "the change"}})
+	return store
+}
+
+// TestTheNumbersOfARunAreReadOffTheLog holds every number the report prints,
+// against a run written the way the loop writes one.
+func TestTheNumbersOfARunAreReadOffTheLog(t *testing.T) {
+	numbers, err := measure(t.Context(), aRecordedRun(t), "7")
+	if err != nil {
+		t.Fatalf("cannot measure the run: %v", err)
+	}
+	if numbers.rounds != 5 || numbers.status != contract.StatusDone {
+		t.Errorf("the run reads %d rounds ending %q, want 5 rounds ending done", numbers.rounds, numbers.status)
+	}
+	if numbers.repliesBatched != 1 {
+		t.Errorf("replies with more than one call read %d, want 1: the write and the test run in one reply", numbers.repliesBatched)
+	}
+	if numbers.recordOnlyRounds != 1 || numbers.testOnlyRounds != 1 {
+		t.Errorf("record-only rounds read %d and test-only rounds %d, want 1 and 1", numbers.recordOnlyRounds, numbers.testOnlyRounds)
+	}
+	if numbers.tokensIn != 67000 || numbers.cachedIn != 51000 || numbers.tokensOut != 1200 {
+		t.Errorf("the tokens read %d in, %d cached, %d out, want 67000, 51000 and 1200", numbers.tokensIn, numbers.cachedIn, numbers.tokensOut)
+	}
+	if numbers.rewinds != 1 || numbers.failures != 2 {
+		t.Errorf("rewinds read %d and failures %d, want 1 and 2, as the newest checkpoint holds them", numbers.rewinds, numbers.failures)
+	}
+	if numbers.callsByTool["shell"] != 2 || numbers.callsByTool["task"] != 1 || numbers.callsByTool["write"] != 1 || numbers.callsByTool["read"] != 1 {
+		t.Errorf("the calls by tool read %v", numbers.callsByTool)
+	}
+	if numbers.minutes <= 0 || numbers.minutes > 5 {
+		t.Errorf("the run reads %.1f minutes, want the span from the ask to the last checkpoint, a few minutes", numbers.minutes)
+	}
+	text := numbers.String()
+	for _, words := range []string{"task 7: done after 5 rounds", "replies with more than one call: 1", "only wrote the record: 1", "only ran the tests: 1", "67.0k in, 51.0k of them cached (76%), 1.2k out", "rewinds: 1; failures on the record: 2"} {
+		if !strings.Contains(text, words) {
+			t.Errorf("the report does not say %q:\n%s", words, text)
+		}
+	}
+}
+
+// TestTheNewestTaskIsMeasuredWhenNoneIsNamed keeps the command usable without
+// a number: the newest task is the one a person just watched.
+func TestTheNewestTaskIsMeasuredWhenNoneIsNamed(t *testing.T) {
+	numbers, err := measure(t.Context(), aRecordedRun(t), "")
+	if err != nil || numbers.taskID != "7" {
+		t.Errorf("measuring the newest task gave %+v (%v), want task 7", numbers.taskID, err)
+	}
+	if _, err := measure(t.Context(), aRecordedRun(t), "42"); err == nil {
+		t.Error("a task the log does not hold was measured")
+	}
+}
+
+// TestTheCommandLineIsReadAndRefused holds the usage line.
+func TestTheCommandLineIsReadAndRefused(t *testing.T) {
+	problems := &strings.Builder{}
+	if code := run([]string{"--wrong"}, &strings.Builder{}, problems); code != 2 || !strings.Contains(problems.String(), "usage") {
+		t.Errorf("a wrong flag gave %d with %q, want 2 and the usage line", code, problems.String())
+	}
+	if code := run(nil, &strings.Builder{}, &strings.Builder{}); code != 2 {
+		t.Errorf("no log gave %d, want 2", code)
+	}
+	if code := run([]string{"--log", t.TempDir() + "/missing/nerdgenie.db"}, &strings.Builder{}, &strings.Builder{}); code == 0 {
+		t.Error("a log that cannot be opened gave 0")
+	}
+}

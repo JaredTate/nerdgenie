@@ -460,6 +460,8 @@ func TestAKillByNamePatternIsRefusedAndToldToKillByPid(t *testing.T) {
 		"killall node",
 		"pgrep -af nerdgenie | awk '{print $1}' | xargs kill",
 		"cd ~/game && pkill -f serve.js; node serve.js",
+		`for i in $(seq 1 30); do if ! pgrep -f "node playtest.js" >/dev/null; then echo done; break; fi; sleep 1; done`,
+		"while pgrep -f serve.js; do sleep 1; done",
 	} {
 		_, err := run(t, tool, map[string]any{"command": command})
 		if err == nil {

@@ -135,7 +135,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Test.** It is the test.
 
-**Cost.** One card for an hour a night. **Risk.** The set drifts toward what passes; every live failure goes in. **Verdict.** Build first, alongside the five above, so each lands with its number.
+**Cost.** One card for an hour a night. **Risk.** The set drifts toward what passes; every live failure goes in. **Verdict.** Built, the measuring half: `scripts/runreport` prints one task's numbers off the log, and `docs/PROGRESS.md` carries run 5 task by task. The nightly set of asks is not built yet.
 
 ### 7. Put what matters last, and the cost line first
 
@@ -217,7 +217,10 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - **A command whose own process has ended but whose background child holds the output.** Twice tonight the model started a server with an ampersand and no redirect, the shell tool waited on a pipe the server held open, and three rounds went to polling and killing. The tool should say "the command finished; something it started still holds its output and is kept as p49". It needs the process id across the sandbox contract, so it waits for a quiet moment.
 - **The `ask` field on `browser_read` for local pages.** Built: one expression, answered as JSON on a page served from this machine or a file, refused anywhere else, with the browser skill telling the model to expose its app's state on `window` and ask.
-- **The step mark on the first line.** Idea 1's second half.
+- **The step mark on the first line.** Idea 1's second half. Held back on purpose until the nightly set can measure whether a small model adopts it; the same model ignored the batching instruction for 150 rounds.
+- **A cut-off task ends stopped, not failed.** Built after the 20:33 restart abandoned ninety rounds of a play-test task's record: a shutdown or a turn limit now puts a job's task down with its record, and the next message picks it up.
+- **A cancelled call never falls through the model chain.** Built; every stop used to write three lines of fallback noise.
+- **Vision.** The projector file this machine points at is a broken link into a removed Ollama store. It needs a download of the projector for this model and one flag on the daemon's start line, which is the owner's call, before the harness's image path is worth building.
 
 ## What was rejected, and why
 

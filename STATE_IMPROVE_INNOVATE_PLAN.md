@@ -224,6 +224,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built after t8's second stop: a failure the record already holds is refused with the label of the one that says it (`ErrFailureAlreadyWritten`). Told "rounds since progress: 10", t8 answered by writing the same lesson ten times over as F8 to F16, each a little reworded, and carried all ten in every round after. Nearly the same words count as the same: four in five of the new failure's words already in the held one.
 
+- Built after t8's third death: a lesson is one line and a list of lessons holds the newest eight. Task 10 died on the harness's own bookkeeping again, this time on seventeen paragraph-long failures (1,765 tokens) when a read's result line took the record past 3,000; the results list had already trimmed to its floor. A failure's or decision's text and cause are cut to 160 characters after a whole word, the oldest leave (the log keeps them), and labels count on from the last one held.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

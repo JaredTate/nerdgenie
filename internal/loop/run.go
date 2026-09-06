@@ -55,6 +55,9 @@ type run struct {
 	recentCalls   []pastCall
 	lastOrient    string
 	browserFact   string
+	// pageAddress is where the browser is, as its last result said, and is what
+	// a hung page's scripts are read from.
+	pageAddress   string
 	commandFact   string
 	continuedFact string
 	filesChanged  []string

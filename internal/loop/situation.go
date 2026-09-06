@@ -117,6 +117,9 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 		if first := firstLine(text); first != "" {
 			running.browserFact = "browser: " + first
 		}
+		if address := addressIn(text); address != "" {
+			running.pageAddress = address
+		}
 		running.noteAChangedPage(text)
 	case call.Name == contract.ToolShell:
 		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)

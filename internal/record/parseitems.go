@@ -256,9 +256,15 @@ func (reading *reader) readResultLine(text string) error {
 func (reading *reader) readDecision(text string) error {
 	id, body, split := strings.Cut(text, " ")
 	decisions := reading.record.Lessons.Decisions
-	wanted := contract.DecisionID(len(decisions) + 1)
-	if !split || id != wanted {
-		return reading.failRule(ErrIdentifiersOutOfOrder, "this decision is labelled %q and the next label is %q", id, wanted)
+	number, labelled := labelNumber(id)
+	if !split || !labelled || contract.DecisionID(number) != id {
+		return reading.failRule(ErrIdentifiersOutOfOrder, "this decision is labelled %q, and a decision's label is D and a number above the one before it", id)
+	}
+	if last := len(decisions); last > 0 {
+		beforeNumber, _ := labelNumber(decisions[last-1].ID)
+		if err := reading.countsUpwards(id, number, decisions[last-1].ID, beforeNumber); err != nil {
+			return err
+		}
 	}
 	what, reason, err := reading.splitAtJoin(body, reasonJoin, ErrDecisionNeedsReason, "a reason")
 	if err != nil {
@@ -272,9 +278,15 @@ func (reading *reader) readDecision(text string) error {
 func (reading *reader) readFailure(text string) error {
 	id, body, split := strings.Cut(text, " ")
 	failures := reading.record.Lessons.Failures
-	wanted := contract.FailureID(len(failures) + 1)
-	if !split || id != wanted {
-		return reading.failRule(ErrIdentifiersOutOfOrder, "this failure is labelled %q and the next label is %q", id, wanted)
+	number, labelled := labelNumber(id)
+	if !split || !labelled || contract.FailureID(number) != id {
+		return reading.failRule(ErrIdentifiersOutOfOrder, "this failure is labelled %q, and a failure's label is F and a number above the one before it", id)
+	}
+	if last := len(failures); last > 0 {
+		beforeNumber, _ := labelNumber(failures[last-1].ID)
+		if err := reading.countsUpwards(id, number, failures[last-1].ID, beforeNumber); err != nil {
+			return err
+		}
 	}
 	what, cause, err := reading.splitAtJoin(body, causeJoin, ErrFailureNeedsCause, "a cause")
 	if err != nil {

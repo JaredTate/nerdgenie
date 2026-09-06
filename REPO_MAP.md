@@ -770,6 +770,7 @@ internal/record/integration_test.go
 internal/record/jobtasks_test.go
 internal/record/keeper.go
 internal/record/keeper_test.go
+internal/record/lessons_test.go
 internal/record/logfails_test.go
 internal/record/logkey_test.go
 internal/record/model.go
@@ -786,6 +787,7 @@ internal/record/plancap_test.go
 internal/record/print.go
 internal/record/print_test.go
 internal/record/prose_test.go
+internal/record/sameness.go
 internal/record/size.go
 internal/record/size_test.go
 internal/record/stepdone_test.go

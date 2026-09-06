@@ -357,11 +357,15 @@ func applyDecision(into *contract.Record, update Update) error {
 	if update.Decision.Reason == "" {
 		return fmt.Errorf("the decision %q carries no reason: %w", update.Decision.Text, ErrDecisionNeedsReason)
 	}
-	into.Lessons.Decisions = append(into.Lessons.Decisions, contract.Decision{
-		ID:     contract.DecisionID(len(into.Lessons.Decisions) + 1),
-		Text:   update.Decision.Text,
-		Reason: update.Decision.Reason,
-	})
+	number := 1
+	if last := len(into.Lessons.Decisions); last > 0 {
+		number = numberAfter(into.Lessons.Decisions[last-1].ID)
+	}
+	into.Lessons.Decisions = theNewest(append(into.Lessons.Decisions, contract.Decision{
+		ID:     contract.DecisionID(number),
+		Text:   cutToALesson(update.Decision.Text),
+		Reason: cutToALesson(update.Decision.Reason),
+	}), MaxDecisionsKept)
 	return nil
 }
 
@@ -412,11 +416,15 @@ func applyFailure(into *contract.Record, update Update) error {
 			return fmt.Errorf("the failure %q says what %s already says: %w", update.Failure.Text, held.ID, ErrFailureAlreadyWritten)
 		}
 	}
-	into.Lessons.Failures = append(into.Lessons.Failures, contract.Failure{
-		ID:    contract.FailureID(len(into.Lessons.Failures) + 1),
-		Text:  update.Failure.Text,
-		Cause: update.Failure.Cause,
-	})
+	number := 1
+	if last := len(into.Lessons.Failures); last > 0 {
+		number = numberAfter(into.Lessons.Failures[last-1].ID)
+	}
+	into.Lessons.Failures = theNewest(append(into.Lessons.Failures, contract.Failure{
+		ID:    contract.FailureID(number),
+		Text:  cutToALesson(update.Failure.Text),
+		Cause: cutToALesson(update.Failure.Cause),
+	}), MaxFailuresKept)
 	return nil
 }
 

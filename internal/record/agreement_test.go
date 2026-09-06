@@ -107,22 +107,35 @@ func TestParseWantsTheUsersAsk(t *testing.T) {
 	}
 }
 
-// TestLabelsCountWithNoGaps proves the rule that a correction, a decision, and a
-// failure each get the next label, so that nothing ever hands out one twice.
-func TestLabelsCountWithNoGaps(t *testing.T) {
+// TestCorrectionsCountWithNoGapsAndLessonsOnlyUpward proves the rule that a
+// correction gets the next label and is never removed, so its labels have no
+// gaps, while a decision or a failure may start anywhere, because the oldest
+// lessons leave the record, and must only count upward, so that nothing a
+// reader has seen is ever handed out twice.
+func TestCorrectionsCountWithNoGapsAndLessonsOnlyUpward(t *testing.T) {
 	golden := string(readGolden(t, "task.txt"))
-	gaps := map[string]string{
+	refused := map[string]string{
 		`- C1 "no, lead with the date not the features"`:                                `- C2 "no, lead with the date not the features"`,
-		"- D1 Lead with the date. Reason: correction C1.":                               "- D3 Lead with the date. Reason: correction C1.",
-		"- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.": "- F9 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.",
+		"- D1 Lead with the date. Reason: correction C1.":                               "- D3 Lead with the date. Reason: correction C1.\n- D2 Keep the short form. Reason: correction C1.",
+		"- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.": "- F9 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.\n- F9 Draft 2 was 300 characters. Cause: the same three facts.",
 	}
-	for good, gap := range gaps {
-		text := strings.Replace(golden, good, gap, 1)
+	for good, bad := range refused {
+		text := strings.Replace(golden, good, strings.ReplaceAll(bad, "\\n", "\n"), 1)
 		if text == golden {
 			t.Fatalf("this test no longer changes the line %q", good)
 		}
 		if _, err := Parse([]byte(text)); err == nil {
-			t.Errorf("a record with the label %q in it read back anyway", gap)
+			t.Errorf("a record with the labels %q in it read back anyway", bad)
+		}
+	}
+	allowed := map[string]string{
+		"- D1 Lead with the date. Reason: correction C1.":                               "- D3 Lead with the date. Reason: correction C1.",
+		"- F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.": "- F9 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one.",
+	}
+	for good, later := range allowed {
+		text := strings.Replace(golden, good, later, 1)
+		if _, err := Parse([]byte(text)); err != nil {
+			t.Errorf("a record whose lessons start at %q was refused, and the oldest lessons leave a record: %v", later, err)
 		}
 	}
 }

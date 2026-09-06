@@ -65,6 +65,39 @@ func (running *run) noteAReadOfSomethingNew(call contract.ToolCall) {
 	}
 }
 
+// noteAResultThatSaysSomethingNew reads a look or a command as progress when
+// what came back is something this task has not seen before, whatever the
+// call was. The twelfth nightly run's engine task, with two tests left red,
+// read its five-hundred-line engine in eighty-line windows, probed it with
+// small node scripts and searched it with grep, each answering something new,
+// and the meter counted the file once and the commands not at all, so it
+// cleared the conversation in the middle of the search. The same answer
+// again is more of the same, however the call was worded, which is what the
+// nudge after a failure stands on; a test run is judged by its own rule, and
+// a poll is waiting.
+func (running *run) noteAResultThatSaysSomethingNew(call contract.ToolCall, text string) {
+	if call.Name != contract.ToolShell && !slices.Contains(theToolsThatRead, call.Name) {
+		return
+	}
+	if onlyPolls([]contract.ToolCall{call}) {
+		return
+	}
+	if _, isATestRun := testStateIn(text); isATestRun {
+		return
+	}
+	said := strings.TrimSpace(text)
+	if said == "" {
+		return
+	}
+	if running.thingsSaid == nil {
+		running.thingsSaid = map[string]bool{}
+	}
+	if !running.thingsSaid[said] {
+		running.thingsSaid[said] = true
+		running.noteProgress()
+	}
+}
+
 // theSignsOfAChangedPage are the first lines of a browser result that mean
 // the action did something to the page.
 var theSignsOfAChangedPage = []string{"what was expected happened", "the page moved to", "new on the page:", "a new tab opened"}

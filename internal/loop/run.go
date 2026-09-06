@@ -94,6 +94,9 @@ type run struct {
 	sawATestRun         bool
 	lastFailedCount     int
 	thingsRead          map[string]bool
+	// thingsSaid is every answer a look or a command has given this task, so
+	// that one that says something new counts as a look at something new.
+	thingsSaid map[string]bool
 	// testCommand is the last shell command whose output read as a test run, run again after every change.
 	testCommand string
 	// jobToHandTo is the job made this round with a first task, whose tasks carry the work from here.

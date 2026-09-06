@@ -168,6 +168,7 @@ func (running *run) loggedFileChanges(ctx context.Context) []string {
 func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, failed bool) {
 	if !failed {
 		running.noteAReadOfSomethingNew(call)
+		running.noteAResultThatSaysSomethingNew(call, text)
 	}
 	switch {
 	case strings.HasPrefix(call.Name, "browser"):

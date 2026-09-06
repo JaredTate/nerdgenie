@@ -60,8 +60,11 @@ func TestARealCommandRunsPollsAndIsKilled(t *testing.T) {
 
 	// A poll waits on the clock for the command, so it is answered from the
 	// background once the clock has run out the wait.
+	// A running command may hold a sleeper of its own for its timeout, so the
+	// poll is the next sleeper over whatever is sleeping now.
+	sleepersBefore := clock.Sleepers()
 	polled := pollInTheBackground(t, tool, "p2")
-	waitForSleepers(t, clock, 1)
+	waitForSleepers(t, clock, sleepersBefore+1)
 	clock.Advance(shell.PollWaitsFor)
 	if answer := <-polled; !strings.Contains(answer.Text, "still running") {
 		t.Errorf("polling a real running command said %q", answer.Text)

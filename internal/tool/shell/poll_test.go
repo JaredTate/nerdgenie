@@ -48,8 +48,11 @@ func TestAPollWaitsForTheCommandAndHandsBackWhatItDid(t *testing.T) {
 	// The fresh game build's play-test task polled its own script every five
 	// seconds, a round each, fourteen rounds for one run. A poll now waits for
 	// the command, so the command finishing is what answers it, not the clock.
+	// A running command may hold a sleeper of its own for its timeout, so the
+	// poll is the next sleeper over whatever is sleeping now.
+	sleepersBefore := clock.Sleepers()
 	polled := pollInTheBackground(t, tool, shell.FirstProcessID)
-	waitForSleepers(t, clock, 1)
+	waitForSleepers(t, clock, sleepersBefore+1)
 	sandbox.Release()
 	select {
 	case answer := <-polled:

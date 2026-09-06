@@ -212,8 +212,11 @@ func TestACommandStillRunningAfterTenSecondsHandsBackAnIdToPollTailAndKill(t *te
 		t.Fatalf("the tool said %q and did not hand back an id to poll", output.Text)
 	}
 
+	// A running command may hold a sleeper of its own for its timeout, so the
+	// poll is the next sleeper over whatever is sleeping now.
+	sleepersBefore := clock.Sleepers()
 	polled := pollInTheBackground(t, tool, shell.FirstProcessID)
-	waitForSleepers(t, clock, 1)
+	waitForSleepers(t, clock, sleepersBefore+1)
 	clock.Advance(shell.PollWaitsFor)
 	if answer := <-polled; !strings.Contains(answer.Text, "still running") {
 		t.Errorf("polling a running command said %q", answer.Text)
@@ -438,8 +441,11 @@ func TestAPollSaysHowLongTheCommandHasBeenRunning(t *testing.T) {
 	// A poll waits on the clock for the command, so each one is answered by
 	// advancing the clock past the wait; the two answers are then twenty
 	// seconds apart.
+	// A running command may hold a sleeper of its own for its timeout, so the
+	// poll is the next sleeper over whatever is sleeping now.
+	sleepersBefore := clock.Sleepers()
 	polled := pollInTheBackground(t, tool, shell.FirstProcessID)
-	waitForSleepers(t, clock, 1)
+	waitForSleepers(t, clock, sleepersBefore+1)
 	clock.Advance(shell.PollWaitsFor)
 	first := <-polled
 	polled = pollInTheBackground(t, tool, shell.FirstProcessID)

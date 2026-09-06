@@ -95,6 +95,9 @@ type run struct {
 	// sameFailingRuns counts the test runs in a row on which the same tests
 	// have failed, which is what the stuck line is said on.
 	sameFailingRuns int
+	// roundsAllMarked counts the rounds of tool calls since every done line
+	// and plan step was marked, which is what the all-marked line is said on.
+	roundsAllMarked int
 	lastFailedCount int
 	thingsRead      map[string]bool
 	// thingsSaid is every answer a look or a command has given this task, so

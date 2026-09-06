@@ -33,6 +33,15 @@ const (
 // rounds in which nothing the harness can measure moved.
 const TheStallLine = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read. Write what these rounds showed into the record as a failure with its cause, then take a different approach; more of the same will not move the count."
 
+// RoundsAfterAllMarked is how many rounds of tool calls a task may go on
+// for once every done line and every plan step is marked done before it is
+// told to answer: the fresh Tetris build's yeti task had everything marked by
+// round 174 and went on into the next task's work for twenty rounds more.
+const RoundsAfterAllMarked = 3
+
+// TheAllMarkedLine is what the model reads then.
+const TheAllMarkedLine = "Every done line and every plan step is marked done. Answer the user now to end this task; anything more belongs to the next task, or to a new done line."
+
 // TheStallLineAfterAFailure opens the nudge said instead of TheStallLine when
 // the model wrote a failure within the last ten rounds: the nightly game
 // build wrote its line-clear failure, was told by the stall line, which stays
@@ -130,6 +139,42 @@ func (running *run) noteAChangedPage(text string) {
 	}
 }
 
+// noteAllMarked counts the rounds of tool calls since every done line and
+// every plan step was marked done, and at RoundsAfterAllMarked says to answer.
+func (running *run) noteAllMarked() {
+	if !running.allMarked() {
+		running.roundsAllMarked = 0
+		return
+	}
+	running.roundsAllMarked++
+	if running.roundsAllMarked == RoundsAfterAllMarked {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: TheAllMarkedLine})
+	}
+}
+
+// allMarked says whether the record holds a done list with every line done and
+// no plan step left open.
+func (running *run) allMarked() bool {
+	if running.keeper == nil {
+		return false
+	}
+	held := running.keeper.Record()
+	if len(held.Goal.DoneWhen) == 0 {
+		return false
+	}
+	for _, line := range held.Goal.DoneWhen {
+		if !line.Done {
+			return false
+		}
+	}
+	for _, step := range held.Work.Plan {
+		if !step.Done {
+			return false
+		}
+	}
+	return true
+}
+
 // marksMade counts the plan steps and the done lines the record holds marked
 // done, which is what the round is measured against.
 func (running *run) marksMade() int {
@@ -176,6 +221,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 	moved := running.progressThisRound || running.marksMade() > marksBefore
 	running.progressThisRound = false
 	running.roundsSinceAFailureWrite++
+	running.noteAllMarked()
 	switch {
 	case moved:
 		running.roundsSinceProgress = 0

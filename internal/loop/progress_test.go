@@ -263,3 +263,39 @@ func TestTheNudgeNamesTheCauseAlreadyOnTheRecordWhenNothingWasChangedSince(t *te
 		t.Errorf("the plain stall line was said %d times as well, and one nudge is enough", count)
 	}
 }
+
+// TestTheNudgeAfterAFreshFailureAsksForAChangeAndNoMoreFailures is the loop
+// the nightly game build ended on: the stall line asked for a failure with
+// its cause, the model wrote one, the line stayed in the window and asked
+// again every round, and the model wrote the same failure six more times,
+// each refused as already held, until the same-call guard stopped the task.
+// When a failure was written in the last ten rounds the nudge asks for no
+// more of them: it names the one the record holds and asks for a change.
+func TestTheNudgeAfterAFreshFailureAsksForAChangeAndNoMoreFailures(t *testing.T) {
+	steps := []testkit.Step{
+		callStep("I will change the engine.", callFor("e1", contract.ToolEdit, `{"path":"/game/src/engine.js","old":"a","new":"b"}`)),
+		callStep("The clear test is still red. I will write down why.",
+			taskCall("f1", `{"operation":"failure","text":"the line-clear test fails after the change","cause":"the change to engine.js before the run"}`)),
+	}
+	reads := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+1; at++ {
+		steps = append(steps, callStep("I will look at the test again.", callFor(fmt.Sprintf("r%d", at), contract.ToolRead, fmt.Sprintf(`{"path":"/game/tests/core.test.js","offset":%d}`, at))))
+		reads = append(reads, "1: test('line clearing', () => {})")
+	}
+	steps = append(steps, answerStep("I see it now. What changed: nothing. What I checked: the test. What is left: the fix."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolEdit, "edited /game/src/engine.js by 1 line"), scriptedTool(contract.ToolRead, reads...), scriptedTool(contract.ToolShell, "finished with exit code 0\nexit 0"))
+
+	built.ask(t, "make the tests pass")
+
+	first, _ := requestsCarrying(built, loop.TheStallLineAfterAFailure)
+	if first < 0 {
+		t.Fatalf("the nudge after a fresh failure was never said, and F1 had been written two rounds before the ten")
+	}
+	shown := wholeRequestText(built.model.Requests()[first])
+	if !strings.Contains(shown, "F1") {
+		t.Errorf("the nudge does not name the failure the record holds:\n%s", shown[strings.Index(shown, loop.TheStallLineAfterAFailure):])
+	}
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the plain stall line, which asks for a failure to be written, was said %d times after one had just been written", count)
+	}
+}

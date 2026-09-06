@@ -19,7 +19,7 @@ import {
 } from "./actions.js";
 import { buildDiff } from "./diff.js";
 import { somethingChanged, type AimedAt } from "./expectation.js";
-import { DEFAULT_SCROLL_STEPS } from "./limits.js";
+import { DEFAULT_SCROLL_STEPS, LATE_REACTION_MS } from "./limits.js";
 import { couldNotBeRead, wrongParameters, WorkerError } from "./errors.js";
 import { SETTLE_LIMIT_MS } from "./limits.js";
 import { readPage, type PageReading } from "./snapshot.js";
@@ -91,10 +91,11 @@ export async function actAndAssert(
   session: Session,
   expectation: string,
   work: (page: Page, before: Snapshot) => Promise<AimedAt | undefined>,
+  against?: Snapshot,
 ): Promise<Diff> {
   const page = session.currentPage();
   session.beginAction();
-  const before = await snapshotBefore(session, page);
+  const before = against ?? (await snapshotBefore(session, page));
   let aimedAt: AimedAt | undefined;
   await actionOrDialog(session, page, async () => {
     aimedAt = await work(page, before);
@@ -147,11 +148,17 @@ function nothingHappened(before: Snapshot, diff: Diff): boolean {
 }
 
 /**
- * Click one element. A click that produces no visible change is tried once more at
- * the element's place on the screen, because a page that swallows a click on the
- * element often takes one on the pixels. The button clicked is no evidence of
- * what the click did, so the action names no aim: what changed on the page is
- * the whole of what the expectation is judged against.
+ * Click one element. A click that seems to have changed nothing is given one
+ * more look a moment later, because a page can react late: the game the
+ * thirteenth nightly run built hid its start overlay half a second after the
+ * click, once its sound was set up, and a second click on it started a game
+ * that had already started. A click that has still changed nothing is tried
+ * once more at the element's place on the screen, because a page that
+ * swallows a click on the element often takes one on the pixels. The button
+ * clicked is no evidence of what the click did, so the action names no aim:
+ * what changed on the page is the whole of what the expectation is judged
+ * against, and every look is judged against the page as it was before the
+ * first click.
  */
 export async function clickMethod(
   session: Session,
@@ -160,21 +167,40 @@ export async function clickMethod(
   const ref = String(params["ref"]);
   const expectation = String(params["expectation"] ?? "");
   let clicked: Awaited<ReturnType<typeof targetOf>> | undefined;
-  const first = await actAndAssert(session, expectation, async (page) => {
+  let before: Snapshot | undefined;
+  const first = await actAndAssert(session, expectation, async (page, was) => {
+    before = was;
     clicked = await targetOf(session, page, ref, freshSnapshotFor(session, page));
     await clickTarget(session, page, clicked);
     return undefined;
   });
-  const before = first.snapshot;
-  if (!nothingHappened(before, first) || clicked === undefined) {
+  if (!nothingHappened(first.snapshot, first) || clicked === undefined || before === undefined) {
     return first;
   }
+  const later = await actAndAssert(
+    session,
+    expectation,
+    async () => {
+      await new Promise((resolve) => setTimeout(resolve, LATE_REACTION_MS));
+      return undefined;
+    },
+    before,
+  );
+  if (!nothingHappened(later.snapshot, later)) {
+    session.log("the click changed nothing at first, and the page had changed a moment later.");
+    return later;
+  }
   let triedAgain = false;
-  const second = await actAndAssert(session, expectation, async (page) => {
-    triedAgain = await clickAgainAtItsPlace(session, page, clicked!);
-    return undefined;
-  });
-  return triedAgain ? second : first;
+  const second = await actAndAssert(
+    session,
+    expectation,
+    async (page) => {
+      triedAgain = await clickAgainAtItsPlace(session, page, clicked!);
+      return undefined;
+    },
+    before,
+  );
+  return triedAgain ? second : later;
 }
 
 /** Type text into one element. */

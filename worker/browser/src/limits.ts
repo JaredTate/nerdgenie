@@ -71,6 +71,13 @@ export const MAX_REMEMBERED_REFS = 2_000;
  * how long the worker waits before it gives up and answers -32001.
  */
 export const SETTLE_QUIET_MS = 300;
+/**
+ * How long the worker waits to look once more when a click seems to have
+ * changed nothing, before it clicks again: the game the thirteenth nightly run
+ * built hid its start overlay half a second after the click, once its sound
+ * was set up, and the first look came too soon.
+ */
+export const LATE_REACTION_MS = 700;
 export const SETTLE_LIMIT_MS = 3_000;
 export const SETTLE_POLL_MS = 50;
 

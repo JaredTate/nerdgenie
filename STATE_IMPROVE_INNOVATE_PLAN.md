@@ -9,6 +9,7 @@ Written 5 September 2026, after five Tetris runs on the local Qwen 3.8 27B, two 
 3. The measured truth about speed: a round costs about 16 seconds, all of it the model, and the model never once put two tool calls in one reply in 150 rounds. So **40 percent of run 5's rounds did no work on the world**: 22 percent wrote only to the record, 18 percent only ran the tests. Folding those into working rounds is the biggest speed win there is, and it needs no new model and no bigger window.
 4. The reliability wins are about **signals and bounds**: tell the model the truth after every action, count progress and rewind before stopping, and never let "done" stand without proof a person would accept.
 5. Twelve ideas made the cut. Six go first. Eleven were rejected on purpose, with reasons, so nobody rebuilds them by accident.
+6. **The proof, the night after:** job 2 closed done at 00:25 on 6 September, ten of ten tasks, the whole Tetris ask end to end on the local Qwen. The play-test task took nine sittings and as many harness fixes to get past one endless loop; the two tasks after it, the visual QA at five sizes and the final regression, ran eighteen and twenty minutes each with no restart and no steer, at 86 to 89 percent cache and under 13k output tokens apiece. `docs/PROGRESS.md` has the sitting-by-sitting account and the numbers.
 
 ## What the second check changed
 

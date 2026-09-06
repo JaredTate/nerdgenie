@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
@@ -72,6 +73,20 @@ const MaxDoneLines = 5
 // done list at five lines and hid the whole build in a twelve-step plan. A job
 // is not held to this, because a job has a task list and no plan.
 const MaxPlanSteps = 10
+
+// LongAskWords is the length past which an ask is a long one, and
+// MaxPlanStepsForALongAsk is how many plan steps a task on a long ask may
+// hold: six rather than ten. A long ask is the mark of many features, and a
+// plan of many steps under it is a job's task list in disguise: the nightly
+// game build of 6 September, nearly three thousand words, went as one task
+// under a nine-step plan and stopped ninety-four rounds later with one step
+// done, where the same ask the night before, as a job of ten tasks, was done
+// in six hours. The refusal says the ask is a job; the task that then makes
+// one is ended by the hand-off, so the job's tasks carry the work.
+const (
+	LongAskWords            = 600
+	MaxPlanStepsForALongAsk = 6
+)
 
 // NewDecision is a choice the model made, with the reason it must carry so that
 // the model does not argue with itself later.
@@ -281,6 +296,10 @@ func applyPlan(into *contract.Record, update Update) error {
 	if len(update.Plan) > MaxPlanSteps {
 		return fmt.Errorf("this plan has %d steps and a task's plan holds at most %d, so %w",
 			len(update.Plan), MaxPlanSteps, ErrPlanTooLong)
+	}
+	if words := len(strings.Fields(into.Goal.Ask)); words > LongAskWords && len(update.Plan) > MaxPlanStepsForALongAsk {
+		return fmt.Errorf("this ask is %d words and the plan has %d steps, and a task on an ask over %d words holds at most %d, so %w",
+			words, len(update.Plan), LongAskWords, MaxPlanStepsForALongAsk, ErrPlanTooLong)
 	}
 	steps := make([]contract.PlanStep, 0, len(update.Plan))
 	for at, text := range update.Plan {

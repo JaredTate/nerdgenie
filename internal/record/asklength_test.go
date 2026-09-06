@@ -37,8 +37,9 @@ func taskStartWithAnAskOf(words int) Start {
 // then kept working in the task anyway, so the task ran a hundred and
 // forty-five rounds with no plan, no done list and nothing for the done-check
 // to close on. A long ask keeps its done list and its plan, held to the same
-// five lines and ten steps as any other, and the job tool stays there for the
-// model to reach for.
+// five lines as any other and to six steps rather than ten, and the job tool
+// stays there for the model to reach for; the hand-off now ends a task that
+// makes a job, which is what the old refusal lacked.
 func TestATaskTakesADoneListAndAPlanOnAnAskOfAnyLength(t *testing.T) {
 	keeper, _ := newKeeper(t, taskStartWithAnAskOf(aWholeGameAsk))
 

@@ -123,6 +123,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 			text += "\n" + line
 		}
 	}
+	if loops := running.listTheLoopsAfter(ctx, call, text); loops != "" {
+		text += "\n" + loops
+	}
 	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)
 	label, err := running.keeper.AddResult(ctx, summary, text)

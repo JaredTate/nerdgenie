@@ -330,7 +330,14 @@ shell tool and puts "parses" or "does not parse: <the checker's telling line>"
 on the change's own result, and a file that does not parse is not tested. The
 fifth game build's play-test task wrote a diagnostic script with an unbalanced
 bracket and ran it four times, reading "Unexpected token ']'" each time, five
-rounds on a mistake the checker finds in a tenth of a second. The live game build is why: the model
+rounds on a mistake the checker finds in a tenth of a second. **And a hung
+page lists its loops** (`hangs.go`): when a browser result says the page's own
+script kept it busy, `listTheLoopsAfter` runs one grep for `while` and `for`
+over the scripts this task changed and puts the lines, file and number, on the
+same result under `TheLoopsLine`, at most twelve, because the fifth game
+build's play-test task heard "look for a loop whose condition never changes"
+and wrote nine play-test drivers instead of reading the three while loops in
+the one file it had written. The live game build is why: the model
 read one file four times running because the browser tool had told it a click
 worked when the page said it had not, the third refusal ended the turn, and a
 task from the terminal whose turn ends is a stopped task, which is a stall

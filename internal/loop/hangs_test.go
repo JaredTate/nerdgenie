@@ -23,8 +23,14 @@ const theGamePage = "<!doctype html>\n<title>Tater Tots Tetris</title>\n<script 
 // theGameScript is the script with the loop that never yields on line 17,
 // behind fourteen counted for loops that draw the board, the way the real
 // game's script had its ghost-piece while behind every for of its renderer.
-var theGameScript = strings.Repeat("for (let i = 0; i < n; i++) draw(i);\n", 14) +
+// It imports the engine, the way the real one did, and the engine holds a
+// loop of its own.
+var theGameScript = "import { GameEngine } from './src/engine.js';\n" + strings.Repeat("for (let i = 0; i < n; i++) draw(i);\n", 13) +
 	"function ghost(p) {\n  let ghostY = p.y;\n  while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) {\n    ghostY++;\n  }\n}\nwhile (arrTimer >= CONFIG.ARR) {\n  arrTimer -= CONFIG.ARR;\n}\n"
+
+// theEngineScript is the module the game's script imports, with a loop the
+// list must reach through the import, because the page names it nowhere.
+const theEngineScript = "export class GameEngine {\n  hardDrop() {\n    while (this.board.canPlace(this.activePiece.cells(), 0, 1)) {\n      this.activePiece.y += 1;\n    }\n  }\n}\n"
 
 // aServedGame serves the page and its script the way the model's own server
 // does, from this machine.
@@ -36,6 +42,8 @@ func aServedGame(t *testing.T) *httptest.Server {
 			_, _ = w.Write([]byte(theGamePage))
 		case "/js/main.js":
 			_, _ = w.Write([]byte(theGameScript))
+		case "/js/src/engine.js":
+			_, _ = w.Write([]byte(theEngineScript))
 		default:
 			http.NotFound(w, r)
 		}
@@ -79,7 +87,7 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 		t.Errorf("the shell ran %d times, want never: the scripts are read from the server, not searched on disk", len(shell.Inputs()))
 	}
 	shown := wholeRequestText(built.model.Requests()[2])
-	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) {" + loop.TheMarkArrow + loop.TheNeverChangesMark, "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
+	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) {" + loop.TheMarkArrow + loop.TheNeverChangesMark, "main.js:21: while (arrTimer", "engine.js:3: while (this.board.canPlace", "index.html:5: for (const tot of tots)"} {
 		if !strings.Contains(shown, words) {
 			t.Errorf("the click's result does not carry %q, and the request after it reads:\n%s", words, shown)
 		}
@@ -90,7 +98,7 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:1: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {
 		t.Errorf("the while loops do not come before the for loops:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
-	if !strings.Contains(shown, "and 5 more for loops") {
+	if !strings.Contains(shown, "and 4 more for loops") {
 		t.Errorf("the list does not say how many for loops fell off its end:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
 	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]
@@ -130,6 +138,7 @@ func TestAPageOnDiskListsItsLoops(t *testing.T) {
 	folder := t.TempDir()
 	writeFile(t, folder+"/index.html", theGamePage)
 	writeFile(t, folder+"/js/main.js", theGameScript)
+	writeFile(t, folder+"/js/src/engine.js", theEngineScript)
 	built, _ := aPlayTest(t, "file://"+folder+"/index.html", theHungPageMessage)
 
 	built.ask(t, "play-test the game")

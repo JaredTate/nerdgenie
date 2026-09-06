@@ -38,3 +38,33 @@ func TestEveryCallSendsALineWhenItStartsAndWhenItAnswers(t *testing.T) {
 		t.Errorf("the fourth line reads %q, and the line for a record write says what was written", lines[3])
 	}
 }
+
+// TestARefusedCallWithALongArgumentStillSaysRefusedOnItsLine is the fifth
+// game build's screen: a click with a whole sentence for its intent was
+// refused, the line was cut to its ninety runes before the word reached the
+// end, and the screen drew a green check on a call that failed. The word that
+// says a call went wrong is kept whatever the argument's length.
+func TestARefusedCallWithALongArgumentStillSaysRefusedOnItsLine(t *testing.T) {
+	intent := "Start the Tater Tots Tetris game by clicking START GAME so that the play-test can begin at last"
+	built := newHarness(t, []testkit.Step{
+		callStep("I will click Start.", callFor("c1", "browser_click", `{"element":"e3","intent":"`+intent+`"}`)),
+		answerStep("The click was refused. What changed: nothing. What I checked: the click. What is left: the fix."),
+	}, scriptedTool("browser_click", "cannot click the element e3: The page could not be read after 3000 milliseconds: the page did not answer the scan call"))
+
+	built.ask(t, "play-test the game")
+
+	lines := built.sentToolLines()
+	if len(lines) != 2 {
+		t.Fatalf("the loop sent %d tool lines, want two: %v", len(lines), lines)
+	}
+	answered := lines[1]
+	if !strings.HasSuffix(answered, loop.ToolLineSeparator+"refused") {
+		t.Errorf("the line for a refused call reads %q, and it ends with the word refused whatever the argument's length", answered)
+	}
+	if runes := len([]rune(answered)); runes > loop.MaxToolLineRunes {
+		t.Errorf("the line is %d runes, over the %d a line may be", runes, loop.MaxToolLineRunes)
+	}
+	if !strings.Contains(answered, "cannot click") {
+		t.Errorf("the line %q does not carry the start of what came back", answered)
+	}
+}

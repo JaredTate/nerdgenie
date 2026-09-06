@@ -207,13 +207,26 @@ func checkEveryResultReadsBack(t *testing.T, built *harness, fixture testkit.For
 // write of a round labelled right after the call it rode with.
 func checkTheResultsAreLabelledInOrder(t *testing.T, fixture testkit.FortyStepTask, held contract.Record) {
 	t.Helper()
+	// The record keeps the newest MaxResultLinesKept lines, in the order and
+	// under the labels the fixture gave them; the older ones are in the log.
+	// The loop may add a line of its own at the end, so the lines are matched
+	// from the first the record still holds.
 	wanted := fixture.ToolResults()
-	if len(held.Work.Results) < len(wanted) {
-		t.Fatalf("the record holds %d results and the fixture produced %d", len(held.Work.Results), len(wanted))
+	if len(held.Work.Results) == 0 || len(held.Work.Results) > record.MaxResultLinesKept {
+		t.Fatalf("the record holds %d results, want between one and %d", len(held.Work.Results), record.MaxResultLinesKept)
 	}
+	start := -1
 	for at, result := range wanted {
-		if held.Work.Results[at].ID != result.ID {
-			t.Fatalf("result %d is labelled %q and the fixture calls it %q", at+1, held.Work.Results[at].ID, result.ID)
+		if result.ID == held.Work.Results[0].ID {
+			start = at
+		}
+	}
+	if start < 0 {
+		t.Fatalf("the record's first result %q is none the fixture produced", held.Work.Results[0].ID)
+	}
+	for at := start; at < len(wanted); at++ {
+		if at-start >= len(held.Work.Results) || held.Work.Results[at-start].ID != wanted[at].ID {
+			t.Fatalf("result %d is not labelled %q as the fixture calls it", at+1, wanted[at].ID)
 		}
 	}
 	last := fixture.ResultsOfRound(len(fixture.Rounds) - 1)

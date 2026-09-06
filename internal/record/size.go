@@ -35,8 +35,11 @@ const (
 	// to be read back by its label. The fifth game build died at its two
 	// hundred and twenty-third result, when a harness write of the situation
 	// took the record past its size and the task failed on the harness's own
-	// bookkeeping.
-	MaxResultLinesKept = 100
+	// bookkeeping. Forty rather than a hundred because the list sits behind
+	// the messages and is read again, uncached, on every round: at the local
+	// daemon's five hundred tokens a second a hundred lines cost about four
+	// seconds of every round and forty about a second and a half.
+	MaxResultLinesKept = 40
 	// MinResultLinesKept is how many of the newest result lines are kept
 	// whatever the size says, so that a change too large for the record is
 	// refused as such rather than paid for with every result the task has.

@@ -187,6 +187,7 @@ docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
 docs/html/nerdgenie.html
 docs/html/work-plan.html
+docs/nightly/2026-09-06-b-first-line-mark.md
 docs/nightly/2026-09-06.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
@@ -550,6 +551,7 @@ internal/loop/donecheck.go
 internal/loop/donecheck_test.go
 internal/loop/donecommand_test.go
 internal/loop/endings.go
+internal/loop/firstline.go
 internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
 internal/loop/fuzz_test.go

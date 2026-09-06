@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
@@ -85,13 +86,16 @@ func TestEveryResultThatLeftTheWindowIsStillReadable(t *testing.T) {
 	}
 	whole := testkit.WholeRequestText(request)
 
+	// The record keeps a line for the newest MaxResultLinesKept results; the
+	// older ones have left its list too, and the log is what brings them back.
 	left, held := 0, run.keeper.Record()
-	for _, produced := range run.fixture.ToolResults() {
-		if !strings.Contains(whole, produced.Text) {
+	produced := run.fixture.ToolResults()
+	for index, result := range produced {
+		if !strings.Contains(whole, result.Text) {
 			left++
 		}
-		if !holdsResultLine(held, produced.ID) {
-			t.Errorf("the result %s has no line in the record, so nothing points at it any more", produced.ID)
+		if index >= len(produced)-record.MaxResultLinesKept && !holdsResultLine(held, result.ID) {
+			t.Errorf("the result %s has no line in the record, so nothing points at it any more", result.ID)
 		}
 	}
 	if left == 0 {

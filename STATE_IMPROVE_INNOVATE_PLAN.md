@@ -60,6 +60,8 @@ Run 5, first 150 rounds, 41 minutes, all on the local model:
 | Prompt re-read per round, steady state | about 1,200 tokens | 3 seconds; not the lever |
 | Cache reuse at round 134 | 62.6k of 69.0k | The prefix cache works |
 
+**The daemon's own timings, read off its log on 6 September at 00:47:** prompt processing runs at 340 to 600 tokens a second and generation at 60 to 80, so every thousand uncached tokens in a request costs about two seconds of the round, and a reply of a hundred tokens about a second and a half. In task 11 the uncached part of a round was about seven thousand tokens, which is fourteen of its nineteen seconds. What is uncached every round is everything after the first changed token: the round's own new messages, which are the work, and then the tail behind them, which is the record's second part, the results list, the memory hint and the cost line. The results list at a hundred lines was the largest piece of that tail, about four seconds a round on a long task, and is forty lines now.
+
 ## How the ideas were judged
 
 Four questions each. Would it have changed tonight's outcome, or run 4's sixty-round stall, or run 5's 41 minutes? Is there evidence outside our own runs? Can it be built as one small change with one test? What does it cost per round in tokens or seconds? Then a fifth, added on the second pass: play the change forward through run 5's log and say what it would have done, round by round.

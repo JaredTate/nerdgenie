@@ -213,6 +213,9 @@ func fixtureRecordAtTheEnd(t *testing.T, fixture testkit.FortyStepTask) contract
 	for _, result := range fixture.ToolResults() {
 		results = append(results, contract.ResultLine{ID: result.ID, Summary: result.Summary})
 	}
+	// The record keeps the newest MaxResultLinesKept lines; the rest are in
+	// the log, and the fixture's third assertion reads them back from there.
+	results = theNewest(results, MaxResultLinesKept)
 	plan := []contract.PlanStep{}
 	for at, step := range fixturePlan(t, fixture) {
 		plan = append(plan, contract.PlanStep{Number: at + 1, Text: step})

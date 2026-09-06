@@ -24,7 +24,7 @@ const theGamePage = "<!doctype html>\n<title>Tater Tots Tetris</title>\n<script 
 // behind fourteen counted for loops that draw the board, the way the real
 // game's script had its ghost-piece while behind every for of its renderer.
 var theGameScript = strings.Repeat("for (let i = 0; i < n; i++) draw(i);\n", 14) +
-	"function ghost(p) {\n  let cells = p.cells();\n  while (engine.board.canPlace(cells.map(([x, y]) => [x, y + 1]))) {\n    p.y += 0;\n  }\n}\nwhile (arrTimer >= CONFIG.ARR) { arrTimer -= CONFIG.ARR; }\n"
+	"function ghost(p) {\n  let ghostY = p.y;\n  while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) {\n    ghostY++;\n  }\n}\nwhile (arrTimer >= CONFIG.ARR) {\n  arrTimer -= CONFIG.ARR;\n}\n"
 
 // aServedGame serves the page and its script the way the model's own server
 // does, from this machine.
@@ -79,10 +79,13 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 		t.Errorf("the shell ran %d times, want never: the scripts are read from the server, not searched on disk", len(shell.Inputs()))
 	}
 	shown := wholeRequestText(built.model.Requests()[2])
-	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace", "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
+	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) { " + loop.TheNeverChangesMark, "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
 		if !strings.Contains(shown, words) {
 			t.Errorf("the click's result does not carry %q, and the request after it reads:\n%s", words, shown)
 		}
+	}
+	if strings.Contains(shown, "main.js:21: while (arrTimer >= CONFIG.ARR) { "+loop.TheNeverChangesMark) {
+		t.Errorf("the loop that takes from arrTimer in its body is marked as never changing:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
 	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:1: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {
 		t.Errorf("the while loops do not come before the for loops:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])

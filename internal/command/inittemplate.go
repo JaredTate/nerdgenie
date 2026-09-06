@@ -74,17 +74,17 @@ const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescript
 	"- Open a page with browser_open and read what comes back: an outline of the page's elements, each with a reference such as e12.\n" +
 	"- Look again with browser_read when the page may have changed.\n" +
 	"- Ask a page you serve from this machine a question with browser_read's ask field, such as window.game.state.\n" +
-	"- No picture of the page reaches you, and no screenshot can: judge a canvas by asking the page for its state.\n" +
+	"- No picture reaches you: judge a canvas by asking the page.\n" +
 	"- Act by reference, never by guessing coordinates: browser_click, browser_type, and browser_act each take the reference of an element from the outline. Never make one up.\n" +
-	"- Use browser_act for a form, as one batch of steps, rather than one call per box.\n" +
+	"- Use browser_act for a form, one batch of steps rather than a call per box.\n" +
 	"- Quote every number exactly as the outline shows it.\n\n" +
 	"## Signing in\n\n" +
 	"- Use browser_login for a site whose credentials are in the vault. It fills the boxes itself, and you never see the password.\n" +
 	"- Call browser_handoff the moment a captcha, a two-factor prompt, or a sign-in the vault does not hold appears. The person finishes it in the window and hands it back. Never guess at it.\n\n" +
 	"## What never to do\n\n" +
-	"- Never launch Chrome through the shell tool. The browser tools own the agent's Chrome window; a browser started from the shell is one they cannot see or drive.\n" +
+	"- Never launch Chrome through the shell tool. The browser tools own the agent's Chrome window; one started from the shell they cannot see or drive.\n" +
 	"- When an open fails, read the error and say what it said in your reply. Trying the same open again gets the same error.\n" +
-	"- The same call with the same arguments, over and over, is refused by the harness. When a page has not changed, do something different, or answer the person.\n"
+	"- The same call with the same arguments, over and over, is refused. When a page has not changed, do something different, or answer the person.\n"
 
 // browserSkillChangelog is the first line of the shipped skill's changelog. Every
 // skill folder carries one, and this one says where the skill came from and how

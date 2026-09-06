@@ -241,6 +241,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 05:45 on 6 September, from the eleventh nightly run: the browser worker clicked every button twice. Its diff knew a change only as a new element, a new address, a new title, a dialog, a new tab, or a download, so a counter going from 0 to 1 was "nothing changed", the worker clicked again at the element's place on the screen, and the page task saw 2 on every click for 78 rounds; the tenth run's page task had met the same and got round it with a click dispatched through the ask field. The diff now carries the lines of text that appeared (`newText`, at most twelve), a number is a meaningful word however short, and "the text now says "1"" is what the model reads when its expectation is not met. Still to see: whether the play-test's clicks on the game's menus now report what they did.
 
+- Built at 06:05 on 6 September, from the run reports: the report counts refusals by tool (the tenth run's game job had 23 of its 62 task-tool calls refused; the eleventh's first tasks had 3 of 18), the `task` tool's refusal of a pin on an empty done list says to write the list first, and the review's fourth answer skips headings, questions and lines ending in a colon, because the memory held "**2. What actually happened?**" and "Why was there a difference? - Let me look at the friction points:" as two of its nineteen lessons.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

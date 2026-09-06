@@ -155,6 +155,7 @@ func (keeper *Keeper) changeOrWait(ctx context.Context, write func(into *contrac
 	if err := checkItReadsBack(changing); err != nil {
 		return err
 	}
+	trimTheResultsToFit(&changing)
 	if err := checkItStillFits(changing); err != nil {
 		return err
 	}

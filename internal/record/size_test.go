@@ -54,26 +54,29 @@ func TestARecordIsRefusedTheChangeThatWouldTakeItPastItsSize(t *testing.T) {
 	keeper := recordFilledToTheBudget(t)
 	ctx := t.Context()
 
-	var err error
-	for round := range 200 {
-		summary := fmt.Sprintf("round %d ", 101+round) + strings.Repeat("summary word ", 20)
-		if _, err = keeper.AddResult(ctx, summary, "the whole text of the result, which lives in the log"); err != nil {
-			break
-		}
+	// The results give first, so a change the results can make room for lands;
+	// a change no trimming can make room for is refused, naming the part.
+	plan := []string{}
+	for range MaxPlanSteps {
+		plan = append(plan, strings.Repeat("a very long step ", 100))
 	}
+	err := keeper.Apply(ctx, Update{Plan: plan})
 	if err == nil {
-		t.Fatalf("three hundred results were written into a record promised to stay under %d tokens, and it now counts as %d",
+		t.Fatalf("a plan of four thousand words was written into a record promised to stay under %d tokens, and it now counts as %d",
 			MaxRecordTokens, EstimateTokens(keeper.Text()))
 	}
 	if !errors.Is(err, ErrRecordTooLarge) {
 		t.Fatalf("the write was refused, but not for its size: %v", err)
 	}
 	t.Logf("the refusal reads: %v", err)
-	if !strings.Contains(err.Error(), "results") {
+	if !strings.Contains(err.Error(), "plan") {
 		t.Errorf("the refusal does not name the part to shorten, so nobody knows what to do about it: %v", err)
 	}
 	if counted := EstimateTokens(keeper.Text()); counted > MaxRecordTokens {
 		t.Errorf("the refused change was written anyway: the record counts as %d tokens and the limit is %d", counted, MaxRecordTokens)
+	}
+	if held := keeper.Record(); len(held.Work.Results) < MinResultLinesKept {
+		t.Errorf("the refused change cost the record its results: %d lines are left", len(held.Work.Results))
 	}
 }
 
@@ -165,5 +168,43 @@ func fillTheLessons(t *testing.T, keeper *Keeper) {
 		if err := keeper.Apply(ctx, update); err != nil {
 			t.Fatalf("cannot add lesson %d: %v", lesson+1, err)
 		}
+	}
+}
+
+// TestTheResultsListTrimsItsOldestLinesSoALongTaskNeverOverflowsTheRecord
+// is what killed the fifth game build at round 223. Every tool result adds a
+// line to the record, the lines were never dropped, and at about two hundred
+// of them a harness write of the situation took the record past its size and
+// the task failed on the harness's own bookkeeping. The list of results is
+// the one part of a record that grows with the work, so it is the part that
+// gives: when a change would take the record past its size, the oldest result
+// lines leave the record first, and every one of them is still in the log to
+// be read back by its label.
+func TestTheResultsListTrimsItsOldestLinesSoALongTaskNeverOverflowsTheRecord(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	summary := strings.Repeat("word ", 12) + "tests: all 62 passing"
+	for at := 1; at <= 260; at++ {
+		if _, err := keeper.AddResult(ctx, summary, fmt.Sprintf("the whole text of result %d", at)); err != nil {
+			t.Fatalf("result %d was refused: %v, and a task's results never overflow its record", at, err)
+		}
+		if err := keeper.SetSituation(ctx, []string{"files changed in this task: engine.js and 30 more", "tests: all 62 passing", "where the work stands: round " + fmt.Sprint(at)}); err != nil {
+			t.Fatalf("the situation after result %d was refused: %v, and the harness's own bookkeeping never fails a task", at, err)
+		}
+	}
+
+	held := keeper.Record()
+	if got := EstimateTokens(string(Print(withoutTheAsk(held)))); got > MaxRecordTokens {
+		t.Errorf("the record is about %d tokens after 260 results, and it is promised to stay under %d", got, MaxRecordTokens)
+	}
+	if len(held.Work.Results) == 0 || held.Work.Results[len(held.Work.Results)-1].ID != "r260" {
+		t.Fatalf("the newest result is not the last line of the list: %+v", held.Work.Results)
+	}
+	if len(held.Work.Results) > MaxResultLinesKept || held.Work.Results[0].ID == "r1" {
+		t.Errorf("the list holds %d lines beginning with %s, and the oldest lines leave first", len(held.Work.Results), held.Work.Results[0].ID)
+	}
+	first, err := keeper.Read(ctx, "r1")
+	if err != nil || first != "the whole text of result 1" {
+		t.Errorf("read r1 gave %q (%v), and a result that left the record is still in the log", first, err)
 	}
 }

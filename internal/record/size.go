@@ -28,6 +28,19 @@ const (
 	// Nothing is lost by the cut, because the whole text of every result is in
 	// the log.
 	MaxSummaryCharacters = 70
+	// MaxResultLinesKept is the most result lines the record keeps. The list of
+	// results is the one part of a record that grows with the work, so it is
+	// the part that gives when the record would pass its size: the oldest
+	// lines leave the record first, and every one of them is still in the log
+	// to be read back by its label. The fifth game build died at its two
+	// hundred and twenty-third result, when a harness write of the situation
+	// took the record past its size and the task failed on the harness's own
+	// bookkeeping.
+	MaxResultLinesKept = 100
+	// MinResultLinesKept is how many of the newest result lines are kept
+	// whatever the size says, so that a change too large for the record is
+	// refused as such rather than paid for with every result the task has.
+	MinResultLinesKept = 10
 	// MaxAskTokens is the share of a prompt the ask may take before the model is
 	// shown the start of it and told how to read the rest. A quarter leaves room
 	// for the work, the lessons and the results beside it.
@@ -82,6 +95,19 @@ func checkItStillFits(held contract.Record) error {
 	name, cost := longestPartOf(held)
 	return fmt.Errorf("%w: everything in it but the ask would be about %d tokens and the limit is %d, and its longest part is the %s at about %d",
 		ErrRecordTooLarge, counted, MaxRecordTokens, name, cost)
+}
+
+// trimTheResultsToFit drops the oldest result lines until the record is under
+// its size and under MaxResultLinesKept, never below MinResultLinesKept. It
+// runs before the size check on every change, so the check refuses only a
+// change that no trimming of the results could make room for.
+func trimTheResultsToFit(into *contract.Record) {
+	for len(into.Work.Results) > MaxResultLinesKept {
+		into.Work.Results = into.Work.Results[1:]
+	}
+	for len(into.Work.Results) > MinResultLinesKept && checkItStillFits(*into) != nil {
+		into.Work.Results = into.Work.Results[1:]
+	}
 }
 
 // withoutTheAsk is the record with a one-word ask in place of the user's, so

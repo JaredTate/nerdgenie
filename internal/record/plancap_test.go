@@ -130,3 +130,27 @@ func TestAJobIsNotHeldToATasksPlanCap(t *testing.T) {
 		t.Errorf("the job holds %d tasks, want the %d it was given", held, MaxPlanSteps+1)
 	}
 }
+
+// TestALongAskRefusesAPlanOfManyStepsAsAJob is the nightly game build of 6
+// September: an ask of nearly three thousand words, the whole game with its
+// hazards, animations, tests and play-testing, taken as one task under a
+// nine-step plan, one step under the cap, and stopped ninety-four rounds
+// later with one step done. The run the night before finished the same ask
+// as a job of ten tasks. A long ask with a plan of many steps is a job, and
+// the record says so at the seventh step rather than the eleventh.
+func TestALongAskRefusesAPlanOfManyStepsAsAJob(t *testing.T) {
+	long, _ := newKeeper(t, taskStartWithAnAskOf(LongAskWords+100))
+	ctx := t.Context()
+	if err := long.Apply(ctx, Update{Plan: planStepsOf(MaxPlanStepsForALongAsk)}); err != nil {
+		t.Fatalf("a plan of %d steps on a long ask was refused: %v", MaxPlanStepsForALongAsk, err)
+	}
+	err := long.Apply(ctx, Update{Plan: planStepsOf(MaxPlanStepsForALongAsk + 1)})
+	if !errors.Is(err, ErrPlanTooLong) || !strings.Contains(err.Error(), "job") {
+		t.Errorf("a plan of %d steps on a long ask gave %v, want a refusal that says the ask is a job", MaxPlanStepsForALongAsk+1, err)
+	}
+
+	short, _ := newKeeper(t, taskStart())
+	if err := short.Apply(ctx, Update{Plan: planStepsOf(MaxPlanSteps)}); err != nil {
+		t.Errorf("a plan of %d steps on a short ask was refused: %v", MaxPlanSteps, err)
+	}
+}

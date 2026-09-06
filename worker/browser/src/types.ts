@@ -79,6 +79,12 @@ export interface Snapshot {
    * status. The first few, each on one line, then one line counting the rest.
    */
   errors: string[];
+  /**
+   * The page's answer to the expression the read asked, as JSON, or the error
+   * the page threw in words. Present only when a read asked something, which
+   * only a page on this machine or a file may be.
+   */
+  answer?: string;
 }
 
 /** One of the three things that stop the agent and hand the browser to the user. */

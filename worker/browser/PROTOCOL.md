@@ -199,9 +199,16 @@ Response: `{"jsonrpc":"2.0","id":1,"result":{"url":"https://x.com/compose/post",
 
 Returns a fresh snapshot of the page the worker is on. `visibleOnly` reads only
 the elements above the fold; `text` is the whole page's text either way, because
-it is bounded on its own.
+it is bounded on its own. `ask` is one expression, at most five hundred
+characters, for the page to answer: the snapshot then carries `answer`, the
+value as JSON cut to two thousand characters, or `the page threw: <message>`,
+or a line saying the page did not answer within the deadline because its own
+script keeps it busy. A question is answered only on a page served from this
+machine (`localhost`, `127.0.0.1`, `[::1]`) or from a file; on any other page
+the read is refused with -32602, because the browser holds the person's logins
+and a script is never run on anyone else's page.
 
-Request: `{"jsonrpc":"2.0","id":2,"method":"read","params":{"visibleOnly":false}}`
+Request: `{"jsonrpc":"2.0","id":2,"method":"read","params":{"visibleOnly":false,"ask":"window.game.state"}}`
 
 Response: `{"jsonrpc":"2.0","id":2,"result":{"url":"https://x.com/compose/post","title":"Compose post","tabId":"t1","elements":[{"ref":"e3","role":"textbox","name":"Post text"}],"text":"Compose post\nPost text","belowFold":24}}`
 

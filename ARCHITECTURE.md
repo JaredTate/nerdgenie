@@ -1173,7 +1173,21 @@ Game" that started nothing was judged to have met "the start menu closes" on the
 strength of the button's own name, so a click now names no aim and a click that
 changed nothing says so, while the box typing filled still counts, because the
 snapshot cannot show what it holds. `walls` reports a login form, a prompt for a
-second code, or a captcha. A page whose own script never yields is named as
+second code, or a captcha. `ask` answers a question about the page: the read
+method takes one expression of at most five hundred characters, evaluates it on
+the page under the scan's own deadline, and puts its value as JSON, cut to two
+thousand characters, on the snapshot as `answer`, or the error the page threw
+in words; `isAPageOnThisMachine` allows it only on `localhost`, `127.0.0.1`,
+`[::1]` or a file, because the browser holds the person's logins and the design
+says a script is never run on anyone else's page. The Go side carries it as
+`contract.ReadOptions.Ask` and `contract.Snapshot.Answer`, `browser_read` takes
+it as the `ask` field and prints "the page answered: ..." after the outline,
+the fake worker answers what a test put down with `Answer`, and the browser
+skill's text tells the model to expose its app's state on `window` and ask.
+On the fifth game build the model wrote six play-test drivers through the
+shell to read `window.__engine.state` from its own game, because no browser
+tool would answer (`test/ask.test.ts`, `internal/tool/browserread`). A page
+whose own script never yields is named as
 such: when the scan call times out, or a whole method runs past its deadline,
 the error says the page's own script is the likely cause, code that does not
 yield such as an endless loop that starts on this action, and to fix the script

@@ -65,6 +65,9 @@ type Snapshot struct {
 	// load or answered an error status. The worker lists the first five and
 	// counts the rest on a last line.
 	Errors []string `json:"errors,omitempty"`
+	// Answer is the page's answer to the expression a read asked, as JSON, or
+	// the error the page threw in words; empty when nothing was asked.
+	Answer string `json:"answer,omitempty"`
 }
 
 // WallKind names the three things that stop the agent and hand the browser to
@@ -139,6 +142,9 @@ func KnownDialogAction(action DialogAction) bool {
 type ReadOptions struct {
 	// VisibleOnly reads only what is above the fold.
 	VisibleOnly bool `json:"visibleOnly,omitempty"`
+	// Ask is one expression for the page to answer, which the worker runs
+	// only on a page served from this machine or from a file.
+	Ask string `json:"ask,omitempty"`
 }
 
 // ActStep is one step of a batch that aborts as soon as the page changes

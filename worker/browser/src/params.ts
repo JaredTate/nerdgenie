@@ -15,6 +15,7 @@ import {
   MAX_SCROLL_STEPS,
   MAX_TYPE_CHARS,
   MIN_SCROLL_STEPS,
+  MAX_ASK_CHARS,
 } from "./limits.js";
 import {
   DIALOG_ACTIONS,
@@ -74,6 +75,14 @@ function checkOpen(params: Record<string, unknown>): void {
 function checkRead(params: Record<string, unknown>): void {
   if (params["visibleOnly"] !== undefined && typeof params["visibleOnly"] !== "boolean") {
     throw wrongParameters("The read method needs visibleOnly to be true or false.");
+  }
+  if (params["ask"] !== undefined) {
+    if (typeof params["ask"] !== "string" || params["ask"].trim() === "") {
+      throw wrongParameters("The read method's ask is one expression for the page to answer, as text.");
+    }
+    if (params["ask"].length > MAX_ASK_CHARS) {
+      throw wrongParameters(`The read method's ask is ${params["ask"].length} characters and the cap is ${MAX_ASK_CHARS}, so ask a shorter question.`);
+    }
   }
 }
 

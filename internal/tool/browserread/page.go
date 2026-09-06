@@ -17,6 +17,8 @@ const (
 	// MaxAddressRunes is how much of a web address is shown. An address is
 	// longer than a name and worth showing whole, because the model acts on it.
 	MaxAddressRunes = 500
+	// MaxAnswerRunes is how much of the page's answer to a question is shown.
+	MaxAnswerRunes = 2000
 	// MaxTextLineRunes is how much of one line of the page's text is shown. It
 	// is the cap the worker keeps on the whole text, so that no one line can be
 	// longer than the whole text may be.
@@ -87,9 +89,19 @@ func pageText(page contract.Snapshot, room int) string {
 	written.WriteString(dialogText(page.Dialog))
 	written.WriteString(downloadText(page.Download))
 	written.WriteString(wallText(page.Wall))
+	written.WriteString(answerText(page.Answer))
 	written.WriteString(errorsText(page.Errors))
 	written.WriteString(textSection(page.Text, room-written.Len()))
 	return written.String()
+}
+
+// answerText is the page's answer to what the read asked, after the outline
+// and before the errors, and nothing when nothing was asked.
+func answerText(answer string) string {
+	if answer == "" {
+		return ""
+	}
+	return "the page answered: " + fromThePage(answer, MaxAnswerRunes) + "\n"
 }
 
 // errorsText is what went wrong on the page, one line each, after the outline

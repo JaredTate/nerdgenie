@@ -1,6 +1,8 @@
 /**
  * The twelve methods of PROTOCOL.md, and the one place a request turns into work.
  */
+import { askThePage, isAPageOnThisMachine } from "./ask.js";
+import { wrongParameters } from "./errors.js";
 import {
   clickMethod,
   dialogMethod,
@@ -45,15 +47,27 @@ const open: Method = async (session, params) => {
   return { ...reading.snapshot };
 };
 
-/** Return a fresh snapshot of the page the worker is on. */
+/**
+ * Return a fresh snapshot of the page the worker is on, and, when the read asks
+ * something of a page on this machine, the page's answer with it.
+ */
 const read: Method = async (session, params) => {
   const page = session.currentPage();
+  const ask = typeof params["ask"] === "string" ? params["ask"] : "";
+  if (ask !== "" && !isAPageOnThisMachine(page.url())) {
+    throw wrongParameters(
+      `The read method asks a question only of a page served from this machine (localhost, 127.0.0.1) or a file, because the browser holds the person's logins and a script is never run on anyone else's page; this page is ${page.url()}.`,
+    );
+  }
   const reading = await readOrSayItCannotBeRead(session, page, {
     visibleOnly: params["visibleOnly"] === true,
     against: session.previousSnapshot(),
   });
   session.rememberSnapshot(reading.snapshot);
-  return { ...reading.snapshot };
+  if (ask === "") {
+    return { ...reading.snapshot };
+  }
+  return { ...reading.snapshot, answer: await askThePage(page, ask) };
 };
 
 /** Every diff is an object of its own fields, which is what the result must be. */

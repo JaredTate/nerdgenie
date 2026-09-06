@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Game state</title>
+  </head>
+  <body>
+    <h1>Game state</h1>
+    <button type="button" id="start">Start Game</button>
+    <!-- A page the model is building exposes its state for its own play-test,
+         which is what the ask field reads. -->
+    <script>
+      window.game = { state: "MENU", score: 0, board: { rows: 20, cols: 10 } };
+      document.getElementById("start").addEventListener("click", function () {
+        window.game.state = "PLAYING";
+        window.game.score = 42;
+      });
+    </script>
+  </body>
+</html>

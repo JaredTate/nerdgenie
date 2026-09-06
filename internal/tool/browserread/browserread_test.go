@@ -280,3 +280,50 @@ func TestWhatWentWrongOnThePageIsListedAfterTheOutlineAndBeforeTheText(t *testin
 		t.Errorf("a page where nothing went wrong still got an errors section: %q", quiet)
 	}
 }
+
+// TestAskingThePageAQuestionPutsItsAnswerOnTheResult is what the fifth game
+// build's play-test task lacked: six play-test drivers written through the
+// shell to read window.__engine.state, because no browser tool would answer a
+// question about the page. The ask field asks the page one expression, on a
+// page served from this machine, and its answer rides on the result after the
+// outline.
+func TestAskingThePageAQuestionPutsItsAnswerOnTheResult(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	worker.AddPage(contract.Snapshot{
+		URL: "http://localhost:8091/index.html", Title: "Tater Tots Tetris", TabID: "t1",
+		Elements: []contract.Element{{Ref: "e3", Role: "button", Name: "Start Game"}},
+	})
+	worker.Answer("window.game.state", `"PLAYING"`)
+	if _, err := worker.Open(context.Background(), "http://localhost:8091/index.html"); err != nil {
+		t.Fatalf("cannot open the game page: %v", err)
+	}
+	tool := browserread.New(browserread.Settings{Browser: worker})
+
+	output, err := run(t, tool, map[string]any{"intent": "read the game's state", "ask": "window.game.state"})
+	if err != nil {
+		t.Fatalf("asking the page failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "the page answered: \"PLAYING\"") {
+		t.Errorf("the answer is not on the result, which reads:\n%s", output.Text)
+	}
+	if outline := strings.Index(output.Text, `e3 button "Start Game"`); outline < 0 || outline > strings.Index(output.Text, "the page answered") {
+		t.Errorf("the outline should come before the answer, and the result reads:\n%s", output.Text)
+	}
+}
+
+// TestAskingAPageThatIsNotOnThisMachineIsRefused keeps the rule the worker
+// keeps: the browser holds the person's logins, and a script is never run on
+// anyone else's page.
+func TestAskingAPageThatIsNotOnThisMachineIsRefused(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	worker.AddPage(aRankingsPage())
+	if _, err := worker.Open(context.Background(), aRankingsPage().URL); err != nil {
+		t.Fatalf("cannot open the rankings page: %v", err)
+	}
+	tool := browserread.New(browserread.Settings{Browser: worker})
+
+	_, err := run(t, tool, map[string]any{"intent": "read the score", "ask": "document.cookie"})
+	if err == nil || !strings.Contains(err.Error(), "this machine") {
+		t.Errorf("asking a page elsewhere gave %v, want a refusal naming the rule", err)
+	}
+}

@@ -216,7 +216,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 ## Follow-ups found in run 5, not yet built
 
 - **A command whose own process has ended but whose background child holds the output.** Twice tonight the model started a server with an ampersand and no redirect, the shell tool waited on a pipe the server held open, and three rounds went to polling and killing. The tool should say "the command finished; something it started still holds its output and is kept as p49". It needs the process id across the sandbox contract, so it waits for a quiet moment.
-- **The `ask` field on `browser_read` for local pages.** Task t8 reached for Puppeteer through the shell to read the game's state and could not launch it. Idea 4's second half is the right answer and is not built yet.
+- **The `ask` field on `browser_read` for local pages.** Built: one expression, answered as JSON on a page served from this machine or a file, refused anywhere else, with the browser skill telling the model to expose its app's state on `window` and ask.
 - **The step mark on the first line.** Idea 1's second half.
 
 ## What was rejected, and why

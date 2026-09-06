@@ -23,6 +23,10 @@ var IntentNames = []string{"intent", "why", "goal"}
 // fold.
 var visibleNames = []string{"visible_only", "visible", "only_visible", "above_the_fold"}
 
+// askNames are the names a model writes for the one expression it asks the
+// page to answer.
+var askNames = []string{"ask", "expression", "evaluate", "question"}
+
 // Settings is what the browser read tool needs to do its work.
 type Settings struct {
 	// Browser is the worker driving the agent's own Chrome.
@@ -35,6 +39,9 @@ type input struct {
 	Intent string
 	// VisibleOnly reads only what is above the fold.
 	VisibleOnly bool
+	// Ask is one expression for the page to answer, on a page served from
+	// this machine.
+	Ask string
 }
 
 // Tool is the browser read tool.
@@ -56,6 +63,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What this step is for, in one line.", Required: true},
 			{Name: "visible_only", Type: "boolean", Description: "True to read only what is above the fold."},
+			{Name: "ask", Type: "string", Description: "One expression the page evaluates and answers, such as window.game.state; only on a page served from this machine (localhost, 127.0.0.1) or a file."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassNetwork},
 	}
@@ -71,7 +79,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return contract.ToolOutput{}, errors.New("this tool has no browser behind it, so wire the browser worker in before using it")
 	}
 
-	page, err := tool.settings.Browser.Read(ctx, contract.ReadOptions{VisibleOnly: asked.VisibleOnly})
+	page, err := tool.settings.Browser.Read(ctx, contract.ReadOptions{VisibleOnly: asked.VisibleOnly, Ask: asked.Ask})
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("cannot read the page the browser is on: %w", err)
 	}
@@ -87,13 +95,14 @@ func readInput(written json.RawMessage) (input, error) {
 	}
 	intent, wroteIntent := fields.Text(IntentNames...)
 	visibleOnly, _ := fields.Flag(visibleNames...)
+	ask, _ := fields.Text(askNames...)
 	if err := fields.Wrong(); err != nil {
 		return input{}, err
 	}
 	if err := NeedIntent(fields, intent, wroteIntent); err != nil {
 		return input{}, err
 	}
-	return input{Intent: intent, VisibleOnly: visibleOnly}, nil
+	return input{Intent: intent, VisibleOnly: visibleOnly, Ask: strings.TrimSpace(ask)}, nil
 }
 
 // NeedIntent holds the rule every browser and desktop call keeps: it says what

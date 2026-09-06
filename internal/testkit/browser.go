@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -67,9 +68,11 @@ type FakeBrowserWorker struct {
 	recoveries  int
 	closed      bool
 	nextProblem browserProblem
-	openDialog  *contract.Dialog
-	answers     []DialogAnswer
-	watchers    []*watcher
+	// askAnswers is what the fake page says to each expression a test put down.
+	askAnswers map[string]string
+	openDialog *contract.Dialog
+	answers    []DialogAnswer
+	watchers   []*watcher
 }
 
 // DialogAnswer is one answer a test gave through the Dialog method.
@@ -201,7 +204,47 @@ func (worker *FakeBrowserWorker) Read(_ context.Context, options contract.ReadOp
 	if options.VisibleOnly {
 		page.BelowFold = 0
 	}
+	if options.Ask != "" {
+		if !pageIsOnThisMachine(page.URL) {
+			return contract.Snapshot{}, fmt.Errorf("the read method asks a question only of a page served from this machine (localhost, 127.0.0.1) or a file, because the browser holds the person's logins and a script is never run on anyone else's page; this page is %s", page.URL)
+		}
+		page.Answer = worker.answerTo(options.Ask)
+	}
 	return page, nil
+}
+
+// pageIsOnThisMachine is the fake's copy of the worker's rule: a page on
+// localhost, 127.0.0.1 or a file may be asked a question.
+func pageIsOnThisMachine(address string) bool {
+	parsed, err := url.Parse(address)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme == "file" {
+		return true
+	}
+	host := parsed.Hostname()
+	return (parsed.Scheme == "http" || parsed.Scheme == "https") && (host == "localhost" || host == "127.0.0.1" || host == "::1")
+}
+
+// answerTo is what the fake page says to a question: the answer the test
+// put down for that exact expression, or a line saying the page had none.
+func (worker *FakeBrowserWorker) answerTo(ask string) string {
+	if answer, known := worker.askAnswers[ask]; known {
+		return answer
+	}
+	return "the page threw: ReferenceError: nothing is defined for " + ask
+}
+
+// Answer puts down what the fake page says to one expression, so a test can
+// ask the page a question the way the model does.
+func (worker *FakeBrowserWorker) Answer(ask string, answer string) {
+	worker.guard.Lock()
+	defer worker.guard.Unlock()
+	if worker.askAnswers == nil {
+		worker.askAnswers = map[string]string{}
+	}
+	worker.askAnswers[ask] = answer
 }
 
 // Click clicks one element, finding it again when its reference has gone stale.

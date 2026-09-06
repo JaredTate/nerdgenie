@@ -26,7 +26,11 @@ func (browser *Browser) Open(ctx context.Context, address string) (contract.Snap
 // so it costs nothing against the budget.
 func (browser *Browser) Read(ctx context.Context, options contract.ReadOptions) (contract.Snapshot, error) {
 	var page contract.Snapshot
-	if err := browser.call(ctx, "read", map[string]any{"visibleOnly": options.VisibleOnly}, &page); err != nil {
+	params := map[string]any{"visibleOnly": options.VisibleOnly}
+	if options.Ask != "" {
+		params["ask"] = options.Ask
+	}
+	if err := browser.call(ctx, "read", params, &page); err != nil {
 		return contract.Snapshot{}, err
 	}
 	browser.rememberPage(page.URL)

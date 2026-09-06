@@ -56,6 +56,21 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect((diff.snapshot as Snapshot).title).toBe("Changes on click");
   });
 
+  it("clicks a counter once, and the number that changed meets the expectation", async () => {
+    const page = await worker.result("open", { url: site.page("counter.html") });
+    const diff = asDiff(
+      await worker.result("click", {
+        ref: refFor(page, "Count"),
+        expectation: "The number on the page changes from 0 to 1",
+      }),
+    );
+    expect(diff.expectationMet).toBe(true);
+    expect(diff.seen).toBe("");
+    expect(diff.newText).toEqual(["1"]);
+    expect((diff.snapshot as Snapshot).text).toContain("1");
+    expect((diff.snapshot as Snapshot).text).not.toContain("2");
+  });
+
   it("says what it saw when the expectation does not match what happened", async () => {
     const page = await worker.result("open", { url: site.page("changes-on-click.html") });
     const diff = asDiff(

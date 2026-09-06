@@ -21,6 +21,7 @@ function nothing(): Change {
     dialog: null,
     newTab: "",
     download: null,
+    newText: [],
     aimedAt: null,
   };
 }
@@ -274,5 +275,30 @@ describe("judging an action", () => {
       expectationMet: false,
       seen: "nothing changed",
     });
+  });
+});
+
+describe("a change in the page's text", () => {
+  it("is a change, because a counter going from 0 to 1 is what a click did", () => {
+    expect(somethingChanged(change({ newText: ["1"] }))).toBe(true);
+  });
+
+  it("meets an expectation naming the number that appeared", () => {
+    expect(isExpectationMet("The number on the page changes from 0 to 1", change({ newText: ["1"] }))).toBe(true);
+  });
+
+  it("meets an expectation naming words that appeared", () => {
+    expect(isExpectationMet("a thank-you message appears", change({ newText: ["Thank you for your order"] }))).toBe(true);
+  });
+
+  it("is described as what the text now says", () => {
+    expect(describeChange(change({ newText: ["1"] }))).toBe('the text now says "1"');
+    expect(describeChange(change({ newText: ["Saved", "3 items", "Total 9", "Done"] }))).toBe(
+      'the text now says "Saved", "3 items", "Total 9", and 1 more line',
+    );
+  });
+
+  it("keeps a number as a meaningful word however short", () => {
+    expect(meaningfulWords("the number changes from 0 to 1")).toEqual(["number", "changes", "0", "1"]);
   });
 });

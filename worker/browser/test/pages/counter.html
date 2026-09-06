@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Counter</title>
+  </head>
+  <body>
+    <h1>Counter</h1>
+    <div id="number">0</div>
+    <button type="button" id="count" onclick="increment()">Count</button>
+    <script>
+      // One click adds one. The eleventh nightly run's page task wrote this
+      // page, and the worker clicked it twice on every click, because a change
+      // in the page's text was no change to the diff.
+      window.count = 0;
+      function increment() {
+        window.count += 1;
+        document.getElementById("number").textContent = String(window.count);
+      }
+    </script>
+  </body>
+</html>

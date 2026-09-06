@@ -65,6 +65,7 @@ describe("building the diff an action returns", () => {
       urlChanged: false,
       url: "https://example.com/start",
       newElements: [],
+      newText: [],
       dialog: null,
       newTab: "",
       download: null,
@@ -210,5 +211,33 @@ describe("a diff that ran into a wall", () => {
     expect(diff.seen).toBe(
       "the browser hit a captcha wall: a frame at https://example.com/captcha",
     );
+  });
+});
+
+describe("the lines of text that appeared", () => {
+  it("are listed, so that a number or a message that changed is seen", () => {
+    const diff = buildDiff({
+      before: snapshot({ text: "Counter\n0\nCount" }),
+      after: snapshot({ text: "Counter\n1\nCount" }),
+      expectation: "",
+      newTab: "",
+      wall: null,
+      settled: true,
+    });
+    expect(diff.newText).toEqual(["1"]);
+    expect(diff.expectationMet).toBe(true);
+  });
+
+  it("are empty when the text is as it was", () => {
+    const diff = buildDiff({
+      before: snapshot({ text: "Counter\n0\nCount" }),
+      after: snapshot({ text: "Counter\n0\nCount" }),
+      expectation: "",
+      newTab: "",
+      wall: null,
+      settled: true,
+    });
+    expect(diff.newText).toEqual([]);
+    expect(diff.expectationMet).toBe(false);
   });
 });

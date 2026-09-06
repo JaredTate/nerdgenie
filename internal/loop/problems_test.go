@@ -370,3 +370,25 @@ type brokenJobs struct {
 func (jobs brokenJobs) NextTask(_ context.Context, _ time.Time) (contract.TaskToRun, bool, error) {
 	return contract.TaskToRun{}, false, errors.New("this job store cannot be read right now, so check the database file")
 }
+
+// TestAThirdReplyCutOffInARowIsKeptAsItStands bounds the retry: a reply that
+// is a long answer to the user, cut at the cap, is not a file to write in
+// parts, and a model told twice to write less and cut off a third time is
+// heard as it stands, the way every cut-off reply was before 6 September,
+// rather than sent round again until the stall meter stops it.
+func TestAThirdReplyCutOffInARowIsKeptAsItStands(t *testing.T) {
+	cut := testkit.Step{Text: "The notes say, at great length, that", Finish: contract.FinishLength, Usage: contract.Usage{OutputTokens: 8192}}
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		cut, cut, cut,
+	}, scriptedTool("read", "the notes"))
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the task ended %q, want done on the third cut-off reply, kept as it stands", outcome.Status)
+	}
+	if requests := built.model.Requests(); len(requests) != 4 {
+		t.Errorf("the model was called %d times, want 4: the read, two cut-offs sent back, and the third kept", len(requests))
+	}
+}

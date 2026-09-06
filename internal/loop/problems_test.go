@@ -392,3 +392,35 @@ func TestAThirdReplyCutOffInARowIsKeptAsItStands(t *testing.T) {
 		t.Errorf("the model was called %d times, want 4: the read, two cut-offs sent back, and the third kept", len(requests))
 	}
 }
+
+// TestAllMarkedAndStillWorkingIsToldToEndTheTask is the fresh Tetris build's
+// yeti task: every done line and plan step marked by round 174, and the model
+// went on into the next task's work for twenty more rounds inside this one.
+// Once everything is marked, a reply that still asks for tools gets one line
+// after a few rounds: answer to end the task; more work is the next task's.
+func TestAllMarkedAndStillWorkingIsToldToEndTheTask(t *testing.T) {
+	steps := []testkit.Step{
+		callStep("I will read the notes.",
+			callFor("c1", "read", `{"path":"notes.md"}`),
+			taskCall("c1t", `{"doneWhen":[{"text":"the notes are read","done":true,"resultId":"r1"}],"plan":["read the notes"]}`)),
+		callStep("step 1 done: r1. Now I will look further.", callFor("c2", "read", `{"path":"more.md"}`)),
+	}
+	for at := 1; at <= loop.RoundsAfterAllMarked+1; at++ {
+		steps = append(steps, callStep("I will look at yet another file.", callFor(fmt.Sprintf("x%d", at), "read", fmt.Sprintf(`{"path":"extra%d.md"}`, at))))
+	}
+	steps = append(steps, answerStep("It is done. What changed: nothing. What I checked: the notes. What is left: nothing."))
+	answers := []string{"the notes", "more"}
+	for at := 1; at <= loop.RoundsAfterAllMarked+1; at++ {
+		answers = append(answers, fmt.Sprintf("extra %d", at))
+	}
+	built := newHarness(t, steps, scriptedTool("read", answers...))
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the task ended %q, want done", outcome.Status)
+	}
+	if _, count := requestsCarrying(built, loop.TheAllMarkedLine); count == 0 {
+		t.Error("the model was never told that everything was marked and to answer to end the task")
+	}
+}

@@ -230,6 +230,32 @@ reply as the proof the model named, runs the done-check, and closes the task
 when it passes; a question is read only when the check fails, and a record
 with no done list keeps the old reading, because there is nothing to close on
 (`chattyclose_test.go`, and `test/functional/jobchatty_test.go` whole-program).
+**A reply cut off at the output cap is neither an answer nor a call** (`cutoff.go`).
+The tenth nightly run's frontend task wrote the whole game file in one write
+call, the reply hit the cap of 8192 tokens three rounds running, `repair.Find`
+read each cut-off call as unreadable arguments and offered the three options,
+and on the fourth round the model took the first, "answer the user", with "Now
+the main game logic. Let me write it carefully", and the task closed done with
+no game file written. Now `runOneRound` reads `Finish` before the parse: a
+reply that ended for length is not remembered at all, and the model is told
+it was cut off after that many tokens, that none of it was kept, and that a
+long file goes in parts of at most `MaxLinesInOneWrite` lines, the first by
+write and the rest by edit. **A plan with steps still open says the work is
+not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
+an answer back to the plan when a step is not marked done, naming the steps
+and the one to carry on with, through `sendBackToWork`, which counts the
+same three nudges as the done-check and then fails the task. That line goes
+without the three options, because "answer the user" is the option that closed
+the frontend task. The same run's play-test task spent ten rounds writing its
+done list with the results it expected to produce later, r70 to r74 on a
+record at r20, each refused with "check it against the result list": the
+record's refusal now says the result is not written yet, names the next
+label, and says to write the line bare and pin it with `pin_result` when its
+proof exists; the `task` tool's done-list field says a line is a plain string
+whose proof is pinned later; and the rules' "every done line must point at
+the result proving it" became "write done lines bare, and mark each done
+later" (`problems_test.go`, `record/lessons_test.go`, `task/donelist_test.go`,
+`context/instructions_test.go`).
 The reply with no tool call is also remembered as the model's own words before
 the messages that arrived during it are read, so the one more round a
 correction earns, and a done-check nudge, show the person's words after the

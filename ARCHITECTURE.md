@@ -347,11 +347,14 @@ and comes first of all, because that is the loop that never yields nine times
 in ten and the live model read the unmarked list of three whiles and went back
 to the sound engine; the marked loop also becomes the situation's browser
 line (`TheHungPageFact`), in front of the model every round until the next
-browser result replaces it, because a list on one result is read once, and a
-task picked up again takes the line and the page's address back from the
-newest browser result in its log (`takeTheBrowserFactBackFromTheLog`,
-`resume.go`), because the fourth sitting started with an empty browser line
-and the model re-read the old result four times; the first list the live run got was the
+browser result replaces it, because a list on one result is read once, and it
+stands through an open or a click that fails after the hang, because that is
+the same hang (the fifth sitting lost the loop to "cannot open the page"),
+until a result carries a page again; a task picked up again reads every
+browser result in its log in order to get the line and the page's address
+back (`takeTheBrowserFactBackFromTheLog`, `resume.go`), because the fourth
+sitting started with an empty browser line and the model re-read the old
+result four times; the first list the live run got was the
 renderer's twelve counted fors in line order, and the ghost-piece while on
 line 495 was not on it. The page's address is taken off the browser's own
 results as they pass (`addressIn`). The scripts are the page's and not the

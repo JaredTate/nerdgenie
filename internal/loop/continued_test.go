@@ -136,3 +136,38 @@ func TestAWaitingTaskThePersonAnswersKeepsTheBudgetItHad(t *testing.T) {
 		t.Error("the situation of a waiting task says it was asked to carry on, and it was answered rather than continued")
 	}
 }
+
+// TestAPickedUpTaskStartsWithItsLastRoundsInFrontOfIt pins what a pick-up
+// already does, found while chasing the re-read burst of the fifth game
+// build's pick-ups: the working context's window is rebuilt from the log, so
+// the last rounds' results are in front of the model in full from the first
+// request of the new sitting. The burst was the model choosing to read older
+// results back, not a window that started empty.
+func TestAPickedUpTaskStartsWithItsLastRoundsInFrontOfIt(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("Nothing is read yet. I will read both files.",
+			callFor("c1", contract.ToolRead, `{"path":"notes.md"}`),
+			callFor("c2", contract.ToolRead, `{"path":"brand.md"}`)),
+		answerStep("The budget is spent. What changed: nothing. What I checked: the files. What is left: the post."),
+		answerStep("Both files are in front of me. What changed: nothing. What I checked: both. What is left: nothing."),
+	}, scriptedTool(contract.ToolRead,
+		"the notes say the launch is in March. "+strings.Repeat("More about the launch. ", 8)+"The venue is Berlin.",
+		"the brand file says the colour is blue. "+strings.Repeat("More about the brand. ", 8)+"The typeface is Inter."))
+
+	stopped := runOutOfBudget(t, built)
+	continueTheTask(t, built, stopped.TaskID)
+
+	// The record's result lines carry only the first words of each result;
+	// the venue and the typeface are past them, so they can only come from
+	// the replayed round.
+	requests := built.model.Requests()
+	shown := wholeRequestText(requests[len(requests)-2])
+	for _, words := range []string{"The venue is Berlin.", "The typeface is Inter."} {
+		if !strings.Contains(shown, words) {
+			t.Errorf("the pick-up's first request does not carry %q from the last round of the sitting before, and the model would read it again:\n%s", words, shown)
+		}
+	}
+	if strings.Count(shown, "The venue is Berlin.") != 1 {
+		t.Errorf("the replayed result is in the request %d times, want once", strings.Count(shown, "The venue is Berlin."))
+	}
+}

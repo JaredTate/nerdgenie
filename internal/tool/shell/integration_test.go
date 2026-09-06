@@ -58,12 +58,13 @@ func TestARealCommandRunsPollsAndIsKilled(t *testing.T) {
 	clock.Advance(shell.YieldAfter)
 	waitForRunning(t, tool, "p2")
 
-	polled, err := run(t, tool, map[string]any{"action": "poll", "id": "p2"})
-	if err != nil {
-		t.Fatalf("polling a real running command failed: %v", err)
-	}
-	if !strings.Contains(polled.Text, "still running") {
-		t.Errorf("polling a real running command said %q", polled.Text)
+	// A poll waits on the clock for the command, so it is answered from the
+	// background once the clock has run out the wait.
+	polled := pollInTheBackground(t, tool, "p2")
+	waitForSleepers(t, clock, 1)
+	clock.Advance(shell.PollWaitsFor)
+	if answer := <-polled; !strings.Contains(answer.Text, "still running") {
+		t.Errorf("polling a real running command said %q", answer.Text)
 	}
 
 	killedAt := time.Now()

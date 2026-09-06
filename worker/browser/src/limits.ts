@@ -33,8 +33,8 @@ export const MAX_PAGE_TEXT_CHARS = 8_000;
 /** The longest answer the read method gives to a question asked of a page. */
 export const MAX_ANSWER_CHARS = 2_000;
 
-/** The longest expression the read method will ask a page. */
-export const MAX_ASK_CHARS = 500;
+/** The longest expression the read method will ask a page: a whole play session of moves, drops and dev controls in one call, which the fifth game build wrote as 1,919 characters against a cap of 500 and had refused three times. */
+export const MAX_ASK_CHARS = 2000;
 
 /** The most errors one snapshot lists for a page. Past this they are counted, not listed. */
 export const MAX_PAGE_ERRORS = 5;

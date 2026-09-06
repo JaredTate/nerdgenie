@@ -95,10 +95,10 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 	if strings.Contains(shown, "main.js:21: while (arrTimer >= CONFIG.ARR) {"+loop.TheMarkArrow+loop.TheNeverChangesMark) {
 		t.Errorf("the loop that takes from arrTimer in its body is marked as never changing:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
-	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:1: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {
+	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:2: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {
 		t.Errorf("the while loops do not come before the for loops:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
-	if !strings.Contains(shown, "and 4 more for loops") {
+	if !strings.Contains(shown, "and 5 more for loops") {
 		t.Errorf("the list does not say how many for loops fell off its end:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
 	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]

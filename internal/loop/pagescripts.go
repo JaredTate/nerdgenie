@@ -30,6 +30,11 @@ const PageReadDeadline = 5 * time.Second
 // theScriptSource finds the address of every script a page loads.
 var theScriptSource = regexp.MustCompile(`(?is)<script\b[^>]*\bsrc\s*=\s*["']?([^"'\s>]+)`)
 
+// theImport finds the module a script imports, which the page names nowhere:
+// the fifth game build's page loaded one script that imported the engine and
+// six modules beside it, and the engine's loops were off the list.
+var theImport = regexp.MustCompile(`(?m)^\s*import\b[^;'"]*['"]([^'"]+)['"]`)
+
 // theLoopOpening finds a while or a for on a line.
 var theLoopOpening = regexp.MustCompile(`\b(while|for)\s*\(`)
 
@@ -70,25 +75,42 @@ func theScriptsOf(ctx context.Context, address string) []namedText {
 		return nil
 	}
 	read := []namedText{{name: filepath.Base(base.Path), text: page}}
-	for _, source := range theScriptSourcesIn(page) {
-		if len(read) > MaxScriptsRead {
-			break
+	// The page's scripts, then the modules each of them imports, in the order
+	// found, each read once, up to the cap.
+	toRead := []*url.URL{}
+	seen := map[string]bool{}
+	queue := func(from *url.URL, sources []string) {
+		for _, source := range sources {
+			relative, err := url.Parse(source)
+			if err != nil {
+				continue
+			}
+			whole := from.ResolveReference(relative)
+			if isAPageOnThisMachine(whole.String()) && !seen[whole.String()] {
+				seen[whole.String()] = true
+				toRead = append(toRead, whole)
+			}
 		}
-		relative, err := url.Parse(source)
+	}
+	queue(base, theScriptSourcesIn(page))
+	for at := 0; at < len(toRead) && len(read) <= MaxScriptsRead; at++ {
+		text, err := readAddress(ctx, toRead[at])
 		if err != nil {
 			continue
 		}
-		whole := base.ResolveReference(relative)
-		if !isAPageOnThisMachine(whole.String()) {
-			continue
-		}
-		text, err := readAddress(ctx, whole)
-		if err != nil {
-			continue
-		}
-		read = append(read, namedText{name: filepath.Base(whole.Path), text: text})
+		read = append(read, namedText{name: filepath.Base(toRead[at].Path), text: text})
+		queue(toRead[at], theImportsIn(text))
 	}
 	return read
+}
+
+// theImportsIn lists the modules a script imports, in order.
+func theImportsIn(script string) []string {
+	imports := []string{}
+	for _, match := range theImport.FindAllStringSubmatch(script, MaxScriptsRead) {
+		imports = append(imports, match[1])
+	}
+	return imports
 }
 
 // theScriptSourcesIn lists the script addresses a page names, in order.

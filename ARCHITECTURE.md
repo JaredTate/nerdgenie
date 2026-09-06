@@ -337,8 +337,11 @@ bracket and ran it four times, reading "Unexpected token ']'" each time, five
 rounds on a mistake the checker finds in a tenth of a second. **And a hung
 page lists its loops** (`hangs.go`, `pagescripts.go`): when a browser result
 says the page's own script kept it busy, `listTheLoopsAfter` reads the page
-and the scripts it loads from where the page loads them, the local server the
-model started or the disk when the page is a file, never another machine, and
+and the scripts it loads, and the modules those scripts import (`theImport`,
+one level after another up to the cap of eight, because the fifth game
+build's page loaded one script that imported the engine and six modules
+beside it), from where the page loads them, the local server the model
+started or the disk when the page is a file, never another machine, and
 puts every line that opens a `while` or a `for` on the same result under
 `TheLoopsLine` as file, line and text, the whiles first and then the fors, at
 most twelve with a line saying how many fors fell off the end, on a tool line

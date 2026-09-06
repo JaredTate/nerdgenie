@@ -239,6 +239,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 05:10 on 6 September, from the same run: the play-test task wrote its done list with the results it expected to produce later, r70 to r74 on a record at r20, and the refusal "check it against the result list" sent it guessing for ten rounds. The refusal now names the next label and says to write the line bare and pin it later; the `task` tool's done-list field says a line is a plain string; and the rule "every done line must point at the result proving it" is now "write done lines bare, and mark each done later". Three tellings of one thing, each where the model reads at that moment.
 
+- Built at 05:45 on 6 September, from the eleventh nightly run: the browser worker clicked every button twice. Its diff knew a change only as a new element, a new address, a new title, a dialog, a new tab, or a download, so a counter going from 0 to 1 was "nothing changed", the worker clicked again at the element's place on the screen, and the page task saw 2 on every click for 78 rounds; the tenth run's page task had met the same and got round it with a click dispatched through the ask field. The diff now carries the lines of text that appeared (`newText`, at most twelve), a number is a meaningful word however short, and "the text now says "1"" is what the model reads when its expectation is not met. Still to see: whether the play-test's clicks on the game's menus now report what they did.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

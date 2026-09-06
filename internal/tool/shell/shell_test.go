@@ -446,3 +446,35 @@ func TestAPollSaysHowLongTheCommandHasBeenRunning(t *testing.T) {
 		t.Errorf("the poll does not say how long the command has run: %q", second.Text)
 	}
 }
+
+// TestAKillByNamePatternIsRefusedAndToldToKillByPid is the rule this machine
+// has held since its first agent closed every terminal on the desktop: a
+// shell's own command line matches the pattern it names, so the shell dies
+// with it. On the fifth game build the model ran pkill -f on its own server
+// and got exit code 143, its own shell killed. The call is refused before it
+// runs, and the refusal says what to do instead.
+func TestAKillByNamePatternIsRefusedAndToldToKillByPid(t *testing.T) {
+	tool := newTool(t, testkit.NewFakeSandbox(), testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
+	for _, command := range []string{
+		`pkill -f "python3 -m http.server 8091"`,
+		"killall node",
+		"pgrep -af nerdgenie | awk '{print $1}' | xargs kill",
+		"cd ~/game && pkill -f serve.js; node serve.js",
+	} {
+		_, err := run(t, tool, map[string]any{"command": command})
+		if err == nil {
+			t.Errorf("%q was run, and a kill by name pattern kills the shell that runs it", command)
+			continue
+		}
+		for _, words := range []string{"its own command line", "exact process id", "ss -ltnp"} {
+			if !strings.Contains(err.Error(), words) {
+				t.Errorf("the refusal of %q reads %q, want it to say %q", command, err.Error(), words)
+			}
+		}
+	}
+	for _, command := range []string{"kill 4242", "kill -9 4242", "echo pkill is a word", "ls pgrep-notes"} {
+		if _, err := run(t, tool, map[string]any{"command": command}); err != nil {
+			t.Errorf("%q was refused: %v, and a kill by exact id or a mention in passing is ordinary", command, err)
+		}
+	}
+}

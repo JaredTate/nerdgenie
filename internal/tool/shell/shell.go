@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Description: "Runs a command in the sandbox. After ten seconds it hands back an id to poll, tail, or kill. " +
 			"Set escalate with a written reason to ask for administrator powers. Use read and search for files.",
 		Fields: []contract.ToolField{
-			{Name: "command", Type: "string", Description: "The command to run, as you would type it in a terminal."},
+			{Name: "command", Type: "string", Description: "The command to run, as you would type it in a terminal. Kill a process by its exact id, never by a name pattern."},
 			{Name: "action", Type: "string", Description: "One of run, poll, tail, or kill. Leave it out to run."},
 			{Name: "id", Type: "string", Description: "The id of a running command, for poll, tail, and kill."},
 			{Name: "escalate", Type: "boolean", Description: "True to ask for administrator powers for this command."},
@@ -162,10 +163,40 @@ func ReadCall(_ context.Context, written []byte) (Call, error) {
 	return asked, checkRun(asked)
 }
 
+// theKillsByNamePattern are the programs that kill or list processes by a
+// pattern matched against every command line on the machine, which is a
+// pattern the shell running them matches too. Each is looked for as a word at
+// the start of a command or after a shell separator, so that a mention in
+// passing is not one.
+var theKillsByNamePattern = []string{"pkill", "killall", "pgrep"}
+
+// killsByNamePattern says whether a command kills or lists processes by a
+// name pattern. On the fifth game build the model ran pkill -f on its own
+// server and got exit code 143, which is its own shell killed: the shell's
+// command line held the pattern too. The rule is this machine's oldest, from
+// the day an agent closed every terminal on the desktop the same way.
+func killsByNamePattern(command string) bool {
+	for _, piece := range strings.FieldsFunc(command, func(letter rune) bool {
+		return letter == ';' || letter == '&' || letter == '|' || letter == '\n' || letter == '(' || letter == '`'
+	}) {
+		words := strings.Fields(piece)
+		for at, word := range words {
+			if slices.Contains(theKillsByNamePattern, word) && (at == 0 || words[at-1] == "sudo" || words[at-1] == "exec" || words[at-1] == "then" || words[at-1] == "do") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // checkRun holds the rules a run must satisfy before anything is started.
 func checkRun(asked Call) error {
 	if strings.TrimSpace(asked.Command) == "" {
 		return errors.New("this call has no command in it, so write the command as you would type it in a terminal")
+	}
+	if killsByNamePattern(asked.Command) {
+		return errors.New("this command kills or lists processes by a name pattern, and the shell running it matches the pattern through its own command line and dies with it (exit code 143). " +
+			"Find the exact process id first, with ss -ltnp for a port or from the p-number this tool handed back, and kill that id alone")
 	}
 	if len(asked.Command) > MaxCommandBytes {
 		return fmt.Errorf("the command is %d bytes and the cap is %d, so run it from a script file instead",

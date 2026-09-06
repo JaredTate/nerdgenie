@@ -102,24 +102,54 @@ func (tool *Tool) workOf(asked Call) func(ctx context.Context) (contract.Sandbox
 // waitOrYield waits for the command for as long as the yield allows and hands
 // back either what it did or the id to ask after it by.
 func (tool *Tool) waitOrYield(ctx context.Context, entry *entry) (contract.ToolOutput, error) {
+	finished, err := tool.waitFor(ctx, entry, YieldAfter)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	if finished {
+		return contract.ToolOutput{Text: entry.finishedText()}, nil
+	}
+	return contract.ToolOutput{Text: entry.stillRunningText()}, nil
+}
+
+// pollWaiting answers a poll: what the command did when it has finished, and
+// otherwise, after waiting for it as long as a poll may, how long it has run.
+func (tool *Tool) pollWaiting(ctx context.Context, id string) (contract.ToolOutput, error) {
+	entry, err := tool.running.find(id)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	finished, err := tool.waitFor(ctx, entry, PollWaitsFor)
+	if err != nil {
+		return contract.ToolOutput{}, err
+	}
+	if finished {
+		return contract.ToolOutput{Text: entry.finishedText()}, nil
+	}
+	return tool.running.poll(id, tool.now())
+}
+
+// waitFor waits for the command to finish for up to this long, and says whether
+// it did. The turn ending is the one way out that is neither.
+func (tool *Tool) waitFor(ctx context.Context, entry *entry, howLong time.Duration) (bool, error) {
 	if tool.settings.Clock == nil {
-		return contract.ToolOutput{}, errors.New("this tool has no clock to count the yield on, so wire the clock in before using it")
+		return false, errors.New("this tool has no clock to count the wait on, so wire the clock in before using it")
 	}
 	waiting, stopWaiting := context.WithCancel(ctx)
 	defer stopWaiting()
 	waited := make(chan struct{})
 	go func() {
-		_ = tool.settings.Clock.Sleep(waiting, YieldAfter)
+		_ = tool.settings.Clock.Sleep(waiting, howLong)
 		close(waited)
 	}()
 
 	select {
 	case <-entry.done:
-		return contract.ToolOutput{Text: entry.finishedText()}, nil
+		return true, nil
 	case <-waited:
-		return contract.ToolOutput{Text: entry.stillRunningText()}, nil
+		return false, nil
 	case <-ctx.Done():
-		return contract.ToolOutput{}, fmt.Errorf("the turn ended while %s was still running, and it is still running: %w", entry.id, ctx.Err())
+		return false, fmt.Errorf("the turn ended while %s was still running, and it is still running: %w", entry.id, ctx.Err())
 	}
 }
 

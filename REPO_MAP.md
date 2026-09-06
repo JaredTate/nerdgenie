@@ -1679,6 +1679,7 @@ worker/browser/test/pages/frame-inner.html
 worker/browser/test/pages/frame.html
 worker/browser/test/pages/game-state.html
 worker/browser/test/pages/hangs-on-click.html
+worker/browser/test/pages/hidden-overlays.html
 worker/browser/test/pages/keyboard.html
 worker/browser/test/pages/links-and-form.html
 worker/browser/test/pages/login.html

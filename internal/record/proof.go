@@ -16,6 +16,14 @@ func checkNamesAResult(into *contract.Record, id string, what string) error {
 	if id == "" || recordHoldsResult(into, id) {
 		return nil
 	}
+	// A label past the newest result is one the record has not written yet:
+	// the tenth nightly run's play-test task wrote its done list with the
+	// results it expected to produce later, was told to check the list, and
+	// guessed seven more labels over seven rounds. Say what to do instead.
+	if number, valid := ResultNumber(into.Header, id); valid && number > highestResultNumberOn(into) {
+		return fmt.Errorf("%s names %q, which this record has not written yet (its next result will be %s): write the line without a result now, and pin it with pin_result when its proof is written: %w",
+			what, id, nextResultID(into.Header, highestResultNumberOn(into)), ErrNoSuchResult)
+	}
 	return fmt.Errorf("%s names %q, which this record never wrote: %w", what, id, ErrNoSuchResult)
 }
 

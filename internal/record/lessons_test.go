@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // TestLessonsAreCutToALineAndTheOldestLeaveWhenTheListIsFull is the fifth game

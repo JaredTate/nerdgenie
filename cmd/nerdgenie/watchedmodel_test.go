@@ -127,3 +127,31 @@ func TestTheWatchedModelCountsWhatTheModelWritesUnseen(t *testing.T) {
 		t.Errorf("the status says %q tokens streamed, want 105: 23 characters of text and 400 written unseen, four characters to a token", fields[contract.StatusFieldStreamed])
 	}
 }
+
+// TestTheWatchedModelReportsTheLastCallsSpeedsAndTheModelFile is what the
+// strip's top line and MODEL panel read: which model file is loaded, and how
+// fast the last call read its prompt and wrote its answer.
+func TestTheWatchedModelReportsTheLastCallsSpeedsAndTheModelFile(t *testing.T) {
+	watched, _ := aWatchedModelOver(testkit.Script{
+		Name:          "local",
+		ContextLength: 131072,
+		Steps: []testkit.Step{{
+			Text:  "here is the answer",
+			Usage: contract.Usage{InputTokens: 4020, CachedInputTokens: 3500, OutputTokens: 40, PromptTokensPerSecond: 320.5, OutputTokensPerSecond: 61.2},
+		}},
+	})
+	watched.describeFile("hauhau-Q4_K_P.gguf")
+
+	if _, err := watched.Send(context.Background(), contract.Request{}, nil); err != nil {
+		t.Fatalf("the call failed: %v", err)
+	}
+
+	fields := map[string]string{}
+	watched.fillStatus(fields)
+	if fields[contract.StatusFieldModelFile] != "hauhau-Q4_K_P.gguf" {
+		t.Errorf("the status names the model file %q, want hauhau-Q4_K_P.gguf", fields[contract.StatusFieldModelFile])
+	}
+	if fields[contract.StatusFieldPromptSpeed] != "320" || fields[contract.StatusFieldOutputSpeed] != "61" {
+		t.Errorf("the status says prefill %q and output %q tokens a second, want 320 and 61", fields[contract.StatusFieldPromptSpeed], fields[contract.StatusFieldOutputSpeed])
+	}
+}

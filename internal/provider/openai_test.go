@@ -340,3 +340,31 @@ func TestTheOpenAIProviderSendsAToolResultsPictureAsAnImagePart(t *testing.T) {
 		t.Errorf("the image part is %v, want a data address carrying the PNG", image)
 	}
 }
+
+// TestTheOpenAIProviderReadsTheDaemonsSpeeds is the strip's two speeds: the
+// local daemon reports how fast it read the prompt and how fast it wrote,
+// and the provider hands both on in the usage so a screen can show them.
+func TestTheOpenAIProviderReadsTheDaemonsSpeeds(t *testing.T) {
+	server := testkit.NewFakeProviderServer(testkit.Script{
+		Name:          "fake provider",
+		ContextLength: 200000,
+		Steps: []testkit.Step{{
+			Text:  "done",
+			Usage: contract.Usage{InputTokens: 4020, CachedInputTokens: 3500, OutputTokens: 40, PromptTokensPerSecond: 320.5, OutputTokensPerSecond: 61.2},
+		}},
+	})
+	defer server.Close()
+	model, _ := openAIAgainst(t, server)
+
+	reply, _, err := sendAndCollect(context.Background(), model, requestWithEverything())
+
+	if err != nil {
+		t.Fatalf("one call to the OpenAI-compatible provider failed: %v", err)
+	}
+	if reply.Usage.PromptTokensPerSecond < 320 || reply.Usage.PromptTokensPerSecond > 321 || reply.Usage.OutputTokensPerSecond < 61 || reply.Usage.OutputTokensPerSecond > 62 {
+		t.Errorf("the usage carries speeds %.1f and %.1f, want the daemon's 320.5 and 61.2", reply.Usage.PromptTokensPerSecond, reply.Usage.OutputTokensPerSecond)
+	}
+	if reply.Usage.CachedInputTokens != 3500 {
+		t.Errorf("the cached count is %d, want the daemon's 3500", reply.Usage.CachedInputTokens)
+	}
+}

@@ -143,3 +143,28 @@ func TestTheProgramCanSayInSoManyWordsThatItsHealthCheckDidNotAnswer(t *testing.
 		t.Errorf("the header is %q, and the program said its health check answered again", headerOf(screen))
 	}
 }
+
+// TestTheHeaderNamesTheModelFileAndThePanelShowsTheSpeeds is what a person
+// asked to see at the top of the screen: which local model is running, and
+// how fast it read the prompt and wrote the answer on the last call.
+func TestTheHeaderNamesTheModelFileAndThePanelShowsTheSpeeds(t *testing.T) {
+	screen, _ := screenWithLink()
+	screen.Update(linkMessage{up: true})
+	status := aFullStatus()
+	status.Fields[contract.StatusFieldModel] = "local"
+	status.Fields[contract.StatusFieldModelFile] = "hauhau-Q4_K_P.gguf"
+	status.Fields[contract.StatusFieldPromptSpeed] = "320"
+	status.Fields[contract.StatusFieldOutputSpeed] = "61"
+	send(screen, status)
+
+	header := headerOf(screen)
+	if !strings.Contains(header, "hauhau-Q4_K_P") {
+		t.Errorf("the header is %q and it should name the model file", header)
+	}
+	frame := screen.frame()
+	for _, wanted := range []string{"prefill 320 tok/s", "output 61 tok/s"} {
+		if !strings.Contains(frame, wanted) {
+			t.Errorf("the screen does not show %q:\n%s", wanted, frame)
+		}
+	}
+}

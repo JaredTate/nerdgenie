@@ -95,7 +95,7 @@ func TestTheNumbersOfARunAreReadOffTheLog(t *testing.T) {
 		t.Errorf("the run reads %.1f minutes, want the span from the ask to the last checkpoint, a few minutes", numbers.minutes)
 	}
 	text := numbers.String()
-	for _, words := range []string{"task 7: done after 5 rounds", "replies with more than one call: 1", "only wrote the record: 1", "only ran the tests: 1", "67.0k in, 51.0k of them cached (76%), 1.2k out", "rewinds: 1; failures on the record: 2", "refused: read 1"} {
+	for _, words := range []string{"task 7: done after 5 rounds", "replies with more than one call: 1", "only wrote the record: 1", "only ran the tests: 1", "67.0k in, 51.0k of them cached (76%), 3.2k uncached a round, 1.2k out", "rewinds: 1; failures on the record: 2", "refused: read 1"} {
 		if !strings.Contains(text, words) {
 			t.Errorf("the report does not say %q:\n%s", words, text)
 		}

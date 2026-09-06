@@ -136,7 +136,7 @@ func readUpToTheCap(from io.Reader) (string, error) {
 // word its condition reads, which is the loop that never yields nine times in
 // ten: the ghost-piece loop of the fifth game build tested the piece's cells
 // and counted a number its condition never looked at.
-const TheNeverChangesMark = "<- this loop looks endless: its body changes nothing its condition reads, so fix it first"
+const TheNeverChangesMark = "this loop looks endless: its body changes nothing its condition reads, so fix it first"
 
 // MaxBodyLinesRead is how far into a loop's body the search for its
 // condition's words goes.
@@ -160,7 +160,7 @@ func loopLinesIn(script namedText) (whiles []string, fors []string) {
 		case match[1] != "while":
 			fors = append(fors, listed)
 		case bodyNeverTouchesTheCondition(lines, number):
-			marked = append(marked, listed+" "+TheNeverChangesMark)
+			marked = append(marked, listed+TheMarkArrow+TheNeverChangesMark)
 		default:
 			whiles = append(whiles, listed)
 		}

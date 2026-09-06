@@ -79,12 +79,12 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 		t.Errorf("the shell ran %d times, want never: the scripts are read from the server, not searched on disk", len(shell.Inputs()))
 	}
 	shown := wholeRequestText(built.model.Requests()[2])
-	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) { " + loop.TheNeverChangesMark, "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
+	for _, words := range []string{loop.TheLoopsLine, "main.js:17: while (engine.board.canPlace(p.cells().map(([cx, cy]) => [cx, cy + 1]), 0, 0)) {" + loop.TheMarkArrow + loop.TheNeverChangesMark, "main.js:21: while (arrTimer", "index.html:5: for (const tot of tots)"} {
 		if !strings.Contains(shown, words) {
 			t.Errorf("the click's result does not carry %q, and the request after it reads:\n%s", words, shown)
 		}
 	}
-	if strings.Contains(shown, "main.js:21: while (arrTimer >= CONFIG.ARR) { "+loop.TheNeverChangesMark) {
+	if strings.Contains(shown, "main.js:21: while (arrTimer >= CONFIG.ARR) {"+loop.TheMarkArrow+loop.TheNeverChangesMark) {
 		t.Errorf("the loop that takes from arrTimer in its body is marked as never changing:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
 	if strings.Index(shown, "main.js:17: while") > strings.Index(shown, "main.js:1: for") || strings.Index(shown, "main.js:21: while") > strings.Index(shown, "index.html:5: for") {

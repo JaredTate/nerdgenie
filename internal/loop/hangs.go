@@ -68,11 +68,16 @@ func saysThePageHung(text string) bool {
 	return false
 }
 
+// TheMarkArrow opens the mark on a loop line, and is what a marked line is
+// known by, so that a result written under an older wording of the mark still
+// reads as marked when a pick-up replays the log.
+const TheMarkArrow = " <- "
+
 // theMarkedLoopIn is the first loop line on a result that carries the mark,
 // without the mark, or empty when none does.
 func theMarkedLoopIn(text string) string {
 	for _, line := range strings.Split(text, "\n") {
-		if loopLine, marked := strings.CutSuffix(line, " "+TheNeverChangesMark); marked {
+		if loopLine, _, marked := strings.Cut(line, TheMarkArrow); marked && strings.Contains(loopLine, ":") && (strings.Contains(loopLine, "while") || strings.Contains(loopLine, "for")) {
 			return loopLine
 		}
 	}

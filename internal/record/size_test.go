@@ -40,8 +40,12 @@ func TestEstimatesTokensFromWords(t *testing.T) {
 }
 
 // TestARecordFilledToTheBudgetStaysUnderThreeThousandTokens is the size promise
-// of the design: with a budget of a hundred rounds a record can hold at most a
-// hundred result lines, so it never needs squashing or summarizing.
+// of the design: a record spent to a budget of a hundred rounds holds the
+// newest MaxResultLinesKept result lines, every older one still in the log,
+// so it never needs squashing or summarizing. Forty rather than a hundred
+// because the list is read again on every round, uncached, behind the
+// messages: at the daemon's five hundred tokens a second a hundred lines cost
+// about four seconds a round and forty about a second and a half.
 func TestARecordFilledToTheBudgetStaysUnderThreeThousandTokens(t *testing.T) {
 	keeper := recordFilledToTheBudget(t)
 	text := keeper.Text()
@@ -52,8 +56,8 @@ func TestARecordFilledToTheBudgetStaysUnderThreeThousandTokens(t *testing.T) {
 		t.Errorf("a record filled to the budget counts as %d tokens, and the design promises under %d:\n%s",
 			counted, MaxRecordTokens, text)
 	}
-	if held := keeper.Record(); len(held.Work.Results) != 100 {
-		t.Errorf("the filled record holds %d results, and a hundred rounds were spent", len(held.Work.Results))
+	if held := keeper.Record(); len(held.Work.Results) != MaxResultLinesKept || held.Work.Results[0].ID != "r61" {
+		t.Errorf("the filled record holds %d results from %s, and a hundred rounds were spent: want the newest %d, from r61", len(held.Work.Results), held.Work.Results[0].ID, MaxResultLinesKept)
 	}
 }
 

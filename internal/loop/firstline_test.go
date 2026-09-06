@@ -74,3 +74,30 @@ func TestAMarkOnTheFirstLineNamingNoResultOrAWrongOneMarksNothingAndSaysSo(t *te
 		t.Errorf("after 'Step 2 done: r99' the next request does not say the record never wrote r99:\n%s", shown)
 	}
 }
+
+// TestARoundSpentOnlyMarkingTheRecordEarnsTheHintOnce is the teaching moment
+// at the point of the waste: in the nightly set's second run the model, told
+// in the rules to mark on its first line, still spent whole rounds on a lone
+// step_done or pin_result call. The round after such a call reads one line
+// saying to put the mark on the first line next time, once per task, and a
+// mark made in the same reply as real work earns nothing.
+func TestARoundSpentOnlyMarkingTheRecordEarnsTheHintOnce(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		aPlanOfThree(),
+		callStep("The notes are read.", taskCall("m1", `{"operation":"step_done","step":1,"result":"r1"}`)),
+		callStep("Step 1 is marked.", taskCall("m2", `{"operation":"pin_result","line":1,"result":"r1"}`)),
+		callStep("I will read the brand file and mark it.", callFor("c2", contract.ToolRead, `{"path":"brand.md"}`), taskCall("m3", `{"operation":"step_done","step":2,"result":"r1"}`)),
+		answerStep("The files are read. What changed: nothing. What I checked: the files. What is left: the post."),
+	}, scriptedTool(contract.ToolRead, "the notes", "the brand file"))
+
+	built.ask(t, "read the notes and the brand file")
+
+	first, _ := requestsCarrying(built, loop.TheMarkHint)
+	if first != 2 {
+		t.Errorf("the hint first rode on model call %d, want call 2, the one after the lone step mark", first)
+	}
+	requests := built.model.Requests()
+	if said := strings.Count(wholeRequestText(requests[len(requests)-1]), loop.TheMarkHint); said != 1 {
+		t.Errorf("the last request carries the hint %d times, want once for the task, whatever the lone marks after the first", said)
+	}
+}

@@ -190,6 +190,7 @@ docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
 docs/html/nerdgenie.html
 docs/html/work-plan.html
+docs/ideas/2026-09-06-five-ideas.md
 docs/nightly/2026-09-06-b-first-line-mark.md
 docs/nightly/2026-09-06-c-forty-lines-and-read-caps.md
 docs/nightly/2026-09-06-d-first-line-hint.md
@@ -232,6 +233,12 @@ docs/research/2026-09-05-state-and-llm/harness-builders.md
 docs/research/2026-09-05-state-and-llm/llm-efficiency.md
 docs/research/2026-09-05-state-and-llm/state-classical.md
 docs/research/2026-09-05-state-and-llm/state-distributed.md
+docs/research/2026-09-06-behaviour/README.md
+docs/research/2026-09-06-behaviour/analyse.py
+docs/research/2026-09-06-behaviour/behaviour.md
+docs/research/2026-09-06-behaviour/ideas-from-the-documents.md
+docs/research/2026-09-06-behaviour/ideas-from-the-web.md
+docs/research/2026-09-06-behaviour/tables.md
 docs/research/harness-v2-review.md
 docs/research/nerdgenie-plan-review.md
 docs/research/work-plan-final-review.md

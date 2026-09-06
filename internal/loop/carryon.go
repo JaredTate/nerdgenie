@@ -12,7 +12,7 @@ import (
 // fixed list for the same reason theWaysAReplyAsks is one.
 var theWaysAReplyOffersToCarryOn = []string{
 	"want me to", "keep rolling", "keep going", "carry on", "shall i continue", "should i continue",
-	"proceed", "move on to", "next up",
+	"proceed", "move on to", "next up", "where to next", "what next", "what's next",
 }
 
 // onlyOffersToCarryOn says whether a job's task ended on an offer to go on
@@ -27,7 +27,13 @@ func (running *run) onlyOffersToCarryOn(text string) bool {
 	if running.task.FromJob == nil {
 		return false
 	}
-	last := strings.ToLower(lastLine(text))
+	return offersToCarryOn(lastLine(text))
+}
+
+// offersToCarryOn says whether this last line is one of the fixed ways of
+// offering to go on.
+func offersToCarryOn(last string) bool {
+	last = strings.ToLower(last)
 	for _, offer := range theWaysAReplyOffersToCarryOn {
 		if strings.Contains(last, offer) {
 			return true

@@ -222,3 +222,40 @@ func TestBadInputIsRefusedWithALineTheModelCanActOn(t *testing.T) {
 		t.Errorf("a limit below zero was treated as a read")
 	}
 }
+
+// TestAStoredResultIsReadFromTheOffsetAndForTheLimitLikeAFile is the fifth
+// game build's play-test task after a pick-up: it asked for r25, a read of the
+// whole game script, from line 798, and got the whole script from line 1, a
+// thirteen-thousand-token answer to a question about twelve lines. A past
+// result is read the way a file is: numbered lines, from the offset, for the
+// limit, with the line that says how to read on.
+func TestAStoredResultIsReadFromTheOffsetAndForTheLimitLikeAFile(t *testing.T) {
+	lines := make([]string, 0, 900)
+	for number := 1; number <= 900; number++ {
+		lines = append(lines, fmt.Sprintf("%d: line %d of the script", number, number))
+	}
+	tool, _ := newTool(t, storedText{"r25": strings.Join(lines, "\n") + "\n"}, nil)
+
+	out, err := run(t, tool, map[string]any{"path": "r25", "offset": 798, "limit": 3})
+	if err != nil {
+		t.Fatalf("reading r25 from line 798 failed: %v", err)
+	}
+	want := "798: 798: line 798 of the script\n799: 799: line 799 of the script\n800: 800: line 800 of the script\n"
+	if out.Text != want {
+		t.Errorf("reading r25 from line 798 for 3 lines gave:\n%s\nwant:\n%s", out.Text, want)
+	}
+
+	whole, err := run(t, tool, map[string]any{"path": "r25"})
+	if err != nil || !strings.HasPrefix(whole.Text, "1: 1: line 1 of the script\n") || !strings.Contains(whole.Text, "900: 900: line 900 of the script\n") {
+		t.Errorf("reading r25 whole gave %q... (%v), want every line numbered from the first", firstLines(whole.Text, 2), err)
+	}
+}
+
+// firstLines is the first few lines of a text, for a failure message.
+func firstLines(text string, count int) string {
+	lines := strings.SplitN(text, "\n", count+1)
+	if len(lines) > count {
+		lines = lines[:count]
+	}
+	return strings.Join(lines, "\n")
+}

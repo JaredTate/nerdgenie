@@ -13,7 +13,7 @@ VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
-.PHONY: all build test fuzz check live release install repo-map clean
+.PHONY: all build test fuzz check live release install repo-map nightly clean
 
 all: check
 
@@ -119,6 +119,12 @@ release: build
 
 install: build
 	./bin/nerdgenie install
+
+# nightly runs the nightly set against the local model on the home named by
+# NIGHTLY_HOME, four real asks with a check each, measured by runreport; never
+# beside a live run, because the daemon has one slot. See scripts/nightly.
+nightly:
+	scripts/nightly/run.sh $(NIGHTLY_HOME)
 
 repo-map:
 	go run ./scripts/repomap > REPO_MAP.md

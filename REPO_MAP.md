@@ -555,6 +555,8 @@ internal/loop/guard.go
 internal/loop/guard_test.go
 internal/loop/handoff.go
 internal/loop/handoff_test.go
+internal/loop/hangs.go
+internal/loop/hangs_test.go
 internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
@@ -1496,6 +1498,10 @@ scripts/repomap/generate.go
 scripts/repomap/generate_test.go
 scripts/repomap/main.go
 scripts/repomap/main_test.go
+scripts/runreport/doc.go
+scripts/runreport/main.go
+scripts/runreport/report.go
+scripts/runreport/report_test.go
 scripts/stylecheck/doc.go
 scripts/stylecheck/main.go
 scripts/stylecheck/main_test.go

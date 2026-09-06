@@ -1,0 +1,1 @@
+In the folder <WORK>, write add.js that exports a function add(a, b) returning the sum, and a test file test/add.test.js using node:test with three cases: two positives, a negative, and zero. Run the tests with node --test and make them pass.

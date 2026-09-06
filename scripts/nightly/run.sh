@@ -128,7 +128,7 @@ run_one() {
   NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -wait -timeout "$timeout" "$text" > "$work/run.log" 2>&1
   # An ask that became a job goes on after its own task ends: wait for the
   # job to stop running, within the ask's timeout, before measuring.
-  job="$(grep -o 'job [0-9]*' "$work/run.log" | head -1 | awk '{print $2}')"
+  job="$(grep -oE 'job [0-9]+' "$work/run.log" | head -1 | awk '{print $2}')"
   if [ -n "$job" ]; then wait_for_job "$job" "$started" "$timeout"; fi
   cp "$HOME_FOLDER/nerdgenie.db" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-wal" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-shm" "$SCRATCH/" 2>/dev/null
   report="$(cd "$ROOT" && go run ./scripts/runreport --log "$SCRATCH/nerdgenie.db" --from "$first" 2>&1)"

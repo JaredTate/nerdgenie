@@ -27,6 +27,7 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 ARCHITECTURE.md
 BENCHMARK.md
 CLAUDE.md
+CONTRIBUTING.md
 FINISH_PLAN.md
 GPT_BENCHMARK.md
 IDEAS.md
@@ -43,6 +44,7 @@ SETUP.md
 STATE_IMPROVE_INNOVATE_PLAN.md
 STATE_RESEARCH.md
 TEST.md
+TESTING.md
 THIRD_PARTY.md
 Z_PROMPTS.md
 cmd/nerdgenie/askpass.go

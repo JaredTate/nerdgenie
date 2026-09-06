@@ -130,6 +130,7 @@ cmd/nerdgenie/watchedmodel_test.go
 cmd/nerdgenie/wiring.go
 cmd/nerdgenie/wiring_extra_test.go
 cmd/nerdgenie/wiring_test.go
+cmd/nerdgenie/workingfolder.go
 cmd/nerdgenie/yolo.go
 cmd/nerdgenie/yolo_test.go
 docs/DEPENDENCIES.md
@@ -566,6 +567,7 @@ internal/loop/endings.go
 internal/loop/firstline.go
 internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
+internal/loop/freshwindow.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
@@ -597,6 +599,7 @@ internal/loop/nobudget_test.go
 internal/loop/numbering.go
 internal/loop/openplan.go
 internal/loop/orient.go
+internal/loop/orient_test.go
 internal/loop/pagescripts.go
 internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
@@ -681,6 +684,9 @@ internal/memory/testdata/fuzz/FuzzParseFactLine/fcfb27d1ac12ef71
 internal/memory/testdata/twenty-questions.json
 internal/memory/twentyquestions_test.go
 internal/memory/unreadable_test.go
+internal/orientation/doc.go
+internal/orientation/orientation.go
+internal/orientation/orientation_test.go
 internal/permission/askmefirst.go
 internal/permission/askmefirst_test.go
 internal/permission/decider.go
@@ -1057,6 +1063,7 @@ internal/testkit/browserrules_test.go
 internal/testkit/browserserver.go
 internal/testkit/browserserver_test.go
 internal/testkit/browsersize.go
+internal/testkit/browsersize_test.go
 internal/testkit/channel.go
 internal/testkit/channel_test.go
 internal/testkit/checks_catch_job_test.go
@@ -1264,6 +1271,7 @@ internal/tool/shell/escalate_test.go
 internal/tool/shell/fuzz_test.go
 internal/tool/shell/integration_test.go
 internal/tool/shell/internals_test.go
+internal/tool/shell/poll_test.go
 internal/tool/shell/shell.go
 internal/tool/shell/shell_test.go
 internal/tool/shell/start.go

@@ -157,3 +157,38 @@ func TestTheCommandReadsARealLogAndPrintsTheNumbers(t *testing.T) {
 		t.Error("a task the log does not hold gave 0")
 	}
 }
+
+// TestMarksMadeFromTheFirstLineAreCounted is the number the nightly set needs
+// for idea one's second half: whether the model marks a step or a line on
+// its first line, which the harness keeps as the situation's "where the work
+// stands" line on every checkpoint, rather than through the task tool.
+func TestMarksMadeFromTheFirstLineAreCounted(t *testing.T) {
+	store := testkit.NewFakeStore()
+	at := time.Date(2026, 9, 6, 1, 0, 0, 0, time.UTC)
+	for number, orient := range []string{"Nothing is read yet.", "Step 1 done: r1. Next: the brand file.", "Line 1 done: r1 and step 2 done: r2.", "The post is written."} {
+		held := contract.Record{
+			Header: contract.Header{Kind: contract.RecordTask, ID: "9", Status: contract.StatusRunning, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true},
+			Goal:   contract.Goal{Ask: "write the post"},
+			Work:   contract.Work{Situation: []string{"where the work stands: " + orient}},
+		}
+		written, err := json.Marshal(record.Checkpoint{Number: number + 1, Text: string(record.Print(held))})
+		if err != nil {
+			t.Fatalf("cannot write the checkpoint: %v", err)
+		}
+		if _, err := store.Append(t.Context(), contract.Event{TaskID: "9", Kind: contract.EventCheckpoint, Body: written, Occurred: at}); err != nil {
+			t.Fatalf("cannot append the checkpoint: %v", err)
+		}
+		at = at.Add(10 * time.Second)
+	}
+
+	numbers, err := measure(t.Context(), store, "9")
+	if err != nil {
+		t.Fatalf("cannot measure the run: %v", err)
+	}
+	if numbers.firstLineMarks != 3 {
+		t.Errorf("marks made from the first line read %d, want 3: one on the second checkpoint and two on the third", numbers.firstLineMarks)
+	}
+	if !strings.Contains(numbers.String(), "marks made from the first line: 3") {
+		t.Errorf("the report does not say the marks from the first line:\n%s", numbers.String())
+	}
+}

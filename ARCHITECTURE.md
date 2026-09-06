@@ -251,7 +251,12 @@ commands never, so it cleared the conversation in the middle of the search
 and, twenty rounds later, stopped the task and put the game job down at one
 of six. The answer's text is what is judged, so a file read again at a new
 offset that says the same thing is still more of the same, which is what the
-nudge after a failure stands on. **A plan with steps still open says the work is
+nudge after a failure stands on. **The same tests failing on twelve runs in a row draw a line** (`StuckTestRuns`,
+`theStuckTestLine` in `teststate.go`): once every look and command that says
+something new counted as progress, the fresh Tetris build's yeti task could
+spend forty rounds on one failing test with no nudge at all, so a red set seen
+on `StuckTestRuns` runs in a row, and every `StuckTestRuns` after, names the
+tests and the three ways out. **A plan with steps still open says the work is
 not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
 an answer back to the plan when a step is not marked done, naming the steps
 and the one to carry on with, through `sendBackToWork`, which counts the
@@ -901,7 +906,7 @@ below eighty percent, gold from eighty, and red from ninety-five, and drawn only
 when the program sent both numbers; the second look, below, draws the same two
 numbers as a ten-cell meter with its own colours. While the state is thinking, the status strip
 counts the call from `StatusFieldCallStarted`, which is RFC 3339, and
-`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`; the count is the
+`StatusFieldStreamed`, reading `thinking · 14 s · 212 tokens`, and, when the provider reports them, `StatusFieldPromptSpeed` and `StatusFieldOutputSpeed` as `prefill 418 tok/s · output 58 tok/s`, which the local daemon's own timings give and the watched model keeps from the last call, with `StatusFieldModelFile`, the base name of the model file the daemon loaded read once from its `/props`, shown after the alias in the header and in the MODEL panel; the count is the
 deltas and what the provider says the model wrote that no delta shows, its
 thinking and its tool calls (`provider.Options.Unseen`, counted by the watched
 model's `countUnseen`), because the tenth nightly run's screen read

@@ -228,7 +228,11 @@ func TestTheReviewsOfTwoTasksNeverShareAnId(t *testing.T) {
 		t.Fatalf("the task ended %q, want done: %s", outcome.Status, outcome.Report)
 	}
 	facts := factsIn(t, built)
-	if len(facts) != 2 || facts[1].Text != "Keep the brand file check on every draft." || facts[1].ID == facts[0].ID {
+	ids := map[string]string{}
+	for _, fact := range facts {
+		ids[fact.Text] = fact.ID
+	}
+	if len(facts) != 2 || ids["Keep the brand file check on every draft."] == "" || ids["Keep the brand file check on every draft."] == ids["an older run's lesson"] {
 		t.Errorf("memory holds %v, want the older lesson and the new one under an id of its own", facts)
 	}
 }

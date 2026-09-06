@@ -94,11 +94,13 @@ type run struct {
 	// testCommand is the last shell command whose output read as a test run, run again after every change.
 	testCommand string
 	// jobToHandTo is the job made this round with a first task, whose tasks carry the work from here.
-	jobToHandTo      string
-	hadCorrection    bool
-	hadFailure       bool
-	hadStop          bool
-	lessonUnoffered  bool
+	jobToHandTo     string
+	hadCorrection   bool
+	hadFailure      bool
+	hadStop         bool
+	lessonUnoffered bool
+	// lessonUnkept is why the review's lesson could not be kept, or empty.
+	lessonUnkept     string
 	stopLine         string
 	stopNow          string
 	pinned           []workingcontext.Pin

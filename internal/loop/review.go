@@ -66,13 +66,23 @@ func (running *run) review(ctx context.Context) error {
 		where = nil
 		running.lessonUnoffered = looksLikeAProcedure(answer)
 	}
-	return running.theLoop.keepTheLesson(ctx, where, "task "+running.keeper.ID(), answer)
+	// A lesson that cannot be kept costs the lesson and nothing more: the
+	// nightly game build of 6 September lost its job's first report, and the
+	// mark on the job's list, to a review whose fact memory refused, because
+	// the refusal ended the task with an error.
+	if err := running.theLoop.keepTheLesson(ctx, where, "task "+running.keeper.ID(), answer); err != nil {
+		running.lessonUnkept = err.Error()
+	}
+	return nil
 }
 
 // withTheLesson adds the one line an unattended run owes the user: the review
 // found a way of doing something, and nobody was there to be asked whether to
 // keep it as a skill, so it was kept as a fact instead.
 func (running *run) withTheLesson(report string) string {
+	if running.lessonUnkept != "" {
+		return report + "\nThe lesson of this run could not be kept: " + running.lessonUnkept
+	}
 	if !running.lessonUnoffered {
 		return report
 	}
@@ -160,11 +170,15 @@ func (theLoop *Loop) keepTheLesson(ctx context.Context, where contract.Channel, 
 		return nil
 	}
 	if theLoop.options.Memory != nil {
+		// The id carries the moment of the review, so the reviews of two
+		// tasks with the same number, in two homes or two runs of one, never
+		// collide.
+		now := theLoop.options.Clock.Now()
 		if err := theLoop.options.Memory.Save(ctx, []contract.Fact{{
-			ID:       "review-" + strings.ReplaceAll(source, " ", "-"),
+			ID:       "review-" + strings.ReplaceAll(source, " ", "-") + "-" + now.UTC().Format("20060102T150405Z"),
 			Text:     answer,
 			Source:   source,
-			Recorded: theLoop.options.Clock.Now(),
+			Recorded: now,
 		}}); err != nil {
 			return fmt.Errorf("cannot save what %s taught us: %w", source, err)
 		}

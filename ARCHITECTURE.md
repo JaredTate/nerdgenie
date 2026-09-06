@@ -260,7 +260,7 @@ nudge after a failure stands on. **Everything marked and still working draws a l
 something new counted as progress, the fresh Tetris build's yeti task could
 spend forty rounds on one failing test with no nudge at all, so a red set seen
 on `StuckTestRuns` runs in a row, and every `StuckTestRuns` after, names the
-tests and the three ways out. **A plan with steps still open says the work is
+tests and the three ways out. **The reader knows the runners of C, C++ and Ruby** (`teststate_cfamily.go`, 6 September 2026): `testStateIn` sends any line its own switch does not take to `readOtherRunners`, which reads GoogleTest, CTest, Catch2, Unity, Check, minitest and RSpec beside the node:test, Jest, Vitest, pytest and Go it already knew, and the other agent's Python unittest, Mocha, Bun and Deno. Until then a C++ or Ruby project's rerun after every write read as nothing, so the situation line, the stuck-test line and the meter's test-based progress never fired there. Every pattern is anchored to a shape a listing, a build log or a line of prose cannot take: a numbered list ending in brackets is a CTest failure only with one of CTest's own verdicts inside them, and "3 runs, 5 assertions" is minitest only with its failures and errors beside them. Catch2's counts are read and its names are not, because it names a failing case only in a dashed header block some lines above the assertion. **A plan with steps still open says the work is
 not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
 an answer back to the plan when a step is not marked done, naming the steps
 and the one to carry on with, through `sendBackToWork`, which counts the

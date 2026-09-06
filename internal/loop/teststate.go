@@ -128,6 +128,8 @@ func testStateIn(text string) (testState, bool) {
 			found = true
 		case line == "PASS" || line == "FAIL" || strings.HasPrefix(line, "ok  \t") || strings.HasPrefix(line, "FAIL\t"):
 			found = true
+		default: // The runners of C, C++ and Ruby, in teststate_cfamily.go.
+			found = state.readOtherRunners(line) || found
 		}
 	}
 	if !found {

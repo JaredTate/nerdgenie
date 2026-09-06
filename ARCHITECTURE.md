@@ -298,7 +298,22 @@ as a failure naming the call, drops every message, starts the run the detector
 counts again, and leaves `TheRewindLine` as the one message, so the record is
 all that stands and what was tried is not forgotten, only the going round in
 circles. `RewindsAllowed` (three) is how many times that happens before the
-fourth run of the same call ends the turn. The live game build is why: the model
+fourth run of the same call ends the turn. **Beside the guard sits the progress
+meter** (`progress.go`), for the stall the guard is blind to: the one that
+changes a character each round, which run four's sixty rounds on two tests were
+and run five's eleven launches of an unnamed application were. Progress is what
+the harness can measure for itself: a test run that improves on the run before
+or is the first seen, a plan step or a done line marked, a browser action whose
+first line says the page changed, a new file written, and a read, search, fetch
+or open of something this task had not looked at before, which is what keeps a
+research task that reads a different file every round from ever reading as a
+stall. A round with none of it counts; a round that only polls a running
+command does not. At `NudgeAfterRoundsWithoutProgress` (ten) the model reads
+`TheStallLine`; at `RewindAfterRoundsWithoutProgress` (twenty) the conversation
+is cleared through the same `rewindIfDue` with the stall written into the record
+as a failure and the count started again; and twenty more without progress
+after that stop the task. The count rides in the Situation as "rounds since
+progress: N" whenever it is above nought. The live game build is why: the model
 read one file four times running because the browser tool had told it a click
 worked when the page said it had not, the third refusal ended the turn, and a
 task from the terminal whose turn ends is a stopped task, which is a stall

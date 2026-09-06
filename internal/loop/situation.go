@@ -55,6 +55,9 @@ func (running *run) writeSituation(ctx context.Context) error {
 	if running.testsFact != "" {
 		facts = append(facts, cutToALine(running.testsFact))
 	}
+	if line := running.theProgressLine(); line != "" {
+		facts = append(facts, line)
+	}
 	if running.lastOrient != "" {
 		facts = append(facts, cutToALine("where the work stands: "+running.lastOrient))
 	}
@@ -106,17 +109,24 @@ func (running *run) loggedFileChanges(ctx context.Context) []string {
 // of one tool result: the page the browser is on, the last command and how it
 // went, and the files a write or an edit touched.
 func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, failed bool) {
+	if !failed {
+		running.noteAReadOfSomethingNew(call)
+	}
 	switch {
 	case strings.HasPrefix(call.Name, "browser"):
 		if first := firstLine(text); first != "" {
 			running.browserFact = "browser: " + first
 		}
+		running.noteAChangedPage(text)
 	case call.Name == contract.ToolShell:
 		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)
 	case call.Name == contract.ToolWrite || call.Name == contract.ToolEdit:
 		path := fieldOfCall(call, "path")
 		if path != "" && !slices.Contains(running.filesChanged, path) {
 			running.filesChanged = append(running.filesChanged, path)
+			if call.Name == contract.ToolWrite && !failed {
+				running.noteProgress()
+			}
 		}
 		if path != "" && !failed && !slices.Contains(running.changedSinceTheLastRun, path) {
 			running.changedSinceTheLastRun = append(running.changedSinceTheLastRun, path)

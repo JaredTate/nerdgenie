@@ -81,8 +81,9 @@ func (running *run) rewindIfDue(ctx context.Context) {
 	}
 	running.rewindDue = false
 	running.hadFailure = true
+	running.roundsSinceProgress = 0
 	_ = running.keeper.Apply(ctx, record.Update{Failure: &record.NewFailure{
-		Text:  "stalled: asked for " + running.stalledOn + " over and over, so the conversation was cleared",
+		Text:  running.stallText,
 		Cause: "nothing the last rounds returned changed what was asked next",
 	}})
 	running.messages = nil

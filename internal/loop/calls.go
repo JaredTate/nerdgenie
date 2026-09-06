@@ -22,6 +22,7 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 	if err := running.startTheRecord(ctx); err != nil {
 		return Outcome{}, false, err
 	}
+	marksBefore := running.marksMade()
 	results := []contract.ToolResult{}
 	var ending *Outcome
 	for _, call := range found.Calls {
@@ -36,6 +37,13 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 		}
 	}
 	running.remember(contract.Message{Role: contract.RoleUser, ToolResults: results})
+	if ending == nil {
+		stalled, err := running.countTheRound(ctx, marksBefore, found.Calls)
+		if err != nil {
+			return Outcome{}, false, err
+		}
+		ending = stalled
+	}
 	running.rewindIfDue(ctx)
 	running.sayTheProbeLine()
 	if err := running.writeSituation(ctx); err != nil {
@@ -69,7 +77,7 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 	if hadEnough && running.rewindsUsed < RewindsAllowed {
 		running.rewindsUsed++
 		running.rewindDue = true
-		running.stalledOn = call.Name + " " + whatTheCallSays(call)
+		running.stallText = "stalled: asked for " + call.Name + " " + whatTheCallSays(call) + " over and over, so the conversation was cleared"
 		return refusedResult(call, refusal), nil, nil
 	}
 	if hadEnough {

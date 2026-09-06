@@ -73,7 +73,14 @@ type run struct {
 	// rewindsUsed counts the times the conversation was cleared to break a run of the same call; rewindDue says this round earned one.
 	rewindsUsed int
 	rewindDue   bool
-	stalledOn   string
+	stallText   string
+	// The progress meter: rounds since the harness saw the work move, whether this round moved it, and how many stalls the rewind has cleared.
+	roundsSinceProgress int
+	progressThisRound   bool
+	stallsAfterARewind  int
+	sawATestRun         bool
+	lastFailedCount     int
+	thingsRead          map[string]bool
 	// jobToHandTo is the job made this round with a first task, whose tasks carry the work from here.
 	jobToHandTo      string
 	hadCorrection    bool

@@ -14,6 +14,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/clock"
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/replay"
 	"github.com/JaredTate/nerdgenie/internal/sandbox"
 	"github.com/JaredTate/nerdgenie/internal/skill"
@@ -318,6 +319,9 @@ func (running *agent) toolSettings(taskID string, records loop.TaskRecord) tool.
 		settings.Records = records
 		settings.Results = records
 	}
+	// A job's reports are read by their labels out of the log, so a task of
+	// the job can read what the tasks before it reported.
+	settings.Reports = record.ReportsIn(running.events)
 	return settings
 }
 

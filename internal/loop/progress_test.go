@@ -225,3 +225,38 @@ func TestTheFirstEditOfAFileIsProgress(t *testing.T) {
 		t.Errorf("the stall line was said %d times over twelve edits that each changed a file for the first time", count)
 	}
 }
+
+// TestTheNudgeNamesTheCauseAlreadyOnTheRecordWhenNothingWasChangedSince is
+// the shape the nightly Tetris build showed at round fifty and the play-test
+// task showed the night before: the model writes the failure with its cause,
+// naming the function to change, and then reads and searches for ten rounds
+// without touching a file. The nudge at ten says so: the record already
+// names the cause, and the rounds since changed nothing, so make the change
+// it calls for.
+func TestTheNudgeNamesTheCauseAlreadyOnTheRecordWhenNothingWasChangedSince(t *testing.T) {
+	steps := []testkit.Step{
+		callStep("The clear test is red. I will write down why.",
+			taskCall("f1", `{"operation":"failure","text":"the line-clear test fails: hardDrop leaves the engine animating","cause":"lockPiece routes every clear into beginLineClear, which parks the engine"}`)),
+	}
+	reads := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+1; at++ {
+		steps = append(steps, callStep("I will look at the test again.", callFor(fmt.Sprintf("r%d", at), contract.ToolRead, `{"path":"/game/tests/core.test.js"}`)))
+		reads = append(reads, "1: test('line clearing', () => {})")
+	}
+	steps = append(steps, answerStep("I see it now. What changed: nothing. What I checked: the test. What is left: the fix."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolRead, reads...))
+
+	built.ask(t, "make the tests pass")
+
+	first, _ := requestsCarrying(built, loop.TheCauseIsKnownLine)
+	if first < 0 {
+		t.Fatalf("the nudge never said the cause was already on the record, and the model had written F1 with one and changed nothing since")
+	}
+	shown := wholeRequestText(built.model.Requests()[first])
+	if !strings.Contains(shown, "F1") || !strings.Contains(shown, "lockPiece routes every clear into beginLineClear") {
+		t.Errorf("the nudge does not name F1 and its cause:\n%s", shown[strings.Index(shown, loop.TheCauseIsKnownLine):])
+	}
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the plain stall line was said %d times as well, and one nudge is enough", count)
+	}
+}

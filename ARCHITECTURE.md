@@ -304,10 +304,14 @@ changes a character each round, which run four's sixty rounds on two tests were
 and run five's eleven launches of an unnamed application were. Progress is what
 the harness can measure for itself: a test run that improves on the run before
 or is the first seen, a plan step or a done line marked, a browser action whose
-first line says the page changed, a new file written, and a read, search, fetch
-or open of something this task had not looked at before, which is what keeps a
-research task that reads a different file every round from ever reading as a
-stall. A round with none of it counts; a round that only polls a running
+first line says the page changed, a new file written, and a read, search, fetch,
+open or browser read of something this task had not looked at before (a read
+by its path, a browser read by its intent), which is what keeps a research
+task that reads a different file every round, or a play-test that asks the
+page something new every round, from ever reading as a stall: the fifth game
+build's play-test moved the piece, dropped it, paused, restarted and forced
+the dragon through `browser_read`'s ask, twelve rounds of new state, and the
+meter read fourteen until browser reads joined the list. A round with none of it counts; a round that only polls a running
 command does not. At `NudgeAfterRoundsWithoutProgress` (ten) the model reads
 `TheStallLine`; at `RewindAfterRoundsWithoutProgress` (twenty) the conversation
 is cleared through the same `rewindIfDue` with the stall written into the record

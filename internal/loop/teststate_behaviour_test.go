@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 

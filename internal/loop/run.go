@@ -92,8 +92,11 @@ type run struct {
 	progressThisRound   bool
 	stallsAfterARewind  int
 	sawATestRun         bool
-	lastFailedCount     int
-	thingsRead          map[string]bool
+	// sameFailingRuns counts the test runs in a row on which the same tests
+	// have failed, which is what the stuck line is said on.
+	sameFailingRuns int
+	lastFailedCount int
+	thingsRead      map[string]bool
 	// thingsSaid is every answer a look or a command has given this task, so
 	// that one that says something new counts as a look at something new.
 	thingsSaid map[string]bool

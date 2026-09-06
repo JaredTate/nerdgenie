@@ -231,6 +231,22 @@ func withoutItsTiming(name string) string {
 	return name
 }
 
+// StuckTestRuns is how many test runs in a row the same failing set is seen
+// on before the model is told so: the fresh Tetris build's yeti task on the
+// morning of 6 September spent forty rounds on one failing test, every probe
+// counted as progress, and nothing said what a person watching would have.
+const StuckTestRuns = 12
+
+// TheStuckTestLine opens the line said when the same tests have failed on
+// StuckTestRuns runs in a row.
+const TheStuckTestLine = "The same tests have failed on the last "
+
+// theStuckTestLine names the failing tests and the three ways out.
+func theStuckTestLine(runs int, state testState) string {
+	return fmt.Sprintf("%s%d test runs: %s. Write a failure with its cause, then take one of three ways out: change the approach, fix the test itself if its expectation is wrong, or write the failure, leave the step unmarked and go on to the next.",
+		TheStuckTestLine, runs, strings.TrimPrefix(state.line(), "tests: "))
+}
+
 // writeWhatTheTestsShow reads a test runner's summary off a shell result and
 // writes it into the record: the state into the situation on the next round,
 // and, when the run is red, what is failing changed, and a file was changed
@@ -256,6 +272,7 @@ func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.Too
 	key := state.key()
 	sameAsBefore := key == running.lastFailingSet
 	running.lastFailingSet = key
+	running.noteAStuckTest(state, sameAsBefore)
 	if state.failed == 0 || len(changed) == 0 || sameAsBefore {
 		return
 	}
@@ -265,6 +282,22 @@ func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.Too
 		Text:  strings.TrimPrefix(state.line(), "tests: ") + " after changing " + named,
 		Cause: "the change to " + named + " before the run " + label,
 	}})
+}
+
+// noteAStuckTest counts the test runs in a row on which the same tests have
+// failed, and says so at StuckTestRuns and every StuckTestRuns after.
+func (running *run) noteAStuckTest(state testState, sameAsBefore bool) {
+	if state.failed == 0 || !sameAsBefore {
+		running.sameFailingRuns = 0
+		if state.failed > 0 {
+			running.sameFailingRuns = 1
+		}
+		return
+	}
+	running.sameFailingRuns++
+	if running.sameFailingRuns%StuckTestRuns == 0 {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: theStuckTestLine(running.sameFailingRuns, state)})
+	}
 }
 
 // shortNamesOf names files by their last path element, at most

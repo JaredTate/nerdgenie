@@ -61,9 +61,12 @@ type run struct {
 	// saidTheMarkHint says the one-time hint about marks on the first line
 	// was said.
 	saidTheMarkHint bool
-	commandFact     string
-	continuedFact   string
-	filesChanged    []string
+	// changedSinceTheLastFailure says a file was written or edited since the
+	// newest failure was written, which is what the nudge at ten rounds reads.
+	changedSinceTheLastFailure bool
+	commandFact                string
+	continuedFact              string
+	filesChanged               []string
 	// changedSinceTheLastRun names the files written or edited since the last
 	// test run, which are the cause a red run is written down with.
 	changedSinceTheLastRun []string

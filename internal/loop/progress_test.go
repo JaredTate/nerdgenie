@@ -238,9 +238,12 @@ func TestTheNudgeNamesTheCauseAlreadyOnTheRecordWhenNothingWasChangedSince(t *te
 		callStep("The clear test is red. I will write down why.",
 			taskCall("f1", `{"operation":"failure","text":"the line-clear test fails: hardDrop leaves the engine animating","cause":"lockPiece routes every clear into beginLineClear, which parks the engine"}`)),
 	}
+	// Each read starts at a different line, so the same-call guard lets them
+	// through; the file is the same one every time, so none is a read of
+	// something new and the meter counts every round.
 	reads := []string{}
 	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+1; at++ {
-		steps = append(steps, callStep("I will look at the test again.", callFor(fmt.Sprintf("r%d", at), contract.ToolRead, `{"path":"/game/tests/core.test.js"}`)))
+		steps = append(steps, callStep("I will look at the test again.", callFor(fmt.Sprintf("r%d", at), contract.ToolRead, fmt.Sprintf(`{"path":"/game/tests/core.test.js","offset":%d}`, at))))
 		reads = append(reads, "1: test('line clearing', () => {})")
 	}
 	steps = append(steps, answerStep("I see it now. What changed: nothing. What I checked: the test. What is left: the fix."))

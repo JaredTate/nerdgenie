@@ -315,7 +315,11 @@ build's play-test moved the piece, dropped it, paused, restarted and forced
 the dragon through `browser_read`'s ask, twelve rounds of new state, and the
 meter read fourteen until browser reads joined the list. A round with none of it counts; a round that only polls a running
 command does not. At `NudgeAfterRoundsWithoutProgress` (ten) the model reads
-`TheStallLine`; at `RewindAfterRoundsWithoutProgress` (twenty) the conversation
+`TheStallLine`, or `TheCauseIsKnownLine` with the newest failure's cause when
+that failure carries one and no file was written or edited since it was
+written (`theNudge`, `changedSinceTheLastFailure`), because the nightly game
+build wrote the cause of its line-clear failure naming the function to change
+and then read and searched for ten rounds without touching it; at `RewindAfterRoundsWithoutProgress` (twenty) the conversation
 is cleared through the same `rewindIfDue` with the stall written into the record
 as a failure and the count started again; and twenty more without progress
 after that stop the task. The count rides in the Situation as "rounds since

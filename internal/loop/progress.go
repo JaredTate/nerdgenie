@@ -33,6 +33,13 @@ const (
 // rounds in which nothing the harness can measure moved.
 const TheStallLine = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read. Write what these rounds showed into the record as a failure with its cause, then take a different approach; more of the same will not move the count."
 
+// TheCauseIsKnownLine opens the nudge said instead of TheStallLine when the
+// record's newest failure already carries a cause and no file was changed
+// since it was written: the nightly game build at round fifty, and the
+// play-test task the night before, wrote the cause down naming the function
+// to change and then read and searched for ten rounds without touching it.
+const TheCauseIsKnownLine = "That is ten rounds of reading and searching with nothing changed, and the record already names the cause: "
+
 // theToolsThatRead are the tools whose answer is new information when what
 // they are pointed at is new: a task that reads a different file every round
 // is moving, and one that reads the same file every round is not.
@@ -143,7 +150,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 	running.roundsSinceProgress++
 	switch running.roundsSinceProgress {
 	case NudgeAfterRoundsWithoutProgress:
-		running.remember(contract.Message{Role: contract.RoleUser, Text: TheStallLine})
+		running.remember(contract.Message{Role: contract.RoleUser, Text: running.theNudge()})
 	case RewindAfterRoundsWithoutProgress:
 		if running.stallsAfterARewind > 0 {
 			ended, err := running.stopHere(ctx, fmt.Sprintf("%d rounds without progress, twice over", RewindAfterRoundsWithoutProgress))
@@ -155,6 +162,22 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 			RewindAfterRoundsWithoutProgress)
 	}
 	return nil, nil
+}
+
+// theNudge is the line said at ten rounds without progress: the plain stall
+// line, or, when the record's newest failure carries a cause and nothing was
+// changed since it was written, the line that names that cause and says to
+// make the change it calls for.
+func (running *run) theNudge() string {
+	if running.keeper == nil || running.changedSinceTheLastFailure {
+		return TheStallLine
+	}
+	failures := running.keeper.Record().Lessons.Failures
+	if len(failures) == 0 || failures[len(failures)-1].Cause == "" {
+		return TheStallLine
+	}
+	newest := failures[len(failures)-1]
+	return TheCauseIsKnownLine + newest.ID + " says the cause is \"" + newest.Cause + "\". Make the change it calls for, in the file it names, and run the tests."
 }
 
 // theProgressLine is the situation's line on the meter, and is empty while the

@@ -161,3 +161,21 @@ func TestAScrollStepRidesInABatch(t *testing.T) {
 		}
 	}
 }
+
+// TestAPressStepTakesItsKeyUnderTextToo is the fifth game build's play-test:
+// the model wrote a press step as {"method":"press","on":"body","text":
+// "ArrowLeft"} three times running and read "step 1 names no key to press"
+// each time, because the key was looked for under key alone. A key written as
+// text, or as press, is the key.
+func TestAPressStepTakesItsKeyUnderTextToo(t *testing.T) {
+	tool, _ := newTool(t)
+
+	for _, step := range []map[string]any{
+		{"method": "press", "on": "body", "text": "ArrowLeft", "expectation": "the piece moves left"},
+		{"method": "press", "press": "ArrowRight", "expectation": "the piece moves right"},
+	} {
+		if _, err := run(t, tool, map[string]any{"intent": "move the piece", "steps": []any{step}}); err != nil {
+			t.Errorf("the press step %v was refused: %v", step, err)
+		}
+	}
+}

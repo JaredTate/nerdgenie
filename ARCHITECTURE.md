@@ -338,7 +338,11 @@ model started or the disk when the page is a file, never another machine, and
 puts every line that opens a `while` or a `for` on the same result under
 `TheLoopsLine` as file, line and text, the whiles first and then the fors, at
 most twelve with a line saying how many fors fell off the end, within five
-seconds and two megabytes a script; the first list the live run got was the
+seconds and two megabytes a script, and a while whose body, up to its closing
+brace, never mentions a word its condition reads carries `TheNeverChangesMark`
+and comes first of all, because that is the loop that never yields nine times
+in ten and the live model read the unmarked list of three whiles and went back
+to the sound engine; the first list the live run got was the
 renderer's twelve counted fors in line order, and the ghost-piece while on
 line 495 was not on it. The page's address is taken off the browser's own
 results as they pass (`addressIn`). The scripts are the page's and not the

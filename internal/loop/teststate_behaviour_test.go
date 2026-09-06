@@ -28,7 +28,9 @@ func aRedThenGreenBuild(t *testing.T) *harness {
 		answerStep("The suite is green."),
 	},
 		scriptedTool(contract.ToolWrite, "wrote /p/tests/board.test.js, 120 bytes"),
-		scriptedTool(contract.ToolShell, aRedRun, aRedRun, aGreenRun),
+		// The harness runs the tests itself after the edit, so the shell
+		// answers that run too, green, before the model's own green run.
+		scriptedTool(contract.ToolShell, aRedRun, aRedRun, aGreenRun, aGreenRun),
 		scriptedTool(contract.ToolEdit, "edited /p/src/board.js by 1 line"),
 	)
 }

@@ -81,6 +81,8 @@ type run struct {
 	sawATestRun         bool
 	lastFailedCount     int
 	thingsRead          map[string]bool
+	// testCommand is the last shell command whose output read as a test run, run again after every change.
+	testCommand string
 	// jobToHandTo is the job made this round with a first task, whose tasks carry the work from here.
 	jobToHandTo      string
 	hadCorrection    bool

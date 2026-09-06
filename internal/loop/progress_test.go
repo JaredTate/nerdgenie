@@ -105,11 +105,22 @@ func TestProgressStartsTheCountAgain(t *testing.T) {
 	for range 3 * loop.NudgeAfterRoundsWithoutProgress {
 		edits = append(edits, "edited /game/src/engine.js by 1 line")
 	}
+	// Once the model has run the tests, the harness runs them again after
+	// every edit, so the shell answers the model's two runs and every run
+	// after an edit: the same red each time, which is no progress.
+	twoRed := "finished with exit code 1\n✖ clears a row (1ms)\n✖ spawns (1ms)\nℹ tests 10\nℹ pass 8\nℹ fail 2\nexit 1"
+	oneRed := "finished with exit code 1\n✖ clears a row (1ms)\nℹ tests 10\nℹ pass 9\nℹ fail 1\nexit 1"
+	runs := []string{twoRed}
+	for range loop.NudgeAfterRoundsWithoutProgress - 2 {
+		runs = append(runs, twoRed)
+	}
+	runs = append(runs, oneRed)
+	for range 2 * (loop.NudgeAfterRoundsWithoutProgress - 2) {
+		runs = append(runs, oneRed)
+	}
 	built := newHarness(t, steps,
 		scriptedTool(contract.ToolEdit, edits...),
-		scriptedTool(contract.ToolShell,
-			"finished with exit code 1\n✖ clears a row (1ms)\n✖ spawns (1ms)\nℹ tests 10\nℹ pass 8\nℹ fail 2\nexit 1",
-			"finished with exit code 1\n✖ clears a row (1ms)\nℹ tests 10\nℹ pass 9\nℹ fail 1\nexit 1"))
+		scriptedTool(contract.ToolShell, runs...))
 
 	outcome := built.ask(t, "make the tests pass")
 

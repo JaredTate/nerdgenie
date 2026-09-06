@@ -313,7 +313,16 @@ command does not. At `NudgeAfterRoundsWithoutProgress` (ten) the model reads
 is cleared through the same `rewindIfDue` with the stall written into the record
 as a failure and the count started again; and twenty more without progress
 after that stop the task. The count rides in the Situation as "rounds since
-progress: N" whenever it is above nought. The live game build is why: the model
+progress: N" whenever it is above nought. **The tests run themselves after a
+change** (`autotest.go`): on the fifth game build the model never put two calls
+in one reply, so every test run was a round of its own, eighteen percent of the
+run at sixteen seconds each. `rememberTheTestCommand` keeps the command of any
+shell call whose output read as a test run, and `runTheTestsAfter` runs it
+again, word for word through the same shell tool and under the tool's own
+ten-second yield, after every write or edit that worked, putting "tests after
+this change: ..." on the change's own result and moving the situation's tests
+line and the meter; a run the model did not ask for never writes a failure
+line, and a suite that outruns the yield is left to the model. The live game build is why: the model
 read one file four times running because the browser tool had told it a click
 worked when the page said it had not, the third refusal ended the turn, and a
 task from the terminal whose turn ends is a stopped task, which is a stall

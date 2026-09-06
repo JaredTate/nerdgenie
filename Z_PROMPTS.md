@@ -230,6 +230,7 @@ Watch `nerdgenie tui` yourself at 80 by 24, 120 by 40, and 160 by 50, resizing t
 - a record line appears when the record changes, and `/tasks`, `/jobs`, and `/status` answer while the model is busy, without starting a task;
 - an approval card is answered inline with `a`, `A`, or `r`, and `/vault add` asks for its secret on a prompt that never echoes;
 - Escape stops a reply or a task, and `/` opens the command palette;
+- while the program is idle the side panel keeps the last record line, how the last task or job ended, under LAST, and drops it the moment a task runs;
 - at 100 columns and wider, the side panel down the right shows the job's tasks with a pointer at the running one, a check beside each finished one, and the running task's plan; at 80 columns there is no panel and the transcript uses the whole width;
 - nothing is cut off mid-word, no line is drawn twice, and at 160 by 50 there is no empty band or stale frame left from the smaller size;
 - resizing between the three sizes causes no flicker and leaves nothing behind.

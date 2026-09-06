@@ -126,10 +126,23 @@ func TestARecordLineThatComesBackAfterAnotherIsCountedOnItsPill(t *testing.T) {
 	if counts := recordPillCounts(screen); counts[0] != 2 || counts[1] > 1 {
 		t.Errorf("the counts on the pills are %v, and the line that came back is counted twice on its own pill and the other not at all", counts)
 	}
-	frame := plainText(screen.frame())
+	frame := transcriptSide(plainText(screen.frame()))
 	if strings.Count(frame, "task 1 done") != 1 || !strings.Contains(frame, "× 2") {
 		t.Errorf("the frame should draw the line that came back once with a count of two:\n%s", frame)
 	}
+}
+
+// transcriptSide is the frame without the side panel, which keeps the last
+// record line of its own while the program is idle: each row cut at the
+// panel's edge.
+func transcriptSide(frame string) string {
+	rows := strings.Split(frame, "\n")
+	for at, row := range rows {
+		if cut := strings.Index(row, "│"); cut >= 0 {
+			rows[at] = row[:cut]
+		}
+	}
+	return strings.Join(rows, "\n")
 }
 
 func TestARecordLineThatKeepsComingBackIsOnePillWithACount(t *testing.T) {
@@ -142,7 +155,7 @@ func TestARecordLineThatKeepsComingBackIsOnePillWithACount(t *testing.T) {
 	if said := pillTexts(screen); len(said) != 2 {
 		t.Fatalf("two record lines taking turns six times drew the pills %q, and each line has one pill", said)
 	}
-	frame := plainText(screen.frame())
+	frame := transcriptSide(plainText(screen.frame()))
 	if strings.Count(frame, "task 1 done") != 1 || strings.Count(frame, "job 2 task 2 started") != 1 {
 		t.Errorf("each of the two lines is drawn once:\n%s", frame)
 	}

@@ -242,3 +242,15 @@ func (screen *Screen) waitingPanelLines() []row {
 	}
 	return appendPanelWords(nil, styleDim, jobWords(screen.jobs), screen.panelTextWidth())
 }
+
+// lastPanelLines keeps the last record line, how the last task or job ended,
+// on the panel while the program is idle, because the desktop window the
+// morning after the fifth game build showed the model and the word idle with
+// the ending only in the transcript, where it scrolls away. While a task runs
+// the state and the checklist say where the work is, and this says nothing.
+func (screen *Screen) lastPanelLines() []row {
+	if screen.state != stateIdle || screen.taskRunning() || screen.lastRecord == "" {
+		return nil
+	}
+	return wrapFact("", strings.TrimSpace(strings.TrimPrefix(screen.lastRecord, "▸")), styleNormal, screen.panelTextWidth())
+}

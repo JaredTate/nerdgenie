@@ -188,6 +188,8 @@ docs/html/nerdgenie-plan.html
 docs/html/nerdgenie.html
 docs/html/work-plan.html
 docs/nightly/2026-09-06-b-first-line-mark.md
+docs/nightly/2026-09-06-c-forty-lines-and-read-caps.md
+docs/nightly/2026-09-06-d-first-line-hint.md
 docs/nightly/2026-09-06.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py

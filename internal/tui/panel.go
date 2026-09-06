@@ -154,6 +154,7 @@ func (screen *Screen) panelItems() []panelLine {
 	for _, group := range [][]panelLine{
 		screen.labelled("MODEL", screen.modelPanelLines()),
 		screen.labelled("NOW", screen.nowPanelLines()),
+		screen.labelled("LAST", screen.lastPanelLines()),
 		screen.checklistItems(),
 		screen.labelled("STATE", screen.statePanelLines()),
 		screen.labelled("FAILURES", screen.failuresPanelLines()),

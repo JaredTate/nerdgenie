@@ -243,6 +243,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 06:05 on 6 September, from the run reports: the report counts refusals by tool (the tenth run's game job had 23 of its 62 task-tool calls refused; the eleventh's first tasks had 3 of 18), the `task` tool's refusal of a pin on an empty done list says to write the list first, and the review's fourth answer skips headings, questions and lines ending in a colon, because the memory held "**2. What actually happened?**" and "Why was there a difference? - Let me look at the friction points:" as two of its nineteen lessons.
 
+- Built at 06:20 on 6 September, from the eleventh nightly run: the harness read none of the game job's ten Vitest runs as a test run, because the test-state reader knew Node's own runner, Jest, pytest and Go's and not Vitest's "Tests  16 failed | 56 passed (72)". So no tests-after-a-change rerun fired, a run that went from 36 failing to 16 was "finished with exit code 1" both times, the meter saw twenty rounds of real implementation as no progress, and it cleared the conversation in the middle of the hazards task. The reader now knows Vitest, files that could not load included. The run was stopped at 06:22 on its third task so that the twelfth could start on the binary with every fix of the night.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

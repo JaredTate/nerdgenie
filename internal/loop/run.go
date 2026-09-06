@@ -227,7 +227,7 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	if err := running.readJobSummary(ctx); err != nil {
 		return nil, err
 	}
-	running.remember(contract.Message{Role: contract.RoleUser, Text: task.Message.Text})
+	running.openTheWindow(ctx, task)
 	// The ask is written under the number the task has just taken rather than
 	// under the record's, which does not exist until the first tool call, so
 	// that the one event saying which screen the task came from is the task's

@@ -386,6 +386,8 @@ func (running *agent) openTheLoop() error {
 		ToolLine:     running.noteToolLine,
 		RecordLine:   running.noteRecordLine,
 		Deltas:       running.streamReplyPiece,
+
+		WorkingDirectory: theWorkingFolder(running.settings.SandboxRoots, running.home.Root),
 	})
 	if err != nil {
 		return err

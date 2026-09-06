@@ -344,7 +344,25 @@ as a failure naming the call, drops every message, starts the run the detector
 counts again, and leaves `TheRewindLine` as the one message, so the record is
 all that stands and what was tried is not forgotten, only the going round in
 circles. `RewindsAllowed` (three) is how many times that happens before the
-fourth run of the same call ends the turn. **Beside the guard sits the progress
+fourth run of the same call ends the turn.
+
+**A fresh window opens oriented (6 September 2026).** Every fresh window used to
+cost rounds of finding bearings: after each of four serve restarts that day the
+model re-read about six earlier results by their ids, because the window carried
+only their one-line summaries, and at the start of tasks it listed the work
+folder and asked which ports were listening. `openTheWindow` and
+`rememberTheOrientation` in `freshwindow.go` now put one block from
+`internal/orientation` in front of the model as a message of its own right
+after the ask, and again right after `TheRewindLine`: what is in the working
+folder (`Options.WorkingDirectory`, the first sandbox root, sorted, folders
+marked, forty names at most), which TCP ports are listening on this machine,
+read from the kernel's own socket tables, and, when the window is fresh but the
+task is not (a pick-up by `ResumeID`, or a rewind), the newest two results in
+full, each cut to 1,500 characters with head and tail kept. The whole block is
+bounded at 6,000 characters and nothing in it can fail the task: a folder or a
+table that cannot be read is one line saying so. It rides as a user message so
+that from the second round on it sits in the cached part of the conversation
+rather than in the changing tail. **Beside the guard sits the progress
 meter** (`progress.go`), for the stall the guard is blind to: the one that
 changes a character each round, which run four's sixty rounds on two tests were
 and run five's eleven launches of an unnamed application were. Progress is what

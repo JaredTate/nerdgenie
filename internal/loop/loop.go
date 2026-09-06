@@ -73,6 +73,9 @@ type Options struct {
 	// what a screen draws so that a person can see what the agent is working
 	// on, and is nil when nobody is watching.
 	RecordLine func(line string)
+	// WorkingDirectory is the folder the agent works in, which the orientation
+	// a fresh window opens with lists. Empty leaves the folder out of it.
+	WorkingDirectory string
 }
 
 // Budget is how much one task may spend. A zero budget means the caps.

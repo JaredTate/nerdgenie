@@ -1056,6 +1056,7 @@ internal/testkit/browserpages.go
 internal/testkit/browserrules_test.go
 internal/testkit/browserserver.go
 internal/testkit/browserserver_test.go
+internal/testkit/browsersize.go
 internal/testkit/channel.go
 internal/testkit/channel_test.go
 internal/testkit/checks_catch_job_test.go
@@ -1159,6 +1160,9 @@ internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
 internal/tool/browserread/testdata/a_page_with_text.txt
+internal/tool/browserresize/browserresize.go
+internal/tool/browserresize/browserresize_test.go
+internal/tool/browserresize/doc.go
 internal/tool/browsershot/browsershot.go
 internal/tool/browsershot/browsershot_test.go
 internal/tool/browsershot/doc.go

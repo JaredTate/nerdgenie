@@ -41,6 +41,9 @@ type harness struct {
 	toolLines  []string
 	// vision says the loop is built for a model that reads pictures.
 	vision bool
+	// workFolder is the folder the loop is told the agent works in, a folder
+	// of the test's own, which the orientation a fresh window opens with lists.
+	workFolder string
 }
 
 // newHarness builds a loop over the fakes, with the tools the test needs and the
@@ -57,6 +60,7 @@ func newHarness(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *har
 		skills:  testkit.NewFakeSkill(),
 		sandbox: testkit.NewFakeSandbox(),
 	}
+	built.workFolder = t.TempDir()
 	built.jobs = &fakeJobThatResumes{FakeJob: testkit.NewFakeJob(built.clock)}
 	built.tools = testkit.NewFakeToolRegistry(tools...)
 	built.builder = theWorkingContext(t)
@@ -106,6 +110,8 @@ func (built *harness) optionsOver(model contract.Model) loop.Options {
 		Deltas:     built.noteDelta,
 		RecordLine: built.noteRecordLine,
 		ToolLine:   built.noteToolLine,
+
+		WorkingDirectory: built.workFolder,
 	}
 }
 

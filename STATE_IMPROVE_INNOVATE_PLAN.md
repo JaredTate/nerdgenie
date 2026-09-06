@@ -128,6 +128,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 **Cost.** About 200 tokens, once per task. **Risk.** None new. **Verdict.** Build first.
 
+**Built, 6 September 2026.** Not as a shell command but as facts the harness reads itself, in `internal/orientation`: the working folder's entries, the ports listening on this machine from the kernel's own socket tables, and, on a window that is fresh for a task that is not new (a pick-up after a restart, or a rewind), the newest two results in full. It rides as the first harness message after the ask or the rewind line, so it sits in the cached part of the conversation from the second round on. Measured need: after each of four serve restarts that day the model re-read about six results by their ids, and at the start of tasks it listed the folder and asked which ports were listening.
+
 ### 6. The twenty-task set, run nightly, with the four numbers
 
 **What.** Twenty real tasks with a pass or fail check each, from tiny (rename a function) to the Tetris build, run nightly on the local model by a scheduled job. For each: rounds, minutes, output tokens, cache hit rate, and the outcome, written to `docs/PROGRESS.md`. Every failed live task becomes the twenty-first.

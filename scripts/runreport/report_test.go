@@ -193,6 +193,42 @@ func TestMarksMadeFromTheFirstLineAreCounted(t *testing.T) {
 	}
 }
 
+// TestRoundsCutOffAtTheOutputCapAreCounted is the tenth nightly run: six of
+// the game job's rounds ended at the output cap of 8,192 tokens, each two
+// minutes of generation kept nowhere, and the table had no column that showed
+// it. A round whose reply reached the cap is counted, read off the cost line
+// the checkpoint carries.
+func TestRoundsCutOffAtTheOutputCapAreCounted(t *testing.T) {
+	store := testkit.NewFakeStore()
+	at := time.Date(2026, 9, 6, 5, 0, 0, 0, time.UTC)
+	for number, out := range []int{300, 8192, 8192, 400} {
+		held := contract.Record{
+			Header: contract.Header{Kind: contract.RecordTask, ID: "12", Status: contract.StatusRunning, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true,
+				Cost: contract.CostLine{InputTokens: 26000, CachedInputTokens: 23000, OutputTokens: out}},
+			Goal: contract.Goal{Ask: "build the frontend"},
+		}
+		written, err := json.Marshal(record.Checkpoint{Number: number + 1, Text: string(record.Print(held))})
+		if err != nil {
+			t.Fatalf("cannot write the checkpoint: %v", err)
+		}
+		if _, err := store.Append(t.Context(), contract.Event{TaskID: "12", Kind: contract.EventCheckpoint, Body: written, Occurred: at}); err != nil {
+			t.Fatalf("cannot append the checkpoint: %v", err)
+		}
+		at = at.Add(2 * time.Minute)
+	}
+
+	numbers, err := measure(t.Context(), store, "12")
+	if err != nil {
+		t.Fatalf("cannot measure the run: %v", err)
+	}
+	if numbers.roundsAtTheCap != 2 {
+		t.Errorf("rounds cut off at the output cap read %d, want 2", numbers.roundsAtTheCap)
+	}
+	if !strings.Contains(numbers.String(), "rounds cut off at the output cap: 2") {
+		t.Errorf("the report does not say the rounds cut off at the cap:\n%s", numbers.String())
+	}
+}
+
 // TestARangeOfTasksIsMeasuredTogether is the nightly set's job-shaped ask:
 // a long ask becomes a job whose tasks each get a record of their own, so the
 // number for the ask is the sum over every task from the ask's own task on.

@@ -15,6 +15,11 @@ import (
 // round spent on it. In the fifth game build's last three tasks a fifth of
 // all rounds did nothing but mark a step or pin a line through the task tool.
 
+// TheMarkHint is what the model reads once, after a round it spent on nothing
+// but a step_done or a pin_result call: the nightly set's second run showed
+// the rule in the instructions was not enough on its own.
+const TheMarkHint = "That round only marked the record. Next time put the mark on your first line, as \"step 3 done: r41\" or \"line 2 done: r41\", and spend the round on the work."
+
 // TheMarkNeedsAResult is what the model reads after a mark on its first line
 // that names no result, because a step is done by the result that proves it.
 const TheMarkNeedsAResult = "The mark on your first line names no result, so write it as \"step 2 done: r7\" or \"line 1 done: r7\", naming the result that proves it."
@@ -65,4 +70,22 @@ func (running *run) markTheDoneLine(ctx context.Context, number int, resultID st
 	lines[number-1].Done = true
 	lines[number-1].ResultID = resultID
 	return running.keeper.Apply(ctx, record.Update{DoneWhen: lines})
+}
+
+// theMarkOperations are the task tool's operations a first line can carry.
+var theMarkOperations = map[string]bool{"step_done": true, "pin_result": true}
+
+// sayTheMarkHint puts the hint into the conversation after a round whose calls
+// were all marks the first line could have carried, once for the task.
+func (running *run) sayTheMarkHint(calls []contract.ToolCall) {
+	if running.saidTheMarkHint || len(calls) == 0 {
+		return
+	}
+	for _, call := range calls {
+		if call.Name != contract.ToolTask || !theMarkOperations[fieldOfCall(call, "operation")] {
+			return
+		}
+	}
+	running.saidTheMarkHint = true
+	running.remember(contract.Message{Role: contract.RoleUser, Text: TheMarkHint})
 }

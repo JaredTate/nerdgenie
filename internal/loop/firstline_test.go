@@ -96,8 +96,15 @@ func TestARoundSpentOnlyMarkingTheRecordEarnsTheHintOnce(t *testing.T) {
 	if first != 2 {
 		t.Errorf("the hint first rode on model call %d, want call 2, the one after the lone step mark", first)
 	}
+	// The task's last request is the one before the review's question.
 	requests := built.model.Requests()
-	if said := strings.Count(wholeRequestText(requests[len(requests)-1]), loop.TheMarkHint); said != 1 {
-		t.Errorf("the last request carries the hint %d times, want once for the task, whatever the lone marks after the first", said)
+	last := ""
+	for _, request := range requests {
+		if text := wholeRequestText(request); strings.Contains(text, "last of all: where the work stands") {
+			last = text
+		}
+	}
+	if said := strings.Count(last, loop.TheMarkHint); said != 1 {
+		t.Errorf("the task's last request carries the hint %d times, want once for the task, whatever the lone marks after the first", said)
 	}
 }

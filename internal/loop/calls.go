@@ -47,6 +47,7 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 	}
 	running.rewindIfDue(ctx)
 	running.sayTheProbeLine()
+	running.sayTheMarkHint(found.Calls)
 	if err := running.writeSituation(ctx); err != nil {
 		return Outcome{}, false, err
 	}

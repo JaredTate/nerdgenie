@@ -57,10 +57,13 @@ type run struct {
 	browserFact   string
 	// pageAddress is where the browser is, as its last result said, and is what
 	// a hung page's scripts are read from.
-	pageAddress   string
-	commandFact   string
-	continuedFact string
-	filesChanged  []string
+	pageAddress string
+	// saidTheMarkHint says the one-time hint about marks on the first line
+	// was said.
+	saidTheMarkHint bool
+	commandFact     string
+	continuedFact   string
+	filesChanged    []string
 	// changedSinceTheLastRun names the files written or edited since the last
 	// test run, which are the cause a red run is written down with.
 	changedSinceTheLastRun []string

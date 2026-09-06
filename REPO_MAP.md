@@ -29,6 +29,7 @@ BENCHMARK.md
 CLAUDE.md
 FINISH_PLAN.md
 GPT_BENCHMARK.md
+INSTALL.md
 LICENSE
 LLM_RESEARCH.md
 Makefile
@@ -37,6 +38,7 @@ OPUS_BENCHMARK.md
 QWEN_BENCHMARK.md
 README.md
 REPO_MAP.md
+SETUP.md
 STATE_IMPROVE_INNOVATE_PLAN.md
 STATE_RESEARCH.md
 TEST.md
@@ -196,6 +198,7 @@ docs/nightly/2026-09-06-g-cut-off-found.md
 docs/nightly/2026-09-06-h-double-click-and-vitest.md
 docs/nightly/2026-09-06-i-meter-stopped-the-engine.md
 docs/nightly/2026-09-06-j-thirteenth-five-of-five.md
+docs/nightly/2026-09-06-k-fourteenth-one-task-job.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
 docs/reference/browser-use/views.py

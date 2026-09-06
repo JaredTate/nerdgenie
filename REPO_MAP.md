@@ -190,6 +190,8 @@ docs/html/work-plan.html
 docs/nightly/2026-09-06-b-first-line-mark.md
 docs/nightly/2026-09-06-c-forty-lines-and-read-caps.md
 docs/nightly/2026-09-06-d-first-line-hint.md
+docs/nightly/2026-09-06-e-with-tetris.md
+docs/nightly/2026-09-06-f-long-ask-is-a-job.md
 docs/nightly/2026-09-06.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
@@ -547,6 +549,7 @@ internal/loop/commands_test.go
 internal/loop/contextbuilder.go
 internal/loop/contextbuilder_test.go
 internal/loop/continued_test.go
+internal/loop/cutoff.go
 internal/loop/cutoff_test.go
 internal/loop/doc.go
 internal/loop/donecheck.go
@@ -585,6 +588,7 @@ internal/loop/midturn_test.go
 internal/loop/more_test.go
 internal/loop/nobudget_test.go
 internal/loop/numbering.go
+internal/loop/openplan.go
 internal/loop/orient.go
 internal/loop/pagescripts.go
 internal/loop/pagescripts_fuzz_test.go

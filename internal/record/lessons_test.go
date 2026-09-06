@@ -92,3 +92,26 @@ func TestAShortLessonIsKeptWholeAndTheCutFallsOnAWord(t *testing.T) {
 		t.Errorf("the cut reads %q, want whole words and a mark that it was cut", cut)
 	}
 }
+
+// TestADoneLineNamingAResultNotYetWrittenIsToldToWaitForItsProof is the
+// tenth nightly run's play-test task at its start: it wrote its done list with
+// the results it expected to produce later, r70 to r74, the record refused
+// each line with "check it against the result list", and the model guessed
+// seven other labels over seven rounds. A label past the newest result is
+// one the record has not written yet, and the refusal says so and says what
+// to do: write the line without a result, and pin it when the proof exists.
+func TestADoneLineNamingAResultNotYetWrittenIsToldToWaitForItsProof(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	if _, err := keeper.AddResult(ctx, "read the notes", "the notes"); err != nil {
+		t.Fatalf("cannot add a result: %v", err)
+	}
+
+	err := keeper.Apply(ctx, Update{DoneWhen: []contract.DoneLine{{Text: "the game is playable", ResultID: "r70"}}})
+	if !errors.Is(err, ErrNoSuchResult) || !strings.Contains(err.Error(), "not written yet") || !strings.Contains(err.Error(), "pin") {
+		t.Errorf("a done line naming r70 on a record at r1 gave %v, want a refusal saying the result is not written yet and to pin the line when it is", err)
+	}
+	if err := keeper.Apply(ctx, Update{DoneWhen: []contract.DoneLine{{Text: "the game is playable"}}}); err != nil {
+		t.Errorf("a done line with no result was refused: %v", err)
+	}
+}

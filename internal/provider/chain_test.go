@@ -194,3 +194,62 @@ func TestTheChainPassesTheContractCheck(t *testing.T) {
 		t.Errorf("the reply says %q answered, want the one model in the chain", reply.Model)
 	}
 }
+
+// stallingModel answers only when its context ends, the way a model still
+// thinking does when the person presses Escape or the program shuts down.
+type stallingModel struct{ calls int }
+
+func (model *stallingModel) Name() string       { return "stalling" }
+func (model *stallingModel) ContextLength() int { return 32768 }
+func (model *stallingModel) Send(ctx context.Context, _ contract.Request, _ func(string)) (contract.Reply, error) {
+	model.calls++
+	<-ctx.Done()
+	return contract.Reply{}, ctx.Err()
+}
+
+// countingModel answers at once and counts how often it was asked.
+type countingModel struct{ calls int }
+
+func (model *countingModel) Name() string       { return "second" }
+func (model *countingModel) ContextLength() int { return 32768 }
+func (model *countingModel) Send(context.Context, contract.Request, func(string)) (contract.Reply, error) {
+	model.calls++
+	return contract.Reply{Text: "the second model answered"}, nil
+}
+
+// TestACancelledCallNeverMovesOnToTheNextModel is what the fifth game build's
+// stops and restarts wrote into the log: the person pressed stop, the local
+// model's call was cancelled, and the chain moved on to claude and then codex,
+// each failing at once on the same cancelled context, three lines of noise
+// about models that were never the problem. A cancelled call is the caller's
+// doing, not the model's failure, so the chain hands it straight back.
+func TestACancelledCallNeverMovesOnToTheNextModel(t *testing.T) {
+	first, second := &stallingModel{}, &countingModel{}
+	options, recorder := testOptions(t, newTestClock())
+	chain, err := provider.NewChain([]contract.Model{first, second}, options)
+	if err != nil {
+		t.Fatalf("building the chain failed: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := chain.Send(ctx, requestWithEverything(), func(string) {})
+		done <- err
+	}()
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("the chain came back with %v, want the cancellation itself", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the chain never came back after the call was cancelled")
+	}
+	if second.calls != 0 {
+		t.Errorf("the second model was asked %d times after the first call was cancelled, and a cancellation is nobody's failure", second.calls)
+	}
+	if notes := strings.Join(recorder.all(), "\n"); strings.Contains(notes, "moving on") {
+		t.Errorf("the chain wrote down a fallback for a cancelled call: %v", recorder.all())
+	}
+}

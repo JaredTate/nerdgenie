@@ -54,6 +54,11 @@ func (chain *Chain) Send(ctx context.Context, request contract.Request,
 		if errors.Is(err, contract.ErrContextOverflow) {
 			return contract.Reply{}, err
 		}
+		// A call cancelled by the caller, a stop or a shutdown, is nobody's
+		// failure, so no other model is asked and nothing is written down.
+		if ctx.Err() != nil {
+			return contract.Reply{}, err
+		}
 		lastError = err
 		chain.noteFallback(at, err)
 	}

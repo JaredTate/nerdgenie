@@ -137,6 +137,7 @@ function nothingHappened(before: Snapshot, diff: Diff): boolean {
     titleChanged: before.title !== diff.snapshot.title,
     title: diff.snapshot.title,
     newElements: diff.newElements,
+    newText: diff.newText,
     removedCount: 0,
     dialog: diff.dialog,
     newTab: diff.newTab,

@@ -39,6 +39,8 @@ export interface Change {
   titleChanged: boolean;
   title: string;
   newElements: SnapshotElement[];
+  /** The lines of text that were not there before. */
+  newText: string[];
   removedCount: number;
   dialog: DialogReport | null;
   newTab: string;
@@ -53,6 +55,7 @@ export function somethingChanged(change: Change): boolean {
     change.urlChanged ||
     change.titleChanged ||
     change.newElements.length > 0 ||
+    change.newText.length > 0 ||
     change.removedCount > 0 ||
     change.dialog !== null ||
     change.newTab !== "" ||
@@ -66,6 +69,7 @@ function placesToLook(change: Change): string[] {
   for (const element of change.newElements) {
     places.push(element.name, element.role);
   }
+  places.push(...change.newText);
   if (change.urlChanged) {
     places.push(change.url);
   }
@@ -126,6 +130,17 @@ function describeNewElements(elements: SnapshotElement[]): string {
   return `${countInWords(elements.length)} new ${plural} appeared: ${names}`;
 }
 
+/** "the text now says "1"" and its many-line form, which lists three and counts the rest. */
+function describeNewText(lines: string[]): string {
+  const listed = lines.slice(0, MOST_NAMES_LISTED).map((line) => JSON.stringify(line));
+  const leftOver = lines.length - listed.length;
+  if (leftOver === 0) {
+    return `the text now says ${listed.join(", ")}`;
+  }
+  const noun = leftOver === 1 ? "line" : "lines";
+  return `the text now says ${listed.join(", ")}, and ${leftOver} more ${noun}`;
+}
+
 /**
  * One sentence for what happened, in the order that matters most to a person: a
  * dialog blocks the page, a move to a new address replaces it, and only then do
@@ -146,6 +161,9 @@ export function describeChange(change: Change): string {
   }
   if (change.newElements.length > 0) {
     return describeNewElements(change.newElements);
+  }
+  if (change.newText.length > 0) {
+    return describeNewText(change.newText);
   }
   if (change.titleChanged) {
     return `the title changed to ${JSON.stringify(change.title)}`;

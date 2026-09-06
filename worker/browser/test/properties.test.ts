@@ -108,6 +108,7 @@ describe("any string at all as an expectation", () => {
       fc.record({ ref: fc.string(), role: fc.string(), name: fc.string() }),
       { maxLength: 5 },
     ),
+    newText: fc.array(fc.string(), { maxLength: 5 }),
     removedCount: fc.nat({ max: 20 }),
     dialog: fc.option(fc.record({ kind: fc.constant("alert" as const), message: fc.string() }), {
       nil: null,
@@ -133,13 +134,13 @@ describe("any string at all as an expectation", () => {
     );
   });
 
-  it("splits into words that are all four letters or more and never repeat", () => {
+  it("splits into words that are all four letters or more, or a number, and never repeat", () => {
     fc.assert(
       fc.property(fc.string(), (sentence) => {
         const words = meaningfulWords(sentence);
         expect(new Set(words).size).toBe(words.length);
         for (const word of words) {
-          expect(word.length).toBeGreaterThanOrEqual(4);
+          expect(word.length >= 4 || /^[0-9]+$/.test(word)).toBe(true);
         }
       }),
       { numRuns: 400 },

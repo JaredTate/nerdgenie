@@ -98,6 +98,12 @@ export interface Diff {
   urlChanged: boolean;
   url: string;
   newElements: SnapshotElement[];
+  /**
+   * The lines of the page's text that were not there before, which is how a
+   * number or a message that changed is seen: a counter going from 0 to 1 adds
+   * no element, and a diff that looked only at elements clicked it again.
+   */
+  newText: string[];
   dialog: DialogReport | null;
   /** The id of a tab that appeared during the action, or the empty string. */
   newTab: string;

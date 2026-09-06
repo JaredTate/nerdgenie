@@ -32,6 +32,31 @@ export function markNewElements(
   );
 }
 
+/** The most new lines of text a diff carries; a page rewritten whole is a new page, not a change. */
+const MOST_NEW_LINES = 12;
+
+/**
+ * The lines of the page's text that were not there before, in the page's order,
+ * capped. There are none on the very first snapshot, because everything would be
+ * new, and none when the text is as it was.
+ */
+function linesThatAppeared(before: Snapshot | null, after: Snapshot): string[] {
+  if (before === null) {
+    return [];
+  }
+  const was = new Set(before.text.split("\n"));
+  const appeared: string[] = [];
+  for (const line of after.text.split("\n")) {
+    if (line.trim() !== "" && !was.has(line) && !appeared.includes(line)) {
+      appeared.push(line);
+      if (appeared.length === MOST_NEW_LINES) {
+        break;
+      }
+    }
+  }
+  return appeared;
+}
+
 /** What one action changed, worked out from the two snapshots around it. */
 function changeBetween(
   before: Snapshot | null,
@@ -50,6 +75,7 @@ function changeBetween(
     titleChanged: before !== null && before.title !== after.title,
     title: after.title,
     newElements: after.elements.filter((element) => element.new === true),
+    newText: linesThatAppeared(before, after),
     removedCount,
     dialog: after.dialog,
     newTab,
@@ -109,6 +135,7 @@ export function buildDiff(input: DiffInput): Diff {
     urlChanged: change.urlChanged,
     url: change.url,
     newElements: change.newElements,
+    newText: change.newText,
     dialog: change.dialog,
     newTab: change.newTab,
     download: change.download,

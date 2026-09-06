@@ -121,7 +121,7 @@ export function meaningfulWords(sentence: string): string[] {
   const kept: string[] = [];
   const seen = new Set<string>();
   for (const token of sentence.toLowerCase().split(/[^a-z0-9]+/)) {
-    if (token.length < SHORTEST_MEANINGFUL_WORD || STOP_WORDS.has(token) || seen.has(token)) {
+    if ((token.length < SHORTEST_MEANINGFUL_WORD && !isANumber(token)) || STOP_WORDS.has(token) || seen.has(token)) {
       continue;
     }
     seen.add(token);
@@ -134,4 +134,9 @@ export function meaningfulWords(sentence: string): string[] {
 export function textHoldsAnyWord(text: string, words: readonly string[]): boolean {
   const lowered = text.toLowerCase();
   return words.some((word) => lowered.includes(word));
+}
+
+/** A token made only of digits is meaningful however short: "1" is the whole of what a counter says. */
+function isANumber(token: string): boolean {
+  return token.length > 0 && /^[0-9]+$/.test(token);
 }

@@ -90,6 +90,7 @@ expected actually happened.
   "urlChanged": true,
   "url": "https://x.com/compose/post",
   "newElements": [{ "ref": "e3", "role": "textbox", "name": "Post text", "new": true }],
+  "newText": ["Post text"],
   "dialog": null,
   "newTab": "",
   "download": null,
@@ -106,8 +107,10 @@ instead, so that the model can decide rather than guess.
 
 **How the worker judges an expectation.** It cannot judge English, so the rule
 is fixed: split the expectation into words of four or more letters that are not
-stop words; the expectation is met when any of them appears in a new element's
-name or role, in the new address, in the new title, in a dialog's message, or in
+stop words, keeping a number however short; the expectation is met when any of
+them appears in a new element's name or role, in a line of text that was not on
+the page before (`newText`, capped at twelve lines, which is how a counter going
+from 0 to 1 is seen), in the new address, in the new title, in a dialog's message, or in
 the name or role of the box that typing filled (which is what lets "the text box
 holds the post" hold after typing into the textbox named "Post text", since
 typing changes no element); or when the expectation is empty and something

@@ -104,6 +104,9 @@ func (running *run) closeOrWait(ctx context.Context, text string, why contract.F
 			outcome, err := running.waitHere(ctx, text)
 			return outcome, false, err
 		}
+		if open := running.thePlanStepsStillOpen(); open != "" {
+			return running.sendBackToWork(ctx, open)
+		}
 		if err := running.theAnswerIsTheWholeDoneList(ctx, text); err != nil {
 			return Outcome{}, false, err
 		}
@@ -187,12 +190,19 @@ func (running *run) theAnswerIsTheWholeDoneList(ctx context.Context, text string
 // backToWork sends the model back with one line naming the rule its done list
 // broke, and gives the task up when it will not fix it.
 func (running *run) backToWork(ctx context.Context, problem string) (Outcome, bool, error) {
+	return running.sendBackToWork(ctx, problem+"\n"+ThreeOptions)
+}
+
+// sendBackToWork sends the model back with this message, and gives the task up
+// after the third time. The open-plan line goes without the three options,
+// because "answer the user" is the option that closed the frontend task.
+func (running *run) sendBackToWork(ctx context.Context, message string) (Outcome, bool, error) {
 	running.doneNudges++
 	if running.doneNudges > MaxDoneCheckNudges {
-		outcome, err := running.failHere(ctx, errors.New(problem))
+		outcome, err := running.failHere(ctx, errors.New(message))
 		return outcome, false, err
 	}
-	running.remember(contract.Message{Role: contract.RoleUser, Text: problem + "\n" + ThreeOptions})
+	running.remember(contract.Message{Role: contract.RoleUser, Text: message})
 	return Outcome{}, true, nil
 }
 

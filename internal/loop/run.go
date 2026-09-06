@@ -361,6 +361,10 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	if err := running.saveTheRound(ctx); err != nil {
 		return Outcome{}, false, err
 	}
+	if reply.Finish == contract.FinishLength {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: theCutOffLine(reply.Usage.OutputTokens)})
+		return Outcome{}, true, nil
+	}
 	if found.Problem != "" {
 		running.failedParses++
 		running.remember(contract.Message{Role: contract.RoleUser, Text: found.Problem + "\n" + ThreeOptions})

@@ -51,6 +51,9 @@ type run struct {
 	startedAt     time.Time
 	roundsUsed    int
 	failedParses  int
+	// cutOffsInARow counts the replies cut off at the output cap since the
+	// last one that was not, and bounds how many are sent back.
+	cutOffsInARow int
 	doneNudges    int
 	recentCalls   []pastCall
 	lastOrient    string
@@ -361,9 +364,13 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 	if err := running.saveTheRound(ctx); err != nil {
 		return Outcome{}, false, err
 	}
-	if reply.Finish == contract.FinishLength {
+	if reply.Finish == contract.FinishLength && running.cutOffsInARow < MaxCutOffsSentBack {
+		running.cutOffsInARow++
 		running.remember(contract.Message{Role: contract.RoleUser, Text: theCutOffLine(reply.Usage.OutputTokens)})
 		return Outcome{}, true, nil
+	}
+	if reply.Finish != contract.FinishLength {
+		running.cutOffsInARow = 0
 	}
 	if found.Problem != "" {
 		running.failedParses++

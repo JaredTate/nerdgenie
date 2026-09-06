@@ -251,6 +251,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 07:35 on 6 September, from the thirteenth nightly run's numbers at five of eleven tasks: forty-three of its 203 rounds only ran the tests, and sixteen of those runs came right after an edit whose result already carried the tests' line, three lines down, where the record's one line ("edit: edited …") never showed it. The line a change keeps now leads with the tests after it: "edit: tests after this change: all 128 passing; edited …". Still to measure on the fourteenth run: how many test-only rounds remain.
 
+- Built at 08:10 on 6 September, from the thirteenth run's polish task, which spent rounds writing a Chrome DevTools script to screenshot its canvas and look at the dragon: `browser_read` and the browser skill now say that no picture reaches the model and a canvas is judged by asking the page. The model's own eyes, idea 12, stay the owner's decision.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

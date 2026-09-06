@@ -181,8 +181,12 @@ func TestAskingThePageSomethingNewIsProgress(t *testing.T) {
 
 	same := []testkit.Step{}
 	sameAnswers := []string{}
+	// The same intent every round, with an ask that differs so that the
+	// same-call guard lets the calls through: the meter, not the guard, is
+	// what this half proves.
 	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
-		same = append(same, callStep("I will read the page.", callFor(fmt.Sprintf("s%d", at), "browser_read", `{"intent":"read the page"}`)))
+		same = append(same, callStep("I will read the page.", callFor(fmt.Sprintf("s%d", at), "browser_read",
+			fmt.Sprintf(`{"intent":"read the page","ask":"window.__probe%d"}`, at))))
 		sameAnswers = append(sameAnswers, "Tater Tots Tetris\nhttp://localhost:8091/\ne1 heading\n")
 	}
 	same = append(same, answerStep("The page is the same. What changed: nothing. What I checked: the page. What is left: nothing."))

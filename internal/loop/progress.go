@@ -36,7 +36,7 @@ const TheStallLine = "That is ten rounds in which no test went green, no plan st
 // theToolsThatRead are the tools whose answer is new information when what
 // they are pointed at is new: a task that reads a different file every round
 // is moving, and one that reads the same file every round is not.
-var theToolsThatRead = []string{contract.ToolRead, "search", "web", "browser_open"}
+var theToolsThatRead = []string{contract.ToolRead, "search", "web", "browser_open", "browser_read"}
 
 // noteAReadOfSomethingNew reads a look at something this task has not looked
 // at before as progress. The fourth game build's stall re-read one file; a

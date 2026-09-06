@@ -37,8 +37,11 @@ mkdir -p "$ROOT/docs/nightly" "$WORKROOT"
 # left running, or a task it left put down, never haunts the next: the sixth
 # run's game became a job, the runner stopped its serve under it, and the job
 # would have come back on the next serve beside the warm-up asks.
+# The fresh home sits beside the work folder, never under it: a home inside a
+# sandbox root is refused by the serve, because the home must stay outside
+# the fence.
 TEMPLATE="$HOME_FOLDER"
-HOME_FOLDER="$WORKROOT/home"
+HOME_FOLDER="$(dirname "$TEMPLATE")/homes/$DATE-$(date +%H%M)"
 mkdir -p "$HOME_FOLDER"
 for piece in config.toml persona skills vault.key; do
   [ -e "$TEMPLATE/$piece" ] && cp -r "$TEMPLATE/$piece" "$HOME_FOLDER/"

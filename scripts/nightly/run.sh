@@ -11,7 +11,7 @@
 # Never run this beside a live run: the local daemon has one slot, and a
 # second task would sit behind the first. The serve is started on the home,
 # yolo is turned on before the first ask, every ask gets a fresh work folder
-# under HOME_FOLDER/nightly-work, and the serve is stopped by its exact
+# under the work folder beside the home, and the serve is stopped by its exact
 # process id at the end. The results go to docs/nightly/<date>.md as one row
 # per ask, and the last line of this script's output is the summary.
 set -u
@@ -23,7 +23,11 @@ BINARY="$ROOT/bin/nerdgenie"
 SOCKET="$HOME_FOLDER/run/agent.sock"
 DATE="$(date +%F)"
 OUT="$ROOT/docs/nightly/$DATE.md"
-WORKROOT="$HOME_FOLDER/nightly-work/$DATE-$(date +%H%M)"
+# The work folders live beside the home, under the work folder the home's
+# config names as a sandbox root, never inside the home: the agent's home is
+# outside every fence, and the first four runs put the work there, so the file
+# tools refused every write and the model wrote through the shell instead.
+WORKROOT="$(dirname "$HOME_FOLDER")/work/$DATE-$(date +%H%M)"
 SCRATCH="$(mktemp -d)"
 mkdir -p "$ROOT/docs/nightly" "$WORKROOT"
 

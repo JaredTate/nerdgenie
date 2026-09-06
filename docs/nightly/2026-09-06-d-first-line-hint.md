@@ -12,3 +12,5 @@ Local Qwen 3.8 through the daemon on 19091, binary 0314afb2, home /home/jared/wo
 4 of 4 checks passed.
 
 The same four asks at 01:06 on the binary that says, once, to put a mark on the first line after a round spent on nothing but a mark: 40 rounds across the four, every check passing. No round in this run was a lone mark, so the hint never fired and nothing here says whether the model takes it up; the asks are too small to mark steps at all. The Tetris run is the measure.
+
+**Caveat found at 01:17:** the runner put every ask's work folder inside the agent's home, which the file tools refuse, so in this run the model wrote its files through the shell and the syntax check and the tests-after-a-change never fired. The rounds still compare with each other across the four runs; they do not compare with the runs after the fix, which put the work beside the home.

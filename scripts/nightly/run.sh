@@ -66,6 +66,9 @@ run_one() {
   work="$WORKROOT/$name"; mkdir -p "$work"
   if [ -d "$HERE/fixtures/$name" ]; then cp -r "$HERE/fixtures/$name/." "$work/"; fi
   text="$(sed "s|<WORK>|$work|g" "$ask")"
+  # A task the last run left put down would be picked up by the next message,
+  # so it is set aside first: the ask is a new task, never a steer.
+  NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -timeout 20s "/clear" > /dev/null 2>&1
   NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -wait -timeout "$timeout" "$text" > "$work/run.log" 2>&1
   cp "$HOME_FOLDER/nerdgenie.db" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-wal" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-shm" "$SCRATCH/" 2>/dev/null
   report="$(cd "$ROOT" && go run ./scripts/runreport --log "$SCRATCH/nerdgenie.db" 2>&1)"

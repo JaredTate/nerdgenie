@@ -446,23 +446,6 @@ func applyFailure(into *contract.Record, update Update) error {
 	return nil
 }
 
-// checkNamesAResult says no to a label that names a result this record never
-// wrote, because proof that points at nothing is no proof.
-func checkNamesAResult(into *contract.Record, id string, what string) error {
-	if id == "" || recordHoldsResult(into, id) {
-		return nil
-	}
-	return fmt.Errorf("%s names %q, which this record never wrote: %w", what, id, ErrNoSuchResult)
-}
-
-// recordHoldsResult says whether the record holds a result under this label.
-func recordHoldsResult(into *contract.Record, id string) bool {
-	if id == "" {
-		return false
-	}
-	return slices.ContainsFunc(into.Work.Results, func(result contract.ResultLine) bool { return result.ID == id })
-}
-
 // planStepSaying finds the plan step whose words are these, if there is one.
 func planStepSaying(plan []contract.PlanStep, text string) (contract.PlanStep, bool) {
 	for _, step := range plan {

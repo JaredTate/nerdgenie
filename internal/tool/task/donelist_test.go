@@ -96,3 +96,15 @@ func TestTheDoneListFieldSaysFiveLinesIsTheMost(t *testing.T) {
 	}
 	t.Fatal("the tool has no done_when field")
 }
+
+// TestAPinOnAnEmptyDoneListSaysToWriteTheListFirst is two tasks of the
+// eleventh nightly run's game job, each of which pinned line 1 before it had
+// written a done list and read "the done list has 0 lines in it". The refusal
+// says what to do.
+func TestAPinOnAnEmptyDoneListSaysToWriteTheListFirst(t *testing.T) {
+	tool, _ := newTool(t)
+	_, err := run(t, tool, map[string]any{"operation": "pin_result", "line": "1", "result": "r1"})
+	if err == nil || !strings.Contains(err.Error(), "write the done list first") {
+		t.Errorf("a pin on an empty done list gave %v, want a refusal saying to write the done list first", err)
+	}
+}

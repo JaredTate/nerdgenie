@@ -352,7 +352,9 @@ stands through an open or a click that fails after the hang, because that is
 the same hang (the fifth sitting lost the loop to "cannot open the page"),
 until a result carries a page again; a task picked up again reads every
 browser result in its log in order to get the line and the page's address
-back (`takeTheBrowserFactBackFromTheLog`, `resume.go`), because the fourth
+back (`takeTheBrowserFactBackFromTheLog`, `resume.go`), knowing a marked
+line by its arrow (`TheMarkArrow`) rather than by the mark's words, so that a
+result written under an older wording still replays, because the fourth
 sitting started with an empty browser line and the model re-read the old
 result four times; the first list the live run got was the
 renderer's twelve counted fors in line order, and the ghost-piece while on

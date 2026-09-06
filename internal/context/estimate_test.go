@@ -98,3 +98,13 @@ func FuzzTheEstimateReadsAnyBytes(f *testing.F) {
 		}
 	})
 }
+
+// TestAPictureCostsItsTokens counts a picture the way the local daemon does: a
+// 1024 by 768 screenshot came to 799 prompt tokens on 6 September 2026.
+func TestAPictureCostsItsTokens(t *testing.T) {
+	plain := estimateMessage(contract.Message{Role: contract.RoleUser, ToolResults: []contract.ToolResult{{CallID: "c1", Text: "the page"}}})
+	withPicture := estimateMessage(contract.Message{Role: contract.RoleUser, ToolResults: []contract.ToolResult{{CallID: "c1", Text: "the page", Picture: "iVBORw0KGgo="}}})
+	if withPicture-plain != TokensPerPicture {
+		t.Errorf("a picture added %d tokens to the estimate, want %d", withPicture-plain, TokensPerPicture)
+	}
+}

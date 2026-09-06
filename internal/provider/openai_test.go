@@ -301,3 +301,42 @@ func TestTheOpenAIProviderCountsTheThinkingAndToolCallsItWritesUnseen(t *testing
 		t.Errorf("the provider counted %d characters written unseen, want %d: the thinking and the tool call's arguments", unseen, wanted)
 	}
 }
+
+// TestTheOpenAIProviderSendsAToolResultsPictureAsAnImagePart is the eyes: a
+// tool result that carries a picture is sent as the tool message and then a
+// user message with the picture as an image part, which is the one shape the
+// local daemon reads a picture in, because a tool message's content is text.
+func TestTheOpenAIProviderSendsAToolResultsPictureAsAnImagePart(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptSayingOneThing("a red square"))
+	defer server.Close()
+	model, _ := openAIAgainst(t, server)
+	request := requestWithEverything()
+	request.Messages = append(request.Messages, contract.Message{Role: contract.RoleUser, ToolResults: []contract.ToolResult{
+		{CallID: "call_9", Label: "r7", Text: "the page, 1024 by 768", Picture: "iVBORw0KGgo="},
+	}})
+
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call to the OpenAI-compatible provider failed: %v", err)
+	}
+
+	body := bodyOfLastCallTo(t, server, testkit.OpenAIPath)
+	messages := body["messages"].([]any)
+	last := messages[len(messages)-1].(map[string]any)
+	before := messages[len(messages)-2].(map[string]any)
+	if before["role"] != "tool" || before["tool_call_id"] != "call_9" {
+		t.Fatalf("the message before the picture is %v, want the tool message for call_9", before)
+	}
+	parts, isList := last["content"].([]any)
+	if last["role"] != "user" || !isList || len(parts) != 2 {
+		t.Fatalf("the picture went as %v, want a user message with a text part and an image part", last)
+	}
+	text := parts[0].(map[string]any)
+	image := parts[1].(map[string]any)
+	if text["type"] != "text" || !strings.Contains(text["text"].(string), "r7") {
+		t.Errorf("the text part is %v, want it to name the result r7", text)
+	}
+	url, _ := image["image_url"].(map[string]any)["url"].(string)
+	if image["type"] != "image_url" || !strings.HasPrefix(url, "data:image/png;base64,iVBORw0KGgo=") {
+		t.Errorf("the image part is %v, want a data address carrying the PNG", image)
+	}
+}

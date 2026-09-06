@@ -292,3 +292,33 @@ func TestTheAnthropicProviderCountsTheThinkingAndToolCallsItWritesUnseen(t *test
 		t.Errorf("the provider counted %d characters written unseen, want %d: the thinking and the tool call's arguments", unseen, wanted)
 	}
 }
+
+// TestTheAnthropicProviderSendsAToolResultsPictureAsAnImageBlock is the same
+// eyes on the Messages API: the picture follows its tool result as an image
+// block in the same user turn.
+func TestTheAnthropicProviderSendsAToolResultsPictureAsAnImageBlock(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptSayingOneThing("a red square"))
+	defer server.Close()
+	model, _, _ := anthropicAgainst(t, server)
+	request := requestWithEverything()
+	request.Messages = append(request.Messages, contract.Message{Role: contract.RoleUser, ToolResults: []contract.ToolResult{
+		{CallID: "call_9", Label: "r7", Text: "the page, 1024 by 768", Picture: "iVBORw0KGgo="},
+	}})
+
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call to the Anthropic provider failed: %v", err)
+	}
+
+	body := bodyOfLastCallTo(t, server, testkit.AnthropicPath)
+	messages := body["messages"].([]any)
+	last := messages[len(messages)-1].(map[string]any)
+	blocks, isList := last["content"].([]any)
+	if !isList || len(blocks) < 2 {
+		t.Fatalf("the last turn is %v, want the tool result block and an image block", last)
+	}
+	image := blocks[len(blocks)-1].(map[string]any)
+	source, _ := image["source"].(map[string]any)
+	if image["type"] != "image" || source["media_type"] != "image/png" || source["data"] != "iVBORw0KGgo=" {
+		t.Errorf("the image block is %v, want a base64 PNG source", image)
+	}
+}

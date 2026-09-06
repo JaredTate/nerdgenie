@@ -1,9 +1,13 @@
 package read_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -249,5 +253,37 @@ func TestAStoredResultIsReadFromTheOffsetAndForTheLimitLikeAFile(t *testing.T) {
 	whole, err := run(t, tool, map[string]any{"path": "r25"})
 	if err != nil || whole.Text != strings.Join(lines, "\n")+"\n" {
 		t.Errorf("reading r25 with no offset and no limit gave %d characters (%v), want the whole text as it was stored", len(whole.Text), err)
+	}
+}
+
+// TestReadingAPictureFileHandsBackThePicture is the eyes on a file: the
+// thirteenth nightly run's polish task took a picture of its canvas and was
+// refused it as not a text file. A PNG or a JPEG read by path comes back as
+// the picture with its size in words, for a model that can see.
+func TestReadingAPictureFileHandsBackThePicture(t *testing.T) {
+	tool, folder := newTool(t, nil, nil)
+	path := filepath.Join(folder, "board.png")
+	picture := image.NewRGBA(image.Rect(0, 0, 3, 2))
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("cannot make the picture file: %v", err)
+	}
+	if err := png.Encode(file, picture); err != nil {
+		t.Fatalf("cannot write the picture: %v", err)
+	}
+	file.Close()
+
+	output, err := run(t, tool, map[string]any{"path": path})
+	if err != nil {
+		t.Fatalf("reading the picture failed: %v", err)
+	}
+	if output.Picture == "" {
+		t.Fatal("the picture did not come back with the result")
+	}
+	if decoded, err := base64.StdEncoding.DecodeString(output.Picture); err != nil || !bytes.HasPrefix(decoded, []byte("\x89PNG")) {
+		t.Errorf("the picture is not the PNG's bytes as base64: %v", err)
+	}
+	if !strings.Contains(output.Text, "3 by 2 pixels") || !strings.Contains(output.Text, "board.png") {
+		t.Errorf("the words with the picture read %q, want the file and its size in pixels", output.Text)
 	}
 }

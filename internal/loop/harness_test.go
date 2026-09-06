@@ -39,6 +39,8 @@ type harness struct {
 	lines      []string
 	toolGuard  sync.Mutex
 	toolLines  []string
+	// vision says the loop is built for a model that reads pictures.
+	vision bool
 }
 
 // newHarness builds a loop over the fakes, with the tools the test needs and the
@@ -67,6 +69,19 @@ func newHarness(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *har
 	return built
 }
 
+// newHarnessThatSees is newHarness for a model that reads pictures.
+func newHarnessThatSees(t *testing.T, steps []testkit.Step, tools ...contract.Tool) *harness {
+	t.Helper()
+	built := newHarness(t, steps, tools...)
+	built.vision = true
+	made, err := loop.New(built.options())
+	if err != nil {
+		t.Fatalf("cannot build the seeing loop from the fakes: %v", err)
+	}
+	built.loop = made
+	return built
+}
+
 // options is the dependency set the loop is built from.
 func (built *harness) options() loop.Options {
 	return built.optionsOver(built.model)
@@ -77,6 +92,7 @@ func (built *harness) options() loop.Options {
 // can describe.
 func (built *harness) optionsOver(model contract.Model) loop.Options {
 	return loop.Options{
+		Vision:     built.vision,
 		Model:      model,
 		Tools:      built.tools,
 		Permission: built.rulings,

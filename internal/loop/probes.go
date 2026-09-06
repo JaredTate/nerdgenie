@@ -29,7 +29,24 @@ var theShapesOfAProbe = []string{"node -e ", "node --eval ", "python3 -c ", "pyt
 
 // theNamesOfAProbe are the names a model gives a script it means to throw
 // away, matched on the start of the file's name.
-var theNamesOfAProbe = []string{"dbg", "debug", "trace", "probe", "scratch", "tmp", "check", "repro"}
+var theNamesOfAProbe = []string{"dbg", "debug", "diag", "trace", "probe", "scratch", "tmp", "check", "repro"}
+
+// isAProbeName says whether a file's name says it is a throwaway: it lives
+// under /tmp, or its name begins with one of the words a model gives a script
+// it means to throw away, read past a leading underscore or dot.
+func isAProbeName(file string) bool {
+	file = strings.Trim(file, `"'`)
+	if strings.HasPrefix(file, "/tmp/") {
+		return true
+	}
+	name := strings.TrimLeft(strings.ToLower(path.Base(file)), "_.")
+	for _, start := range theNamesOfAProbe {
+		if strings.HasPrefix(name, start) {
+			return true
+		}
+	}
+	return false
+}
 
 // looksLikeAProbe says whether a shell call runs a throwaway script: one of
 // the eval shapes, or a file written with a heredoc whose name says it is
@@ -52,21 +69,15 @@ func looksLikeAProbe(call contract.ToolCall) bool {
 	if len(target) == 0 {
 		return false
 	}
-	file := strings.Trim(target[0], `"'`)
-	if strings.HasPrefix(file, "/tmp/") {
-		return true
-	}
-	// A model puts an underscore or a dot in front of a file it means to hide
-	// or throw away, so the name is read past those marks: the fifth game
-	// build's play-test task named its probes _probe3.js, _probe4.js and so
-	// on, and the rule never saw them.
-	name := strings.TrimLeft(strings.ToLower(path.Base(file)), "_.")
-	for _, start := range theNamesOfAProbe {
-		if strings.HasPrefix(name, start) {
-			return true
-		}
-	}
-	return false
+	return isAProbeName(target[0])
+}
+
+// writesAProbe says whether a write puts a throwaway script on the disk: the
+// fifth game build's play-test task wrote diag2.js, diag3.js and diag4.js
+// through the write tool, one after another, and the rule read only shell
+// heredocs.
+func writesAProbe(call contract.ToolCall) bool {
+	return call.Name == contract.ToolWrite && isAProbeName(fieldOfCall(call, "path"))
 }
 
 // countTheProbe writes down one call for the probe rule: a write or an edit
@@ -75,9 +86,9 @@ func looksLikeAProbe(call contract.ToolCall) bool {
 // line is said once per run of five and not on every call after.
 func (running *run) countTheProbe(call contract.ToolCall) {
 	switch {
-	case call.Name == contract.ToolWrite || call.Name == contract.ToolEdit:
+	case (call.Name == contract.ToolWrite && !writesAProbe(call)) || call.Name == contract.ToolEdit:
 		running.probesSinceEdit = 0
-	case looksLikeAProbe(call):
+	case looksLikeAProbe(call) || writesAProbe(call):
 		running.probesSinceEdit++
 		if running.probesSinceEdit >= MaxProbesBetweenEdits {
 			running.probeLineDue = true

@@ -1,6 +1,7 @@
 package loop_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -114,5 +115,43 @@ func TestAProbeNamedWithALeadingUnderscoreOrDotIsStillAProbe(t *testing.T) {
 	}
 	if !nudged {
 		t.Errorf("five probes named with a leading underscore or dot were never counted, and a mark in front of a name hides nothing")
+	}
+}
+
+// TestAProbeWrittenWithTheWriteToolCountsToo is the fifth game build's
+// play-test task on the new binary: it wrote diag2.js, diag3.js and diag4.js
+// through the write tool, one after another, each a throwaway script, and
+// neither the probe rule nor the meter saw a throwaway, because the rule read
+// only shell heredocs and the meter counted every new file as progress.
+func TestAProbeWrittenWithTheWriteToolCountsToo(t *testing.T) {
+	steps := []testkit.Step{}
+	writes := []string{}
+	for at := 1; at <= loop.MaxProbesBetweenEdits+1; at++ {
+		name := fmt.Sprintf("diag%d.js", at)
+		steps = append(steps, callStep("One more diagnostic.", callFor(fmt.Sprintf("w%d", at), contract.ToolWrite,
+			`{"path":"/game/`+name+`","content":"console.log(1)"}`)))
+		writes = append(writes, "created /game/"+name+", 14 bytes")
+	}
+	steps = append(steps, answerStep("Checked. What changed: nothing. What I checked: the diagnostics. What is left: nothing."))
+	checks := []string{}
+	for range steps {
+		checks = append(checks, "finished with exit code 0\nexit 0")
+	}
+	built := newHarness(t, steps, scriptedTool(contract.ToolWrite, writes...), scriptedTool(contract.ToolShell, checks...))
+
+	built.ask(t, "find the hang")
+
+	nudged := false
+	for _, request := range built.model.Requests() {
+		if strings.Contains(wholeRequestText(request), loop.TheProbeLine) {
+			nudged = true
+		}
+	}
+	if !nudged {
+		t.Errorf("%d throwaway scripts written with the write tool were never counted as probes", loop.MaxProbesBetweenEdits)
+	}
+	last := wholeRequestText(built.model.Requests()[len(built.model.Requests())-1])
+	if !strings.Contains(last, "rounds since progress: ") {
+		t.Errorf("the meter reads every throwaway script as a new file and so as progress, and the request reads:\n%s", last)
 	}
 }

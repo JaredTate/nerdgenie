@@ -329,6 +329,18 @@ func (running *run) stopForThePerson(ctx context.Context, line string) (Outcome,
 	return outcome, err
 }
 
+// cutOffHere ends a task the program cut off mid-turn, which a shutdown or the
+// turn's limit does. It is a stop and not a failure: the work did not fail,
+// the program stopped seeing it. A stop is what a job puts down with its
+// record and what the next message picks up, where a failure made the job run
+// the same task again from the top, which is how the 20:33 restart of the
+// fifth game build abandoned ninety rounds of a play-test task's record. The
+// review is not asked, because the model call it needs is what was cut off.
+func (running *run) cutOffHere(ctx context.Context, reason error) (Outcome, error) {
+	line := "the program was cut off mid-task (" + firstLine(reason.Error()) + "), so this task picks up from its record on the next message"
+	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), false)
+}
+
 // stopAndSay ends the task as stopped and sends the one report the user gets:
 // which line stopped it, where the work stands, and how to carry it on. A job's
 // task is told how to carry on by the line the job puts under the report, which

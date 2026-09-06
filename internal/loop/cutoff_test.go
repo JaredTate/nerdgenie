@@ -19,7 +19,10 @@ import (
 // save checkpoint 39 ... context canceled". The task then stood at running for
 // ever as far as the program could see, the next message started a fresh task,
 // and the model told the person there was no active work. A task cut off for
-// any reason is marked and reported under a short context of the ending's own.
+// any reason is marked and reported under a short context of the ending's own,
+// and it is marked stopped rather than failed: the 20:33 restart of the fifth
+// game build ended a job's task as failed, so the job ran it again from the
+// top and abandoned ninety rounds of record.
 
 // cuttingTool cancels the context the task runs under while it runs, the way a
 // turn limit or a shutdown does, and answers as if nothing had happened.
@@ -69,15 +72,15 @@ func TestATaskCutOffMidTurnIsStillMarkedAndReported(t *testing.T) {
 		t.Fatalf("a task cut off mid-turn came back as an error, and its ending is written under a context of its own: %v", err)
 	}
 
-	if outcome.Status != contract.StatusFailed {
-		t.Errorf("the task ended %q, want failed, because the turn was cut off under it", outcome.Status)
+	if outcome.Status != contract.StatusStopped {
+		t.Errorf("the task ended %q, want stopped, because the program cut the turn off under it, which is a stop the program made and not a failure of the work", outcome.Status)
 	}
 	held := built.held(t, outcome.TaskID)
-	if held.Header.Status != contract.StatusFailed {
-		t.Errorf("the record stands at %q, want failed: a task the program cannot see the end of is a task it has lost", held.Header.Status)
+	if held.Header.Status != contract.StatusStopped {
+		t.Errorf("the record stands at %q, want stopped, so that the next message picks the task up from its record", held.Header.Status)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "could not finish") {
-		t.Errorf("the user was sent %v, want the report of a task that could not be finished", built.channel.Sent())
+	if !sentSomethingLike(built.channel.Sent(), "cut off") {
+		t.Errorf("the user was sent %v, want the report of a task the program cut off", built.channel.Sent())
 	}
 	if calls := len(built.model.Requests()); calls != 1 {
 		t.Errorf("the model was called %d times, want one: a cut-off task asks the model nothing more", calls)
@@ -149,4 +152,36 @@ func waitForASleeper(t *testing.T, clock *testkit.FakeClock) {
 		time.Sleep(time.Millisecond)
 	}
 	t.Fatalf("nothing is waiting on the clock after five seconds, and the ending should be")
+}
+
+// TestAJobsTaskCutOffByAShutdownIsPutDownWithItsRecord is the 20:33 restart
+// of the fifth game build. The serve was stopped while a job's play-test task
+// was in its ninetieth round; the cancelled model call ended the task as
+// failed, the job counted a failure and ran the same task again from the top,
+// and ninety rounds of record were abandoned. A task the program cut off is
+// a task the program stopped, not one that failed: it ends stopped, the job
+// is put down on it with its record, and the next message picks it up.
+func TestAJobsTaskCutOffByAShutdownIsPutDownWithItsRecord(t *testing.T) {
+	tool := &cuttingTool{}
+	built := newHarness(t, aTaskThatIsCutOff(), tool)
+	jobID := aJobOfTwoTasks(t, built)
+	turn, cut := context.WithCancel(t.Context())
+	defer cut()
+	tool.cut = cut
+
+	ran, err := built.loop.RunNextJobTask(turn, built.channel)
+	if err != nil || !ran {
+		t.Fatalf("the job's task did not run to its cut-off cleanly (ran %v): %v", ran, err)
+	}
+
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused {
+		t.Errorf("the job is %q after the shutdown cut its task off, want it paused on that task, the way a person's stop leaves it", summary.State)
+	}
+	putDown, there, err := built.jobs.PutDownTask(t.Context())
+	if err != nil || !there || !putDown.HasRecord || putDown.Task.TaskID != "t1" {
+		t.Errorf("the put-down mark reads %+v (there %v, error %v), want the job's first task with its record, so the next message picks it up where it was", putDown, there, err)
+	}
+	if first := theJobsFirstTask(t, built, jobID); first.Done {
+		t.Errorf("the job's task reads %+v, and a task the program cut off is neither done nor failed", first)
+	}
 }

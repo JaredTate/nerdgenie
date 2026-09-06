@@ -69,12 +69,15 @@ func (jobs jobThatHonoursTheContext) Load(ctx context.Context, jobID string) (co
 	return jobs.Job.Load(ctx, jobID)
 }
 
-// TestATaskCutOffByTheTurnDeadlineIsFinishedAsFailedWithItsClaimLetGo cuts a
-// job's task off in the middle of its model call, the way the turn deadline
-// does, and asks that the job's bookkeeping still land: the task is finished
-// as the failure it is, the failure is counted, and the task is unclaimed, so
-// that it is handed out again rather than sitting claimed for an hour.
-func TestATaskCutOffByTheTurnDeadlineIsFinishedAsFailedWithItsClaimLetGo(t *testing.T) {
+// TestATaskCutOffByTheTurnDeadlineIsPutDownWithItsClaimLetGo cuts a job's
+// task off in the middle of its model call, the way the turn deadline and a
+// shutdown do, and asks that the job's bookkeeping still land: the task is
+// put down as the stop the program made, no failure is counted, the person is
+// told the next message picks it up, and once the job runs again the task is
+// handed out rather than sitting claimed for an hour. It used to be finished
+// as a failure and run again from the top, which is how the 20:33 restart of
+// the fifth game build abandoned ninety rounds of a play-test task's record.
+func TestATaskCutOffByTheTurnDeadlineIsPutDownWithItsClaimLetGo(t *testing.T) {
 	built := newHarness(t, nil)
 	jobID := aJobOfTwoTasks(t, built)
 	waiting := aModelThatWaitsOn(1, built.model)
@@ -103,20 +106,26 @@ func TestATaskCutOffByTheTurnDeadlineIsFinishedAsFailedWithItsClaimLetGo(t *test
 	case <-time.After(10 * time.Second):
 		t.Fatal("the loop never came back after the turn was cut off")
 	}
-	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 1 {
-		t.Errorf("the job reads %+v, want the cut-off task counted as one failure", summary)
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused || summary.FailuresInARow != 0 {
+		t.Errorf("the job reads %+v, want it paused on the cut-off task with no failure counted", summary)
 	}
-	next, there, err := built.jobs.NextTask(t.Context(), built.clock.Now())
-	if err != nil || !there || next.TaskID != "t1" {
-		t.Errorf("the next task is %+v (there %v, error %v), want t1 handed out again with its claim let go", next, there, err)
+	if putDown, there, err := built.jobs.PutDownTask(t.Context()); err != nil || !there || putDown.Task.TaskID != "t1" {
+		t.Errorf("the put-down mark reads %+v (there %v, error %v), want the job's first task, so the next message picks it up", putDown, there, err)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "0 of 2 tasks done") {
-		t.Errorf("the person was sent %v, want the failure report with the job's progress on it", built.channel.Sent())
+	if !sentSomethingLike(built.channel.Sent(), "Your next message picks this task up") {
+		t.Errorf("the person was sent %v, want the stopped report with the line that says the next message picks the task up", built.channel.Sent())
+	}
+	if !strings.Contains(strings.Join(built.channel.Sent(), "\n"), "cut off") {
+		t.Errorf("the person was sent %v, want the report to say the program cut the task off", built.channel.Sent())
 	}
 	if first := theJobsFirstTask(t, built, jobID); first.Done {
 		t.Errorf("the task reads %+v, want it still to do", first)
 	}
-	if !strings.Contains(strings.Join(built.channel.Sent(), "\n"), "could not finish") {
-		t.Errorf("the person was sent %v, want the report to say the task could not be finished", built.channel.Sent())
+	if err := built.jobs.Resume(t.Context(), jobID); err != nil {
+		t.Fatalf("cannot set the job running again: %v", err)
+	}
+	next, there, err := built.jobs.NextTask(t.Context(), built.clock.Now())
+	if err != nil || !there || next.TaskID != "t1" {
+		t.Errorf("the next task is %+v (there %v, error %v), want t1 handed out again with its claim let go once the job runs again", next, there, err)
 	}
 }

@@ -387,6 +387,10 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 			outcome, stopped := running.stopForThePerson(ctx, "the user asked the task to stop")
 			return outcome, false, stopped
 		}
+		if ctx.Err() != nil {
+			outcome, cut := running.cutOffHere(ctx, err)
+			return outcome, false, cut
+		}
 		outcome, failed := running.failHere(ctx, err)
 		return outcome, false, failed
 	}

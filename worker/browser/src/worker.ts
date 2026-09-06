@@ -60,7 +60,8 @@ async function withDeadline<T>(method: string, work: Promise<T>): Promise<T> {
           chromeDied(
             `the ${method} method was still running after ${limit} milliseconds, so the browser is started again. ` +
               "If this is a page you are building, the page's own script is the likely cause: code that does not yield, " +
-              "such as an endless loop that starts on this action, keeps the page from answering anything. Fix the script before opening the page again.",
+              "such as an endless loop that starts on this action, keeps the page from answering anything. Look in the code this action runs, " +
+              "including what it draws, for a while or a for whose condition never changes, and fix the script before opening the page again.",
           ),
         ),
       limit,

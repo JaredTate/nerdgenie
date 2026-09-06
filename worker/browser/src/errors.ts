@@ -69,7 +69,7 @@ export function couldNotBeRead(limitMs: number, why: string): WorkerError {
   if (why.includes("still busy")) {
     return new WorkerError(
       ERROR_CODES.didNotSettle,
-      `The page could not be read after ${limitMs} milliseconds: ${why}. That is the page's own script keeping it busy, which is code that does not yield, most often an endless loop that starts on this action. The fix is in the page's script; opening the page again will hang the same way.`,
+      `The page could not be read after ${limitMs} milliseconds: ${why}. That is the page's own script keeping it busy, which is code that does not yield, most often an endless loop that starts on this action: look in the code this action runs, including what it draws, for a while or a for whose condition never changes. The fix is in the page's script; opening the page again will hang the same way.`,
     );
   }
   return new WorkerError(

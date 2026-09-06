@@ -29,6 +29,7 @@ type numbers struct {
 	rewinds          int
 	failures         int
 	firstLineMarks   int
+	roundsAtTheCap   int
 	// tasks is how many tasks the numbers cover: one, or a range from an
 	// ask's own task on when the ask became a job.
 	tasks int
@@ -69,6 +70,7 @@ func measureFrom(ctx context.Context, store contract.Store, from string) (number
 		summed.rewinds += one.rewinds
 		summed.failures += one.failures
 		summed.firstLineMarks += one.firstLineMarks
+		summed.roundsAtTheCap += one.roundsAtTheCap
 		for name, count := range one.callsByTool {
 			summed.callsByTool[name] += count
 		}
@@ -81,6 +83,12 @@ func measureFrom(ctx context.Context, store contract.Store, from string) (number
 	}
 	return summed, nil
 }
+
+// OutputCapReached is the output count, rounded to the hundred the record
+// keeps, at which a round's reply reached the default output cap of 8,192
+// tokens and was cut off: the tenth nightly run lost six rounds of the game
+// job that way, each two minutes of generation kept nowhere.
+const OutputCapReached = 8100
 
 // theFirstLineMark finds a step or a line marked done on the model's first
 // line, which every checkpoint keeps as the situation's "where the work
@@ -156,6 +164,9 @@ func (measured *numbers) readTheCheckpoint(event contract.Event) {
 	measured.tokensIn += held.Header.Cost.InputTokens
 	measured.cachedIn += held.Header.Cost.CachedInputTokens
 	measured.tokensOut += held.Header.Cost.OutputTokens
+	if held.Header.Cost.OutputTokens >= OutputCapReached {
+		measured.roundsAtTheCap++
+	}
 	measured.failures = len(held.Lessons.Failures)
 	measured.rewinds = 0
 	for _, failure := range held.Lessons.Failures {
@@ -254,10 +265,10 @@ func (measured numbers) String() string {
 		"calls: %d (%s); replies with more than one call: %d\n"+
 		"rounds that only wrote the record: %d; rounds that only ran the tests: %d\n"+
 		"tokens: %.1fk in, %.1fk of them cached (%.0f%%), %.1fk out\n"+
-		"rewinds: %d; failures on the record: %d; marks made from the first line: %d",
+		"rewinds: %d; failures on the record: %d; marks made from the first line: %d; rounds cut off at the output cap: %d",
 		measured.taskID, measured.status, measured.rounds, measured.minutes, seconds,
 		calls, strings.Join(byTool, ", "), measured.repliesBatched,
 		measured.recordOnlyRounds, measured.testOnlyRounds,
 		float64(measured.tokensIn)/1000, float64(measured.cachedIn)/1000, cache, float64(measured.tokensOut)/1000,
-		measured.rewinds, measured.failures, measured.firstLineMarks)
+		measured.rewinds, measured.failures, measured.firstLineMarks, measured.roundsAtTheCap)
 }

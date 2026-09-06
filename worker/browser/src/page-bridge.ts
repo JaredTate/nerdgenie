@@ -16,6 +16,8 @@ export interface FoundElement {
   role: string;
   name: string;
   aboveFold: boolean;
+  /** The markup says hidden, on the element or above it, yet it is drawn: a style rule overrides the attribute. */
+  hiddenYetDrawn: boolean;
   password: boolean;
   shortNumeric: boolean;
 }

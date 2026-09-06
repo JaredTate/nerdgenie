@@ -16,6 +16,10 @@ type Element struct {
 	Name string `json:"name"`
 	// New says the element was not in the previous snapshot.
 	New bool `json:"new,omitempty"`
+	// HiddenYetDrawn says the markup calls the element hidden, on it or above
+	// it, and yet the browser draws it, because a style rule overrides the
+	// attribute. A page with every overlay drawn at once looks like that.
+	HiddenYetDrawn bool `json:"hiddenYetDrawn,omitempty"`
 }
 
 // Dialog is a browser dialog box that is open on the page.

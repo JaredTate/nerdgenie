@@ -1668,6 +1668,7 @@ worker/browser/test/page-errors.test.ts
 worker/browser/test/page-events.test.ts
 worker/browser/test/page-text.test.ts
 worker/browser/test/pages/broken-page.html
+worker/browser/test/pages/busy-after-click.html
 worker/browser/test/pages/busy-attributes.html
 worker/browser/test/pages/captcha.html
 worker/browser/test/pages/changes-on-click.html
@@ -1695,6 +1696,7 @@ worker/browser/test/pages/recaptcha-anchor.html
 worker/browser/test/pages/reloads-forever.html
 worker/browser/test/pages/report.pdf
 worker/browser/test/pages/signed-in.html
+worker/browser/test/pages/slow-after-click.html
 worker/browser/test/pages/stale-ref.html
 worker/browser/test/pages/two-factor.html
 worker/browser/test/pages/type-echo.html

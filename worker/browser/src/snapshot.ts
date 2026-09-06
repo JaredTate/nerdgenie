@@ -158,6 +158,7 @@ function chooseElements(found: FoundElement[], visibleOnly: boolean): SnapshotEl
     ref: element.ref,
     role: element.role,
     name: element.name,
+    ...(element.hiddenYetDrawn ? { hiddenYetDrawn: true as const } : {}),
   });
   const visible = found.filter((element) => element.aboveFold).map(bare);
   if (visibleOnly) {

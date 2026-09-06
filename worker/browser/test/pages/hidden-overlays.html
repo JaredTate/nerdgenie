@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hidden overlays</title>
+    <style>
+      /* The fresh Tetris build's bug: a display rule on the class beats the
+         hidden attribute, so every overlay is drawn, and the last one wins. */
+      .overlay { display: flex; position: absolute; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Hidden overlays</h1>
+    <div class="overlay" id="start"><h2>Press start</h2><button type="button">Start</button></div>
+    <div class="overlay" id="over" hidden><h2>Game over</h2><button type="button">Play again</button></div>
+    <p hidden>Not drawn, because nothing overrides it</p>
+  </body>
+</html>

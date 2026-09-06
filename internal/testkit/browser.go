@@ -26,6 +26,8 @@ const (
 	FixtureTwoFactorPage = "https://fixture.test/two-factor"
 	// FixtureCaptchaPage asks the visitor to prove they are a person.
 	FixtureCaptchaPage = "https://fixture.test/captcha"
+	// FixtureOverlaysPage draws a game-over card its markup says is hidden.
+	FixtureOverlaysPage = "https://fixture.test/overlays"
 
 	// FixtureChangeLinkRef is the link on the simple page.
 	FixtureChangeLinkRef = "e1"

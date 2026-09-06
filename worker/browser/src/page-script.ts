@@ -174,6 +174,7 @@ window.__nerdgenieScan = window.__nerdgenieScan || function (how) {
       role: role,
       name: window.__nerdgenieNameOf(element, role, how.mostNameCharacters),
       aboveFold: box.bottom > 0 && box.right > 0 && box.top < tall && box.left < wide,
+      hiddenYetDrawn: !!(element.closest && element.closest("[hidden]")),
       password: element.tagName === "INPUT" && (element.getAttribute("type") || "").toLowerCase() === "password",
       shortNumeric: window.__nerdgenieShortNumeric(element)
     });

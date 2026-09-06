@@ -120,6 +120,13 @@ func errorsText(errors []string) string {
 	return written.String()
 }
 
+// TheHiddenYetDrawnMark follows an element whose markup says hidden and which
+// the browser draws all the same. It says the cause, because the model that
+// built the fresh Tetris game read every overlay's heading at once, and saw
+// the GAME OVER card on top of the start card in its own screenshot, without
+// working out why: the page's own display rule was beating the attribute.
+const TheHiddenYetDrawnMark = " (marked hidden, yet drawn: a style rule overrides the hidden attribute)"
+
 // elementsText is one line per element, in reading order, up to the cap.
 func elementsText(elements []contract.Element) string {
 	written := &strings.Builder{}
@@ -128,13 +135,16 @@ func elementsText(elements []contract.Element) string {
 			fmt.Fprintf(written, "... %d more elements, so narrow the page before acting\n", len(elements)-MaxElements)
 			break
 		}
-		isNew := ""
+		marks := ""
 		if element.New {
-			isNew = " (new)"
+			marks += " (new)"
+		}
+		if element.HiddenYetDrawn {
+			marks += TheHiddenYetDrawnMark
 		}
 		fmt.Fprintf(written, "%s %s %q%s\n",
 			fromThePage(element.Ref, MaxNameRunes), fromThePage(element.Role, MaxNameRunes),
-			fromThePage(element.Name, MaxNameRunes), isNew)
+			fromThePage(element.Name, MaxNameRunes), marks)
 	}
 	return written.String()
 }

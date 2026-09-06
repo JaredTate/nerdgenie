@@ -35,6 +35,15 @@ func fixturePages() map[string]contract.Snapshot {
 				{Ref: "e5", Role: "button", Name: "Go back"},
 			},
 		},
+		FixtureOverlaysPage: {
+			URL: FixtureOverlaysPage, Title: "Overlays", TabID: "t1",
+			Elements: []contract.Element{
+				{Ref: "e1", Role: "heading", Name: "Press start"},
+				{Ref: "e2", Role: "button", Name: "Start"},
+				{Ref: "e3", Role: "heading", Name: "Game over", HiddenYetDrawn: true},
+				{Ref: "e4", Role: "button", Name: "Play again", HiddenYetDrawn: true},
+			},
+		},
 		FixtureLoginPage: {
 			URL: FixtureLoginPage, Title: "Sign in", TabID: "t1",
 			Wall: &contract.Wall{Kind: contract.WallLogin, Detail: "a password box named Password"},

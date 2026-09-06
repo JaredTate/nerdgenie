@@ -36,6 +36,14 @@ export interface SnapshotElement {
   name: string;
   /** Present and true only when the element was not in the previous snapshot. */
   new?: true;
+  /**
+   * Present and true only when the markup says hidden, on the element or above
+   * it, and yet the element is drawn, because a style rule overrides the
+   * attribute. On the fresh Tetris build every overlay was drawn at once, the
+   * GAME OVER card on top of the start card, and the model read the page's
+   * outline and its screenshot without seeing why.
+   */
+  hiddenYetDrawn?: true;
 }
 
 /** A dialog box that the page opened and that nobody has answered. */

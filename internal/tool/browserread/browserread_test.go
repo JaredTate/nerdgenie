@@ -57,6 +57,25 @@ func TestThePageComesBackAsACompactTree(t *testing.T) {
 	testkit.Golden(t, "a_page.txt", []byte(output.Text))
 }
 
+func TestAnElementTheMarkupHidesButAStyleRuleDrawsIsSaidSo(t *testing.T) {
+	worker := testkit.NewFakeBrowserWorker()
+	if _, err := worker.Open(context.Background(), testkit.FixtureOverlaysPage); err != nil {
+		t.Fatalf("opening the overlays page failed: %v", err)
+	}
+	tool := browserread.New(browserread.Settings{Browser: worker})
+
+	output, err := run(t, tool, map[string]any{"intent": "see whether the start screen is up"})
+	if err != nil {
+		t.Fatalf("reading the page failed: %v", err)
+	}
+	if !strings.Contains(output.Text, `e3 heading "Game over" (marked hidden, yet drawn: a style rule overrides the hidden attribute)`) {
+		t.Fatalf("the drawn game-over card is not marked:\n%s", output.Text)
+	}
+	if strings.Contains(output.Text, `"Press start" (marked hidden`) {
+		t.Fatalf("the start card is wrongly marked:\n%s", output.Text)
+	}
+}
+
 func TestReadingOnlyWhatIsInViewLeavesOutTheCountBelowTheFold(t *testing.T) {
 	tool, _ := newTool(t)
 

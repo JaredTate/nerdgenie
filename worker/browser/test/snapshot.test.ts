@@ -64,6 +64,16 @@ describe("reading a page as a compact tree", () => {
     expect(named(second, "Post")?.ref).toBe(named(first, "Post")?.ref);
   });
 
+  it("marks an element that its markup hides but a style rule draws", async () => {
+    const page = await worker.result("open", { url: site.page("hidden-overlays.html") });
+    const elements = page["elements"] as Array<Record<string, unknown>>;
+    const gameOver = elements.find((element) => element["name"] === "Game over");
+    expect(gameOver?.["hiddenYetDrawn"]).toBe(true);
+    const start = elements.find((element) => element["name"] === "Press start");
+    expect(start?.["hiddenYetDrawn"]).toBeUndefined();
+    expect(elements.some((element) => element["name"] === "Not drawn, because nothing overrides it")).toBe(false);
+  });
+
   it("never puts the page's markup or its scripts into the answer", async () => {
     const result = await worker.result("open", { url: site.page("changes-on-click.html") });
     const written = JSON.stringify(result);

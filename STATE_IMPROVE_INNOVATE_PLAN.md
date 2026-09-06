@@ -259,6 +259,10 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 09:31 on 6 September, from the fourteenth run: the model made the game a job of one task, the scaffold, and the job finished after it with nothing built. The `job` tool now refuses a job for an ask over six hundred words that lists fewer than three tasks (`MinTasksForALongAsk`), the way the record refuses a long ask's plan. The same run measured the checkpoint spacing on real work: 1.0k and 0.8k uncached tokens a round at five seconds a round, against 3.6k to 5.0k at sixteen to twenty before.
 
+- **A slow page is not a dead browser.** Built on 6 September after the fresh build's Start button ran the click method past twenty-five seconds four times in one task, each time restarting Chrome under the model: human pacing, two looks and a second click on a page drawing sixty frames a second. The worker asks the page a trivial question when its deadline rings and, when the page answers, waits the same time again. The Go side's deadlines are more than twice the worker's. Proven live on the first click after the restart: "the page still answers, so the worker waits as long again", and the click's result came back.
+
+- **The outline says when a page draws what its markup calls hidden.** Built on 6 September after the model read all three overlay headings in one outline and its own screenshot of the GAME OVER card without seeing why: the stylesheet's display rule was beating the `hidden` attribute. The scan marks such an element and the read tool prints the cause after its line. The model's judgment of a picture is the weak link; a structural mark in the words it reads is the cheap second chance.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

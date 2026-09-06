@@ -208,20 +208,68 @@ func TestARecordWriteTheRulesRefuseComesBackAsAnErrorTheModelCanFix(t *testing.T
 	}
 }
 
-// TestAReplyCutShortIsNotReadAsAQuestion proves the harness tells a question
-// from an answer by the finish state as well as by the question mark.
-func TestAReplyCutShortIsNotReadAsAQuestion(t *testing.T) {
+// TestAReplyCutOffAtTheOutputCapIsToldSoAndTriedAgain is the tenth nightly
+// run's frontend task: the model wrote the whole game file in one write call,
+// the reply hit the output cap of 8192 tokens three rounds running, the harness
+// read each cut-off call as unreadable arguments and offered the three options,
+// and on the fourth round the model took the first, "answer the user", with
+// "Now the main game logic. Let me write it carefully", and the task closed
+// done with no game file written. A reply cut off at the cap is neither an
+// answer nor a call: the model is told it was cut off, that none of it was
+// kept, and how to write a long file in parts.
+func TestAReplyCutOffAtTheOutputCapIsToldSoAndTriedAgain(t *testing.T) {
 	built := newHarness(t, []testkit.Step{
-		callStep("I will read the notes.",
-			callFor("c1", "read", `{"path":"notes.md"}`),
-			taskCall("c1t", `{"doneWhen":[{"text":"the notes are read","done":true,"resultId":"r1"}]}`)),
-		{Text: "The notes are read. What is left?", Finish: contract.FinishLength},
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		{
+			Text:      "I will write the whole file now.",
+			ToolCalls: []contract.ToolCall{callFor("c2", "write", `{"path":"main.js","content":"const a = 1;"}`)},
+			Finish:    contract.FinishLength,
+			Usage:     contract.Usage{OutputTokens: 8192},
+		},
+		answerStep("The notes are read."),
 	}, scriptedTool("read", "the notes"))
 
 	outcome := built.ask(t, "read the notes")
 
 	if outcome.Status != contract.StatusDone {
-		t.Errorf("the task ended %q, and a reply cut short by the output cap is not a question", outcome.Status)
+		t.Errorf("the task ended %q, want done once the model was sent back and answered", outcome.Status)
+	}
+	whole := requestsJoined(built.model.Requests())
+	if !strings.Contains(whole, "cut off at the output cap after 8192 tokens") || !strings.Contains(whole, "in parts") {
+		t.Error("the model was never told its reply was cut off at the output cap, or how to write a long file in parts")
+	}
+	if strings.Contains(whole, "const a = 1;") {
+		t.Error("the cut-off reply was kept in the working context, and none of it is worth keeping")
+	}
+}
+
+// TestAnAnswerWithPlanStepsStillOpenAndNoDoneListIsSentBackToWork is the same
+// task's last round: its done list had been refused, its plan of five steps had
+// two marked done, and the reply "Let me write it carefully" closed the task as
+// done, its answer taken as the whole done list. A plan with steps still open
+// says the work is not over, and the model is sent back to it.
+func TestAnAnswerWithPlanStepsStillOpenAndNoDoneListIsSentBackToWork(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.",
+			callFor("c1", "read", `{"path":"notes.md"}`),
+			taskCall("c1t", `{"plan":["read the notes","write the summary"]}`)),
+		answerStep("Now the summary, the largest part. Let me write it carefully."),
+		answerStep("step 1 done: r1, step 2 done: r1\nThe notes are read and the summary is written."),
+	}, scriptedTool("read", "the notes"))
+
+	outcome := built.ask(t, "read the notes")
+
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the task ended %q, want done once every plan step was marked", outcome.Status)
+	}
+	whole := requestsJoined(built.model.Requests())
+	if !strings.Contains(whole, "steps 1 and 2 are not marked done") {
+		t.Error("the model was never told that its plan still had steps not marked done")
+	}
+	for _, step := range built.held(t, outcome.TaskID).Work.Plan {
+		if !step.Done {
+			t.Errorf("plan step %d is still open on a task that ended done", step.Number)
+		}
 	}
 }
 

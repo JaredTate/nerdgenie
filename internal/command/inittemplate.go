@@ -74,6 +74,7 @@ const browserSkillText = "# " + browserSkillName + "\n\n" + browserSkillDescript
 	"- Open a page with browser_open and read what comes back: an outline of the page's elements, each with a reference such as e12.\n" +
 	"- Look again with browser_read when the page may have changed.\n" +
 	"- Ask a page you serve from this machine a question with browser_read's ask field, such as window.game.state.\n" +
+	"- No picture of the page reaches you, and no screenshot can: judge a canvas by asking the page for its state.\n" +
 	"- Act by reference, never by guessing coordinates: browser_click, browser_type, and browser_act each take the reference of an element from the outline. Never make one up.\n" +
 	"- Use browser_act for a form, as one batch of steps, rather than one call per box.\n" +
 	"- Quote every number exactly as the outline shows it.\n\n" +

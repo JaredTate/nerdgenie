@@ -58,6 +58,34 @@ func TestAWriteThatStartsAHeadlessBrowserIsRefused(t *testing.T) {
 	}
 }
 
+// TestWordsAboutHeadlessBrowsersAreNotALaunch keeps the guard off prose and
+// settings that only mention the thing: a chapter on browser automation, a
+// README that names the flag, a config value with no browser launched by the
+// file. The harness writes books as well as scripts.
+func TestWordsAboutHeadlessBrowsersAreNotALaunch(t *testing.T) {
+	tool, _, _ := newTool(t)
+
+	for name, prose := range map[string]string{
+		"a chapter":   "Some teams run their crawlers with --headless on a server, and never see a window.\n",
+		"a setting":   "render:\n  headless: true\n  width: 1280\n",
+		"a bare flag": "The --headless flag exists since Chrome 59.\n",
+	} {
+		if _, err := run(t, tool, map[string]any{"path": "notes/" + name + ".md", "content": prose}); err != nil {
+			t.Errorf("%s was refused as a headless launch: %v", name, err)
+		}
+	}
+	for name, launch := range map[string]string{
+		"selenium": "options = Options()\noptions.add_argument('--headless=new')\ndriver = webdriver.Chrome(options=options)\n",
+		"a shell":  "google-chrome --headless --screenshot=shot.png http://localhost:8091/\n",
+		"a config": "import { defineConfig } from '@playwright/test';\nexport default defineConfig({ use: { headless: true } });\n",
+	} {
+		_, err := run(t, tool, map[string]any{"path": "qa/" + name + ".txt", "content": launch})
+		if err == nil || !strings.Contains(err.Error(), "browser runs on the screen") {
+			t.Errorf("%s was written, or refused without the reason: %v", name, err)
+		}
+	}
+}
+
 // run calls the tool with the fields written as JSON.
 func run(t *testing.T, tool *write.Tool, fields map[string]any) (contract.ToolOutput, error) {
 	t.Helper()

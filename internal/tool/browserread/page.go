@@ -136,7 +136,7 @@ const TheHiddenYetDrawnMark = " (marked hidden, yet drawn: a style rule override
 // and because the model that built the fresh game fixed the one overlay it was
 // told about and left the badge and the touch controls drawn.
 func theHiddenYetDrawnLine(count int) string {
-	return fmt.Sprintf("%d elements are hidden in the markup yet drawn: a style rule overrides the hidden attribute, and one rule fixes every one: [hidden] { display: none !important; }\n", count)
+	return fmt.Sprintf("%d elements are hidden in the markup yet drawn: a style rule overrides the hidden attribute; if this page is yours, one rule fixes every one: [hidden] { display: none !important; }\n", count)
 }
 
 // elementsText is one line per element, in reading order, up to the cap.

@@ -12,13 +12,26 @@ const TheOnScreenBrowserLine = "refused: this would start a headless browser, an
 	"Drive and check a page through the browser tools instead: browser_open, browser_read, browser_click, browser_press, " +
 	"browser_screenshot, and browser_read's ask field for a question of the page's own script"
 
-// aHeadlessLaunch matches the ways a script starts a browser with no window: a
-// Playwright or Puppeteer launch whose headless option is on, in any of the
-// spellings those libraries take, or Chrome's own flag.
-var aHeadlessLaunch = regexp.MustCompile(`headless\s*[:=]\s*(true|['"](new|old|shell|chrome)['"])|--headless\b`)
+// The two shapes of a headless launch. The option is a Playwright or
+// Puppeteer launch whose headless option is on, in any of the spellings those
+// libraries take; the flag is Chrome's own, either on a command line that
+// runs a browser or quoted as an argument handed to one. Words about the
+// thing are not the thing: a chapter
+// on crawlers, a README naming the flag, or a setting in a file that launches
+// no browser are all written, because the harness writes books as well as
+// scripts.
+var (
+	aHeadlessOption = regexp.MustCompile(`headless\s*[:=]\s*(true|['"](new|old|shell|chrome)['"])`)
+	aBrowserLaunch  = regexp.MustCompile(`(?i)launch\s*\(|puppeteer|playwright|chromium|webdriver|selenium`)
+	aHeadlessFlag   = regexp.MustCompile(`(?i)\b(google-chrome|chrome|chromium|chromium-browser|msedge|firefox)(\.exe)?(\s+\S+)*\s+--headless\b|['"]--headless(=\w+)?['"]`)
+)
 
 // StartsAHeadlessBrowser says whether content that is about to be written
-// starts a browser nobody can see.
+// starts a browser nobody can see: the headless option in a file that
+// launches a browser, or the headless flag on a line that runs one.
 func StartsAHeadlessBrowser(content string) bool {
-	return aHeadlessLaunch.MatchString(content)
+	if aHeadlessOption.MatchString(content) && aBrowserLaunch.MatchString(content) {
+		return true
+	}
+	return aHeadlessFlag.MatchString(content)
 }

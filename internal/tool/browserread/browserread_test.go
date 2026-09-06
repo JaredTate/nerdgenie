@@ -76,7 +76,7 @@ func TestAnElementTheMarkupHidesButAStyleRuleDrawsIsSaidSo(t *testing.T) {
 	}
 	// The badge with no role never reaches the outline, so the page's own count
 	// is what says it: two nodes, the game-over card and the badge.
-	if !strings.Contains(output.Text, "2 elements are hidden in the markup yet drawn") {
+	if !strings.Contains(output.Text, "2 elements are hidden in the markup yet drawn") || !strings.Contains(output.Text, "if this page is yours") {
 		t.Fatalf("the count of drawn hidden elements is missing:\n%s", output.Text)
 	}
 }

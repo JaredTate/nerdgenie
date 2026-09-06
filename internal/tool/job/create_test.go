@@ -58,6 +58,7 @@ func TestACreateWithNoAskTakesTheRunningTasksAskWordForWord(t *testing.T) {
 		"name":   "Yeti Tetris",
 		"why":    "the user wants the whole game built and tested",
 		"text":   "write the failing tests for the core engine",
+		"tasks":  []string{"build the engine until the tests pass", "build the page and play-test it"},
 	})
 	if err != nil {
 		t.Fatalf("creating a job with no ask over a record was refused: %v", err)
@@ -399,5 +400,40 @@ func TestTheCapAndTheBlankRuleHoldForPlainStringTasks(t *testing.T) {
 		t.Fatalf("listing failed: %v", listErr)
 	} else if len(summaries) != 0 {
 		t.Errorf("the refused creates still left %d jobs behind", len(summaries))
+	}
+}
+
+// TestAJobForALongAskNeedsItsWholeTaskList is the fourteenth nightly run: the
+// model made the game a job of one task, the scaffold, the job finished after
+// it, and the game was never built. A job for an ask over six hundred words
+// is a job of at least three tasks, one per feature or step, and a create
+// that lists fewer is refused with that rule, the way the record refuses a
+// long ask's plan.
+func TestAJobForALongAskNeedsItsWholeTaskList(t *testing.T) {
+	longAsk := "Build a complete, polished, playable Tetris-style web game with dragons and yetis.\n\n" +
+		strings.Repeat("Every piece has its own colour and its own sound, and the yeti roars when a line clears. ", 60)
+	tool, jobs := newToolOverRecord(t, longAsk)
+
+	_, err := run(t, tool, map[string]any{
+		"action": "create",
+		"name":   "Yeti Tetris",
+		"why":    "the user wants the whole game built and tested",
+		"text":   "scaffold the project",
+	})
+	if err == nil || !strings.Contains(err.Error(), "at least 3 tasks") || !strings.Contains(err.Error(), "tasks") {
+		t.Fatalf("a job of one task for a long ask gave %v, want a refusal asking for the whole task list", err)
+	}
+	if listed, _ := jobs.List(context.Background()); len(listed) != 0 {
+		t.Errorf("the refused create left %d jobs behind", len(listed))
+	}
+
+	if _, err := run(t, tool, map[string]any{
+		"action": "create",
+		"name":   "Yeti Tetris",
+		"why":    "the user wants the whole game built and tested",
+		"text":   "scaffold the project",
+		"tasks":  []string{"build the engine until the tests pass", "build the page and play-test it"},
+	}); err != nil {
+		t.Errorf("a job of three tasks for a long ask was refused: %v", err)
 	}
 }

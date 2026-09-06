@@ -85,3 +85,32 @@ func TestAPillRemembersItsTaskSoItOpensAfterTheTaskEnds(t *testing.T) {
 		t.Errorf("after the task ended the show sent was %+v, want id r27 with task 17, the task the pill was drawn under", shows)
 	}
 }
+
+// TestTheLastTaskStaysOnThePanelWhenTheProgramIsIdle is the desktop window
+// the morning after the fifth game build: the job had closed ten of ten at
+// 00:25 and the panel showed the model and the word idle, with the ending
+// only in the transcript, where it scrolls away. While the program is idle
+// the panel keeps the last record line, how the last task or job ended, under
+// its own heading; while a task runs the heading is not there.
+func TestTheLastTaskStaysOnThePanelWhenTheProgramIsIdle(t *testing.T) {
+	screen, _ := newTestScreen(120, 40)
+	screen.readStatus(map[string]string{
+		"state":      "idle",
+		"recordLine": "job 2 task 13 done · Final regression cycle complete: full test suite green after QA fixes",
+	})
+	drawn := []string{}
+	for _, line := range screen.lastPanelLines() {
+		drawn = append(drawn, plainText(line.render(screen.colors)))
+	}
+	joined := strings.Join(drawn, "\n")
+	for _, wanted := range []string{"task 13 done", "Final regression cycle"} {
+		if !strings.Contains(joined, wanted) {
+			t.Errorf("the idle panel's last section reads:\n%s\nwant it to say %q", joined, wanted)
+		}
+	}
+
+	screen.readStatus(map[string]string{"state": "thinking", "task": "14", "recordLine": "job 2 task 14 started · Visual QA pass"})
+	if lines := screen.lastPanelLines(); len(lines) != 0 {
+		t.Errorf("while a task runs the last section holds %d rows, want none: the state and the checklist say where the work is", len(lines))
+	}
+}

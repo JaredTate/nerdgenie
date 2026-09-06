@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -27,7 +28,13 @@ type numbers struct {
 	tokensOut        int
 	rewinds          int
 	failures         int
+	firstLineMarks   int
 }
+
+// theFirstLineMark finds a step or a line marked done on the model's first
+// line, which every checkpoint keeps as the situation's "where the work
+// stands" line.
+var theFirstLineMark = regexp.MustCompile(`(?i)\b(?:step|line) \d+ done`)
 
 // theTestRunners are the words in a shell command that make it a test run.
 var theTestRunners = []string{"--test", "npm test", "pytest", "go test", "test/run", "vitest", "jest"}
@@ -90,6 +97,11 @@ func (measured *numbers) readTheCheckpoint(event contract.Event) {
 		return
 	}
 	measured.status = held.Header.Status
+	for _, fact := range held.Work.Situation {
+		if orient, found := strings.CutPrefix(fact, "where the work stands: "); found {
+			measured.firstLineMarks += len(theFirstLineMark.FindAllString(orient, -1))
+		}
+	}
 	measured.tokensIn += held.Header.Cost.InputTokens
 	measured.cachedIn += held.Header.Cost.CachedInputTokens
 	measured.tokensOut += held.Header.Cost.OutputTokens
@@ -191,10 +203,10 @@ func (measured numbers) String() string {
 		"calls: %d (%s); replies with more than one call: %d\n"+
 		"rounds that only wrote the record: %d; rounds that only ran the tests: %d\n"+
 		"tokens: %.1fk in, %.1fk of them cached (%.0f%%), %.1fk out\n"+
-		"rewinds: %d; failures on the record: %d",
+		"rewinds: %d; failures on the record: %d; marks made from the first line: %d",
 		measured.taskID, measured.status, measured.rounds, measured.minutes, seconds,
 		calls, strings.Join(byTool, ", "), measured.repliesBatched,
 		measured.recordOnlyRounds, measured.testOnlyRounds,
 		float64(measured.tokensIn)/1000, float64(measured.cachedIn)/1000, cache, float64(measured.tokensOut)/1000,
-		measured.rewinds, measured.failures)
+		measured.rewinds, measured.failures, measured.firstLineMarks)
 }

@@ -179,7 +179,10 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 		path := fieldOfCall(call, "path")
 		if path != "" && !slices.Contains(running.filesChanged, path) {
 			running.filesChanged = append(running.filesChanged, path)
-			if call.Name == contract.ToolWrite && !failed && !writesAProbe(call) {
+			// The first change of a file is progress, a write or an edit,
+			// the way the first read of one is; the same file changed round
+			// after round is not.
+			if !failed && !writesAProbe(call) {
 				running.noteProgress()
 			}
 		}

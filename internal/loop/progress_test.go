@@ -58,19 +58,21 @@ func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T
 
 	outcome := built.ask(t, "make the tests pass")
 
+	// The first edit of the file is the one change that counts, so the ten
+	// rounds without progress are the ten after it.
 	first, _ := requestsCarrying(built, loop.TheStallLine)
-	if first != loop.NudgeAfterRoundsWithoutProgress {
-		t.Errorf("the stall line first rode on model call %d, want call %d, the one after ten rounds without progress", first, loop.NudgeAfterRoundsWithoutProgress)
+	if first != loop.NudgeAfterRoundsWithoutProgress+1 {
+		t.Errorf("the stall line first rode on model call %d, want call %d, the one after the first change and ten rounds without progress", first, loop.NudgeAfterRoundsWithoutProgress+1)
 	}
 	firstRewind, _ := requestsCarrying(built, loop.TheRewindLine)
-	if firstRewind != loop.RewindAfterRoundsWithoutProgress {
-		t.Errorf("the rewind line first rode on model call %d, want call %d, the one after twenty rounds without progress", firstRewind, loop.RewindAfterRoundsWithoutProgress)
+	if firstRewind != loop.RewindAfterRoundsWithoutProgress+1 {
+		t.Errorf("the rewind line first rode on model call %d, want call %d, the one after the first change and twenty rounds without progress", firstRewind, loop.RewindAfterRoundsWithoutProgress+1)
 	}
 	if outcome.Status != contract.StatusStopped || !strings.Contains(outcome.StopLine, "without progress") {
 		t.Errorf("the task ended %q on %q, want it stopped for rounds without progress after the cleared conversation stalled again", outcome.Status, outcome.StopLine)
 	}
-	if calls := len(built.model.Requests()); calls < 2*loop.RewindAfterRoundsWithoutProgress || calls > 2*loop.RewindAfterRoundsWithoutProgress+1 {
-		t.Errorf("the model was called %d times, want %d rounds of edits and at most one call for the stopped report", calls, 2*loop.RewindAfterRoundsWithoutProgress)
+	if calls := len(built.model.Requests()); calls < 2*loop.RewindAfterRoundsWithoutProgress+1 || calls > 2*loop.RewindAfterRoundsWithoutProgress+2 {
+		t.Errorf("the model was called %d times, want the first change, %d rounds of edits and at most one call for the stopped report", calls, 2*loop.RewindAfterRoundsWithoutProgress)
 	}
 	held := built.held(t, outcome.TaskID)
 	stalled := 0
@@ -130,8 +132,8 @@ func TestProgressStartsTheCountAgain(t *testing.T) {
 	if outcome.Status != contract.StatusDone {
 		t.Errorf("the task ended %q, want done in the model's own words", outcome.Status)
 	}
-	if shown := wholeRequestText(built.model.Requests()[5]); !strings.Contains(shown, "rounds since progress: 5") {
-		t.Errorf("the sixth call does not carry the meter in the situation, and the request reads:\n%s", shown)
+	if shown := wholeRequestText(built.model.Requests()[5]); !strings.Contains(shown, "rounds since progress: 4") {
+		t.Errorf("the sixth call does not carry the meter in the situation, four rounds after the first change, and the request reads:\n%s", shown)
 	}
 }
 

@@ -253,6 +253,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Built at 08:10 on 6 September, from the thirteenth run's polish task, which spent rounds writing a Chrome DevTools script to screenshot its canvas and look at the dragon: `browser_read` and the browser skill now say that no picture reaches the model and a canvas is judged by asking the page. The model's own eyes, idea 12, stay the owner's decision.
 
+- Built at 08:45 on 6 September, from the thirteenth run's play-test: its click on Start Game was reported as "nothing changed" and then hung for twenty-five seconds, twice. Run through the worker by hand the page was fine: the game hid its start overlay half a second after the click, once its sound was set up, the worker's first look came too soon, it clicked again at the same place, and the second click landed on a running game. A click that seems to have changed nothing now gets one more look seven hundred milliseconds later before any second click, judged against the page before the first. The twenty-five-second hang itself did not reproduce outside the run and stays open.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

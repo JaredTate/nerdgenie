@@ -1275,7 +1275,13 @@ seventy-eight rounds. The diff now carries `newText`, the lines of the page's
 text that were not there before, at most twelve; a number is a meaningful word
 however short; a line that appeared is a place the expectation's words may
 match; and a verdict not met says "the text now says "1"" (`counter.html` in
-the fixtures, and the counter test in `actions.test.ts`). `walls` reports a login form, a prompt for a
+the fixtures, and the counter test in `actions.test.ts`). **A click that seems
+to have changed nothing is given one more look before it is clicked again**
+(`LATE_REACTION_MS`, seven hundred milliseconds): the game the thirteenth
+nightly run built hid its start overlay half a second after the click, once
+its sound was set up, the first look came too soon, and the second click
+started a game that had already started; every look is judged against the
+page as it was before the first click (`reacts-late.html`). `walls` reports a login form, a prompt for a
 second code, or a captcha. `ask` answers a question about the page: the read
 method takes one expression of at most five hundred characters, evaluates it on
 the page under the scan's own deadline, and puts its value as JSON, cut to two

@@ -116,3 +116,14 @@ func TestTheInstructionTextSaysToMarkEachPlanStepDone(t *testing.T) {
 		t.Error("the instruction text does not tell the model to mark each plan step done as it goes")
 	}
 }
+
+// TestTheInstructionTextSaysToWriteDoneLinesBareAndMarkThemLater is the tenth
+// nightly run's play-test task, which read "every done line must point at the
+// result proving it" as a rule for the moment of writing, gave its five new
+// lines the labels r1 to r5, and then guessed labels for ten refused rounds.
+// The rule says the line is written bare and marked done later.
+func TestTheInstructionTextSaysToWriteDoneLinesBareAndMarkThemLater(t *testing.T) {
+	if !strings.Contains(InstructionText, "Write each done line bare; mark it done later, by the result proving it.") {
+		t.Error("the instruction text does not tell the model to write done lines bare and mark them done later")
+	}
+}

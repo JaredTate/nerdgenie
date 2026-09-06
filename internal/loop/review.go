@@ -124,9 +124,11 @@ func (theLoop *Loop) askTheFourQuestions(ctx context.Context, background string)
 func fourthAnswerIn(text string) string {
 	lines := []string{}
 	for _, line := range strings.Split(text, "\n") {
-		if trimmed := strings.TrimSpace(line); trimmed != "" {
-			lines = append(lines, withoutItsNumber(trimmed))
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || isAHeadingOrAQuestion(trimmed) {
+			continue
 		}
+		lines = append(lines, withoutItsNumber(trimmed))
 	}
 	if len(lines) == 0 {
 		return ""
@@ -135,6 +137,16 @@ func fourthAnswerIn(text string) string {
 		return lines[3]
 	}
 	return lines[len(lines)-1]
+}
+
+// isAHeadingOrAQuestion says whether a line is one of the questions written back
+// as a heading over its answer, or a line that ends where an answer begins,
+// rather than an answer: the eleventh nightly run's memory held "**2. What
+// actually happened?**" and "Why was there a difference? - Let me look at the
+// friction points:" as two of its lessons.
+func isAHeadingOrAQuestion(line string) bool {
+	bare := strings.Trim(line, "*#_ ")
+	return bare == "" || strings.HasSuffix(bare, "?") || strings.HasSuffix(bare, ":") || strings.HasPrefix(line, "#")
 }
 
 // withoutItsNumber takes the "4." or "4)" off the front of an answer.

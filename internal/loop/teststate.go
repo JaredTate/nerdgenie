@@ -79,13 +79,15 @@ func (state testState) key() string {
 }
 
 // testStateIn reads a test runner's summary out of a shell result, and says
-// whether it found one. It knows the five runners a project on this machine is
-// likely to use: Node's own test runner, Jest, Vitest, pytest, and Go's. A result with
+// whether it found one. It knows the runners a project is likely to use:
+// Node's own test runner, Jest, Vitest, pytest and Go's here, and Python's
+// unittest, Mocha, Bun and Deno in teststate_scripting.go. A result with
 // no summary line and no marked test is not a test run, however the word
 // "tests" turns up in it, so a directory listing never puts a line in the
 // record.
 func testStateIn(text string) (testState, bool) {
 	state, found := testState{}, false
+	scripting := scriptingRunners{}
 	for _, raw := range strings.Split(text, "\n") {
 		line := strings.TrimSpace(raw)
 		switch {
@@ -128,20 +130,30 @@ func testStateIn(text string) (testState, bool) {
 			found = true
 		case line == "PASS" || line == "FAIL" || strings.HasPrefix(line, "ok  \t") || strings.HasPrefix(line, "FAIL\t"):
 			found = true
+		// Python's unittest, Mocha, Bun and Deno, in teststate_scripting.go.
+		case scripting.readLine(line, &state):
+			found = true
 		}
 	}
+	scripting.finish(text, &state)
 	if !found {
 		return testState{}, false
 	}
+	state.settle()
+	return state, true
+}
+
+// settle squares the counts once every line is read: the failed count is at
+// least the number of names given, and a test file Vitest could not load ran
+// no test, so the suite is red by the files even when every test that ran
+// passed.
+func (state *testState) settle() {
 	if state.failed < len(state.failing) {
 		state.failed = len(state.failing)
 	}
-	// A test file Vitest could not load ran no test, so the suite is red by
-	// the files even when every test that ran passed.
 	if state.failed == 0 && state.filesFailed > 0 {
 		state.failed, state.total = state.filesFailed, state.filesTotal
 	}
-	return state, true
 }
 
 // readVitestCounts reads "16 failed | 56 passed (72)", Vitest's shape for both

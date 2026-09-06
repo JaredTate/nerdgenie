@@ -135,6 +135,15 @@ const ApproveAlwaysText = "always"
 const (
 	// StatusFieldModel is the alias of the model in use.
 	StatusFieldModel = "model"
+	// StatusFieldModelFile is the model file the local daemon has loaded, by
+	// its base name, or the server's model name when the daemon does not say.
+	StatusFieldModelFile = "modelFile"
+	// StatusFieldPromptSpeed is how many tokens a second the last call's
+	// prompt was read at, whole, when the provider reports it.
+	StatusFieldPromptSpeed = "promptSpeed"
+	// StatusFieldOutputSpeed is how many tokens a second the last call's
+	// answer was written at, whole, when the provider reports it.
+	StatusFieldOutputSpeed = "outputSpeed"
 	// StatusFieldTask is the running task's number, or empty.
 	StatusFieldTask = "task"
 	// StatusFieldTaskState is the running task's record status.

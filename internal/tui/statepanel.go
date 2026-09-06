@@ -25,6 +25,15 @@ const (
 func (screen *Screen) modelPanelLines() []row {
 	width := screen.panelTextWidth()
 	lines := appendPanelWords(nil, styleDim, screen.modelAlias, width)
+	if screen.modelFile != "" {
+		lines = appendPanelWords(lines, styleDim, screen.modelFile, width)
+	}
+	if screen.promptSpeed != "" {
+		lines = appendPanelWords(lines, styleDim, "prefill "+screen.promptSpeed+" tok/s", width)
+	}
+	if screen.outputSpeed != "" {
+		lines = appendPanelWords(lines, styleDim, "output "+screen.outputSpeed+" tok/s", width)
+	}
 	if measure := screen.contextMeterRow(); measure.width > 0 {
 		lines = append(lines, measure)
 	}

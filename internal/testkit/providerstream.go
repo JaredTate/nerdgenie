@@ -232,7 +232,7 @@ func openAIChunk(choice map[string]any) string {
 // stream_options asks for the usage, and it is the shape wave 1's brief tells
 // the provider to read.
 func openAIUsageChunk(step Step) string {
-	return openAIDataLine(map[string]any{
+	chunk := map[string]any{
 		"id":      "chatcmpl-fake",
 		"object":  "chat.completion.chunk",
 		"choices": []any{},
@@ -242,7 +242,18 @@ func openAIUsageChunk(step Step) string {
 			"total_tokens":          step.Usage.InputTokens + step.Usage.OutputTokens,
 			"prompt_tokens_details": map[string]any{"cached_tokens": step.Usage.CachedInputTokens},
 		},
-	})
+	}
+	// A step that names its speeds is the local daemon, which adds its own
+	// timings to the last chunk: the cache and prompt counts and the two rates.
+	if step.Usage.PromptTokensPerSecond > 0 || step.Usage.OutputTokensPerSecond > 0 {
+		chunk["timings"] = map[string]any{
+			"cache_n":              step.Usage.CachedInputTokens,
+			"prompt_n":             step.Usage.InputTokens - step.Usage.CachedInputTokens,
+			"prompt_per_second":    step.Usage.PromptTokensPerSecond,
+			"predicted_per_second": step.Usage.OutputTokensPerSecond,
+		}
+	}
+	return openAIDataLine(chunk)
 }
 
 // openAIDataLine formats one data line of a Chat Completions stream.

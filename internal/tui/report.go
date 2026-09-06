@@ -33,6 +33,9 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	screen.everAttached = true
 
 	setIfSent(fields, contract.StatusFieldModel, &screen.modelAlias)
+	setIfSent(fields, contract.StatusFieldModelFile, &screen.modelFile)
+	setIfSent(fields, contract.StatusFieldPromptSpeed, &screen.promptSpeed)
+	setIfSent(fields, contract.StatusFieldOutputSpeed, &screen.outputSpeed)
 	setIfSent(fields, contract.StatusFieldTask, &screen.taskID)
 	setIfSent(fields, contract.StatusFieldTaskState, &screen.taskState)
 	setIfSent(fields, contract.StatusFieldTokensIn, &screen.tokensIn)

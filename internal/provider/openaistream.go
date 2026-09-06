@@ -35,6 +35,10 @@ type openAITimings struct {
 	CacheN int `json:"cache_n"`
 	// PromptN is how many prompt tokens the daemon had to process.
 	PromptN int `json:"prompt_n"`
+	// PromptPerSecond is how fast the daemon read the prompt.
+	PromptPerSecond float64 `json:"prompt_per_second"`
+	// PredictedPerSecond is how fast the daemon wrote the answer.
+	PredictedPerSecond float64 `json:"predicted_per_second"`
 }
 
 // openAIDeltaCall is one piece of one tool call. The identifier and the name
@@ -140,6 +144,10 @@ func (building *openAIReply) take(chunk openAIChunk) (bool, error) {
 		}
 		if chunk.Timings != nil && chunk.Timings.CacheN+chunk.Timings.PromptN > 0 {
 			building.usage.CachedInputTokens = chunk.Timings.CacheN
+		}
+		if chunk.Timings != nil {
+			building.usage.PromptTokensPerSecond = chunk.Timings.PromptPerSecond
+			building.usage.OutputTokensPerSecond = chunk.Timings.PredictedPerSecond
 		}
 	}
 	for _, choice := range chunk.Choices {

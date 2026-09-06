@@ -40,6 +40,20 @@ type watchedModel struct {
 	cachedIn   int
 	tokensOut  int
 	moneySoFar float64
+	// file is the model file the daemon loaded, shown at the top of a screen.
+	file string
+	// lastPromptSpeed and lastOutputSpeed are the last call's rates, in
+	// tokens a second, when the provider reported them.
+	lastPromptSpeed float64
+	lastOutputSpeed float64
+}
+
+// describeFile writes down which model file is loaded, for the screens.
+func (watched *watchedModel) describeFile(file string) {
+	watched.guard.Lock()
+	watched.file = file
+	watched.guard.Unlock()
+	watched.tellSomebody()
 }
 
 // newWatchedModel wraps one model so that what its calls cost can be seen.
@@ -140,6 +154,12 @@ func (watched *watchedModel) callCost(spent contract.Usage) {
 	watched.cachedIn += spent.CachedInputTokens
 	watched.tokensOut += spent.OutputTokens
 	watched.moneySoFar += spent.CostUSD
+	if spent.PromptTokensPerSecond > 0 {
+		watched.lastPromptSpeed = spent.PromptTokensPerSecond
+	}
+	if spent.OutputTokensPerSecond > 0 {
+		watched.lastOutputSpeed = spent.OutputTokensPerSecond
+	}
 	watched.guard.Unlock()
 }
 
@@ -160,6 +180,15 @@ func (watched *watchedModel) fillStatus(fields map[string]string) {
 	fields[contract.StatusFieldContextWindow] = strconv.Itoa(watched.under.ContextLength())
 	if watched.lastHeld > 0 {
 		fields[contract.StatusFieldContextTokens] = strconv.Itoa(watched.lastHeld)
+	}
+	if watched.file != "" {
+		fields[contract.StatusFieldModelFile] = watched.file
+	}
+	if watched.lastPromptSpeed > 0 {
+		fields[contract.StatusFieldPromptSpeed] = strconv.Itoa(int(watched.lastPromptSpeed))
+	}
+	if watched.lastOutputSpeed > 0 {
+		fields[contract.StatusFieldOutputSpeed] = strconv.Itoa(int(watched.lastOutputSpeed))
 	}
 	fields[contract.StatusFieldTokensIn] = strconv.Itoa(watched.tokensIn)
 	fields[contract.StatusFieldTokensOut] = strconv.Itoa(watched.tokensOut)

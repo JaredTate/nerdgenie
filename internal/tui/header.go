@@ -80,7 +80,7 @@ func (screen *Screen) headerPieces() [][]span {
 		pieces = append(pieces, []span{screen.linkPiece()})
 	}
 	if screen.modelAlias != "" {
-		pieces = append(pieces, []span{{style: styleDim, text: screen.modelAlias}})
+		pieces = append(pieces, []span{{style: styleDim, text: screen.modelWords()}})
 	}
 	if meter := screen.contextParts(); len(meter) > 0 {
 		pieces = append(pieces, meter)
@@ -275,4 +275,18 @@ func (screen *Screen) healthMark() span {
 	default:
 		return span{style: styleDim, text: string(hollowDotGlyph) + " quiet"}
 	}
+}
+
+// modelWords is the alias and, when the program named it, the model file the
+// daemon loaded without its ending, such as "local hauhau-Q4_K_P", so that a
+// person sees which model is running without opening the panel.
+func (screen *Screen) modelWords() string {
+	if screen.modelFile == "" {
+		return screen.modelAlias
+	}
+	file := screen.modelFile
+	if at := strings.LastIndex(file, "."); at > 0 {
+		file = file[:at]
+	}
+	return screen.modelAlias + " " + file
 }

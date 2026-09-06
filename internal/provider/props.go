@@ -10,7 +10,10 @@
 package provider
 
 import (
+	"path"
+
 	"encoding/json"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 	"io"
 	"net"
 	"net/http"
@@ -32,6 +35,18 @@ type localServerFacts struct {
 	// contextLength is the window the server really loaded the model with,
 	// which can be smaller than the one config.toml names.
 	contextLength int
+	// modelPath is the model file the server loaded, as it names it.
+	modelPath string
+}
+
+// ModelFileOf is the base name of the model file a local daemon has loaded for
+// this alias, or the alias's model name when the server does not say, which
+// is what a screen shows at its top so a person knows which model is running.
+func ModelFileOf(alias contract.ModelAlias) string {
+	if facts, found := probeLocalServer(alias.BaseAddress); found && facts.modelPath != "" {
+		return path.Base(facts.modelPath)
+	}
+	return alias.ModelName
 }
 
 // probeLocalServer asks a server on a loopback address about itself, and says
@@ -63,6 +78,7 @@ func probeLocalServer(baseAddress string) (localServerFacts, bool) {
 // whether the answer was the shape llama-server sends.
 func readProps(body []byte) (localServerFacts, bool) {
 	shaped := struct {
+		ModelPath                 string `json:"model_path"`
 		DefaultGenerationSettings *struct {
 			ContextLength int `json:"n_ctx"`
 		} `json:"default_generation_settings"`
@@ -70,7 +86,7 @@ func readProps(body []byte) (localServerFacts, bool) {
 	if err := json.Unmarshal(body, &shaped); err != nil || shaped.DefaultGenerationSettings == nil {
 		return localServerFacts{}, false
 	}
-	return localServerFacts{contextLength: shaped.DefaultGenerationSettings.ContextLength}, true
+	return localServerFacts{contextLength: shaped.DefaultGenerationSettings.ContextLength, modelPath: shaped.ModelPath}, true
 }
 
 // propsAddress turns a base address into the address of the question, and says

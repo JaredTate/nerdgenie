@@ -188,6 +188,12 @@ type Usage struct {
 	// CostUSD is what the call cost in dollars when the provider reports it, and
 	// zero when it does not; the status command shows it beside the tokens.
 	CostUSD float64
+	// PromptTokensPerSecond is how fast the provider read the prompt, when it
+	// reports it, and zero when it does not; the local daemon does.
+	PromptTokensPerSecond float64
+	// OutputTokensPerSecond is how fast the provider wrote the answer, when it
+	// reports it, and zero when it does not.
+	OutputTokensPerSecond float64
 }
 
 // Reply is the whole of what one model call produced.

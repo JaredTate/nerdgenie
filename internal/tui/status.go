@@ -76,6 +76,9 @@ func (screen *Screen) statusRow() string {
 	if watched := screen.callWords(); watched != "" {
 		line.add(styleDim, " · "+watched)
 	}
+	if speeds := screen.speedWords(); speeds != "" {
+		line.add(styleDim, " · "+speeds)
+	}
 	if screen.budget != "" {
 		line.add(styleDim, " · "+screen.budget)
 		filled, empty := screen.budgetBar()
@@ -134,4 +137,18 @@ func (screen *Screen) budgetBar() (string, string) {
 // the budget bar and the accent-coloured task words are drawn.
 func (screen *Screen) taskRunning() bool {
 	return screen.taskState == "running"
+}
+
+// speedWords is how fast the last call went, as the program sent it: "prefill
+// 320 tok/s · output 61 tok/s", either half alone when only one is known, or
+// nothing when the provider reports no speeds.
+func (screen *Screen) speedWords() string {
+	parts := []string{}
+	if screen.promptSpeed != "" {
+		parts = append(parts, "prefill "+screen.promptSpeed+" tok/s")
+	}
+	if screen.outputSpeed != "" {
+		parts = append(parts, "output "+screen.outputSpeed+" tok/s")
+	}
+	return strings.Join(parts, " · ")
 }

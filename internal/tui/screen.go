@@ -105,16 +105,22 @@ type Screen struct {
 	attached     bool
 	everAttached bool
 	modelAlias   string
-	taskID       string
-	taskState    string
-	tokensIn     string
-	tokensOut    string
-	money        string
-	budget       string
-	budgetTask   string
-	budgetNow    int
-	budgetMost   int
-	lastHealth   time.Time
+	// modelFile is the model file the daemon loaded, shown after the alias.
+	modelFile string
+	// promptSpeed and outputSpeed are the last call's rates in tokens a
+	// second, as the program sent them, or empty.
+	promptSpeed string
+	outputSpeed string
+	taskID      string
+	taskState   string
+	tokensIn    string
+	tokensOut   string
+	money       string
+	budget      string
+	budgetTask  string
+	budgetNow   int
+	budgetMost  int
+	lastHealth  time.Time
 
 	contextTokens int
 	contextWindow int

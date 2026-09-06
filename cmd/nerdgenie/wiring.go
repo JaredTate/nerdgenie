@@ -14,6 +14,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/clock"
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/loop"
+	"github.com/JaredTate/nerdgenie/internal/provider"
 	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/replay"
 	"github.com/JaredTate/nerdgenie/internal/sandbox"
@@ -92,6 +93,9 @@ func (running *agent) openTheModelAndTheScreens() error {
 		return err
 	}
 	running.watched = newWatchedModel(model, clock.System(), running.tellTheScreens)
+	if alias, found := aliasNamed(running.settings, running.settings.DefaultModel); found {
+		running.watched.describeFile(provider.ModelFileOf(alias))
+	}
 	running.model = running.watched
 	running.stream = channel.NewStream(channel.StreamOptions{
 		Clock:  clock.System(),

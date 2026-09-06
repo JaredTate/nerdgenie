@@ -29,6 +29,57 @@ type numbers struct {
 	rewinds          int
 	failures         int
 	firstLineMarks   int
+	// tasks is how many tasks the numbers cover: one, or a range from an
+	// ask's own task on when the ask became a job.
+	tasks int
+}
+
+// measureFrom reads every task from the one numbered to the newest, together,
+// which is the number for an ask that became a job: the sums of the rounds,
+// the minutes, the calls and the tokens, the newest task's status, and the
+// range as the label.
+func measureFrom(ctx context.Context, store contract.Store, from string) (numbers, error) {
+	newest, err := newestTask(ctx, store)
+	if err != nil {
+		return numbers{}, err
+	}
+	first, last := 0, 0
+	if _, err := fmt.Sscanf(from, "%d", &first); err != nil || first < 1 {
+		return numbers{}, fmt.Errorf("the task to measure from is %q, and it must be a task number", from)
+	}
+	if _, err := fmt.Sscanf(newest, "%d", &last); err != nil || last < first {
+		return numbers{}, fmt.Errorf("the log holds no task from %d on", first)
+	}
+	summed := numbers{taskID: from, callsByTool: map[string]int{}}
+	for number := first; number <= last; number++ {
+		one, err := measure(ctx, store, fmt.Sprintf("%d", number))
+		if err != nil {
+			continue
+		}
+		summed.tasks++
+		summed.status = one.status
+		summed.rounds += one.rounds
+		summed.minutes += one.minutes
+		summed.repliesBatched += one.repliesBatched
+		summed.recordOnlyRounds += one.recordOnlyRounds
+		summed.testOnlyRounds += one.testOnlyRounds
+		summed.tokensIn += one.tokensIn
+		summed.cachedIn += one.cachedIn
+		summed.tokensOut += one.tokensOut
+		summed.rewinds += one.rewinds
+		summed.failures += one.failures
+		summed.firstLineMarks += one.firstLineMarks
+		for name, count := range one.callsByTool {
+			summed.callsByTool[name] += count
+		}
+	}
+	if summed.tasks == 0 {
+		return numbers{}, fmt.Errorf("the log holds no measurable task from %d on", first)
+	}
+	if first != last {
+		summed.taskID = fmt.Sprintf("%d to %d", first, last)
+	}
+	return summed, nil
 }
 
 // theFirstLineMark finds a step or a line marked done on the model's first

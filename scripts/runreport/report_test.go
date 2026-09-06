@@ -202,7 +202,7 @@ func TestARangeOfTasksIsMeasuredTogether(t *testing.T) {
 	for _, id := range []string{"8", "9"} {
 		held := contract.Record{
 			Header: contract.Header{Kind: contract.RecordTask, ID: id, Status: contract.StatusDone, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true,
-				Cost: contract.CostLine{InputTokens: 1000, CachedInputTokens: 500, OutputTokens: 50}},
+				Cost: contract.CostLine{InputTokens: 1000, CachedInputTokens: 500, OutputTokens: 500}},
 			Goal: contract.Goal{Ask: "one task of the job"},
 		}
 		written, err := json.Marshal(record.Checkpoint{Number: 1, Text: string(record.Print(held))})
@@ -219,8 +219,8 @@ func TestARangeOfTasksIsMeasuredTogether(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot measure the tasks from 7: %v", err)
 	}
-	if numbers.rounds != 7 || numbers.tokensIn != 69000 || numbers.tokensOut != 1300 || numbers.tasks != 3 {
-		t.Errorf("the range from task 7 reads %d rounds, %d in, %d out over %d tasks, want 7, 69000, 1300 and 3", numbers.rounds, numbers.tokensIn, numbers.tokensOut, numbers.tasks)
+	if numbers.rounds != 7 || numbers.tokensIn != 69000 || numbers.tokensOut != 2200 || numbers.tasks != 3 {
+		t.Errorf("the range from task 7 reads %d rounds, %d in, %d out over %d tasks, want 7, 69000, 2200 and 3", numbers.rounds, numbers.tokensIn, numbers.tokensOut, numbers.tasks)
 	}
 	if numbers.status != contract.StatusDone || numbers.taskID != "7 to 9" {
 		t.Errorf("the range reads as %q ending %q, want \"7 to 9\" ending done, the newest task's", numbers.taskID, numbers.status)

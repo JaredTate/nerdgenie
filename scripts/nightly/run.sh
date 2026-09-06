@@ -33,6 +33,17 @@ mkdir -p "$ROOT/docs/nightly" "$WORKROOT"
 
 [ -x "$BINARY" ] || { echo "no binary at $BINARY; run make build first" >&2; exit 2; }
 [ -f "$HOME_FOLDER/config.toml" ] || { echo "$HOME_FOLDER is not an initialised home; run nerdgenie init on it first" >&2; exit 2; }
+# Every run serves from a fresh copy of the home, so that a job the last run
+# left running, or a task it left put down, never haunts the next: the sixth
+# run's game became a job, the runner stopped its serve under it, and the job
+# would have come back on the next serve beside the warm-up asks.
+TEMPLATE="$HOME_FOLDER"
+HOME_FOLDER="$WORKROOT/home"
+mkdir -p "$HOME_FOLDER"
+for piece in config.toml persona skills vault.key; do
+  [ -e "$TEMPLATE/$piece" ] && cp -r "$TEMPLATE/$piece" "$HOME_FOLDER/"
+done
+SOCKET="$HOME_FOLDER/run/agent.sock"
 if curl -s --max-time 3 http://127.0.0.1:19091/health | grep -q '"ok"'; then :; else echo "the local daemon is not answering on 19091" >&2; exit 2; fi
 
 NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" serve > "$WORKROOT/serve.log" 2>&1 < /dev/null &
@@ -60,6 +71,46 @@ NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -timeout 20s "/yolo" | grep -q 'yolo
   echo "|---|---|---|---|---|---|---|---|---|---|"
 } > "$OUT"
 
+# newest_task is the highest task number the log holds, or zero.
+newest_task() {
+  python3 - "$HOME_FOLDER/nerdgenie.db" <<'PY'
+import sqlite3, sys
+try:
+    c = sqlite3.connect("file:" + sys.argv[1] + "?mode=ro", uri=True)
+    ids = [r[0] for r in c.execute("select distinct task_id from events where task_id glob '[0-9]*'")]
+    print(max((int(i) for i in ids), default=0))
+except Exception:
+    print(0)
+PY
+}
+
+# job_state is the first line of a job's newest checkpoint, such as "done 12
+# of 12 tasks done", read off the log.
+job_state() {
+  python3 - "$HOME_FOLDER/nerdgenie.db" "$1" <<'PY'
+import sqlite3, sys, json
+try:
+    c = sqlite3.connect("file:" + sys.argv[1] + "?mode=ro", uri=True)
+    r = c.execute("select body from events where task_id=? and kind='checkpoint' order by sequence desc limit 1", ("j" + sys.argv[2],)).fetchone()
+    head = json.loads(r[0])["text"].split("\n")[0] if r else "no record"
+    print(" ".join(head.split()[3:]))
+except Exception as e:
+    print("unreadable")
+PY
+}
+
+# wait_for_job waits until the job is no longer running, polling the log, or
+# until the ask's timeout is spent counting from when the ask was sent.
+wait_for_job() {
+  job="$1"; started="$2"; limit="$3"
+  seconds="$(echo "$limit" | sed -n 's/^\([0-9]*\)h$/\1*3600/p; s/^\([0-9]*\)m$/\1*60/p; s/^\([0-9]*\)s$/\1/p' | bc)"
+  [ -n "$seconds" ] || seconds=3600
+  while [ "$(( $(date +%s) - started ))" -lt "$seconds" ]; do
+    case "$(job_state "$job")" in running*) sleep 30 ;; *) return 0 ;; esac
+  done
+  echo "the job $job was still running when the ask's time ran out" >> "$work/run.log"
+}
+
 passed=0; total=0
 run_one() {
   name="$1"; ask="$2"; check="$3"; timeout="$4"
@@ -69,11 +120,18 @@ run_one() {
   # A task the last run left put down would be picked up by the next message,
   # so it is set aside first: the ask is a new task, never a steer.
   NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -timeout 20s "/clear" > /dev/null 2>&1
+  first="$(( $(newest_task) + 1 ))"
+  started="$(date +%s)"
   NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -wait -timeout "$timeout" "$text" > "$work/run.log" 2>&1
+  # An ask that became a job goes on after its own task ends: wait for the
+  # job to stop running, within the ask's timeout, before measuring.
+  job="$(grep -o 'job [0-9]*' "$work/run.log" | head -1 | awk '{print $2}')"
+  if [ -n "$job" ]; then wait_for_job "$job" "$started" "$timeout"; fi
   cp "$HOME_FOLDER/nerdgenie.db" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-wal" "$SCRATCH/" 2>/dev/null; cp "$HOME_FOLDER/nerdgenie.db-shm" "$SCRATCH/" 2>/dev/null
-  report="$(cd "$ROOT" && go run ./scripts/runreport --log "$SCRATCH/nerdgenie.db" 2>&1)"
-  ended="$(echo "$report" | sed -n 's/^task [0-9]*: \([a-z]*\) after.*/\1/p')"
-  rounds="$(echo "$report" | sed -n 's/^task [0-9]*: [a-z]* after \([0-9]*\) rounds.*/\1/p')"
+  report="$(cd "$ROOT" && go run ./scripts/runreport --log "$SCRATCH/nerdgenie.db" --from "$first" 2>&1)"
+  ended="$(echo "$report" | sed -n 's/^task [0-9 to]*: \([a-z]*\) after.*/\1/p')"
+  if [ -n "$job" ]; then ended="job $job $(job_state "$job")"; fi
+  rounds="$(echo "$report" | sed -n 's/^task [0-9 to]*: [a-z]* after \([0-9]*\) rounds.*/\1/p')"
   minutes="$(echo "$report" | sed -n 's/.* in \([0-9]*\) minutes.*/\1/p')"
   perround="$(echo "$report" | sed -n 's/.*(\([0-9]*\) s a round).*/\1/p')"
   cache="$(echo "$report" | sed -n 's/.*cached (\([0-9]*\)%).*/\1/p')"

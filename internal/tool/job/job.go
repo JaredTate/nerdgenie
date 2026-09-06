@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // The three things one call can ask for.
@@ -29,6 +30,11 @@ const MaxListed = 25
 // under text with the ones listed under tasks, the same number as a listing
 // shows. The rest go on with add_task.
 const MaxTasksOnCreate = MaxListed
+
+// MinTasksForALongAsk is the fewest tasks a job for an ask over
+// record.LongAskWords may be made with: one task per feature or step, and an
+// ask that long has more than two.
+const MinTasksForALongAsk = 3
 
 // Settings is what the job tool needs to do its work.
 type Settings struct {
@@ -273,6 +279,14 @@ func (tool *Tool) create(ctx context.Context, asked input) (contract.ToolOutput,
 	tasks, err := tasksOf(asked)
 	if err != nil {
 		return contract.ToolOutput{}, err
+	}
+	// A long ask is a job of many tasks, one per feature or step: the
+	// fourteenth nightly run made the game a job of one task, the scaffold,
+	// the job finished after it, and the game was never built. A scheduled
+	// job is different, because its template makes a task each tick.
+	if words := len(strings.Fields(ask)); schedule == nil && words > record.LongAskWords && len(tasks) < MinTasksForALongAsk {
+		return contract.ToolOutput{}, fmt.Errorf("this ask is %d words and the job lists %d task(s); an ask this long is a job of at least %d tasks, one per feature or step, so create it with its whole task list under tasks",
+			words, len(tasks), MinTasksForALongAsk)
 	}
 	id, err := tool.settings.Jobs.Create(ctx, contract.NewJob{
 		Ask:          ask,

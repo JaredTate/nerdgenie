@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { isAPageOnThisMachine } from "../src/ask.js";
-import { MAX_ANSWER_CHARS } from "../src/limits.js";
+import { MAX_ANSWER_CHARS, MAX_ASK_CHARS } from "../src/limits.js";
 import { startTestWorker, type TestWorker } from "./harness.js";
 import { startFixtureServer, type FixtureServer } from "./server.js";
 import type { SnapshotElement } from "../src/types.js";
@@ -62,6 +62,17 @@ describe("asking a page a question", () => {
     const read = await worker.result("read", { ask: "'x'.repeat(10000)" });
     expect(String(read["answer"]).length).toBeLessThanOrEqual(MAX_ANSWER_CHARS + 40);
     expect(String(read["answer"])).toContain("more characters were cut");
+  });
+
+  it("takes an ask as long as a whole play session and refuses one past the cap", async () => {
+    await worker.result("open", { url: site.page("game-state.html") });
+    const session = "(function(){ var n = 0; " + "n += 1; ".repeat(200) + " return n; })()";
+    expect(session.length).toBeGreaterThan(1500);
+    expect(session.length).toBeLessThanOrEqual(MAX_ASK_CHARS);
+    const read = await worker.result("read", { ask: session });
+    expect(read["answer"]).toBe("200");
+    const tooLong = "'" + "x".repeat(MAX_ASK_CHARS) + "'";
+    await expect(worker.result("read", { ask: tooLong })).rejects.toThrow(/cap is/);
   });
 
   it("carries no answer when nothing was asked", async () => {

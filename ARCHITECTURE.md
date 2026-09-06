@@ -242,7 +242,16 @@ it was cut off after that many tokens, that none of it was kept, and that a
 long file goes in parts of at most `MaxLinesInOneWrite` lines, the first by
 write and the rest by edit; `MaxCutOffsSentBack` bounds it at two in a row, and
 the third is heard as it stands, because a long answer to the user cut at the
-cap is not a file to write in parts. **A plan with steps still open says the work is
+cap is not a file to write in parts. **A look or a command whose answer the task has not seen before is
+progress** (`noteAResultThatSaysSomethingNew` in `progress.go`): the twelfth
+nightly run's engine task, with two tests left red, read its five-hundred-line
+engine in eighty-line windows, probed it with small node scripts and searched
+it with grep for twenty rounds, and the meter counted the file once and the
+commands never, so it cleared the conversation in the middle of the search
+and, twenty rounds later, stopped the task and put the game job down at one
+of six. The answer's text is what is judged, so a file read again at a new
+offset that says the same thing is still more of the same, which is what the
+nudge after a failure stands on. **A plan with steps still open says the work is
 not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
 an answer back to the plan when a step is not marked done, naming the steps
 and the one to carry on with, through `sendBackToWork`, which counts the

@@ -193,6 +193,7 @@ docs/nightly/2026-09-06-d-first-line-hint.md
 docs/nightly/2026-09-06-e-with-tetris.md
 docs/nightly/2026-09-06-f-long-ask-is-a-job.md
 docs/nightly/2026-09-06-g-cut-off-found.md
+docs/nightly/2026-09-06-h-double-click-and-vitest.md
 docs/reference/browser-use/prompts.py
 docs/reference/browser-use/serializer.py
 docs/reference/browser-use/views.py

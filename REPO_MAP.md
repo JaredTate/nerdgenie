@@ -644,6 +644,10 @@ internal/loop/taskcall.go
 internal/loop/taskcall_test.go
 internal/loop/teststate.go
 internal/loop/teststate_behaviour_test.go
+internal/loop/teststate_cfamily.go
+internal/loop/teststate_cfamily_test.go
+internal/loop/teststate_scripting.go
+internal/loop/teststate_scripting_test.go
 internal/loop/teststate_test.go
 internal/loop/think_test.go
 internal/loop/tooldeadline_test.go

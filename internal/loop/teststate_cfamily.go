@@ -146,7 +146,9 @@ func (state *testState) readUnity(line string) bool {
 		state.failed, _ = strconv.Atoi(words[2])
 		return true
 	}
-	return line == "OK"
+	// Unity ends a green run with a bare OK, which counts only after its own
+	// counts line; an OK on its own in ordinary output is not a test run.
+	return line == "OK" && state.total > 0
 }
 
 // readCheck reads Check, "100%: Checks: 3, Failures: 0, Errors: 0" and a

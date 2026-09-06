@@ -153,3 +153,43 @@ func writeFile(t *testing.T, path string, text string) {
 		t.Fatalf("cannot write %s: %v", path, err)
 	}
 }
+
+// TestAPickedUpTaskRemembersTheHungPageFromTheLog is the fourth sitting of the
+// fifth game build's play-test task: the click before the put-down had listed
+// the marked loop, the pick-up started with an empty browser line because the
+// fact lived in memory, and the model re-read the old result four times and
+// went back to the sound engine. What the newest browser result in the log
+// says, the page and its marked loop, is the situation's browser line from the
+// first round of the pick-up.
+func TestAPickedUpTaskRemembersTheHungPageFromTheLog(t *testing.T) {
+	server := aServedGame(t)
+	address := server.URL + "/index.html"
+	opened := "Tater Tots Tetris\n" + address + "\ntab t1\ne3 button \"START GAME\"\n"
+	built := newHarness(t, []testkit.Step{
+		callStep("I will open the game and click Start.",
+			callFor("c1", "browser_open", `{"url":"`+address+`","intent":"open the game"}`),
+			callFor("c2", "browser_click", `{"element":"e3","expectation":"the game starts"}`)),
+		answerStep("The budget is spent. What changed: nothing. What I checked: the click. What is left: the fix."),
+		callStep("I will read the script.", callFor("c3", contract.ToolRead, `{"path":"main.js"}`)),
+		answerStep("The page hangs in the ghost loop. What changed: nothing. What I checked: the loops. What is left: the fix."),
+	}, scriptedTool("browser_open", opened), scriptedTool("browser_click", theHungPageMessage), scriptedTool(contract.ToolRead, "1: while (x) {}"))
+
+	first := built.task("play-test the game")
+	first.Budget = theOneRoundBudget
+	stopped, err := built.loop.Run(t.Context(), first)
+	if err != nil || stopped.Status != contract.StatusStopped {
+		t.Fatalf("the first sitting ended %q (%v), want stopped on its one-round budget", stopped.Status, err)
+	}
+
+	continueTheTask(t, built, stopped.TaskID)
+
+	// The request after the pick-up's first call is the one that matters: the
+	// situation is rewritten on every round, so a fact that only survived from
+	// the last sitting's checkpoint would be gone from it.
+	requests := built.model.Requests()
+	shown := wholeRequestText(requests[len(requests)-1])
+	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]
+	if !strings.Contains(situation, loop.TheHungPageFact+"main.js:17: while (engine.board.canPlace") {
+		t.Errorf("the picked-up task's situation does not carry the hung page and its marked loop after its first round, and it reads:\n%s", situation)
+	}
+}

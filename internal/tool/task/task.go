@@ -295,6 +295,10 @@ func (tool *Tool) updateFor(asked input) (record.Update, error) {
 // proves it, by writing the whole done list back with that one line changed.
 func (tool *Tool) pinResult(asked input) (record.Update, error) {
 	lines := tool.settings.Records.Record().Goal.DoneWhen
+	if len(lines) == 0 {
+		return record.Update{}, fmt.Errorf("there is no done line numbered %d, because the done list is empty, so write the done list first with done_when",
+			asked.Line)
+	}
 	if asked.Line < 1 || int(asked.Line) > len(lines) {
 		return record.Update{}, fmt.Errorf("there is no done line numbered %d, and the done list has %d lines in it",
 			asked.Line, len(lines))

@@ -46,3 +46,21 @@ func TestARefusedRecordWriteIsNeverWrittenDownAsAChange(t *testing.T) {
 		t.Errorf("the record kept the line %q for a refused write, and a refusal is never a change", summary)
 	}
 }
+
+// TestAChangeWhoseTestsRanIsSummarisedByTheTestsFirst is the thirteenth
+// nightly run's game job: forty-three of its two hundred and three rounds
+// only ran the tests, and sixteen of those runs came right after an edit
+// whose result already carried the tests' line, three lines down, where the
+// one line the record keeps never showed it. The line now leads with the
+// tests, so the model reads what its change did without asking again.
+func TestAChangeWhoseTestsRanIsSummarisedByTheTestsFirst(t *testing.T) {
+	text := "edited /game/src/engine.js by the exact matcher; the file now holds 4961 bytes\n\nparses\n" + TheTestsAfterAChange + "2 failing of 13: clears a full row; locks the piece"
+	summary := summaryOfResult(contract.ToolEdit, text, false)
+	if !strings.HasPrefix(summary, "edit: "+TheTestsAfterAChange+"2 failing of 13") || !strings.Contains(summary, "engine.js") {
+		t.Errorf("the summary reads %q, want the tests after the change first and the file edited after them", summary)
+	}
+	plain := summaryOfResult(contract.ToolWrite, "created /game/src/engine.js, 120 bytes\n", false)
+	if plain != "write: created /game/src/engine.js, 120 bytes" {
+		t.Errorf("a change with no test run after it reads %q, want its own first line as before", plain)
+	}
+}

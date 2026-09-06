@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Reacts late</title>
+  </head>
+  <body>
+    <h1>Reacts late</h1>
+    <div id="overlay">
+      <h2>Ready?</h2>
+      <button type="button" id="start">Start Game</button>
+    </div>
+    <p id="status">waiting</p>
+    <script>
+      // The game the thirteenth nightly run built hid its start overlay half a
+      // second after the click, once its sound had been set up: the worker's
+      // snapshot came first, read "nothing changed", and clicked again.
+      window.clicks = 0;
+      document.getElementById("start").addEventListener("click", function () {
+        window.clicks += 1;
+        setTimeout(function () {
+          document.getElementById("overlay").remove();
+          document.getElementById("status").textContent = "playing";
+        }, 500);
+      });
+    </script>
+  </body>
+</html>

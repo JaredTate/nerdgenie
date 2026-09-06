@@ -71,6 +71,20 @@ describe("clicking, typing, pressing, and scrolling", () => {
     expect((diff.snapshot as Snapshot).text).not.toContain("2");
   });
 
+  it("looks once more before clicking again, so a page that reacts late is clicked once", async () => {
+    const page = await worker.result("open", { url: site.page("reacts-late.html") });
+    const diff = asDiff(
+      await worker.result("click", {
+        ref: refFor(page, "Start Game"),
+        expectation: "the start overlay goes away and the status says playing",
+      }),
+    );
+    expect(diff.expectationMet).toBe(true);
+    expect(diff.newText).toEqual(["playing"]);
+    const clicks = await worker.result("read", { ask: "window.clicks" });
+    expect(String(clicks["answer"])).toBe("1");
+  });
+
   it("says what it saw when the expectation does not match what happened", async () => {
     const page = await worker.result("open", { url: site.page("changes-on-click.html") });
     const diff = asDiff(

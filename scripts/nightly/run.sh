@@ -71,7 +71,7 @@ NERDGENIE_HOME="$HOME_FOLDER" "$BINARY" run -timeout 20s "/yolo" | grep -q 'yolo
   echo "Local Qwen 3.8 through the daemon on 19091, binary $(cd "$ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown), home $HOME_FOLDER."
   echo
   echo "| ask | ended | check | rounds | minutes | s/round | cache | out tokens | record-only rounds | first-line marks | cut off at cap |"
-  echo "|---|---|---|---|---|---|---|---|---|---|"
+  echo "|---|---|---|---|---|---|---|---|---|---|---|"
 } > "$OUT"
 
 # newest_task is the highest task number the log holds, or zero.

@@ -212,12 +212,11 @@ func TestACommandStillRunningAfterTenSecondsHandsBackAnIdToPollTailAndKill(t *te
 		t.Fatalf("the tool said %q and did not hand back an id to poll", output.Text)
 	}
 
-	polled, err := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
-	if err != nil {
-		t.Fatalf("polling the running command failed: %v", err)
-	}
-	if !strings.Contains(polled.Text, "still running") {
-		t.Errorf("polling a running command said %q", polled.Text)
+	polled := pollInTheBackground(t, tool, shell.FirstProcessID)
+	waitForSleepers(t, clock, 1)
+	clock.Advance(shell.PollWaitsFor)
+	if answer := <-polled; !strings.Contains(answer.Text, "still running") {
+		t.Errorf("polling a running command said %q", answer.Text)
 	}
 
 	sandbox.Release()
@@ -281,8 +280,9 @@ func TestKillingARunningCommandStopsIt(t *testing.T) {
 // waitForRunning waits until the tool knows about the first command.
 func waitForRunning(t *testing.T, tool *shell.Tool, id string) {
 	t.Helper()
+	// A tail answers at once on a command the tool knows; a poll would wait.
 	for range 500 {
-		if _, err := run(t, tool, map[string]any{"action": "poll", "id": id}); err == nil {
+		if _, err := run(t, tool, map[string]any{"action": "tail", "id": id}); err == nil {
 			return
 		}
 		time.Sleep(2 * time.Millisecond)
@@ -435,9 +435,17 @@ func TestAPollSaysHowLongTheCommandHasBeenRunning(t *testing.T) {
 		t.Fatalf("the tool did not hand back an id ten seconds after the command started")
 	}
 
-	first, _ := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
-	clock.Advance(10 * time.Second)
-	second, _ := run(t, tool, map[string]any{"action": "poll", "id": shell.FirstProcessID})
+	// A poll waits on the clock for the command, so each one is answered by
+	// advancing the clock past the wait; the two answers are then twenty
+	// seconds apart.
+	polled := pollInTheBackground(t, tool, shell.FirstProcessID)
+	waitForSleepers(t, clock, 1)
+	clock.Advance(shell.PollWaitsFor)
+	first := <-polled
+	polled = pollInTheBackground(t, tool, shell.FirstProcessID)
+	waitForSleepers(t, clock, 1)
+	clock.Advance(shell.PollWaitsFor)
+	second := <-polled
 	sandbox.Release()
 	if first.Text == second.Text {
 		t.Errorf("two polls ten seconds apart read the same: %q", first.Text)

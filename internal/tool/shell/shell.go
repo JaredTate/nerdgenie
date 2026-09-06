@@ -23,6 +23,12 @@ import (
 // short enough that a model never sits waiting on a build.
 const YieldAfter = 10 * time.Second
 
+// PollWaitsFor is how long a poll waits for a running command to finish before
+// saying it is still running. A poll that answered at once was a round spent
+// for nothing: the fresh game build's play-test task polled its own script
+// every five seconds, fourteen rounds for one run, each round a full prompt.
+const PollWaitsFor = 20 * time.Second
+
 // The bounds on this tool.
 const (
 	// MaxCommandBytes is the longest command the tool will run.
@@ -107,8 +113,8 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolShell,
-		Description: "Runs a command in the sandbox. After ten seconds it hands back an id to poll, tail, or kill. " +
-			"Set escalate with a written reason to ask for administrator powers. Use read and search for files.",
+		Description: "Runs a command in the sandbox; after ten seconds it hands back an id to poll, tail, or kill, and a poll waits twenty seconds. " +
+			"Escalate with a reason for administrator powers. Use read and search for files.",
 		Fields: []contract.ToolField{
 			{Name: "command", Type: "string", Description: "The command to run, as you would type it in a terminal. Kill a process by its exact id, never by a name pattern."},
 			{Name: "action", Type: "string", Description: "One of run, poll, tail, or kill. Leave it out to run."},
@@ -129,7 +135,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}
 	switch asked.Action {
 	case ActionPoll:
-		return tool.running.poll(asked.ID, tool.now())
+		return tool.pollWaiting(ctx, asked.ID)
 	case ActionTail:
 		return tool.running.tail(asked.ID)
 	case ActionKill:

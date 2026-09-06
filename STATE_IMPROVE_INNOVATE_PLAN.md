@@ -269,6 +269,8 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - **A page at any size.** Built on 6 September when the visual QA task, asked for five sizes, had no way to set one and reached for the desktop tool to drag the window. `browser_resize` sets the page's size and reads it again. A browser tool set that cannot do what the ask needs sends the model around it, and the way around is always worse.
 
+- **A poll that waits.** Built on 6 September after the play-test task spent fourteen rounds, each a full prompt, reading "still running" for one script run. A poll on a running command now waits up to twenty seconds for it, so most long commands answer the first poll with their result. The saving is every round that carried no information.
+
 ## What was rejected, and why
 
 - **Summarizing or compacting the conversation.** Measured to lose 30 points against plain truncation (TRACE, Aug 2026). The half-drop plus `read r7` is truncation with a way back.

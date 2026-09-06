@@ -1275,7 +1275,24 @@ seventy-eight rounds. The diff now carries `newText`, the lines of the page's
 text that were not there before, at most twelve; a number is a meaningful word
 however short; a line that appeared is a place the expectation's words may
 match; and a verdict not met says "the text now says "1"" (`counter.html` in
-the fixtures, and the counter test in `actions.test.ts`). **A click that seems
+the fixtures, and the counter test in `actions.test.ts`). **The model's eyes** (built the morning of 6 September, once the
+daemon loaded the vision projector and reported `modalities.vision: true`).
+A tool that has a picture hands it back in `contract.ToolOutput.Picture` as
+base64 PNG: `browser_screenshot` (`internal/tool/browsershot`, the page with
+its clickable elements numbered, saved as the next `screenshot-N.png` under the
+home's screenshots folder), `read` on a `.png` or `.jpg` (`read/picture.go`,
+with the file's size in pixels and bytes, at most four megabytes), and the
+`computer` tool's screenshot. The turn loop decides what the picture becomes
+(`loop/picture.go`): with `Options.Vision`, wired from the default model
+alias's `vision = true`, it rides in `contract.ToolResult.Picture`; without,
+it is dropped and the result ends with the line saying the picture is not
+shown. The OpenAI wire sends it as a user message with an image part after the
+tool message, because a tool message's content is text; the Anthropic wire
+sends an image block after the tool result. Only the newest
+`MaxPicturesShown` (two) pictures stay in the conversation, and an older
+result says its picture is no longer shown and to read the file again; a
+picture is counted at `TokensPerPicture` (800) in the window's estimate,
+which is what a 1024 by 768 screenshot cost the daemon. **A click that seems
 to have changed nothing is given one more look before it is clicked again**
 (`LATE_REACTION_MS`, seven hundred milliseconds): the game the thirteenth
 nightly run built hid its start overlay half a second after the click, once

@@ -2,6 +2,7 @@ package record
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -123,12 +124,48 @@ func TestRefusesADecisionWithNoReasonAndAFailureWithNoCause(t *testing.T) {
 	if err := keeper.Apply(ctx, good); err != nil {
 		t.Fatalf("a decision and a failure that carry their reason and cause were refused: %v", err)
 	}
-	if err := keeper.Apply(ctx, good); err != nil {
+	second := Update{
+		Decision: &NewDecision{Text: "Lead with the date", Reason: "correction C1"},
+		Failure:  &NewFailure{Text: "Draft 2 lost the date", Cause: "the cut took the first line"},
+	}
+	if err := keeper.Apply(ctx, second); err != nil {
 		t.Fatalf("a second decision and failure were refused: %v", err)
 	}
 	held := keeper.Record().Lessons
 	if len(held.Decisions) != 2 || held.Decisions[1].ID != "D2" || held.Failures[1].ID != "F2" {
 		t.Errorf("the lessons read %+v, and their labels count upwards", held)
+	}
+}
+
+// TestRefusesAFailureTheRecordAlreadyHolds is the fifth game build's play-test
+// task, which wrote one lesson ten times over as F8 to F16, each a little
+// reworded, while the meter counted rounds without progress. A lesson the
+// record holds is not written again: the same words, or nearly the same words,
+// are refused with the label of the failure that already says it.
+func TestRefusesAFailureTheRecordAlreadyHolds(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	first := &NewFailure{Text: "Kept stalling by re-reading the same driver files (r135/r138) and re-polling the same in-flight run ids instead of letting one clean run finish", Cause: "the driver walks many sections with real sleeps"}
+	if err := keeper.Apply(ctx, Update{Failure: first}); err != nil {
+		t.Fatalf("the first failure was refused: %v", err)
+	}
+	again := []*NewFailure{
+		first,
+		{Text: "  kept stalling by re-reading the same driver files (r135/r138)  and re-polling the same in-flight run ids instead of letting one clean run finish ", Cause: "another cause"},
+		{Text: "Kept stalling by re-reading playtest.js (r135/r138) and re-polling the same in-flight run ids instead of letting one clean run finish", Cause: "the driver walks many sections"},
+	}
+	for _, failure := range again {
+		err := keeper.Apply(ctx, Update{Failure: failure})
+		if !errors.Is(err, ErrFailureAlreadyWritten) || !strings.Contains(err.Error(), "F1") {
+			t.Errorf("the failure %q was not refused as what F1 already says: %v", failure.Text, err)
+		}
+	}
+	different := &NewFailure{Text: "The page hangs on Start because the ghost piece's while loop never advances", Cause: "main.js line 495 tests cells that never move"}
+	if err := keeper.Apply(ctx, Update{Failure: different}); err != nil {
+		t.Errorf("a failure that says something new was refused: %v", err)
+	}
+	if held := keeper.Record().Lessons.Failures; len(held) != 2 || held[1].ID != "F2" {
+		t.Errorf("the failures read %+v, want F1 and the new F2", held)
 	}
 }
 

@@ -366,7 +366,10 @@ sitting started with an empty browser line and the model re-read the old
 result four times; the first list the live run got was the
 renderer's twelve counted fors in line order, and the ghost-piece while on
 line 495 was not on it. The page's address is taken off the browser's own
-results as they pass (`addressIn`). The scripts are the page's and not the
+results as they pass (`addressIn`), and the situation's browser line names
+the page by the title above that address (`pageTitleIn`) rather than by the
+result's first line, because a click's first line is the judge's verdict and
+the screen read "page: not what was expected" for a whole sitting. The scripts are the page's and not the
 task's because the fifth game build's play-test task heard "look for a loop
 whose condition never changes" and wrote nine play-test drivers instead of
 reading the three while loops in the game's script, which an earlier task of

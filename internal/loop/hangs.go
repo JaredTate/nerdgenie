@@ -84,6 +84,25 @@ func theMarkedLoopIn(text string) string {
 	return ""
 }
 
+// pageTitleIn is the page's title as a browser result carries it, the line
+// before its address, or the result's first line when it carries no address:
+// a click's first line is the judge's verdict, and the screen read "page: not
+// what was expected" for a whole sitting.
+func pageTitleIn(text string) string {
+	lines := strings.Split(text, "\n")
+	for index, line := range lines {
+		address := addressIn(line)
+		if index == 0 || address == "" {
+			continue
+		}
+		if title := strings.TrimSpace(lines[index-1]); title != "" && title != "---" {
+			return title
+		}
+		return address
+	}
+	return firstLine(text)
+}
+
 // addressIn is the page's address as a browser result carries it on one of
 // its first lines, or empty when the result carries none.
 func addressIn(text string) string {

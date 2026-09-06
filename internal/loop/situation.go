@@ -83,8 +83,8 @@ func (running *run) noteTheBrowserResult(text string) {
 	case strings.HasPrefix(running.browserFact, TheHungPageFact) && address == "":
 		// The page is still hung, and the loop is still the thing to fix.
 	default:
-		if first := firstLine(text); first != "" {
-			running.browserFact = "browser: " + first
+		if title := pageTitleIn(text); title != "" {
+			running.browserFact = "browser: " + title
 		}
 	}
 	if address != "" {

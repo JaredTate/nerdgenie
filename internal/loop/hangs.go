@@ -2,6 +2,7 @@ package loop
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -35,12 +36,18 @@ func (running *run) listTheLoopsAfter(ctx context.Context, call contract.ToolCal
 	if !strings.HasPrefix(call.Name, "browser") || !saysThePageHung(text) || !isAPageOnThisMachine(running.pageAddress) {
 		return ""
 	}
-	lines := []string{}
+	whiles, fors := []string{}, []string{}
 	for _, script := range theScriptsOf(ctx, running.pageAddress) {
-		lines = append(lines, loopLinesIn(script, MaxLoopsListed-len(lines))...)
+		itsWhiles, itsFors := loopLinesIn(script)
+		whiles, fors = append(whiles, itsWhiles...), append(fors, itsFors...)
 	}
+	lines := append(whiles, fors...)
 	if len(lines) == 0 {
 		return ""
+	}
+	if len(lines) > MaxLoopsListed {
+		left := len(lines) - MaxLoopsListed
+		lines = append(lines[:MaxLoopsListed], fmt.Sprintf("and %d more for loops", left))
 	}
 	return TheLoopsLine + "\n" + strings.Join(lines, "\n")
 }

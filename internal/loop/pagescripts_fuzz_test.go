@@ -1,6 +1,9 @@
 package loop
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // FuzzTheScriptSourcesIn holds the page scan to never panicking and never
 // listing more scripts than the cap, on any page.
@@ -15,13 +18,17 @@ func FuzzTheScriptSourcesIn(f *testing.F) {
 	})
 }
 
-// FuzzLoopLinesIn holds the loop scan to its cap on any script.
+// FuzzLoopLinesIn holds the loop scan to never panicking and to naming the
+// script on every line, on any script.
 func FuzzLoopLinesIn(f *testing.F) {
-	f.Add("while (x) {}\nfor (;;) {}\n", 1)
-	f.Add("forward(x)\nwhile(y)", 5)
-	f.Fuzz(func(t *testing.T, script string, capLeft int) {
-		if lines := loopLinesIn(namedText{name: "s.js", text: script}, capLeft); capLeft >= 0 && len(lines) > capLeft {
-			t.Fatalf("%d loop lines were listed under a cap of %d", len(lines), capLeft)
+	f.Add("while (x) {}\nfor (;;) {}\n")
+	f.Add("forward(x)\nwhile(y)")
+	f.Fuzz(func(t *testing.T, script string) {
+		whiles, fors := loopLinesIn(namedText{name: "s.js", text: script})
+		for _, line := range append(whiles, fors...) {
+			if !strings.HasPrefix(line, "s.js:") {
+				t.Fatalf("the loop line %q does not name the script", line)
+			}
 		}
 	})
 }

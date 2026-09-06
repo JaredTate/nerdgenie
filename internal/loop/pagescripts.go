@@ -133,16 +133,20 @@ func readUpToTheCap(from io.Reader) (string, error) {
 }
 
 // loopLinesIn lists every line of a script that opens a while or a for, as
-// name:line: text, up to the cap left.
-func loopLinesIn(script namedText, capLeft int) []string {
-	lines := []string{}
+// name:line: text, the whiles apart from the fors, because a while is the
+// usual loop whose condition never changes and a counted for seldom is.
+func loopLinesIn(script namedText) (whiles []string, fors []string) {
 	for number, line := range strings.Split(script.text, "\n") {
-		if len(lines) >= capLeft {
-			break
+		match := theLoopOpening.FindStringSubmatch(line)
+		if match == nil {
+			continue
 		}
-		if theLoopOpening.MatchString(line) {
-			lines = append(lines, fmt.Sprintf("%s:%d: %s", script.name, number+1, strings.TrimSpace(line)))
+		listed := fmt.Sprintf("%s:%d: %s", script.name, number+1, strings.TrimSpace(line))
+		if match[1] == "while" {
+			whiles = append(whiles, listed)
+		} else {
+			fors = append(fors, listed)
 		}
 	}
-	return lines
+	return whiles, fors
 }

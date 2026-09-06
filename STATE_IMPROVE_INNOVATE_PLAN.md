@@ -233,7 +233,7 @@ Four questions each. Would it have changed tonight's outcome, or run 4's sixty-r
 
 - Looked into and dropped, 01:25 on 6 September: the re-read burst after a pick-up (five to eight results read back, about fifteen thousand tokens and six rounds each time). The window is already rebuilt from the log on a pick-up, so the last rounds' results are in front of the model in full from the first request, which `TestAPickedUpTaskStartsWithItsLastRoundsInFrontOfIt` now pins; the burst was the model choosing to read older results back, which no replay would stop.
 
-- Built at 02:15 on 6 September, from the nightly Tetris run: the stall line stays in the window and asked for a failure every round it was read, so the model wrote the same failure seven times until the guard stopped the task; the nudge after a fresh failure now names it, quotes its cause and asks for a change and no more failures. And a task on an ask over six hundred words holds six plan steps rather than ten, because the game as one task under a nine-step plan stopped at ninety-four rounds with one step done, while the game as a job of ten tasks was done the night before.
+- Built at 02:00 on 6 September, from the nightly Tetris run: the stall line stays in the window and asked for a failure every round it was read, so the model wrote the same failure seven times until the guard stopped the task; the nudge after a fresh failure now names it, quotes its cause and asks for a change and no more failures. And a task on an ask over six hundred words holds six plan steps rather than ten, because the game as one task under a nine-step plan stopped at ninety-four rounds with one step done, while the game as a job of ten tasks was done the night before.
 
 ## What was rejected, and why
 

@@ -91,10 +91,29 @@ export function chromeDied(reason: string): WorkerError {
   return new WorkerError(ERROR_CODES.chromeDied, `Chrome stopped working: ${reason}`);
 }
 
+/**
+ * A Playwright action that ran out of its own time on a page that is alive:
+ * the element could not be scrolled into view or clicked within the limit,
+ * most often because the page is busy drawing. On the fresh game build's
+ * play-test the click could not scroll the button into view within eight
+ * seconds, the worker called Chrome dead, and the Go side restarted the
+ * browser under the model. A busy page is not a gone one.
+ */
+export function actionRanOutOfTime(message: string): WorkerError {
+  const firstLine = message.split("\n")[0] ?? message;
+  return new WorkerError(
+    ERROR_CODES.didNotSettle,
+    `The page did not let the action land in time: ${firstLine} The page is busy, not gone, so nothing was restarted; read it again, or act once it has come to rest.`,
+  );
+}
+
 /** Turn anything thrown into the error the Go side will read. */
 export function asWorkerError(thrown: unknown): WorkerError {
   if (thrown instanceof WorkerError) {
     return thrown;
+  }
+  if (thrown instanceof Error && thrown.name === "TimeoutError") {
+    return actionRanOutOfTime(thrown.message);
   }
   const reason = thrown instanceof Error ? thrown.message : String(thrown);
   return chromeDied(reason);

@@ -189,14 +189,14 @@ error -32001 is for a page that cannot be read at all after the limit.
 | -32601 | No such method | A bug in the Go side; report it |
 | -32602 | The parameters were wrong | Return the message to the model |
 | -32000 | No such reference on the page, after every way of finding it failed | Return the message to the model, with a fresh snapshot in `data` |
-| -32001 | The page could not be read at all after the settle limit | Return the message to the model |
+| -32001 | The page could not be read at all after the settle limit, or an action ran out of its own time on a page that is alive (the element could not be scrolled into view or clicked within the limit, because the page is busy) | Return the message to the model |
 | -32002 | No browser is open | Open a page first |
 | -32003 | Chrome died | Restart the worker and tell the model it was interrupted |
 
 A -32700 or -32600 response carries `"id": null`, because a line that was not a
 request has no id to echo.
 
-## The twelve methods
+## The thirteen methods
 
 The `expectationMet` values in the examples below are illustrative; the rule above decides the real value.
 

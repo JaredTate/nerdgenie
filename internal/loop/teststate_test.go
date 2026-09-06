@@ -59,6 +59,16 @@ func TestTheTestStateIsReadOffJestPytestAndGo(t *testing.T) {
 			"tests: 1 failing: TestTheBoardClears"},
 		{"go green", "ok  \tgame\t0.004s\nexit 0", "tests: all passing"},
 		{"node green", "✔ board starts empty (0.5ms)\nℹ tests 51\nℹ pass 51\nℹ fail 0\nexit 0", "tests: all 51 passing"},
+		// Vitest, which the eleventh nightly run's hazards task ran through
+		// tail: its runs went from 36 failing to 16 and the harness read
+		// "finished with exit code 1" both times, so the meter saw no
+		// progress and cleared the conversation at twenty rounds.
+		{"vitest", " ❯ tests/hazard.test.js > Dragon > forces a drop\n Test Files  1 failed (1)\n      Tests  16 failed | 56 passed (72)\n   Start at  05:53:36\nexit 1",
+			"tests: 16 failing of 72"},
+		{"vitest green", " ✓ tests/engine.test.js (23 tests) 12ms\n Test Files  1 passed (1)\n      Tests  23 passed (23)\n   Start at  05:40:12\nexit 0", "tests: all 23 passing"},
+		// A file that could not be loaded is a red suite even when the one
+		// test that ran passed.
+		{"vitest broken file", " Test Files  2 failed | 1 passed (3)\n      Tests  1 passed (1)\n   Start at  05:54:06\nexit 1", "tests: 2 failing of 3"},
 	} {
 		state, found := testStateIn(run.text)
 		if !found {

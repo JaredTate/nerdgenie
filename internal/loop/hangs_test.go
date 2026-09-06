@@ -115,8 +115,15 @@ func TestAnOrdinaryBrowserResultListsNoLoops(t *testing.T) {
 
 	built.ask(t, "play-test the game")
 
-	if shown := wholeRequestText(built.model.Requests()[2]); strings.Contains(shown, loop.TheLoopsLine) {
+	shown := wholeRequestText(built.model.Requests()[2])
+	if strings.Contains(shown, loop.TheLoopsLine) {
 		t.Errorf("a click that worked got a list of loops:\n%s", shown)
+	}
+	// The situation's browser line names the page, not the judge's verdict:
+	// the screen read "page: not what was expected" for a whole sitting.
+	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]
+	if !strings.Contains(situation, "browser: Tater Tots Tetris") || strings.Contains(situation, "browser: what was expected") {
+		t.Errorf("the situation's browser line does not name the page after a click, and it reads:\n%s", situation)
 	}
 }
 

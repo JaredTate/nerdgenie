@@ -1,8 +1,12 @@
 package computer_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -153,5 +157,53 @@ func TestAToolWithNoDesktopWiredInSaysSo(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "desktop") {
 		t.Errorf("the refusal reads %q and does not say what is missing", err)
+	}
+}
+
+// TestAScreenshotIsSavedAsAFileAndSaysThePictureIsNotShown is the fifth game
+// build's play-test task at its last step, "screenshots captured as
+// evidence": it asked for a screenshot four times running and read the same
+// window list each time, because the picture went nowhere and nothing said
+// so. The picture is saved as a file under the folder the tool is given, the
+// answer names the file, and it says the model reads the lines in place of
+// the picture, so a screenshot asked for as evidence is evidence once.
+func TestAScreenshotIsSavedAsAFileAndSaysThePictureIsNotShown(t *testing.T) {
+	folder := t.TempDir()
+	tool := computer.New(computer.Settings{Desktop: testkit.NewFakeDesktop(), SavesTo: folder})
+
+	first, err := run(t, tool, map[string]any{"intent": "see the screen", "action": "screenshot", "expectation": "the screen is showing"})
+	if err != nil {
+		t.Fatalf("taking a screenshot failed: %v", err)
+	}
+	second, err := run(t, tool, map[string]any{"intent": "see the screen again", "action": "screenshot", "expectation": "the screen is showing"})
+	if err != nil {
+		t.Fatalf("taking a second screenshot failed: %v", err)
+	}
+	for number, output := range []contract.ToolOutput{first, second} {
+		path := filepath.Join(folder, fmt.Sprintf("screenshot-%d.png", number+1))
+		if !strings.Contains(output.Text, computer.ThePictureIsSavedAt+path) {
+			t.Errorf("the answer does not name the file %s, and it reads:\n%s", path, output.Text)
+		}
+		saved, err := os.ReadFile(path)
+		if err != nil || !bytes.HasPrefix(saved, []byte("\x89PNG")) {
+			t.Errorf("the file %s is not the picture (%v)", path, err)
+		}
+		if !strings.Contains(output.Text, computer.ThePictureIsNotShown) {
+			t.Errorf("the answer does not say the picture is not shown to the model:\n%s", output.Text)
+		}
+	}
+}
+
+// TestAScreenshotWithNowhereToSaveStillSaysThePictureIsNotShown keeps the
+// sentence when no folder was given.
+func TestAScreenshotWithNowhereToSaveStillSaysThePictureIsNotShown(t *testing.T) {
+	tool := computer.New(computer.Settings{Desktop: testkit.NewFakeDesktop()})
+
+	output, err := run(t, tool, map[string]any{"intent": "see the screen", "action": "screenshot", "expectation": "the screen is showing"})
+	if err != nil {
+		t.Fatalf("taking a screenshot failed: %v", err)
+	}
+	if !strings.Contains(output.Text, computer.ThePictureIsNotShown) || strings.Contains(output.Text, computer.ThePictureIsSavedAt) {
+		t.Errorf("with nowhere to save, the answer reads:\n%s", output.Text)
 	}
 }

@@ -599,6 +599,7 @@ internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
+internal/loop/picture.go
 internal/loop/picture_test.go
 internal/loop/pinned_test.go
 internal/loop/polling_test.go
@@ -1155,7 +1156,9 @@ internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
 internal/tool/browserread/testdata/a_page_with_text.txt
+internal/tool/browsershot/browsershot.go
 internal/tool/browsershot/browsershot_test.go
+internal/tool/browsershot/doc.go
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
 internal/tool/browsertype/doc.go
@@ -1221,6 +1224,7 @@ internal/tool/read/doc.go
 internal/tool/read/fence_test.go
 internal/tool/read/fieldnames_test.go
 internal/tool/read/file.go
+internal/tool/read/picture.go
 internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go
 internal/tool/read/read_test.go

@@ -9,7 +9,7 @@ task               37 words  Writes the task record: the why, the done list, the
 skill              29 words  Shows a saved procedure, runs one on the words you give it, or writes a new one down as a folder of files. Use shell for a one-off command.
 job                39 words  Creates a named job for work too big for one sitting, naming its first task, with or without a schedule, adds a task to one, or lists them. Use it only when the work needs more than one sitting.
 browser_open       31 words  Takes the agent's own Chrome to a web address and hands back the page as an outline. Use web fetch instead for a page that needs no login and no clicking.
-browser_read       39 words  Reads the browser's page as an outline of its elements, each with a reference to act on it by. No picture reaches you: judge a canvas by asking the page. Use web fetch for a page needing no login.
+browser_read       36 words  Reads the browser's page as an outline of its elements, each with a reference to act on it by. To see the page itself, take a browser_screenshot. Use web fetch for a page needing no login.
 browser_screenshot 33 words  Takes a picture of the page the browser is on, with its clickable elements numbered, and shows it to you; use it to check what a page or a canvas really looks like.
 browser_click      26 words  Clicks one element on the page the browser is on and checks that what you expected happened. Read the page first to get the element's reference.
 browser_type       27 words  Types into one box on the page and checks that what you expected happened. Use browser_login for a username or a password, which this tool never types.

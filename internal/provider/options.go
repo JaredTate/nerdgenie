@@ -66,6 +66,20 @@ type Options struct {
 	// Log takes one line for every retry, every fallback, and every note a
 	// provider has to leave. A nil value throws the lines away.
 	Log func(line string)
+	// Unseen is told, as the model writes, how many characters no delta
+	// shows: its thinking, and the arguments of its tool calls. The screen's
+	// count of a call in progress is drawn from these and the deltas together,
+	// so that a model writing a file for two minutes is not shown as writing
+	// nothing. A nil value counts nothing.
+	Unseen func(characters int)
+}
+
+// wroteUnseen tells the options how much the model wrote that no delta shows,
+// and does nothing when nobody asked or nothing was written.
+func (options Options) wroteUnseen(characters int) {
+	if options.Unseen != nil && characters > 0 {
+		options.Unseen(characters)
+	}
 }
 
 // note writes one line to the log, and does nothing when no log was given.

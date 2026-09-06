@@ -22,6 +22,9 @@ type Step struct {
 	// call with an error naming it, which is how a test catches a harness that
 	// dropped a correction.
 	Expect []string
+	// Thinking is what the model thinks before it says anything, which the
+	// two wire fakes stream the way the real servers do and no delta shows.
+	Thinking string
 	// Text is what the model says.
 	Text string
 	// ToolCalls are the tools it asks for.

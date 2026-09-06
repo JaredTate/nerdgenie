@@ -24,3 +24,12 @@ func (running *agent) withdrawStreamedReply() {
 	}
 	_ = running.socket.ResetDelta(context.Background())
 }
+
+// wroteUnseen passes what the provider says the model wrote unseen, its
+// thinking and its tool calls, to the watched model's count of the call in
+// progress, and drops it before the watched model exists.
+func (running *agent) wroteUnseen(characters int) {
+	if running.watched != nil {
+		running.watched.countUnseen(characters)
+	}
+}

@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"

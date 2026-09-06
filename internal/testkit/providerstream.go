@@ -91,6 +91,19 @@ func anthropicPing() string {
 
 // writeAnthropicText writes the text block of a reply, in deltas.
 func writeAnthropicText(send func(line string), step Step) {
+	if step.Thinking != "" {
+		send(anthropicEvent("content_block_start", map[string]any{
+			"type": "content_block_start", "index": 0,
+			"content_block": map[string]any{"type": "thinking", "thinking": ""},
+		}))
+		for _, delta := range splitIntoDeltas(step.Thinking, deltasPerReply) {
+			send(anthropicEvent("content_block_delta", map[string]any{
+				"type": "content_block_delta", "index": 0,
+				"delta": map[string]any{"type": "thinking_delta", "thinking": delta},
+			}))
+		}
+		send(anthropicEvent("content_block_stop", map[string]any{"type": "content_block_stop", "index": 0}))
+	}
 	send(anthropicEvent("content_block_start", map[string]any{
 		"type": "content_block_start", "index": 0,
 		"content_block": map[string]any{"type": "text", "text": ""},
@@ -130,6 +143,13 @@ func writeAnthropicToolCalls(send func(line string), step Step) {
 // final chunk carrying only the usage, then the done marker. A step that
 // misbehaves mid-stream sends an error line after the text and stops there.
 func writeOpenAIStream(send func(line string), step Step, dropEarly bool) {
+	for _, delta := range splitIntoDeltas(step.Thinking, deltasPerReply) {
+		send(openAIChunk(map[string]any{
+			"index":         0,
+			"delta":         map[string]any{"role": "assistant", "reasoning_content": delta},
+			"finish_reason": nil,
+		}))
+	}
 	for _, delta := range splitIntoDeltas(step.Text, deltasPerReply) {
 		send(openAIChunk(map[string]any{
 			"index":         0,

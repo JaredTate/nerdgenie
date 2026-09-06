@@ -53,7 +53,9 @@ type anthropicEvent struct {
 		Type        string `json:"type"`
 		Text        string `json:"text"`
 		PartialJSON string `json:"partial_json"`
-		StopReason  string `json:"stop_reason"`
+		// Thinking is one piece of the model's thinking, never shown.
+		Thinking   string `json:"thinking"`
+		StopReason string `json:"stop_reason"`
 	} `json:"delta"`
 	// Usage carries the final token counts, on the closing event.
 	Usage anthropicCount `json:"usage"`
@@ -76,6 +78,7 @@ type toolCallBuild struct {
 type anthropicReply struct {
 	modelName string
 	onDelta   func(delta string)
+	unseen    func(characters int)
 	text      bytes.Buffer
 	blocks    map[int]*toolCallBuild
 	order     []int
@@ -104,7 +107,7 @@ func readAnthropicStream(stream *openStream, modelName string, options Options,
 // handing every piece of text to the delta function as it arrives.
 func parseAnthropicStream(reader io.Reader, modelName string, options Options,
 	onDelta func(delta string)) (contract.Reply, error) {
-	building := &anthropicReply{modelName: modelName, onDelta: onDelta, blocks: map[int]*toolCallBuild{}}
+	building := &anthropicReply{modelName: modelName, onDelta: onDelta, unseen: options.wroteUnseen, blocks: map[int]*toolCallBuild{}}
 	err := forEachDataLine(reader, func(payload []byte) (bool, error) {
 		event := anthropicEvent{}
 		if err := json.Unmarshal(payload, &event); err != nil {
@@ -169,7 +172,10 @@ func (building *anthropicReply) addDelta(event anthropicEvent) error {
 		if kept != "" && building.onDelta != nil {
 			building.onDelta(kept)
 		}
+	case "thinking_delta":
+		building.unseen(len(event.Delta.Thinking))
 	case "input_json_delta":
+		building.unseen(len(event.Delta.PartialJSON))
 		block, known := building.blocks[event.Index]
 		if !known {
 			return nil

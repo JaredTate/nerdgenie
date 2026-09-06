@@ -106,6 +106,14 @@ func (watched *watchedModel) counting(onDelta func(delta string)) func(delta str
 	}
 }
 
+// countUnseen adds what the provider says the model wrote that no delta shows,
+// its thinking and its tool calls, to the count of the call in progress.
+func (watched *watchedModel) countUnseen(characters int) {
+	watched.guard.Lock()
+	watched.streamed += characters / tokensPerWord
+	watched.guard.Unlock()
+}
+
 // callBegins writes down the moment this call started.
 func (watched *watchedModel) callBegins() {
 	watched.guard.Lock()

@@ -57,8 +57,11 @@ type openAIChunk struct {
 	// usage and no choices at all, which is what the local daemon sends.
 	Choices []struct {
 		Delta struct {
-			Content   string            `json:"content"`
-			ToolCalls []openAIDeltaCall `json:"tool_calls"`
+			Content string `json:"content"`
+			// ReasoningContent is the model's thinking, which llama-server
+			// streams under this name and the harness never shows.
+			ReasoningContent string            `json:"reasoning_content"`
+			ToolCalls        []openAIDeltaCall `json:"tool_calls"`
 		} `json:"delta"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
@@ -79,6 +82,7 @@ type openAIChunk struct {
 type openAIReply struct {
 	modelName string
 	onDelta   func(delta string)
+	unseen    func(characters int)
 	text      bytes.Buffer
 	calls     map[int]*toolCallBuild
 	order     []int
@@ -102,7 +106,7 @@ func readOpenAIStream(stream *openStream, modelName string, options Options,
 // handing every piece of text to the delta function as it arrives.
 func parseOpenAIStream(reader io.Reader, modelName string, options Options,
 	onDelta func(delta string)) (contract.Reply, error) {
-	building := &openAIReply{modelName: modelName, onDelta: onDelta, calls: map[int]*toolCallBuild{}}
+	building := &openAIReply{modelName: modelName, onDelta: onDelta, unseen: options.wroteUnseen, calls: map[int]*toolCallBuild{}}
 	err := forEachDataLine(reader, func(payload []byte) (bool, error) {
 		chunk := openAIChunk{}
 		if err := json.Unmarshal(payload, &chunk); err != nil {
@@ -146,6 +150,7 @@ func (building *openAIReply) take(chunk openAIChunk) (bool, error) {
 		if kept := addText(&building.text, choice.Delta.Content); kept != "" && building.onDelta != nil {
 			building.onDelta(kept)
 		}
+		building.unseen(len(choice.Delta.ReasoningContent))
 		if err := building.addCalls(choice.Delta.ToolCalls); err != nil {
 			return true, err
 		}
@@ -181,6 +186,7 @@ func (building *openAIReply) addCalls(pieces []openAIDeltaCall) error {
 				building.modelName, maxToolCallJSONBytes)
 		}
 		block.arguments.WriteString(piece.Function.Arguments)
+		building.unseen(len(piece.Function.Arguments))
 	}
 	return nil
 }

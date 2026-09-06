@@ -150,7 +150,38 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if err := tool.settings.Records.Apply(ctx, update); err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("the record refused this change: %w", err)
 	}
-	return contract.ToolOutput{Text: theResult(update)}, nil
+	return contract.ToolOutput{Text: theResult(update) + tool.whatTheProofSays(update)}, nil
+}
+
+// whatTheProofSays is one line for every result the update named as proof,
+// the line the record keeps for it, so the model sees what it pinned or
+// marked without reading it back: the fifth game build's play-test task
+// pinned four done lines and then spent three rounds reading the four
+// results to find that none of them proved anything.
+func (tool *Tool) whatTheProofSays(update record.Update) string {
+	named := []string{}
+	for _, line := range update.DoneWhen {
+		if line.ResultID != "" {
+			named = append(named, line.ResultID)
+		}
+	}
+	if update.StepDone != nil && update.StepDone.ResultID != "" {
+		named = append(named, update.StepDone.ResultID)
+	}
+	if len(named) == 0 {
+		return ""
+	}
+	summaries := map[string]string{}
+	for _, result := range tool.settings.Records.Record().Work.Results {
+		summaries[result.ID] = result.Summary
+	}
+	said := strings.Builder{}
+	for _, id := range named {
+		if summary, held := summaries[id]; held {
+			said.WriteString(id + " says: " + summary + "\n")
+		}
+	}
+	return said.String()
 }
 
 // theChangeMade is the update one call made, written in the model's own field

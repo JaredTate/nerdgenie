@@ -251,7 +251,7 @@ commands never, so it cleared the conversation in the middle of the search
 and, twenty rounds later, stopped the task and put the game job down at one
 of six. The answer's text is what is judged, so a file read again at a new
 offset that says the same thing is still more of the same, which is what the
-nudge after a failure stands on. **The same tests failing on twelve runs in a row draw a line** (`StuckTestRuns`,
+nudge after a failure stands on. **Everything marked and still working draws a line** (`RoundsAfterAllMarked`, `TheAllMarkedLine`): a record with every done line and plan step marked whose model still asks for tools three rounds later is told to answer and end the task, because the fresh Tetris build's yeti task had everything marked by round 174 and went on into the next task's work inside its own. **The same tests failing on twelve runs in a row draw a line** (`StuckTestRuns`,
 `theStuckTestLine` in `teststate.go`): once every look and command that says
 something new counted as progress, the fresh Tetris build's yeti task could
 spend forty rounds on one failing test with no nudge at all, so a red set seen

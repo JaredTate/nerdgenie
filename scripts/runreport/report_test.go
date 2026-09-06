@@ -192,3 +192,40 @@ func TestMarksMadeFromTheFirstLineAreCounted(t *testing.T) {
 		t.Errorf("the report does not say the marks from the first line:\n%s", numbers.String())
 	}
 }
+
+// TestARangeOfTasksIsMeasuredTogether is the nightly set's job-shaped ask:
+// a long ask becomes a job whose tasks each get a record of their own, so the
+// number for the ask is the sum over every task from the ask's own task on.
+func TestARangeOfTasksIsMeasuredTogether(t *testing.T) {
+	store := aRecordedRun(t)
+	at := time.Date(2026, 9, 6, 2, 0, 0, 0, time.UTC)
+	for _, id := range []string{"8", "9"} {
+		held := contract.Record{
+			Header: contract.Header{Kind: contract.RecordTask, ID: id, Status: contract.StatusDone, Origin: "terminal", NoRoundBudget: true, NoTimeBudget: true,
+				Cost: contract.CostLine{InputTokens: 1000, CachedInputTokens: 500, OutputTokens: 50}},
+			Goal: contract.Goal{Ask: "one task of the job"},
+		}
+		written, err := json.Marshal(record.Checkpoint{Number: 1, Text: string(record.Print(held))})
+		if err != nil {
+			t.Fatalf("cannot write the checkpoint: %v", err)
+		}
+		if _, err := store.Append(t.Context(), contract.Event{TaskID: id, Kind: contract.EventCheckpoint, Body: written, Occurred: at}); err != nil {
+			t.Fatalf("cannot append the checkpoint: %v", err)
+		}
+		at = at.Add(time.Minute)
+	}
+
+	numbers, err := measureFrom(t.Context(), store, "7")
+	if err != nil {
+		t.Fatalf("cannot measure the tasks from 7: %v", err)
+	}
+	if numbers.rounds != 7 || numbers.tokensIn != 69000 || numbers.tokensOut != 1300 || numbers.tasks != 3 {
+		t.Errorf("the range from task 7 reads %d rounds, %d in, %d out over %d tasks, want 7, 69000, 1300 and 3", numbers.rounds, numbers.tokensIn, numbers.tokensOut, numbers.tasks)
+	}
+	if numbers.status != contract.StatusDone || numbers.taskID != "7 to 9" {
+		t.Errorf("the range reads as %q ending %q, want \"7 to 9\" ending done, the newest task's", numbers.taskID, numbers.status)
+	}
+	if code := run([]string{"--log", "nowhere.db", "--from", "x"}, &strings.Builder{}, &strings.Builder{}); code != 2 {
+		t.Errorf("a from that is not a number gave %d, want 2", code)
+	}
+}

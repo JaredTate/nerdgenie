@@ -24,7 +24,7 @@ const TheLoopsLine = "the loops in the scripts this page runs, one of which may 
 // TheHungPageFact opens the situation line that keeps a hung page's marked
 // loop in front of the model every round, because a list on one result is
 // read once and the live model went back to the sound engine after reading it.
-const TheHungPageFact = "browser: the page's own script hung on the last action, and the loop whose body never touches its condition is "
+const TheHungPageFact = "browser: the page hangs on the last action in a loop that looks endless, so fix this loop before anything else: "
 
 // theSignsOfAHungPage are the words a browser result carries when the page's
 // own script kept it busy.

@@ -1,8 +1,17 @@
 # Nerd Genie
 
-Nerd Genie is an open-source AI agent that runs on your own Linux machine. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own machine or in the cloud. It uses a real Chrome web browser the way a person does. And it does not forget what it is working on, because it keeps a short written record of the task instead of re-reading its whole conversation every turn.
+Nerd Genie is an open-source AI agent that runs on your own Linux machine. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own graphics card or in the cloud, and it does not forget what it is doing, because it keeps a task record instead of re-reading its whole conversation every turn. It drives a real Chrome window, and with a model that can see, it looks at the pages and the games it builds.
 
-Nerd Genie is being built, wave by wave, and `docs/PROGRESS.md` says how far it has got. Start with `NERDGENIE.md`, the plain-words explanation of how it works and why it is better. The design is in `docs/NERDGENIE_PLAN.md` and the build plan is in `docs/WORK_PLAN.md`. Building happens on the Linux development machine `jared-irene` at `/home/jared/Code/coeus`, and the rules for anyone building it are in `CLAUDE.md`.
+**Start here.** `INSTALL.md` gets the program and the local model onto a machine. `SETUP.md` says how to configure it, open the screen, give it work, and read the screen. `NERDGENIE.md` is the plain-words explanation of how it works and why, with a check table that ties every claim to a test. `docs/PROGRESS.md` says what the last night's runs found and fixed.
+
+## What it does today
+
+- Builds and tests software on its own for hours: a long ask becomes a job of tasks, each with its own record, run one at a time with a report after each.
+- Uses the browser like a person: opens pages, reads them as an outline, acts by reference, checks that what it expected happened, and reports a page that hangs by the loop that never yields.
+- Sees: with the vision projector loaded, screenshots and picture files reach the model as images, about 800 tokens each.
+- Keeps its own honest state: a task record shaped like an Army operations order, an append-only event log, and a working context built fresh each call and sized to the model.
+- Watches itself: a progress meter that nudges, rewinds, and stops; a stuck-test line; refusals that say what to write instead; a nightly set of asks measured by a run report.
+- Runs on a 27B model on one graphics card: on this machine, Qwen 3.8 through the TurboQuant llama-server with MTP, about 420 tokens a second of prefill and 60 to 75 of output, and a 90 percent cache share on real work.
 
 ## The idea
 
@@ -59,6 +68,8 @@ Tests are written before the code they prove, at four levels: unit, integration,
 
 | File | What it is |
 |---|---|
+| `INSTALL.md` | Getting the program, the model server and the model files onto a machine, one card or seven |
+| `SETUP.md` | The home folder, the configuration, the screen, the browser, giving it work, measuring it, and what to do when something looks wrong |
 | `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
 | `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives |
 | `docs/NERDGENIE_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |

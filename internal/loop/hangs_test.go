@@ -93,6 +93,10 @@ func TestAHungPageListsTheLoopsInTheScriptsThePageRuns(t *testing.T) {
 	if !strings.Contains(shown, "and 5 more for loops") {
 		t.Errorf("the list does not say how many for loops fell off its end:\n%s", shown[strings.Index(shown, loop.TheLoopsLine):])
 	}
+	situation := shown[strings.Index(shown, "## Work"):strings.Index(shown, "## Lessons")]
+	if !strings.Contains(situation, loop.TheHungPageFact+"main.js:17: while (engine.board.canPlace") {
+		t.Errorf("the situation does not keep the marked loop in front of the model, and it reads:\n%s", situation)
+	}
 }
 
 // TestAnOrdinaryBrowserResultListsNoLoops keeps the reading to the hang: a

@@ -132,7 +132,7 @@ func batchText(changes []contract.Diff) string {
 // The names a model writes for the fields of one batch and of the steps in it.
 var (
 	stepNames      = []string{"steps", "actions", "batch"}
-	keyNames       = []string{"key", "keys", "key_name"}
+	keyNames       = []string{"key", "keys", "key_name", "text", "press"}
 	directionNames = []string{"direction", "way", "towards"}
 	amountNames    = []string{"amount", "steps_to_scroll", "how_far", "count"}
 	textNames      = []string{"text", "value", "content", "input", "to_type"}

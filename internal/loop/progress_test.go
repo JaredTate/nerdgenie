@@ -325,6 +325,30 @@ func TestReadingANewPartOfTheSameFileIsProgress(t *testing.T) {
 	}
 }
 
+// TestAResizeThatShowsThePageAtANewSizeIsProgress: the visual QA task of the
+// fresh game build went through five sizes with browser_resize and a
+// screenshot at each in two minutes, and the meter counted none of it, "rounds
+// since progress: 6" against a task doing exactly what it was asked. A resize
+// that shows the page at a size this task has not seen is a look at something
+// new.
+func TestAResizeThatShowsThePageAtANewSizeIsProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	answers := []string{}
+	for at := 1; at <= loop.NudgeAfterRoundsWithoutProgress+2; at++ {
+		steps = append(steps, callStep("I will look at the next size.", callFor(fmt.Sprintf("s%d", at), contract.ToolBrowserResize,
+			fmt.Sprintf(`{"intent":"size %d","width":%d,"height":800}`, at, 300+at*100))))
+		answers = append(answers, fmt.Sprintf("the page is now %d by 800 pixels\nA page\nhttp://localhost/\ntab t1\ne1 heading \"A page\"", 300+at*100))
+	}
+	steps = append(steps, answerStep("Every size is looked at. What changed: nothing. What I checked: the sizes. What is left: nothing."))
+	built := newHarness(t, steps, scriptedTool(contract.ToolBrowserResize, answers...))
+
+	built.ask(t, "check the page at every size")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count != 0 {
+		t.Errorf("the stall line was said %d times over twelve sizes that each showed the page anew", count)
+	}
+}
+
 // TestAShellResultThatSaysSomethingNewIsProgress is the same task's other
 // half: between the reads it probed the engine with small node scripts and
 // searched it with grep, each printing something the task had not seen, and

@@ -51,7 +51,7 @@ func TestTheInstructionTextIsSmallEnoughToRideInEveryPrompt(t *testing.T) {
 // before it. The text has to say so in one short sentence, and say when: only
 // when the calls do not depend on each other.
 func TestTheInstructionTextSaysSeveralCallsMayRideInOneReply(t *testing.T) {
-	for _, said := range []string{"several tools in one reply", "they run in order", "every write or edit reruns the tests"} {
+	for _, said := range []string{"several tools in one reply", "they run in order", "every write or edit reruns them"} {
 		if !strings.Contains(InstructionText, said) {
 			t.Errorf("the instruction text does not say %q, so the model is never told it may ask for several tools at once",
 				said)

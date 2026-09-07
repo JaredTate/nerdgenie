@@ -213,6 +213,13 @@ type Job interface {
 	// PutDownTask returns the mark of the paused job put down most recently,
 	// which is the one whose run is newest, and false when no job is put down.
 	PutDownTask(ctx context.Context) (PutDownMark, bool, error)
+	// PickUpOnce says whether the job may pick one of its tasks up itself,
+	// on a fresh window, after the harness's own guard stopped it: yes the
+	// first time and no from then on, so that a task which stalls the same
+	// way twice is put down for a person. The answer is written into the job,
+	// so a restart remembers it. A job that is not there, a task not on its
+	// list, and a finished task are refused with an error naming them.
+	PickUpOnce(ctx context.Context, jobID string, taskID string) (bool, error)
 	// NextTask returns the next task that may start now: the first unfinished
 	// task of the oldest running job whose due time has passed, or, for a job
 	// with a schedule whose tick has come, one new task made from its template.

@@ -77,6 +77,31 @@ func (jobs *FakeJob) Resume(_ context.Context, jobID string) error {
 	return nil
 }
 
+// PickUpOnce says whether the job may pick the task up itself after the
+// harness's guard stopped it: yes the first time and no from then on, the way
+// the real store answers. A task that is finished or not there, and a job that
+// is not there, are refused with an error naming them.
+func (jobs *FakeJob) PickUpOnce(_ context.Context, jobID string, taskID string) (bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return false, fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	task := jobs.findTask(entry, taskID)
+	if task == nil {
+		return false, fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", jobID, taskID)
+	}
+	if task.task.Done {
+		return false, fmt.Errorf("task %s of job %s is already finished and its report is %s, so there is nothing to pick up", taskID, jobID, task.task.ReportID)
+	}
+	if task.pickedUp {
+		return false, nil
+	}
+	task.pickedUp = true
+	return true, nil
+}
+
 // PutDown pauses a job on one of its tasks and keeps the mark, which RunNow
 // forgets again. A task that has finished cannot be put down, because nothing
 // could pick it up, and a job that is off cannot be either, because the person

@@ -46,6 +46,7 @@ STATE_IMPROVE_INNOVATE_PLAN.md
 STATE_RESEARCH.md
 TEST.md
 TESTING.md
+TETRIS_TEST_PROMPT.md
 THIRD_PARTY.md
 Z_PROMPTS.md
 audit_report.md
@@ -503,6 +504,7 @@ internal/job/next_test.go
 internal/job/notepad.go
 internal/job/openclaims_test.go
 internal/job/openrecord_test.go
+internal/job/pickup_test.go
 internal/job/resume_test.go
 internal/job/runnow_test.go
 internal/job/schedule.go
@@ -587,6 +589,7 @@ internal/loop/firstline.go
 internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
 internal/loop/freshwindow.go
+internal/loop/freshwindow_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
@@ -599,6 +602,7 @@ internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go
 internal/loop/jobmarkfails_test.go
+internal/loop/jobpickup_test.go
 internal/loop/jobquestion_test.go
 internal/loop/jobresume_test.go
 internal/loop/jobs.go
@@ -655,6 +659,8 @@ internal/loop/runningjob_test.go
 internal/loop/situation.go
 internal/loop/skillbudget_test.go
 internal/loop/stopcancels_test.go
+internal/loop/stopdone.go
+internal/loop/stopdone_test.go
 internal/loop/stopline_test.go
 internal/loop/stopnamesjob_test.go
 internal/loop/stoppedreport.go
@@ -1127,6 +1133,7 @@ internal/testkit/job.go
 internal/testkit/job_test.go
 internal/testkit/jobcontrol.go
 internal/testkit/joblifecycle_test.go
+internal/testkit/jobpickup_test.go
 internal/testkit/jobstate_test.go
 internal/testkit/memory.go
 internal/testkit/memory_test.go

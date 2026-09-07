@@ -14,12 +14,13 @@ func (running *run) remember(message contract.Message) {
 	}
 	running.messages = append(running.messages, message)
 	running.keepTheNewestPictures()
-	if len(running.messages) <= MaxMessagesKept {
-		return
-	}
-	cut := len(running.messages) - MaxMessagesKept/2
-	for cut < len(running.messages)-1 && running.messages[cut].Role != contract.RoleAssistant {
-		cut++
-	}
-	running.messages = running.messages[cut:]
+}
+
+// windowIsFull says the conversation has passed MaxMessagesKept, which the
+// round answers by opening a fresh window (reopenTheWindowIfFull). Nothing is
+// cut here: remember used to drop the oldest half at once, which kept the
+// front of the prompt still but left the model reading a conversation that
+// began in the middle of a round, with no ask and no bearings.
+func (running *run) windowIsFull() bool {
+	return len(running.messages) > MaxMessagesKept
 }

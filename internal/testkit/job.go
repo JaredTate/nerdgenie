@@ -18,6 +18,9 @@ type fakeTask struct {
 	dueAt      time.Time
 	unattended bool
 	running    bool
+	// pickedUp says the job has picked the task up itself once after the
+	// harness's guard stopped it.
+	pickedUp bool
 }
 
 // fakeJobEntry is one job the fake holds.

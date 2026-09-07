@@ -17,15 +17,14 @@ func aRoundOfMessages(number int) []contract.Message {
 	}
 }
 
-// TestTheOldestHalfOfTheMessagesLeavesAtOnceWhenTheCapIsReached is the fix for
-// the live game build's cliff. The loop used to drop one message every call once
-// it held MaxMessagesKept, so from round a hundred on the front of the
-// conversation moved on every call, the daemon could reuse nothing past the
-// system prompt, and a round that had cost twenty seconds cost a hundred and
-// seventy. Dropping the oldest half at once leaves the front alone for the next
-// fifty rounds, and what the model reads is the same either way: the newest
-// messages, with the record and the log behind them.
-func TestTheOldestHalfOfTheMessagesLeavesAtOnceWhenTheCapIsReached(t *testing.T) {
+// TestRememberKeepsEveryMessagePastTheCapAndSaysTheWindowIsFull: remember
+// used to drop the oldest half of the messages the moment MaxMessagesKept was
+// passed, which kept the front of the prompt still for fifty rounds but left
+// the model reading a conversation cut in the middle, and a hundred messages
+// of it re-read from cold. Now remember only keeps and counts; the round that
+// sees the window full opens a fresh one, oriented, with the ask last, which
+// freshwindow_test.go proves.
+func TestRememberKeepsEveryMessagePastTheCapAndSaysTheWindowIsFull(t *testing.T) {
 	running := &run{}
 	for round := 1; round <= MaxMessagesKept/2; round++ {
 		for _, message := range aRoundOfMessages(round) {
@@ -35,27 +34,22 @@ func TestTheOldestHalfOfTheMessagesLeavesAtOnceWhenTheCapIsReached(t *testing.T)
 	if len(running.messages) != MaxMessagesKept {
 		t.Fatalf("after %d rounds the loop holds %d messages, want the cap of %d", MaxMessagesKept/2, len(running.messages), MaxMessagesKept)
 	}
-
-	oneMore := aRoundOfMessages(MaxMessagesKept/2 + 1)
-	running.remember(oneMore[0])
-
-	kept := len(running.messages)
-	if kept > MaxMessagesKept/2 {
-		t.Errorf("one message past the cap leaves %d messages, want the oldest half gone at once, so at most %d", kept, MaxMessagesKept/2)
-	}
-	if kept < MaxMessagesKept/2-1 {
-		t.Errorf("one message past the cap leaves %d messages, and only the oldest half and an orphaned result may go", kept)
-	}
-	if first := running.messages[0]; first.Role != contract.RoleAssistant || len(first.ToolCalls) == 0 {
-		t.Errorf("the window now begins with %+v, want the model's own call, because a result whose call has left is refused on the wire", first)
-	}
-	if last := running.messages[kept-1]; last.Text != oneMore[0].Text {
-		t.Errorf("the newest message reads %q, want the one just remembered", last.Text)
+	if running.windowIsFull() {
+		t.Error("the window says it is full at the cap, and it is full only past it")
 	}
 
-	running.remember(oneMore[1])
-	if len(running.messages) != kept+1 {
-		t.Errorf("the next message after the drop leaves %d messages, want %d: nothing else leaves until the cap is reached again",
-			len(running.messages), kept+1)
+	for _, message := range aRoundOfMessages(MaxMessagesKept/2 + 1) {
+		running.remember(message)
+	}
+
+	if len(running.messages) != MaxMessagesKept+2 {
+		t.Errorf("one round past the cap leaves %d messages, want %d: nothing leaves in remember, the round opens a fresh window",
+			len(running.messages), MaxMessagesKept+2)
+	}
+	if !running.windowIsFull() {
+		t.Error("the window does not say it is full past the cap")
+	}
+	if first := running.messages[0]; first.Text != "round 1" {
+		t.Errorf("the window now begins with %+v, want the first round still there until the fresh window opens", first)
 	}
 }

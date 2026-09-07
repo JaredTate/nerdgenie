@@ -197,3 +197,66 @@ func TestATaskThatWillNotProveItsDoneListIsGivenUpOn(t *testing.T) {
 		t.Errorf("the task ended %q, want failed, because it would not prove its done list", outcome.Status)
 	}
 }
+
+// theGreenJestRun is a test run the shell answers with, read as three passing.
+const theGreenJestRun = "finished with exit code 0\nTests: 3 passed, 3 total"
+
+// TestADoneLineRestingOnATestRunFromBeforeTheLastChangeIsSentBack: a done
+// line may point at a green test run and then the model changes a file, so the
+// proof is older than the change and says nothing about the file as it is now.
+// The harness sends the model back once to run the tests again and point the
+// line at the new result, and the task closes on that.
+func TestADoneLineRestingOnATestRunFromBeforeTheLastChangeIsSentBack(t *testing.T) {
+	// The shell answers the model's run, the harness's run after the write,
+	// and the model's run again.
+	shell := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolShell, Description: "A shell the test scripted."}, theGreenJestRun, theGreenJestRun, theGreenJestRun)
+	built := newHarness(t, []testkit.Step{
+		callStep("I will run the tests.",
+			callFor("c1", contract.ToolShell, `{"command":"npx jest"}`),
+			taskCall("c1t", `{"why":"the user wants the notes kept and proved","doneWhen":[{"text":"the tests pass","done":true,"resultId":"r1"}]}`)),
+		callStep("I will write the notes.", callFor("c2", contract.ToolWrite, `{"path":"/notes/today.md","content":"kept"}`)),
+		answerStep("It is done. What changed: the notes. What I checked: the tests. What is left: nothing."),
+		callStep("I will run the tests again.", callFor("c3", contract.ToolShell, `{"command":"npx jest"}`)),
+		callStep("I will point the line at the new run.",
+			taskCall("c3t", `{"doneWhen":[{"text":"the tests pass","done":true,"resultId":"r4"}]}`)),
+		answerStep("It is done. What changed: the notes. What I checked: the tests again. What is left: nothing."),
+	}, shell, scriptedTool(contract.ToolWrite, "created /notes/today.md, 4 bytes"))
+
+	outcome := built.ask(t, "keep the notes and prove it")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done once the line pointed at a run from after the change", outcome.Status)
+	}
+	sentBack := `The done line "the tests pass" rests on r1, a test run from before your last change; run the tests again and point the line at the new result.`
+	if !strings.Contains(requestsJoined(built.model.Requests()), sentBack) {
+		t.Errorf("the model was never sent back over a test run older than its last change, and the requests read:\n%s", requestsJoined(built.model.Requests()))
+	}
+	if line := built.held(t, outcome.TaskID).Goal.DoneWhen[0]; line.ResultID != "r4" {
+		t.Errorf("the done line points at %s, want r4, the run after the change", line.ResultID)
+	}
+}
+
+// TestADoneLineRestingOnATestRunAfterTheLastChangePasses keeps the check to
+// what it is for: a test run that came after the last write proves the file as
+// it is, and the model is not sent back.
+func TestADoneLineRestingOnATestRunAfterTheLastChangePasses(t *testing.T) {
+	shell := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolShell, Description: "A shell the test scripted."}, theGreenJestRun)
+	built := newHarness(t, []testkit.Step{
+		callStep("I will write the notes.",
+			callFor("c1", contract.ToolWrite, `{"path":"/notes/today.md","content":"kept"}`),
+			taskCall("c1t", `{"why":"the user wants the notes kept and proved","doneWhen":["the tests pass"]}`)),
+		callStep("I will run the tests.", callFor("c2", contract.ToolShell, `{"command":"npx jest"}`)),
+		callStep("I will point the line at the run.",
+			taskCall("c2t", `{"doneWhen":[{"text":"the tests pass","done":true,"resultId":"r3"}]}`)),
+		answerStep("It is done. What changed: the notes. What I checked: the tests. What is left: nothing."),
+	}, shell, scriptedTool(contract.ToolWrite, "created /notes/today.md, 4 bytes"))
+
+	outcome := built.ask(t, "keep the notes and prove it")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done, because the test run came after the write", outcome.Status)
+	}
+	if strings.Contains(requestsJoined(built.model.Requests()), "from before your last change") {
+		t.Error("the model was sent back over a test run that came after its last change")
+	}
+}

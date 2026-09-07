@@ -709,6 +709,9 @@ internal/loop/turn_test.go
 internal/loop/unattended_test.go
 internal/loop/window.go
 internal/loop/window_test.go
+internal/loop/workorder.go
+internal/loop/workorder_test.go
+internal/loop/workorderslice.go
 internal/markdown/doc.go
 internal/markdown/markdown.go
 internal/markdown/markdown_test.go
@@ -1300,6 +1303,7 @@ internal/tool/more_test.go
 internal/tool/openroots_test.go
 internal/tool/pinnedbounds_test.go
 internal/tool/read/asklabel_test.go
+internal/tool/read/asksection_test.go
 internal/tool/read/bounds_test.go
 internal/tool/read/doc.go
 internal/tool/read/fence_test.go
@@ -1574,6 +1578,10 @@ internal/vault/totp.go
 internal/vault/totp_test.go
 internal/vault/vault.go
 internal/vault/vault_test.go
+internal/workorder/doc.go
+internal/workorder/testdata/tetris.md
+internal/workorder/workorder.go
+internal/workorder/workorder_test.go
 scripts/bench/check-tater.mjs
 scripts/bench/countcalls.sh
 scripts/bench/drive.py

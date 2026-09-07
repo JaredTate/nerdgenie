@@ -255,14 +255,16 @@ func TestAWholeJobOnTheRealDatabaseSurvivesARestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot list the jobs after the restart: %v", err)
 	}
-	if len(listed) != 2 {
-		t.Fatalf("there are %d jobs after the restart, want the two that were made", len(listed))
+	// The contract check makes two jobs of its own, the named one and the
+	// work order's, and this test makes the scheduled one.
+	if len(listed) != 3 {
+		t.Fatalf("there are %d jobs after the restart, want the three that were made", len(listed))
 	}
 	notepad, err := reopened.Notepad(ctx, jobID)
 	if err != nil || notepad != "the last version seen was 8.22.2\n" {
 		t.Errorf("the notepad after the restart reads %q with error %v", notepad, err)
 	}
-	if summary := listed[1]; summary.NextRun.IsZero() {
+	if summary := listed[len(listed)-1]; summary.ID != jobID || summary.NextRun.IsZero() {
 		t.Errorf("the scheduled job lost its next run across the restart: %+v", summary)
 	}
 }

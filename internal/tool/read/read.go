@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/markdown"
 	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
@@ -93,7 +94,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			"Use search when you do not know which file.",
 		Fields: []contract.ToolField{
 			{Name: "path", Type: "string", Description: "A file or folder, taken from the folder the agent works in unless it starts at the root or at ~; " +
-				"or a past result by its id such as r7; or ask for the whole of the user's original ask.", Required: true},
+				"or a past result by its id such as r7; or ask for the whole of the user's original ask, or ask followed by a heading, such as ask dragon, for one section of it.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
 			{Name: "section", Type: "string", Description: "For a Markdown file, the heading of the one section to read, such as hazards."},
@@ -112,6 +113,11 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		text, err := tool.readStored(ctx, label, kind)
 		if err != nil {
 			return contract.ToolOutput{}, err
+		}
+		if heading := sectionAsked(asked.Path); heading != "" {
+			if text, err = sectionOf(text, heading); err != nil {
+				return contract.ToolOutput{}, err
+			}
 		}
 		if asked.Offset < 1 && asked.Limit < 1 {
 			return contract.ToolOutput{Text: text}, nil
@@ -187,8 +193,8 @@ func readInput(written json.RawMessage) (input, error) {
 // them: the record shows the model the start of a very long ask and a line
 // saying to read this label for the whole of it, and the record answers it.
 func resultLabel(path string) (string, contract.RecordKind, bool) {
-	if path == record.AskLabel {
-		return path, contract.RecordTask, true
+	if path == record.AskLabel || sectionAsked(path) != "" {
+		return record.AskLabel, contract.RecordTask, true
 	}
 	if _, isResult := contract.ParseResultID(path); isResult {
 		return path, contract.RecordTask, true
@@ -209,4 +215,29 @@ func (tool *Tool) readStored(ctx context.Context, label string, kind contract.Re
 		return "", fmt.Errorf("there is no %s record behind this tool to read %s from, so read a file instead", kind, label)
 	}
 	return stored.Read(ctx, label)
+}
+
+// sectionAsked is the heading after the ask label when the model wrote
+// "ask <heading>", asking for one section of the ask, and empty otherwise.
+func sectionAsked(path string) string {
+	rest, isAsk := strings.CutPrefix(strings.TrimSpace(path), record.AskLabel+" ")
+	if !isAsk {
+		return ""
+	}
+	return strings.TrimSpace(rest)
+}
+
+// sectionOf cuts one section out of the ask by its heading, and, when there
+// is no such heading, says which headings there are, so that the next call
+// can name one.
+func sectionOf(text string, heading string) (string, error) {
+	section, found := markdown.Find(text, heading)
+	if !found {
+		headings := markdown.Headings(text)
+		if len(headings) == 0 {
+			return "", fmt.Errorf("the ask has no section named %q and no headings at all, so read the whole of it with ask", heading)
+		}
+		return "", fmt.Errorf("the ask has no section named %q; its sections are %s, so read one of those", heading, strings.Join(headings, ", "))
+	}
+	return strings.Repeat("#", section.Level) + " " + section.Heading + "\n" + strings.TrimRight(section.Body, "\n") + "\n", nil
 }

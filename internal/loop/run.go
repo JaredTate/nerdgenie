@@ -44,6 +44,10 @@ type run struct {
 	channel    contract.Channel
 	keeper     *record.Keeper
 	jobSummary string
+	// jobAsk is the job's whole ask when the job was made from a work order,
+	// which is what `read ask` on one of its tasks brings back, and empty
+	// otherwise.
+	jobAsk     string
 	recentWork []workingcontext.RecentTask
 	// standingOrder is the work folder's AGENTS.md, read once at the start.
 	standingOrder string
@@ -198,8 +202,13 @@ func (held theRecordOfTheTask) Apply(ctx context.Context, update record.Update) 
 	return held.running.keeper.Apply(ctx, update)
 }
 
-// Read brings back the whole text of one result by its label.
+// Read brings back the whole text of one result by its label. On a task of a
+// job made from a work order, the ask label brings back the job's whole ask,
+// because that is the long one the task's front shows only a slice of.
 func (held theRecordOfTheTask) Read(ctx context.Context, id string) (string, error) {
+	if id == record.AskLabel && held.running.jobAsk != "" {
+		return held.running.jobAsk, nil
+	}
 	if held.running.keeper == nil {
 		return "", fmt.Errorf("this task has no result %s yet, because nothing has been run", id)
 	}

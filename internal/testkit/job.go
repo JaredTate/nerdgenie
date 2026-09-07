@@ -33,9 +33,13 @@ type fakeJobEntry struct {
 	template string
 	tasks    []fakeTask
 	reports  []contract.ResultLine
-	// doneWhen is the done list the fake writes when the job closes: one line
-	// per task, pointing at that task's report, the rule the real store keeps.
+	// doneWhen is the done list: the work order's lines when the job was made
+	// with them, else the one line per task the fake writes when the job
+	// closes, pointing at that task's report, the rule the real store keeps.
 	doneWhen []contract.DoneLine
+	// rules are the work order's rules, kept as the record's corrections in
+	// the person's words, the rule the real store keeps.
+	rules []contract.Correction
 	// putDown is the mark the job carries while it is put down on one of its
 	// tasks, and nil when it is not.
 	putDown *contract.PutDownMark
@@ -100,6 +104,12 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
+	}
+	for _, text := range wanted.DoneWhen {
+		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: text})
+	}
+	for at, rule := range wanted.Rules {
+		entry.rules = append(entry.rules, contract.Correction{ID: contract.CorrectionID(at + 1), Text: rule})
 	}
 	jobs.order = append(jobs.order, jobID)
 	jobs.entries[jobID] = entry
@@ -193,9 +203,10 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 // the real store keeps so that a job the model gave no done list can still
 // finish. The caller holds the lock.
 func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
-	entry.doneWhen = nil
-	for _, task := range entry.tasks {
-		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+	if len(entry.doneWhen) == 0 {
+		for _, task := range entry.tasks {
+			entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+		}
 	}
 	entry.summary.State = contract.JobDone
 }
@@ -227,6 +238,7 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			Ask: entry.ask, Name: entry.name, Why: entry.why,
 			DoneWhen: append([]contract.DoneLine(nil), entry.doneWhen...),
 		},
+		Rules:   contract.Rules{Corrections: append([]contract.Correction(nil), entry.rules...)},
 		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil

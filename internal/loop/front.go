@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
 // StandingOrderFile is the name of the file a project keeps its rules in: what
@@ -60,6 +59,6 @@ func (running *run) readJobSummary(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot read job %s to put its summary above the task: %w", running.task.FromJob.JobID, err)
 	}
-	running.jobSummary = string(record.Print(held))
+	running.jobSummary = running.theJobSummaryOf(held)
 	return nil
 }

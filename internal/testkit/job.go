@@ -102,9 +102,6 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 		schedule: wanted.Schedule,
 		template: wanted.TaskTemplate,
 	}
-	for _, line := range wanted.DoneWhen {
-		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: line})
-	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
 	}

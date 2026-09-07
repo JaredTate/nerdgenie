@@ -1,129 +1,108 @@
-# The plan for IDEAS_V2: build it test first, keep it simple, measure it with the new Tetris prompt
+# The plan for IDEAS_V2: what changes, why, and how it improves the harness
 
-Written 7 September 2026. This is the build plan for what `IDEAS_V2.md` proposes and `PROMPT_TEMPLATE_GUIDE.md` explains. It waits for the owner's yes. Every step is built the way everything here is built: write the test, watch it fail, write the code, watch it pass, run the whole gate, and measure the step on a real run before the next step begins. Two rules hold throughout: the simplest thing that passes the test, and nothing that no step needs.
+Written 7 September 2026, rewritten the same evening to say what, why and how in plain words. It waits for the owner's yes. Every step is a failing test, then the code, then a measured Tetris run before the next step. The rule for every step: the simplest thing that passes the test.
 
-## 1. What we are building, in one paragraph
+## The problems we are fixing, with the numbers
 
-A person writes an ask under six headings: Goal, Where, Done when, Rules, Tasks, Details. The harness reads the headings and writes the job's record itself, so there are no planning rounds and the finish is the person's. Every task sees the goal, the rules, its own line, and only the Details sections it names; it reads any other section by name. The harness holds tests first with a line on any code write that no failing test covers, runs the bracketed checks at the end of every task, and refuses a finish while one fails. The project's three documents, `AGENTS.md`, `ARCHITECTURE.md` and `REPO_MAP.md`, reach the model as the rules in full and the rest by section on request, and the harness keeps them true. When there is no work order, the model plans in the same shape, because the job tool asks for it.
+These come from the 6 September logs (three runs, 32 tasks, 2,173 rounds) and from runs twelve to fifteen today.
 
-## 2. What is already built
+1. **Re-orientation.** After every task start, every cut and every fresh window, the model re-learns the project by reading files: 121 rounds, 33 minutes, 820 thousand tokens in one day. After a restart it reads 2.6 results back by id before it does anything.
+2. **Planning and bookkeeping.** 297 rounds did nothing but write the record. The planning task of every Tetris run reads the whole 2,898-word ask and writes a job in its own words.
+3. **Rules by luck.** The ask's rules reach task nine only if the model carried them into its own task names. A project's house rules (Home Recon's `CLAUDE.md`) sit in a file nothing points at, so the model never sees them.
+4. **Finding where things are.** 84 rounds repeated a command already run, most of them `ls`, `find` and `grep`. One task read the same file forty-eight times.
+5. **Premature done.** Three of the last eight nightly runs closed done on a job that did not work.
 
-Three pieces the plan leans on exist and are tested. A done line must rest on a test run newer than the last edit (7 September). The `expect` line's four rules, tests, exit code, contains, parses, are read by `judge` in `internal/loop/expect.go`. The done check already runs a command a done line names and looks for a file it names (`internal/loop/donecheck.go`). The orientation block already lists the folder and the ports (`internal/orientation`). The read tool already reads a result by its label. None of that is rebuilt; each step adds to it.
+Six steps. Each names the problem it fixes, what changes, how it improves things, and where we see it in the numbers.
 
-## 3. How every step is measured
+## Step 1: the work order becomes the record (fixes 2 and 3)
 
-The measure is a Tetris run on the show home, done the way the owner watches it: a fresh home, memory wiped, `/yolo` on, the TUI window on the screen, the Chrome window on the screen, no message sent to the model until the job ends. Same daemon, same model, same folder name.
+**What changes.** A new package `internal/workorder` reads the six headings of an ask. When an ask has them, the harness writes the job's record itself before the first model call: name and why from Goal, the done lines with their checks from Done when, the rules into the record's rules, the tasks from Tasks. A plain ask is untouched.
 
-| Run | Prompt | Harness | What it measures |
-|---|---|---|---|
-| R0 | `TETRIS_TEST_PROMPT.md` | today's, commit b4702dcf (this is run 15) | the baseline |
-| RA | `TETRIS_PROMPT_V2.md` | today's, no code change | the prompt alone |
-| RB | `TETRIS_PROMPT_V2.md` | after steps 1 to 3 | the lift and the slice |
-| RC | `TETRIS_PROMPT_V2.md` | after steps 4 and 5 | tests first and the checks |
-| RD | `TETRIS_PROMPT_V2.md` | after steps 6 and 7 | the three documents |
-| RE | `TETRIS_PROMPT_V2.md` | after step 8 | the finished set |
+**How it improves.** No planning rounds. The finish is the person's seven lines, not the model's translation of twenty-nine bullets. The rules sit in the record's rules section, which rides in front of every task, cached, so they cannot be lost at task nine.
 
-What is counted, per run and per task, from the event log through `scripts/runreport` and the nightly table, with four new columns the steps add:
+**Tests first.** The parser: each heading; a plain ask is not a work order; a done line keeps its check; a task names its Details sections; a golden on `TETRIS_PROMPT_V2.md`; a fuzz target. The lift: the first model request already carries the job with fourteen tasks and seven done lines and no `job` call was made; the existing goldens for a plain ask hold byte for byte.
 
-- Rounds, model minutes, tokens in and out, the cached share.
-- Planning rounds: rounds before the job exists. Record-writing rounds: rounds that only wrote the record.
-- Uncached tokens at each task start.
-- Reads of a file that had not changed since it was last read.
-- Done lines proved by the harness against lines judged by the model. (new)
-- Tests-first lines written on a code write. (new)
-- Reads of a document by section. (new)
-- Guard events: nudges, cuts, rethinks, fresh windows, same-call refusals.
-- The check: `scripts/nightly/checks/05-tetris.sh` green, and the owner's own play in the window.
+**We see it in.** Planning rounds, from five to zero. Record-writing rounds per task.
 
-The rule for going on to the next step: the job finished on its own, every done line was proved, the check is green, and no counted number is worse than the run before by more than a tenth. A step that fails the rule is reverted before the next one starts. Every step lands as two commits, the test and then the code, with the session trailer, and updates `ARCHITECTURE.md`, the check table in `NERDGENIE.md`, and `docs/PROGRESS.md` in the same change.
+**Size.** About three hundred lines. Two days.
 
-## 4. The steps
+## Step 2: each task sees only its own part of the ask (fixes 1 and 2)
 
-### Step 0: the new prompt, and the prompt alone (half a day)
+**What changes.** The per-task front shows the task's line and the Details sections its line names, in full. The other sections show as one heading each, with "read one with `read ask <heading>`". The read tool learns the label `ask` followed by a heading. The ask stays whole in the job's checkpoint.
 
-- Copy `TETRIS_PROMPT_V2.md` to `scripts/nightly/asks/05-tetris.md`, keeping the old ask as `05-tetris-v1.md` for a while. The check script does not change: it looks for the game folder, a green `npm test`, and the page served.
-- Run RA. No code changes. This tells us how much the shape alone buys on today's harness, which reads it as a plain ask.
+**How it improves.** The dragon task reads six hundred words about the dragon instead of three thousand about everything. Less to read at every task start, and the model's attention is on the part it is building.
 
-Expected: fewer planning rounds, because the Tasks list is a plan; done lines closer to the person's; fewer rules lost, because they sit in one place.
+**Tests first.** A context golden for a task naming `(Details: Dragon)`; a task naming nothing sees every heading by line; `read ask dragon` returns the section; an unknown heading lists the headings.
 
-### Step 1: `internal/workorder`, the parser (one day)
+**We see it in.** Uncached tokens at each task start. Reads of the ask by section.
 
-One small package that turns the ask's text into a work order and says whether it is one.
+**Size.** About eighty lines. One day.
 
-- **Tests first.** `TestReadsTheSixHeadings` (each heading, in any case, in any order). `TestAnAskWithoutGoalAndDoneWhenIsNotAWorkOrder`. `TestADoneLineKeepsItsCheck` (the four kinds, `tests pass`, `exit 0`, `shows ... at ...`, `exists`, and a bracket it does not know is left in the text and reported). `TestATaskNamesItsDetailsSections` (`(Details: Dragon, Tests required)`). `TestDetailsAreSplitByHeading`. A golden test on `TETRIS_PROMPT_V2.md`: fourteen tasks, seven done lines, eight rules, eleven sections. `FuzzParse`: never panics, and every heading it reports is in the text.
-- **Code.** `Parse(text string) WorkOrder`. A `WorkOrder` holds `Name`, `Goal`, `Where`, `DoneWhen []DoneLine{Text, Check}`, `Rules`, `Tasks []Task{Text, Details}`, `Sections []Section{Heading, Body}`, and `IsWorkOrder`. Nothing else. Headings are the six names, matched without regard to case. The section-cutting helper lives in `internal/markdown`, a package of one function, `Sections(text)`, with its own fuzz target, because steps 3, 6 and 7 use it too.
-- **Size.** About two hundred lines and their tests.
+## Step 3: `AGENTS.md` in front of every task (fixes 3)
 
-### Step 2: the lift (one day)
+**What changes.** At task start the harness looks in the Where folder for `AGENTS.md`. When it is there, its text rides under the job summary on every task in that folder, capped at sixty lines with a line saying so when it is longer. The ask's own rules come after it and win.
 
-When a task's ask is a work order, the harness makes the job before the model's first call.
+**How it improves.** The house rules of a project are always in front of the model, in the project's words, for zero rounds. On Home Recon that is "never push main, rebuild core after editing, test:node before push". A rule the model always sees is not broken by accident. This is exactly what the scalpel does with its house rules, and it is part of why scalpel tickets land well.
 
-- **Tests first**, in `internal/loop` with the fake model: `TestAWorkOrderMakesTheJobBeforeTheFirstCall` (the first request already carries the job summary with the done lines, the rules and fourteen tasks; the model made no `job` call). `TestAWorkOrdersRulesRideAsCorrections` (C1 to Cn in the person's words; tests first is C1 whether the ask wrote it or not). `TestAPlainAskIsUnchanged` (the existing goldens hold byte for byte).
-- **Code.** In the loop's first turn: `workorder.Parse(ask)`; when it is one, create the job through the same `contract.Job` the job tool uses, with the whole ask as the job's ask, the Goal's first sentence as the name, the rest of the Goal as the why, one task per Tasks line, the done lines with their brackets kept in the text, and the rules as corrections. Then start the first task. No new tool. No new option.
-- **Size.** About a hundred lines in `internal/loop/workorder.go`.
+**Tests first.** A context golden with the block under the job summary; a folder without the file adds nothing; the sixty-line cut; the cache-shape test still holds, because the block is inside the stable prefix.
 
-### Step 3: the task's slice (one day)
+**We see it in.** Rounds spent reading rule files. Rules broken and corrected by the owner, which the nightly notes record.
 
-A job task sees the Details sections its line names, in full, and the other sections by heading.
+**Size.** About forty lines. Half a day.
 
-- **Tests first.** A builder golden in `internal/context`: a task naming `(Details: Dragon)` has the Dragon section in full under its task line and the other ten headings as one line each ending "read one with `read ask <heading>`". `TestATaskNamingNoSectionsSeesEveryHeadingByLine`. In `internal/tool/read`: `TestReadsASectionOfTheAskByHeading`, `TestAnUnknownHeadingListsTheHeadings`.
-- **Code.** The per-task front, where the job summary sits, gains the task's sections, cut with `markdown.Sections` from the job's ask, which the record already holds whole. The read tool's label reader learns one label, `ask`, followed by a heading. Bounded by the read tool's existing caps.
-- **Size.** About eighty lines.
+## Step 4: `ARCHITECTURE.md` read by section, and `REPO_MAP.md`'s legend (fixes 1 and 4)
 
-### Step 4: the tests-first line (half a day)
+**What changes.** Two lines in the orientation block, the block that already lists the folder and the ports at every task start and fresh window:
 
-- **Tests first**, in `internal/loop`: `TestACodeWriteAfterAGreenRunGetsTheTestsFirstLine` (the newest test result is all passing, the write is to `src/engine.js`: the result's first line reads "tests first: no failing test covers this change; write it first"). `TestACodeWriteAfterARedRunGetsNoLine`. `TestATestFileNeverGetsTheLine` (`test/dragon.test.js`, `engine_test.go`, `spec/`, `__tests__/`). `TestBeforeAnyTestRunThereIsNoLine` (the scaffold task writes freely). `TestAFileThatIsNotCodeGetsNoLine` (`package.json`, `index.html`, `styles.css`, `README.md`).
-- **Code.** Where the write and edit results are decorated today with "tests after this change", one check on the path and the newest test state. Code is a file whose extension is one of a short list; a test file is one whose name or folder says test or spec.
-- **Size.** About sixty lines.
+- "ARCHITECTURE.md: sections engine, hazards, effects, shell, tests. Read one with `read ARCHITECTURE.md hazards`."
+- The map's roots legend, when `REPO_MAP.md` has one: one line per top folder with what it is for, fifteen lines at most.
 
-### Step 5: the checks at the end of every task and at the finish (one day)
+And the read tool takes a heading after a Markdown file's path and returns that section only.
 
-- **Tests first**, in `internal/loop`: `TestABracketedDoneLineIsRunByTheHarness` for each kind, with the fake shell and the fake browser: `tests pass` runs the command and reads the count, `exit 0` reads the code, `shows` opens the page and looks for the text, `exists` looks for the file. `TestAJobTasksEndRunsTheJobsChecks` (the job summary header reads "done lines proved: 3 of 7" after task nine). `TestTheFinishIsRefusedWhileACheckFails` (the send-back names the line and carries the output's tail). `TestAFailingCheckBecomesAFailureAfterThreeTries` (the person wrote the check, so the harness never lets the line stand on the model's word; after three tries the check's output tail goes into the record as a failure with its cause, the line stays unproved, and the model goes on by another route; the finish stays refused until the check passes).
-- **Code.** `checkOneDoneLine` in `donecheck.go` reads the bracket through `workorder.Check` and runs it through the calls the done check already makes; `finishJobTask` runs the job's bracketed lines and writes the count into the job summary's header.
-- **Size.** About a hundred and twenty lines.
+**How it improves.** When the model needs to know how a part is put together, it reads two hundred words in one round instead of opening files for three to five rounds. When it needs the lay of the land on a large repository, it already has it: the four apps and the packages of Home Recon are fifteen lines in the orientation, not five rounds of `ls`. Nobody reads the 6,192-line map; the search tool finds files by name as it does today.
 
-### Step 6: the three documents in the window (a day and a half)
+**Tests first.** An orientation golden with both lines for a folder with the two files, and a golden without them; the read tool reads a section, is bounded like a file, and has a fuzz target on the heading match; the section cutter lives in a tiny `internal/markdown` package shared with step 2.
 
-- **Tests first.** In `internal/orientation`: a golden with the two document lines for a folder holding `ARCHITECTURE.md` with nine sections and a `REPO_MAP.md` with forty-one files, and a golden without them (nothing added). In `internal/context`: a golden with `AGENTS.md` under the job summary, `TestAStandingOrderOverSixtyLinesIsCutAndSaysSo`, and the cache-shape test still holding (the block is inside the stable prefix). In `internal/tool/read`: `TestReadsASectionOfAMarkdownFileByHeading`, `TestASectionIsBoundedLikeAFile`, `FuzzSection`.
-- **Code.** `orientation.documentLines(folder)`. `BuildInput.StandingOrder`, read once at task start from the Where folder, printed after the job summary. The read tool gains one optional field, `section`.
-- **Size.** About a hundred and fifty lines.
+**We see it in.** Reads in the three rounds after a task start or a fresh window, and how many of them are reads by section.
 
-### Step 7: the documents kept true (a day and a half)
+**Size.** About a hundred and twenty lines. One day.
 
-- **Tests first.** In `internal/loop`: `TestTheReviewAsksWhichArchitectureSectionChanged` (with the fake model: after a task in a folder with `ARCHITECTURE.md`, the named section's body is the model's answer, dated; a folder without the file gets no fifth question; an answer naming no section changes nothing). `TestAMapWithTheGeneratedMarkIsRewrittenAfterAWrite` and `TestAMapWithoutTheMarkIsNeverTouched`. `TestAFinishedJobWritesAgentsMdOnceAndNeverOverwrites` (from the work order's Goal, the test command of the first done line, the Rules, and pointers to the other two documents). In `internal/repomap`: a golden on a fixture tree, with `node_modules`, `dist` and `.git` left out. In `cmd/nerdgenie`: `nerdgenie map <folder>` writes the three files when absent and only the map when the other two exist.
-- **Code.** A fifth question in `review.go` and a writer that replaces one section through `internal/markdown`. `internal/repomap`, a tree generator of one file, marked `<!-- generated: nerdgenie map -->`, run by the loop after a write or edit under a folder whose map carries the mark. `AGENTS.md` written at the job's finish. This repository keeps its own generator in `scripts/repomap`; the two are not merged until a second reason appears.
-- **Size.** About two hundred lines.
+## Step 5: the documents are written by the job (fixes 1 for the next job)
 
-### Step 8: the job tool asks for the shape (half a day)
+**What changes.** The review at the end of every task already asks four questions with the tools off. When the folder has `ARCHITECTURE.md`, it asks a fifth: which section did this task change, and what should it say now? The answer replaces that section, dated. When the folder has no `ARCHITECTURE.md`, the first task's review starts one. When a job finishes in a folder with no `AGENTS.md`, the harness writes one from the work order: what this is from Goal, the test command from the first done line, the Rules, and a pointer to the architecture page. It never overwrites a file that exists.
 
-- **Tests first.** In `internal/tool/job`: `TestCreateRefusesATaskWithoutADoneLine` (the refusal names the task and says what a done line is). `TestATaskMayNameItsDetails`. In `internal/context`: the instructions golden with the "Jobs and tasks" paragraph saying to write a job as a work order: name, why, done lines, rules, tasks each with one done line. The forty-step fixture unchanged.
-- **Code.** A task object gains `done` and `details`; the tool's description names the six parts; one paragraph of the instructions text changes.
-- **Size.** About forty lines.
+**How it improves.** The Tetris folder ends the night with an architecture page whose hazards section says what task five built, and an `AGENTS.md` that says `npm test`. The next task of the same job, and the next job on the same folder, start from a page instead of from reading files, which is problem 1 again.
 
-## 5. The order, the days, and what each run should show
+**Tests first.** After a task in a folder with the page, the named section holds the answer, dated; a folder without the page gets one; an answer naming no section changes nothing; `AGENTS.md` is written once and never overwritten.
 
-| Step | Days | Run after it | What should move |
-|---|---|---|---|
-| 0 | 0.5 | RA | planning rounds down; done lines closer to the person's |
-| 1 to 3 | 3 | RB | planning rounds to zero; task-start tokens down by the size of the unread sections; reads of unchanged files down |
-| 4 to 5 | 1.5 | RC | tests-first lines appear and then stop appearing; done lines proved by the harness up; no finish on an unproved line |
-| 6 to 7 | 3 | RD | reads by section replace reads of whole files; the three documents exist in the game folder at the end |
-| 8 | 0.5 | RE | a plain ask plans in the shape; nothing else changes |
+**We see it in.** The two files in the game folder at the end of a run, and the reads in the three rounds after a task start in the run after.
 
-Eight and a half days. Each run is a night on the show home, so the whole plan is about two weeks with the measuring.
+**Size.** About a hundred lines. One day.
 
-## 6. What we are not building
+## Step 6: proof at every task's end (fixes 5)
 
-- No index of files, no full-text search of the folder, no import graph, no worktrees, no gate line. Those are `IDEAS_V3.md`, for large code bases, and they wait until this set is measured.
-- No new tool. Sections are read through `read`. The ask is read through `read ask`.
-- No parser per language. A test file is known by its name; code is known by its extension.
-- No configuration option. A work order is recognised by its headings; a plain ask is unchanged.
-- No summary of anything. Details are cut by heading and shown whole or not at all.
+**What changes.** Two things. A write or edit to a code file, when no test has failed since the last green run, gets one line on its own result: "tests first: no failing test covers this change; write it first." And the bracketed checks of the Done when lines run at the end of every task and at the finish, through the done check's existing command runner and the browser: `tests pass`, `exit 0`, `shows`, `exists`. The job summary carries "done lines proved: 3 of 7". The finish is refused while a check fails; after three failures the check's output goes into the record as a failure and the model goes on by another route.
 
-## 7. Risks, and what catches them
+**How it improves.** The finish cannot be talked past, because the person's checks run and the model does not judge them. Tests first is held by the harness, not by the model's memory of a rule. A job that runs all night is measured after every task, not judged at the end.
 
-- **The model ignores the task's slice and reads the whole ask anyway.** RB's reads-by-section count shows it. The slice stays; the heading lines say how to read more.
-- **The tests-first line fires on a write the model had to make** (a fixture, a helper). The short code-extension list and the "before any test run" rule keep it quiet on scaffolds; RC's count shows whether it fires more than once or twice a task.
-- **A bracketed check cannot run on the machine** (the browser cannot open the page). After three tries the failure is in the record with the output's tail, the model takes another route, and the stall ladder and the rethink cover a model that cannot find one. Nothing in this set makes a run wait for a person.
-- **The fifth review question writes nonsense into the architecture page.** The section is replaced, dated, and the old body is in the log; the owner reads the page after RD.
-- **The cache breaks.** The standing order sits inside the stable prefix and the task's slice sits in the per-task front; `cacheshape_test.go` holds the layout, and every run's cached share is on the table.
+**Tests first.** The tests-first line appears after a green run and not after a red one, never on a test file, never on a file that is not code, never before the first test run. Each check kind with the fake shell and the fake browser. The finish refused with the line named. The count in the summary.
+
+**We see it in.** Done lines proved by the harness against lines judged by the model. Tests-first lines per task, which should appear early and then stop. Jobs closed done that the nightly check then failed, which should go to zero.
+
+**Size.** About a hundred and eighty lines. One and a half days.
+
+## The order and the runs
+
+| After | Run | What should move |
+|---|---|---|
+| nothing (tonight) | RA: `TETRIS_PROMPT_V2.md` on today's harness | planning rounds; done lines closer to the person's |
+| steps 1 and 2 | RB | planning rounds to zero; task-start tokens down; reads of unchanged files down |
+| steps 3 and 4 | RC | reads after a task start and a fresh window down; reads by section appear |
+| step 5 | RD | the two files exist in the game folder; the run after starts from them |
+| step 6 | RE | done lines proved by the harness up; no finish on an unproved line |
+
+Seven days of building, and one Tetris run on the show home after each pair of steps, the way the owner watches them: a fresh home, memory wiped, `/yolo` on, both windows on the screen, no message to the model until the job ends. Run fifteen is the baseline. The rule for going on: the job finished on its own, every done line proved, the nightly check green, and nothing on the table worse than the run before by more than a tenth. A step that fails the rule is reverted before the next.
+
+## What we are not building
+
+No index of files, no full-text search of the folder, no import graph, no worktrees, no gate line: those are `IDEAS_V3.md`, for large code bases, and they wait until this set is measured. No new tool: sections go through `read`. No parser per language. No configuration option. No summary of anything.

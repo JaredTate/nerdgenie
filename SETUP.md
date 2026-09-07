@@ -13,7 +13,9 @@ Nerd Genie keeps everything in one folder, the **home**. `nerdgenie init` makes 
 | skills | `skills/<name>/SKILL.md` | the browser skill ships with it |
 | the event log | `nerdgenie.db` | every message, call and result, never rewritten |
 | secrets | `vault.key` and the vault | passwords never reach the model |
-| the socket, spill files, screenshots | `run/` | screens attach to `run/agent.sock` |
+| the socket, spill files, screenshots | `run/` | screens attach to `run/agent.sock`; pictures land in `run/screenshots/` |
+| your own tools | `tools/` | one executable per tool; read at startup |
+| the browser profile, backups, Signal's state, files sent to it | `browser/`, `backups/`, `signal/`, `inbox/` | nothing here is read by the model |
 
 The home must sit outside every folder Nerd Genie may work in. That is checked, and refused, on purpose.
 
@@ -93,11 +95,11 @@ Put a long ask in a file and pass it with `$(cat …)`; one stray apostrophe on 
 NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 5h "$(sed 's|<WORK>|/home/you/Desktop|g' EX_PROMPT_2_TETRIS.md)"
 ```
 
-`PROMPT_TEMPLATE_GUIDE.md` says how to write one: a goal, where, what done looks like, the rules, the tasks, and the details under their own headings. A plain ask works too; the shape is what lets the harness do more of the work.
+`PROMPT_TEMPLATE_GUIDE.md` says how to write one: a goal, where, what done looks like, the rules, the tasks, and the details under their own headings. An ask in that shape is turned into the job before the model is called: your done lines, with their bracketed checks, become the job's done list; your rules ride in front of every task, with tests first as the first; your tasks become the job's tasks in order, and each task sees only the Details sections its line names. A plain ask works too; the model then writes the job itself.
 
 Small asks are one **task**. A long ask, many features or a long list, becomes a **job**: the model writes the task list first and the harness runs one task at a time, reporting after each. A done list over five lines or a plan over ten steps is refused with the words "this ask is a job", so the model makes one.
 
-Slash commands work in the screen and over Signal: `/tasks`, `/jobs`, `/status`, `/memory`, `/skills`, `/undo`, `/stop`, `/clear`, `/yolo`, `/model`, `/think`.
+Slash commands work in the screen and over Signal: `/tasks`, `/jobs`, `/cron`, `/status`, `/memory`, `/skills`, `/undo`, `/stop`, `/clear`, `/yolo`, `/model`, `/think`, and `/help` lists them all.
 
 **Yolo** means "run every call that would have stopped to ask me". It is what an unattended run needs. Anything on the ask-me-first list still asks; a rule that says never is still never.
 
@@ -111,9 +113,13 @@ A page it is building that hangs the browser is reported with the loop that neve
 
 A work folder may carry three files the harness reads for the model. `AGENTS.md`, the project's rules and how to run and test it, rides under the job summary on every call of a task in that folder, cut at sixty lines. `ARCHITECTURE.md` and `REPO_MAP.md` are never read whole: at every task start and fresh window the orientation block names the architecture page's sections and the map's root folders, and the model reads one section with `read ARCHITECTURE.md <heading>`. Write them for any project you keep, and keep `AGENTS.md` short; it is in front of the model on every call.
 
+The harness keeps them too. At the end of every task the review asks which section of `ARCHITECTURE.md` the task changed and writes the answer under that heading, dated; a folder with no page gets one from the first job task. A job that finishes with every done line proved writes `AGENTS.md` when the folder has none, from the job's own record: what it is, how to run and test it, the rules. It never overwrites a file you wrote.
+
+Two more things the harness does on every task, whatever the ask looked like. A write or edit to a code file, when no test has failed since the last green run, gets one line on its result: "tests first: no failing test covers this change; write it first." And a done line that ends in a bracket the harness can run, `[tests pass: npm test]`, `[exit 0: node build.js]`, `[shows: "Tic Tac Toe" at http://127.0.0.1:8096]` or `[exists: dist/index.html]`, is run by the harness at the end of every task and at the finish; the job header counts "done lines proved: 1 of 2", and a job cannot close while a check fails.
+
 ## 7. Measure it
 
-`scripts/nightly/run.sh <home> --with-tetris` runs the fixed set of asks on a fresh copy of a home and writes a table to `docs/nightly/<date>.md`: rounds, minutes, seconds a round, cache share, uncached tokens a round, rounds cut off at the output cap, refusals by tool. `scripts/runreport --log <db> --task N` prints one task's numbers. Every change to the harness this week came from one of these tables.
+`scripts/nightly/run.sh <home> --with-tetris` runs the fixed set of asks on a fresh copy of a home and writes a table to `docs/nightly/<date>.md`: rounds, minutes, seconds a round, cache share, uncached tokens a round, rounds cut off at the output cap, refusals by tool. `go run ./scripts/runreport --log <db> --task N` prints one task's numbers. Every change to the harness this week came from one of these tables.
 
 ## 8. When something looks wrong
 

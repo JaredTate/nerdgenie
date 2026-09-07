@@ -43,10 +43,15 @@ const (
 	MaxReasonRunes = 500
 )
 
-// The four things one call can ask for.
+// The six things one call can ask for.
 const (
 	// ActionRun runs a command.
 	ActionRun = "run"
+	// ActionServe starts a command that is meant to keep running, such as a
+	// server, and answers the moment it listens on a port.
+	ActionServe = "serve"
+	// ActionCheck asks whether a port on this machine answers.
+	ActionCheck = "check"
 	// ActionPoll asks whether a running command has finished.
 	ActionPoll = "poll"
 	// ActionTail asks what a command has written.
@@ -55,10 +60,10 @@ const (
 	ActionKill = "kill"
 )
 
-// KnownAction says whether the action is one of the four.
+// KnownAction says whether the action is one of the six.
 func KnownAction(action string) bool {
 	switch action {
-	case ActionRun, ActionPoll, ActionTail, ActionKill:
+	case ActionRun, ActionServe, ActionCheck, ActionPoll, ActionTail, ActionKill:
 		return true
 	default:
 		return false
@@ -82,13 +87,16 @@ type Settings struct {
 	WorkingDirectory string
 	// Timeout is how long one command may run before it is stopped.
 	Timeout time.Duration
+	// SocketTables are the kernel's socket tables a serve watches for a new
+	// listening port; nil means /proc/net/tcp and /proc/net/tcp6.
+	SocketTables []string
 }
 
 // Call is one call to this tool, read out of the JSON the model wrote.
 type Call struct {
 	// Command is the shell command to run.
 	Command string `json:"command"`
-	// Action is run, poll, tail, or kill. An empty action is a run.
+	// Action is run, serve, check, poll, tail, or kill. An empty action is a run.
 	Action string `json:"action"`
 	// ID names a command that is already running, for poll, tail, and kill.
 	ID string `json:"id"`
@@ -96,12 +104,17 @@ type Call struct {
 	Escalate bool `json:"escalate"`
 	// Reason is the written reason for asking for them.
 	Reason string `json:"reason"`
+	// Port is the port a check asks after, or the one a serve waits for.
+	Port int `json:"port"`
+	// Path is what a check fetches over HTTP from the port, or nothing.
+	Path string `json:"path"`
 }
 
 // Tool is the shell tool.
 type Tool struct {
 	settings Settings
 	running  *table
+	past     pastRuns
 }
 
 // New returns the shell tool.
@@ -113,22 +126,24 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolShell,
-		Description: "Runs a command in the sandbox; after ten seconds it hands back an id to poll, tail, or kill, and a poll waits twenty seconds. " +
-			"Escalate with a reason for administrator powers. Use read and search for files.",
+		Description: "Runs a command in the sandbox; after ten seconds it hands back an id to poll, tail, or kill. " +
+			"Serve starts a server and names its port; check asks whether a port answers. Escalate with a reason for administrator powers.",
 		Fields: []contract.ToolField{
 			{Name: "command", Type: "string", Description: "The command to run, as you would type it in a terminal. Kill a process by its exact id, never by a name pattern."},
-			{Name: "action", Type: "string", Description: "One of run, poll, tail, or kill. Leave it out to run."},
+			{Name: "action", Type: "string", Description: "One of run, serve, check, poll, tail, or kill. Leave it out to run."},
 			{Name: "id", Type: "string", Description: "The id of a running command, for poll, tail, and kill."},
 			{Name: "escalate", Type: "boolean", Description: "True to ask for administrator powers for this command."},
 			{Name: "reason", Type: "string", Description: "Why the command needs administrator powers, in one line."},
 			{Name: "expect", Type: "string", Description: "What the result should show, checked by the harness: tests 62 to 63, all passing, 2 failing, exit 0, or contains X."},
+			{Name: "port", Type: "number", Description: "The port a check asks after, or the one a serve waits for."},
+			{Name: "path", Type: "string", Description: "For a check, the path to fetch over HTTP, such as /index.html."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassExecute},
 	}
 }
 
 // Run does what the call asks for: start a command, or ask after one that is
-// already running.
+// already running, or after a port.
 func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.ToolOutput, error) {
 	asked, err := ReadCall(ctx, written)
 	if err != nil {
@@ -141,6 +156,10 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return tool.running.tail(asked.ID)
 	case ActionKill:
 		return tool.running.kill(asked.ID)
+	case ActionServe:
+		return tool.serve(ctx, asked)
+	case ActionCheck:
+		return tool.check(ctx, asked)
 	default:
 		return tool.start(ctx, asked)
 	}
@@ -159,15 +178,21 @@ func ReadCall(_ context.Context, written []byte) (Call, error) {
 		asked.Action = ActionRun
 	}
 	if !KnownAction(asked.Action) {
-		return Call{}, fmt.Errorf("the action %q is not one this tool knows, so use run, poll, tail, or kill", asked.Action)
+		return Call{}, fmt.Errorf("the action %q is not one this tool knows, so use run, serve, check, poll, tail, or kill", asked.Action)
 	}
-	if asked.Action != ActionRun {
+	switch asked.Action {
+	case ActionRun:
+		return asked, checkRun(asked)
+	case ActionServe:
+		return asked, checkServe(asked)
+	case ActionCheck:
+		return asked, checkPort(asked.Port)
+	default:
 		if strings.TrimSpace(asked.ID) == "" {
 			return Call{}, fmt.Errorf("a %s names the command to act on, so give the id the tool handed back", asked.Action)
 		}
 		return asked, nil
 	}
-	return asked, checkRun(asked)
 }
 
 // theKillsByNamePattern are the programs that kill or list processes by a

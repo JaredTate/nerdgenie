@@ -100,14 +100,15 @@ func (tool *Tool) workOf(asked Call) func(ctx context.Context) (contract.Sandbox
 }
 
 // waitOrYield waits for the command for as long as the yield allows and hands
-// back either what it did or the id to ask after it by.
+// back either what it did, shortened when it is the same command writing the
+// same thing again, or the id to ask after it by.
 func (tool *Tool) waitOrYield(ctx context.Context, entry *entry) (contract.ToolOutput, error) {
 	finished, err := tool.waitFor(ctx, entry, YieldAfter)
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}
 	if finished {
-		return contract.ToolOutput{Text: entry.finishedText()}, nil
+		return contract.ToolOutput{Text: tool.answerRun(entry.command, entry)}, nil
 	}
 	return contract.ToolOutput{Text: entry.stillRunningText()}, nil
 }

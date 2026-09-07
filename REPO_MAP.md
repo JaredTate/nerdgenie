@@ -705,6 +705,7 @@ internal/memory/testdata/twenty-questions.json
 internal/memory/twentyquestions_test.go
 internal/memory/unreadable_test.go
 internal/orientation/doc.go
+internal/orientation/everyport_test.go
 internal/orientation/orientation.go
 internal/orientation/orientation_test.go
 internal/permission/askmefirst.go
@@ -1285,6 +1286,8 @@ internal/tool/search/search_test.go
 internal/tool/search/testdata/alpha.txt
 internal/tool/settings.go
 internal/tool/shell/bounds_test.go
+internal/tool/shell/check.go
+internal/tool/shell/check_test.go
 internal/tool/shell/doc.go
 internal/tool/shell/escalate.go
 internal/tool/shell/escalate_test.go
@@ -1292,12 +1295,17 @@ internal/tool/shell/fuzz_test.go
 internal/tool/shell/integration_test.go
 internal/tool/shell/internals_test.go
 internal/tool/shell/poll_test.go
+internal/tool/shell/serve.go
+internal/tool/shell/serve_integration_test.go
+internal/tool/shell/serve_test.go
 internal/tool/shell/shell.go
 internal/tool/shell/shell_test.go
 internal/tool/shell/start.go
 internal/tool/shell/table.go
 internal/tool/shell/testdata/a_failed_command.txt
 internal/tool/shell/testdata/a_finished_command.txt
+internal/tool/shell/unchanged.go
+internal/tool/shell/unchanged_test.go
 internal/tool/skill/bounds_test.go
 internal/tool/skill/doc.go
 internal/tool/skill/skill.go

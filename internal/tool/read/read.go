@@ -70,6 +70,8 @@ type input struct {
 	Offset int `json:"offset"`
 	// Limit is how many lines to read.
 	Limit int `json:"limit"`
+	// Section is the heading of the one section of a Markdown file to read.
+	Section string `json:"section"`
 }
 
 // Tool is the read tool.
@@ -86,13 +88,15 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolRead,
-		Description: "Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. " +
-			"Use search when you do not know which file to open.",
+		Description: "Reads a file with line numbers, a folder, a past result such as r7 or j4.2, or the ask. " +
+			"A Markdown file and a section heading return that section only. " +
+			"Use search when you do not know which file.",
 		Fields: []contract.ToolField{
 			{Name: "path", Type: "string", Description: "A file or folder, taken from the folder the agent works in unless it starts at the root or at ~; " +
 				"or a past result by its id such as r7; or ask for the whole of the user's original ask.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
+			{Name: "section", Type: "string", Description: "For a Markdown file, the heading of the one section to read, such as hazards."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassRead},
 	}
@@ -134,6 +138,10 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if isAPicture(path) {
 		return readPicture(path)
 	}
+	if asked.Section != "" {
+		text, err := readSection(path, asked)
+		return contract.ToolOutput{Text: text}, err
+	}
 	text, err := readFile(path, asked)
 	return contract.ToolOutput{Text: text}, err
 }
@@ -142,9 +150,10 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 // each is the one the specification asks for, and the rest are the names the
 // other agents use or a model half-remembers.
 var (
-	pathNames   = []string{"path", "file_path", "filepath", "file", "filename", "target"}
-	offsetNames = []string{"offset", "start", "start_line", "from", "from_line"}
-	limitNames  = []string{"limit", "count", "lines", "line_count", "max_lines"}
+	pathNames    = []string{"path", "file_path", "filepath", "file", "filename", "target"}
+	offsetNames  = []string{"offset", "start", "start_line", "from", "from_line"}
+	limitNames   = []string{"limit", "count", "lines", "line_count", "max_lines"}
+	sectionNames = []string{"section", "heading", "part"}
 )
 
 // readInput reads the model's arguments and refuses anything this tool could not
@@ -157,6 +166,7 @@ func readInput(written json.RawMessage) (input, error) {
 	path, wrotePath := fields.Text(pathNames...)
 	offset, _ := fields.Number(offsetNames...)
 	limit, _ := fields.Number(limitNames...)
+	section, _ := fields.Text(sectionNames...)
 	if err := fields.Wrong(); err != nil {
 		return input{}, err
 	}
@@ -169,7 +179,7 @@ func readInput(written json.RawMessage) (input, error) {
 	if offset < 0 || limit < 0 {
 		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", offset, limit)
 	}
-	return input{Path: path, Offset: offset, Limit: limit}, nil
+	return input{Path: path, Offset: offset, Limit: limit, Section: strings.TrimSpace(section)}, nil
 }
 
 // resultLabel says whether what the model wrote is the label of a past result

@@ -58,6 +58,7 @@ func Block(facts Facts) string {
 	lines := []string{TheHeading}
 	if facts.Folder != "" {
 		lines = append(lines, folderLines(facts.Folder)...)
+		lines = append(lines, documentLines(facts.Folder)...)
 	}
 	files := facts.ProcFiles
 	if files == nil {

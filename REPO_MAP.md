@@ -424,8 +424,11 @@ internal/context/resultstable_test.go
 internal/context/reviewmarker_test.go
 internal/context/skills.go
 internal/context/skills_test.go
+internal/context/standingorder.go
+internal/context/standingorder_test.go
 internal/context/testdata/prompt-200k.txt
 internal/context/testdata/prompt-24k.txt
+internal/context/testdata/prompt-standing-order.txt
 internal/context/window.go
 internal/context/window_test.go
 internal/contract/browser.go
@@ -606,6 +609,7 @@ internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
 internal/loop/freshwindow.go
 internal/loop/freshwindow_test.go
+internal/loop/front.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
@@ -676,6 +680,7 @@ internal/loop/run.go
 internal/loop/runningjob_test.go
 internal/loop/situation.go
 internal/loop/skillbudget_test.go
+internal/loop/standingorder_test.go
 internal/loop/stopcancels_test.go
 internal/loop/stopdone.go
 internal/loop/stopdone_test.go
@@ -741,6 +746,8 @@ internal/memory/testdata/twenty-questions.json
 internal/memory/twentyquestions_test.go
 internal/memory/unreadable_test.go
 internal/orientation/doc.go
+internal/orientation/documents.go
+internal/orientation/documents_test.go
 internal/orientation/everyport_test.go
 internal/orientation/orientation.go
 internal/orientation/orientation_test.go
@@ -1303,6 +1310,8 @@ internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go
 internal/tool/read/read_test.go
 internal/tool/read/relativepath_test.go
+internal/tool/read/section.go
+internal/tool/read/section_test.go
 internal/tool/read/testdata/a_file.txt
 internal/tool/read/testdata/a_folder.txt
 internal/tool/read/wholefile_test.go

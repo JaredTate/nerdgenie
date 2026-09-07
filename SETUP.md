@@ -9,7 +9,7 @@ Nerd Genie keeps everything in one folder, the **home**. `nerdgenie init` makes 
 | what | where | notes |
 |---|---|---|
 | the configuration | `config.toml` | one commented line per setting |
-| who it is and what it knows | `persona/SOUL.md`, `persona/USER.md`, `persona/MEMORY.md` | your words; the review adds lessons to MEMORY.md |
+| who it is and what it knows | `persona/SOUL.md`, `persona/USER.md`, `persona/MEMORY.md` | your words; the review adds lessons to MEMORY.md, and facts moved out when it fills go to `memory/` |
 | skills | `skills/<name>/SKILL.md` | the browser skill ships with it |
 | the event log | `nerdgenie.db` | every message, call and result, never rewritten |
 | secrets | `vault.key` and the vault | passwords never reach the model |
@@ -40,6 +40,26 @@ vision = true                                     # the server loaded the projec
 
 For a second card, a second home with `base_address = "http://127.0.0.1:19093/v1"` and its own `sandbox_roots`.
 
+Other models sit beside it as more `[[models]]` blocks, and `fallback_chain = ["claude", "codex"]` names the ones to try when the first fails:
+
+```toml
+[[models]]
+name = "claude"
+provider = "cli"                                  # drives the vendor's own program on your subscription
+program = "claude"
+model_name = "claude-opus-4-8"
+context_length = 200000
+
+[[models]]
+name = "ollama"
+provider = "openai"                               # any OpenAI-compatible server, local or a cloud gateway
+base_address = "http://127.0.0.1:11434/v1"
+model_name = "glm-5.3:cloud"
+context_length = 131072
+```
+
+`/model claude` switches a running serve to another block. Ollama's servers report no token counts while streaming, so the cost line reads zero on them.
+
 ## 3. Start it and open the screen
 
 ```sh
@@ -67,9 +87,15 @@ NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run "In ~/work/demo, write hello.py tha
 NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 3h "$(cat ~/asks/tetris.md)"
 ```
 
-Put a long ask in a file and pass it with `$(cat …)`; one stray apostrophe on a command line has killed a whole run silently.
+Put a long ask in a file and pass it with `$(cat …)`; one stray apostrophe on a command line has killed a whole run silently. The six `EX_PROMPT_*` files in the repository root are complete asks you can run as they are, with `<WORK>` replaced by the folder the project should go in:
 
-Small asks are one **task**. A long ask, many features or a long list, becomes a **job**: the model writes the task list first and the harness runs one task at a time, reporting after each. An ask over six hundred words must be a job of at least three tasks, and the harness refuses anything less.
+```sh
+NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 5h "$(sed 's|<WORK>|/home/you/Desktop|g' EX_PROMPT_2_TETRIS.md)"
+```
+
+`PROMPT_TEMPLATE_GUIDE.md` says how to write one: a goal, where, what done looks like, the rules, the tasks, and the details under their own headings. A plain ask works too; the shape is what lets the harness do more of the work.
+
+Small asks are one **task**. A long ask, many features or a long list, becomes a **job**: the model writes the task list first and the harness runs one task at a time, reporting after each. A done list over five lines or a plan over ten steps is refused with the words "this ask is a job", so the model makes one.
 
 Slash commands work in the screen and over Signal: `/tasks`, `/jobs`, `/status`, `/memory`, `/skills`, `/undo`, `/stop`, `/clear`, `/yolo`, `/model`, `/think`.
 
@@ -81,11 +107,15 @@ Nerd Genie drives its own Chrome window, with its own profile, on your desktop. 
 
 A page it is building that hangs the browser is reported with the loop that never yields, by file and line, and the browser is started again on the next call. It fixes its own game this way.
 
-## 6. Measure it
+## 6. The project's own documents
+
+A work folder may carry three files the harness reads for the model. `AGENTS.md`, the project's rules and how to run and test it, rides under the job summary on every call of a task in that folder, cut at sixty lines. `ARCHITECTURE.md` and `REPO_MAP.md` are never read whole: at every task start and fresh window the orientation block names the architecture page's sections and the map's root folders, and the model reads one section with `read ARCHITECTURE.md <heading>`. Write them for any project you keep, and keep `AGENTS.md` short; it is in front of the model on every call.
+
+## 7. Measure it
 
 `scripts/nightly/run.sh <home> --with-tetris` runs the fixed set of asks on a fresh copy of a home and writes a table to `docs/nightly/<date>.md`: rounds, minutes, seconds a round, cache share, uncached tokens a round, rounds cut off at the output cap, refusals by tool. `scripts/runreport --log <db> --task N` prints one task's numbers. Every change to the harness this week came from one of these tables.
 
-## 7. When something looks wrong
+## 8. When something looks wrong
 
 | what you see | what it is | what to do |
 |---|---|---|
@@ -96,9 +126,26 @@ A page it is building that hangs the browser is reported with the loop that neve
 | a job stopped at "n of m tasks" | a task stopped, or the run was interrupted | any message picks the put-down task up |
 | "the record refused this change" | the model broke one of the record's rules | nothing; the refusal tells the model what to write instead |
 | the nightly table's cut-off column is not zero | replies hit the 8,192-token output cap | the harness already tells the model to write files in parts; watch the next run |
+| a task ends "rounds without progress, four times over" or "asked for the same call over and over" | the progress meter or the same-call guard stopped a model that was going round in circles, after three cuts and a rethink | read the record's failures; a job picks such a task up once by itself, and any message picks it up again |
+| the model talks about a build that is not there | it read the last run's lessons in `persona/MEMORY.md` or `memory/` | for a fresh test, wipe the memory (section 10) |
 
 Logs: the serve writes to wherever you pointed it; the local model server writes to `~/llm/logs/<port>.log`; the event log is the truth of what happened, and `scripts/runreport` reads it.
 
-## 8. Running two agents on one machine
+## 9. Running two agents on one machine
 
 Card A and card B are two servers on two ports (`INSTALL.md` section 7). Give each its own home, its own work folder, its own ports for anything it serves, and its own screen window. Do not share `localhost:8090`, a Chrome profile, or a git checkout between them. Start the cards one at a time. Never kill either by name pattern.
+
+## 10. A fresh run for a test
+
+A run meant to be measured starts from nothing, and archiving the event log alone is not enough: the learned facts live outside it. Stop the serve by its exact pid, then:
+
+```sh
+cd ~/nerdgenie
+mv nerdgenie.db nerdgenie.db.run12                      # the log, kept by run number (and its -wal and -shm if present)
+mkdir -p old-runs/memory.run12
+mv memory/MEMORY-*.md persona/MEMORY.md old-runs/memory.run12/   # the learned facts
+head -2 old-runs/memory.run12/MEMORY.md > persona/MEMORY.md     # the two template lines and nothing else
+rm -f run/screenshots/*
+```
+
+Empty the work folder too, or the model will find the last build in it. Then start the serve, turn `/yolo` on, open the screen, and submit the ask. `scripts/nightly/run.sh` does all of this on a copy of the home.

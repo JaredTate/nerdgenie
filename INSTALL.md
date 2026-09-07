@@ -4,6 +4,8 @@ This is how to get Nerd Genie onto a Linux machine with a local model behind it.
 
 There are three parts: the program, the local model server, and the model files. Do them in that order. `SETUP.md` is the next document: it says how to configure and use Nerd Genie once it is installed.
 
+The local model is the fastest path and the one everything here was tuned on, but it is not the only one. Any server that speaks the OpenAI-compatible API works, Ollama and LM Studio among them, and so does a Claude Code or Codex subscription through the command-line provider; those need only step 2 and `SETUP.md` section 2.
+
 ## 1. What you need
 
 - Linux. Ubuntu 24.04 and Linux Mint 22 are what we run.
@@ -21,7 +23,7 @@ cd ~/Code/coeus
 make build
 ```
 
-That puts the program at `bin/nerdgenie` and the two worker bundles under `bin/workers/`. `make check` runs every test and every checker; it takes a few minutes and should be clean.
+That puts the program at `bin/nerdgenie` and the two worker bundles under `bin/workers/`. `make check` runs every test and every checker; it takes a few minutes and should be clean. Run it before the model server is up, not beside it: its fuzzers once took the server off the card.
 
 ## 3. Install the model server
 

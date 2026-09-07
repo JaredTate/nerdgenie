@@ -24,7 +24,6 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 .github/workflows/install.yml
 .github/workflows/release.yml
 .gitignore
-ARCHITECTURE.md
 CLAUDE.md
 CONTRIBUTING.md
 EX_PROMPT_1_TIC_TAC_TOE.md
@@ -133,6 +132,7 @@ cmd/nerdgenie/wiring_test.go
 cmd/nerdgenie/workingfolder.go
 cmd/nerdgenie/yolo.go
 cmd/nerdgenie/yolo_test.go
+docs/ARCHITECTURE_HISTORY.md
 docs/BENCHMARK.md
 docs/DEPENDENCIES.md
 docs/EXTENDING.md

@@ -29,7 +29,7 @@ An operations order has five paragraphs: situation, mission, execution, sustainm
 | **Where** | The terrain: the folder or repository, the branch, the app and screen, the starting file and line when known, the persona to sign in as | The situation's first lines, fixed for the job | Opens the worktree, the screen and the starting file before the first model call; builds the edit pack (section 3) from it |
 | **Done when** | Numbered lines, each checkable; a check in brackets where the harness can run it; one line marked as the gate | The job's done list | Runs the bracketed lines at the end of every task and at the finish; a task cannot finish while the gate is red |
 | **Stop if** | What must reach the person before the work goes on | The stop list | Adds its own two lines and watches the rest |
-| **Rules** | The standing constraints, in the person's words | Corrections C1, C2, ... of the job | Ride in the cached front of every task, never rewritten |
+| **Rules** | The standing constraints, in the person's words | Corrections C1, C2, ... of the job | Ride in the cached front of every task, never rewritten; the first rule, tests first, is the harness's own and is there whether or not the person wrote it |
 | **Steps** | The order of work, one line each; each may name the Details sections it needs and the files it touches | The job's task list | Makes the job with no planning rounds; the model may split or add a task, never remove a finished one |
 | **Read first** | Pointers: a path and a one-line hook saying when to open it | Shelved books with ids, listed by hook | Never inlined; opened by name when the hook fits the task |
 | **Details** | Everything else, under its own headings | Shelved by heading | A task's front carries the sections its step names in full, the rest by heading and first line |
@@ -37,6 +37,8 @@ An operations order has five paragraphs: situation, mission, execution, sustainm
 The checks in brackets are the `expect` line's four rules and two more: `[tests pass: <command>]`, `[exit 0: <command>]`, `[shows: "<text>" at <url>]`, `[parses: <file>]`, `[exists: <path>]`, and `[gate: <command>]`. A gate is a check that must be green before any task of the job may finish, which is the scalpel's verify gate in a done line. A job on Home Recon has one gate line, `[gate: corepack pnpm test:node]`, because the repository's own rules say that command must be green before any push and it takes ten seconds.
 
 What is new against the second set is Where, the gate, hooks on every pointer, and files on every step. Those four are what a change inside a large code base needs and a new build does not miss.
+
+**Tests first is in every work order, whether the person writes it or not.** The harness adds two lines of its own to every stop list; it adds one rule of its own to every Rules section, and it is the first: "Tests first: write the test, watch it fail, write the code, watch it pass; the whole suite green at every milestone." A person may add rules under it and may not remove it. Three things hold the rule without a round of the model's time. A step that changes code is two halves, the test and then the code, and the harness writes a step that names files as those two halves. A done line on a code change rests on a test run made after the last edit, which the done check already requires since 7 September. And a write or edit to a file that is not a test, when no test has failed since the last green run, gets one line on its own result: "tests first: no failing test covers this change; write it first". The test reader already knows the state of the suite, so the line costs nothing, and a model that writes code before its test reads why on the same result.
 
 ### 2.1 A new build: Tater Tots Tetris
 
@@ -80,7 +82,8 @@ right on a phone first, because the dashboard is also the iPhone and Android app
 - The gate is red before the first edit.
 
 ## Rules
-- Tests first: write the failing test, then the code.
+- Tests first: write the test, watch it fail, write the code, watch it pass. (the harness's
+  own line, present in every work order)
 - Cloud Supabase is production; never point a test or a query at it.
 - Native-safe: no browser-only APIs, reach outward only through appOrigin(), inputs >= 16px.
 - Never push to main. Never db reset anything but the local stack.
@@ -155,7 +158,7 @@ Accuracy is the pack; not breaking things is what runs after every edit. Six pie
 
 When an edit changes an exported name's signature, the harness lists every caller from the graph as a checklist on the edit's own result: "callers of `formatInspectionDate`: 3, in `apps/dashboard/src/pages/Overview.tsx:212`, `apps/report-viewer/src/lib/dates.ts:40`, `packages/core/src/index.ts:9`". Each caller is cleared by the typecheck or by an edit. The list is the harness's, so the model cannot forget a caller, and the typecheck is the proof that it did not.
 
-### 4.2 Three checks after every edit, in order, on the edit's own result
+### 4.2 Three checks after every edit, in order, on the edit's own result, after the tests-first line
 
 The harness already runs the language's own checker after every write and edit and, once the model has run the tests, runs them again. On a large repository the second of those is too big to run every time, so the order becomes: parse the file; typecheck the package the file belongs to (`tsc -p apps/dashboard`, `go build ./internal/loop`, ten to thirty seconds); run the co-located tests from the pack; and, when the file is in a shared package, rebuild it and run the dependents' tests. Each answer lands on the edit's result, as the expect line's answers do now, so the model never spends a round finding out. The gate runs at the task's end, not after every edit.
 

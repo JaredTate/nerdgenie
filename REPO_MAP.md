@@ -577,6 +577,8 @@ internal/loop/donecheck.go
 internal/loop/donecheck_test.go
 internal/loop/donecommand_test.go
 internal/loop/endings.go
+internal/loop/expect.go
+internal/loop/expect_test.go
 internal/loop/firstline.go
 internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
@@ -632,6 +634,7 @@ internal/loop/question_test.go
 internal/loop/realtools_test.go
 internal/loop/recentwork.go
 internal/loop/recentwork_test.go
+internal/loop/recorddefaults_test.go
 internal/loop/recordline.go
 internal/loop/recordshapes_test.go
 internal/loop/recordwrite.go
@@ -1689,6 +1692,7 @@ worker/browser/test/actions.test.ts
 worker/browser/test/ask.test.ts
 worker/browser/test/chrome.test.ts
 worker/browser/test/diff.test.ts
+worker/browser/test/errors.test.ts
 worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts

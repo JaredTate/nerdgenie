@@ -115,6 +115,8 @@ type run struct {
 	hadFailure      bool
 	hadStop         bool
 	lessonUnoffered bool
+	// saidHowToExpect says the model was told once how to write an expectation the harness can check.
+	saidHowToExpect bool
 	// lessonUnkept is why the review's lesson could not be kept, or empty.
 	lessonUnkept     string
 	stopLine         string

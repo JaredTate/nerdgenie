@@ -48,6 +48,7 @@ TEST.md
 TESTING.md
 THIRD_PARTY.md
 Z_PROMPTS.md
+audit_report.md
 cmd/nerdgenie/askpass.go
 cmd/nerdgenie/askpass_name_test.go
 cmd/nerdgenie/askpass_test.go

@@ -52,7 +52,7 @@ A message comes in on a channel and goes into the queue. The loop takes it, buil
 
 Three ideas hold the whole thing together.
 
-- **The history, the state and the working context are three different things.** The history is the event log, never changed. The state is a record of one to three thousand tokens, shaped like an operations order. The working context is the prompt for one call, built fresh each time from the record and a window of recent results.
+- **The history, the state and the working context are three different things.** The history is the event log, never changed. The state is what is true now, in four kinds that change at four speeds: the persona, the skills, the job, and the task, whose record is one to three thousand tokens shaped like an operations order. The working context is the prompt for one call, built fresh each time from the state with the newest results in full, and sized to the model. Nothing is ever summarised and nothing in the log is ever rewritten.
 - **The harness writes what it can verify; the model writes what needs judgement.** The situation, the results, the test state and the corrections are written by code. The why, the done list, the plan, the decisions and the failures are written by the model through the `task` tool, under rules the record enforces.
 - **Every interface two packages share lives in `internal/contract`,** and every fake in `internal/testkit` is written against the same lines as the real thing.
 

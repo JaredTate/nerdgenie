@@ -330,8 +330,11 @@ internal/clock/clock_test.go
 internal/clock/doc.go
 internal/codemap/codemap.go
 internal/codemap/codemap_test.go
+internal/codemap/contents.go
+internal/codemap/contents_test.go
 internal/codemap/doc.go
 internal/codemap/languages.go
+internal/codemap/nested_test.go
 internal/codemap/print.go
 internal/command/always_test.go
 internal/command/answer.go
@@ -589,6 +592,7 @@ internal/loop/agentsfile.go
 internal/loop/agentsfile_test.go
 internal/loop/answercloses_test.go
 internal/loop/archpage.go
+internal/loop/archpage_answer_test.go
 internal/loop/archpage_test.go
 internal/loop/asknumber_test.go
 internal/loop/autotest.go
@@ -623,6 +627,7 @@ internal/loop/fortystep_test.go
 internal/loop/freshwindow.go
 internal/loop/freshwindow_test.go
 internal/loop/front.go
+internal/loop/front_test.go
 internal/loop/fuzz_test.go
 internal/loop/guard.go
 internal/loop/guard_test.go
@@ -654,6 +659,8 @@ internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/mapfile.go
 internal/loop/mapfile_test.go
+internal/loop/maprefresh.go
+internal/loop/maprefresh_test.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
@@ -701,6 +708,7 @@ internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/runningjob_test.go
+internal/loop/sectionanswer_test.go
 internal/loop/situation.go
 internal/loop/skillbudget_test.go
 internal/loop/standingorder_test.go
@@ -715,9 +723,12 @@ internal/loop/syntax.go
 internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/taskrecord.go
 internal/loop/testdata/fuzz/FuzzWhatTheHarnessReadsFromText/8edaad5862eab648
 internal/loop/testdata/home-made-runner-ballot-marks.txt
+internal/loop/testplace_test.go
 internal/loop/testsfirst.go
+internal/loop/testsfirst_place_test.go
 internal/loop/testsfirst_test.go
 internal/loop/teststate.go
 internal/loop/teststate_behaviour_test.go
@@ -1341,6 +1352,8 @@ internal/tool/read/doc.go
 internal/tool/read/fence_test.go
 internal/tool/read/fieldnames_test.go
 internal/tool/read/file.go
+internal/tool/read/mapfile.go
+internal/tool/read/maplisting_test.go
 internal/tool/read/picture.go
 internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go

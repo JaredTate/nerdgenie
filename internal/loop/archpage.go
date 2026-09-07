@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/markdown"
@@ -32,12 +33,23 @@ const TheFirstSectionQuestion = "This project has no ARCHITECTURE.md yet. Start 
 // words is one round of reading.
 const MaxSectionWords = 200
 
+// MaxHeadingWords is the most words a line may hold and still be read as a
+// section's heading. A longer first line is a sentence, and the answer is a
+// paragraph that goes under the task's own name.
+const MaxHeadingWords = 8
+
+// TheSectionWrittenLine opens the line a task's report ends with when the
+// review wrote a section of the page, so the person and the next task know
+// which section exists.
+const TheSectionWrittenLine = "wrote " + ArchitectureFile + ", section "
+
 // theTitleOfANewPage opens a page the review starts in a folder that had none.
 const theTitleOfANewPage = "# Architecture\n"
 
-// writeTheArchitectureSection asks the fifth question and puts the answer on
-// the page. Nothing here fails the task: a page that cannot be written costs
-// the page and nothing more.
+// writeTheArchitectureSection asks the section question, puts the answer on
+// the page, and writes the question, the answer and what came of it into the
+// log. Nothing here fails the task: a page that cannot be written costs the
+// page and nothing more, and the log says why.
 func (running *run) writeTheArchitectureSection(ctx context.Context) {
 	folder := running.folder()
 	if folder == "" || running.keeper == nil {
@@ -55,9 +67,17 @@ func (running *run) writeTheArchitectureSection(ctx context.Context) {
 		question = TheFirstSectionQuestion
 	}
 	answer := running.theLoop.askWithTheToolsOff(ctx, string(record.Print(running.keeper.Record())), question)
-	heading, body, found := readTheSectionAnswer(answer)
+	outcome := running.putTheAnswerOnThePage(path, page, answer)
+	running.theLoop.logTheQuestion(ctx, running.taskID(), "architecture section", question, answer, outcome)
+}
+
+// putTheAnswerOnThePage reads the section off the answer and writes it into
+// the page, and says what it did in one line: the section written, that there
+// was no section, or why the page could not be written.
+func (running *run) putTheAnswerOnThePage(path string, page string, answer string) string {
+	heading, body, found := readTheSectionAnswer(answer, theFallbackHeading(running.keeper.Record().Goal.Name, running.task.Message.Text))
 	if !found {
-		return
+		return "no section"
 	}
 	body, cut := cutAtWords(body, MaxSectionWords)
 	dated := fmt.Sprintf("(updated by task %s, %s)", running.keeper.ID(), running.theLoop.options.Clock.Now().UTC().Format("2006-01-02"))
@@ -65,27 +85,109 @@ func (running *run) writeTheArchitectureSection(ctx context.Context) {
 		dated = fmt.Sprintf("(updated by task %s, %s; cut at two hundred words)", running.keeper.ID(), running.theLoop.options.Clock.Now().UTC().Format("2006-01-02"))
 	}
 	written, _ := markdown.ReplaceSection(page, heading, body+"\n\n"+dated+"\n")
-	_ = os.WriteFile(path, []byte(written), 0o644)
+	if err := os.WriteFile(path, []byte(written), 0o644); err != nil {
+		return "the page could not be written: " + err.Error()
+	}
+	running.sectionWritten = heading
+	return TheSectionWrittenLine + heading
 }
 
-// readTheSectionAnswer reads the heading off the answer's first line and the
-// body off the rest. "None", an empty answer, and an answer with no heading
-// line are no section.
-func readTheSectionAnswer(answer string) (string, string, bool) {
+// withTheSectionLine adds the line saying which section of the page the task
+// wrote to its report, once, so that the person reads it and the job carries
+// it to the next task.
+func (running *run) withTheSectionLine(report string) string {
+	if running.sectionWritten == "" {
+		return report
+	}
+	line := TheSectionWrittenLine + running.sectionWritten
+	if strings.Contains(report, line) {
+		return report
+	}
+	return report + "\n" + line
+}
+
+// readTheSectionAnswer reads the heading and the body off the answer. The
+// heading is the first line when it is a hash heading, or a plain or bold
+// line of at most MaxHeadingWords that is not a sentence; a first line that is
+// a sentence makes the whole answer the body under the fallback heading, the
+// task's own name. "None", an empty answer, a single sentence saying nothing
+// changed, a list and a question are no section.
+func readTheSectionAnswer(answer string, fallback string) (string, string, bool) {
 	lines := strings.Split(strings.TrimSpace(answer), "\n")
 	first := strings.TrimSpace(lines[0])
-	heading := strings.TrimSpace(strings.TrimLeft(first, "#"))
-	if heading == "" || strings.EqualFold(strings.Trim(heading, ". "), "none") {
+	rest := strings.TrimSpace(strings.Join(lines[1:], "\n"))
+	if first == "" || saysThereIsNoSection(first, rest) {
 		return "", "", false
 	}
-	if !strings.HasPrefix(first, "#") || len(strings.Fields(heading)) > 8 {
+	if heading, isAHeading := headingOn(first); isAHeading {
+		if rest == "" {
+			return "", "", false
+		}
+		return heading, rest, true
+	}
+	if fallback == "" || opensAListOrAQuestion(first) {
 		return "", "", false
 	}
-	body := strings.TrimSpace(strings.Join(lines[1:], "\n"))
-	if body == "" {
-		return "", "", false
+	return fallback, strings.TrimSpace(answer), true
+}
+
+// saysThereIsNoSection says whether the answer declines: it opens with the
+// word none, or it is one sentence saying nothing changed.
+func saysThereIsNoSection(first string, rest string) bool {
+	words := strings.Fields(strings.ToLower(strings.Trim(first, "#*_ ")))
+	if len(words) == 0 {
+		return true
 	}
-	return heading, body, true
+	if strings.Trim(words[0], ".,:;!") == "none" {
+		return true
+	}
+	return rest == "" && strings.Contains(strings.ToLower(first), "nothing")
+}
+
+// headingOn reads a heading off a line: a hash heading of any length up to
+// the cap, or a plain or bold line under the cap that does not end the way a
+// sentence or a question does.
+func headingOn(line string) (string, bool) {
+	hashed := strings.HasPrefix(line, "#")
+	heading := strings.Trim(strings.TrimLeft(line, "#"), "*_ ")
+	heading = strings.TrimSpace(strings.TrimSuffix(heading, ":"))
+	if heading == "" || len(strings.Fields(heading)) > MaxHeadingWords {
+		return "", false
+	}
+	if !hashed && (strings.ContainsAny(heading[len(heading)-1:], ".?!;") || opensAListOrAQuestion(line)) {
+		return "", false
+	}
+	return heading, true
+}
+
+// opensAListOrAQuestion says whether a line begins a list or ends as a
+// question, neither of which names a section.
+func opensAListOrAQuestion(line string) bool {
+	if strings.HasSuffix(line, "?") || strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+		return true
+	}
+	number := strings.TrimLeft(line, "0123456789")
+	return number != line && (strings.HasPrefix(number, ".") || strings.HasPrefix(number, ")"))
+}
+
+// theFallbackHeading is the name a paragraph with no heading goes under: the
+// record's name when the model gave the task one, else the first words of the
+// ask with a capital letter, cut to MaxHeadingWords.
+func theFallbackHeading(name string, ask string) string {
+	if trimmed := strings.TrimSpace(name); trimmed != "" {
+		return trimmed
+	}
+	firstLine, _, _ := strings.Cut(strings.TrimSpace(ask), "\n")
+	words := strings.Fields(firstLine)
+	if len(words) == 0 {
+		return ""
+	}
+	if len(words) > MaxHeadingWords {
+		words = words[:MaxHeadingWords]
+	}
+	letters := []rune(strings.Join(words, " "))
+	letters[0] = unicode.ToUpper(letters[0])
+	return string(letters)
 }
 
 // cutAtWords keeps the body under the word cap, cutting at the last sentence
@@ -121,4 +223,35 @@ func (theLoop *Loop) askWithTheToolsOff(ctx context.Context, background string, 
 		return ""
 	}
 	return reply.Text
+}
+
+// MaxLoggedAnswerRunes is the most of a tools-off answer the log keeps. A
+// section or a review is a paragraph; anything past this is a model that
+// did not answer the question.
+const MaxLoggedAnswerRunes = 32 << 10
+
+// theQuestionAsked is the body of a question event: what the harness asked
+// with the tools off, why, what the model answered, and what the harness did
+// with the answer.
+type theQuestionAsked struct {
+	// Purpose says what the question was for: "review" or "architecture section".
+	Purpose string `json:"purpose"`
+	// Question is the question's text, word for word.
+	Question string `json:"question"`
+	// Answer is the model's reply, word for word, bounded.
+	Answer string `json:"answer"`
+	// Outcome is what the harness did with the answer, in one line.
+	Outcome string `json:"outcome"`
+}
+
+// logTheQuestion writes one tools-off question, its answer and what came of
+// it into the log under the task or the job, so that a page that was not
+// written, or a lesson that was not kept, can be traced to the answer. A log
+// that will not take it costs the trace and nothing more: the question is
+// bookkeeping, and the work it belongs to is already over.
+func (theLoop *Loop) logTheQuestion(ctx context.Context, key string, purpose string, question string, answer string, outcome string) {
+	if letters := []rune(answer); len(letters) > MaxLoggedAnswerRunes {
+		answer = string(letters[:MaxLoggedAnswerRunes])
+	}
+	_ = theLoop.logEvent(ctx, key, contract.EventQuestion, theQuestionAsked{Purpose: purpose, Question: question, Answer: answer, Outcome: outcome})
 }

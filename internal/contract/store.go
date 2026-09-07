@@ -30,13 +30,18 @@ const (
 	// EventReply is a reply written down before it was sent, so that a crash
 	// between writing and sending cannot lose it.
 	EventReply EventKind = "reply"
+	// EventQuestion is a question the harness asked the model with the tools
+	// off, its answer, and what the harness did with the answer: the four
+	// questions of a review, and the section question of the architecture
+	// page. It is what says why a page was or was not written.
+	EventQuestion EventKind = "question"
 )
 
 // KnownEventKind says whether the kind is one the log recognises.
 func KnownEventKind(kind EventKind) bool {
 	switch kind {
 	case EventMessage, EventToolCall, EventToolResult, EventPermissionDecision,
-		EventFileChange, EventRecordChange, EventCheckpoint, EventReply:
+		EventFileChange, EventRecordChange, EventCheckpoint, EventReply, EventQuestion:
 		return true
 	default:
 		return false

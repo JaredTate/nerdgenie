@@ -20,8 +20,11 @@ const theMapFile = MapFile
 
 // TheMapRule is the one rule every standing order carries whatever the job's
 // own rules were: the map is where a file or a function is looked up, before
-// the search tool and before a read, because that is what the map is for.
-const TheMapRule = "Look a file or a function up in REPO_MAP.md before you search or read for it: `read REPO_MAP.md <path>` gives a file's functions; the search tool is for what the map does not have."
+// a listing, a search and a read, because that is what the map is for. It
+// names the tools the model reaches for instead, ls, find, grep and the
+// search tool, because on run eighteen the model listed and searched a
+// folder whose map it had.
+const TheMapRule = "Look a file or a function up in REPO_MAP.md before you list, search or read for it: `read REPO_MAP.md` lists the files, `read REPO_MAP.md <path>` gives a file's functions. Use ls, find, grep and the search tool only for what the map does not have."
 
 // writeTheStandingOrder writes the work folder's NERDGENIE.md from a job that
 // finished done, once: a folder that already has one, whoever wrote it, is

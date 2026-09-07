@@ -80,11 +80,13 @@ func (state testState) key() string {
 
 // testStateIn reads a test runner's summary out of a shell result, and says
 // whether it found one. It knows the runners a project is likely to use:
-// Node's own test runner, Jest, Vitest, pytest and Go's here, and Python's
-// unittest, Mocha, Bun and Deno in teststate_scripting.go. A result with
-// no summary line and no marked test is not a test run, however the word
-// "tests" turns up in it, so a directory listing never puts a line in the
-// record.
+// Node's own test runner, Jest, Vitest, pytest and Go's here, Python's
+// unittest, Mocha, Bun and Deno in teststate_scripting.go, and the runners of
+// C, C++ and Ruby in teststate_cfamily.go; when none of them matched, the
+// last resort in teststate_generic.go reads a home-made runner's summary
+// line. A result with no summary line and no marked test is not a test run,
+// however the word "tests" turns up in it, so a directory listing never puts
+// a line in the record.
 func testStateIn(text string) (testState, bool) {
 	state, found := testState{}, false
 	scripting := scriptingRunners{}
@@ -134,6 +136,9 @@ func testStateIn(text string) (testState, bool) {
 		}
 	}
 	scripting.finish(text, &state)
+	if !found {
+		state, found = genericTestStateIn(text)
+	}
 	if !found {
 		return testState{}, false
 	}

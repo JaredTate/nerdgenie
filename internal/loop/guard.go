@@ -21,12 +21,17 @@ import (
 
 // The numbers the identical-call detector works to.
 const (
-	// IdenticalCallsAllowed is how many identical calls in a row actually run.
-	// Design section 3, rule 4 says the same call is not run twice; a run of
-	// two is allowed here because reading the same page twice in a row is how
-	// a browser agent waits for a page to settle, which the forty-step fixture
-	// does at rounds twenty-nine and thirty. The third is refused and the
-	// fourth ends the turn.
+	// IdenticalCallsAllowed is the first rule's number: how many times the
+	// same call with the same answer runs, counted anywhere in the window and
+	// not only in a row. Design section 3, rule 4 says the same call is not
+	// run twice; two are allowed here because reading the same page twice in
+	// a row is how a browser agent waits for a page to settle, which the
+	// forty-step fixture does at rounds twenty-nine and thirty. The third is
+	// refused and not run, and the fourth clears the conversation. Until 7
+	// September 2026 only calls in a row were counted, and on task 8 of the
+	// night before the model alternated the same refused edit with a write,
+	// and the same read with a test run, nineteen identical refused edits
+	// over twenty-seven minutes, and the rule never fired.
 	IdenticalCallsAllowed = 2
 	// RewindsAllowed is how many times a task's conversation is cleared, with
 	// the record left standing, before a run of the same call ends the task.
@@ -43,7 +48,9 @@ const (
 	// same call with the same arguments may run in a row whatever it answered.
 	// The first human trial ran one shell command thirteen times in a row, and
 	// the first rule never fired, because every answer carried a new process id.
-	// The seventh call is refused, and the ninth ends the turn.
+	// The seventh call is refused, and the ninth ends the turn. This rule
+	// counts calls in a row only, unlike the first, because seven test runs
+	// after seven edits with improving results is honest work.
 	SameCallHardCap = 6
 )
 
@@ -128,10 +135,12 @@ func (running *run) detectorRefuses(call contract.ToolCall) (string, bool) {
 	return "", false
 }
 
-// sameCallRun is how many of the newest calls in the window, in a row, asked for
-// this same thing, whatever each came back with. A different call in between
-// ends the run, because the same call after doing something else is ordinary
-// work: reading a page again after a click, or running the tests after an edit.
+// sameCallRun is the second rule's count: how many of the newest calls in the
+// window, in a row, asked for this same thing, whatever each came back with. A
+// different call in between ends the run, because the same call after doing
+// something else is ordinary work: reading a page again after a click, or
+// running the tests after an edit, seven times with improving results. Only
+// the first rule reads across other calls, because it reads the answers too.
 func (running *run) sameCallRun(mark string) int {
 	made := 0
 	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
@@ -140,26 +149,38 @@ func (running *run) sameCallRun(mark string) int {
 	return made
 }
 
-// sameResultStreak is how many of the newest calls in the window, in a row,
-// asked for this same thing and came back with the same answer, which is the
-// first rule's count. A call whose answer changed starts a new streak.
+// sameResultStreak is the first rule's count: how many calls anywhere in the
+// window asked for this same thing and came back with the answer its newest
+// run came back with, so that a call which nothing else alters is caught
+// however much the model does between two askings. On task 8 of the night of
+// 6 September 2026 the model alternated the same refused edit with a write,
+// and the same read with a test run, and a count of calls in a row never saw
+// either. A call whose answer changed is not counted, because the model got
+// something new, which is what keeps a poll of a running command from being
+// a repeat. A call the detector itself refused, or the permission function
+// did, has no answer of its own: it counts as one more asking and neither
+// starts nor ends a streak, which is what makes the fourth of the same call a
+// rewind after the third was refused.
 func (running *run) sameResultStreak(mark string) int {
+	newest := running.newestAnswerTo(mark)
 	streak := 0
-	for at := len(running.recentCalls) - 1; at >= 0 && running.recentCalls[at].mark == mark; at-- {
-		if streak > 0 && somethingChanged(running.recentCalls[at], running.recentCalls[at+1]) {
-			break
+	for _, past := range running.recentCalls {
+		if past.mark == mark && (past.result == "" || past.result == newest) {
+			streak++
 		}
-		streak++
 	}
 	return streak
 }
 
-// somethingChanged says whether two neighbouring calls in the window came back
-// with different results, which is what makes them two calls rather than the
-// same one asked twice. A call that never ran, such as one the detector itself
-// refused, has no result and breaks nothing.
-func somethingChanged(earlier pastCall, later pastCall) bool {
-	return earlier.result != "" && later.result != "" && earlier.result != later.result
+// newestAnswerTo is the fingerprint of what the newest call in the window for
+// this mark that ran came back with, and is empty when none of them ran.
+func (running *run) newestAnswerTo(mark string) string {
+	for at := len(running.recentCalls) - 1; at >= 0; at-- {
+		if running.recentCalls[at].mark == mark && running.recentCalls[at].result != "" {
+			return running.recentCalls[at].result
+		}
+	}
+	return ""
 }
 
 // rememberCall keeps one call in the detector's window, which holds the last

@@ -266,7 +266,7 @@ nudge after a failure stands on. **Everything marked and still working draws a l
 something new counted as progress, the fresh Tetris build's yeti task could
 spend forty rounds on one failing test with no nudge at all, so a red set seen
 on `StuckTestRuns` runs in a row, and every `StuckTestRuns` after, names the
-tests and the three ways out. **The reader knows the runners of C, C++ and Ruby** (`teststate_cfamily.go`, 6 September 2026): `testStateIn` sends any line its own switch does not take to `readOtherRunners`, which reads GoogleTest, CTest, Catch2, Unity, Check, minitest and RSpec beside the node:test, Jest, Vitest, pytest and Go it already knew, and the other agent's Python unittest, Mocha, Bun and Deno. Until then a C++ or Ruby project's rerun after every write read as nothing, so the situation line, the stuck-test line and the meter's test-based progress never fired there. Every pattern is anchored to a shape a listing, a build log or a line of prose cannot take: a numbered list ending in brackets is a CTest failure only with one of CTest's own verdicts inside them, and "3 runs, 5 assertions" is minitest only with its failures and errors beside them. Catch2's counts are read and its names are not, because it names a failing case only in a dashed header block some lines above the assertion. A Go package that did not build ran no test, and its one summary line, `FAIL\tpackage [build failed]`, read as all passing over a change that did not compile; since 7 September 2026 `readGo` reads it as one failing test named "package did not build". **A plan with steps still open says the work is
+tests and the three ways out. **The reader knows the runners of C, C++ and Ruby** (`teststate_cfamily.go`, 6 September 2026): `testStateIn` sends any line its own switch does not take to `readOtherRunners`, which reads GoogleTest, CTest, Catch2, Unity, Check, minitest and RSpec beside the node:test, Jest, Vitest, pytest and Go it already knew, and the other agent's Python unittest, Mocha, Bun and Deno. Until then a C++ or Ruby project's rerun after every write read as nothing, so the situation line, the stuck-test line and the meter's test-based progress never fired there. Every pattern is anchored to a shape a listing, a build log or a line of prose cannot take: a numbered list ending in brackets is a CTest failure only with one of CTest's own verdicts inside them, and "3 runs, 5 assertions" is minitest only with its failures and errors beside them. Catch2's counts are read and its names are not, because it names a failing case only in a dashed header block some lines above the assertion. A Go package that did not build ran no test, and its one summary line, `FAIL\tpackage [build failed]`, read as all passing over a change that did not compile; since 7 September 2026 `readGo` reads it as one failing test named "package did not build". **And the reader has a last resort** (`teststate_generic.go`, 7 September 2026): when no known runner matched, `testStateIn` hands the whole result to `genericTestStateIn`, which reads a home-made runner's summary line, a line made of nothing but counts and the words tests, passed and failed in any order ("143 tests, 142 passed, 1 failed", "5 passed, 1 failed", "1 failed 5 passed"), and names a failing test off a line "FAIL file :: test" as the part after the double colon; the summary line is what proves the run, and a name line only adds to it. On task 8 of the night of 6 September the model wrote its own runner, a "zero-dependency Node test runner", and the harness saw no test run all task: no test line in the situation, no rerun after a change, no stuck-test line and no test-based progress. A line that merely contains the words, a listing with passed in a name, "all tests passed", a numbered list and a FAIL line with no summary under it are not a run, and a Jest run that happens to carry such lines is still read as Jest (`teststate_generic_test.go`). **A plan with steps still open says the work is
 not over** (`openplan.go`): on a record with no done list, `closeOrWait` sends
 an answer back to the plan when a step is not marked done, naming the steps
 and the one to carry on with, through `sendBackToWork`, which counts the
@@ -341,11 +341,22 @@ costing no extra model call. The word-pair matching that used to read every stop
 line is gone: it ended a task on the first tool result that repeated two words of
 a line about the work. The identical-call detector keeps the last
 `IdenticalCallWindow` calls with a fingerprint of what each came back with, and
-counts the run of consecutive identical ones **whose results also came back
-identical**, so polling a long command, which is the same call every time by
-design, is not a repeat: the first two run, the third is refused with a line
-telling the model to do something different or answer, and the fourth clears
-the conversation: `rewindIfDue` in `guard.go` writes the stall into the record
+counts the calls anywhere in that window identical to the new one **whose
+results also came back identical to its newest answer** (`sameResultStreak`),
+so polling a long command, which is the same call every time by design, is
+not a repeat, and neither is a test run that answers something new: the first
+two run, the third is refused with a line telling the model to do something
+different or answer, and the fourth clears the conversation. Until 7 September
+2026 the count was of consecutive identical calls only, and on task 8 of the
+night before the model alternated the same refused edit with a write, and the
+same `sed` read with `npm test`, nineteen identical refused edits and seventeen
+identical reads over twenty-seven minutes, and the rule fired only at the end
+on a strictly consecutive run; a call the detector refused has no answer of
+its own and counts as one more asking, which is what makes the fourth a
+rewind after the third was refused
+(`TestTheSameCallWithTheSameAnswerIsCaughtAcrossOtherCalls`,
+`TestAFourthSameAnswerAcrossOtherCallsRewinds` in `guard_test.go`). The
+rewind: `rewindIfDue` in `guard.go` writes the stall into the record
 as a failure naming the call, drops every message, starts the run the detector
 counts again, and leaves `TheRewindLine` as the one message, so the record is
 all that stands and what was tried is not forgotten, only the going round in
@@ -474,7 +485,7 @@ turned into a failure by the harness's own guard. **This is a deliberate reading
 the same call is not run twice: the forty-step fixture, which is the design's own
 example task, reads the same page twice in a row on purpose at rounds twenty-nine
 and thirty, and a browser agent that cannot re-read a page is useless, so the rule
-is applied to a run rather than to any repeat. **A second rule sits beside the
+allows the same call with the same answer twice rather than refusing any repeat. **A second rule sits beside the
 first, and it is blind to results**: the same call with the same arguments, made
 `SameCallHardCap` (six) times in a row whatever each came back with, is refused
 on the seventh with a line saying how many times it was made, that the answers
@@ -483,9 +494,13 @@ before asking again or read the result it already has, and the ninth clears the
 conversation or ends the turn the way the first rule does. The first human trial is why: the model ran one
 shell command that launched Chrome thirteen times in a row, and every answer
 carried a new process id, so to the first rule no two of them were the same call.
-Both rules count a run, so a different call in between clears both: reading a page
-again after each click, or running the tests after each edit, is ordinary work
-however many times it happens. **A call's fingerprint is what it does, not what
+The second rule counts a run (`sameCallRun`), so a different call in between
+clears it: reading a page again after each click, or running the tests after
+each edit, seven times with improving results, is ordinary work however many
+times it happens (`TestAnEditAndTestCycleWithImprovingResultsIsNotARepeat`).
+Since 7 September 2026 the first rule reads across other calls, because it
+reads the answers too, and only a call whose answer changed is left out of its
+count. **A call's fingerprint is what it does, not what
 it says about itself**: `canonicalArguments` leaves out `intent`, `why`, `goal`,
 `expectation` and `reason` before it hashes, because on the fifth game build the
 model asked the desktop tool to launch an application it never named eleven

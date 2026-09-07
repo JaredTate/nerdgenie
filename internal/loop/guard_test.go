@@ -339,3 +339,109 @@ func TestTheSameCallWithADifferentIntentIsStillTheSameCall(t *testing.T) {
 		t.Error("the model was never told to do something different")
 	}
 }
+
+// stepsSpelling turns a pattern such as "ABABA" into the model's calls, one a
+// round: an A is the same read of the notes every time, a B is a search, and
+// the model answers after the last one.
+func stepsSpelling(pattern string) []testkit.Step {
+	steps := []testkit.Step{}
+	for at, letter := range pattern {
+		id := fmt.Sprintf("c%d", at+1)
+		if letter == 'A' {
+			steps = append(steps, sameReadAgain(id))
+			continue
+		}
+		steps = append(steps, callStep("I will search the folder.", callFor(id, "search", `{"pattern":"date"}`)))
+	}
+	return append(steps, answerStep("The date is in the notes. Shall I go on?"))
+}
+
+// TestTheSameCallWithTheSameAnswerIsCaughtAcrossOtherCalls is what task 8 of
+// the night of 6 September 2026 showed the first rule was blind to. The model
+// alternated the same refused edit with a write, and the same read with a test
+// run: nineteen identical refused edits and seventeen identical reads over
+// twenty-seven minutes, and the rule never fired, because it counted only
+// calls in a row. The same call with the same answer now counts anywhere in
+// the window: A, B, A, B, A, where every A answers the same thing, and the
+// third A is refused and not run.
+func TestTheSameCallWithTheSameAnswerIsCaughtAcrossOtherCalls(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the notes")
+	built := newHarness(t, stepsSpelling("ABABA"), reading, scriptedTool("search", "3 matches", "3 matches"))
+
+	outcome := built.ask(t, "find the date in the notes")
+
+	if len(reading.Inputs()) != 2 {
+		t.Errorf("the read ran %d times, want 2: the third read of the same file with the same answer is refused, though a search came between each",
+			len(reading.Inputs()))
+	}
+	said := requestsJoined(built.model.Requests())
+	if !strings.Contains(said, "Do something different") {
+		t.Error("the model was never told to do something different")
+	}
+	if strings.Contains(said, loop.TheRewindLine) {
+		t.Error("the third of the same call was already a rewind, and the third is only refused")
+	}
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and a refused third call is not a stop", outcome.StopLine)
+	}
+}
+
+// TestAFourthSameAnswerAcrossOtherCallsRewinds proves one more A after the
+// refusal sets the rewind, the way a fourth in a row does: the refused third
+// counts as one more asking, with no answer of its own.
+func TestAFourthSameAnswerAcrossOtherCallsRewinds(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the notes", "the notes")
+	built := newHarness(t, stepsSpelling("ABABAA"), reading, scriptedTool("search", "3 matches", "3 matches"))
+
+	outcome := built.ask(t, "find the date in the notes")
+
+	if len(reading.Inputs()) != 2 {
+		t.Errorf("the read ran %d times, want 2: the third and the fourth of the same call with the same answer are not run",
+			len(reading.Inputs()))
+	}
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
+		t.Error("the model was never handed the rewind line after the fourth of the same call with the same answer")
+	}
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and the first stall clears the conversation rather than ending the task", outcome.StopLine)
+	}
+}
+
+// TestAnEditAndTestCycleWithImprovingResultsIsNotARepeat holds the second rule
+// where it stands: the same test command seven times in the window, an edit
+// before each and a new answer every time, is honest work, and every run runs.
+func TestAnEditAndTestCycleWithImprovingResultsIsNotARepeat(t *testing.T) {
+	runs := loop.SameCallHardCap + 1
+	steps := []testkit.Step{}
+	testAnswers, editAnswers := []string{}, []string{}
+	for run := 1; run <= runs; run++ {
+		steps = append(steps,
+			callStep("I will fix the code.", callFor(fmt.Sprintf("e%d", run), "edit",
+				fmt.Sprintf(`{"path":"game.md","from":"try %d","to":"try %d"}`, run-1, run))),
+			callStep("I will run the tests.", callFor(fmt.Sprintf("t%d", run), contract.ToolShell, `{"command":"npm test"}`)))
+		testAnswers = append(testAnswers, fmt.Sprintf("run %d: %d still red", run, runs-run))
+		editAnswers = append(editAnswers, "edited game.md")
+	}
+	steps = append(steps, answerStep("The tests are green. Shall I go on?"))
+	testing := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: contract.ToolShell, Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, testAnswers...)
+	built := newHarness(t, steps, testing, scriptedTool("edit", editAnswers...))
+
+	outcome := built.ask(t, "make the tests pass")
+
+	if len(testing.Inputs()) != runs {
+		t.Errorf("the tests ran %d times, want all %d: a test run after each edit with a new answer every time is not a repeat",
+			len(testing.Inputs()), runs)
+	}
+	if strings.Contains(requestsJoined(built.model.Requests()), "Do something different") {
+		t.Error("the model was told to do something different in the middle of honest work")
+	}
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q, and an edit-and-test cycle is not a stall", outcome.StopLine)
+	}
+}

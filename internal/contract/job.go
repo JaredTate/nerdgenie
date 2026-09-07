@@ -91,6 +91,14 @@ type NewJob struct {
 	// TaskTemplate is the text a scheduled job turns into one task per tick, and
 	// is empty for a job with no schedule.
 	TaskTemplate string
+	// DoneWhen is the job's done list as the person wrote it, one line each,
+	// none of them proved yet, when the ask was a work order; empty otherwise,
+	// and the model writes the list itself.
+	DoneWhen []string
+	// Rules are the job's rules in the person's words, one line each, kept in
+	// the record's rules where every task of the job reads them; empty when
+	// the ask was not a work order.
+	Rules []string
 }
 
 // NewTask is one task added to a job's task list.

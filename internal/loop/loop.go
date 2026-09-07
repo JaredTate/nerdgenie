@@ -302,6 +302,9 @@ func nameOf(where contract.Channel) string {
 // covered the whole chain; one task per call gives each its own turn, and the
 // driver takes the next on its next ask.
 func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, error) {
+	if outcome, lifted, err := theLoop.liftTheWorkOrder(ctx, task); lifted {
+		return outcome, err
+	}
 	outcome, number, err := theLoop.runOne(ctx, task)
 	if err != nil || task.FromJob == nil {
 		return outcome, err

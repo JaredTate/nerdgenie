@@ -68,8 +68,8 @@ func TestAWorkOrderMakesTheJobBeforeTheFirstCall(t *testing.T) {
 		"Done when:",
 		"Every test passes. [tests pass: npm test]",
 		"A note survives a reload.",
-		"C1 " + workorder.TestsFirst,
-		"C2 Plain JavaScript, no framework.",
+		"C1 \"" + workorder.TestsFirst + "\"",
+		"C2 \"Plain JavaScript, no framework.\"",
 		"t1 Scaffold the app",
 		"t2 The list.",
 	} {

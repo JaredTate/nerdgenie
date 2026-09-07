@@ -98,6 +98,9 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 		schedule: wanted.Schedule,
 		template: wanted.TaskTemplate,
 	}
+	for _, line := range wanted.DoneWhen {
+		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: line})
+	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
 	}
@@ -193,11 +196,38 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 // the real store keeps so that a job the model gave no done list can still
 // finish. The caller holds the lock.
 func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
-	entry.doneWhen = nil
-	for _, task := range entry.tasks {
-		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+	if len(entry.doneWhen) == 0 {
+		for _, task := range entry.tasks {
+			entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+		}
+	}
+	for _, line := range entry.doneWhen {
+		if !line.Done {
+			return
+		}
 	}
 	entry.summary.State = contract.JobDone
+}
+
+// ProveDoneLine marks one line of the job's done list with the report that
+// proves it, or unmarks it, and closes the job when every line is proved and
+// every task is done.
+func (jobs *FakeJob) ProveDoneLine(_ context.Context, jobID string, number int, resultID string) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	if number < 1 || number > len(entry.doneWhen) {
+		return fmt.Errorf("the job %s has no done line %d, because its done list holds %d lines", jobID, number, len(entry.doneWhen))
+	}
+	entry.doneWhen[number-1].Done = resultID != ""
+	entry.doneWhen[number-1].ResultID = resultID
+	if entry.summary.NextTaskID == "" && entry.summary.TasksTotal > 0 && entry.schedule == nil && entry.summary.State == contract.JobRunning {
+		jobs.closeOnADoneLinePerTask(entry)
+	}
+	return nil
 }
 
 // Load returns the job as a record: the same four parts as a task, with the

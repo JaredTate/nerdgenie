@@ -46,6 +46,11 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 			return "", fmt.Errorf("cannot write the name and why of job %s: %w", jobID, err)
 		}
 	}
+	if len(wanted.DoneWhen) > 0 {
+		if err := keeper.Apply(ctx, record.Update{DoneWhen: doneLinesOf(wanted.DoneWhen)}); err != nil {
+			return "", fmt.Errorf("cannot write the done list of job %s: %w", jobID, err)
+		}
+	}
 
 	held := &heldJob{keeper: keeper}
 	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate}

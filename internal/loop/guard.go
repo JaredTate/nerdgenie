@@ -70,16 +70,19 @@ type pastCall struct {
 // record are what stand.
 const TheRewindLine = "You asked for the same thing over and over, so the rounds since your last progress were cut from the conversation; what came before them and the record are what stand. Do something different from the last few rounds: check the thing you kept re-reading another way, write what you find into the record as a failure with its cause, and go on from there. The same call again ends the task."
 
-// rewindIfDue cuts the conversation after the round's results are remembered,
-// when the round earned it: the stall goes into the record as a failure naming
-// the call, every message since the last round that made progress goes and
-// everything before it stays byte for byte, the run of calls the detector
-// counts starts again, and the newest results in full and the rewind line are
-// appended. A film editor with a scene that does not work cuts the bad stretch
-// and keeps the reel on either side: the rounds that were working keep their
-// place, and the daemon's cache of them keeps its value. The record and its
-// results are untouched, because they live outside the messages, and that is
-// the point: what was tried is not forgotten, only the going round in circles.
+// rewindIfDue acts on the stall the round earned, after the round's results
+// are remembered. A rethink comes first (rethink.go): one call with the tools
+// off whose answer goes into the record and in front of the model on a fresh
+// window. When the model gives no answer, the cut stands instead: the stall
+// goes into the record as a failure naming the call, every message since the
+// last round that made progress goes and everything before it stays byte for
+// byte, the run of calls the detector counts starts again, and the newest
+// results in full and the rewind line are appended. A film editor with a scene
+// that does not work cuts the bad stretch and keeps the reel on either side:
+// the rounds that were working keep their place, and the daemon's cache of
+// them keeps its value. The record and its results are untouched either way,
+// because they live outside the messages, and that is the point: what was
+// tried is not forgotten, only the going round in circles.
 func (running *run) rewindIfDue(ctx context.Context) {
 	if !running.rewindDue {
 		return
@@ -87,6 +90,9 @@ func (running *run) rewindIfDue(ctx context.Context) {
 	running.rewindDue = false
 	running.hadFailure = true
 	running.roundsSinceProgress = 0
+	if running.rethinkIfAnswered(ctx) {
+		return
+	}
 	_ = running.keeper.Apply(ctx, record.Update{Failure: &record.NewFailure{
 		Text:  running.stallText,
 		Cause: "nothing the last rounds returned changed what was asked next",

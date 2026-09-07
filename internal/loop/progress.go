@@ -252,6 +252,9 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 		running.rewindDue = true
 		running.stallText = fmt.Sprintf("stalled: %d rounds in which no test went green, no step or done line was marked, no page changed, no new file was written and nothing new was read, so those rounds were cut from the conversation",
 			RewindAfterRoundsWithoutProgress)
+		// The meter has no one call to blame, so the rethink closes the
+		// newest one that is not the tests.
+		running.stallMark = running.theMarkToCloseAfterTheMeter(calls)
 	}
 	return nil, nil
 }

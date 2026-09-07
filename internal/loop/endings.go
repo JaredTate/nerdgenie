@@ -383,6 +383,9 @@ func (running *run) stopAndSay(ctx context.Context, line string, standing string
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
 	report := fmt.Sprintf("I stopped this task, because %s.\n%s", line, standing)
+	if tried := running.theTriedByRethinkLine(); tried != "" {
+		report += "\n" + tried
+	}
 	if running.task.FromJob == nil {
 		report += "\n" + running.howToCarryOn(ctx)
 	}

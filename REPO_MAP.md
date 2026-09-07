@@ -192,6 +192,10 @@ docs/briefs/wave-6/6.5-security-review-release-check.md
 docs/briefs/wave-6/6.6-what-the-fix-workers-handed-back.md
 docs/briefs/wave-6/6.7-fix-the-wave-6-gate.md
 docs/briefs/wave-6/6.8-streaming-to-the-screen.md
+docs/briefs/wave-7/7.1-shell-no-short-answer.md
+docs/briefs/wave-7/7.2-guard-window-and-test-reader.md
+docs/briefs/wave-7/7.3-the-rethink.md
+docs/briefs/wave-7/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -572,6 +576,7 @@ internal/loop/carryon_test.go
 internal/loop/carryonwords_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
+internal/loop/closedcalls.go
 internal/loop/commands.go
 internal/loop/commands_test.go
 internal/loop/contextbuilder.go
@@ -653,6 +658,8 @@ internal/loop/replyended_test.go
 internal/loop/replyproof_test.go
 internal/loop/resume.go
 internal/loop/resume_test.go
+internal/loop/rethink.go
+internal/loop/rethink_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go

@@ -76,12 +76,28 @@ func aDecisionBeginning(held contract.Record, words string) (contract.Decision, 
 	return contract.Decision{}, false
 }
 
-// theLastMessageOf is the text of the last message of a request.
-func theLastMessageOf(request contract.Request) string {
-	if len(request.Messages) == 0 {
-		return ""
+// theMessagesAround finds the message of a request whose text carries the
+// words, and the message before it. The working context puts the record's
+// parts around the conversation as messages of their own, so the loop's own
+// last message is found by what it says rather than by its place.
+func theMessagesAround(request contract.Request, words string) (before contract.Message, found contract.Message, there bool) {
+	for at, message := range request.Messages {
+		if !strings.Contains(message.Text, words) {
+			continue
+		}
+		if at > 0 {
+			before = request.Messages[at-1]
+		}
+		return before, message, true
 	}
-	return request.Messages[len(request.Messages)-1].Text
+	return contract.Message{}, contract.Message{}, false
+}
+
+// theLastMessageOf is the text of the loop's own last message in a request,
+// which is the one carrying the rethink line after a rethink.
+func theLastMessageOf(request contract.Request) string {
+	_, found, _ := theMessagesAround(request, loop.TheRethinkLine)
+	return found.Text
 }
 
 // TestARunOfTheSameCallRunsOneRethinkWithTheToolsOff: the fourth of the same
@@ -136,18 +152,18 @@ func TestARunOfTheSameCallRunsOneRethinkWithTheToolsOff(t *testing.T) {
 		t.Fatalf("the rethink line first rode on model call %d, want call 5: the one right after the rethink's own", first)
 	}
 	after := built.model.Requests()[first]
-	last := theLastMessageOf(after)
-	if !strings.HasSuffix(strings.TrimSpace(last), "Do the Next line now.") {
-		t.Errorf("the fresh window's last message does not end with the instruction to do the Next line:\n%s", last)
+	opening, last, _ := theMessagesAround(after, loop.TheRethinkLine)
+	if !strings.HasSuffix(strings.TrimSpace(last.Text), "Do the Next line now.") {
+		t.Errorf("the fresh window's last message does not end with the instruction to do the Next line:\n%s", last.Text)
 	}
-	if !strings.Contains(last, loop.TheRethinkLine) || !strings.Contains(last, "Next: read brand.md") {
-		t.Errorf("the fresh window's last message does not hold the rethink line and the model's whole answer:\n%s", last)
+	if !strings.Contains(last.Text, "Next: read brand.md") {
+		t.Errorf("the fresh window's last message does not hold the model's whole answer:\n%s", last.Text)
 	}
 	if _, keptTheFirstRound, keptAStalledRound := whatSurvivedTheCut(after); keptTheFirstRound || keptAStalledRound {
 		t.Errorf("a round from before the rethink survived into the fresh window: %+v", after.Messages)
 	}
-	if opening := after.Messages[0].Text; !strings.HasPrefix(opening, orientation.TheHeading) || !strings.Contains(opening, "the notes say the meeting is at noon") {
-		t.Errorf("the fresh window does not open with the orientation and the newest results in full:\n%s", opening)
+	if !strings.HasPrefix(opening.Text, orientation.TheHeading) || !strings.Contains(opening.Text, "the notes say the meeting is at noon") {
+		t.Errorf("the fresh window does not open with the orientation and the newest results in full:\n%s", opening.Text)
 	}
 	if len(reading.Inputs()) != 3 {
 		t.Errorf("the tool ran %d times, want 3: two of the stalled read and the Next line after the rethink", len(reading.Inputs()))
@@ -231,14 +247,17 @@ func TestTheCallTheModelRepeatedIsClosedForTenRounds(t *testing.T) {
 	if freshWindow < 0 || first != freshWindow+1 {
 		t.Fatalf("the closed line first rode on model call %d, want call %d: the one after the first repeat on the fresh window", first, freshWindow+1)
 	}
+	// The round after the call reopened carries every result since the fresh
+	// window, each inside its tool-result boundary: the ten refusals and the
+	// run.
 	requests := built.model.Requests()
 	refused, ran := 0, 0
-	for _, message := range requests[len(requests)-1].Messages {
+	for _, message := range requests[freshWindow+loop.ClosedForRounds+1].Messages {
 		for _, result := range message.ToolResults {
 			switch {
-			case strings.HasPrefix(result.Text, closedLine):
+			case strings.Contains(result.Text, closedLine):
 				refused++
-			case result.CallID == "open" && result.Text == "the notes":
+			case result.CallID == "open" && strings.Contains(result.Text, "the notes"):
 				ran++
 			}
 		}
@@ -340,6 +359,35 @@ func TestTheStopAfterTheLastRethinkListsWhatWasTried(t *testing.T) {
 	}
 	if !sentSomethingLike(built.channel.Sent(), "Tried by rethink: ") {
 		t.Errorf("the person was sent %v, want the stop's report with the ledger on it", built.channel.Sent())
+	}
+}
+
+// TestARethinkAnswerWithNoLabelsIsTakenWholeAsTheNextLine: a small model may
+// answer the five questions in prose. An answer with none of the labels is
+// the Next line whole, and it fills the failure and the decision too, so that
+// the record always gains both and the window always ends on something to do.
+func TestARethinkAnswerWithNoLabelsIsTakenWholeAsTheNextLine(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the brand file")
+	built := newHarness(t, []testkit.Step{
+		sameReadOf("c1", "notes.md"), sameReadOf("c2", "notes.md"), sameReadOf("c3", "notes.md"), sameReadOf("c4", "notes.md"),
+		answerStep("Just read brand.md and compare the two."),
+		callStep("I will read the brand file.", callFor("c5", "read", `{"path":"brand.md"}`)),
+		answerStep("The notes and the brand file are read."),
+	}, reading)
+
+	outcome := built.ask(t, "read the notes")
+
+	held := built.held(t, outcome.TaskID)
+	if !aFailureBeginning(held, "stalled: Just read brand.md and compare the two.") {
+		t.Errorf("the record's failures read %+v, want the whole answer as the stall", held.Lessons.Failures)
+	}
+	if _, written := aDecisionBeginning(held, "Rethink: next Just read brand.md and compare the two."); !written {
+		t.Errorf("the record's decisions read %+v, want the whole answer as the Next line", held.Lessons.Decisions)
+	}
+	if _, count := requestsCarrying(built, loop.TheRethinkLine); count == 0 {
+		t.Error("the fresh window never opened on the answer")
 	}
 }
 

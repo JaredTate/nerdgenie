@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/loop"
 	"github.com/JaredTate/nerdgenie/internal/workorder"
 )
 
@@ -118,5 +119,56 @@ func TestAPlainAskIsUnchanged(t *testing.T) {
 	listed, err := built.jobs.List(t.Context())
 	if err != nil || len(listed) != 0 {
 		t.Errorf("a plain ask made %d jobs (err %v), want none", len(listed), err)
+	}
+}
+
+// TestAJobTaskSeesItsOwnDetailsSectionsInFull: the job's first task names the
+// Storage section, so its front carries that section whole and the List
+// section as a heading with the way to read it, and not the whole work order.
+func TestAJobTaskSeesItsOwnDetailsSectionsInFull(t *testing.T) {
+	built := newHarness(t, closingScript("the notes are read"), scriptedTool("read", "the notes"))
+	built.ask(t, aWorkOrderAsk)
+	if _, err := built.loop.RunNextJobTask(t.Context(), built.channel); err != nil {
+		t.Fatalf("the job's first task did not run: %v", err)
+	}
+	first := wholeRequestText(built.model.Requests()[0])
+	for _, wanted := range []string{
+		loop.TheDetailsHeading,
+		"### Storage\nNotes live in local storage under one key.",
+		"List",
+		loop.TheOtherSectionsLine,
+	} {
+		if !strings.Contains(first, wanted) {
+			t.Errorf("the first request lacks %q", wanted)
+		}
+	}
+	if strings.Contains(first, "One line per note, newest first.") {
+		t.Errorf("the first request carries the List section's body, which the task did not name")
+	}
+	if strings.Contains(first, "## Details") {
+		t.Errorf("the first request carries the whole work order")
+	}
+}
+
+// TestATaskNamingNoSectionsSeesEveryHeadingByLine: a task that names no
+// section is shown every heading by line and no body.
+func TestATaskNamingNoSectionsSeesEveryHeadingByLine(t *testing.T) {
+	plain := strings.Replace(aWorkOrderAsk, "1. Scaffold the app and read the notes. (Details: Storage)", "1. Scaffold the app and read the notes.", 1)
+	built := newHarness(t, closingScript("the notes are read"), scriptedTool("read", "the notes"))
+	built.ask(t, plain)
+	if _, err := built.loop.RunNextJobTask(t.Context(), built.channel); err != nil {
+		t.Fatalf("the job's first task did not run: %v", err)
+	}
+	first := wholeRequestText(built.model.Requests()[0])
+	if strings.Contains(first, loop.TheDetailsHeading) {
+		t.Errorf("a task naming no section was shown a details block")
+	}
+	if !strings.Contains(first, loop.TheOtherSectionsLine+" Storage, List") {
+		t.Errorf("the first request does not list the headings by line: %q", first)
+	}
+	for _, body := range []string{"under one key", "newest first"} {
+		if strings.Contains(first, body) {
+			t.Errorf("the first request carries a section body %q the task did not name", body)
+		}
 	}
 }

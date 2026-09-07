@@ -26,6 +26,9 @@ func TestTheFakeStoreNumbersEventsInTheOrderTheyArrive(t *testing.T) {
 	if len(events) != 3 {
 		t.Fatalf("the task has %d events, want 3", len(events))
 	}
+	if store.Count() != 3 {
+		t.Errorf("the store counts %d events, want the 3 appended", store.Count())
+	}
 	for at, event := range events {
 		if event.Sequence != int64(at+1) {
 			t.Errorf("the event at position %d has sequence %d, want %d", at, event.Sequence, at+1)

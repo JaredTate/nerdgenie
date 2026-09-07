@@ -151,11 +151,7 @@ func checkTheTemplate(schedule *contract.Schedule, template string) error {
 // the job summary. A job made without them is left as the model will write it.
 func writeTheWorkOrdersParts(ctx context.Context, keeper *record.Keeper, jobID string, wanted contract.NewJob) error {
 	if len(wanted.DoneWhen) > 0 {
-		lines := make([]contract.DoneLine, 0, len(wanted.DoneWhen))
-		for _, text := range wanted.DoneWhen {
-			lines = append(lines, contract.DoneLine{Text: text})
-		}
-		if err := keeper.Apply(ctx, record.Update{DoneWhen: lines}); err != nil {
+		if err := keeper.Apply(ctx, record.Update{DoneWhen: doneLinesOf(wanted.DoneWhen)}); err != nil {
 			return fmt.Errorf("cannot write the work order's done list into job %s: %w", jobID, err)
 		}
 	}

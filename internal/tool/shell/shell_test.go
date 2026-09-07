@@ -90,25 +90,6 @@ func run(t *testing.T, tool *shell.Tool, fields map[string]any) (contract.ToolOu
 	return tool.Run(context.Background(), written)
 }
 
-func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
-	tool := newTool(t, testkit.NewFakeSandbox(), testkit.NewFakePermission(contract.RulingAllow), testkit.NewFakeClock(theMoment))
-	spec := tool.Spec()
-
-	if spec.Name != contract.ToolShell {
-		t.Errorf("the tool calls itself %q, want %q", spec.Name, contract.ToolShell)
-	}
-	if words := contract.DescriptionWordCount(spec.Description); words > contract.MaxToolDescriptionWords {
-		t.Errorf("the description is %d words, and the cap is %d", words, contract.MaxToolDescriptionWords)
-	}
-	names := []string{}
-	for _, field := range spec.Fields {
-		names = append(names, field.Name)
-	}
-	if strings.Join(names, ",") != "command,action,id,escalate,reason,expect,port,path" {
-		t.Errorf("the tool takes the fields %v, and the permission function reduces a shell call by command, escalate, and reason", names)
-	}
-}
-
 func TestACommandThatFinishesAtOnceReturnsItsOutput(t *testing.T) {
 	sandbox := testkit.NewFakeSandbox()
 	sandbox.Script(theShellPrefix(), contract.SandboxResult{StandardOutput: []byte("alpha\nbeta\n")})

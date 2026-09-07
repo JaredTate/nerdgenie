@@ -72,8 +72,8 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolSearch,
-		Description: "Finds the files whose names match a pattern and the lines that match it, under a folder. " +
-			"Give a regular expression, or a name pattern such as *.md. Use read for a file you can already name.",
+		Description: "Finds files by name or lines by pattern under a folder, bounded; use it in place of grep and find. " +
+			"Give a regular expression or a name pattern such as *.md. Use read for a file you can name.",
 		Fields: []contract.ToolField{
 			{Name: "pattern", Type: "string", Description: "A regular expression, or a name pattern such as *.md.", Required: true},
 			{Name: "path", Type: "string", Description: "The path of the folder or file to search, taken from the folder the agent works in unless it starts at the root or at ~.", Required: true},

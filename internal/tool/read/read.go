@@ -135,6 +135,13 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	}
 	about, err := os.Stat(path)
 	if err != nil {
+		if file, heading, split := markdownAndHeading(asked.Path); split {
+			// "REPO_MAP.md src/game.js" is the shape the instructions show
+			// for one section of a Markdown file, and a model writes it as
+			// one path.
+			asked.Path, asked.Section = file, heading
+			return tool.Run(ctx, mustMarshal(asked))
+		}
 		return contract.ToolOutput{}, fmt.Errorf("cannot open %s, so check the path and try again: %w", path, err)
 	}
 	if about.IsDir() {
@@ -148,8 +155,34 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		text, err := readSection(path, asked)
 		return contract.ToolOutput{Text: text}, err
 	}
+	if text, isTheMap, err := readTheMapsContents(path); isTheMap {
+		return contract.ToolOutput{Text: text}, err
+	}
 	text, err := readFile(path, asked)
 	return contract.ToolOutput{Text: text}, err
+}
+
+// markdownAndHeading splits a path written as a Markdown file's name, a
+// space, and a heading, and says whether the path had that shape.
+func markdownAndHeading(written string) (string, string, bool) {
+	lower := strings.ToLower(written)
+	at := strings.Index(lower, ".md ")
+	if at < 0 {
+		return "", "", false
+	}
+	file := strings.TrimSpace(written[:at+3])
+	heading := strings.TrimSpace(written[at+4:])
+	if file == "" || heading == "" {
+		return "", "", false
+	}
+	return file, heading, true
+}
+
+// mustMarshal writes the tool's own input back as JSON, which cannot fail
+// for a struct of three strings and two numbers.
+func mustMarshal(asked input) json.RawMessage {
+	written, _ := json.Marshal(map[string]any{"path": asked.Path, "offset": asked.Offset, "limit": asked.Limit, "section": asked.Section})
+	return written
 }
 
 // The names a model writes for the three fields this tool takes. The first of

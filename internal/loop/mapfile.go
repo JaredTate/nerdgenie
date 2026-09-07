@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/codemap"
+	"github.com/JaredTate/nerdgenie/internal/markdown"
 )
 
 // A finished job leaves a map of its folder beside its standing order, so the
@@ -26,7 +27,38 @@ const (
 	// MaxMapEntries bounds the tree, because a map of ten thousand lines tells
 	// nobody anything.
 	MaxMapEntries = 2000
+	// MaxFilesForAMapRewrite is the biggest folder whose whole map is written
+	// again in the middle of a task, when a file the map has no entry for is
+	// written; a bigger folder's map waits for the task's end.
+	MaxFilesForAMapRewrite = 200
 )
+
+// refreshTheMapEntry puts one file's fresh entry into the folder's generated
+// map, or writes the whole map again when the file has no entry yet and the
+// folder is small enough. A hand-written map, and a folder with no map, are
+// left alone.
+func refreshTheMapEntry(folder string, relative string) {
+	path := filepath.Join(folder, MapFile)
+	held, err := os.ReadFile(path)
+	if err != nil || !codemap.IsGenerated(string(held)) {
+		return
+	}
+	if foldersLeftOut[strings.SplitN(relative, "/", 2)[0]] {
+		return
+	}
+	source, err := os.ReadFile(filepath.Join(folder, relative))
+	if err != nil {
+		return
+	}
+	if _, found := markdown.Find(string(held), relative); !found {
+		if paths, err := theFilesOf(folder); err == nil && len(paths) <= MaxFilesForAMapRewrite {
+			writeTheMap(folder)
+		}
+		return
+	}
+	written, _ := markdown.ReplaceSection(string(held), relative, codemap.EntryBody(codemap.Read(relative, source)))
+	_ = os.WriteFile(path, []byte(written), 0o644)
+}
 
 // foldersLeftOut are the folders no map lists: what a package manager or a
 // build wrote, and what version control keeps.

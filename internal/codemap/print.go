@@ -74,6 +74,24 @@ func printLegend(out *strings.Builder, files []File) {
 	out.WriteString("\n")
 }
 
+// EntryBody is what a file's entry says under its heading: its first line and
+// one line per name for a source file, its first line and its count for a
+// test file. It is what a write puts back into the map for the one file it
+// changed.
+func EntryBody(file File) string {
+	var out strings.Builder
+	if file.IsCode && file.IsTest {
+		printTest(&out, file)
+	} else {
+		printEntry(&out, file)
+	}
+	body := out.String()
+	if at := strings.Index(body, "\n"); at >= 0 {
+		body = body[at+1:]
+	}
+	return strings.TrimRight(body, "\n") + "\n"
+}
+
 // printEntry writes one source file: its heading, its first line, and one
 // line per name with methods indented under their class.
 func printEntry(out *strings.Builder, file File) {
@@ -98,6 +116,11 @@ func printEntry(out *strings.Builder, file File) {
 	}
 	if file.More > 0 {
 		fmt.Fprintf(out, "- and %d more\n", file.More)
+	}
+	if len(file.Names) == 0 && file.More == 0 {
+		// A code file the reader found nothing in says so, so that a gap in
+		// the map is seen and not mistaken for an empty file.
+		out.WriteString("- no names read\n")
 	}
 	out.WriteString("\n")
 }

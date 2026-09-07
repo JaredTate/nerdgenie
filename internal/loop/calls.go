@@ -127,6 +127,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	text, picture, failed := running.runOneTool(ctx, call)
 	text, picture = running.withOrWithoutThePicture(text, picture)
 	testsFirst := running.testsFirstLine(call, failed)
+	running.refreshTheMapAfter(call, failed)
 	running.rememberTheTestCommand(call, text)
 	parses := running.checkTheSyntaxAfter(ctx, call, failed)
 	if parses != "" {

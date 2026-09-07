@@ -32,6 +32,10 @@ func TestTheSectionAnswerIsReadInEveryShapeAModelWrites(t *testing.T) {
 		{"narration first", "I'll start by looking at what was built.\nThe scaffold holds package.json and server.js.", "", "", false},
 		{"narration about the questions", "The user wants me to answer the question about the architecture section. Let me review the record.", "", "", false},
 		{"let me first", "Let me look at the files first.", "", "", false},
+		// Run 20, task 1: a sentence of preamble, then the section itself.
+		{"a preamble then a hash heading", "Scaffold done — all three tests pass. Here's the first section for ARCHITECTURE.md:\n\n## Scaffold\n\nThe scaffold is the project's runnable shell.", "Scaffold", "The scaffold is the project's runnable shell.", true},
+		{"narration then a hash heading", "Let me write the section.\n\n## Scaffold\nThe scaffold is the shell.\nIt lives in server.js.", "Scaffold", "The scaffold is the shell.\nIt lives in server.js.", true},
+		{"a preamble then a heading with no body", "Here is the section:\n## Scaffold", "", "", false},
 	} {
 		heading, body, found := readTheSectionAnswer(shape.answer, "Wire the hazards")
 		if found != shape.found || heading != shape.heading || body != shape.body {

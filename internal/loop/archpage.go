@@ -121,8 +121,25 @@ func readTheSectionAnswer(answer string, fallback string) (string, string, bool)
 	lines := strings.Split(strings.TrimSpace(answer), "\n")
 	first := strings.TrimSpace(lines[0])
 	rest := strings.TrimSpace(strings.Join(lines[1:], "\n"))
-	if first == "" || saysThereIsNoSection(first, rest) || looksLikeToolMarkup(answer) || opensAsNarration(first) {
+	if first == "" || saysThereIsNoSection(first, rest) || looksLikeToolMarkup(answer) {
 		return "", "", false
+	}
+	if strings.HasPrefix(first, "#") {
+		heading, isAHeading := headingOn(first)
+		if !isAHeading || rest == "" {
+			return "", "", false
+		}
+		return heading, rest, true
+	}
+	if at := theHashHeadingInside(lines); at > 0 {
+		// A sentence or two of preamble, then the section itself: run 20's
+		// first task wrote "Here's the first section:" and then the heading.
+		heading, _ := headingOn(strings.TrimSpace(lines[at]))
+		body := strings.TrimSpace(strings.Join(lines[at+1:], "\n"))
+		if body == "" {
+			return "", "", false
+		}
+		return heading, body, true
 	}
 	if heading, isAHeading := headingOn(first); isAHeading {
 		if rest == "" {
@@ -130,10 +147,24 @@ func readTheSectionAnswer(answer string, fallback string) (string, string, bool)
 		}
 		return heading, rest, true
 	}
-	if fallback == "" || opensAListOrAQuestion(first) {
+	if fallback == "" || opensAsNarration(first) || opensAListOrAQuestion(first) {
 		return "", "", false
 	}
 	return fallback, strings.TrimSpace(answer), true
+}
+
+// theHashHeadingInside is the index of the first hash heading after the first
+// line, or zero when there is none.
+func theHashHeadingInside(lines []string) int {
+	for at := 1; at < len(lines); at++ {
+		line := strings.TrimSpace(lines[at])
+		if strings.HasPrefix(line, "#") {
+			if _, isAHeading := headingOn(line); isAHeading {
+				return at
+			}
+		}
+	}
+	return 0
 }
 
 // saysThereIsNoSection says whether the answer declines: it opens with the

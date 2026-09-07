@@ -107,7 +107,7 @@ The seven cards we run today:
 |---|---|---|---|---|---|
 | irene | 2 × RX 7900 XTX 24 GB | A `:19091`, B `:19093` | `hauhau-Q4_K_P.gguf` | 131,072 with vision | `~/llm/igo.sh` |
 | jarvis | 1 × RX 7900 XT 20 GB | `:19091` | `hauhau-IQ4_XS.gguf` | 262,144 without vision | `~/llm/jgo.sh` |
-| rosie | 2 × RTX 5070 Ti 16 GB | A `:19091`, B `:19093` | `hauhau-IQ3_M.gguf` | 114,688 | `~/llm/go2.sh` (CUDA build; turbo3 is broken on NVIDIA's Vulkan) |
+| rosie | 2 × RTX 5070 Ti 16 GB | A `:19091`, B `:19093` | `hauhau-IQ3_M.gguf` | 65,536 with vision through `~/llm/ngo.sh`; 114,688 without it through `~/llm/go2.sh` | CUDA build; turbo3 is broken on NVIDIA's Vulkan. `ngo.sh` is `go2.sh` plus the projector and the 1,024-token checkpoints; the projector takes about 1 GB of the card, so the context halves |
 | sassy | 2 × RDNA4 16 GB | A, B | 3-bit quant | 64k to 100k | to do |
 
 Rosie's 114,688 is a hard ceiling; 128k loads and then dies mid-job. Every machine sets `TURBO_AUTO_ASYMMETRIC=0`. On the machines with one script for the whole box, `~/llm/start.sh` starts the cards one at a time and `~/llm/start.sh status` says whether they are up.

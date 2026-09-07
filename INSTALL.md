@@ -82,7 +82,7 @@ If the process holds 20 GB of RAM, the model did not fit. Lower the context, dro
 bin/nerdgenie init
 ```
 
-It makes the home folder, asks which folders Nerd Genie may work in, finds the local server on its port, and writes `config.toml`. Then:
+It makes the home folder, asks which folders Nerd Genie may work in, finds the local server on its port, and writes `config.toml`. Every question has a flag, so a machine with no keyboard is set up in one line: `bin/nerdgenie init -yes -model local -work-folder ~/work -signal off`. The model choices are `local`, `lmstudio`, `claude`, `codex`, `anthropic` and `openai`. Then:
 
 ```sh
 bin/nerdgenie doctor       # checks everything and says what to fix
@@ -124,4 +124,4 @@ Every machine sets `TURBO_AUTO_ASYMMETRIC=0`. On a machine with two cards, a `~/
 
 ## 9. Updating
 
-`nerdgenie update` installs the newest release and keeps the one before it, so a bad update rolls back by itself when the new program does not come up. To update a source build, `git pull && make build`, then restart the serve.
+`nerdgenie update` installs the newest release and keeps the one before it, so a bad update rolls back by itself when the new program does not come up; `nerdgenie update --rollback` goes back on purpose. To update a source build, `git pull && make build`, then restart the serve.

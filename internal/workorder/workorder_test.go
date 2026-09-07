@@ -206,3 +206,10 @@ func TestWhereNamesTheProjectFolder(t *testing.T) {
 		t.Errorf("a Where that names no path gave the folder %q, want none", bare.Folder)
 	}
 }
+
+func TestWhereOnTheDesktopNamedExactlyIsTheDesktopFolder(t *testing.T) {
+	order := workorder.Parse("# Game\n\n## Goal\nA game.\n\n## Where\nCreate a folder on the Desktop named exactly `Solar System Viewer` and put everything inside it.\n\n## Done when\n1. It works.\n")
+	if order.Folder != "~/Desktop/Solar System Viewer" {
+		t.Errorf("the folder reads %q, want the Desktop folder the name makes", order.Folder)
+	}
+}

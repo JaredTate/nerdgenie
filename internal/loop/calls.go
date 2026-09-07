@@ -126,6 +126,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	running.noteToolLine(toolLineFor(call, "", false))
 	text, picture, failed := running.runOneTool(ctx, call)
 	text, picture = running.withOrWithoutThePicture(text, picture)
+	testsFirst := running.testsFirstLine(call, failed)
 	running.rememberTheTestCommand(call, text)
 	parses := running.checkTheSyntaxAfter(ctx, call, failed)
 	if parses != "" {
@@ -140,6 +141,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 		text += "\n" + loops
 	}
 	text = running.checkTheExpectation(ctx, call, text, failed)
+	if testsFirst != "" {
+		text = testsFirst + "\n" + text
+	}
 	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)
 	label, err := running.keeper.AddResultOfCall(ctx, call.ID, summary, text)

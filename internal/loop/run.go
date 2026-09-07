@@ -84,6 +84,9 @@ type run struct {
 	// testsFact is the state of the last test run, in one line for the
 	// situation, or empty until a test runner has been seen.
 	testsFact string
+	// lastTestsGreen says the newest test run the harness holds passed whole,
+	// which is when a code change with no failing test behind it is told so.
+	lastTestsGreen bool
 	// lastFailingSet is what was failing on the last red run, so that the same
 	// run seen again is not a second failure.
 	lastFailingSet string

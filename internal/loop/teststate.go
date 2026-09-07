@@ -304,7 +304,7 @@ func (running *run) writeWhatTheTestsShow(ctx context.Context, call contract.Too
 	if !found {
 		return
 	}
-	running.testsFact = state.line()
+	running.noteTestState(state)
 	running.noteTheTestsImprovedOrNot(state)
 	changed := running.changedSinceTheLastRun
 	running.changedSinceTheLastRun = nil

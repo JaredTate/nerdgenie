@@ -81,7 +81,7 @@ A line with no check is judged by the model, and the model must name the result 
 | Done when | Writes the finish into the record with the checks attached; runs the checks at the end of every task and at the finish. | The finish is yours, not the model's translation of it. The model cannot declare the job done early, and it knows exactly what to prove. |
 | Rules | Puts them in front of every task, in your words, never rewritten. | The model never guesses how to run, test or serve, or which tool to use, and never re-decides on task nine what a rule decided on task one. Tests first is always there. |
 | Tasks | Makes the job from them with no planning rounds; runs them one at a time; each task sees only its own line. | The model works on one thing with one done line, and reads nothing about the other tasks. |
-| Details | Shelves each section by heading; shows a task the sections it names, in full, and the others by heading only. | The model reads the one page it needs instead of the whole spec, and can ask for any other section by name. |
+| Details | Shelves each section by heading; shows a task the sections it names in full, up to three of at most 150 words each, and the others by heading only; a longer named section is read by heading. | The model reads the one page it needs instead of the whole spec, and can ask for any other section by name. |
 
 Then every task runs through the same five moves, and the harness checks each one.
 

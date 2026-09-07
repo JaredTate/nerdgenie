@@ -74,6 +74,7 @@ Before "done", the harness confirms what it can itself: files parse, the last te
 - Log the same-call guard's refusals and the nudge as events. Neither is visible in the log today, so neither can be counted.
 - Take a screenshot only when the model asks for one. One task took eighteen pictures for seven resizes.
 - Show six results in full on a fresh window, not two (part of idea 2, cheap on its own). Built on 7 September.
+- A task the guard stops inside a job is picked up once by the job itself, with a fresh window, before the job waits for a person. Run ten's polish task was ended by the same-call guard at round 212, the job went to waiting, and nothing moved until a person typed continue; the same happened to the GLM run. An unattended job should try the pick-up itself once, which is exactly what the person's word does, and wait only if that stops too.
 - A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for.
 
 ## The wider list, from the two research reports

@@ -192,6 +192,10 @@ docs/briefs/wave-6/6.5-security-review-release-check.md
 docs/briefs/wave-6/6.6-what-the-fix-workers-handed-back.md
 docs/briefs/wave-6/6.7-fix-the-wave-6-gate.md
 docs/briefs/wave-6/6.8-streaming-to-the-screen.md
+docs/briefs/wave-7/7.1-shell-no-short-answer.md
+docs/briefs/wave-7/7.2-guard-window-and-test-reader.md
+docs/briefs/wave-7/7.3-the-rethink.md
+docs/briefs/wave-7/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -674,6 +678,8 @@ internal/loop/teststate.go
 internal/loop/teststate_behaviour_test.go
 internal/loop/teststate_cfamily.go
 internal/loop/teststate_cfamily_test.go
+internal/loop/teststate_generic.go
+internal/loop/teststate_generic_test.go
 internal/loop/teststate_scripting.go
 internal/loop/teststate_scripting_test.go
 internal/loop/teststate_test.go

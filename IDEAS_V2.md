@@ -1,164 +1,233 @@
-# Ideas, second set: a standard ask, and a map the harness keeps
+# Ideas, second set: an ask written for the harness, and a project's own documents as its working context
 
-Written 7 September 2026, the morning the three-bit model on rosie ran the whole Tetris job to the end on its own. The harness now holds a small model on course. The next question is how to get more out of the same model, and this set answers it in two parts: shape the person's ask the way the record is shaped, and give the harness, not the model, the job of knowing where things are. A third part is the guide: the three documents any project carries so the harness can do that, whether the project is a code base, a book, a video pipeline or an advertising campaign.
+Written 7 September 2026, the day the three-bit model on rosie ran the whole Tetris job to the end on its own. The harness now keeps a small model on course through a long job. Two inputs to it have never been shaped: the ask a person writes, and the documents a project already carries, its `ARCHITECTURE.md` and its `REPO_MAP.md`. This set shapes both, and it does it with the machinery the harness already has, the record, the shelf of results, the skill loader and the harness's own checks, rather than with new machinery. Nothing here is built. The owner approves an idea before it is built, it is built test first, and it lands in `docs/PROGRESS.md` with its measured effect.
 
-Nothing here is built. The owner approves an idea before it is built, it is built test first, and it lands in `docs/PROGRESS.md` with its measured effect. Every idea has to hold on any task and on the local model, and each one has to pass the two rules: the simplest thing that works, and nothing until somebody needs it.
+## 1. How the harness reads, in six facts
 
-## The one idea behind all of them
+Everything below follows from these six facts, all of them from `NERDGENIE.md` and the design.
 
-The model's window is small and dear. The harness's disk is large and exact. Whatever can be computed should be computed by the harness and shown to the model as a slice, only when it matters, and never asked of the model. The harness already does this for the working folder's listing, the ports that are listening, the newest results, the state of the tests and the step line at the end of every prompt. The 6 September measurements say where the next slices are: 297 of 2,173 rounds did nothing but write the record; 121 rounds after rewinds and restarts were the model finding its bearings again; one task read the same file forty-eight times; 84 rounds repeated a command already run. Each of those is the model doing by hand what the harness already knows.
+1. **The record is the truth, and it has a fixed shape.** Goal: the ask word for word, a why, and the done lines. Rules: the corrections, in the person's words, and the stop list. Work: the situation, the plan, the results. Lessons: decisions with reasons, failures with causes. The model writes the why, the done list, the stop list and the plan; the harness writes everything ordinary code can verify.
+2. **The prompt is built in layers, ordered by how often each changes.** The harness rules, the persona and the skill list come first and are cached across a whole run. Then the tools. Then, for a task inside a job, the job summary: the job's goal, rules and task list, the same bytes for every round of the task. Then the record's goal and rules. Everything under that is written anew each turn and is where the cost is.
+3. **Everything a tool returns is a book on a shelf.** It gets one line in the record with an id such as r7, its full text goes to the log, and `read r7` brings it back. The window holds the newest results in full and nothing is ever rewritten or summarised.
+4. **A skill rides in the prompt as a name and one line.** Its body loads only when it is used. That is how the harness carries two hundred procedures for the price of twenty lines.
+5. **The harness checks what it can, so the model does not have to be trusted on it.** A done line that names a file or a command is checked by the harness. An `expect` line on a shell, write or edit call is checked by four rules: a test count, an exit code, a contained string, parses. Tests rerun after every edit once the model has run them. Rounds without progress climb a ladder, and a repeated call is refused.
+6. **A job is a record whose plan is a task list.** Its ask is held whole in a checkpoint. Tasks run one at a time, each task's report goes into the job with an id such as j4.2, and the next task starts.
 
-## Part 1: the standard ask
+The rule this set follows: give the harness things it already has a shape for. An ask that arrives in the record's shape is lifted straight in. A document the harness can shelve is read by name, not pasted.
 
-### What the record is shaped like
+## 2. The ask as an operations order
 
-The record is an operations order, and its parts are fixed: the goal (the ask word for word, a name, a why, and the done lines), the rules (corrections and the stop lines), the work (the situation, the plan, the job's tasks, and the results), and the lessons (decisions and failures). An Army order has the same bones: situation, mission, execution, what must reach the commander. The shape is what lets a small model pick a task up cold and know where it stands.
+### 2.1 The Tetris ask, read the way the harness reads it
 
-### What the Tetris ask is shaped like
+`TETRIS_TEST_PROMPT.md` is 735 lines, 2,898 words and thirty headings. The outcome is on line 8. The finish, twenty-nine acceptance bullets, is on line 678. Test-driven development is demanded in four places. There is no stop list and there is no why. It is a good ask for a person; it is not in the record's shape, so the harness cannot lift any of it, and the model does the lifting: on run fifteen it read the whole ask and in five rounds wrote a job of twelve tasks, each task a line of its own words. That works. Three things about it are worse than they need to be.
 
-`TETRIS_TEST_PROMPT.md` is 735 lines, 2,898 words, thirty headings. The outcome is on line 8. The acceptance criteria are on line 678. Test-driven development is demanded in four places. There is no stop list at all. The model reads the whole of it at the start of every task of the job, most of it about the other tasks, and then spends rounds turning it into the record's parts. It does that well now (run fifteen's planning took five rounds), but it does it with the model's tokens, and every task start re-reads the parts of the ask that belong to other tasks.
+- **The finish is the model's translation.** The person wrote twenty-nine bullets; the job's done list is whatever the model made of them, and the harness can check none of it, because none of the bullets names a command or a file.
+- **The rules travel by luck.** "Tests first", "never a headless browser", "not port 8090" live in the body of the ask. They reach task nine only if the model carried them into the words of task nine, which on run fifteen it did by naming every task "TDD ...".
+- **Every task reads the whole ask.** The ask rides in the job summary, about four thousand tokens, cached for the rounds of a task but read once at every task start. The part about the task in hand is a tenth of it, and the other nine tenths are in front of the model while it works.
 
-### The template
+### 2.2 The template: seven headings, each with a place in the record
 
-Seven headings, plain words, in this order. A person writes them; the harness recognises them by name.
+A person writes seven headings, in this order, in plain words. Each one is a part of the record, so the harness knows what to do with it.
 
-1. **Outcome.** One paragraph: what exists when this is done, for whom, and where (the folder, the site, the file).
-2. **Done when.** Numbered lines, each one checkable. A line the harness can check itself carries the check in brackets, using the four rules the `expect` line already has: `[tests pass: npm test]`, `[exit 0: node build.js]`, `[shows: "Tater Tots Tetris" at http://127.0.0.1:8091]`, `[parses: src/game.js]`.
-3. **Stop if.** The things that must reach the person before the work goes on.
-4. **Rules.** The standing constraints: tests first, the language, the ports, what not to touch, the house style.
-5. **Steps.** The order of work, one line each. Optional; the model plans when it is absent.
-6. **Read first.** The documents that carry the working context: the architecture page, the style guide, a spec.
-7. **Details.** Everything else, as long as it needs to be, under its own headings.
+| Heading | What goes under it | What it becomes | What the harness does with it |
+|---|---|---|---|
+| **Outcome** | One paragraph: what exists when this is done, for whom, where | The job's name and its why | Prints it in the job summary of every task; the why is what the model uses when a plan breaks |
+| **Done when** | Numbered lines, each one checkable; a line the harness can check carries the check in brackets | The job's done list | Checks the bracketed lines itself at the end of every task and at the finish; the model cannot declare the job done |
+| **Stop if** | The things that must reach the person before work goes on | The job's stop list | Adds its own two lines (budget, login page), watches the rest through the `task` tool |
+| **Rules** | The standing constraints for this job: tests first, the language, the ports, what not to touch | Corrections C1, C2, ... in the job record, in the person's words | Rides in the cached front of every task of the job; never rewritten |
+| **Steps** | The order of work, one line each, optional | The job's task list | Makes the job with these tasks and no planning rounds; the model may split or add a task later, never remove a finished one |
+| **Read first** | Files that carry the working context: the architecture page, a style guide, a spec | Shelved results with ids, opened in the first window; a short one pinned for the job | Never has to be found by the model |
+| **Details** | Everything else, as long as it needs to be, under its own headings | Shelved by heading, read with `read ask dragon` | Shows a task the sections its step names in full and the rest by heading and first line |
 
-The Tetris ask, rewritten, begins like this:
+Why these seven and not more: they are the record's own parts, in the order an operations order gives them, situation and mission first, execution next, and what must be reported at once. A heading that has no part in the record would be text the harness can only paste.
+
+The checks in brackets are the four rules the `expect` line already has, plus one: `[tests pass: npm test]`, `[exit 0: node build.js]`, `[shows: "Tater Tots Tetris" at http://127.0.0.1:8091]`, `[parses: src/game.js]`, `[exists: dist/index.html]`. A line without a check is judged by the model against a result it must name, as today.
+
+### 2.3 The Tetris ask, rewritten
+
+Everything the original says is kept; what moves is where it sits.
 
 ```
 # Tater Tots Tetris
 
 ## Outcome
 A complete, polished, playable Tetris-style web game in <WORK>/Tater Tots Tetrisv1,
-with a dragon that locks the piece and a yeti that blows it sideways, three line-clear
-effects, and every rule proven by automated tests before it is built.
+branded Tater Tots Tetris, with normal Tetris play, two hazards (a dragon that locks
+the piece after a warning, a yeti that blows the piece sideways from the left or the
+right) and three line-clear effects (freeze and disintegrate, bomb, fire). It is for
+players in a browser, and every rule of it is proved by a test before it is built.
 
 ## Done when
-1. Every automated test passes. [tests pass: npm test]
+1. Every automated test passes and none is skipped. [tests pass: npm test]
 2. The game loads and shows the board. [shows: "Tater Tots Tetris" at http://127.0.0.1:8091]
-3. A full game can be played in the browser to game over, with a photograph of each state.
-4. The dragon, the yeti and the three line-clear effects each have their own test file.
+3. A whole game has been played in the Chrome window to game over, with a photograph
+   of each state: play, dragon warning, dragon attack, yeti from each side, each of the
+   three clears, pause, game over, restart.
+4. The layout has been looked at in Chrome at five window sizes with no overlap, no
+   clipping and no console errors.
+5. The dragon, the yeti and the three effects each have a test file. [exists: test/dragon.test.js]
+6. Restart resets everything, and no hazard timer survives it. [tests pass: npm test -- restart]
+7. Every developer control used for testing is hidden in the finished game.
 
 ## Stop if
 - A test cannot be made to pass after three different fixes.
-- The browser cannot open the page.
+- The Chrome window cannot open the page.
+- The engine needs a framework or a build step to work.
 
 ## Rules
-- Tests first: write the test, watch it fail, write the code, watch it pass.
-- Plain JavaScript, no framework, no build step. Serve on any port but 8090.
+- Tests first: write the test, watch it fail, write the code, watch it pass; run the
+  whole suite at every milestone and go on only when all of it is green.
+- Plain HTML, CSS and JavaScript. No framework. No build step.
+- Serve on any port but 8090. The browser is the Chrome window on the screen, never
+  a headless one from a script.
+- Hazard values live in one config file: probabilities, warning times, forced-drop speed.
+- The random source is injectable, so any hazard can be forced in a test.
 
 ## Steps
-1. Scaffold and a smoke test. 2. The engine. 3. The dragon. 4. The yeti.
-5. Line-clear effects. 6. Browser play test and visual check. 7. Polish.
+1. Scaffold: package.json, a test runner, index.html, a smoke test. (Details: Core game)
+2. The engine: board, pieces, movement, rotation, collision, locking, lines, scoring,
+   levels, speed, game over, restart, pause, preview, high scores. (Details: Core game)
+3. The hazard state machine and the config file. (Details: Hazard architecture)
+4. The dragon. (Details: Dragon)
+5. The yeti, both sides. (Details: Yeti)
+6. The three line-clear effects. (Details: Line clear effects)
+7. Hazard safety: no stale timers, no piece lost, restart clean. (Details: Hazard safety)
+8. The browser shell, the HUD, keyboard, the developer controls. (Details: Core game)
+9. Play it in Chrome and fix what the play shows. (Details: Browser play testing)
+10. Visual QA at five sizes and polish. (Details: Visual QA, Visual polish)
+11. Final regression: the whole suite, then a last visual pass, then hide the controls.
+
+## Read first
+- none; the folder is empty
 
 ## Details
-### Core game ...
-### Dragon ...
+### Core game
+(the original's core requirements, word for word)
+### Dragon
+(the original's dragon section)
+### Yeti
+...
+### Line clear effects
+...
+### Hazard architecture
+...
+### Hazard safety
+...
+### Browser play testing
+...
+### Visual QA
+...
+### Visual polish
+...
 ```
 
-### What the harness does with it
+That is the same 2,898 words, in an order the harness can lift. The finish is the person's, in seven lines, five of them checked by the harness. The rules are five lines that reach every task. Each step names the details it needs.
 
-This is the build. A free-form ask still works exactly as today; the template only adds.
+### 2.4 What the harness builds for it
 
-- **The record is written by the harness at task start.** The outcome becomes the goal's name and why. Each done line becomes a numbered done line in the record, with its harness check attached, so the check runs itself and the line is proved without a round of argument. The stop lines become the stop list. The steps become the job's tasks, handed to the planning call as a draft it may keep or change. Rounds the model spends writing the record go to nought for a templated ask.
-- **The details are sliced per task.** A task named "Dragon" gets the details section whose heading matches it in full, and every other section as a heading and a first line. A model that needs another section reads it by name. For the Tetris ask this cuts about 2,500 words from every task start after the first.
-- **The rules ride in the per-task front, word for word,** in the place the job summary sits, so they are the same bytes for every task of the job and the daemon's cache keeps them.
-- **The read-first list is opened by the harness** into the first window of the job, and the map (part 2) knows those documents by name after that.
+Four things, each small, and a free-form ask still works exactly as today.
 
-Why this is new: other agents take a prompt and a rules file. Here the ask has the same bones as the record that will carry the work, so the harness can lift it straight in, check the done lines itself, and show each task only its own part of the spec.
+1. **The lift.** The seven headings are recognised by name. Outcome becomes the job's name and why, Done when its done list with the checks attached, Stop if its stop list, Rules its corrections, and Steps its task list, so the job exists before the first model call and the planning rounds go to nought. The model may still split a task or add one, as it can today.
+2. **The finish checked by the harness.** At the end of every task of the job the bracketed done lines are run, and the job summary carries the count: "done lines proved: 3 of 7". At the finish, every bracketed line must pass and every other line must name a result, as the done check requires today. Three of the last eight nightly runs closed done on a job that did not work; a finish the harness runs cannot be talked past.
+3. **Details shelved by heading.** The ask stays whole in the job's checkpoint, never rewritten. Each Details section is shelved like a result, under its heading, and `read ask dragon` brings it back. A task's front carries the sections its step names in full and every other section as its heading and first line. On the Tetris job that is about three hundred words of ask per task instead of three thousand.
+4. **Read first opened by the harness.** Each file named is shelved with an id and opened into the job's first window; a file under sixty lines is pinned for the whole job, so a style guide or an engine's interface is in front of every task without being found.
 
-- Evidence: 297 record-writing rounds in a day of runs; the 2,898-word ask re-read at every task start; three of the last eight nightly runs closing "done" on a job that did not work, which harness-checked done lines address.
-- Measure: record-writing rounds per task; uncached tokens at each task start; done lines with harness proof against lines only the model judged.
+- Evidence: the Tetris ask read whole at twelve task starts; 297 record-writing rounds in the 6 September logs; three of eight nightly runs closing done on a job that did not work; run twelve's rules reaching task nine only through the model's own task names.
+- Measure: tokens at each task start; record-writing rounds per task; done lines proved by the harness against lines judged by the model; jobs closed done that the nightly check then failed.
+- Cost: three days.
+
+### 2.5 What this gives a long-running project
+
+The person defines the finish once and the harness checks it after every task, so a job that runs all night is measured all night, not judged at the end. The rules cannot be lost at task nine, because they ride in the cached front of every task, in the person's words. Each task works from its own slice of the ask, and reads the rest by name when it wants it. And because the ask, the rules and the finish live in the job record, a job put down on Tuesday is picked up on Friday, or on another model, with all three intact, which the record already promises and the template makes worth having.
+
+## 3. The project's documents as working context
+
+### 3.1 The rule: shelve, do not paste
+
+`REPO_MAP.md` in this repository is 1,812 lines and 60 kilobytes. `ARCHITECTURE.md` is 1,909 lines and 431 kilobytes. Claude Code pastes `CLAUDE.md` into every prompt, Codex pastes `AGENTS.md`, aider pastes a ranked map of the code. On a small model every one of those is the task's own room given to a document. The harness already has a better rule for anything large, the library rule: one line in the record, the full text on the shelf, read by its call number when wanted. A project's documents are three more books on that shelf, with fixed call numbers, and the model sees one line for each and the slice its task names.
+
+So the three documents enter the prompt in three ways, none of them whole.
+
+| Document | Its line in every prompt | What loads when | Who keeps it true |
+|---|---|---|---|
+| `AGENTS.md`, the standing order | "project: Tater Tots Tetris, a browser Tetris in plain JS" | Its body, under sixty lines, under the job summary for any task in that folder, loaded like a skill's body | The person; the harness appends what it learns |
+| `REPO_MAP.md`, where everything is | "map: 14 files in 3 folders, 2 changed this task; read map" | A slice in the orientation: the files of this task; the whole map by `read map` | The harness, regenerated after every write and edit |
+| `ARCHITECTURE.md`, how it is put together | "arch: engine, hazards, effects, shell, tests; read arch engine" | The sections a step names in full; a section by `read arch engine`; the contents line always | The person, and the harness at each task's end |
+
+### 3.2 `AGENTS.md`: the standing order, loaded like a skill
+
+The standing order is what is true of the project on every task: what it is in one paragraph, how to run it and how to test it as commands, the rules that hold on every task, and where things are as a table of contents pointing at the other two documents. Under sixty lines, because a giant rules file crowds out the task, which is what OpenAI found in its own harness. The name is the one the industry already uses, so a project that has one for Codex has one for Nerd Genie.
+
+Three things the harness does with it:
+
+- **Loads it the way it loads a skill.** One line rides in every prompt; the body loads under the job summary for any task whose folder holds the file, byte-stable for the whole task, so the daemon's cache keeps it.
+- **Runs its test command at every task start.** Anthropic's note on long-running agents has every session run a smoke script before touching code, because the failure modes of long work are premature done, undocumented progress, untested features and starting from scratch. Here the standing order's test line is that script: the harness runs it as the task's first result, the test reader knows the count from round one, and a task that begins on a red suite begins knowing it.
+- **Keeps what it learns about this project here, not in the global memory.** The review at a task's end saves one lesson today, into `MEMORY.md`, which is one file for the whole machine. On 7 September run twelve read "task t7 browser shell complete at Tater Tots Tetrisv1" from that file, went looking for a build that had been archived, and stopped. A lesson about a project belongs to the project: the review's keep-or-change answer goes under `## Learned` in the folder's `AGENTS.md`, dated, capped at twenty lines, and a new folder starts with none. The global memory keeps facts about the machine and the person, which is what it was for.
+
+- Evidence: run twelve's stop; the rules of a job carried only in the model's task names; the count of test rounds at task starts.
+- Measure: tasks that begin with a test run of their own; lessons written to the project against lessons written to the global memory; stops caused by stale memory.
 - Cost: two days.
 
-### The ask that lives with the project
+### 3.3 `REPO_MAP.md`: a map the harness keeps, searched before it is read
 
-A small step past the template: keep the ask in the project as `ASK.md`, and give `nerdgenie check` one job, to run the done lines' checks against the folder as it is now. The ask becomes the project's acceptance test, and it works for a folder of ad copy as well as a game: "is this still done?" is one command. The nightly table's check column and `nerdgenie bench` read the same lines.
+Today the map is a tree of paths with a legend for the roots, generated from git. The model has a `search` tool (one pattern, files and lines, fifty rows) and a `read` tool (a file, a folder, a result by id), and it uses them well; what it lacks is the one thing a person has that it does not, a sense of what each file is for and which files belong together. That sense is the map, and the harness can keep it because every change to a file goes through the harness.
 
-## Part 2: a map the harness keeps
+The map becomes a small table in the same SQLite file as the log and the memory: the path, the size, a one-line purpose, the names the file defines, and the task and round that last touched it. The purpose is the file's first comment or heading; for a file the harness wrote, it is the plan step it was written under, so the model is asked for nothing. The names come from one regular expression per language, the way the test reader reads test output, not from a parser. `REPO_MAP.md` is the table written out for people and for git, one line per file, regenerated after every write and edit.
 
-### What the two documents are today
+Four things the model gets from it:
 
-`REPO_MAP.md` is generated: a legend of one line per root folder and a tree of every tracked path, 1,812 lines and 60 kilobytes. `ARCHITECTURE.md` is written by hand: 1,909 lines and 431 kilobytes of prose on how the code is put together. Neither can go in a prompt. The front of the prompt is ten to fourteen thousand tokens already, and the architecture page alone would be a hundred thousand. So the question is not "show the model the map". It is "let the harness answer from the map and show only the slice", which is what the model already gets for the folder listing and the ports. And the model already has a `search` tool (one pattern, files and lines, capped at fifty rows) and a `read` tool (a file, a folder, a past result). The map makes those two answer better; it does not add a third.
+- **A slice in the orientation.** The orientation block already says what is in the working folder and which ports are listening. It gains "the files of this task", one line each: path, purpose, names, last touched by t4 at r41. At a task start inside a job the same section says what the job has built so far, which is the thing the model now reads its own files to learn.
+- **`read map`.** The whole map by its call number, when the model wants the whole picture, and it leaves the window like any other result.
+- **`search` answers from the map first.** A name goes to the names table and comes back as `file:line` with the file's purpose beside it; only a pattern that names nothing goes on to ripgrep. A question in words goes to a full-text index of the folder's text files kept in the FTS5 table the memory already runs, and comes back the same shape. The model asks "where is that" as it does today and gets an answer that says what the file is for.
+- **The change list for free.** The last-touched column is what a review should read instead of the transcript: every file the job changed, by task and round.
 
-### 2.1 The map is an index, not a file
+Borrowed design: aider's repository map, which ranks the code's names by how often the files in the conversation refer to them and puts the top slice in the prompt. Ours keeps the ranking out and the map out of the prompt; the slice is chosen by three plain facts, the files the task's step names, the files the task touched, and the files named in the model's last three calls.
 
-At task start, and after every write and edit, the harness keeps a table of the work folder in the same SQLite file as the log and the memory: the path, the size, the kind, a one-line purpose, the names the file defines, and the task and round that last touched it. The purpose is the file's first comment or heading; when the harness itself wrote the file, the purpose is the plan step it was written under, so nothing has to be asked of the model. The names come from one regular expression per language, the way the test reader reads test output, not from a parser: `func`, `function`, `class`, `def`, a Markdown heading, a scene heading in a script. The map stays true because every change to a file goes through the harness.
+- Evidence: one task read the same file forty-eight times; 84 rounds repeated a command, most of them searches for something found before; 2.6 reads by id after every restart and 1.6 after every rewind, which is the model rebuilding this picture by hand.
+- Measure: repeated reads of an unchanged file per task; shell rounds whose command is `ls`, `find` or `grep`; reads in the three rounds after a task start or a fresh window.
+- Cost: three days.
 
-Borrowed design: aider's repository map, which ranks a code base's names by how often the files in the conversation refer to them and puts the top slice in the prompt. Ours keeps the ranking out and the map out of the prompt: the slice is chosen by three plain facts, the files this task's ask section names, the files this task has touched, and the files the model's last three calls named.
+### 3.4 `ARCHITECTURE.md`: read by section, written by the harness at each task's end
 
-- Evidence: one task read the same file forty-eight times; the folder listing and `ls -la` rounds at every task start; the model reading its own files back after a fresh window (2.6 results by id after a restart).
-- Measure: repeated reads of an unchanged file per task; shell rounds whose command is `ls`, `find` or `grep`.
-- Cost: three days, with 2.2.
+The architecture page is the one document a person cannot do without on a code base and the one no model can read whole. It becomes a shelved book with a table of contents: `read arch` prints the section names with their sizes, `read arch engine` prints one section, and `search` reports which section mentions a word. Every prompt carries the contents line. A task's front carries in full the sections its step names, by the same rule as the ask's details: the dragon task reads the hazards section and the engine's interface, and nothing about rendering.
 
-### 2.2 The orientation shows the slice
+The page is kept true by the harness, which is the part nobody else does. The review at the end of every job task already asks four questions with the tools off; where the folder has an architecture page it asks a fifth: "which section does this task change, and what is its paragraph now?" The answer goes under that heading, dated, and the section's old paragraph stays in the log. A page written that way is a record of what was built, task by task, rather than a page somebody remembers to update, and the next task reads two hundred words chosen for it instead of sixty thousand. A fresh window after a cut or a cap opens on the same sections, which is the bearing the model re-derives by reading today.
 
-The orientation block already says what is in the working folder and which ports are listening. It gains one section, "the files of this task", one line each: the path, the purpose, the names, and "last touched by t2 at r41". At a task start inside a job the same section says what the job has built so far, which is the thing the model now reads its own files to learn. The section changes only when a file changes, so the daemon's cache holds it across the rounds between. Nothing else in the prompt moves.
-
-### 2.3 "Where is that" answered from the index
-
-The `search` tool keeps its one field. Behind it, a name is looked up in the map's names table first and answered as `file:line` with the file's purpose beside it, and only a pattern that names nothing goes on to ripgrep. A question in words ("where is gravity timed") goes to a full-text index over the folder's text files, kept in the same FTS5 table the memory already runs, and comes back as the lines that match with their files' purposes. The answer is the same shape either way. This is cheap because the full-text engine is already in the binary and the memory index already proves it on every run.
-
-- Evidence: the 84 repeated-command rounds are mostly the model searching for what it found earlier; a search whose answer carries no purpose line is followed by a read.
-- Measure: searches followed by a read of the file that was just searched; search rounds per task.
-- Cost: one day, after 2.1.
-
-### 2.4 The architecture page as the project's situation, kept by the harness
-
-`ARCHITECTURE.md` is too big to read and too important to skip, and today it is kept true by hand. Two moves make it the project's living situation report.
-
-First, the harness keeps an architecture card per part of the project: one paragraph per top folder. At the end of each task in a job, one call with the tools off asks the model, "what did this task add or change, in one paragraph, for the architecture page of the part it touched?" The paragraph goes under that part's heading in `ARCHITECTURE.md` and into the map. That is one short round per task, in the place the review call already sits, and it makes the page a record of what was built rather than a page somebody remembers to update.
-
-Second, the per-task front shows only the paragraphs for the parts this task's files belong to, two hundred words instead of sixty thousand. A task on the dragon reads the engine's paragraph and the hazards' paragraph and nothing about rendering. A fresh window after a cut or a cap opens on the same paragraphs, which is the bearing the model re-derives today by reading.
-
-- Evidence: 121 rounds, 820 thousand tokens and 33 minutes of re-orientation after rewinds and restarts on 6 September; every one of those began with the model reading files to learn what existed.
-- Measure: uncached tokens and reads in the three rounds after each task start and fresh window.
+- Evidence: 121 rounds, 820 thousand tokens and 33 minutes of re-orientation after rewinds and restarts on 6 September, every one of them beginning with reads; the architecture page of this repository is kept by hand and drifts between waves.
+- Measure: uncached tokens and reads in the three rounds after each task start and fresh window; sections of the page older than the last task that touched their files.
 - Cost: two days.
 
-Why this is new: Claude Code reads `CLAUDE.md`, Codex reads `AGENTS.md`, and aider puts a map in the prompt. All three hand the model a document. Here the documents are the human-readable face of an index the harness keeps and answers from, and the model sees two hundred words chosen for the task in hand.
+## 4. The guide: the three documents for any project
 
-## Part 3: the guide, three documents every project carries
+The harness can keep the books for any folder that carries the three documents, and they are the same three whether the folder holds code, a book, a video pipeline or a campaign. A person writes the first two in twenty minutes; `nerdgenie map` writes the third.
 
-The harness can keep the books for any folder that follows three small conventions. They cost a person a few minutes and they are the same for a code base, a book, a video pipeline and a campaign.
+**`AGENTS.md`, the standing order.** Five headings, under sixty lines: What this is (one paragraph), Run (the commands), Test (the commands, which the harness runs at every task start), Rules (what holds on every task), Where things are (a table of contents pointing at the other two). The harness adds Learned.
 
-1. **`AGENTS.md`, the standing order.** What this project is, in one paragraph. How to run it and how to test it, as commands. The rules that hold on every task. Where things are, as a table of contents pointing at the other two documents, never as the whole story: a giant rules file crowds out the task, which is the lesson OpenAI drew from its own harness. Under sixty lines. The harness reads it into the front of every task in that folder, the way the plan for the first release already intends.
-2. **`ARCHITECTURE.md`, how it is put together.** One section per part, kept by whoever changes a part, which from 2.4 on is the harness as often as the person. Each section says what the part is for, what it holds, and what it depends on.
-3. **`REPO_MAP.md`, where everything is.** Generated, never by hand: the map of 2.1 written out as a file, so a person and git can read it. The one convention it asks of files: the first line of each file says what the file is. A file without one gets its purpose from the step it was written under or is listed by name alone.
+**`ARCHITECTURE.md`, how it is put together.** One section per part. Each section says what the part is for, what it holds, what it depends on and what depends on it. Two hundred words a section is plenty; the harness keeps them current.
 
-What the three look like away from code:
+**`REPO_MAP.md`, where everything is.** Generated, never by hand. The one thing it asks of a file is that its first line says what the file is. A file without one is listed by its name, or by the step that wrote it.
 
-- **A book.** The parts are the chapters and the notes. The map lists each chapter file with its first line, its scenes as names, and the draft that last touched it. The architecture page holds the arc, the people, and the rules of the world, one section each. A done line reads `[contains: "the harbour" in ch12.md]` or a word count. The harness's slice for a task on chapter twelve is chapters eleven to thirteen and the people in them.
-- **A video pipeline.** The parts are ingest, cut, grade and render. The map lists clips, scripts and presets with a purpose each and which stage wrote them. The architecture page says the stages, the formats between them and where renders land. Done lines read `[exit 0: render.sh]` and `[exists: out/final.mp4]`. A task on the grade is shown the cut's paragraph and the render's, and the presets it may use.
-- **An advertising campaign.** The parts are the audiences, the channels and the assets. The map lists briefs, copy variants and images with a purpose line and the task that made them. The architecture page holds the funnel, the voice rules and the calendar. Done lines read `[contains: "call to action" in ads/variant-a.md]` and a length rule. A stop line reads "any claim about price". The harness's slice for a task on one channel is that channel's assets and the voice rules, and nothing about the others.
+What they look like away from code:
 
-A `nerdgenie map` command that writes the three skeletons and the first map for any folder is one afternoon, but it waits for the second project that wants it. The guide can be written now, and it costs nothing.
+- **A book.** The parts are the chapters and the notes. The map lists each chapter file with its first line, its scenes as names, and the draft that last touched it. The architecture page holds the arc, the people and the rules of the world, one section each. Done lines read `[contains: "the harbour" in ch12.md]` and a word count on `wc -w`. The slice for a task on chapter twelve is chapters eleven to thirteen and the people in them.
+- **A video pipeline.** The parts are ingest, cut, grade and render. The map lists clips, scripts and presets with a purpose each and the stage that wrote them. The architecture page says the stages, the formats between them and where renders land. The standing order's test line is a render of a ten-second sample. Done lines read `[exit 0: render.sh]` and `[exists: out/final.mp4]`. The slice for a task on the grade is the cut's section, the render's section and the presets it may use.
+- **An advertising campaign.** The parts are the audiences, the channels and the assets. The map lists briefs, copy variants and images with a purpose line and the task that made them. The architecture page holds the funnel, the voice rules and the calendar. Done lines read `[contains: "call to action" in ads/variant-a.md]` and a length rule; a stop line reads "any claim about price". The slice for a task on one channel is that channel's assets and the voice rules, and nothing about the others.
 
-## Further out, one line each
+The point of the four examples is that the harness needs to know nothing about books, film or advertising. It needs a first line on every file, a section per part, a test command, and an ask with seven headings.
 
-- The QA skill fills an app map the same way: pages, their titles and the elements it found, so a later task on the same site starts oriented.
-- The map's "last touched" column is the seed of a job-scoped change list, which is what a review call should read instead of the transcript.
-- The purpose line is the one convention that makes any folder mappable, so the write tool's description asks for it, and nothing enforces it.
+## 5. Two commands, and what not to do
 
-## What not to do
+- `nerdgenie map <folder>` writes `REPO_MAP.md` for any folder, and the skeletons of the other two documents when they are absent.
+- `nerdgenie check <folder>` runs the bracketed done lines of the folder's `ASK.md`, which is the ask kept beside the work, and prints which pass. The ask becomes the project's acceptance test, for a folder of ad copy as well as a game, and the nightly table's check column and `nerdgenie bench` read the same lines.
 
-- Do not put the map or the architecture page in the prompt. The slice is the whole point.
-- Do not build a parser per language. One regular expression per language for names, and the first line for the purpose, is enough for a map; the syntax check is the net for correctness.
-- Do not summarise the conversation into the architecture page. Compaction was measured worse than truncation; the card is written from the record and the task's files, not from the transcript.
-- Do not make the template mandatory. A person types what they type; the seven headings are a way to be understood at once.
+Not to do: paste any of the three documents whole into a prompt; build a parser per language, when one regular expression and a first line make a map; rewrite the ask, which is the person's words and is held whole in the checkpoint; make the template mandatory, since a person types what they type and the seven headings are a way to be understood at once.
 
-## Order and cost
+## 6. Order, cost and measure
 
-1. The guide (part 3): a day of writing, no code, and it makes the rest concrete.
-2. The standard ask (part 1): two days; the biggest gain and it needs no index.
-3. The index and the orientation slice (2.1 and 2.2): three days.
-4. Search from the index (2.3): one day.
-5. The architecture card (2.4): two days.
+1. The guide (section 4): a day of writing, no code, and it makes the rest concrete.
+2. The ask (section 2): three days. The biggest gain, and it needs no index.
+3. The standing order (3.2): two days.
+4. The map (3.3): three days.
+5. The architecture page (3.4): two days.
 
-Nine working days in all, each step measured by the nightly table before the next begins.
+Eleven working days, each step measured by the nightly table before the next begins.

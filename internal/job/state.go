@@ -29,6 +29,13 @@ type taskFacts struct {
 	// PickedUp says the job has picked this task up itself once, after the
 	// harness's guard stopped it, so a second such stop puts it down.
 	PickedUp bool `json:"pickedUp,omitempty"`
+	// StartedAt is when the task was first handed out to run, and the zero
+	// time while it waits. A task handed out again after a guard stop keeps
+	// its first start, so that its total time covers the whole task.
+	StartedAt time.Time `json:"startedAt,omitzero"`
+	// FinishedAt is when the task's report was taken, and the zero time
+	// until then.
+	FinishedAt time.Time `json:"finishedAt,omitzero"`
 }
 
 // jobState is everything about a job that lives beside its record: where it
@@ -49,6 +56,12 @@ type jobState struct {
 	// KeepRunning says this job is never paused or switched off for failing,
 	// however many of its tasks fail in a row.
 	KeepRunning bool `json:"keepRunning,omitempty"`
+	// StartedAt is when the job was made, and the zero time for a job made
+	// before this was kept.
+	StartedAt time.Time `json:"startedAt,omitzero"`
+	// FinishedAt is when the job closed because every task was done, and the
+	// zero time while it runs.
+	FinishedAt time.Time `json:"finishedAt,omitzero"`
 	// LastRun is when a task of this job last finished.
 	LastRun time.Time `json:"lastRun,omitzero"`
 	// NextRun is when the schedule fires next.

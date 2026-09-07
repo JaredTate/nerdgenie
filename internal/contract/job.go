@@ -262,4 +262,35 @@ type Job interface {
 	// Load returns the job's record, which is what rides above the task record
 	// while one of the job's tasks runs and what "/jobs 4" prints.
 	Load(ctx context.Context, jobID string) (Record, error)
+	// Timing says when the job and each of its tasks started and finished, on
+	// the harness's clock: the screen shows the running time of the job and of
+	// its running task from it, and a task's report says what the task took.
+	// A job that is not there is refused with an error naming it.
+	Timing(ctx context.Context, jobID string) (JobTiming, error)
+}
+
+// TaskTiming is when one task of a job started and finished, on the
+// harness's clock.
+type TaskTiming struct {
+	// Started is when the task was first handed out to run. A task the job
+	// picked up again after a guard stop keeps its first start, so that the
+	// total covers the whole task. It is the zero time while the task waits.
+	Started time.Time
+	// Finished is when the task's report was taken, and the zero time until
+	// then.
+	Finished time.Time
+}
+
+// JobTiming is when a job and its tasks started and finished, on the
+// harness's clock. A zero moment means not yet, or unknown for a job made
+// before these moments were kept.
+type JobTiming struct {
+	// Started is when the job was made.
+	Started time.Time
+	// Finished is when the job closed because every task was done, and the
+	// zero time while it runs.
+	Finished time.Time
+	// Tasks is the timing of each task that has started, by its label, such
+	// as "t1"; a task that has not started is not in it.
+	Tasks map[string]TaskTiming
 }

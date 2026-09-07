@@ -69,7 +69,8 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if !failed {
 		theLoop.writeTheProjectDocuments(held)
 	}
-	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progressLine(jobID, reportID, held)); err != nil {
+	progress := progressLine(jobID, reportID, held) + theTookLine(theLoop.theTimingOf(ctx, jobID), taskID)
+	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progress); err != nil {
 		return outcome, err
 	}
 	if !everyTaskIsDone(held) {
@@ -146,7 +147,8 @@ func everyTaskIsDone(held contract.Record) bool {
 // finished, and sends the final report.
 func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jobID string,
 	held contract.Record, unattended bool, staysRed string) error {
-	report := fmt.Sprintf("Job %s is finished: every one of its %d tasks is done.", jobID, held.Header.TasksTotal)
+	report := fmt.Sprintf("Job %s is finished: every one of its %d tasks is done%s.", jobID, held.Header.TasksTotal,
+		theJobsSpan(theLoop.theTimingOf(ctx, jobID), theLoop.options.Clock.Now()))
 	if err := record.DoneCheck(held); err != nil {
 		report = fmt.Sprintf("Job %s has run every task, and its done list is not proven yet. %s", jobID, err.Error())
 		if staysRed != "" {

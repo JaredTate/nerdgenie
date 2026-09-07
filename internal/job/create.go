@@ -56,7 +56,7 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 	}
 
 	held := &heldJob{keeper: keeper}
-	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate}
+	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate, StartedAt: jobs.clock.Now()}
 	if wanted.Schedule != nil {
 		firstRun, err := nextRun(*wanted.Schedule, jobs.clock.Now())
 		if err != nil {

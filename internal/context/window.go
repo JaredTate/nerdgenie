@@ -25,13 +25,17 @@ var ErrPinnedEvidenceTooLarge = errors.New("the pinned evidence alone does not f
 // full, newest first.
 //
 // The order is the order of how often each part changes, so that a provider's
-// prompt cache can reuse as much as possible. First what only grows or barely
-// moves: what the agent knows from USER.md and MEMORY.md, the pinned evidence,
-// and the messages and tool results oldest first, which are only ever appended
-// to. Then the tail, which is everything a turn writes anew: the record's body,
-// whose situation the loop rewrites after every round, the list of results,
-// which grows by a line every round, the memory hint, and last of all the two
-// lines of the record's header.
+// prompt cache can reuse as much as possible. First what changes from one task
+// to the next and holds still within one: the job summary, the recent work,
+// and the record's goal and rules. Then what only grows or barely moves: what
+// the agent knows from USER.md and MEMORY.md, the pinned evidence, and the
+// messages and tool results oldest first, which are only ever appended to,
+// with every picture taken off them. Then the tail, which is everything a turn
+// writes anew: the record's body, whose situation the loop rewrites after
+// every round, the list of results, which grows by a line every round, the
+// memory hint, the two lines of the record's header, the newest pictures in
+// one message of their own, and last of all one line naming the step the
+// model is on.
 //
 // The record's body used to sit above the messages, and a measurement on the
 // local daemon says what that cost. On one Nerd Genie call it reported 18,658 prompt
@@ -72,35 +76,82 @@ func (builder *Builder) messagesFor(input BuildInput, parts recordParts, known s
 	if len(input.MemoryHint) > 0 {
 		hint = append(hint, asUserMessage(memoryHintHeading, memoryHintText(input.MemoryHint)))
 	}
+	perTask := perTaskFront(input, parts)
+	conversation, pictures := withoutPictures(input.Messages)
+	pictured, nextStep := theClosingMessages(pictures, input.Record)
 
-	fixed := above + totalTokens(recordBody) + totalTokens(whatIsKnown) + totalTokens(recordResults) + totalTokens(recordHeader)
-	room := input.ContextLength - builder.maxOutputTokens - fixed
-	if room <= 0 {
-		return nil, roomRanOut(fixed, input, builder.maxOutputTokens)
-	}
-	room -= totalTokens(pinned) + totalTokens(hint)
-	if room < 0 {
-		if len(input.Pinned) > 0 {
-			return nil, pinsDoNotFit(input.Pinned, totalTokens(pinned))
-		}
-		return nil, roomRanOut(fixed+totalTokens(hint), input, builder.maxOutputTokens)
+	fixed := above + totalTokens(perTask) + totalTokens(recordBody) + totalTokens(whatIsKnown) + totalTokens(recordResults) +
+		totalTokens(recordHeader) + totalTokens(pictured) + totalTokens(nextStep)
+	room, err := builder.roomForTheConversation(input, fixed, totalTokens(pinned), totalTokens(hint))
+	if err != nil {
+		return nil, err
 	}
 
-	onTheTable := fitNewestFirst(wrapToolResults(input.Messages, builder.boundary), room)
+	onTheTable := fitNewestFirst(wrapToolResults(conversation, builder.boundary), room)
 	recordResults = recordResults[:0]
 	if listed := resultsThatLeftTheTable(parts.Results, labelsOn(onTheTable)); listed != "" {
 		recordResults = append(recordResults, asUserMessage(recordResultsHeading, MarkResultLines(builder.boundary, listed)))
 	}
 
 	below := make([]contract.Message, 0,
-		len(whatIsKnown)+len(pinned)+len(onTheTable)+len(recordBody)+len(recordResults)+len(hint)+len(recordHeader))
+		len(perTask)+len(whatIsKnown)+len(pinned)+len(onTheTable)+len(recordBody)+len(recordResults)+len(hint)+len(recordHeader)+len(pictured)+len(nextStep))
+	below = append(below, perTask...)
 	below = append(below, whatIsKnown...)
 	below = append(below, pinned...)
 	below = append(below, onTheTable...)
 	below = append(below, recordBody...)
 	below = append(below, recordResults...)
 	below = append(below, hint...)
-	return append(below, recordHeader...), nil
+	below = append(below, recordHeader...)
+	below = append(below, pictured...)
+	return append(below, nextStep...), nil
+}
+
+// roomForTheConversation is the window rule's arithmetic: the model's context
+// less the output cap, less everything that must ride, less the pins and the
+// hint, and the refusal that names what did not fit when nothing is left.
+func (builder *Builder) roomForTheConversation(input BuildInput, fixed int, pinned int, hint int) (int, error) {
+	room := input.ContextLength - builder.maxOutputTokens - fixed
+	if room <= 0 {
+		return 0, roomRanOut(fixed, input, builder.maxOutputTokens)
+	}
+	room -= pinned + hint
+	if room < 0 {
+		if len(input.Pinned) > 0 {
+			return 0, pinsDoNotFit(input.Pinned, pinned)
+		}
+		return 0, roomRanOut(fixed+hint, input, builder.maxOutputTokens)
+	}
+	return room, nil
+}
+
+// theClosingMessages are the two that end every prompt: the newest pictures in
+// one message, and the line naming the step the model is on. Either may be
+// empty.
+func theClosingMessages(pictures []contract.ToolResult, held contract.Record) ([]contract.Message, []contract.Message) {
+	nextStep := []contract.Message{}
+	if line := NextStepLine(held); line != "" {
+		nextStep = append(nextStep, contract.Message{Role: contract.RoleUser, Text: line})
+	}
+	return picturesMessage(pictures), nextStep
+}
+
+// perTaskFront is what changes from one task to the next and holds still within
+// one: the job summary, the recent work, and the record's goal and rules. They
+// used to ride in the system prompt, ahead of the tools, and every task start
+// then re-read the whole tool list; below the tools they cost only themselves.
+func perTaskFront(input BuildInput, parts recordParts) []contract.Message {
+	front := []contract.Message{}
+	if input.JobSummary != "" {
+		front = append(front, asUserMessage(jobHeading, input.JobSummary))
+	}
+	if len(input.RecentWork) > 0 {
+		front = append(front, asUserMessage(recentWorkHeading, recentWorkText(input.RecentWork)))
+	}
+	if parts.Stable != "" {
+		front = append(front, asUserMessage(recordFirstHalfHeading, parts.Stable))
+	}
+	return front
 }
 
 // labelsOn is the label of every result whose full text is in the window.

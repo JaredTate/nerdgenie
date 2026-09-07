@@ -12,8 +12,10 @@ import (
 )
 
 // TestTheLayersArriveInTheOrderTheDesignPutsThem proves the system prompt holds
-// the layers of design section 4 in order, each as its own block, with the three
-// cache boundaries where the design puts them.
+// the layers of design section 4 in order, each as its own block, with the cache
+// boundaries where the design puts them, and that the layers which change per
+// task, the job summary and the record's goal and rules, ride first below the
+// tools rather than above them, since 7 September 2026.
 func TestTheLayersArriveInTheOrderTheDesignPutsThem(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	writePersonaFile(t, builder.home.SoulFile(), "I am Nerd Genie.")
@@ -32,8 +34,10 @@ func TestTheLayersArriveInTheOrderTheDesignPutsThem(t *testing.T) {
 		{BlockInstructions, contract.CacheBoundaryNone},
 		{BlockPersona, contract.CacheBoundaryA},
 		{BlockTools, contract.CacheBoundaryB},
-		{BlockJob, contract.CacheBoundaryNone},
-		{BlockRecord, contract.CacheBoundaryC},
+	}
+	if !strings.HasPrefix(request.Messages[0].Text, jobHeading) || !strings.HasPrefix(request.Messages[1].Text, recordFirstHalfHeading) {
+		t.Errorf("the first messages below the tools are not the job summary and the record's goal:\n%s\n%s",
+			firstLineOf(request.Messages[0].Text), firstLineOf(request.Messages[1].Text))
 	}
 	if len(request.SystemBlocks) != len(wanted) {
 		t.Fatalf("the system prompt has %d blocks, want %d: %s", len(request.SystemBlocks), len(wanted), blockNames(request))
@@ -66,9 +70,10 @@ func TestTheJobSummaryIsThereOnlyWhenTheTaskBelongsToAJob(t *testing.T) {
 	}
 }
 
-// TestTheRecordIsSplitAcrossTheCacheLine proves the goal and the rules are in
-// the system prompt and the work and the lessons are in the messages, because
-// everything below the cache line has to go where nothing above it moves.
+// TestTheRecordIsSplitAcrossTheCacheLine proves the goal and the rules are the
+// first message below the tools, the work and the lessons come after the
+// conversation, and the header and the step line close the prompt, because
+// everything that changes has to go where nothing above it moves.
 func TestTheRecordIsSplitAcrossTheCacheLine(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	request, err := builder.Build(t.Context(), sampleInput())
@@ -77,8 +82,11 @@ func TestTheRecordIsSplitAcrossTheCacheLine(t *testing.T) {
 	}
 
 	system := systemText(request)
-	if !strings.Contains(system, "Post a tweet") {
-		t.Errorf("the ask is not above the cache line:\n%s", system)
+	if strings.Contains(system, "Post a tweet") {
+		t.Errorf("the ask rides in the system prompt, ahead of the tools, and it changes per task:\n%s", system)
+	}
+	if !strings.Contains(request.Messages[0].Text, "Post a tweet") {
+		t.Errorf("the ask is not the first message below the tools:\n%s", request.Messages[0].Text)
 	}
 	if strings.Contains(system, "## Work") {
 		t.Errorf("the record's work is above the cache line, and it changes every turn:\n%s", system)
@@ -90,9 +98,12 @@ func TestTheRecordIsSplitAcrossTheCacheLine(t *testing.T) {
 	if strings.Index(whole, "## Work") < strings.Index(whole, "Reading the product notes.") {
 		t.Errorf("the record's body comes before the conversation, and its situation is rewritten every turn:\n%s", whole)
 	}
-	last := request.Messages[len(request.Messages)-1]
-	if !strings.Contains(last.Text, "this turn:") {
-		t.Errorf("the record's header, which is written anew on every call, is not the last thing below the cache line:\n%s", last.Text)
+	header := request.Messages[len(request.Messages)-2]
+	if !strings.Contains(header.Text, "this turn:") {
+		t.Errorf("the record's header, which is written anew on every call, is not the last thing before the step line:\n%s", header.Text)
+	}
+	if last := request.Messages[len(request.Messages)-1]; last.Text != NextStepLine(sampleInput().Record) {
+		t.Errorf("the step line is not the last thing the model reads:\n%s", last.Text)
 	}
 	if strings.Contains(request.Messages[0].Text, "this turn:") {
 		t.Errorf("the record's header is still at the front, where it costs the provider everything under it:\n%s", request.Messages[0].Text)

@@ -80,6 +80,14 @@ type anthropicThinking struct {
 	Type string `json:"type"`
 }
 
+// anthropicToolChoice is how the API is told whether the model may call a
+// tool. The harness sends it only as "none", when the tools are switched off
+// but still on the wire for the cache's sake.
+type anthropicToolChoice struct {
+	// Type is "none": the tools stay in the prompt and the model may not call.
+	Type string `json:"type"`
+}
+
 // anthropicOutputConfig carries how much effort the model may spend on one
 // call. The same reference file writes it as output_config.effort, and the
 // levels it takes are the ones Nerd Genie offers above "off".
@@ -102,9 +110,13 @@ type anthropicBody struct {
 	System []anthropicTextBlock `json:"system,omitempty"`
 	// Messages is the conversation.
 	Messages []anthropicMessage `json:"messages"`
-	// Tools is what the model may ask for, and is left out when the harness has
-	// switched the tools off.
+	// Tools is what the model may ask for. It is sent even when the harness has
+	// switched the tools off, so that the cached prefix of tools and system
+	// prompt holds; ToolChoice then says none.
 	Tools []anthropicTool `json:"tools,omitempty"`
+	// ToolChoice is {"type":"none"} when the harness has switched the tools
+	// off, and left out otherwise.
+	ToolChoice *anthropicToolChoice `json:"tool_choice,omitempty"`
 	// Thinking asks for adaptive thinking, and is left out when the think level
 	// is off or empty, which is how Nerd Genie called this API before the level
 	// existed.

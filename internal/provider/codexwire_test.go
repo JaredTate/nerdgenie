@@ -136,7 +136,10 @@ func TestCodexBodyCarriesTheWholeConversationToolsAndEffort(t *testing.T) {
 	wantSameBody(t, got, goldenCodexBody(t, "everything.json"))
 }
 
-func TestCodexBodyLeavesTheToolsOutWhenTheyAreOff(t *testing.T) {
+// TestCodexBodyKeepsTheToolsAndSaysNoneWhenTheyAreOff: since 7 September 2026
+// a call with the tools off keeps them on the wire, so the prompt is the same
+// bytes as a working call's, and forbids the call with a tool choice of none.
+func TestCodexBodyKeepsTheToolsAndSaysNoneWhenTheyAreOff(t *testing.T) {
 	request := contract.Request{
 		SystemBlocks: []contract.SystemBlock{rulesBlock},
 		Messages:     []contract.Message{userSaying("Write the final report.")},
@@ -159,7 +162,7 @@ func TestCodexBodyLeavesTheToolsOutWhenThereAreNone(t *testing.T) {
 
 	got := codexBodyFor(t, request)
 
-	wantSameBody(t, got, goldenCodexBody(t, "tools_off.json"))
+	wantSameBody(t, got, goldenCodexBody(t, "no_tools.json"))
 }
 
 func TestCodexBodySaysNothingAboutReasoningByDefaultOrWhenThinkingIsOff(t *testing.T) {

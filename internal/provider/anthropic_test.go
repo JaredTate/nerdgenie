@@ -293,6 +293,59 @@ func TestTheAnthropicProviderCountsTheThinkingAndToolCallsItWritesUnseen(t *test
 	}
 }
 
+// TestTheAnthropicProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff:
+// the tools stay on the wire so the cached prefix holds, and the tool choice
+// of none is what keeps the model from calling.
+func TestTheAnthropicProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptSayingOneThing("done"))
+	defer server.Close()
+	model, _, _ := anthropicAgainst(t, server)
+	request := requestWithEverything()
+	request.ToolsOff = true
+
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call to the Anthropic provider failed: %v", err)
+	}
+
+	body := bodyOfLastCallTo(t, server, testkit.AnthropicPath)
+	if tools, _ := body["tools"].([]any); len(tools) == 0 {
+		t.Errorf("the request carries no tools with the tools off, and the cached prefix then differs from a working call's: %v", body["tools"])
+	}
+	choice, _ := body["tool_choice"].(map[string]any)
+	if choice["type"] != "none" {
+		t.Errorf("the request sets tool_choice to %v, want a choice of type none", body["tool_choice"])
+	}
+}
+
+// TestTheAnthropicProviderSendsAPictureOnItsOwnAsOnlyAnImageBlock: a result
+// with no call id is a picture riding in the pictures message at the end of
+// the prompt, and goes as an image block alone, with no tool result block
+// answering a call that was never made, which the API would refuse.
+func TestTheAnthropicProviderSendsAPictureOnItsOwnAsOnlyAnImageBlock(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptSayingOneThing("a red square"))
+	defer server.Close()
+	model, _, _ := anthropicAgainst(t, server)
+	request := requestWithEverything()
+	request.Messages = append(request.Messages, contract.Message{Role: contract.RoleUser, Text: "## Pictures\n\nthe pictures that came with r7", ToolResults: []contract.ToolResult{
+		{Label: "r7", Picture: "iVBORw0KGgo="},
+	}})
+
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call to the Anthropic provider failed: %v", err)
+	}
+
+	body := bodyOfLastCallTo(t, server, testkit.AnthropicPath)
+	messages := body["messages"].([]any)
+	last := messages[len(messages)-1].(map[string]any)
+	blocks, _ := last["content"].([]any)
+	if len(blocks) != 2 {
+		t.Fatalf("the last turn has %d blocks, want the image block and the text: %v", len(blocks), last)
+	}
+	if blocks[0].(map[string]any)["type"] != "image" || blocks[1].(map[string]any)["type"] != "text" {
+		t.Errorf("the last turn is %v, want an image block and then the pictures message's words, and no tool result block", last)
+	}
+}
+
 // TestTheAnthropicProviderSendsAToolResultsPictureAsAnImageBlock is the same
 // eyes on the Messages API: the picture follows its tool result as an image
 // block in the same user turn.

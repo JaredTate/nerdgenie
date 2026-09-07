@@ -17,10 +17,12 @@ func sampleRecentWork() []RecentTask {
 	}
 }
 
-// TestRecentWorkRidesAboveTheRecordInTheCachePrefix proves the recent-work block
-// is a system block placed above the record, so it sits in the part of the
-// prompt the provider can reuse rather than in the volatile tail.
-func TestRecentWorkRidesAboveTheRecordInTheCachePrefix(t *testing.T) {
+// TestRecentWorkRidesBelowTheToolsAndAboveTheRecordsGoal proves the recent
+// work is one of the first messages below the tools, before the record's goal
+// and before the conversation: it holds still through a sitting, so it sits
+// where the provider reuses it, and never in the system prompt, which since 7
+// September 2026 is the same bytes for every task of a run.
+func TestRecentWorkRidesBelowTheToolsAndAboveTheRecordsGoal(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	input := sampleInput()
 	input.RecentWork = sampleRecentWork()
@@ -30,37 +32,41 @@ func TestRecentWorkRidesAboveTheRecordInTheCachePrefix(t *testing.T) {
 		t.Fatalf("cannot build the working context: %v", err)
 	}
 
-	recentAt, recordAt := blockIndex(request, BlockRecentWork), blockIndex(request, BlockRecord)
-	if recentAt < 0 {
-		t.Fatalf("a populated recent-work field wrote no recent-work block: %s", blockNames(request))
+	if blockIndex(request, BlockRecentWork) >= 0 || blockIndex(request, BlockRecord) >= 0 {
+		t.Fatalf("the recent work or the record rides in the system prompt, ahead of the tools: %s", blockNames(request))
 	}
-	if recordAt < 0 {
-		t.Fatalf("the record block is missing: %s", blockNames(request))
+	recentAt, goalAt := messageIndex(request, recentWorkHeading), messageIndex(request, recordFirstHalfHeading)
+	if recentAt < 0 || goalAt < 0 {
+		t.Fatalf("the recent work (%d) or the record's goal (%d) is missing below the tools", recentAt, goalAt)
 	}
-	if recentAt >= recordAt {
-		t.Errorf("the recent-work block is at %d and the record at %d, but recent work goes above the record", recentAt, recordAt)
+	if recentAt >= goalAt {
+		t.Errorf("the recent work is message %d and the record's goal %d, but recent work goes above the goal", recentAt, goalAt)
 	}
-	if request.SystemBlocks[recordAt].Boundary != contract.CacheBoundaryC {
-		t.Errorf("the record no longer ends cache boundary C, so recent work would not be inside the cached prefix")
-	}
-	if request.SystemBlocks[recentAt].Boundary != contract.CacheBoundaryNone {
-		t.Errorf("the recent-work block ends its own cache boundary %q, but with a record it rides above boundary C on the record",
-			request.SystemBlocks[recentAt].Boundary)
+	if goalAt >= messageIndex(request, "Reading the product notes.") {
+		t.Errorf("the record's goal comes after the conversation, and it holds still through a task")
 	}
 
-	block := request.SystemBlocks[recentAt].Text
+	block := request.Messages[recentAt].Text
 	for _, want := range []string{"task 4:", "Post a tweet about the DigiByte anniversary.", "posted, 236 characters", "task 3:", "saved to blog/anniversary.md"} {
 		if !strings.Contains(block, want) {
-			t.Errorf("the recent-work block is missing %q:\n%s", want, block)
+			t.Errorf("the recent-work message is missing %q:\n%s", want, block)
 		}
 	}
-
-	// The block is a system block, so its heading is never repeated in the
-	// messages below the cache line.
 	whole := testkit.WholeRequestText(request)
 	if strings.Count(whole, recentWorkHeading) != 1 {
-		t.Errorf("the recent-work heading appears %d times, want once and only above the cache line", strings.Count(whole, recentWorkHeading))
+		t.Errorf("the recent-work heading appears %d times, want once", strings.Count(whole, recentWorkHeading))
 	}
+}
+
+// messageIndex is the position of the first message whose text carries the
+// words, or minus one.
+func messageIndex(request contract.Request, words string) int {
+	for at, message := range request.Messages {
+		if strings.Contains(message.Text, words) {
+			return at
+		}
+	}
+	return -1
 }
 
 // TestRecentWorkIsOneLinePerTask proves the block writes one line per task under
@@ -128,9 +134,8 @@ func TestRecentWorkTrimsTheAskToASentenceAndBoundsEachLine(t *testing.T) {
 }
 
 // TestRecentWorkRidesAboveAnEmptyRecord proves the "where are we" case: the
-// current record is empty, and the recent-work block still rides above the cache
-// line so a small window keeps it and the provider can reuse it. With no record
-// to carry boundary C, the recent-work block carries it instead.
+// current record is empty, and the recent work is still the first message
+// below the tools, so a small window keeps it and the provider reuses it.
 func TestRecentWorkRidesAboveAnEmptyRecord(t *testing.T) {
 	builder := newTestBuilder(t, Options{})
 	input := sampleInput()
@@ -141,16 +146,11 @@ func TestRecentWorkRidesAboveAnEmptyRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot build the working context with an empty record: %v", err)
 	}
-	if blockIndex(request, BlockRecord) >= 0 {
-		t.Errorf("a task with no record carries one: %s", blockNames(request))
+	if messageIndex(request, recordFirstHalfHeading) >= 0 {
+		t.Errorf("a task with no record carries one")
 	}
-	recentAt := blockIndex(request, BlockRecentWork)
-	if recentAt < 0 {
-		t.Fatalf("the recent-work block is missing when the record is empty: %s", blockNames(request))
-	}
-	if request.SystemBlocks[recentAt].Boundary != contract.CacheBoundaryC {
-		t.Errorf("with no record, the recent-work block does not end cache boundary C, so it is not in the cached prefix: boundary %q",
-			request.SystemBlocks[recentAt].Boundary)
+	if len(request.Messages) == 0 || !strings.HasPrefix(request.Messages[0].Text, recentWorkHeading) {
+		t.Fatalf("the recent work is not the first message below the tools when the record is empty")
 	}
 }
 

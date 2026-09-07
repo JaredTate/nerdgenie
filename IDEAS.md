@@ -8,6 +8,8 @@ The numbers come from `docs/research/2026-09-06-behaviour/`: the model's behavio
 
 ### 1. A cache-shaped prompt for the whole run
 
+Built on 7 September 2026, without the second daemon slot: the per-task front rides below the tools, a call with the tools off keeps them on the wire with a tool choice of none, pictures ride last, and the tail ends with the step line of idea 3.
+
 Three changes that keep the daemon's cache warm. The front of the prompt becomes byte-stable across every task of a run: the job summary and the pins move below the cache line, so a new task re-reads about two thousand tokens instead of twelve. Every side call the harness makes (the done check, the job's planning and review, the memory pass) goes to a second daemon slot so it cannot evict the task's cache. A picture rides as the last message and is dropped without rewriting any earlier result.
 
 - Evidence: 25 rounds lost the whole cache with the prompt unchanged and no harness event between (829k tokens); 25 of 32 task starts re-read the 10 to 14 thousand token front (351k); 18 cache fall-backs coincided with a picture leaving the window (410k).
@@ -27,6 +29,8 @@ When the guard fires, the harness cuts only the messages since the last progress
 - Cost: one to two days.
 
 ### 3. The harness keeps the books
+
+The tail line was built on 7 September 2026 with idea 1: every prompt now ends with "Step 3 of 5: ... Last: r41 ... Next: step 4, ... Open done lines: 2." The expect line and the schema are still to build.
 
 An optional `expect` line on shell, write and edit, checked by four plain rules: a test count, an exit code, a contained string, parses. A miss becomes a failure line with its cause, written by the harness; a hit marks the step it proves. The task tool's required fields become required in its schema. The tail ends with one harness line, "Step 3 of 5, next: ...", because the last thing the model reads is what it answers, which the plan regression of 6 September proved.
 

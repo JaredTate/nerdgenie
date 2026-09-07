@@ -8,16 +8,6 @@
       "content": [{"type": "input_text", "text": "Write the final report."}]
     }
   ],
-  "tools": [
-    {
-      "type": "function",
-      "name": "read",
-      "description": "Read one file.",
-      "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "The file to read."}}, "required": ["path"]},
-      "strict": false
-    }
-  ],
-  "tool_choice": "none",
   "stream": true,
   "store": false,
   "reasoning": {"effort": "high"},

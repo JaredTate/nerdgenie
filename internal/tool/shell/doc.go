@@ -20,4 +20,12 @@
 // machine, so that a failing command in a pipe reports its own code rather than
 // the code of the last command in the pipe, and through /bin/sh where there is
 // no bash.
+//
+// Three more things came from watching a model work: a serve, which starts a
+// command that is meant to keep running and answers the moment it listens on a
+// port, because a server never finishes and a model polling one asks for ever;
+// a check, which says whether a port answers and how fast with no shell in it;
+// and the short answer "same as the last run of this command, unchanged" when
+// the same command writes the same thing again, because the command still ran
+// and only the tokens are spared.
 package shell

@@ -38,6 +38,8 @@ An optional `expect` line on shell, write and edit, checked by four plain rules:
 
 ### 4. Long-lived processes as first-class citizens
 
+Built on 7 September 2026: `serve`, `check`, and the unchanged-command answer, in `internal/tool/shell`, proven with a real server under the integration tag; the measure is the poll-only and identical-command rounds of the next run.
+
 The shell tool gets `serve`: start a process detached and answer at once with the port it opened, read from the kernel's socket table the orientation block already reads. A `check` answers whether a port answers and how fast. An identical command within a few rounds whose output hash has not changed is answered "same as r12" by the harness without running it.
 
 - Evidence: 131 poll-only rounds (526k tokens, 28 minutes) were all polls of servers that never finish; 84 rounds repeated an identical command (511k, 33 minutes), one health probe 26 times in one task.

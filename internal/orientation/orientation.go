@@ -124,6 +124,18 @@ func portsLine(files []string) string {
 // tables, each port once, sorted, at most MaxPorts of them, and says which
 // tables could not be read.
 func ListeningPorts(files ...string) ([]int, []string) {
+	ports, problems := EveryListeningPort(files...)
+	if len(ports) > MaxPorts {
+		ports = ports[:MaxPorts]
+	}
+	return ports, problems
+}
+
+// EveryListeningPort is ListeningPorts with no cap, for a reader that must
+// not miss a port: a machine with more than MaxPorts listeners kept a served
+// port above them out of the capped list, and the shell tool's serve said
+// nothing listened while the server did.
+func EveryListeningPort(files ...string) ([]int, []string) {
 	seen := map[int]bool{}
 	problems := []string{}
 	for _, file := range files {
@@ -145,9 +157,6 @@ func ListeningPorts(files ...string) ([]int, []string) {
 		ports = append(ports, port)
 	}
 	slices.Sort(ports)
-	if len(ports) > MaxPorts {
-		ports = ports[:MaxPorts]
-	}
 	return ports, problems
 }
 

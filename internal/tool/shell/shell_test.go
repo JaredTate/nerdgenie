@@ -104,7 +104,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)
 	}
-	if strings.Join(names, ",") != "command,action,id,escalate,reason" {
+	if strings.Join(names, ",") != "command,action,id,escalate,reason,port,path" {
 		t.Errorf("the tool takes the fields %v, and the permission function reduces a shell call by command, escalate, and reason", names)
 	}
 }

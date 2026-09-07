@@ -32,9 +32,7 @@ A new, empty folder: `<WORK>/Tater Tots Tetrisv1`. It already exists. Put all so
 - The random source is injectable or seeded, so a test can force any piece, any hazard, either yeti side and any of the three clear effects. No test may depend on luck.
 - Hazards are real game states in the engine, never animations layered over the game.
 - Effects must never make the board hard to read.
-- Stop if a test cannot be made to pass after three different fixes.
-- Stop if the page cannot be opened in the Chrome window.
-- Stop if the game would need anything installed beyond npm packages.
+- Keep going until every done line is met. Do not stop to ask. When a test will not pass, write the failure and its cause into the record and take a different approach; when the page will not open, fix the server and try again.
 
 ## Tasks
 

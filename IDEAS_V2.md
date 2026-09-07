@@ -21,7 +21,7 @@ Six headings, in this order. Write them in plain words.
 | **Goal** | What we are building or changing, for whom, and why. Two to five sentences. | Becomes the job's name and its why. Printed at the top of every task, so the model always knows what the work is for. |
 | **Where** | New project: the folder. Existing project: the repository, the branch, and the files to start from. | Opens the folder and the starting files before the model's first call. Finds the project's documents there (section 5). |
 | **Done when** | Numbered lines. Each one is something that must be true at the end. Put a check in brackets when the harness can run it. | Becomes the job's done list. Runs the bracketed checks at the end of every task and at the finish. The model cannot declare the job done; the list does. |
-| **Rules** | What holds on every task. A line that starts with "Stop" means stop and ask me. | Every rule rides in front of every task, in your words, never rewritten. Stop lines end the task the moment they come true. |
+| **Rules** | What holds on every task. A line that starts with "Stop" means stop and ask me; a build that should run end to end has none. | Every rule rides in front of every task, in your words, never rewritten. Stop lines end the task the moment they come true. |
 | **Tasks** | The order of work, one line each, one done line each. Optional: the model plans when it is absent. | Becomes the job's task list with no planning rounds. The model may split a task or add one, never remove a finished one. |
 | **Details** | Everything else, as long as you like, under its own headings. | Each task sees the sections it names in full and the other sections by heading. The model reads any section by name. |
 
@@ -72,8 +72,7 @@ A new, empty folder: <WORK>/Tater Tots Tetrisv1. Serve it on any port but 8090.
 - The browser is the Chrome window on the screen, never a headless one from a script.
 - Hazard values live in one config file: probabilities, warning times, forced-drop speed.
 - The random source can be injected, so any hazard can be forced in a test.
-- Stop if a test cannot be made to pass after three different fixes.
-- Stop if the Chrome window cannot open the page.
+- Keep going until every done line is met; do not stop to ask.
 
 ## Tasks
 1. Scaffold: package.json, a test runner, index.html, a smoke test. (Details: Core game)
@@ -102,7 +101,7 @@ A new, empty folder: <WORK>/Tater Tots Tetrisv1. Serve it on any port but 8090.
 ### Visual polish
 ```
 
-That is the same 2,898 words. The finish is six lines, two of them run by the harness. The rules are six lines that reach every task. Each task says which part of the details it needs.
+That is the same 2,898 words. The finish is six lines, two of them run by the harness. The rules are five lines that reach every task, and none of them is a stop line, because this build is meant to run end to end without a person. Each task says which part of the details it needs.
 
 ## 4. What the harness does with it, the same every time
 

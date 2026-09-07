@@ -50,7 +50,7 @@ Expected: fewer planning rounds, because the Tasks list is a plan; done lines cl
 
 One small package that turns the ask's text into a work order and says whether it is one.
 
-- **Tests first.** `TestReadsTheSixHeadings` (each heading, in any case, in any order). `TestAnAskWithoutGoalAndDoneWhenIsNotAWorkOrder`. `TestADoneLineKeepsItsCheck` (the four kinds, `tests pass`, `exit 0`, `shows ... at ...`, `exists`, and a bracket it does not know is left in the text and reported). `TestARuleStartingWithStopIsAStopLine`. `TestATaskNamesItsDetailsSections` (`(Details: Dragon, Tests required)`). `TestDetailsAreSplitByHeading`. A golden test on `TETRIS_PROMPT_V2.md`: fourteen tasks, seven done lines, ten rules of which three are stop lines, eleven sections. `FuzzParse`: never panics, and every heading it reports is in the text.
+- **Tests first.** `TestReadsTheSixHeadings` (each heading, in any case, in any order). `TestAnAskWithoutGoalAndDoneWhenIsNotAWorkOrder`. `TestADoneLineKeepsItsCheck` (the four kinds, `tests pass`, `exit 0`, `shows ... at ...`, `exists`, and a bracket it does not know is left in the text and reported). `TestARuleStartingWithStopIsAStopLine`. `TestATaskNamesItsDetailsSections` (`(Details: Dragon, Tests required)`). `TestDetailsAreSplitByHeading`. A golden test on `TETRIS_PROMPT_V2.md`: fourteen tasks, seven done lines, eight rules and no stop lines, eleven sections. `FuzzParse`: never panics, and every heading it reports is in the text.
 - **Code.** `Parse(text string) WorkOrder`. A `WorkOrder` holds `Name`, `Goal`, `Where`, `DoneWhen []DoneLine{Text, Check}`, `Rules`, `StopIf`, `Tasks []Task{Text, Details}`, `Sections []Section{Heading, Body}`, and `IsWorkOrder`. Nothing else. Headings are the six names, matched without regard to case. The section-cutting helper lives in `internal/markdown`, a package of one function, `Sections(text)`, with its own fuzz target, because steps 3, 6 and 7 use it too.
 - **Size.** About two hundred lines and their tests.
 
@@ -124,6 +124,6 @@ Eight and a half days. Each run is a night on the show home, so the whole plan i
 
 - **The model ignores the task's slice and reads the whole ask anyway.** RB's reads-by-section count shows it. The slice stays; the heading lines say how to read more.
 - **The tests-first line fires on a write the model had to make** (a fixture, a helper). The short code-extension list and the "before any test run" rule keep it quiet on scaffolds; RC's count shows whether it fires more than once or twice a task.
-- **A bracketed check cannot run on the machine** (the browser cannot open the page). The stop line in the work order covers it, and after three tries the task stops and names the line.
+- **A bracketed check cannot run on the machine** (the browser cannot open the page). After three tries the task stops and names the line, which is the one place this set lets a run wait for a person, and it is the harness's doing, not a stop line in the ask.
 - **The fifth review question writes nonsense into the architecture page.** The section is replaced, dated, and the old body is in the log; the owner reads the page after RD.
 - **The cache breaks.** The standing order sits inside the stable prefix and the task's slice sits in the per-task front; `cacheshape_test.go` holds the layout, and every run's cached share is on the table.

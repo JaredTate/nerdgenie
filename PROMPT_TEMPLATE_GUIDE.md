@@ -52,7 +52,7 @@ Write the ask under six headings, in this order.
 
 A line with no check is judged by the model, and the model must name the result that proves it. Make the first done line the test suite; the harness runs it at the end of every task.
 
-**Rules.** What holds on every task, one line each, in your own words. A line that starts with "Stop" means stop and ask me: the harness ends the task the moment that line comes true. The first rule is always tests first, and the harness writes it there itself, whether or not you did: write the test, watch it fail, write the code, watch it pass, the whole suite green before a task ends.
+**Rules.** What holds on every task, one line each, in your own words. A line that starts with "Stop" means stop and ask me: the harness ends the task the moment that line comes true, so use one only where a person must decide, never in a build meant to run end to end. The first rule is always tests first, and the harness writes it there itself, whether or not you did: write the test, watch it fail, write the code, watch it pass, the whole suite green before a task ends.
 
 **Tasks.** The order of work, one line each, each with one done line, in the order they depend on each other. Name the Details sections each task needs, like this: `(Details: Dragon, Tests required)`. A task is one sitting of work, thirty seconds to an hour. If you leave Tasks out, the model plans the job itself, in this same shape.
 
@@ -104,7 +104,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 
 **A good rule** is one line, imperative, in your words, and it holds on every task: "Port 8090 is taken; use 8091." "Never start a browser from a script." Put a rule once. If you find yourself writing the same rule under three features, it belongs here.
 
-**A good stop line** names a state you want to hear about before the work goes on: "Stop if a test cannot be made to pass after three different fixes." "Stop if any file under supabase/ would change."
+**A good stop line** names a state a person must decide on before the work goes on, and it belongs only in an ask where such a state exists: real data, money, production, a file that must never change. "Stop if any file under supabase/ would change." "Stop if the change needs a migration." A standalone build that should run end to end, like the Tetris game, has no stop lines at all: a test that will not pass is the model's problem to solve by another route, and the harness's own guards handle a model that is stuck. Every stop line you write is a place the work will wait for you, so write one only where you want it to.
 
 **A good task** is one sitting of work with one done line, and names its Details: "6. The dragon: probability, warning, lock, forced drop, cleanup. Done when the dragon tests pass. (Details: Dragon, Tests required)". Order tasks by what they depend on. Put the tests-only tasks (a safety suite) before the screen work, and the play test and visual QA last, because they need everything else.
 
@@ -120,7 +120,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - There is no stop list, so nothing could stop the work early.
 - Whole sections lecture the process: "write test, run test, implement, run test, fix, refactor, run all tests". The harness holds that process (section 3); the ask does not need to teach it.
 
-`TETRIS_PROMPT_V2.md` says everything the old ask says, under the six headings, with seven done lines and fourteen tasks.
+`TETRIS_PROMPT_V2.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks and no stop lines, because it is meant to run end to end.
 
 ## 7. A checklist before you submit
 
@@ -128,7 +128,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - [ ] Where names the folder, and for an existing project the files to start from.
 - [ ] The first done line is the test suite, with `[tests pass: ...]`.
 - [ ] Every done line is a fact that can be checked, by the harness or by the model against a result.
-- [ ] Each rule appears once. Anything dangerous has a Stop line.
+- [ ] Each rule appears once. Anything a person must decide has a Stop line; a build meant to run end to end has none.
 - [ ] Each task has one done line and names its Details sections.
 - [ ] Details hold every feature, complete, and nothing about process.
 - [ ] Nothing in the ask tells the model how to be an agent. The harness does that.

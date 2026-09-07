@@ -21,12 +21,17 @@ const ArchitectureFile = "ARCHITECTURE.md"
 
 // TheFifthQuestion follows the four of the review when the work folder holds
 // an architecture page, or when the task belongs to a job and could start one.
-const TheFifthQuestion = "Which section of ARCHITECTURE.md does this task change, and what should that section say now? Put the heading on the first line and the paragraph under it, or say none."
+const TheFifthQuestion = "Which section of ARCHITECTURE.md does this task change, and what should that section say now? Put the heading on the first line and the paragraph under it, or say none. " + TheToolsAreOffLine
+
+// TheToolsAreOffLine ends both questions. Run 19's first task answered the
+// section question by asking for the read tool, because nothing had told it
+// the tools were off, and a page section came out as tool markup.
+const TheToolsAreOffLine = "The tools are off: answer from the record above, in words, with no tool call."
 
 // TheFirstSectionQuestion is asked instead when the folder has no page yet:
 // the first task of a project is asked to start the page, not which section
 // it changed, because "which section changed" invites the answer none.
-const TheFirstSectionQuestion = "This project has no ARCHITECTURE.md yet. Start it with the part this task built: put the part's name as a heading on the first line, and under it one paragraph saying what the part is for, what it holds, and which files it lives in."
+const TheFirstSectionQuestion = "This project has no ARCHITECTURE.md yet. Start it with the part this task built: put the part's name as a heading on the first line, and under it one paragraph saying what the part is for, what it holds, and which files it lives in. " + TheToolsAreOffLine
 
 // MaxSectionWords is the most words a section body the review writes may hold.
 // A section is what the next task reads to find its bearings, and two hundred
@@ -77,7 +82,7 @@ func (running *run) writeTheArchitectureSection(ctx context.Context) {
 func (running *run) putTheAnswerOnThePage(path string, page string, answer string) string {
 	heading, body, found := readTheSectionAnswer(answer, theFallbackHeading(running.keeper.Record().Goal.Name, running.task.Message.Text))
 	if !found {
-		return "no section"
+		return theReasonForNoSection(answer)
 	}
 	body, cut := cutAtWords(body, MaxSectionWords)
 	dated := fmt.Sprintf("(updated by task %s, %s)", running.keeper.ID(), running.theLoop.options.Clock.Now().UTC().Format("2006-01-02"))
@@ -116,7 +121,7 @@ func readTheSectionAnswer(answer string, fallback string) (string, string, bool)
 	lines := strings.Split(strings.TrimSpace(answer), "\n")
 	first := strings.TrimSpace(lines[0])
 	rest := strings.TrimSpace(strings.Join(lines[1:], "\n"))
-	if first == "" || saysThereIsNoSection(first, rest) {
+	if first == "" || saysThereIsNoSection(first, rest) || looksLikeToolMarkup(answer) || opensAsNarration(first) {
 		return "", "", false
 	}
 	if heading, isAHeading := headingOn(first); isAHeading {
@@ -160,6 +165,38 @@ func headingOn(line string) (string, bool) {
 	return heading, true
 }
 
+// theReasonForNoSection is the outcome logged when the answer gave no
+// section: the plain "no section" when the model declined, and why when the
+// harness refused what it wrote, so the log says which.
+func theReasonForNoSection(answer string) string {
+	first, _, _ := strings.Cut(strings.TrimSpace(answer), "\n")
+	switch {
+	case looksLikeToolMarkup(answer):
+		return "no section: the answer was tool markup"
+	case opensAsNarration(first):
+		return "no section: the answer narrated instead of answering"
+	}
+	return "no section"
+}
+
+// theOpeningsOfNarration are how an answer begins when the model is telling
+// what it is about to do instead of answering: run 19's first task opened
+// with "I'll start by looking at what was built" and then wrote tool markup.
+// The answer is still in the log, so the reason is seen.
+var theOpeningsOfNarration = []string{"i'll ", "i will ", "i'm going to ", "let me ", "the user wants ", "the user is asking ", "first, i ", "first i "}
+
+// opensAsNarration says whether the first line is the model narrating its
+// own next step rather than writing the section.
+func opensAsNarration(first string) bool {
+	opening := strings.ToLower(strings.Trim(first, "#*_ "))
+	for _, sign := range theOpeningsOfNarration {
+		if strings.HasPrefix(opening, sign) {
+			return true
+		}
+	}
+	return false
+}
+
 // opensAListOrAQuestion says whether a line begins a list or ends as a
 // question, neither of which names a section.
 func opensAListOrAQuestion(line string) bool {
@@ -171,14 +208,19 @@ func opensAListOrAQuestion(line string) bool {
 }
 
 // theFallbackHeading is the name a paragraph with no heading goes under: the
-// record's name when the model gave the task one, else the first words of the
-// ask with a capital letter, cut to MaxHeadingWords.
+// record's name when the model gave the task one, else the first line of the
+// ask. A job task's name is its whole line, "Scaffold: `package.json`, a test
+// runner, ...", so the heading is what stands before the colon, with the
+// backticks taken off, cut to MaxHeadingWords, with a capital letter.
 func theFallbackHeading(name string, ask string) string {
-	if trimmed := strings.TrimSpace(name); trimmed != "" {
-		return trimmed
+	source := strings.TrimSpace(name)
+	if source == "" {
+		source, _, _ = strings.Cut(strings.TrimSpace(ask), "\n")
 	}
-	firstLine, _, _ := strings.Cut(strings.TrimSpace(ask), "\n")
-	words := strings.Fields(firstLine)
+	if before, _, found := strings.Cut(source, ":"); found && strings.TrimSpace(before) != "" {
+		source = before
+	}
+	words := strings.Fields(strings.ReplaceAll(strings.Trim(source, ": "), "`", ""))
 	if len(words) == 0 {
 		return ""
 	}

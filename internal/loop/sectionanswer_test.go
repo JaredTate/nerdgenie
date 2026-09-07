@@ -1,6 +1,9 @@
 package loop
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // TestTheSectionAnswerIsReadInEveryShapeAModelWrites: the heading is a hash
 // line, a plain short line, or a bold line; a paragraph with no heading goes
@@ -24,6 +27,11 @@ func TestTheSectionAnswerIsReadInEveryShapeAModelWrites(t *testing.T) {
 		{"a heading with no body", "## Hazards", "", "", false},
 		{"a numbered list", "1. The notes were to be read.\n2. They were read.", "", "", false},
 		{"a question", "Which section do you mean?\nI cannot tell.", "", "", false},
+		// Run 19, task 1: the model wanted the tools and wrote their markup.
+		{"tool markup", "I'll start by looking at what was built to write an accurate architecture section.\n\n<tool_call>\n<function=read>\n/home/user/Desktop/Tic Tac Toe/package.json\n</function>\n</tool_call>", "", "", false},
+		{"narration first", "I'll start by looking at what was built.\nThe scaffold holds package.json and server.js.", "", "", false},
+		{"narration about the questions", "The user wants me to answer the question about the architecture section. Let me review the record.", "", "", false},
+		{"let me first", "Let me look at the files first.", "", "", false},
 	} {
 		heading, body, found := readTheSectionAnswer(shape.answer, "Wire the hazards")
 		if found != shape.found || heading != shape.heading || body != shape.body {
@@ -48,9 +56,40 @@ func TestTheFallbackHeadingIsTheTasksName(t *testing.T) {
 		{"", "wire the hazards", "Wire the hazards"},
 		{"", "make the board, the pieces, the rules, the scoring, the page and the tests", "Make the board, the pieces, the rules, the"},
 		{"", "", ""},
+		// Run 19, task 1: a job task's name is its whole line, so the heading
+		// is what comes before the colon, without the backticks, cut to the cap.
+		{"Scaffold: `package.json`, a test runner, `index.html`, one smoke test", "", "Scaffold"},
+		{"Make the `board`, the pieces, the rules, the scoring, the page and the tests", "", "Make the board, the pieces, the rules, the"},
+		{": nothing before the colon", "", "Nothing before the colon"},
 	} {
 		if got := theFallbackHeading(shape.name, shape.ask); got != shape.want {
 			t.Errorf("the fallback heading of name %q and ask %q reads %q, want %q", shape.name, shape.ask, got, shape.want)
+		}
+	}
+}
+
+// TestTheArchitectureQuestionsSayTheToolsAreOff: run 19's first task
+// answered the section question by asking for the read tool, because nothing
+// told it the tools were off; both questions now say so and say to answer
+// from the record.
+func TestTheArchitectureQuestionsSayTheToolsAreOff(t *testing.T) {
+	for _, question := range []string{TheFifthQuestion, TheFirstSectionQuestion} {
+		if !strings.Contains(question, TheToolsAreOffLine) {
+			t.Errorf("the question %q does not say the tools are off", question)
+		}
+	}
+}
+
+// TestTheLogSaysWhyAnAnswerGaveNoSection: the outcome names the refusal, so
+// a run's log shows whether the model declined or wrote something else.
+func TestTheLogSaysWhyAnAnswerGaveNoSection(t *testing.T) {
+	for _, shape := range []struct{ answer, want string }{
+		{"none", "no section"},
+		{"I'll read the files.\n<tool_call>\n<function=read>\n</function>\n</tool_call>", "no section: the answer was tool markup"},
+		{"Let me look at the files first.", "no section: the answer narrated instead of answering"},
+	} {
+		if got := theReasonForNoSection(shape.answer); got != shape.want {
+			t.Errorf("the reason for %q reads %q, want %q", shape.answer, got, shape.want)
 		}
 	}
 }

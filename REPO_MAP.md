@@ -715,6 +715,7 @@ internal/loop/syntax.go
 internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/testdata/fuzz/FuzzWhatTheHarnessReadsFromText/8edaad5862eab648
 internal/loop/testdata/home-made-runner-ballot-marks.txt
 internal/loop/testsfirst.go
 internal/loop/testsfirst_test.go

@@ -14,6 +14,14 @@ const (
 	MaxSentenceRunes = 160
 	// MaxSourceBytes is the most of one file that is read for its names.
 	MaxSourceBytes = 512 << 10
+	// MaxScopeDepth is the deepest nesting of classes and object literals the
+	// reader follows; an opener past it is read for its name and not as a
+	// scope.
+	MaxScopeDepth = 32
+	// MaxPreludeLines is how far into a file the reader looks past the lines
+	// a file opens with, the strict-mode pragma and the imports, for the
+	// comment that says what the file is.
+	MaxPreludeLines = 50
 )
 
 // Name is one thing a file defines.
@@ -53,6 +61,12 @@ type language struct {
 	// defs find a definition on one line: the groups are the kind's marker
 	// text, the name, and the parameters, as each pattern arranges them.
 	defs []definer
+	// openers find a line that opens a class or an object literal, whose
+	// indented method-shaped lines are methods until the scope closes.
+	openers []*regexp.Regexp
+	// braces says the language closes a scope with a closing brace on its own
+	// line; a language without them closes a scope where the indentation ends.
+	braces bool
 	// comment says whether a line is a comment line and gives its text.
 	comment func(line string) (string, bool)
 	// test counts the test cases on one line.
@@ -69,7 +83,7 @@ type definer struct {
 	name    int
 	params  int
 	// nested says the pattern matches only indented lines, which are the
-	// methods of the class above them.
+	// methods of the class or the object literal above them.
 	nested bool
 }
 
@@ -88,17 +102,20 @@ func Read(filePath string, source []byte) File {
 	}
 	lines := strings.Split(string(source), "\n")
 	file.FirstLine = firstCommentOf(lines, spoken)
-	insideAClass := false
+	// scopes is the indentation of every class or object literal still open,
+	// innermost last.
+	var scopes []int
 	for at, line := range lines {
 		if spoken.test != nil {
 			file.Tests += len(spoken.test.FindAllStringIndex(line, -1))
 		}
-		name, found := spoken.nameOn(line, insideAClass)
+		scopes = spoken.closeScopes(scopes, line)
+		name, found := spoken.nameOn(line, len(scopes) > 0)
+		if spoken.opensAScope(line) && len(scopes) < MaxScopeDepth {
+			scopes = append(scopes, indentOf(line))
+		}
 		if !found {
 			continue
-		}
-		if name.Kind == "class" || name.Kind == "type" {
-			insideAClass = name.Kind == "class"
 		}
 		name.Says = spoken.descriptionAround(lines, at)
 		if len(file.Names) >= MaxNamesPerFile {
@@ -110,8 +127,10 @@ func Read(filePath string, source []byte) File {
 	return file
 }
 
-// nameOn reads a definition off one line, if the line holds one.
-func (spoken language) nameOn(line string, insideAClass bool) (Name, bool) {
+// nameOn reads a definition off one line, if the line holds one. A nested
+// pattern, a method's shape, counts only inside an open scope: an indented
+// call outside every class is not a name the map lists.
+func (spoken language) nameOn(line string, inAScope bool) (Name, bool) {
 	for _, def := range spoken.defs {
 		match := def.pattern.FindStringSubmatch(line)
 		if match == nil {
@@ -121,19 +140,64 @@ func (spoken language) nameOn(line string, insideAClass bool) (Name, bool) {
 		if name == "" || isAKeyword(name) {
 			continue
 		}
-		kind := def.kind
-		if def.nested && !insideAClass {
-			// An indented function outside a class is a local helper or a
-			// callback, not a name the map lists.
+		if def.nested && !inAScope {
 			continue
 		}
 		signature := name
 		if def.params > 0 && def.params < len(match) {
 			signature = name + "(" + strings.TrimSpace(match[def.params]) + ")"
 		}
-		return Name{Kind: kind, Name: name, Signature: signature}, true
+		return Name{Kind: def.kind, Name: name, Signature: signature}, true
 	}
 	return Name{}, false
+}
+
+// opensAScope says whether the line opens a class or an object literal.
+func (spoken language) opensAScope(line string) bool {
+	for _, opener := range spoken.openers {
+		if opener.MatchString(line) {
+			return true
+		}
+	}
+	return false
+}
+
+// closeScopes closes every scope the line ends: in a language with braces, a
+// closing brace on its own line ends every scope opened at its indentation
+// or deeper; in one without, any line of code at a scope's indentation or
+// less ends it. Blank lines and comments end nothing.
+func (spoken language) closeScopes(scopes []int, line string) []int {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return scopes
+	}
+	if _, isComment := spoken.comment(line); isComment {
+		return scopes
+	}
+	if spoken.braces && !strings.HasPrefix(trimmed, "}") {
+		return scopes
+	}
+	indent := indentOf(line)
+	for len(scopes) > 0 && scopes[len(scopes)-1] >= indent {
+		scopes = scopes[:len(scopes)-1]
+	}
+	return scopes
+}
+
+// indentOf is how far the line is indented, a tab counting as four.
+func indentOf(line string) int {
+	indent := 0
+	for _, letter := range line {
+		switch letter {
+		case ' ':
+			indent++
+		case '\t':
+			indent += 4
+		default:
+			return indent
+		}
+	}
+	return indent
 }
 
 // descriptionAround is the first sentence of the comment directly above the
@@ -156,8 +220,14 @@ func (spoken language) descriptionAround(lines []string, at int) string {
 	return firstSentence(strings.Join(above, " "))
 }
 
-// firstCommentOf is the first sentence of the comment or docstring at the very
-// top of the file, skipping a shebang and blank lines.
+// prelude matches the lines a file opens with before the comment that says
+// what it is: a strict-mode pragma, an import, a require, an include, a
+// package or a using line.
+var prelude = regexp.MustCompile(`^(?:['"]use strict['"];?$|import\s|export\s.*\sfrom\s|from\s+\S+\s+import\s|(?:export\s+)?(?:const|let|var)\s+.*=\s*require\(|require\(|#include\b|using\s|package\s)`)
+
+// firstCommentOf is the first sentence of the comment or docstring at the top
+// of the file, skipping a shebang, blank lines, and the prelude lines a file
+// opens with.
 func firstCommentOf(lines []string, spoken language) string {
 	var top []string
 	for at, line := range lines {
@@ -165,7 +235,7 @@ func firstCommentOf(lines []string, spoken language) string {
 		if at == 0 && strings.HasPrefix(trimmed, "#!") {
 			continue
 		}
-		if trimmed == "" && len(top) == 0 {
+		if len(top) == 0 && (trimmed == "" || (at < MaxPreludeLines && prelude.MatchString(trimmed))) {
 			continue
 		}
 		if said, ok := docstringOn(line); ok && len(top) == 0 && spoken.docstringBelow {

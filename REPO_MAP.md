@@ -24,6 +24,7 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 .github/workflows/install.yml
 .github/workflows/release.yml
 .gitignore
+ARCHITECTURE.md
 CLAUDE.md
 CONTRIBUTING.md
 EX_PROMPT_1_TIC_TAC_TOE.md

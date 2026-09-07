@@ -1,3 +1,5 @@
+<!-- This is the build log of Nerd Genie, kept for reference: what each wave and each fix built, with the measurements of the day. The current page on how the code is put together is ARCHITECTURE.md in the repository root. -->
+
 # Nerd Genie Architecture
 
 This document records how the code is put together and what each wave built. It is read by every worker before starting a brief and updated by any worker whose brief changes a package's job, its interface, or its dependencies. The orchestrator adds a wave section at the end of every wave. The design this code implements is `docs/NERDGENIE_PLAN.md`; when the two disagree, the design is the intent and this document is the fact, and the orchestrator reconciles them at the wave gate.

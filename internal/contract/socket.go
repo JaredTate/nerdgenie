@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 )
 
 // SocketMessageType is one kind of message on the local socket, which the
@@ -234,6 +235,16 @@ const (
 	// StatusFieldTaskStarted is when the running task began, written the RFC
 	// 3339 way, so a screen can show how long it has run.
 	StatusFieldTaskStarted = "taskStarted"
+	// StatusFieldJobStarted is when the running job was made, written the
+	// RFC 3339 way in UTC, so a screen can show how long the whole job has
+	// run. It is empty when no job is running or the moment is not known.
+	StatusFieldJobStarted = "jobStarted"
+	// StatusFieldJobTaskTimes is when each task of the running job began and
+	// ended, as JobTaskTimeLines writes it: one line per task that has
+	// started, its label, the moment it began, and the moment it ended or a
+	// dash while it runs, so a screen can show what a finished task took and
+	// how long the running one has run. It is empty when nothing has started.
+	StatusFieldJobTaskTimes = "jobTaskTimes"
 	// ReplyLabel is what a done line names as its result when the answer to
 	// the user is its own proof. The harness writes that answer into the record
 	// as a result of its own and points the line at it.
@@ -291,6 +302,72 @@ func ParseJobTaskLines(text string) []JobTask {
 		tasks = append(tasks, task)
 	}
 	return tasks
+}
+
+// JobTaskTime is when one task of a job began and ended, on the program's
+// clock. Finished is the zero time while the task runs.
+type JobTaskTime struct {
+	// TaskID is the task's label, such as "t31".
+	TaskID string
+	// Started is when the task was handed out to run.
+	Started time.Time
+	// Finished is when its report was taken back, or zero while it runs.
+	Finished time.Time
+}
+
+// noEndMark is what a task that has not finished carries where its end would
+// be, so that every line has the same three words.
+const noEndMark = "-"
+
+// JobTaskTimeLines writes a job's task times the way StatusFieldJobTaskTimes
+// carries them: one line per task that has started, its label, the moment it
+// began, and the moment it ended or a dash while it runs, each moment the RFC
+// 3339 way in UTC. A task that has not started has no line. The program writes
+// it and a screen reads it back with ParseJobTaskTimeLines.
+func JobTaskTimeLines(times []JobTaskTime) string {
+	lines := make([]string, 0, len(times))
+	for _, one := range times {
+		if one.TaskID == "" || one.Started.IsZero() {
+			continue
+		}
+		end := noEndMark
+		if !one.Finished.IsZero() {
+			end = one.Finished.UTC().Format(time.RFC3339)
+		}
+		lines = append(lines, one.TaskID+" "+one.Started.UTC().Format(time.RFC3339)+" "+end)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// ParseJobTaskTimeLines reads the task times back. A line that is not three
+// words, whose label is not one a job writes, or whose moments do not read as
+// moments is skipped, because a screen must never show a time it cannot
+// vouch for.
+func ParseJobTaskTimeLines(text string) []JobTaskTime {
+	times := []JobTaskTime{}
+	for _, line := range strings.Split(text, "\n") {
+		words := strings.Fields(line)
+		if len(words) != 3 {
+			continue
+		}
+		if _, isALabel := ParseTaskID(words[0]); !isALabel {
+			continue
+		}
+		started, err := time.Parse(time.RFC3339, words[1])
+		if err != nil {
+			continue
+		}
+		one := JobTaskTime{TaskID: words[0], Started: started}
+		if words[2] != noEndMark {
+			finished, err := time.Parse(time.RFC3339, words[2])
+			if err != nil {
+				continue
+			}
+			one.Finished = finished
+		}
+		times = append(times, one)
+	}
+	return times
 }
 
 // StatusCommandSeparator separates a command's name from its help line inside

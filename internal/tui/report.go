@@ -55,6 +55,10 @@ func (screen *Screen) readStatus(fields map[string]string) {
 	setIfSent(fields, contract.StatusFieldRound, &screen.round)
 	setCountIfSent(fields, contract.StatusFieldCachedTokens, &screen.cachedTokens)
 	setMomentIfSent(fields, contract.StatusFieldTaskStarted, &screen.taskStarted)
+	setMomentIfSent(fields, contract.StatusFieldJobStarted, &screen.jobStarted)
+	if listed, sent := fields[contract.StatusFieldJobTaskTimes]; sent {
+		screen.jobTaskTimes = contract.ParseJobTaskTimeLines(listed)
+	}
 	setCountIfSent(fields, contract.StatusFieldContextTokens, &screen.contextTokens)
 	setCountIfSent(fields, contract.StatusFieldContextWindow, &screen.contextWindow)
 	setCountIfSent(fields, contract.StatusFieldStreamed, &screen.streamed)

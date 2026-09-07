@@ -131,6 +131,31 @@ func TestAWriteExpectedToParseIsCheckedAgainstTheSyntaxCheck(t *testing.T) {
 	}
 }
 
+// TestParsesOnAFileNoCheckerReadsIsNotAMiss: the ninth fresh run wrote
+// package.json expecting "parses", no syntax checker reads JSON, and the
+// harness called that a miss and wrote a false failure into the record. A
+// file no checker reads cannot be said to parse or not, so the expectation is
+// one the harness could not check.
+func TestParsesOnAFileNoCheckerReadsIsNotAMiss(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will write the manifest.", callFor("c1", contract.ToolWrite, `{"path":"/game/package.json","content":"{}","expect":"parses"}`)),
+		answerStep("Written. What changed: the manifest. What I checked: nothing. What is left: nothing."),
+	}, scriptedTool(contract.ToolWrite, "created /game/package.json, 2 bytes"))
+
+	built.ask(t, "write the manifest")
+
+	after := wholeRequestText(built.model.Requests()[1])
+	if strings.Contains(after, "not as expected") {
+		t.Errorf("a file no checker reads was called a miss:\n%s", after)
+	}
+	if !strings.Contains(after, loop.TheExpectationCouldNotBeChecked) {
+		t.Errorf("the model was not told the expectation could not be checked:\n%s", after)
+	}
+	if failures := built.held(t, "1").Lessons.Failures; len(failures) != 0 {
+		t.Errorf("a false failure was written: %+v", failures)
+	}
+}
+
 func TestAnExpectationTheHarnessCannotReadIsSaidSoOnce(t *testing.T) {
 	shell := scriptedTool(contract.ToolShell, "finished with exit code 0\nexit 0", "finished with exit code 0\nexit 0")
 	built := newHarness(t, []testkit.Step{

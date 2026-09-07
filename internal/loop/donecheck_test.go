@@ -63,6 +63,26 @@ func TestADoneLineThatNamesAFilePassesWhenTheFileIsThere(t *testing.T) {
 	}
 }
 
+// TestADoneLineThatNamesAFolderWithSpacesInItsNameIsReadWhole: the ninth fresh
+// run's scaffold task ended failed on "package.json exists at
+// /home/jared/Desktop/Tater Tots Tetrisv1 with a test script", because the
+// check split the line on spaces and looked for /home/jared/Desktop/Tater. A
+// path that is not there is tried with the words after it, one at a time,
+// before it is called missing.
+func TestADoneLineThatNamesAFolderWithSpacesInItsNameIsReadWhole(t *testing.T) {
+	folder := filepath.Join(t.TempDir(), "Tater Tots Tetrisv1")
+	if err := os.MkdirAll(folder, 0o700); err != nil {
+		t.Fatalf("cannot make the folder the done line names: %v", err)
+	}
+	built := newHarness(t, closingScript("package.json exists at "+folder+" with a test script"), scriptedTool("read", "the notes"))
+
+	outcome := built.ask(t, "scaffold the project")
+
+	if outcome.Status != contract.StatusDone {
+		t.Errorf("the task ended %q, want done, because the folder the line names is there under its whole name", outcome.Status)
+	}
+}
+
 // TestADoneLineThatNamesAMissingFileSendsTheModelBack proves the same check
 // refuses a line whose file was never written.
 func TestADoneLineThatNamesAMissingFileSendsTheModelBack(t *testing.T) {

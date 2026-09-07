@@ -91,6 +91,12 @@ func (running *run) checkOneDoneLine(ctx context.Context, line contract.DoneLine
 	return "", nil
 }
 
+// MaxWordsInAPath is how many of the words after a path are tried as part of
+// it before it is called missing: a folder such as "Tater Tots Tetrisv1"
+// writes as three words, and the ninth fresh run's scaffold task ended failed
+// on a done line whose folder the check read as its first word alone.
+const MaxWordsInAPath = 4
+
 // commandFails rules on one command, runs it inside the sandbox when it is
 // allowed, and says what was wrong with it, or nothing when it exited zero. A
 // machine with no sandbox cannot check a command at all, and the line stands on
@@ -163,14 +169,36 @@ func commandsIn(text string) []string {
 // never mistaken for one.
 func pathsIn(text string) []string {
 	paths := []string{}
-	for _, word := range strings.Fields(strings.ReplaceAll(text, "`", " ")) {
+	words := strings.Fields(strings.ReplaceAll(text, "`", " "))
+	for at, word := range words {
 		word = strings.Trim(word, ".,;:\"'()")
 		if !looksLikeAPath(word) || len(paths) >= MaxPathsCheckedPerLine {
 			continue
 		}
-		paths = append(paths, expandHome(word))
+		paths = append(paths, pathAcrossSpaces(expandHome(word), words[at+1:]))
 	}
 	return paths
+}
+
+// pathAcrossSpaces returns the path as written when it is there, and otherwise
+// the path with the words after it joined on one at a time, up to a few, the
+// first of which is there; a path that is there under no length is returned as
+// written, so that the line is refused naming what the model wrote.
+func pathAcrossSpaces(path string, following []string) string {
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	longer := path
+	for at, word := range following {
+		if at >= MaxWordsInAPath {
+			break
+		}
+		longer += " " + strings.Trim(word, ".,;:\"'()")
+		if _, err := os.Stat(longer); err == nil {
+			return longer
+		}
+	}
+	return path
 }
 
 // looksLikeAPath says whether a word is written the way a full or an explicitly

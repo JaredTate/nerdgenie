@@ -70,7 +70,7 @@ func judge(expectation string, text string) (string, bool) {
 		}
 		return "a result without it", true
 	case lower == "parses":
-		return judgeParsing(text), true
+		return judgeParsing(text)
 	case strings.HasPrefix(lower, "exit "):
 		return judgeTheExitCode(strings.TrimSpace(lower[len("exit "):]), text), true
 	}
@@ -81,15 +81,18 @@ func judge(expectation string, text string) (string, bool) {
 	return judgeTheTests(wanted, text), true
 }
 
-// judgeParsing reads the syntax check's line on a write or an edit.
-func judgeParsing(text string) string {
+// judgeParsing reads the syntax check's line on a write or an edit. A file no
+// checker reads, such as a JSON manifest, cannot be said to parse or not, so
+// "parses" on it is an expectation the harness could not check rather than a
+// miss; the ninth fresh run wrote a false failure into the record for one.
+func judgeParsing(text string) (string, bool) {
 	if lineStartingWith(text, TheFileDoesNotParse) != "" {
-		return "a file that does not parse"
+		return "a file that does not parse", true
 	}
 	if lineStartingWith(text, TheFileParses) != "" {
-		return ""
+		return "", true
 	}
-	return "no syntax check on this file"
+	return "", false
 }
 
 // judgeTheExitCode reads the command's exit line.

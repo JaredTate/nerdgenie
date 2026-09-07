@@ -47,6 +47,7 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 	stalls, answers, calls := stallsThatStopTheGuard(0)
 	steps := append(stalls,
 		aReviewReply("Read a file once and move on."),
+		answerStep("none"), // the fifth question, which a job's task is asked
 		answerStep("The post is up."),
 		answerStep("The summary is written."),
 		aReviewReply("Keep posting at the same hour every day."))
@@ -84,8 +85,10 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 		t.Errorf("the person was sent %v, and a task the job picks up itself does not wait for their message", sent)
 	}
 	first, _ := requestsCarrying(built, loop.TheJobPickUpLine)
-	if first != calls+1 {
-		t.Fatalf("the pick-up's first request is number %d, want %d: right after the stalled calls and the stop's review", first+1, calls+2)
+	// The stop's review is two calls, the four questions and the fifth, so
+	// the pick-up's first request is the third after the stalled calls.
+	if first != calls+2 {
+		t.Fatalf("the pick-up's first request is number %d, want %d: right after the stalled calls and the stop's review", first+1, calls+3)
 	}
 	opening := wholeRequestText(built.model.Requests()[first])
 	if !strings.Contains(opening, orientation.TheResultsHeading) || !strings.Contains(opening, "the notes") {
@@ -102,9 +105,9 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 func TestAJobPutsATaskDownWhenItsOwnPickUpStopsOnTheGuardAgain(t *testing.T) {
 	first, answers, calls := stallsThatStopTheGuard(0)
 	second, more, _ := stallsThatStopTheGuard(calls)
-	steps := append(first, aReviewReply("Read a file once and move on."))
+	steps := append(first, aReviewReply("Read a file once and move on."), answerStep("none"))
 	steps = append(steps, second...)
-	steps = append(steps, aReviewReply("Read a file once and move on."), answerStep("This reply is never played."))
+	steps = append(steps, aReviewReply("Read a file once and move on."), answerStep("none"), answerStep("This reply is never played."))
 	built := newHarness(t, steps, scriptedTool("read", append(answers, more...)...))
 	jobID := aJobOfTwoTasks(t, built)
 

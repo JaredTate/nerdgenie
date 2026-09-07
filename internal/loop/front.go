@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 )
 
 // StandingOrderFile is the name of the file a project keeps its rules in: what

@@ -59,6 +59,7 @@ func TestARewindOpensWithTheNewestResultsInFull(t *testing.T) {
 	}, "the notes say the meeting is at noon", "the notes say the meeting is at noon", "the brand file says plain words")
 	built := newHarness(t, []testkit.Step{
 		sameReadAgain("c1"), sameReadAgain("c2"), sameReadAgain("c3"), sameReadAgain("c4"),
+		theUsualRethink(),
 		callStep("I will read the brand file instead.", callFor("c5", "read", `{"path":"brand.md"}`)),
 		answerStep("The notes and the brand file are read."),
 	}, reading)
@@ -66,12 +67,12 @@ func TestARewindOpensWithTheNewestResultsInFull(t *testing.T) {
 	built.ask(t, "read the notes")
 
 	requests := built.model.Requests()
-	if len(requests) < 5 {
-		t.Fatalf("the model was called %d times, want at least 5", len(requests))
+	if len(requests) < 6 {
+		t.Fatalf("the model was called %d times, want at least 6", len(requests))
 	}
-	after := wholeRequestText(requests[4])
-	if !strings.Contains(after, loop.TheRewindLine) {
-		t.Fatalf("the fifth request is not the one after the clearing:\n%s", after)
+	after := wholeRequestText(requests[5])
+	if !strings.Contains(after, loop.TheRethinkLine) {
+		t.Fatalf("the sixth request is not the one after the rethink:\n%s", after)
 	}
 	if !strings.Contains(after, orientation.TheResultsHeading) || !strings.Contains(after, "the notes say the meeting is at noon") {
 		t.Errorf("the request after the clearing does not carry the newest result in full:\n%s", after)

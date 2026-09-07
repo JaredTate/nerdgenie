@@ -98,17 +98,23 @@ func sameReadAgain(id string) testkit.Step {
 
 // TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn proves rule 4 of
 // design section 3 across the rounds of one task: two identical calls run, the
-// third is refused, the fourth clears the conversation, and only when the model
-// has stalled RewindsAllowed times and stalls again does the turn end.
+// third is refused, the fourth buys a rethink and a fresh window, and only when
+// the model has stalled RewindsAllowed times and stalls again does the turn
+// end. Each stall is on a file of its own, because the call a rethink was
+// made over is closed for a while after it.
 func TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn(t *testing.T) {
 	stalls := loop.RewindsAllowed + 1
 	steps := []testkit.Step{}
 	answers := []string{}
 	for stall := 0; stall < stalls; stall++ {
+		path := fmt.Sprintf("notes%d.md", stall)
 		for call := 1; call <= 4; call++ {
-			steps = append(steps, sameReadAgain(fmt.Sprintf("c%d", stall*4+call)))
+			steps = append(steps, sameReadOf(fmt.Sprintf("c%d", stall*4+call), path))
 		}
 		answers = append(answers, "the notes", "the notes")
+		if stall < loop.RewindsAllowed {
+			steps = append(steps, theUsualRethink())
+		}
 	}
 	reading := testkit.NewScriptedTool(contract.ToolSpec{
 		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
@@ -132,16 +138,18 @@ func TestRule4TheSameCallOverAndOverIsRefusedAndThenEndsTheTurn(t *testing.T) {
 // TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord
 // holds what the live game build needed. The model read one file four times
 // running because a tool had told it a click worked when the page said it had
-// not, and the third refusal ended the task. Now the stall clears the
-// conversation instead: the record stays, the stall is written into it as a
-// failure, and the model, reading the record and one line telling it what
-// happened, goes on with something different.
+// not, and the third refusal ended the task. Now the stall buys a rethink and
+// clears the conversation: the record stays, the stall is written into it as
+// a failure from the model's own answer, and the model, reading the record,
+// the newest results and its rethink, goes on with something different.
 func TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord(t *testing.T) {
 	reading := testkit.NewScriptedTool(contract.ToolSpec{
 		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
 	}, "the notes", "the notes", "the brand file")
 	built := newHarness(t, []testkit.Step{
 		sameReadAgain("c1"), sameReadAgain("c2"), sameReadAgain("c3"), sameReadAgain("c4"),
+		aRethinkAnswer("notes.md read four times, saying the same thing", "the notes never change",
+			"it is the wrong file, or the answer is in the brand file", "read brand.md"),
 		callStep("I will read the brand file instead.", callFor("c5", "read", `{"path":"brand.md"}`)),
 		answerStep("The notes and the brand file are read."),
 	}, reading)
@@ -149,29 +157,25 @@ func TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord(t 
 	outcome := built.ask(t, "read the notes")
 
 	if outcome.Status == contract.StatusStopped {
-		t.Fatalf("the task stopped on the first stall, and the first stall clears the conversation instead")
+		t.Fatalf("the task stopped on the first stall, and the first stall is a rethink instead")
 	}
 	if len(reading.Inputs()) != 3 {
-		t.Errorf("the tool ran %d times, want 3: two of the stalled read and the different read after the clearing",
+		t.Errorf("the tool ran %d times, want 3: two of the stalled read and the different read after the rethink",
 			len(reading.Inputs()))
 	}
 	requests := built.model.Requests()
-	if len(requests) < 5 {
-		t.Fatalf("the model was called %d times, want at least 5: four stalled rounds and the one after the clearing", len(requests))
+	if len(requests) < 6 {
+		t.Fatalf("the model was called %d times, want at least 6: four stalled rounds, the rethink, and the one after it", len(requests))
 	}
-	// The rewind is a cut, not a wipe: the first read was progress, because it
-	// answered something new, so that round stays byte for byte; the stalled
-	// rounds after it go; and the rewind line is the last message.
-	after := requests[4]
-	sawTheLine, keptTheFirstRound, keptAStalledRound := whatSurvivedTheCut(after)
-	if !sawTheLine {
-		t.Errorf("the call after the cut does not carry the rewind line as a message of its own: %+v", after.Messages)
+	// The rethink opens a fresh window: the stalled rounds go, and so does
+	// everything before them, because the record and the newest results in
+	// full are what the model reads; the rethink line is the last message.
+	after := requests[5]
+	if !strings.Contains(theLastMessageOf(after), loop.TheRethinkLine) {
+		t.Errorf("the call after the rethink does not carry the rethink line in its last message: %+v", after.Messages)
 	}
-	if !keptTheFirstRound {
-		t.Errorf("the round that made progress was thrown away with the stalled ones: %+v", after.Messages)
-	}
-	if keptAStalledRound {
-		t.Errorf("a stalled round survived the cut: %+v", after.Messages)
+	if _, keptTheFirstRound, keptAStalledRound := whatSurvivedTheCut(after); keptTheFirstRound || keptAStalledRound {
+		t.Errorf("a round from before the rethink survived into the fresh window: %+v", after.Messages)
 	}
 	if !strings.Contains(testkit.WholeRequestText(after), "read the notes") {
 		t.Errorf("the ask left with the messages, and the record is what stands; the call reads:\n%s", testkit.WholeRequestText(after))

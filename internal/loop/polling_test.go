@@ -55,7 +55,7 @@ func TestPollingALongCommandIsNotTheSameCallOverAndOver(t *testing.T) {
 
 // TestTheSameCallWithTheSameResultIsStillRefused proves the other half: a call
 // that comes back with the very same result is the same call, the third one is
-// still refused, and the fourth clears the conversation.
+// still refused, and the fourth buys a rethink and a fresh window.
 func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 	polling := &pollingTool{answers: []string{
 		"p1 is still running",
@@ -68,6 +68,7 @@ func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 	}
 	built := newHarness(t, []testkit.Step{
 		same("c1"), same("c2"), same("c3"), same("c4"),
+		theUsualRethink(),
 		answerStep("The build is still running, so I will come back to it."),
 	}, polling)
 
@@ -78,10 +79,10 @@ func TestTheSameCallWithTheSameResultIsStillRefused(t *testing.T) {
 			polling.calls)
 	}
 	if outcome.Status == contract.StatusStopped {
-		t.Errorf("the task ended stopped on %q, and the fourth of the same call clears the conversation rather than ending the turn", outcome.StopLine)
+		t.Errorf("the task ended stopped on %q, and the fourth of the same call buys a rethink rather than ending the turn", outcome.StopLine)
 	}
-	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
-		t.Error("the model was never handed the rewind line after the fourth of the same call")
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRethinkLine) {
+		t.Error("the model was never handed the rethink line after the fourth of the same call")
 	}
 }
 

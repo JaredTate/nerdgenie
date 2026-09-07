@@ -17,18 +17,23 @@ import (
 )
 
 // stallsThatStopTheGuard is the script of enough runs of the same call to
-// make the same-call guard end the task, RewindsAllowed rewinds and one stall
-// more, with the answers the read tool gives across them, and the number of
-// model calls the script takes. The call ids start after the number given so
-// that two such scripts in a row do not share an id.
+// make the same-call guard end the task, RewindsAllowed rethinks and one stall
+// more, each stall on a file of its own because a rethink closes the call it
+// was made over, with the answers the read tool gives across them, and the
+// number of model calls the script takes. The call ids start after the number
+// given so that two such scripts in a row do not share an id.
 func stallsThatStopTheGuard(after int) ([]testkit.Step, []string, int) {
 	steps := []testkit.Step{}
 	answers := []string{}
 	for stall := 0; stall <= loop.RewindsAllowed; stall++ {
+		path := fmt.Sprintf("notes%d.md", stall)
 		for call := 1; call <= 4; call++ {
-			steps = append(steps, sameReadAgain(fmt.Sprintf("c%d", after+stall*4+call)))
+			steps = append(steps, sameReadOf(fmt.Sprintf("c%d", after+stall*4+call), path))
 		}
 		answers = append(answers, "the notes", "the notes")
+		if stall < loop.RewindsAllowed {
+			steps = append(steps, theUsualRethink())
+		}
 	}
 	return steps, answers, len(steps)
 }

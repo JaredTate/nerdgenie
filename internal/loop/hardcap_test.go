@@ -93,11 +93,14 @@ func TestTheSeventhSameCallIsRefusedWhateverItAnswered(t *testing.T) {
 
 // TestPastTheHardCapPlusTwoTheConversationIsCleared proves the second rule
 // breaks a stall the way the first one does: the seventh and eighth calls are
-// refused, and the ninth clears the conversation, with the stall written into
-// the record, rather than ending the turn.
+// refused, and the ninth buys a rethink and a fresh window, with the stall
+// written into the record, rather than ending the turn.
 func TestPastTheHardCapPlusTwoTheConversationIsCleared(t *testing.T) {
 	launching := launchesWithNewProcessIDs(loop.SameCallHardCap + 3)
-	steps := append(launchSteps(loop.SameCallHardCap+3), answerStep("The browser is open."))
+	steps := append(launchSteps(loop.SameCallHardCap+3),
+		aRethinkAnswer("nine launches of chrome, each with a new process id", "the window never comes to the front",
+			"chrome is already open, or the display is wrong", "run check 8091"),
+		answerStep("The browser is open."))
 	built := newHarness(t, steps, launching)
 
 	outcome := built.ask(t, "open the browser")
@@ -106,10 +109,10 @@ func TestPastTheHardCapPlusTwoTheConversationIsCleared(t *testing.T) {
 		t.Errorf("the shell tool ran %d times, want %d, because nothing past the cap runs", launching.calls, loop.SameCallHardCap)
 	}
 	if outcome.Status == contract.StatusStopped {
-		t.Errorf("the task ended stopped on %q, and the first stall clears the conversation instead", outcome.StopLine)
+		t.Errorf("the task ended stopped on %q, and the first stall is a rethink instead", outcome.StopLine)
 	}
-	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
-		t.Error("the model was never handed the rewind line after the ninth of the same call")
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRethinkLine) {
+		t.Error("the model was never handed the rethink line after the ninth of the same call")
 	}
 	held := built.held(t, outcome.TaskID)
 	if len(held.Lessons.Failures) != 1 || !strings.Contains(held.Lessons.Failures[0].Text, "stalled") {
@@ -133,6 +136,7 @@ func TestTheFirstRuleStillBreaksARunWhoseAnswersStopChanging(t *testing.T) {
 	}
 	built := newHarness(t, []testkit.Step{
 		same("c1"), same("c2"), same("c3"), same("c4"), same("c5"), same("c6"),
+		theUsualRethink(),
 		answerStep("The build finished."),
 	}, polling)
 
@@ -146,10 +150,10 @@ func TestTheFirstRuleStillBreaksARunWhoseAnswersStopChanging(t *testing.T) {
 		t.Error("the model was never told to do something different, and the first rule still says so")
 	}
 	if outcome.Status == contract.StatusStopped {
-		t.Errorf("the task ended stopped on %q, and the first rule clears the conversation on the fourth of the same answer rather than ending the turn",
+		t.Errorf("the task ended stopped on %q, and the first rule buys a rethink on the fourth of the same answer rather than ending the turn",
 			outcome.StopLine)
 	}
-	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
-		t.Error("the model was never handed the rewind line after the fourth of the same answer")
+	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRethinkLine) {
+		t.Error("the model was never handed the rethink line after the fourth of the same answer")
 	}
 }

@@ -179,7 +179,7 @@ func readRecordUpdate(arguments json.RawMessage, held contract.Record) (record.U
 	case operationPinResult:
 		return pinTheResultToItsLine(written, held)
 	case operationStepDone:
-		return markTheStepDone(written)
+		return markTheStepDone(written, held)
 	case operationDecision:
 		written.Decision = &pairWrite{Text: written.Text, Reason: written.Reason}
 	case operationFailure:
@@ -228,15 +228,31 @@ const (
 )
 
 // markTheStepDone reads a step_done: the step's number and the result that
-// proves it, both of which the record checks against what it holds.
-func markTheStepDone(written recordWrite) (record.Update, error) {
+// proves it, both of which the record checks against what it holds. A call
+// that names no result takes the newest one the record holds, which is the
+// result the model just read: 27 of the day's record writes were refused for
+// a missing result, a round each, when the harness held the answer.
+func markTheStepDone(written recordWrite, held contract.Record) (record.Update, error) {
 	if written.Step < 1 {
 		return record.Update{}, errors.New("this call names no plan step, so say which step is done, counting from one")
 	}
-	if strings.TrimSpace(written.Result) == "" {
+	result := theResultNamedOrNewest(written.Result, held)
+	if result == "" {
 		return record.Update{}, errors.New("this call names no result, so give the label of the result that proves the step, such as r7")
 	}
-	return record.Update{StepDone: &record.StepDone{Number: int(written.Step), ResultID: written.Result}}, nil
+	return record.Update{StepDone: &record.StepDone{Number: int(written.Step), ResultID: result}}, nil
+}
+
+// theResultNamedOrNewest is the result the write names, or the newest result
+// the record holds when it names none, or empty when there is none to take.
+func theResultNamedOrNewest(named string, held contract.Record) string {
+	if trimmed := strings.TrimSpace(named); trimmed != "" {
+		return trimmed
+	}
+	if len(held.Work.Results) == 0 {
+		return ""
+	}
+	return held.Work.Results[len(held.Work.Results)-1].ID
 }
 
 // pinTheResultToItsLine marks one done line proven and points it at the result
@@ -249,13 +265,14 @@ func pinTheResultToItsLine(written recordWrite, held contract.Record) (record.Up
 			"there is no done line numbered %d in this record, whose done list has %d lines in it, so number one it holds",
 			written.Line, len(lines))
 	}
-	if strings.TrimSpace(written.Result) == "" {
+	result := theResultNamedOrNewest(written.Result, held)
+	if result == "" {
 		return record.Update{}, errors.New(
 			"this call names no result, so give the label of the result in this record that proves the line, such as r7")
 	}
 	changed := slices.Clone(lines)
 	changed[written.Line-1].Done = true
-	changed[written.Line-1].ResultID = written.Result
+	changed[written.Line-1].ResultID = result
 	changed[written.Line-1].UserReply = ""
 	return record.Update{DoneWhen: changed}, nil
 }

@@ -28,6 +28,8 @@ When the guard fires, the harness cuts only the messages since the last progress
 
 ### 3. The harness keeps the books
 
+Built on 7 September 2026 except the tail line, built by another change: the `expect` line with its four rules, and a step mark or a pin that names no result taking the newest one; the conditional fields cannot be made required in a schema, so their refusals stay.
+
 An optional `expect` line on shell, write and edit, checked by four plain rules: a test count, an exit code, a contained string, parses. A miss becomes a failure line with its cause, written by the harness; a hit marks the step it proves. The task tool's required fields become required in its schema. The tail ends with one harness line, "Step 3 of 5, next: ...", because the last thing the model reads is what it answers, which the plan regression of 6 September proved.
 
 - Evidence: 297 rounds (13.7 percent, 98 minutes) did nothing but write the record; 53 of 345 record writes were refused for a missing field; 47 of 165 test rounds were the model rerunning tests the harness had just run.

@@ -1689,6 +1689,7 @@ worker/browser/test/actions.test.ts
 worker/browser/test/ask.test.ts
 worker/browser/test/chrome.test.ts
 worker/browser/test/diff.test.ts
+worker/browser/test/errors.test.ts
 worker/browser/test/expectation.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts

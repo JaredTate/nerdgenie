@@ -131,7 +131,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)
 	}
-	if strings.Join(names, ",") != "path,content" {
+	if strings.Join(names, ",") != "path,content,expect" {
 		t.Errorf("the tool takes the fields %v, and the permission function reduces a write by path and content", names)
 	}
 }

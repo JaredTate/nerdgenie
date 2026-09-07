@@ -121,6 +121,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "id", Type: "string", Description: "The id of a running command, for poll, tail, and kill."},
 			{Name: "escalate", Type: "boolean", Description: "True to ask for administrator powers for this command."},
 			{Name: "reason", Type: "string", Description: "Why the command needs administrator powers, in one line."},
+			{Name: "expect", Type: "string", Description: "What the result should show, checked by the harness: tests 62 to 63, all passing, 2 failing, exit 0, or contains X."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassExecute},
 	}

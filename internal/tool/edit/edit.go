@@ -64,6 +64,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			{Name: "path", Type: "string", Description: "The path of the file to change, taken from the folder the agent works in unless it starts at the root or at ~.", Required: true},
 			{Name: "old", Type: "string", Description: "The text to replace, quoted from the file.", Required: true},
 			{Name: "new", Type: "string", Description: "What to put in its place.", Required: true},
+			{Name: "expect", Type: "string", Description: "What the change should show, checked by the harness: parses, tests 62 to 63, all passing, or 2 failing."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassWrite},
 	}

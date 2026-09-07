@@ -131,7 +131,7 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 	text = running.checkTheExpectation(ctx, call, text, failed)
 	running.noteTheResult(text)
 	summary := summaryOfResult(call.Name, text, failed)
-	label, err := running.keeper.AddResult(ctx, summary, text)
+	label, err := running.keeper.AddResultOfCall(ctx, call.ID, summary, text)
 	if err != nil {
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}

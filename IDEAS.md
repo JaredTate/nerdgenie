@@ -76,6 +76,7 @@ Before "done", the harness confirms what it can itself: files parse, the last te
 - Show six results in full on a fresh window, not two (part of idea 2, cheap on its own). Built on 7 September.
 - A task the guard stops inside a job is picked up once by the job itself, with a fresh window, before the job waits for a person. Run ten's polish task was ended by the same-call guard at round 212, the job went to waiting, and nothing moved until a person typed continue; the same happened to the GLM run. An unattended job should try the pick-up itself once, which is exactly what the person's word does, and wait only if that stops too.
 - A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for.
+- Memory records what happened, not what was asked. Capture wrote a call down as done the moment the model asked for it, so a refused push reached the next task as "ran the command git push". Built on 7 September: a call is written only once its result says it ran, failed, or was refused, and every result carries the id of the call that made it.
 
 ## The wider list, from the two research reports
 

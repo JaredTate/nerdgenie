@@ -126,6 +126,10 @@ func (saved Checkpoint) CarriesTheAsk() bool {
 type StoredResult struct {
 	// ID is the result's label, such as "r7" or "j4.2".
 	ID string `json:"id"`
+	// CallID is the id of the tool call that made the result. It is empty for
+	// a result no call made, such as the reply the harness writes as a result
+	// of its own, and for every result stored before the id was kept.
+	CallID string `json:"callId,omitempty"`
 	// Summary is the one line the record keeps.
 	Summary string `json:"summary"`
 	// Text is the whole of what the tool returned.

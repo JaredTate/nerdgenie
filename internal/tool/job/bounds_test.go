@@ -141,6 +141,9 @@ func (manyJobs) PutDownTask(context.Context) (contract.PutDownMark, bool, error)
 // PickUpOnce is here for the same reason; no task is ever picked up here.
 func (manyJobs) PickUpOnce(context.Context, string, string) (bool, error) { return false, nil }
 
+// ProveDoneLine is here for the same reason; no done line is ever proved here.
+func (manyJobs) ProveDoneLine(context.Context, string, int, string) error { return nil }
+
 // Resume is here so that manyJobs keeps to the job contract, which gained it; this
 // double never resumes a job.
 func (manyJobs) Resume(context.Context, string) error { return nil }

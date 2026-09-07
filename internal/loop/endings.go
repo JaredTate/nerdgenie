@@ -125,6 +125,10 @@ func (running *run) closeOrWait(ctx context.Context, text string, why contract.F
 		outcome, err := running.waitHere(ctx, text)
 		return outcome, false, err
 	}
+	if running.refusedByACheck {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: problem + "\n" + ThreeOptions})
+		return Outcome{}, true, nil
+	}
 	return running.backToWork(ctx, problem)
 }
 
@@ -281,6 +285,10 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 	if err := running.review(ctx); err != nil {
 		return Outcome{}, err
 	}
+	proof, err := running.proveTheJobsDoneLines(ctx)
+	if err != nil {
+		return Outcome{}, err
+	}
 	ctx, done := running.timeToWrapUp(ctx)
 	defer done()
 	report := text
@@ -291,7 +299,7 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
-	return Outcome{TaskID: running.taskID(), Status: contract.StatusDone, Report: report}, nil
+	return Outcome{TaskID: running.taskID(), Status: contract.StatusDone, Report: report, JobProof: proof}, nil
 }
 
 // waitHere puts the task into waiting, which is where a question leaves it.
@@ -308,17 +316,6 @@ func (running *run) waitHere(ctx context.Context, text string) (Outcome, error) 
 		return Outcome{}, err
 	}
 	return Outcome{TaskID: running.taskID(), Status: contract.StatusWaiting, Report: text}, nil
-}
-
-// answerWithNoRecord ends a task that never needed a tool, which is the one
-// kind of task that makes no record at all.
-func (running *run) answerWithNoRecord(ctx context.Context, text string) (Outcome, error) {
-	ctx, done := running.timeToWrapUp(ctx)
-	defer done()
-	if err := running.send(ctx, text); err != nil {
-		return Outcome{}, err
-	}
-	return Outcome{Status: contract.StatusDone, Report: text}, nil
 }
 
 // stopHere stops the task because a line of the stop list fired, and tells the

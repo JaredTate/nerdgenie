@@ -34,16 +34,6 @@ const (
 	headingDetails  = "details"
 )
 
-// Check is what a done line asks the harness to run: the kind, and the rest
-// of the bracket after the colon, such as the command, the path, or the quoted
-// text and the address.
-type Check struct {
-	// Kind is one of the four check kinds.
-	Kind string
-	// Argument is the text after the colon, with its ends trimmed.
-	Argument string
-}
-
 // DoneLine is one thing that must be true at the end, as the person wrote it.
 type DoneLine struct {
 	// Text is the line as written, with its bracket kept and its number taken off.
@@ -180,14 +170,10 @@ func doneLinesOf(lines []string) []DoneLine {
 	var done []DoneLine
 	for _, text := range lines {
 		line := DoneLine{Text: text}
-		if match := checkAtTheEnd.FindStringSubmatch(text); match != nil {
-			kind := strings.ToLower(strings.TrimSpace(match[1]))
-			switch kind {
-			case CheckTestsPass, CheckExitZero, CheckShows, CheckExists:
-				line.Check = Check{Kind: kind, Argument: strings.TrimSpace(match[2])}
-			default:
-				line.UnknownCheck = kind
-			}
+		if check, found := ReadCheck(text); found {
+			line.Check = check
+		} else if match := checkAtTheEnd.FindStringSubmatch(text); match != nil {
+			line.UnknownCheck = strings.ToLower(strings.TrimSpace(match[1]))
 		}
 		done = append(done, line)
 	}

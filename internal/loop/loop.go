@@ -151,6 +151,9 @@ type Outcome struct {
 	// over, rather than a line of the stop list or the person. A job picks
 	// such a task up once itself, on a fresh window, before it waits.
 	ByTheGuard bool
+	// JobProof is what the harness proved of the job's done list as this task
+	// ended, and is nil for a task that belongs to no job.
+	JobProof *JobProof
 }
 
 // Loop runs one task at a time. Everything it needs is an interface, so the

@@ -55,6 +55,9 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if err != nil {
 		return outcome, fmt.Errorf("cannot write the report of task %s into job %s: %w", taskID, jobID, err)
 	}
+	if err := theLoop.markTheJobsDoneLines(ctx, jobID, reportID, outcome.JobProof); err != nil {
+		return outcome, err
+	}
 	held, err := theLoop.options.Jobs.Load(ctx, jobID)
 	if err != nil {
 		return outcome, fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
@@ -62,10 +65,14 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progressLine(jobID, reportID, held)); err != nil {
 		return outcome, err
 	}
-	if everyTaskIsDone(held) {
-		return outcome, theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
+	if !everyTaskIsDone(held) {
+		return outcome, nil
 	}
-	return outcome, nil
+	added, err := theLoop.giveTheJobAFixTask(ctx, jobID, held, outcome.JobProof)
+	if err != nil || added {
+		return outcome, err
+	}
+	return outcome, theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended, whatStaysRed(outcome.JobProof, held))
 }
 
 // TheJobPickUpLine is the ask a job's task is picked up with when the job
@@ -107,8 +114,12 @@ func picksItUpLine(jobID string, taskID string) string {
 // progressLine is the line every job report carries: which job it was, which
 // report it became, and how far the job has got.
 func progressLine(jobID string, reportID string, held contract.Record) string {
-	return fmt.Sprintf("Job %s, report %s: %d of %d tasks done.",
+	line := fmt.Sprintf("Job %s, report %s: %d of %d tasks done.",
 		jobID, reportID, held.Header.TasksDone, held.Header.TasksTotal)
+	if proved := provedCountLine(held); proved != "" {
+		line += " " + proved
+	}
+	return line
 }
 
 // everyTaskIsDone says whether the job has run out of tasks to do.
@@ -127,10 +138,13 @@ func everyTaskIsDone(held contract.Record) bool {
 // closeTheJob runs the job's own done-check and review when its last task has
 // finished, and sends the final report.
 func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jobID string,
-	held contract.Record, unattended bool) error {
+	held contract.Record, unattended bool, staysRed string) error {
 	report := fmt.Sprintf("Job %s is finished: every one of its %d tasks is done.", jobID, held.Header.TasksTotal)
 	if err := record.DoneCheck(held); err != nil {
 		report = fmt.Sprintf("Job %s has run every task, and its done list is not proven yet. %s", jobID, err.Error())
+		if staysRed != "" {
+			report += "\n" + staysRed
+		}
 	}
 	// An unattended job has nobody to show a skill offer to, so its lesson is
 	// kept as a fact and nothing is offered. The report below still goes

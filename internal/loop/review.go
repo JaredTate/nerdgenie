@@ -37,7 +37,8 @@ const TheFourQuestions = `The work is over. Answer these four questions, one lin
 1. What was supposed to happen?
 2. What actually happened?
 3. Why was there a difference?
-4. What do we keep, and what do we change?`
+4. What do we keep, and what do we change?
+` + TheToolsAreOffLine
 
 // theOpeningsOfAProcedure are how a fourth answer that describes a way of doing
 // something begins. An answer that starts with one of these is offered to the

@@ -1,1 +1,7 @@
 edited /root/code.go by the exact matcher; the file now holds 50 bytes
+lines 1 to 5 now read:
+1: package main
+2: 
+3: func main() {
+4: 	println("goodbye")
+5: }

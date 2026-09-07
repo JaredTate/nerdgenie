@@ -27,6 +27,7 @@ The generator omits dependency folders, build outputs, test artifacts, and versi
 ARCHITECTURE.md
 CLAUDE.md
 CONTRIBUTING.md
+EX_PROMPT_1_TIC_TAC_TOE.md
 EX_PROMPT_2_TIC_TAC_TOE_VS_COMPUTER.md
 EX_PROMPT_3_TETRIS.md
 EX_PROMPT_4_SOLAR_SYSTEM.md

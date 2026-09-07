@@ -77,7 +77,8 @@ func TestTheFallbackHeadingIsTheTasksName(t *testing.T) {
 // told it the tools were off; both questions now say so and say to answer
 // from the record.
 func TestTheArchitectureQuestionsSayTheToolsAreOff(t *testing.T) {
-	for _, question := range []string{TheFifthQuestion, TheFirstSectionQuestion} {
+	// Run 20, task 3: the review's four questions got tool markup back too.
+	for _, question := range []string{TheFifthQuestion, TheFirstSectionQuestion, TheFourQuestions} {
 		if !strings.Contains(question, TheToolsAreOffLine) {
 			t.Errorf("the question %q does not say the tools are off", question)
 		}

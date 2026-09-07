@@ -105,7 +105,7 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return contract.ToolOutput{}, fmt.Errorf("cannot write %s back after the edit: %w", path, err)
 	}
 	return contract.ToolOutput{
-		Text: fmt.Sprintf("edited %s by the %s matcher; the file now holds %d bytes\n", path, how, len(after)),
+		Text: fmt.Sprintf("edited %s by the %s matcher; the file now holds %d bytes\n", path, how, len(after)) + changedLines(before, after),
 	}, nil
 }
 

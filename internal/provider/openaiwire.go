@@ -87,9 +87,13 @@ type openAIBody struct {
 	Stream bool `json:"stream"`
 	// StreamOptions asks for the token counts.
 	StreamOptions openAIStreamOptions `json:"stream_options"`
-	// Tools is what the model may ask for, and is left out when the harness has
-	// switched the tools off.
+	// Tools is what the model may ask for. It is sent even when the harness has
+	// switched the tools off, so that the prompt the server sees is the same
+	// bytes as on a working call and its cache holds; ToolChoice then says none.
 	Tools []openAITool `json:"tools,omitempty"`
+	// ToolChoice is "none" when the harness has switched the tools off, and
+	// left out otherwise, so that the server's own default of auto stands.
+	ToolChoice string `json:"tool_choice,omitempty"`
 	// MaxCompletionTokens is the output cap. It is this field rather than the
 	// older max_tokens, because the reasoning models refuse the older one and
 	// the local daemon honours this one.

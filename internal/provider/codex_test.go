@@ -166,7 +166,10 @@ func TestTheCodexProviderSendsTheToolsAsFunctionTools(t *testing.T) {
 	}
 }
 
-func TestTheCodexProviderSendsNoToolsWhenTheHarnessSwitchedThemOff(t *testing.T) {
+// TestTheCodexProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff:
+// the tools stay on the wire so the prompt is the same bytes as a working
+// call's, and the tool choice of none is what keeps the model from calling.
+func TestTheCodexProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff(t *testing.T) {
 	backend := newCodexBackend(t, codexAnswer{events: codexTextStream("ok", "")})
 	model, _ := codexAgainst(t, backend)
 	request := requestWithEverything()
@@ -177,10 +180,14 @@ func TestTheCodexProviderSendsNoToolsWhenTheHarnessSwitchedThemOff(t *testing.T)
 	}
 
 	body := backend.lastBody(t)
-	for _, key := range []string{"tools", "tool_choice", "parallel_tool_calls"} {
-		if _, has := body[key]; has {
-			t.Errorf("the request carries %q although the harness switched the tools off: %v", key, body[key])
-		}
+	if tools, _ := body["tools"].([]any); len(tools) == 0 {
+		t.Errorf("the request carries no tools with the tools off, and the prompt then differs from a working call's: %v", body["tools"])
+	}
+	if body["tool_choice"] != "none" {
+		t.Errorf("the request sets tool_choice to %v, want none", body["tool_choice"])
+	}
+	if parallel, has := body["parallel_tool_calls"]; has && parallel != false {
+		t.Errorf("the request sets parallel_tool_calls to %v, want false or left out", parallel)
 	}
 }
 

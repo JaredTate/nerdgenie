@@ -96,6 +96,9 @@ func (model *anthropicModel) buildBody(request contract.Request) (anthropicBody,
 		Messages:  anthropicMessages(request.Messages),
 		Tools:     markLastTool(tools, request, &markers),
 	}
+	if request.ToolsOff && len(tools) > 0 {
+		body.ToolChoice = &anthropicToolChoice{Type: "none"}
+	}
 	if asksForThinking(level) {
 		body.Thinking = &anthropicThinking{Type: "adaptive"}
 		body.OutputConfig = &anthropicOutputConfig{Effort: string(level)}
@@ -137,12 +140,11 @@ func markLastTool(tools []anthropicTool, request contract.Request, markers *int)
 	return tools
 }
 
-// anthropicTools turns the tool specifications into the shape the API reads, and
-// returns nothing at all when the harness has switched the tools off.
+// anthropicTools turns the tool specifications into the shape the API reads.
+// They are sent even when the harness has switched the tools off, so that the
+// cached prefix of tools and system prompt is the same bytes as on a working
+// call; the body's tool choice says none instead.
 func anthropicTools(request contract.Request) []anthropicTool {
-	if request.ToolsOff {
-		return nil
-	}
 	tools := []anthropicTool{}
 	for _, spec := range request.Tools {
 		tools = append(tools, anthropicTool{
@@ -173,12 +175,17 @@ func anthropicMessages(messages []contract.Message) []anthropicMessage {
 func anthropicBlocksFor(message contract.Message) []anthropicBlock {
 	blocks := []anthropicBlock{}
 	for _, result := range message.ToolResults {
-		blocks = append(blocks, anthropicBlock{
-			Type:      "tool_result",
-			ToolUseID: result.CallID,
-			Content:   result.Text,
-			IsError:   result.Failed,
-		})
+		// A result with no call id is a picture on its own, riding at the end
+		// of the prompt in the working context's pictures message; it answers
+		// no call, so it goes only as the image block below.
+		if result.CallID != "" {
+			blocks = append(blocks, anthropicBlock{
+				Type:      "tool_result",
+				ToolUseID: result.CallID,
+				Content:   result.Text,
+				IsError:   result.Failed,
+			})
+		}
 		if result.Picture != "" {
 			blocks = append(blocks, anthropicBlock{Type: "image", Source: &anthropicImageSource{Type: "base64", MediaType: "image/png", Data: result.Picture}})
 		}

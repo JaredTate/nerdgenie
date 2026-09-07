@@ -19,7 +19,7 @@ func TestNothingAboveTheCacheLineChangesAcrossTenTurns(t *testing.T) {
 	run.playTo(t, 1)
 	builder := newGoldenBuilder(t)
 
-	first := ""
+	first, rules := "", ""
 	for round := 2; round <= 11; round++ {
 		run.playTo(t, round)
 		request, err := builder.Build(t.Context(), run.input(24000))
@@ -27,6 +27,7 @@ func TestNothingAboveTheCacheLineChangesAcrossTenTurns(t *testing.T) {
 			t.Fatalf("cannot build the working context at round %d: %v", round, err)
 		}
 		above := aboveTheCacheLine(request)
+		rules = theMessageHeaded(request, recordFirstHalfHeading)
 		if round == 2 {
 			first = above
 			continue
@@ -36,16 +37,21 @@ func TestNothingAboveTheCacheLineChangesAcrossTenTurns(t *testing.T) {
 		}
 	}
 
-	// The test would prove nothing if the top of the prompt never changed at
-	// all, so this is the change it is supposed to notice: the user's correction
-	// at round twelve goes into the record's rules, which are above the line.
+	// The test would prove nothing if nothing ever changed at all, so this is
+	// the change it is supposed to notice: the user's correction at round
+	// twelve goes into the record's rules, which ride in the first message
+	// below the tools since 7 September 2026, while the system prompt, which
+	// is the same bytes for every task of a run, stays as it was.
 	run.playTo(t, 12)
 	request, err := builder.Build(t.Context(), run.input(24000))
 	if err != nil {
 		t.Fatalf("cannot build the working context at round 12: %v", err)
 	}
-	if aboveTheCacheLine(request) == first {
-		t.Error("the user's correction at round twelve did not reach the top of the prompt")
+	if aboveTheCacheLine(request) != first {
+		t.Error("the user's correction at round twelve moved the system prompt, which must be the same bytes for every task")
+	}
+	if theMessageHeaded(request, recordFirstHalfHeading) == rules {
+		t.Error("the user's correction at round twelve did not reach the record's rules")
 	}
 }
 

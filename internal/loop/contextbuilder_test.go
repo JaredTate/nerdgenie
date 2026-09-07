@@ -97,8 +97,10 @@ func TestTheWorkingContextWorksBeforeThereIsARecord(t *testing.T) {
 }
 
 // TestTheWorkingContextTurnsTheToolsOff proves the one thing the loop knows and
-// the builder does not: the final report and the review are asked for with no
-// tools at all.
+// the builder does not: the final report and the review are asked for with the
+// tools off. The tools stay on the request, so the prompt's front is the same
+// bytes as every working call's and the daemon keeps its cache; the flag is
+// what tells the provider to forbid the call.
 func TestTheWorkingContextTurnsTheToolsOff(t *testing.T) {
 	built := newHarness(t, nil)
 
@@ -110,8 +112,8 @@ func TestTheWorkingContextTurnsTheToolsOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the working context would not build with the tools off: %v", err)
 	}
-	if !request.ToolsOff || len(request.Tools) != 0 {
-		t.Errorf("the request carries %d tools with the tools-off flag %v, want none and true", len(request.Tools), request.ToolsOff)
+	if !request.ToolsOff || len(request.Tools) != 1 {
+		t.Errorf("the request carries %d tools with the tools-off flag %v, want the one tool kept and the flag true", len(request.Tools), request.ToolsOff)
 	}
 }
 

@@ -243,7 +243,12 @@ func TestTheOpenAIProviderPassesTheContractCheck(t *testing.T) {
 	}
 }
 
-func TestTheOpenAIProviderSendsNoToolsWhenTheHarnessSwitchedThemOff(t *testing.T) {
+// TestTheOpenAIProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff:
+// the local daemon renders the tools into the prompt, so a call without them
+// is different bytes from a working call and lost the daemon's whole cache
+// on every done check on 6 September 2026. The tools stay on the wire and the
+// tool choice of none is what keeps the model from calling.
+func TestTheOpenAIProviderKeepsTheToolsAndForbidsTheCallWhenTheHarnessSwitchedThemOff(t *testing.T) {
 	server := testkit.NewFakeProviderServer(scriptSayingOneThing("done"))
 	defer server.Close()
 	model, _ := openAIAgainst(t, server)
@@ -255,8 +260,55 @@ func TestTheOpenAIProviderSendsNoToolsWhenTheHarnessSwitchedThemOff(t *testing.T
 	}
 
 	body := bodyOfLastCallTo(t, server, testkit.OpenAIPath)
-	if _, has := body["tools"]; has {
-		t.Errorf("the request carries tools although the harness switched them off: %v", body["tools"])
+	if tools, _ := body["tools"].([]any); len(tools) == 0 {
+		t.Errorf("the request carries no tools with the tools off, and the prompt then differs from a working call's: %v", body["tools"])
+	}
+	if body["tool_choice"] != "none" {
+		t.Errorf("the request sets tool_choice to %v, want none", body["tool_choice"])
+	}
+
+	request.ToolsOff = false
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call with the tools on failed: %v", err)
+	}
+	if body := bodyOfLastCallTo(t, server, testkit.OpenAIPath); body["tool_choice"] != nil {
+		t.Errorf("a working call sets tool_choice to %v, want it left out", body["tool_choice"])
+	}
+}
+
+// TestTheOpenAIProviderSendsAPictureOnItsOwnAsOnlyAnImageMessage: the working
+// context puts the newest pictures in one message at the end of the prompt,
+// each a result with no call id; such a result goes as the image message alone,
+// with no tool message answering a call that was never made.
+func TestTheOpenAIProviderSendsAPictureOnItsOwnAsOnlyAnImageMessage(t *testing.T) {
+	server := testkit.NewFakeProviderServer(scriptSayingOneThing("a red square"))
+	defer server.Close()
+	model, _ := openAIAgainst(t, server)
+	request := requestWithEverything()
+	request.Messages = append(request.Messages, contract.Message{Role: contract.RoleUser, Text: "## Pictures\n\nthe pictures that came with r7", ToolResults: []contract.ToolResult{
+		{Label: "r7", Picture: "iVBORw0KGgo="},
+	}})
+
+	if _, err := model.Send(context.Background(), request, nil); err != nil {
+		t.Fatalf("one call to the OpenAI-compatible provider failed: %v", err)
+	}
+
+	body := bodyOfLastCallTo(t, server, testkit.OpenAIPath)
+	messages := body["messages"].([]any)
+	for _, one := range messages {
+		message := one.(map[string]any)
+		if message["role"] == "tool" && message["tool_call_id"] == "" {
+			t.Fatalf("a picture on its own went as a tool message with no call id: %v", message)
+		}
+	}
+	last := messages[len(messages)-1].(map[string]any)
+	before := messages[len(messages)-2].(map[string]any)
+	parts, isList := before["content"].([]any)
+	if before["role"] != "user" || !isList || len(parts) != 2 || parts[1].(map[string]any)["type"] != "image_url" {
+		t.Fatalf("the picture did not go as a user message with an image part: %v", before)
+	}
+	if last["role"] != "user" || last["content"] != "## Pictures\n\nthe pictures that came with r7" {
+		t.Errorf("the pictures message's own words did not follow the picture: %v", last)
 	}
 }
 

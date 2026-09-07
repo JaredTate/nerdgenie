@@ -377,6 +377,7 @@ internal/context/builder.go
 internal/context/builder_test.go
 internal/context/cachemeasure_live_test.go
 internal/context/cacheprefix_test.go
+internal/context/cacheshape_test.go
 internal/context/cost.go
 internal/context/cost_test.go
 internal/context/doc.go
@@ -394,8 +395,10 @@ internal/context/integration_test.go
 internal/context/live_test.go
 internal/context/marker.go
 internal/context/marker_test.go
+internal/context/nextstep.go
 internal/context/persona.go
 internal/context/persona_test.go
+internal/context/pictures.go
 internal/context/recentwork.go
 internal/context/recentwork_test.go
 internal/context/recordsplit.go
@@ -793,6 +796,7 @@ internal/provider/support_test.go
 internal/provider/testdata/codex/empty_arguments.json
 internal/provider/testdata/codex/everything.json
 internal/provider/testdata/codex/no_reasoning.json
+internal/provider/testdata/codex/no_tools.json
 internal/provider/testdata/codex/tools_off.json
 internal/provider/testdata/fuzz/FuzzRefusalBody/fb7696acc1cd9cde
 internal/provider/think.go

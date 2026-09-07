@@ -115,6 +115,9 @@ func (model *openAIModel) buildBody(request contract.Request) (openAIBody, error
 		Tools:               openAITools(request),
 		MaxCompletionTokens: outputTokens,
 	}
+	if request.ToolsOff && len(body.Tools) > 0 {
+		body.ToolChoice = "none"
+	}
 	if asksForThinking(level) {
 		body.ReasoningEffort = string(level)
 	}
@@ -160,7 +163,12 @@ func openAIMessagesFor(message contract.Message) []openAIMessage {
 		if result.Failed {
 			text = failedToolResultPrefix + text
 		}
-		written = append(written, openAIMessage{Role: "tool", Content: text, ToolCallID: result.CallID})
+		// A result with no call id is a picture on its own, riding at the end
+		// of the prompt in the working context's pictures message; it answers
+		// no call, so it goes only as the image part below.
+		if result.CallID != "" {
+			written = append(written, openAIMessage{Role: "tool", Content: text, ToolCallID: result.CallID})
+		}
 		// A tool message's content is text, so a picture follows as a user
 		// message with an image part, named for the result it belongs to.
 		if result.Picture != "" {
@@ -187,12 +195,12 @@ func openAIMessagesFor(message contract.Message) []openAIMessage {
 	return append(written, turn)
 }
 
-// openAITools turns the tool specifications into the shape the API reads, and
-// returns nothing at all when the harness has switched the tools off.
+// openAITools turns the tool specifications into the shape the API reads. They
+// are sent even when the harness has switched the tools off, because the
+// server renders them into the prompt and a prompt without them is different
+// bytes from the working calls', which cost the local daemon its whole cache
+// on every done check; the body's tool choice says none instead.
 func openAITools(request contract.Request) []openAITool {
-	if request.ToolsOff {
-		return nil
-	}
 	tools := []openAITool{}
 	for _, spec := range request.Tools {
 		tools = append(tools, openAITool{Type: "function", Function: openAIFunction{

@@ -64,16 +64,17 @@ type realBuilder struct {
 	builder *workingcontext.Builder
 }
 
-// Build asks the real builder for one call's prompt, with the tools left out
-// when this is the call that asks for a report with the tools off.
+// Build asks the real builder for one call's prompt. A call with the tools off
+// keeps the tools on the request and says so with the flag, so that the
+// prompt's front is the same bytes as the working calls' and the provider
+// only tells the model not to call: on 6 September 2026 the done check and
+// the review dropped the tools from the wire, the prompt then differed from
+// the tool list on, and the daemon's cache was lost twenty-five times with
+// the conversation unchanged.
 func (real realBuilder) Build(ctx context.Context, input BuildInput) (contract.Request, error) {
 	held := contract.Record{}
 	if input.Record != nil {
 		held = *input.Record
-	}
-	tools := input.Tools
-	if input.ToolsOff {
-		tools = nil
 	}
 	request, err := real.builder.Build(ctx, workingcontext.BuildInput{
 		ContextLength: input.ContextLength,
@@ -82,7 +83,7 @@ func (real realBuilder) Build(ctx context.Context, input BuildInput) (contract.R
 		RecentWork:    input.RecentWork,
 		Messages:      input.Messages,
 		Pinned:        input.Pinned,
-		Tools:         tools,
+		Tools:         input.Tools,
 		MemoryHint:    input.MemoryHint,
 	})
 	if err != nil {

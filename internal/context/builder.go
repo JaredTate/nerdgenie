@@ -186,7 +186,7 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 	parts := splitRecord(input.Record)
 
 	request := contract.Request{
-		SystemBlocks:    builder.systemBlocks(persona, input, parts.Stable),
+		SystemBlocks:    builder.systemBlocks(persona, input),
 		Tools:           input.Tools,
 		MaxOutputTokens: builder.maxOutputTokens,
 	}
@@ -199,13 +199,21 @@ func (builder *Builder) Build(ctx context.Context, input BuildInput) (contract.R
 }
 
 // systemBlocks builds everything above the cache line, in the order of the
-// design's layer table, with the three cache boundaries on the blocks that end
-// each layer. Boundary A ends the rules and the persona, B ends the tools, and C
-// ends the record's goal and rules.
+// design's layer table, with the cache boundaries on the blocks that end each
+// layer. Boundary A ends the rules and the persona, and B ends the tools, which
+// is where the stable prefix ends since 7 September 2026.
+//
+// The job summary, the recent work and the record's goal and rules rode here
+// too until then, and on 6 September that cost every task start the whole
+// tool list: the wire puts the tools after the system prompt, so a system
+// prompt that changes per task pushes the tools out of the cache, and 25 of 32
+// task starts re-read ten to fourteen thousand tokens. They ride as the first
+// messages below the tools now, in perTaskFront, where a new task costs only
+// their own size. With no tools the prefix ends at the persona and boundary A.
 //
 // A layer with nothing in it is left out rather than sent as an empty block,
 // because an empty block is refused on the wire.
-func (builder *Builder) systemBlocks(persona string, input BuildInput, stable string) []contract.SystemBlock {
+func (builder *Builder) systemBlocks(persona string, input BuildInput) []contract.SystemBlock {
 	blocks := []contract.SystemBlock{{Name: BlockInstructions, Text: InstructionText}}
 	if persona != "" {
 		blocks = append(blocks, contract.SystemBlock{Name: BlockPersona, Text: persona})
@@ -216,30 +224,6 @@ func (builder *Builder) systemBlocks(persona string, input BuildInput, stable st
 		blocks = append(blocks, contract.SystemBlock{
 			Name: BlockTools, Text: toolsHeading, Boundary: contract.CacheBoundaryB,
 		})
-	}
-	if input.JobSummary != "" {
-		blocks = append(blocks, contract.SystemBlock{
-			Name: BlockJob, Text: jobHeading + "\n\n" + input.JobSummary,
-		})
-	}
-	if len(input.RecentWork) > 0 {
-		blocks = append(blocks, contract.SystemBlock{
-			Name: BlockRecentWork, Text: recentWorkHeading + "\n\n" + recentWorkText(input.RecentWork),
-		})
-	}
-	if stable != "" {
-		blocks = append(blocks, contract.SystemBlock{
-			Name: BlockRecord, Text: recordFirstHalfHeading + "\n\n" + stable,
-		})
-	}
-	// Cache boundary C ends the stable prefix. It falls on the record's goal and
-	// rules; when there is no record yet it falls on the recent-work block
-	// instead, so a "where are we" turn with an empty record still keeps that
-	// list in the cached prefix. With neither present the prefix ends at the
-	// tools and their boundary B, and the job summary, as before, never carries
-	// C on its own.
-	if last := len(blocks) - 1; blocks[last].Name == BlockRecord || blocks[last].Name == BlockRecentWork {
-		blocks[last].Boundary = contract.CacheBoundaryC
 	}
 	return blocks
 }

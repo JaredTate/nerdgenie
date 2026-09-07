@@ -35,8 +35,8 @@ func TestRule3TheBudgetBuysOneLastCallWithTheToolsOff(t *testing.T) {
 	}
 	requests := built.model.Requests()
 	last := requests[len(requests)-1]
-	if !last.ToolsOff || len(last.Tools) != 0 {
-		t.Error("the last call was made with the tools still on, and the final report is asked for with them off")
+	if !last.ToolsOff || len(last.Tools) == 0 {
+		t.Error("the last call was made without the tools-off flag, or without the tools kept on the request for the cache")
 	}
 	if !sentSomethingLike(built.channel.Sent(), "What is left: the third one") {
 		t.Errorf("the user was sent %v, want the model's report of what is left", built.channel.Sent())

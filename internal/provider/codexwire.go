@@ -131,6 +131,10 @@ func codexRequestBody(request contract.Request, modelName string) ([]byte, error
 		body.ToolChoice = "auto"
 		body.ParallelToolCalls = true
 	}
+	if request.ToolsOff && len(body.Tools) > 0 {
+		body.ToolChoice = "none"
+		body.ParallelToolCalls = false
+	}
 	if asksForThinking(request.Think) {
 		body.Reasoning = &codexReasoning{Effort: string(request.Think)}
 		body.Include = []string{encryptedReasoningInclude}
@@ -186,12 +190,11 @@ func codexMessageFor(role contract.Role, text string) codexMessageItem {
 	}
 }
 
-// codexTools turns the tool specifications into the flat shape this API reads,
-// and returns nothing at all when the harness has switched the tools off.
+// codexTools turns the tool specifications into the flat shape this API reads.
+// They are sent even when the harness has switched the tools off, so that the
+// prompt is the same bytes as on a working call; the body's tool choice says
+// none instead.
 func codexTools(request contract.Request) []codexTool {
-	if request.ToolsOff {
-		return nil
-	}
 	tools := []codexTool{}
 	for _, spec := range request.Tools {
 		tools = append(tools, codexTool{

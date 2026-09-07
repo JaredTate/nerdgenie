@@ -43,8 +43,12 @@ func TestAProvenDoneLineChangesNothingAboveTheCacheLine(t *testing.T) {
 	if aboveTheCacheLine(earlier) != aboveTheCacheLine(later) {
 		t.Error("marking every done line done changed the bytes above the cache line, and the done list has to ride in the tail")
 	}
-	if !strings.Contains(aboveTheCacheLine(later), "Ask: ") || strings.Contains(aboveTheCacheLine(later), "Done when:") {
-		t.Error("the system prompt must still carry the ask and must no longer carry the done list")
+	goal := theMessageHeaded(later, recordFirstHalfHeading)
+	if !strings.Contains(goal, "Ask: ") || strings.Contains(goal, "Done when:") {
+		t.Error("the record's goal, the first message below the tools, must still carry the ask and must no longer carry the done list")
+	}
+	if goal != theMessageHeaded(earlier, recordFirstHalfHeading) {
+		t.Error("marking every done line done changed the record's goal, which has to hold still through a task")
 	}
 	body := theMessageHeaded(later, recordSecondHalfHeading)
 	if !strings.Contains(body, "Done when:") || !strings.Contains(body, "-> "+last.ID) {

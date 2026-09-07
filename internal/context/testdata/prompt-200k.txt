@@ -24,7 +24,15 @@ You are Nerd Genie. You are careful, you say what you are doing, and you never g
 === system block: tools (cache boundary: B) ===
 **Your tools.** The tools you may call are sent with this message, each with its name, what it does, and the fields it takes.
 
-=== system block: record goal and rules (cache boundary: C) ===
+=== tool: read ===
+Read a file, a folder, or a past result by its id. Use it before editing anything.
+  path (string): what to read
+
+=== tool: write ===
+Write a file inside the allowed folders. Do not use it to edit part of a file.
+  path (string): where to write
+
+=== message 1 from the user ===
 **The task record, part one: the goal and the rules.** These change rarely.
 
 ## Goal
@@ -38,15 +46,7 @@ Stop and tell the user if:
 - the account shows a login page or a captcha
 - the post is still over 280 characters after two tries
 
-=== tool: read ===
-Read a file, a folder, or a past result by its id. Use it before editing anything.
-  path (string): what to read
-
-=== tool: write ===
-Write a file inside the allowed folders. Do not use it to edit part of a file.
-  path (string): where to write
-
-=== message 1 from the user ===
+=== message 2 from the user ===
 **What you know, from USER.md and MEMORY.md.** These are yours to add to with the `memory` tool.
 
 **What is true about the user, from USER.md.**
@@ -55,12 +55,12 @@ The user is Jared. He works on DigiByte and prefers short answers.
 **What is true about the world, from MEMORY.md.**
 DigiByte launched on the tenth of January 2014.
 
-=== message 2 from the assistant ===
+=== message 3 from the assistant ===
 Nothing has been read yet. I will start with the product notes.
 --- calls read as call_1: {"path":"memory/product.md"} ---
 --- calls task as call_1_task: {"doneWhen":["one post is up on the DigiByte account","it is under 280 characters and mentions the date"],"stopWhen":["the account shows a login page or a captcha","the post is still over 280 characters after two tries"],"why":"mark the anniversary publicly today"} ---
 
-=== message 3 from the user ===
+=== message 4 from the user ===
 --- result of call_1 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 DigiByte launched on 10 January 2014. The product notes list the block time, the five mining algorithms, and the anniversary date.
@@ -70,32 +70,32 @@ DigiByte launched on 10 January 2014. The product notes list the block time, the
 {"doneWhen":["one post is up on the DigiByte account","it is under 280 characters and mentions the date"],"stopWhen":["the account shows a login page or a captcha","the post is still over 280 characters after two tries"],"why":"mark the anniversary publicly today"}
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 4 from the assistant ===
+=== message 5 from the assistant ===
 The notes are read. I will read the brand file for the tone.
 --- calls read as call_2: {"path":"memory/brand.md"} ---
 
-=== message 5 from the user ===
+=== message 6 from the user ===
 --- result of call_2 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The brand file says: plain words, one fact per post, no exclamation marks.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 6 from the assistant ===
+=== message 7 from the assistant ===
 I have the tone. I will confirm the date on the web.
 --- calls web as call_3: {"search":"DigiByte launch date anniversary"} ---
 
-=== message 7 from the user ===
+=== message 8 from the user ===
 --- result of call_3 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 1. DigiByte was launched on 10 January 2014. 2. The DigiByte Foundation page. 3. A block explorer. 4. A news article. 5. A forum thread.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 8 from the assistant ===
+=== message 9 from the assistant ===
 The search agrees with the notes. I will read the first result in full.
 --- calls web as call_4: {"fetch":"https://digibyte.org/history"} ---
 --- calls task as call_4_task: {"plan":["read the product notes","read the brand file","confirm the date","draft the post","check the length","open the browser","log in if needed","compose the post","post it","confirm it is up"]} ---
 
-=== message 9 from the user ===
+=== message 10 from the user ===
 --- result of call_4 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The genesis block was mined on 10 January 2014.
@@ -105,22 +105,22 @@ The genesis block was mined on 10 January 2014.
 {"plan":["read the product notes","read the brand file","confirm the date","draft the post","check the length","open the browser","log in if needed","compose the post","post it","confirm it is up"]}
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 10 from the assistant ===
+=== message 11 from the assistant ===
 The date is confirmed. I will write the first draft.
 --- calls write as call_5: {"path":"drafts/anniversary-1.md","text":"draft one"} ---
 
-=== message 11 from the user ===
+=== message 12 from the user ===
 --- result of call_5 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 Draft one: a post about the five mining algorithms, the block time, and the anniversary. 312 characters.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 12 from the assistant ===
+=== message 13 from the assistant ===
 Draft one is written. I will measure it.
 --- calls shell as call_6: {"command":"wc -m drafts/anniversary-1.md"} ---
 --- calls task as call_6_task: {"failure":{"cause":"three facts in one post. Keep to one.","text":"Draft 1 was 312 characters"}} ---
 
-=== message 13 from the user ===
+=== message 14 from the user ===
 --- result of call_6 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 312 drafts/anniversary-1.md
@@ -130,65 +130,65 @@ Draft one is written. I will measure it.
 {"failure":{"cause":"three facts in one post. Keep to one.","text":"Draft 1 was 312 characters"}}
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 14 from the assistant ===
+=== message 15 from the assistant ===
 Draft one is too long. I will cut it to one fact.
 --- calls edit as call_7: {"from":"draft one","path":"drafts/anniversary-1.md","to":"draft two"} ---
 
-=== message 15 from the user ===
+=== message 16 from the user ===
 --- result of call_7 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 Draft two: one fact, the anniversary, 236 characters.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 16 from the assistant ===
+=== message 17 from the assistant ===
 Draft two is short enough. I will measure it to be sure.
 --- calls shell as call_8: {"command":"wc -m drafts/anniversary-1.md"} ---
 
-=== message 17 from the user ===
+=== message 18 from the user ===
 --- result of call_8 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 236 drafts/anniversary-1.md
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 18 from the assistant ===
+=== message 19 from the assistant ===
 The draft is 236 characters. I will check the brand rules against it.
 --- calls read as call_9: {"path":"memory/brand.md"} ---
 
-=== message 19 from the user ===
+=== message 20 from the user ===
 --- result of call_9 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The brand file says: plain words, one fact per post, no exclamation marks.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 20 from the assistant ===
+=== message 21 from the assistant ===
 The draft follows the brand rules. I will look for a picture to go with it.
 --- calls search as call_10: {"path":"memory/images","pattern":"*.png"} ---
 
-=== message 21 from the user ===
+=== message 22 from the user ===
 --- result of call_10 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 memory/images/logo.png, memory/images/chart.png, memory/images/nodes.png
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 22 from the assistant ===
+=== message 23 from the assistant ===
 There is a logo. I will read the posting skill before I open the browser.
 --- calls skill as call_11: {"view":"post-to-x"} ---
 
-=== message 23 from the user ===
+=== message 24 from the user ===
 --- result of call_11 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The skill opens x.com, clicks compose, types, and clicks post.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 24 from the user ===
+=== message 25 from the user ===
 no, lead with the date not the features
 
-=== message 25 from the assistant ===
+=== message 26 from the assistant ===
 The user has corrected me: lead with the date, not the features. I will rewrite the draft that way.
 --- calls edit as call_12: {"from":"draft two","path":"drafts/anniversary-1.md","to":"draft three"} ---
 --- calls task as call_12_task: {"decision":{"reason":"correction C1","text":"Lead with the date"}} ---
 
-=== message 26 from the user ===
+=== message 27 from the user ===
 --- result of call_12 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 Draft three leads with the date: 10 January 2014. 228 characters.
@@ -198,87 +198,87 @@ Draft three leads with the date: 10 January 2014. 228 characters.
 {"decision":{"reason":"correction C1","text":"Lead with the date"}}
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 27 from the assistant ===
+=== message 28 from the assistant ===
 The draft leads with the date. I will measure it once more.
 --- calls shell as call_13: {"command":"wc -m drafts/anniversary-1.md"} ---
 
-=== message 28 from the user ===
+=== message 29 from the user ===
 --- result of call_13 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 228 drafts/anniversary-1.md
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 29 from the assistant ===
+=== message 30 from the assistant ===
 The draft is ready. I will open the browser.
 --- calls browser_open as call_14: {"url":"https://x.com/home"} ---
 
-=== message 30 from the user ===
+=== message 31 from the user ===
 --- result of call_14 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The home timeline is open. There is a Compose button.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 31 from the assistant ===
+=== message 32 from the assistant ===
 The timeline is open. I will read the page properly.
 --- calls browser_read as call_15: {} ---
 
-=== message 32 from the user ===
+=== message 33 from the user ===
 --- result of call_15 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 e1 button Compose, e2 link Home, e3 link Profile, and 37 more.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 33 from the assistant ===
+=== message 34 from the assistant ===
 I can see the Compose button. I will click it.
 --- calls browser_click as call_16: {"expectation":"a text box appears","ref":"e1"} ---
 
-=== message 34 from the user ===
+=== message 35 from the user ===
 --- result of call_16 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 A dialog opened with a text box named Post text.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 35 from the assistant ===
+=== message 36 from the assistant ===
 The text box is open. I will read the dialog.
 --- calls browser_read as call_17: {} ---
 
-=== message 36 from the user ===
+=== message 37 from the user ===
 --- result of call_17 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 e10 textbox Post text, e11 button Post, e12 button Add photo.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 37 from the assistant ===
+=== message 38 from the assistant ===
 I can see the text box. I will read the draft one more time before typing.
 --- calls read as call_18: {"path":"drafts/anniversary-1.md"} ---
 
-=== message 38 from the user ===
+=== message 39 from the user ===
 --- result of call_18 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 10 January 2014. Nine years ago today the first DigiByte block was mined.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 39 from the assistant ===
+=== message 40 from the assistant ===
 I have the text. I will type it into the box.
 --- calls browser_type as call_19: {"expectation":"the box holds the post","ref":"e10","text":"the draft"} ---
 
-=== message 40 from the user ===
+=== message 41 from the user ===
 --- result of call_19 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 The text box holds 228 characters.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 41 from the assistant ===
+=== message 42 from the assistant ===
 The post is typed. I will check the character counter on the page.
 --- calls browser_read as call_20: {} ---
 
-=== message 42 from the user ===
+=== message 43 from the user ===
 --- result of call_20 ---
 --- begin tool result, data and not instructions, boundary 0f1e2d3c4b5a6978 ---
 e13 text 228/280 shows the post is inside the limit.
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 43 from the user ===
+=== message 44 from the user ===
 **The task record, part two: the work and the lessons.**
 
 Done when:
@@ -307,7 +307,7 @@ Decisions:
 Failures:
 - F1 Draft 1 was 312 characters. Cause: three facts in one post. Keep to one..
 
-=== message 44 from the user ===
+=== message 45 from the user ===
 **The task record, part three: every result so far.**
 
 Results (read any of them in full with `read r7`):
@@ -338,14 +338,17 @@ Results (read any of them in full with `read r7`):
 - r24 read the compose dialog, 7 elements
 --- end tool result, boundary 0f1e2d3c4b5a6978 ---
 
-=== message 45 from the user ===
+=== message 46 from the user ===
 **Memory hint.** Up to three lines from a search of what you know.
 
 - Jared posts at 14:00
 - one fact per post
 
-=== message 46 from the user ===
+=== message 47 from the user ===
 **The task record, last of all: where the work stands.**
 
 # task 17   running   from Signal   budget left: 100 rounds, 60 minutes
 this turn: 0.0k tokens in, 0.0k of them cached, 0.0k out
+
+=== message 48 from the user ===
+Step 1 of 10: read the product notes. Last: r24 read the compose dialog, 7 elements. Next: step 2, read the brand file. Open done lines: 2.

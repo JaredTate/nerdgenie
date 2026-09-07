@@ -576,6 +576,7 @@ internal/loop/carryon_test.go
 internal/loop/carryonwords_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
+internal/loop/closedcalls.go
 internal/loop/commands.go
 internal/loop/commands_test.go
 internal/loop/contextbuilder.go
@@ -657,6 +658,8 @@ internal/loop/replyended_test.go
 internal/loop/replyproof_test.go
 internal/loop/resume.go
 internal/loop/resume_test.go
+internal/loop/rethink.go
+internal/loop/rethink_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go

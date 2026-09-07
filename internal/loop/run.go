@@ -94,6 +94,11 @@ type run struct {
 	rewindsUsed int
 	rewindDue   bool
 	stallText   string
+	// stallMark is the fingerprint of the call the stall was about, which a
+	// rethink closes; closedCalls holds every call a rethink has closed, by
+	// its mark, with the round it reopens at.
+	stallMark   string
+	closedCalls map[string]closedCall
 	// The progress meter: rounds since the harness saw the work move, whether this round moved it, and how many stalls the rewind has cleared.
 	roundsSinceProgress int
 	progressThisRound   bool

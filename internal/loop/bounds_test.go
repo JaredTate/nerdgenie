@@ -36,6 +36,8 @@ func TestEveryBoundOfThisPackageIsTheNumberItSays(t *testing.T) {
 		{"MaxJobTasksRemembered", MaxJobTasksRemembered, 100},
 		{"IdenticalCallsAllowed", IdenticalCallsAllowed, 2},
 		{"SameCallHardCap", SameCallHardCap, 6},
+		{"MaxRethinkResultBytes", MaxRethinkResultBytes, 16384},
+		{"ClosedForRounds", ClosedForRounds, 10},
 		{"MaxResultsPinned", MaxResultsPinned, 4},
 		{"MaxLinesProvedByTheReply", MaxLinesProvedByTheReply, 8},
 		{"MaxResultsNamedInARefusal", MaxResultsNamedInARefusal, 12},

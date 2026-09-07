@@ -80,11 +80,17 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 	if running.rewindDue {
 		return refusedResult(call, "The conversation is being cleared after this reply, so this call was not run."), nil, nil
 	}
+	// A call a rethink closed is refused before the detector sees it, so
+	// that asking for it again and again is not a run of the same call.
+	if closed := running.theClosedLine(call); closed != "" {
+		return refusedResult(call, closed), nil, nil
+	}
 	refusal, hadEnough := running.detectorRefuses(call)
 	if hadEnough && running.rewindsUsed < RewindsAllowed {
 		running.rewindsUsed++
 		running.rewindDue = true
 		running.stallText = "stalled: asked for " + call.Name + " " + whatTheCallSays(call) + " over and over, so the conversation was cleared"
+		running.stallMark = fingerprintOf(call)
 		return refusedResult(call, refusal), nil, nil
 	}
 	if hadEnough {

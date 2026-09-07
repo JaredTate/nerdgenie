@@ -19,7 +19,10 @@ func anEditRound(number int) testkit.Step {
 }
 
 // editsForever is a script of edit rounds followed by an answer nobody
-// should reach, with an edit tool that answers every one.
+// should reach, with an edit tool that answers every one. The first edit is
+// the one change that counts, so the meter trips on the edit twenty rounds
+// after it and every twenty after that, and each trip but the last is
+// answered with the same rethink.
 func editsForever(t *testing.T, rounds int, extra ...contract.Tool) *harness {
 	t.Helper()
 	steps := []testkit.Step{}
@@ -27,6 +30,12 @@ func editsForever(t *testing.T, rounds int, extra ...contract.Tool) *harness {
 	for at := 1; at <= rounds; at++ {
 		steps = append(steps, anEditRound(at))
 		outputs = append(outputs, fmt.Sprintf("edited /game/src/engine.js by 1 line (%d)", at))
+		stalled := at - 1
+		if stalled > 0 && stalled%loop.RewindAfterRoundsWithoutProgress == 0 && stalled/loop.RewindAfterRoundsWithoutProgress < loop.StallsBeforeStop {
+			steps = append(steps, aRethinkAnswer("twenty edits of engine.js and the test never went green",
+				"the test reads a value the edits never touch", "the test imports a stale copy, or the value is set elsewhere",
+				"run grep -n stale /game/src"))
+		}
 	}
 	steps = append(steps, answerStep("Fixed. What changed: the engine. What I checked: nothing. What is left: nothing."))
 	tools := append([]contract.Tool{scriptedTool(contract.ToolEdit, outputs...)}, extra...)
@@ -51,9 +60,10 @@ func requestsCarrying(built *harness, words string) (int, int) {
 // meter's whole promise. The fourth game build spent sixty rounds on two tests
 // with every probe a character different, so the same-call guard never fired;
 // the fifth asked the desktop tool to launch an unnamed application eleven
-// times. Ten such rounds earn one line, twenty cut the stalled rounds with the
-// stall written into the record, and the fourth such stall stops the task:
-// rosie's three-bit model was stopped after two, and a cut is cheap.
+// times. Ten such rounds earn one line, twenty buy a rethink with the stall
+// written into the record from its answer, and the fourth such stall stops
+// the task: rosie's three-bit model was stopped after two, and a rethink is
+// one call.
 func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T) {
 	built := editsForever(t, loop.StallsBeforeStop*loop.RewindAfterRoundsWithoutProgress+5)
 
@@ -72,28 +82,34 @@ func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T
 	if _, count := requestsCarrying(built, askedFor); count == 0 {
 		t.Errorf("the stall line never asked the model to name the symptom and two causes, and it reads:\n%s", loop.TheStallLine)
 	}
-	firstRewind, _ := requestsCarrying(built, loop.TheRewindLine)
-	if firstRewind != loop.RewindAfterRoundsWithoutProgress+1 {
-		t.Errorf("the rewind line first rode on model call %d, want call %d, the one after the first change and twenty rounds without progress", firstRewind, loop.RewindAfterRoundsWithoutProgress+1)
+	// The twenty-first call trips the meter and is followed by the rethink's
+	// own call; the fresh window on its answer is the call after that.
+	if asked := theRethinkRequests(built); len(asked) != loop.StallsBeforeStop-1 {
+		t.Errorf("the model was asked the rethink's question %d times, want %d: once a stall but the last", len(asked), loop.StallsBeforeStop-1)
+	}
+	firstRethink, _ := requestsCarrying(built, loop.TheRethinkLine)
+	if firstRethink != loop.RewindAfterRoundsWithoutProgress+2 {
+		t.Errorf("the rethink line first rode on model call %d, want call %d, the one after the first change, twenty rounds without progress and the rethink's own call", firstRethink, loop.RewindAfterRoundsWithoutProgress+2)
 	}
 	stalls := loop.StallsBeforeStop
 	if outcome.Status != contract.StatusStopped || !strings.Contains(outcome.StopLine, fmt.Sprintf("without progress, %d times over", stalls)) {
-		t.Errorf("the task ended %q on %q, want it stopped for rounds without progress on the stall after the third cut", outcome.Status, outcome.StopLine)
+		t.Errorf("the task ended %q on %q, want it stopped for rounds without progress on the stall after the third rethink", outcome.Status, outcome.StopLine)
 	}
-	if calls := len(built.model.Requests()); calls < stalls*loop.RewindAfterRoundsWithoutProgress+1 || calls > stalls*loop.RewindAfterRoundsWithoutProgress+2 {
-		t.Errorf("the model was called %d times, want the first change, %d rounds of edits and at most one call for the stopped report", calls, stalls*loop.RewindAfterRoundsWithoutProgress)
+	rounds := stalls*loop.RewindAfterRoundsWithoutProgress + 1
+	if calls := len(built.model.Requests()); calls < rounds+stalls-1 || calls > rounds+stalls {
+		t.Errorf("the model was called %d times, want the first change, %d rounds of edits, %d rethinks and at most one call for the stopped report", calls, rounds-1, stalls-1)
 	}
 	held := built.held(t, outcome.TaskID)
 	stalled := 0
 	for _, failure := range held.Lessons.Failures {
-		if strings.Contains(failure.Text, "rounds in which no test went green") {
+		if strings.HasPrefix(failure.Text, "stalled:") {
 			stalled++
 		}
 	}
 	// The record refuses a failure that says what one it holds already says,
-	// so three cuts for the same stall leave one line, not three.
+	// so three rethinks that showed the same thing leave one line, not three.
 	if stalled != 1 {
-		t.Errorf("the record's failures hold %d stall lines, want one for the stall the cuts kept meeting: %+v", stalled, held.Lessons.Failures)
+		t.Errorf("the record's failures hold %d stall lines, want one for the stall the rethinks kept meeting: %+v", stalled, held.Lessons.Failures)
 	}
 }
 

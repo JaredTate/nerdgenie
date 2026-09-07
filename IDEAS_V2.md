@@ -21,7 +21,7 @@ Six headings, in this order. Write them in plain words.
 | **Goal** | What we are building or changing, for whom, and why. Two to five sentences. | Becomes the job's name and its why. Printed at the top of every task, so the model always knows what the work is for. |
 | **Where** | New project: the folder. Existing project: the repository, the branch, and the files to start from. | Opens the folder and the starting files before the model's first call. Finds the project's documents there (section 5). |
 | **Done when** | Numbered lines. Each one is something that must be true at the end. Put a check in brackets when the harness can run it. | Becomes the job's done list. Runs the bracketed checks at the end of every task and at the finish. The model cannot declare the job done; the list does. |
-| **Rules** | What holds on every task. A line that starts with "Stop" means stop and ask me; a build that should run end to end has none. | Every rule rides in front of every task, in your words, never rewritten. Stop lines end the task the moment they come true. |
+| **Rules** | The help you would give a colleague on day one: how to run and test, what to use, where things go, what good looks like, what to do when something will not pass. | Every rule rides in front of every task, in your words, never rewritten, so a choice made once is never re-made wrong on task nine. |
 | **Tasks** | The order of work, one line each, one done line each. Optional: the model plans when it is absent. | Becomes the job's task list with no planning rounds. The model may split a task or add one, never remove a finished one. |
 | **Details** | Everything else, as long as you like, under its own headings. | Each task sees the sections it names in full and the other sections by heading. The model reads any section by name. |
 
@@ -68,11 +68,11 @@ A new, empty folder: <WORK>/Tater Tots Tetrisv1. Serve it on any port but 8090.
 6. The developer controls used for testing are hidden in the finished game.
 
 ## Rules
-- Plain HTML, CSS and JavaScript. No framework. No build step.
-- The browser is the Chrome window on the screen, never a headless one from a script.
-- Hazard values live in one config file: probabilities, warning times, forced-drop speed.
-- The random source can be injected, so any hazard can be forced in a test.
-- Keep going until every done line is met; do not stop to ask.
+- Any framework or none; npm test runs the suite and npm start serves the game on 8091.
+- The Chrome window on the screen, through the browser tools, is how you see your work.
+- Keep every hazard value in one config file, so balancing the game is one edit.
+- Make the random source injectable, so a test can force any hazard.
+- When a test will not pass, write the failure and its cause and take another route.
 
 ## Tasks
 1. Scaffold: package.json, a test runner, index.html, a smoke test. (Details: Core game)
@@ -101,11 +101,11 @@ A new, empty folder: <WORK>/Tater Tots Tetrisv1. Serve it on any port but 8090.
 ### Visual polish
 ```
 
-That is the same 2,898 words. The finish is six lines, two of them run by the harness. The rules are five lines that reach every task, and none of them is a stop line, because this build is meant to run end to end without a person. Each task says which part of the details it needs.
+That is the same 2,898 words. The finish is six lines, two of them run by the harness. The rules are five lines of help that reach every task: which tools, which port, where the values go, how to test the random parts, what to do when a test will not pass. Each task says which part of the details it needs.
 
 ## 4. What the harness does with it, the same every time
 
-**At the start.** The harness reads the six headings and writes the job's record itself: name and why from Goal, the done list with its checks from Done when, the rules and the stop lines from Rules, the task list from Tasks. There are no planning rounds. It opens the folder from Where. Then it starts task one.
+**At the start.** The harness reads the six headings and writes the job's record itself: name and why from Goal, the done list with its checks from Done when, the rules from Rules, the task list from Tasks. There are no planning rounds. It opens the folder from Where. Then it starts task one.
 
 **For every task, the same five moves.** This is the process, and it is the same on task one of a game and task nine of a change to a large application.
 
@@ -143,7 +143,7 @@ The rule is short: the rules ride in full, the rest is read by name when it woul
 ## 6. Why this makes success repeatable
 
 - The finish is written by the person and checked by the harness, so a job cannot be talked done.
-- The rules ride in front of every task in the person's words, so nothing is lost at task nine.
+- The rules ride in front of every task in the person's words, so a choice made once is never re-made wrong at task nine.
 - Every task proves itself with a test, and the proof must be newer than the last edit.
 - Every task sees its own slice: its done line, its details, its files, the last report. Not the whole ask.
 - Every job leaves three documents behind, so the next job starts where this one ended.

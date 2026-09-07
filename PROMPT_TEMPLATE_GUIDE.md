@@ -52,7 +52,7 @@ Write the ask under six headings, in this order.
 
 A line with no check is judged by the model, and the model must name the result that proves it. Make the first done line the test suite; the harness runs it at the end of every task.
 
-**Rules.** What holds on every task, one line each, in your own words. A line that starts with "Stop" means stop and ask me: the harness ends the task the moment that line comes true, so use one only where a person must decide, never in a build meant to run end to end. The first rule is always tests first, and the harness writes it there itself, whether or not you did: write the test, watch it fail, write the code, watch it pass, the whole suite green before a task ends.
+**Rules.** The help you would give a colleague on day one, one line each, in your own words: how to run it, how to test it, what to use, where things go, what good looks like, what to do when something will not pass. A rule makes a choice once so the model never has to make it, and never makes it wrong on task nine. A rule is never a threat and never a reason to stop; the harness's own guards look after a stuck model, and anything that needs your yes lives on the ask-me-first list in the config, where the harness shows you a preview. The first rule is always tests first, and the harness writes it there itself, whether or not you did: write the test, watch it fail, write the code, watch it pass, the whole suite green before a task ends.
 
 **Tasks.** The order of work, one line each, each with one done line, in the order they depend on each other. Name the Details sections each task needs, like this: `(Details: Dragon, Tests required)`. A task is one sitting of work, thirty seconds to an hour. If you leave Tasks out, the model plans the job itself, in this same shape.
 
@@ -65,7 +65,7 @@ A line with no check is judged by the model, and the model must name the result 
 | Goal | Prints it at the top of every task. | When a plan breaks, the model decides from the intent instead of guessing. |
 | Where | Opens the folder and the starting files, finds the three project documents. | The model starts oriented instead of spending rounds listing and reading. |
 | Done when | Writes the finish into the record with the checks attached; runs the checks at the end of every task and at the finish. | The finish is yours, not the model's translation of it. The model cannot declare the job done early, and it knows exactly what to prove. |
-| Rules | Puts them in front of every task, in your words, never rewritten; ends a task the moment a Stop line is true. | Nothing drifts at task nine. Tests first is always there. Dangerous ground stops the work instead of being crossed. |
+| Rules | Puts them in front of every task, in your words, never rewritten. | The model never guesses how to run, test or serve, or which tool to use, and never re-decides on task nine what a rule decided on task one. Tests first is always there. |
 | Tasks | Makes the job from them with no planning rounds; runs them one at a time; each task sees only its own line. | The model works on one thing with one done line, and reads nothing about the other tasks. |
 | Details | Shelves each section by heading; shows a task the sections it names, in full, and the others by heading only. | The model reads the one page it needs instead of the whole spec, and can ask for any other section by name. |
 
@@ -102,9 +102,9 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 
 **A good done line** is a fact the harness or the model can check: "every test passes", "the page shows the board", "a whole game was played to game over and each state photographed". Not "the game is fun" on its own; put what fun means under Details and make the done line about what was seen.
 
-**A good rule** is one line, imperative, in your words, and it holds on every task: "Port 8090 is taken; use 8091." "Never start a browser from a script." Put a rule once. If you find yourself writing the same rule under three features, it belongs here.
+**A good rule** helps. It is one line, in your words, and it holds on every task: "Serve on port 8091; 8090 is in use." "The Chrome window on the screen is how you see your work." "Keep every hazard value in one config file, so balancing is one edit." "When a test will not pass, write the failure and its cause and take another route." Each of those makes a choice or shows a way through. Put a rule once; if you are writing the same rule under three features, it belongs here.
 
-**A good stop line** names a state a person must decide on before the work goes on, and it belongs only in an ask where such a state exists: real data, money, production, a file that must never change. "Stop if any file under supabase/ would change." "Stop if the change needs a migration." A standalone build that should run end to end, like the Tetris game, has no stop lines at all: a test that will not pass is the model's problem to solve by another route, and the harness's own guards handle a model that is stuck. Every stop line you write is a place the work will wait for you, so write one only where you want it to.
+**A rule that would stop the work is not a rule.** "Stop if a test cannot pass" turns a night's run into a wait for you, and the harness already handles a stuck model with its own guards. If there is something the model must never do without your yes, such as deleting many files, spending money or touching production, put it on the ask-me-first list in the config: the harness stops there, shows you a preview, and waits for your answer, and the ask stays about the work.
 
 **A good task** is one sitting of work with one done line, and names its Details: "6. The dragon: probability, warning, lock, forced drop, cleanup. Done when the dragon tests pass. (Details: Dragon, Tests required)". Order tasks by what they depend on. Put the tests-only tasks (a safety suite) before the screen work, and the play test and visual QA last, because they need everything else.
 
@@ -117,10 +117,10 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - The goal is on line 8 and the finish is on line 678. The model met the finish only after reading everything, on every task.
 - Tests first is said in four places. The rule belongs in one place that rides in front of every task.
 - The finish is twenty-nine bullets with no check on any of them, so the harness could run none and the model translated them into its own done list.
-- There is no stop list, so nothing could stop the work early.
+- Its rules are scattered through the features, so the model carried them from task to task by luck.
 - Whole sections lecture the process: "write test, run test, implement, run test, fix, refactor, run all tests". The harness holds that process (section 3); the ask does not need to teach it.
 
-`TETRIS_PROMPT_V2.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks and no stop lines, because it is meant to run end to end.
+`TETRIS_PROMPT_V2.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
 
 ## 7. A checklist before you submit
 
@@ -128,7 +128,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - [ ] Where names the folder, and for an existing project the files to start from.
 - [ ] The first done line is the test suite, with `[tests pass: ...]`.
 - [ ] Every done line is a fact that can be checked, by the harness or by the model against a result.
-- [ ] Each rule appears once. Anything a person must decide has a Stop line; a build meant to run end to end has none.
+- [ ] Each rule appears once and helps: it makes a choice or shows a way through. None of them tells the model to stop.
 - [ ] Each task has one done line and names its Details sections.
 - [ ] Details hold every feature, complete, and nothing about process.
 - [ ] Nothing in the ask tells the model how to be an agent. The harness does that.

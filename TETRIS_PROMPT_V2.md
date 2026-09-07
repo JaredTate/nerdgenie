@@ -25,14 +25,16 @@ A new, empty folder: `<WORK>/Tater Tots Tetrisv1`. It already exists. Put all so
 
 ## Rules
 
-- Use any framework, library or build step you like, or none. Whatever you choose, `npm test` must run the whole suite and `npm start` must serve the game on port 8091.
-- The browser is the Chrome window on the screen, driven with the browser tools. Never start a browser from a script, headless or not.
-- Port 8090 is taken. Use 8091.
-- Every hazard value lives in one config file and is easy to change: `DRAGON_CHANCE`, `YETI_CHANCE`, `DRAGON_WARNING_TIME`, `YETI_WARNING_TIME`, `FORCED_DROP_SPEED`, `LINE_CLEAR_EFFECT_MODE`, `LINE_CLEAR_ANIMATION_DURATION`.
-- The random source is injectable or seeded, so a test can force any piece, any hazard, either yeti side and any of the three clear effects. No test may depend on luck.
-- Hazards are real game states in the engine, never animations layered over the game.
-- Effects must never make the board hard to read.
-- Keep going until every done line is met. Do not stop to ask. When a test will not pass, write the failure and its cause into the record and take a different approach; when the page will not open, fix the server and try again.
+These are the choices already made, so the work never has to make them: how to run, how to test, where things go, what good looks like.
+
+- Any framework, library or build step is fine, or none. `npm test` runs the whole suite and `npm start` serves the game on port 8091, whatever you choose.
+- The Chrome window on the screen, driven with the browser tools, is how the game is opened, played, photographed and checked. That window is how you see your work.
+- Serve on port 8091. Port 8090 is in use.
+- Keep every hazard value in one config file, so balancing the game is one edit: `DRAGON_CHANCE`, `YETI_CHANCE`, `DRAGON_WARNING_TIME`, `YETI_WARNING_TIME`, `FORCED_DROP_SPEED`, `LINE_CLEAR_EFFECT_MODE`, `LINE_CLEAR_ANIMATION_DURATION`.
+- Make the random source injectable or seeded, so a test can force any piece, any hazard, either yeti side and any of the three clear effects, and no test depends on luck.
+- Build the hazards as engine states, so every test can drive them without a screen and the screen only draws what the engine says.
+- Keep the board readable through every effect. The effects are for the player.
+- When a test will not pass, write the failure and its cause into the record and take another route. When the page will not open, fix the server and open it again. The job is finished when every done line is met.
 
 ## Tasks
 

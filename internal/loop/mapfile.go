@@ -1,12 +1,13 @@
 package loop
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/JaredTate/nerdgenie/internal/codemap"
 )
 
 // A finished job leaves a map of its folder beside its standing order, so the
@@ -21,7 +22,7 @@ const (
 	MapFile = "REPO_MAP.md"
 	// GeneratedMark is the line that says the harness wrote the map, and is
 	// what lets it write the map again.
-	GeneratedMark = "<!-- generated: nerdgenie -->"
+	GeneratedMark = codemap.GeneratedMark
 	// MaxMapEntries bounds the tree, because a map of ten thousand lines tells
 	// nobody anything.
 	MaxMapEntries = 2000
@@ -38,11 +39,16 @@ func writeTheMap(folder string) {
 	if held, err := os.ReadFile(path); err == nil && !strings.Contains(string(held), GeneratedMark) {
 		return
 	}
-	files, err := theFilesOf(folder)
-	if err != nil || len(files) == 0 {
+	paths, err := theFilesOf(folder)
+	if err != nil || len(paths) == 0 {
 		return
 	}
-	_ = os.WriteFile(path, []byte(theMapOf(filepath.Base(folder), files)), 0o644)
+	files := make([]codemap.File, 0, len(paths))
+	for _, relative := range paths {
+		source, _ := os.ReadFile(filepath.Join(folder, relative))
+		files = append(files, codemap.Read(relative, source))
+	}
+	_ = os.WriteFile(path, []byte(codemap.Print(filepath.Base(folder), files)), 0o644)
 }
 
 // theFilesOf walks the folder and returns every file's relative path, sorted,
@@ -71,33 +77,4 @@ func theFilesOf(folder string) ([]string, error) {
 	})
 	sort.Strings(files)
 	return files, err
-}
-
-// theMapOf prints the map: the title, the mark, a legend of the top folders
-// with their file counts, and the tree.
-func theMapOf(name string, files []string) string {
-	counts := map[string]int{}
-	var roots []string
-	for _, file := range files {
-		root := "./"
-		if at := strings.Index(file, "/"); at >= 0 {
-			root = file[:at] + "/"
-		}
-		if counts[root] == 0 {
-			roots = append(roots, root)
-		}
-		counts[root]++
-	}
-	sort.Strings(roots)
-	var out strings.Builder
-	fmt.Fprintf(&out, "# Repository Map: %s\n\n%s\n\nThis file is written by Nerd Genie at the end of every task of a job here. Do not edit it by hand; remove the mark above to keep your own.\n\n## Roots\n\n", name, GeneratedMark)
-	for _, root := range roots {
-		fmt.Fprintf(&out, "- `%s` - %d files\n", root, counts[root])
-	}
-	out.WriteString("\n## Tree\n\n```text\n")
-	for _, file := range files {
-		out.WriteString(file + "\n")
-	}
-	out.WriteString("```\n")
-	return out.String()
 }

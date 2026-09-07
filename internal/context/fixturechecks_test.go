@@ -86,7 +86,10 @@ func TestEveryResultThatLeftTheWindowIsStillReadable(t *testing.T) {
 	run.playTo(t, 40)
 	builder := newTestBuilder(t, Options{Home: roomyHome(t), MaxOutputTokens: 512, Boundary: goldenBoundary})
 
-	request, err := builder.Build(t.Context(), run.input(3000))
+	// A window a hair over the fixed front, so that nearly every result has
+	// left it by round forty: the front is about 2,500 tokens since the
+	// instruction text gained its paragraph on the project's documents.
+	request, err := builder.Build(t.Context(), run.input(3300))
 	if err != nil {
 		t.Fatalf("cannot build the working context at round 40: %v", err)
 	}

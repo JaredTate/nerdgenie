@@ -18,6 +18,11 @@ const MaxRulesInAStandingOrder = 20
 // has one.
 const theMapFile = MapFile
 
+// TheMapRule is the one rule every standing order carries whatever the job's
+// own rules were: the map is where a file or a function is looked up, before
+// the search tool and before a read, because that is what the map is for.
+const TheMapRule = "Look a file or a function up in REPO_MAP.md before you search or read for it: `read REPO_MAP.md <path>` gives a file's functions; the search tool is for what the map does not have."
+
 // writeTheStandingOrder writes the work folder's NERDGENIE.md from a job that
 // finished done, once: a folder that already has one, whoever wrote it, is
 // left alone. The next job on the folder then starts with the rules and the
@@ -49,16 +54,14 @@ func theStandingOrderOf(held contract.Record, folder string) string {
 	}
 	run, test := theRunAndTestLinesOf(held.Goal.DoneWhen)
 	out.WriteString("## Run\n\n" + run + "\n\n## Test\n\n" + test + "\n\n")
-	if len(held.Rules.Corrections) > 0 {
-		out.WriteString("## Rules\n\n")
-		for at, rule := range held.Rules.Corrections {
-			if at == MaxRulesInAStandingOrder {
-				break
-			}
-			out.WriteString("- " + strings.TrimSpace(rule.Text) + "\n")
+	out.WriteString("## Rules\n\n- " + TheMapRule + "\n")
+	for at, rule := range held.Rules.Corrections {
+		if at == MaxRulesInAStandingOrder {
+			break
 		}
-		out.WriteString("\n")
+		out.WriteString("- " + strings.TrimSpace(rule.Text) + "\n")
 	}
+	out.WriteString("\n")
 	out.WriteString("## Where things are\n\n" + theDocumentPointersOf(folder) + "\n")
 	return out.String()
 }

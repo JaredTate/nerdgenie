@@ -34,7 +34,7 @@ func TestAFinishedJobWritesTheMapAndKeepsAHandWrittenOne(t *testing.T) {
 		t.Fatalf("the finished job wrote no %s: %v", loop.MapFile, err)
 	}
 	text := string(written)
-	for _, want := range []string{loop.GeneratedMark, "## Roots", "`src/`", "2 files", "`test/`", "## Tree", "src/engine.js", "test/engine.test.js", "index.html"} {
+	for _, want := range []string{loop.GeneratedMark, "## Roots", "`src/`", "2 files", "`test/`", "## Source files", "### src/engine.js", "## Tests", "### test/engine.test.js", "## Other files", "index.html"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the map lacks %q; it reads:\n%s", want, text)
 		}

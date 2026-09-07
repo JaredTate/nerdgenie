@@ -96,7 +96,7 @@
 - Fallback ladder: (1) fix template; (2) json_schema; (3) constrained decoding SPARINGLY — "Constraint Tax" arXiv 2605.26128: hard schema decoding validity 61.5→100% but accuracy 19.7→11%; calendar task 91.5% prompt-only vs 48% hard schema; (4) if leaving native, use JSON/Python not XML (BFCL V4 format study; XML worst for small models; "Bitter Lesson of Tool Calling" arXiv 2608.06370); (5) repair loops w/ admissible alternatives: +44pp (arXiv 2607.14167); HarnessFix +11.1%.
 - Advice: read ZeroClaw first; signal-cli daemon; Pi hosts daemon not model; Qwen3.5 9B; ladder order native→json_schema→text protocol→repair.
 
-## NAME: the new agent is "Coeus" (user chose; Titan of intellect / axis of heavens). Note ~/Code/coeus (Python/C++ realtime, "COEUS Greek Titan of Resolve, Intelligence, Query & Questioning") and ~/Code/coeus-app (Electron) already exist = JT's earlier project with same name.
+## NAME: the new agent is "Coeus" (user chose; Titan of intellect / axis of heavens). Note ~/Code/nerdgenie (Python/C++ realtime, "COEUS Greek Titan of Resolve, Intelligence, Query & Questioning") and ~/Code/nerdgenie-app (Electron) already exist = JT's earlier project with same name.
 
 ## 09 Security & reliability (done)
 - Threat table T1–T8: sender auth; web UI reached by wrong tailnet device; prompt injection via content; tool blast radius; secrets (browser profile = credential); supply chain (ClawHub); lateral movement over Tailscale; self-update/self-modification.
@@ -202,10 +202,10 @@
 - Non-tool mechanisms to copy: OpenCode invalid repair channel; ZeroClaw HMAC receipts; Claude PreToolUse updatedInput; Atomic GBNF array-only root for llama-server.
 
 ## SCOPE CHANGE (user, 2026-09-02 afternoon)
-- Nerd Genie only needs to run on LINUX (rosie x86_64 primary; Jarvis Pi 5 arm64 optional). No macOS target for the daemon.
+- Nerd Genie only needs to run on LINUX (the 5070 Ti machine x86_64 primary; The 7900 XT machine Pi 5 arm64 optional). No macOS target for the daemon.
 - English only. No i18n.
 - Interfaces: Signal chat or a TUI. No web UI in v1 (drop from core; can be a later client since the API makes it cheap).
-- Consequences: sandbox = bwrap + Landlock + seccomp only (no Seatbelt); secrets = age-encrypted file (no keychain); browser worker runs on rosie (has display, Chrome profiles, home IP) — not the Mac; terminal client is now a first-class surface (TUI), so the interface section is Signal + TUI sharing one command table; the Mac is only a dev machine + LM Studio optional.
+- Consequences: sandbox = bwrap + Landlock + seccomp only (no Seatbelt); secrets = age-encrypted file (no keychain); browser worker runs on the 5070 Ti machine (has display, Chrome profiles, home IP) — not the Mac; terminal client is now a first-class surface (TUI), so the interface section is Signal + TUI sharing one command table; the Mac is only a dev machine + LM Studio optional.
 
 ## 14 Doom loop & tokens (done)
 - OpenCode doom loop: DOOM_LOOP_THRESHOLD = 3 (processor.ts:29); key = tool name + JSON.stringify(input) over the LAST THREE PARTS of the assistant message (processor.ts:352-368); fires a `doom_loop` permission ask, default "ask" (agent.ts:121), shown as "Continue after repeated failures" w/ once/always/reject; allow injects nothing; reject → PermissionRejectedError ends turn, errored message dropped from history. FLAW: step-start/step-finish parts are written around every LLM step (processor.ts:426-468), so one-identical-call-per-step loops produce [step-finish, step-start, tool] and the `every(type==="tool")` test fails → detector only catches three identical PARALLEL calls in one response; no test for multi-step loops. Not verified at runtime. VERDICT: NOT what makes OpenCode work with small models.
@@ -222,7 +222,7 @@
 - "we just need our agent to use a web browser like a human... we dont need apis for any of social media stuff... the agent to have its own browser profile and use it like a human... to use browser use or whatever."
 - → Browser is a first-class core capability, not optional. Own persistent profile. Human-like use: navigate, see, click, type, scroll, upload/download, dialogs, tabs. Social media via the logged-in browser, not APIs. Drop the "API-first ladder" framing. Keep the human-likeness practices (real Chrome, headed, home IP, human pacing, JT logs in by hand once, handoff on 2FA/captcha, never type passwords, no cloud proxies) because that IS how to use a browser like a human without getting banned.
 - Engine: spawn-on-demand helper process (benchmark: importing playwright-core = +85 MB / +135 ms). Candidates: (1) Vercel agent-browser — single Rust binary, raw CDP, aria snapshot w/ @refs, --profile persistent, linux-arm64, no Node; what Hermes ships. (2) playwright-core worker (Node/Bun) — richest primitives (auto-wait, getByRole, ariaSnapshot, codegen recorder). (3) chromedp/rod in-process if daemon is Go — one binary, write snapshot/ref logic (~1k lines). browser-use (Python) = a whole agent loop; not needed since Nerd Genie is the loop.
-- Host: rosie (Linux Mint desktop, display, Chrome, 60 GB, Ollama) runs everything: daemon + browser + local model. Pi optional.
+- Host: the 5070 Ti machine (Linux Mint desktop, display, Chrome, 60 GB, Ollama) runs everything: daemon + browser + local model. Pi optional.
 
 ## 08 Language & runtime (done) — measured on M2 Max, medians of 5
 - Hello world TTFO: C 1.83 ms / Zig 1.83 / Rust 1.73 (333 KB) / Go 2.26 (2.49 MB, 1.66 stripped) / Bun compiled 7.87 (59.9 MB) / bun run 8.0 / node 30.4 (119 MB runtime).

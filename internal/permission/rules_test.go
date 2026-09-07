@@ -27,7 +27,7 @@ var matchingCalls = []struct {
 	reduced  string
 	reason   string
 }{
-	{contract.ToolRead, "read /home/jared/notes.md", "reading is always allowed"},
+	{contract.ToolRead, "read /home/user/notes.md", "reading is always allowed"},
 	{contract.ToolShell, "rm -r", "deleting many files at once"},
 	{contract.ToolShell, "rm -rf", "never delete without being able to stop"},
 	{contract.ToolShell, "git commit", "everything asks by default here"},

@@ -1,8 +1,6 @@
 <!-- EX_PROMPT_5_TOWER_DEFENSE.md: a tower-defense game ask written as a work order, the
      shape PROMPT_TEMPLATE_GUIDE.md explains. The fifth worked example: the largest
      game so far, with pathfinding, an economy and balance that only play can prove.
-     The runners replace <WORK> with the folder the project goes in, such as
-     /home/jared/Desktop.
      Difficulty 8 of 10. Expected: four to ten hours, thirteen tasks; the balance play is most of it, and the time depends on the GPU and the model. -->
 
 # Tower Defense Game
@@ -13,7 +11,7 @@ Build a complete, polished, browser-based tower-defense game from scratch: a bea
 
 ## Where
 
-A new, empty folder: `<WORK>/Tower Defense Game`. It already exists. Put all source code, tests, assets and documentation inside it. Serve the game from that folder on port 8095.
+Create a new folder on the Desktop named exactly `Tower Defense Game`, so the project lives at `~/Desktop/Tower Defense Game`. Make it if it is not there. Put all source code, tests, assets and documentation inside it, and nothing anywhere else. Serve the game from that folder on port 8095.
 
 ## Done when
 

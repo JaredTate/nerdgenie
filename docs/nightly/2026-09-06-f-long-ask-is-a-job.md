@@ -1,6 +1,6 @@
 # Nightly set, 2026-09-06, sixth run: a long ask is a job
 
-Local Qwen 3.8 through the daemon on 19091, binary e1b1261d, home /home/jared/work/ng-nightly/home.
+Local Qwen 3.8 through the daemon on 19091, binary e1b1261d, home ~/work/ng-nightly/home.
 
 | ask | ended | check | rounds | minutes | s/round | cache | out tokens | record-only rounds | first-line marks |
 |---|---|---|---|---|---|---|---|---|---|

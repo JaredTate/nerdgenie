@@ -15,8 +15,8 @@
 # it; the /slots snapshot taken at launch records exactly what was cached.
 set -u
 A_HARNESS="$1"; B_HARNESS="$2"; LABEL="$3"; RESTART="${RESTART:-yes}"
-REPO=/home/jared/Code/coeus
-PIDS=/home/jared/work/bench/daemons
+REPO=$HOME/Code/nerdgenie
+PIDS=$HOME/work/bench/daemons
 mkdir -p "$PIDS"
 cd "$REPO" || exit 1
 
@@ -67,9 +67,9 @@ curl -s -m 3 http://127.0.0.1:19091/slots > ~/work/bench/tater2/slots-a-before-$
 curl -s -m 3 http://127.0.0.1:19093/slots > ~/work/bench/tater2/slots-b-before-$LABEL.json
 
 echo "== $(date '+%T') pair: $A_HARNESS on A, $B_HARNESS on B"
-bash scripts/bench/tater_run.sh qwen "$A_HARNESS" "$LABEL" a > "/home/jared/work/bench/qwen-$A_HARNESS-$LABEL.log" 2>&1 &
+bash scripts/bench/tater_run.sh qwen "$A_HARNESS" "$LABEL" a > "$HOME/work/bench/qwen-$A_HARNESS-$LABEL.log" 2>&1 &
 PA=$!
-bash scripts/bench/tater_run.sh qwen "$B_HARNESS" "$LABEL" b > "/home/jared/work/bench/qwen-$B_HARNESS-$LABEL.log" 2>&1 &
+bash scripts/bench/tater_run.sh qwen "$B_HARNESS" "$LABEL" b > "$HOME/work/bench/qwen-$B_HARNESS-$LABEL.log" 2>&1 &
 PB=$!
 wait "$PA"; echo "== $(date '+%T') $A_HARNESS done: $(grep -E 'finished|wall clock' ~/work/bench/tater2/qwen-$A_HARNESS-$LABEL/result.txt | tr '\n' ' ')"
 wait "$PB"; echo "== $(date '+%T') $B_HARNESS done: $(grep -E 'finished|wall clock' ~/work/bench/tater2/qwen-$B_HARNESS-$LABEL/result.txt | tr '\n' ' ')"

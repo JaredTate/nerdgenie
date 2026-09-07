@@ -1,7 +1,8 @@
 <!-- EX_PROMPT_2_TETRIS.md: the Tater Tots Tetris ask written as a work order, the
      shape PROMPT_TEMPLATE_GUIDE.md explains. It says everything TETRIS_TEST_PROMPT.md
      says, in the order the harness reads. The runners replace <WORK> with the folder
-     the game goes in, such as /home/jared/Desktop. -->
+     the game goes in, such as ~/Desktop.
+     Difficulty 5 of 10. Expected: one and a half to four hours, fourteen tasks; run fifteen finished inside two hours on one 7900 XTX, and the time depends on the GPU and the model. -->
 
 # Tater Tots Tetris
 
@@ -11,7 +12,7 @@ Build a complete, polished, playable Tetris-style web game called Tater Tots Tet
 
 ## Where
 
-A new, empty folder: `<WORK>/Tater Tots Tetrisv1`. It already exists. Put all source code, tests, assets, sound effects and supporting files inside it. Serve the game from that folder on port 8091.
+Create a new folder named exactly `Tater Tots Tetrisv1`, so the project lives at `<WORK>/Tater Tots Tetrisv1`, where <WORK> is the folder the runner names. Make it if it is not there. Put all source code, tests, assets, sound effects and supporting files inside it, and nothing anywhere else. Serve the game from that folder on port 8091.
 
 ## Done when
 

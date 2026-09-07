@@ -1,8 +1,7 @@
 <!-- EX_PROMPT_4_INTERACTIVE_EARTH.md: an interactive 3D Earth ask written as a
      work order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The third worked example,
      beside the Tetris game and the flight simulator: a visual product whose quality
-     is judged by eye as much as by test. The runners replace <WORK> with the folder
-     the project goes in, such as /home/jared/Desktop.
+     is judged by eye as much as by test.
      Difficulty 6 of 10. Expected: two to five hours, thirteen tasks; the time depends on the GPU and the model. -->
 
 # Interactive Earth
@@ -13,7 +12,7 @@ Build a complete, visually stunning, browser-based interactive 3D Earth from scr
 
 ## Where
 
-A new, empty folder: `<WORK>/Interactive Earth`. It already exists. Put all source code, tests, assets and documentation inside it. Serve the experience from that folder on port 8093.
+Create a new folder on the Desktop named exactly `Interactive Earth`, so the project lives at `~/Desktop/Interactive Earth`. Make it if it is not there. Put all source code, tests, assets and documentation inside it, and nothing anywhere else. Serve the experience from that folder on port 8093.
 
 ## Done when
 

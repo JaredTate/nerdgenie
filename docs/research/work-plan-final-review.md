@@ -4,7 +4,7 @@ Reviewer stance: last reviewer, adversarial, read-only. Read in full: `docs/WORK
 
 Line references: **WP** = `WORK_PLAN.md` line, **CL** = `CLAUDE.md` line, **AR** = `ARCHITECTURE.md` line, **CP** = `NERDGENIE_PLAN.md` section.
 
-Checked on disk (Mac clones under `/Users/jt/Code`, the same repos the dev machine holds under `/home/jared/Code`):
+Checked on disk (Mac clones under `/Users/jt/Code`, the same repos the dev machine holds under `~/Code`):
 
 - Every reference path named in every brief resolves (about 100 paths, none missing).
 - The five pinned commits are each the local HEAD: openclaw `752a983480e4`, hermes-agent `95f62ca3bfcf`, prime-agent `0ba0423c5c18`, opencode `69c172e8a7c0`, zeroclaw `73ff732e66c7`. HomeRecon is at `96b481db6361` (the plan pins no commit for it).
@@ -188,7 +188,7 @@ Part 6 (L335) says this blocker is fixed; it is fixed for wave 2 and reopened in
 
 ### 18. Reference paths — **PASS**
 
-Spot-checked against the Part 5 table (`/home/jared/Code/<repo>` at commit) and the local clones at the same commits; all ten and, in fact, every path in every brief resolve:
+Spot-checked against the Part 5 table (`~/Code/<repo>` at commit) and the local clones at the same commits; all ten and, in fact, every path in every brief resolve:
 
 1. `~/Code/hermes-agent/gateway/delivery_ledger.py` (1.2) yes
 2. `~/Code/prime-agent/packages/coding-agent/src/core/refinement/refinement.ts` (1.3) yes

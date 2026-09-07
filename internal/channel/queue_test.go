@@ -47,7 +47,7 @@ func TestAMessageComesBackOutOfTheQueueExactlyAsItWentIn(t *testing.T) {
 	queue := newTestQueue(t, 10)
 	ctx := context.Background()
 	sent := anInbound("post the weekly note")
-	sent.Attachments = []string{"/home/jared/.nerdgenie/inbox/photo.jpg", "/home/jared/.nerdgenie/inbox/note.txt"}
+	sent.Attachments = []string{"/home/user/.nerdgenie/inbox/photo.jpg", "/home/user/.nerdgenie/inbox/note.txt"}
 
 	sequence, err := queue.Add(ctx, sent)
 	if err != nil {

@@ -5,10 +5,10 @@
 # Hermes then OpenClaw, starting when the card is free. Each launch records the
 # daemon's cache state first. Nothing is killed by name.
 set -u
-REPO=/home/jared/Code/coeus
+REPO=$HOME/Code/nerdgenie
 RUNNER="$REPO/scripts/bench/tater_run_tuned.sh"
 LABEL="${1:-2}"
-ROOT=/home/jared/work/bench/tater2
+ROOT=$HOME/work/bench/tater2
 cd "$REPO" || exit 1
 
 card_busy() { # $1 = harness folder name of the run that may still hold the card
@@ -20,7 +20,7 @@ snapshot() { curl -s -m 3 "http://127.0.0.1:$1/slots" > "$ROOT/slots-$2-before-$
 run() { # $1 harness, $2 card letter, $3 port
   snapshot "$3" "$2" "$1"
   echo "== $(date '+%T') $1 on card $2 starts"
-  bash "$RUNNER" qwen "$1" "$LABEL" "$2" > "/home/jared/work/bench/qwen-$1-$LABEL.log" 2>&1
+  bash "$RUNNER" qwen "$1" "$LABEL" "$2" > "$HOME/work/bench/qwen-$1-$LABEL.log" 2>&1
   echo "== $(date '+%T') $1 done: $(grep -E 'finished|wall clock|model calls:' "$ROOT/qwen-$1-$LABEL/result.txt" 2>/dev/null | tr '\n' ' ')"
 }
 

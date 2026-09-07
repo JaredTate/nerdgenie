@@ -310,13 +310,13 @@ Round kinds, all logs:
 | run5 | 12 | p4 | 2 | 22 | p4 is still running after 17s: cd ~/Desktop/Tater\ Tots\ Tetrisv1 && m |
 | run5 | 12 | p5 | 1 | 23 | p5 is still running after 23s: cd ~/Desktop/Tater\ Tots\ Tetrisv1 && n |
 | run5 | 12 | p6 | 1 | 21 | p6 is still running after 21s: cd ~/Desktop/Tater\ Tots\ Tetrisv1 && n |
-| run5 | 24 | p15 | 2 | 19 | p15 is still running after 14s: cd "/home/jared/Desktop/Tater Tots Tet |
-| run5 | 24 | p18 | 6 | 41 | p18 is still running after 14s: cd "/home/jared/Desktop/Tater Tots Tet |
-| run5 | 24 | p3 | 6 | 42 | p3 is still running after 16s: cd "/home/jared/Desktop/Tater Tots Tetr |
-| run5 | 24 | p4 | 6 | 39 | p4 is still running after 14s: cd "/home/jared/Desktop/Tater Tots Tetr |
-| run5 | 24 | p6 | 6 | 37 | p6 is still running after 16s: cd "/home/jared/Desktop/Tater Tots Tetr |
-| run5 | 24 | p7 | 6 | 29 | p7 is still running after 13s: cd "/home/jared/Desktop/Tater Tots Tetr |
-| run5 | 24 | p16 | 2 | 30 | p16 is still running after 16s: cd "/home/jared/Desktop/Tater Tots Tet |
+| run5 | 24 | p15 | 2 | 19 | p15 is still running after 14s: cd "~/Desktop/Tater Tots Tet |
+| run5 | 24 | p18 | 6 | 41 | p18 is still running after 14s: cd "~/Desktop/Tater Tots Tet |
+| run5 | 24 | p3 | 6 | 42 | p3 is still running after 16s: cd "~/Desktop/Tater Tots Tetr |
+| run5 | 24 | p4 | 6 | 39 | p4 is still running after 14s: cd "~/Desktop/Tater Tots Tetr |
+| run5 | 24 | p6 | 6 | 37 | p6 is still running after 16s: cd "~/Desktop/Tater Tots Tetr |
+| run5 | 24 | p7 | 6 | 29 | p7 is still running after 13s: cd "~/Desktop/Tater Tots Tetr |
+| run5 | 24 | p16 | 2 | 30 | p16 is still running after 16s: cd "~/Desktop/Tater Tots Tet |
 
 {'commands polled': 24, 'polls': 71, 'max seconds sum': 930}
 
@@ -330,10 +330,10 @@ Round kinds, all logs:
 | run5 | 10 | 11 | cd ~/Desktop/"Tater Tots Tetrisv1" && echo "=== is server up? ===" && (curl -s -o /dev/nul |
 | run5 | 10 | 9 | cd ~/Desktop/"Tater Tots Tetrisv1" && curl -s -o /dev/null -w "server=%{http_code}\n" http |
 | run5 | 10 | 6 | cd ~/Desktop/"Tater Tots Tetrisv1" && curl -s -o /dev/null -w "server=%{http_code}\n" http |
-| run5 | 11 | 8 | cd "/home/jared/Desktop/Tater Tots Tetrisv1" && google-chrome --headless --disable-gpu --s |
-| run5 | 20 | 3 | cd "/home/jared/Desktop/Tater Tots Tetrisv1" && node -e " const { TetrisEngine, Piece, COL |
-| run5 | 24 | 3 | cd "/home/jared/Desktop/Tater Tots Tetrisv1" && node qa/playtest.js 2>&1 |
-| run6 | 3 | 4 | cd "/home/jared/Desktop/Tater Tots Tetrisv1" && npx jest 2>&1 / grep -E "●/Expected/Receiv |
+| run5 | 11 | 8 | cd "~/Desktop/Tater Tots Tetrisv1" && google-chrome --headless --disable-gpu --s |
+| run5 | 20 | 3 | cd "~/Desktop/Tater Tots Tetrisv1" && node -e " const { TetrisEngine, Piece, COL |
+| run5 | 24 | 3 | cd "~/Desktop/Tater Tots Tetrisv1" && node qa/playtest.js 2>&1 |
+| run6 | 3 | 4 | cd "~/Desktop/Tater Tots Tetrisv1" && npx jest 2>&1 / grep -E "●/Expected/Receiv |
 
 ### T2d. Files read most often (read tool, same path, any range), per task
 
@@ -545,7 +545,7 @@ Rounds cut off at the output cap:
 | run5 | 16 | 1 | 0 | 0 |  |
 | run5 | 20 | 0 | 3 | 3 | Continue. The same one test, a line clear triggere; Continue. That one yeti line-clear test has now fa; Continue. Every done line of this task is marked.  |
 | run5 | 24 | 0 | 7 | 3 | continue; continue; Stop testing through headless scripts. Kill any ru; Two facts, then keep going in the on-screen browse; done; Two facts, then keep going in the on-screen browse; continue |
-| run5 | 25 | 0 | 3 | 1 | Continue. A new tool exists: browser_resize, with ; you have a major bug, when a row is ocmplete the s; '/home/jared/Desktop/signal-2026-09-06-13-43-57-64 |
+| run5 | 25 | 0 | 3 | 1 | Continue. A new tool exists: browser_resize, with ; you have a major bug, when a row is ocmplete the s; '~/Desktop/signal-2026-09-06-13-43-57-64 |
 | run6 | 1 | 1 | 0 | 0 |  |
 | run6 | 3 | 0 | 1 | 1 | continue |
 | live | 1 | 1 | 0 | 0 |  |

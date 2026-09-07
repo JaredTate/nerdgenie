@@ -230,8 +230,8 @@ docs/reference/codex/shell_spec.rs
 docs/reference/moltis/manager.rs
 docs/reference/moltis/snapshot.rs
 docs/reference/moltis/types.rs
+docs/research/00-5070ti-live-measurements.md
 docs/research/00-notes.md
-docs/research/00-rosie-live-measurements.md
 docs/research/01-openclaw-architecture.md
 docs/research/02-openclaw-failure-modes.md
 docs/research/03-hermes.md

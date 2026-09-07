@@ -15,7 +15,7 @@ Brief `docs/briefs/wave-0/0.1-ready-to-build.md`. One worker.
 
 ### The development machine
 
-Every check below was run on `jared-irene` by the wave-0 worker. The last column
+Every check below was run on the development machine by the wave-0 worker. The last column
 is what was actually seen, not what was expected.
 
 | What | The command used | What was seen |
@@ -54,12 +54,12 @@ changed. All five match the table in `docs/WORK_PLAN.md` wave 0.
 
 | Project | Folder | Commit | Matches the plan |
 |---|---|---|---|
-| OpenClaw | `/home/jared/Code/openclaw` | `752a983480e4` | yes |
-| Hermes | `/home/jared/Code/hermes-agent` | `95f62ca3bfcf` | yes |
-| Prime | `/home/jared/Code/prime-agent` | `0ba0423c5c18` | yes |
-| OpenCode | `/home/jared/Code/opencode` | `69c172e8a7c0` | yes |
-| ZeroClaw | `/home/jared/Code/zeroclaw` | `73ff732e66c7` | yes |
-| HomeRecon | `/home/jared/Code/homerecon` | `77cced235069` | no commit is pinned for it |
+| OpenClaw | `~/Code/openclaw` | `752a983480e4` | yes |
+| Hermes | `~/Code/hermes-agent` | `95f62ca3bfcf` | yes |
+| Prime | `~/Code/prime-agent` | `0ba0423c5c18` | yes |
+| OpenCode | `~/Code/opencode` | `69c172e8a7c0` | yes |
+| ZeroClaw | `~/Code/zeroclaw` | `73ff732e66c7` | yes |
+| HomeRecon | `~/Code/homerecon` | `77cced235069` | no commit is pinned for it |
 
 ### What wave 0 built
 
@@ -355,7 +355,7 @@ Idea 1 of IDEAS.md, built test first in the working context and the providers. T
 
 **Two faults found in run eight's first twenty rounds, 18:50 to 19:20.** The expect line's exit-code reader knew only a bare "exit 0" line and not the shell tool's own first line, "finished with exit code 0", so every command the model expected to exit 0 was told "got no exit code" and a false failure went into the record each time; the reader takes the tool's own line now. And the owner saw every sentence on the screen cut a few words short and finished after the tool's line: the socket holds back the last sixty-four runes of a streamed reply for the redactor, and nothing sent them when the reply ended, so they went out only when the next round's words pushed them. The loop now says when a reply is complete, before its calls run, and the socket sends the held tail then. Run eight's record was polluted by the false failures, so the comparison with run seven starts over as run nine on this build.
 
-**Run nine's scaffold, 19:29 to 19:45: two more harness faults, both general.** The scaffold task ended failed with every done line green: the done check reads the paths a done line names by splitting on spaces, so "package.json exists at /home/jared/Desktop/Tater Tots Tetrisv1" was looked for at /home/jared/Desktop/Tater, and the model, told the file was not there, ran out of ways to prove it. A path that is not there is now tried with the words after it joined on, up to four, before it is called missing. And "parses" on a file no syntax checker reads, package.json here, was judged a miss and a false failure went into the record; it is now an expectation the harness could not check. The retried scaffold was stopped at round thirteen, the fixes deployed, and the job picked up where it stood. Beneath both, the rule that let a harness mistake fail a finished task: the file and command checks could refuse a done line for ever, whatever proof the model had. They may now send the model back twice for a line that names a result; after that the line stands on the model's proof and the record says what the harness could not confirm. Run nine was archived and the Tetris ask started over as run ten on this build.
+**Run nine's scaffold, 19:29 to 19:45: two more harness faults, both general.** The scaffold task ended failed with every done line green: the done check reads the paths a done line names by splitting on spaces, so "package.json exists at ~/Desktop/Tater Tots Tetrisv1" was looked for at ~/Desktop/Tater, and the model, told the file was not there, ran out of ways to prove it. A path that is not there is now tried with the words after it joined on, up to four, before it is called missing. And "parses" on a file no syntax checker reads, package.json here, was judged a miss and a false failure went into the record; it is now an expectation the harness could not check. The retried scaffold was stopped at round thirteen, the fixes deployed, and the job picked up where it stood. Beneath both, the rule that let a harness mistake fail a finished task: the file and command checks could refuse a done line for ever, whatever proof the model had. They may now send the model back twice for a line that names a result; after that the line stands on the model's proof and the record says what the harness could not confirm. Run nine was archived and the Tetris ask started over as run ten on this build.
 
 **A click on a job task, 19:35.** The owner clicked t2 in the job panel of run ten and was told there is no task numbered t2: the panel names a job's tasks the job's way and the log numbers tasks its own way. A show may now name a job and one of its tasks together; the program finds the log task the job task ran as through the message that started it, and says "not started yet" for one that never ran. On main, test first; not deployed into the running job, which is being left to finish.
 
@@ -369,7 +369,7 @@ Idea 1 of IDEAS.md, built test first in the working context and the providers. T
 
 ## 7 September 2026: three cuts before the stop
 
-The progress meter stopped a task on its second stall of twenty rounds. On the three-bit model on rosie that was where most long tasks ended: the model stalls more often than the four-bit model on irene, met the second stall, and the task was stopped and the job put down. A cut has been cheap since the rewind became a cut (the rounds before the stall keep their place and their cache), so `StallsBeforeStop` is four: the first three stalls cut the stalled rounds and the count starts again, and the fourth stops the task. The record keeps one failure line for the stall, because it refuses a failure that says what one it holds already says. The ladder test now runs eighty rounds of edits and holds that the stop names "4 times over".
+The progress meter stopped a task on its second stall of twenty rounds. On the three-bit model on the 5070 Ti machine that was where most long tasks ended: the model stalls more often than the four-bit model on the 7900 XTX machine, met the second stall, and the task was stopped and the job put down. A cut has been cheap since the rewind became a cut (the rounds before the stall keep their place and their cache), so `StallsBeforeStop` is four: the first three stalls cut the stalled rounds and the count starts again, and the fourth stops the task. The record keeps one failure line for the stall, because it refuses a failure that says what one it holds already says. The ladder test now runs eighty rounds of edits and holds that the stop names "4 times over".
 
 ### The unchanged-run answer removed, 7 September
 

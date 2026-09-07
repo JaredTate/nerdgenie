@@ -183,7 +183,7 @@ func theScriptTheModelPlays() testkit.Script {
 			Text:   "Nothing has been done yet. I will clear the build folder.",
 			Finish: contract.FinishToolCalls,
 			ToolCalls: []contract.ToolCall{
-				{ID: "c1", Name: contract.ToolShell, Input: json.RawMessage(`{"command":"rm -rf /home/jared/build"}`)},
+				{ID: "c1", Name: contract.ToolShell, Input: json.RawMessage(`{"command":"rm -rf /home/user/build"}`)},
 				{ID: "c1t", Name: contract.ToolTask, Input: json.RawMessage(
 					`{"why":"the user wants the build folder cleared","doneWhen":["the build folder is empty"]}`)},
 			},

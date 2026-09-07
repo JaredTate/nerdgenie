@@ -24,7 +24,7 @@ REPO="$(cd "$HERE/../.." && pwd)"
 RUNNER="$HERE/tater_run.sh"
 SCRATCH="${TMPDIR:-/tmp}/tater-run-test-$$"
 ROOT="$SCRATCH/runs"
-OPENCODE_BIN="${TATER_OPENCODE_BIN:-/home/jared/.opencode/bin/opencode}"
+OPENCODE_BIN="${TATER_OPENCODE_BIN:-$HOME/.opencode/bin/opencode}"
 
 rm -rf "$SCRATCH"
 mkdir -p "$ROOT"

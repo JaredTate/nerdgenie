@@ -22,11 +22,11 @@ var evasions = []struct {
 	name    string
 	command string
 }{
-	{"a long prefix that pushes the delete past the cap", strings.Repeat("echo hello; ", 40) + "rm -rf /home/jared/nerdgenie"},
+	{"a long prefix that pushes the delete past the cap", strings.Repeat("echo hello; ", 40) + "rm -rf /home/user/nerdgenie"},
 	{"a delete handed to a nested shell", `sh -c "rm -rf ~"`},
 	{"a delete handed to a nested login shell", `bash -lc 'rm -rf ~'`},
-	{"sudo written as the full path to the program", "/usr/bin/sudo -u root rm -rf /home/jared/nerdgenie"},
-	{"a program a command substitution works out while it runs", "$(printf rm) -rf /home/jared/nerdgenie"},
+	{"sudo written as the full path to the program", "/usr/bin/sudo -u root rm -rf /home/user/nerdgenie"},
+	{"a program a command substitution works out while it runs", "$(printf rm) -rf /home/user/nerdgenie"},
 }
 
 func TestNoEvasionTheGateReviewFoundRunsWithoutAsking(t *testing.T) {
@@ -104,7 +104,7 @@ var programsWrittenAsAFullPath = []struct {
 	command string
 	reduced string
 }{
-	{"/usr/bin/sudo -u root rm -rf /home/jared/nerdgenie", "sudo rm -rf"},
+	{"/usr/bin/sudo -u root rm -rf /home/user/nerdgenie", "sudo rm -rf"},
 	{"/usr/bin/sudo apt install ripgrep", "sudo apt install"},
 	{`/usr/bin/git commit -m "a change"`, "/usr/bin/git commit"},
 	{"/bin/rm -rf /tmp/x", "/bin/rm -rf"},
@@ -121,7 +121,7 @@ func TestAProgramIsTheSameProgramWhenItIsWrittenAsAFullPath(t *testing.T) {
 func TestSudoWrittenAsAFullPathIsStillCaughtBySudo(t *testing.T) {
 	decider := newDecider(t, contract.DefaultConfig())
 
-	decision := decide(t, decider, shellRequest(t, "/usr/bin/sudo -u root rm -rf /home/jared/nerdgenie"))
+	decision := decide(t, decider, shellRequest(t, "/usr/bin/sudo -u root rm -rf /home/user/nerdgenie"))
 	if decision.Ruling != contract.RulingAsk {
 		t.Fatalf("sudo written as a full path was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
 	}
@@ -141,7 +141,7 @@ var tooLongToRead = []struct {
 	{"more words in one command than the reader takes", "echo " + strings.Repeat("hello ", 400) + "&& rm -rf /tmp/x"},
 	{"a word longer than the reader takes", "echo " + strings.Repeat("x", 600) + " && rm -rf /tmp/x"},
 	{"a line longer than the reader takes", strings.Repeat("echo hello; ", 900) + "rm -rf /tmp/x"},
-	{"a readable form longer than the cap", strings.Repeat("echo hello; ", 40) + "rm -rf /home/jared/nerdgenie"},
+	{"a readable form longer than the cap", strings.Repeat("echo hello; ", 40) + "rm -rf /home/user/nerdgenie"},
 }
 
 func TestACallTooLongToReadToTheEndSaysSoAndAsks(t *testing.T) {
@@ -161,8 +161,8 @@ func TestACallTooLongToReadToTheEndSaysSoAndAsks(t *testing.T) {
 // commandsThatBuildThemselves work out part of what they will run while they
 // run, so nothing read beforehand can say what they will do.
 var commandsThatBuildThemselves = []string{
-	"$(printf rm) -rf /home/jared/nerdgenie",
-	"`printf rm` -rf /home/jared/nerdgenie",
+	"$(printf rm) -rf /home/user/nerdgenie",
+	"`printf rm` -rf /home/user/nerdgenie",
 	`echo "$(rm -rf /tmp/x)"`,
 	"diff <(ls /tmp) <(ls /var)",
 }
@@ -250,7 +250,7 @@ var disguises = []func(string) string{
 	func(command string) string { return "doas " + command },
 	func(command string) string { return "sudo -u nobody " + command },
 	func(command string) string { return "su -c '" + insideSingleQuotes(command) + "'" },
-	func(command string) string { return "echo /home/jared/nerdgenie | xargs " + command },
+	func(command string) string { return "echo /home/user/nerdgenie | xargs " + command },
 }
 
 // insideSingleQuotes writes a command so that a shell handed it between single
@@ -268,12 +268,12 @@ var commandsRunThroughAWrapper = []struct {
 	name    string
 	command string
 }{
-	{"a delete run under nohup", "nohup rm -rf /home/jared/nerdgenie"},
-	{"a delete given a time limit", "timeout 60 rm -rf /home/jared/nerdgenie"},
-	{"a delete run through xargs", "echo /home/jared/nerdgenie | xargs rm -rf"},
-	{"a delete run through busybox", "busybox rm -rf /home/jared/nerdgenie"},
-	{"a delete run through env with a flag", "env -i sh -c 'rm -rf /home/jared/nerdgenie'"},
-	{"a delete handed to su", "su -c 'rm -rf /home/jared/nerdgenie'"},
+	{"a delete run under nohup", "nohup rm -rf /home/user/nerdgenie"},
+	{"a delete given a time limit", "timeout 60 rm -rf /home/user/nerdgenie"},
+	{"a delete run through xargs", "echo /home/user/nerdgenie | xargs rm -rf"},
+	{"a delete run through busybox", "busybox rm -rf /home/user/nerdgenie"},
+	{"a delete run through env with a flag", "env -i sh -c 'rm -rf /home/user/nerdgenie'"},
+	{"a delete handed to su", "su -c 'rm -rf /home/user/nerdgenie'"},
 }
 
 func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
@@ -294,7 +294,7 @@ func FuzzADisguisedCommandStillNeedsTheSameYes(f *testing.F) {
 	}
 	f.Add("sudo apt install ripgrep", 0)
 	f.Add("find /tmp -name '*.log' -delete", 0)
-	f.Add("rm --force --recursive /home/jared/nerdgenie", 4)
+	f.Add("rm --force --recursive /home/user/nerdgenie", 4)
 	f.Add("git -C /tmp reset --hard", 5)
 
 	decider, err := permission.New(contract.DefaultConfig(), testkit.NewFakeClock(theTestTime))

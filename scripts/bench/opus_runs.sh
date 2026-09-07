@@ -4,14 +4,14 @@
 # effort medium wherever the knob exists, no cap of any kind. Old data is purged
 # first. Nothing is killed by name.
 set -u
-REPO=/home/jared/Code/coeus
-BASE=/home/jared/work/bench/opus3
-TASK=/home/jared/work/bench/canonical/task.txt
+REPO=$HOME/Code/nerdgenie
+BASE=$HOME/work/bench/opus3
+TASK=$HOME/work/bench/canonical/task.txt
 cd "$REPO" || exit 1
 
 echo "== $(date '+%T') purge old data"
-rm -rf /home/jared/work/bench/opus2 "$BASE"
-rm -rf /home/jared/.claude/projects/-home-jared-work-bench-opus2-* /home/jared/.claude/projects/-home-jared-work-bench-opus3-*
+rm -rf $HOME/work/bench/opus2 "$BASE"
+rm -rf $HOME/.claude/projects/-home-jared-work-bench-opus2-* $HOME/.claude/projects/-home-jared-work-bench-opus3-*
 mkdir -p "$BASE"
 sha=$(sha256sum "$TASK" | cut -c1-8); [ "$sha" = c8ed58f2 ] || { echo "task sha mismatch $sha"; exit 1; }
 cp "$TASK" "$BASE/task.txt"

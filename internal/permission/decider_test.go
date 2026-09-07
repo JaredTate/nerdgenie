@@ -40,7 +40,7 @@ func TestADeciderAllowsACallNoRuleCoversAndSaysSo(t *testing.T) {
 
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolRead,
-		Input:    jsonInput(t, map[string]any{"path": "/home/jared/notes.md"}),
+		Input:    jsonInput(t, map[string]any{"path": "/home/user/notes.md"}),
 	})
 
 	if decision.Ruling != contract.RulingAllow {

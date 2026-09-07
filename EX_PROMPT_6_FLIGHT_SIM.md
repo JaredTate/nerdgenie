@@ -1,8 +1,7 @@
 <!-- EX_PROMPT_6_FLIGHT_SIM.md: a browser flight simulator ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The second worked example
      beside EX_PROMPT_2_TETRIS.md: a larger build with physics, 3D graphics and
-     performance work. The runners replace <WORK> with the folder the project goes
-     in, such as /home/jared/Desktop.
+     performance work.
      Difficulty 9 of 10. Expected: five to twelve hours, thirteen tasks; the physics and the world are the hardest work in the set, and the time depends on the GPU and the model. -->
 
 # Flight Simulator
@@ -13,7 +12,7 @@ Build a complete, playable, browser-based 3D flight simulator demo from scratch:
 
 ## Where
 
-A new, empty folder: `<WORK>/Flight Simulator`. It already exists. Put all source code, tests, assets and documentation inside it. Serve the simulator from that folder on port 8092.
+Create a new folder on the Desktop named exactly `Flight Simulator`, so the project lives at `~/Desktop/Flight Simulator`. Make it if it is not there. Put all source code, tests, assets and documentation inside it, and nothing anywhere else. Serve the simulator from that folder on port 8092.
 
 ## Done when
 

@@ -98,7 +98,7 @@ esac
 TATER_ROOT="${TATER_ROOT:-$HOME/work/bench/tater2}"
 TATER_TASK="${TATER_TASK:-$HOME/work/bench/canonical/task.txt}"
 NERDGENIE_BIN="${TATER_NERDGENIE_BIN:-$REPO/bin/nerdgenie}"
-OPENCODE_BIN="${TATER_OPENCODE_BIN:-/home/jared/.opencode/bin/opencode}"
+OPENCODE_BIN="${TATER_OPENCODE_BIN:-$HOME/.opencode/bin/opencode}"
 
 RUN="$TATER_ROOT/$PHASE-$HARNESS-$LABEL"
 WORK="$RUN/work"
@@ -280,7 +280,7 @@ import json
 import sys
 
 config_path, base_url, model, context = sys.argv[1:5]
-config = json.load(open("/home/jared/.config/opencode/opencode.json"))
+config = json.load(open("$HOME/.config/opencode/opencode.json"))
 config["provider"] = {
     "bench": {
         "npm": "@ai-sdk/openai-compatible",

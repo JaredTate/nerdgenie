@@ -2,7 +2,7 @@
 
 This file holds three prompts a person pastes into a fresh AI agent session, one at a time. Each prompt is complete on its own: it names every file the agent must read, every command it may run, and the shape of the report it must give back. Copy one section from its heading down to the line of dashes that ends it, and paste it as the first message of the session. The pattern is borrowed from the HomeRecon project's `Z_PROMPTS.md`.
 
-Everything in this file assumes the agent is running on the Linux development machine, `jared-irene`, with this repository checked out at `/home/jared/Code/coeus`. That is the only machine with the local model, the sandbox tools, the visible Chrome window, and the signed-in command-line programs the tests need. Nothing in this repository is built or tested anywhere else.
+Everything in this file assumes the agent is running on the Linux development machine, the development machine, with this repository checked out at `~/Code/nerdgenie`. That is the only machine with the local model, the sandbox tools, the visible Chrome window, and the signed-in command-line programs the tests need. Nothing in this repository is built or tested anywhere else.
 
 The last section, "Drift found on 2026-09-05", is not a prompt. It lists the places where the documents had fallen out of step with the code or with each other on the day this file was written.
 
@@ -41,7 +41,7 @@ These come from `CLAUDE.md`. Follow them exactly. A rule you cannot follow is a 
 
 ### The machine, the local model, and the things never done here
 
-All building and testing happen on `jared-irene`. The repository is at `/home/jared/Code/coeus`, and the reference projects a brief may cite are cloned beside it: `/home/jared/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`. A path written `~/Code/x` in any document means `/home/jared/Code/x`.
+All building and testing happen on the development machine. The repository is at `~/Code/nerdgenie`, and the reference projects a brief may cite are cloned beside it: `~/Code/openclaw`, `hermes-agent`, `prime-agent`, `opencode`, `zeroclaw`, and `homerecon`. A path written `~/Code/x` in any document means `~/Code/x`.
 
 The local model is not Ollama. It is the Qwen 3.8 27B Uncensored GGUF at `~/llm/models/hauhau-Q4_K_P.gguf`, served by the TurboQuant `llama-server` on one graphics card. It speaks the OpenAI-compatible API at `http://127.0.0.1:19091/v1` under the model name `local-coder`, with a context window of 262,144 tokens. Its sampling settings are baked into the daemon, which is a program that runs in the background all the time; never override its temperature or any other setting. Check it with `curl -s http://127.0.0.1:19091/health` and trust only the answer `{"status":"ok"}`. If it is down, the one way to start it is this line and nothing else:
 
@@ -110,7 +110,7 @@ You are testing Nerd Genie the way a careful person would: by running the real p
 
 ### Before you start
 
-You are on `jared-irene`, in `/home/jared/Code/coeus`. The local model is a Qwen 3.8 27B served by a `llama-server` daemon (a program that runs in the background) at `http://127.0.0.1:19091/v1` under the model name `local-coder`, with a 262,144-token window. Check it with `curl -s http://127.0.0.1:19091/health`; the only good answer is `{"status":"ok"}`. If it is down, start it with exactly this line and wait for that answer:
+You are on the development machine, in `~/Code/nerdgenie`. The local model is a Qwen 3.8 27B served by a `llama-server` daemon (a program that runs in the background) at `http://127.0.0.1:19091/v1` under the model name `local-coder`, with a 262,144-token window. Check it with `curl -s http://127.0.0.1:19091/health`; the only good answer is `{"status":"ok"}`. If it is down, start it with exactly this line and wait for that answer:
 
 ```
 setsid ~/llm/igo.sh Vulkan1 19091 262144 mtp > ~/llm/logs/19091.log 2>&1 < /dev/null &
@@ -140,14 +140,14 @@ Do not run `make live`. It spends the user's Claude and ChatGPT subscriptions, a
 
 ### Step 3: a scratch serve on a home of your own
 
-Never test against `~/.nerdgenie`, which is the user's own home, and never touch `/home/jared/work/ng-show`, which is a home the user is using. Make your own. `NERDGENIE_HOME` is the only environment variable the program reads; it moves the whole home folder (the configuration, the database, the persona, the vault, the socket) to the folder it names.
+Never test against `~/.nerdgenie`, which is the user's own home, and never touch `~/work/ng-show`, which is a home the user is using. Make your own. `NERDGENIE_HOME` is the only environment variable the program reads; it moves the whole home folder (the configuration, the database, the persona, the vault, the socket) to the folder it names.
 
 ```
-cd /home/jared/Code/coeus
+cd ~/Code/nerdgenie
 make build
-export NERDGENIE_HOME=/home/jared/work/qa-$(date +%Y%m%d)/home
+export NERDGENIE_HOME=~/work/qa-$(date +%Y%m%d)/home
 mkdir -p "$NERDGENIE_HOME" "$(dirname "$NERDGENIE_HOME")/work"
-cp /home/jared/work/ng-show/home/config.toml "$NERDGENIE_HOME/config.toml"
+cp ~/work/ng-show/home/config.toml "$NERDGENIE_HOME/config.toml"
 ```
 
 Open the copied `config.toml` and change `sandbox_roots` to your new `work` folder, so the run writes nowhere you care about. Leave every other line alone: `default_model = "local"` is the daemon above, `sandbox = "off"` runs commands straight on the machine with the ask-me-first list as the only gate, and the three caps under `[caps]` are off, which is the shipped behaviour. Then check the home and start the program, keeping its exact process id:
@@ -240,8 +240,8 @@ Watch `nerdgenie tui` yourself at 80 by 24, 120 by 40, and 160 by 50, resizing t
 - Never kill a process by name pattern (`pkill -f`, `killall`, `pgrep -af`); your own shell matches the pattern. Kill the exact id in `serve.pid`, and check liveness by the socket in `run/` or by the port.
 - Never touch the daemon's tuned settings. Do not restart it with other arguments, do not edit `~/llm/igo.sh`, do not send it a temperature or any sampling field, and do not send `chat_template_kwargs` to turn thinking on. Nerd Genie sends thinking off, and that is the setting under test.
 - Never run `ollama`, for anything. The local model is not Ollama.
-- Never restart `digibyte-qt`, and never use port 8090, which is reserved.
-- Never write to `~/.nerdgenie` or to `/home/jared/work/ng-show`, and never run `make live` unless asked by name.
+- Never use port 8090, which is reserved for another program on the machine.
+- Never write to `~/.nerdgenie` or to `~/work/ng-show`, and never run `make live` unless asked by name.
 
 ### The report
 

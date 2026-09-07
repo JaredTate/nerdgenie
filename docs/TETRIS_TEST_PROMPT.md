@@ -1,7 +1,7 @@
 <!-- This is the Tetris ask used to test Nerd Genie end to end, word for word.
      It is the same file as scripts/nightly/asks/05-tetris.md. The nightly runner
      and the show runs replace <WORK> with the folder the game goes in, such as
-     /home/jared/Desktop, and the folder name below with the run's own. -->
+     ~/Desktop, and the folder name below with the run's own. -->
 
 # Tater Tots Tetris
 

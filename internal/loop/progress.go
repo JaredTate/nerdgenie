@@ -27,7 +27,7 @@ const (
 	// StallsBeforeStop is how many stalls of RewindAfterRoundsWithoutProgress
 	// rounds the meter allows before it stops the task: each but the last
 	// cuts the stalled rounds and starts the count again, and the last stops.
-	// Two was the number until 7 September 2026, and on rosie's three-bit
+	// Two was the number until 7 September 2026, and on the 5070 Ti machine's three-bit
 	// model most long tasks hit a second stall and were stopped; a cut has
 	// been cheap since the rewind became a cut, because the rounds before the
 	// stall keep their place and their cache, so a weaker model earns three

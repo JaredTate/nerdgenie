@@ -423,7 +423,7 @@ guard stopped the task; at `RewindAfterRoundsWithoutProgress` (twenty) the conve
 is cleared through the same `rewindIfDue` with the stall written into the record
 as a failure and the count started again; a second and a third stall are cut
 the same way, and the fourth stops the task (`StallsBeforeStop`, four; until
-7 September 2026 the second stall stopped it, and on rosie's three-bit model
+7 September 2026 the second stall stopped it, and on the 5070 Ti machine's three-bit model
 most long tasks met a second stall, while a cut has been cheap since the
 rewind became a cut). The count rides in the Situation as "rounds since
 progress: N" whenever it is above nought. Since 7 September 2026 the stall line

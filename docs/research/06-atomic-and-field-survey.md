@@ -255,7 +255,7 @@ That table is arithmetic derived from the two cited ceilings, **not measured** �
 
 **Raspberry Pi 5 — be blunt: it cannot host the main model.** Best measured result found is Qwen3-30B-A3B Q3_K_S on a 16 GB Pi 5: **pp512 10.91 t/s, pp4096 8.62 t/s, tg128 7.99 t/s** (https://github.com/geerlingguy/ai-benchmarks/issues/47, 2026-01-07). Prefill is the killer, not generation: at 8.62 t/s a 3k-token system prompt plus tool schemas is minutes of reading *per turn*. Stratosphere measured a ~5,000-token prompt taking "roughly 15 minutes", and found function calling "failed in most of the considered models except BitNet B1.58 2B 4T and SmolLm2:1.7b" (https://www.stratosphereips.org/blog/2025/6/5/how-well-do-llms-perform-on-a-raspberry-pi-5, 2025-06-05) — the models fast enough are the ones that cannot emit reliable tool calls. No accelerator rescues it either: Jeff Geerling's AI HAT+ 2 (Hailo-10H) review concluded **"The Pi's built-in CPU trounces the Hailo 10H"** (https://www.jeffgeerling.com/blog/2026/raspberry-pi-ai-hat-2/, 2026-01-15).
 
-**So on Jarvis: run the daemon, signal-cli, cron and SQLite on the Pi. Run the model on the Mac, or in the cloud.** Reach the Mac over Tailscale. Use a tiny Pi-local model only as a degraded fallback for classification or extraction.
+**So on The 7900 XT machine: run the daemon, signal-cli, cron and SQLite on the Pi. Run the model on the Mac, or in the cloud.** Reach the Mac over Tailscale. Use a tiny Pi-local model only as a degraded fallback for classification or extraction.
 
 ### D.5 The fallback ladder — and a genuine surprise
 

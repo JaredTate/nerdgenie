@@ -74,7 +74,7 @@ var nearMisses = []askMeFirstCall{
 	{contract.ToolBrowserAct, map[string]any{"intent": "delete the last message"}, ""},
 	{contract.ToolBrowserClick, map[string]any{"intent": "read the news"}, ""},
 	{contract.ToolWeb, map[string]any{"url": "https://example.com/about"}, ""},
-	{contract.ToolRead, map[string]any{"path": "/home/jared/buy-a-kayak.md"}, ""},
+	{contract.ToolRead, map[string]any{"path": "/home/user/buy-a-kayak.md"}, ""},
 }
 
 func TestTheShippedListCatchesDeletingManyFilesAtOnce(t *testing.T) {

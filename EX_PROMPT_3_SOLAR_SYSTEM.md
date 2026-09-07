@@ -1,8 +1,7 @@
 <!-- EX_PROMPT_3_SOLAR_SYSTEM.md: an interactive solar system ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The fourth worked example: a
      smaller visual product than the Earth, with orbital motion as the thing the tests
-     must prove. The runners replace <WORK> with the folder the project goes in, such
-     as /home/jared/Desktop.
+     must prove.
      Difficulty 5 of 10. Expected: one and a half to four hours, ten tasks; the time depends on the GPU and the model. -->
 
 # Solar System Viewer
@@ -13,7 +12,7 @@ Build a complete, polished, browser-based interactive solar system from scratch:
 
 ## Where
 
-A new, empty folder: `<WORK>/Solar System Viewerv2`. It already exists. Put all source code, tests and assets inside it. Serve the app from that folder on port 8094.
+Create a new folder on the Desktop named exactly `Solar System Viewerv2`, so the project lives at `~/Desktop/Solar System Viewerv2`. Make it if it is not there. Put all source code, tests and assets inside it, and nothing anywhere else. Serve the app from that folder on port 8094.
 
 ## Done when
 

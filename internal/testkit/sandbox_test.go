@@ -77,25 +77,25 @@ func TestACommandWhoseTimeIsUpIsReportedAsTimedOut(t *testing.T) {
 func TestAWorkingDirectoryOutsideEveryRootIsRefused(t *testing.T) {
 	ctx := context.Background()
 	sandbox := testkit.NewFakeSandbox()
-	sandbox.SetRoots("/home/jared/Code/coeus", "/tmp/work")
+	sandbox.SetRoots("/home/user/Code/nerdgenie", "/tmp/work")
 	sandbox.Script("ls", contract.SandboxResult{})
 
 	if _, err := sandbox.Run(ctx, contract.SandboxCommand{
 		Program:          "ls",
-		WorkingDirectory: "/home/jared/Code/coeus/internal",
+		WorkingDirectory: "/home/user/Code/nerdgenie/internal",
 	}); err != nil {
 		t.Fatalf("running inside a root failed: %v", err)
 	}
 
 	_, err := sandbox.Run(ctx, contract.SandboxCommand{
 		Program:          "ls",
-		WorkingDirectory: "/home/jared/.nerdgenie",
+		WorkingDirectory: "/home/user/.nerdgenie",
 	})
 
 	if err == nil {
 		t.Fatal("a command ran outside every root, and the vault and the home folder are always outside the fence")
 	}
-	if !strings.Contains(err.Error(), "/home/jared/.nerdgenie") {
+	if !strings.Contains(err.Error(), "/home/user/.nerdgenie") {
 		t.Errorf("the refusal does not name the folder that was asked for: %v", err)
 	}
 }

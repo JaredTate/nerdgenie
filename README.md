@@ -2,7 +2,7 @@
 
 Nerd Genie is an open-source AI agent that runs on your own Linux machine. You talk to it in a terminal or over Signal on your phone. It works with any language model, big or small, running on your own graphics card or in the cloud, and it does not forget what it is doing, because it keeps a task record instead of re-reading its whole conversation every turn. It drives a real Chrome window, and with a model that can see, it looks at the pages and the games it builds.
 
-**Start here.** `INSTALL.md` gets the program and the local model onto a machine. `SETUP.md` says how to configure it, open the screen, give it work, and read the screen. `NERDGENIE.md` is the plain-words explanation of how it works and why, with a check table that ties every claim to a test. `docs/PROGRESS.md` says what the last night's runs found and fixed.
+**Start here.** `INSTALL.md` gets the program and the local model onto a machine. `SETUP.md` says how to configure it, open the screen, give it work, and read the screen. `PROMPT_TEMPLATE_GUIDE.md` says how to write an ask it can lift, with six worked examples beside it. `NERDGENIE.md` is the plain-words explanation of how it works and why, with a check table that ties every claim to a test.
 
 ## What it does today
 
@@ -63,26 +63,21 @@ The core, meaning the loop, the task record, the permissions, and the memory, is
 
 ## How it gets built
 
-Tests are written before the code they prove, at four levels: unit, integration, functional, and fuzz. The agent is written in Go, and the browser and desktop workers in TypeScript. An orchestrator directs waves of five workers, one package each, and no wave passes until every test is green against a fake model and against three real ones: a local Qwen, Opus 4.8, and GPT-5.5. The whole plan is in `docs/WORK_PLAN.md`.
+Tests are written before the code they prove, at four levels: unit, integration, functional, and fuzz. The agent is written in Go, and the browser and desktop workers in TypeScript. Nothing lands until every test is green against a fake model, and the live suite runs the same tasks against real ones: a local Qwen, Opus through Claude Code, and GPT through Codex. `TESTING.md` says how it is tested and `CONTRIBUTING.md` how to change it.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `INSTALL.md` | Getting the program, the model server and the model files onto a machine, one card or seven |
+| `INSTALL.md` | Getting the program, the model server and the model files onto a machine |
 | `SETUP.md` | The home folder, the configuration, the screen, the browser, giving it work, measuring it, and what to do when something looks wrong |
-| `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section, a brief, and a test |
-| `CLAUDE.md`, `ARCHITECTURE.md`, `REPO_MAP.md` | The three living documents every agent reads first: the rules and commands, how the code is put together and what each wave built, and where everything lives |
-| `docs/NERDGENIE_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
-| `docs/WORK_PLAN.md` | How it gets built: the goal, the rules, the four kinds of tests, the test framework, seven waves of briefs, and where each borrowed design lives in the other code bases |
-| `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |
-| `docs/html/` | The documents as pages with the diagrams drawn |
-| `docs/research/` | The studies the documents were written from, with citations into the source code, plus the reviews |
-| `docs/reference/` | Copies of reference files from projects that are not on disk: browser-use, Moltis, and Codex |
 | `PROMPT_TEMPLATE_GUIDE.md` | How to write an ask the harness can lift: six headings, what the harness does with each, and how the model fetches a project's documents when it needs them |
 | `EX_PROMPT_1_TIC_TAC_TOE.md` to `EX_PROMPT_6_FLIGHT_SIM.md` | Six worked asks in that shape, numbered from easiest to hardest, each with its difficulty and expected time |
+| `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section and a test |
+| `ARCHITECTURE.md`, `REPO_MAP.md`, `CLAUDE.md` | How the code is put together, where everything lives (generated), and the rules an AI agent working on this repository follows |
 | `TESTING.md`, `CONTRIBUTING.md` | How it is tested, and how to change it |
-| `IDEAS_V2.md`, `IDEASv2_PLAN.md`, `docs/IDEAS.md`, `docs/IDEAS_V3.md` | Proposals and their build plans: what is built is in `docs/PROGRESS.md`, not here |
+| `docs/NERDGENIE_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
+| `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |
 | `docs/THIRD_PARTY.md` | The projects whose designs were borrowed, and their licenses |
 
-Diagrams are mermaid blocks. In VS Code, open the preview with the "Markdown Preview Mermaid Support" extension, or open the pages in `docs/html/`.
+Diagrams are mermaid blocks. In VS Code, open the preview with the "Markdown Preview Mermaid Support" extension.

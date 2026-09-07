@@ -1,8 +1,7 @@
 <!-- EX_PROMPT_1_TIC_TAC_TOE.md: a tic-tac-toe ask written as a work order, the shape
      PROMPT_TEMPLATE_GUIDE.md explains. The easiest of the worked examples: small
      logic, an unbeatable computer opponent the tests can prove, and polish that
-     only the screen can judge. The runners replace <WORK> with the folder the
-     project goes in, such as /home/jared/Desktop.
+     only the screen can judge.
      Difficulty 2 of 10. Expected: twenty minutes to an hour, six tasks; the time depends on the GPU and the model. -->
 
 # Tic Tac Toe
@@ -13,7 +12,7 @@ Build a complete, visually stunning, browser-based tic-tac-toe game from scratch
 
 ## Where
 
-A new, empty folder: `<WORK>/Tic Tac Toe`. It already exists. Put all source code, tests and assets inside it. Serve the game from that folder on port 8096.
+Create a new folder on the Desktop named exactly `Tic Tac Toe`, so the project lives at `~/Desktop/Tic Tac Toe`. Make it if it is not there. Put all source code, tests and assets inside it, and nothing anywhere else. Serve the game from that folder on port 8096.
 
 ## Done when
 

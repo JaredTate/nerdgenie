@@ -14,7 +14,7 @@ func TestThePreviewOfAnEditNamesTheFileAndHowMuchOfItChanges(t *testing.T) {
 	decision := decide(t, decider, contract.PermissionRequest{
 		ToolName: contract.ToolEdit,
 		Input: jsonInput(t, map[string]any{
-			"path": "/home/jared/big.md",
+			"path": "/home/user/big.md",
 			"old":  strings.Repeat("x", permission.EmptiesFileOverBytes+1),
 			"new":  "",
 		}),
@@ -23,7 +23,7 @@ func TestThePreviewOfAnEditNamesTheFileAndHowMuchOfItChanges(t *testing.T) {
 	if decision.Ruling != contract.RulingAsk {
 		t.Fatalf("an edit that empties a file was ruled %q, want %q", decision.Ruling, contract.RulingAsk)
 	}
-	for _, wanted := range []string{"/home/jared/big.md", "4097", "0 bytes"} {
+	for _, wanted := range []string{"/home/user/big.md", "4097", "0 bytes"} {
 		if !strings.Contains(decision.PreviewText, wanted) {
 			t.Errorf("the preview is %q, and it has to carry %q", decision.PreviewText, wanted)
 		}

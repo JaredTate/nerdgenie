@@ -13,7 +13,7 @@
     {"kind": "tool call", "occurred": "2026-08-24T09:05:00Z", "body": {"name": "shell", "arguments": {"command": "hugo --minify"}}},
     {"kind": "tool call", "occurred": "2026-08-24T11:22:00Z", "body": {"name": "browser_open", "arguments": {"url": "https://pool.digihash.co"}}},
     {"kind": "tool call", "occurred": "2026-08-26T10:10:00Z", "body": {"name": "web", "arguments": {"url": "https://digibyte.org/events"}}},
-    {"kind": "file change", "occurred": "2026-08-25T08:20:00Z", "body": {"path": "/home/jared/coeus/blog/newsletter.md", "existed": false}}
+    {"kind": "file change", "occurred": "2026-08-25T08:20:00Z", "body": {"path": "/home/user/coeus/blog/newsletter.md", "existed": false}}
   ],
   "facts": [
     {"id": "m1", "text": "the DigiByte anniversary falls on the tenth of January every year", "source": "task 12", "recorded": "2026-08-24T09:10:00Z"},

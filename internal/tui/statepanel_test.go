@@ -361,3 +361,57 @@ func TestAClickOnAJobTaskAsksForItThroughItsJob(t *testing.T) {
 		t.Errorf("the overlay is titled %q, want the task named with its job", title)
 	}
 }
+
+// TestAClickOnTheNowRowsBringsTheLiveViewBack holds that the NOW group of the
+// panel, "thinking" and the call in flight, is the way back: a click on any
+// of its rows closes a record opened from the panel and lets go of the
+// focus, so the live transcript is what shows again, without the person
+// having to know that Esc does the same one layer at a time.
+func TestAClickOnTheNowRowsBringsTheLiveViewBack(t *testing.T) {
+	screen, _ := newTestScreen(120, 40)
+	screen.link = &recordingLink{}
+	screen.Update(linkMessage{up: true})
+	send(screen, contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+		contract.StatusFieldState: contract.StateThinking, contract.StatusFieldTask: "7", contract.StatusFieldJob: "4",
+		contract.StatusFieldJobName: "Tic Tac Toe", contract.StatusFieldJobTasks: "t1 done\nt2 now",
+	}})
+	screen.recordArrived(contract.SocketEnvelope{Type: contract.SocketShown, Text: "# task 7 running\n\n## Goal\nAsk: \"the board\"\n", Fields: map[string]string{"task": "7"}})
+	if !screen.overlayOpen() {
+		t.Fatal("the record did not open over the transcript, so the test cannot go on")
+	}
+	screen.moveFocus(1)
+
+	targets := screen.panelTargets()
+	lines := screen.panelLines()
+	nowRow := -1
+	for at, line := range lines {
+		if strings.Contains(theTextOfRow(line), "NOW") {
+			nowRow = at
+			break
+		}
+	}
+	if nowRow < 0 || nowRow+1 >= len(targets) {
+		t.Fatalf("the panel has no NOW group to click on; its lines are %d", len(lines))
+	}
+	if targets[nowRow] != targetLive || targets[nowRow+1] != targetLive {
+		t.Fatalf("the NOW rows land on %q and %q, want %q, so that a click brings the live view back", targets[nowRow], targets[nowRow+1], targetLive)
+	}
+
+	screen.clickedOn(hit{block: -1, target: targets[nowRow+1]})
+
+	if screen.overlayOpen() {
+		t.Error("the record is still open after a click on the NOW rows")
+	}
+	if screen.focusAt >= 0 {
+		t.Errorf("the focus is still at %d after a click on the NOW rows, want it let go of", screen.focusAt)
+	}
+}
+
+// theTextOfRow joins a row's spans into the words it shows.
+func theTextOfRow(line row) string {
+	var text strings.Builder
+	for _, piece := range line.spans {
+		text.WriteString(piece.text)
+	}
+	return text.String()
+}

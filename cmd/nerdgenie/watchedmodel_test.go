@@ -155,3 +155,37 @@ func TestTheWatchedModelReportsTheLastCallsSpeedsAndTheModelFile(t *testing.T) {
 		t.Errorf("the status says prefill %q and output %q tokens a second, want 320 and 61", fields[contract.StatusFieldPromptSpeed], fields[contract.StatusFieldOutputSpeed])
 	}
 }
+
+// TestTheWatchedModelTellsTheScreenAsTheCountMoves is why the NOW panel's
+// token count moved off zero: the count of a call in progress grew with every
+// delta and every tool-call chunk, but nobody told the screen until the call
+// ended, when the count is no longer shown. The screen is told when the count
+// moves, at most twice a second, so that a reply that is all tool calls shows
+// its tokens climbing the way a spoken one does.
+func TestTheWatchedModelTellsTheScreenAsTheCountMoves(t *testing.T) {
+	told := 0
+	clock := testkit.NewFakeClock(time.Date(2026, 9, 7, 15, 0, 0, 0, time.UTC))
+	watched := newWatchedModel(testkit.NewFakeModel(testkit.Script{Name: "local-coder", ContextLength: 131072, Steps: []testkit.Step{{Text: "done"}}}), clock, func() { told++ })
+
+	watched.callBegins()
+	atStart := told
+	watched.countUnseen(400)
+	if told != atStart {
+		t.Errorf("the screen was told %d times right after the call began, want no more than at the start; the count is told at most twice a second", told-atStart)
+	}
+	clock.Advance(600 * time.Millisecond)
+	watched.countUnseen(400)
+	if told != atStart+1 {
+		t.Errorf("after half a second and more tool-call chunks the screen was told %d more times, want one", told-atStart)
+	}
+	clock.Advance(600 * time.Millisecond)
+	watched.counting(nil)("some spoken words here")
+	if told != atStart+2 {
+		t.Errorf("after another half second and a delta the screen was told %d more times, want two", told-atStart)
+	}
+	fields := map[string]string{}
+	watched.fillStatus(fields)
+	if fields[contract.StatusFieldStreamed] != "205" {
+		t.Errorf("the status says %q streamed, want 205: 800 characters unseen and 23 of text, four to a token", fields[contract.StatusFieldStreamed])
+	}
+}

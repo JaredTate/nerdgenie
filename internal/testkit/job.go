@@ -21,6 +21,9 @@ type fakeTask struct {
 	// pickedUp says the job has picked the task up itself once after the
 	// harness's guard stopped it.
 	pickedUp bool
+	// startedAt is the moment the task was first handed out, and finishedAt
+	// the moment its report was taken; each is the zero time until then.
+	startedAt, finishedAt time.Time
 }
 
 // fakeJobEntry is one job the fake holds.
@@ -46,6 +49,9 @@ type fakeJobEntry struct {
 	// folder is the project folder the work order named, shown as the first
 	// line of the record's situation, the rule the real store keeps.
 	folder string
+	// startedAt is the moment the job was made on the fake's clock, and
+	// finishedAt the moment its last task closed it, zero until then.
+	startedAt, finishedAt time.Time
 }
 
 // FakeJob holds jobs in memory: create one, add tasks to it, list them, change
@@ -98,13 +104,14 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 	jobID := strconv.Itoa(jobs.nextJob)
 	jobs.nextJob++
 	entry := &fakeJobEntry{
-		summary:  contract.JobSummary{ID: jobID, Title: fakeJobTitle(wanted.Name, wanted.Ask), State: contract.JobRunning},
-		ask:      wanted.Ask,
-		name:     wanted.Name,
-		why:      wanted.Why,
-		schedule: wanted.Schedule,
-		template: wanted.TaskTemplate,
-		folder:   wanted.Folder,
+		summary:   contract.JobSummary{ID: jobID, Title: fakeJobTitle(wanted.Name, wanted.Ask), State: contract.JobRunning},
+		ask:       wanted.Ask,
+		name:      wanted.Name,
+		why:       wanted.Why,
+		schedule:  wanted.Schedule,
+		template:  wanted.TaskTemplate,
+		folder:    wanted.Folder,
+		startedAt: jobs.clock.Now(),
 	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
@@ -163,6 +170,9 @@ func (jobs *FakeJob) NextTask(_ context.Context, now time.Time) (contract.TaskTo
 				continue
 			}
 			task.running = true
+			if task.startedAt.IsZero() {
+				task.startedAt = now
+			}
 			return contract.TaskToRun{JobID: jobID, TaskID: task.task.TaskID, Text: task.task.Text, Unattended: task.unattended}, true, nil
 		}
 	}
@@ -186,6 +196,7 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 	entry.reports = append(entry.reports, contract.ResultLine{ID: reportID, Summary: report})
 	entry.summary.LastRun = jobs.clock.Now()
 	task.running = false
+	task.finishedAt = entry.summary.LastRun
 	if failed {
 		entry.summary.FailuresInARow++
 		jobs.applyFailureCount(entry)
@@ -218,6 +229,7 @@ func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
 		}
 	}
 	entry.summary.State = contract.JobDone
+	entry.finishedAt = jobs.clock.Now()
 }
 
 // SetProjectFolder writes the folder the job's tasks work in, which the
@@ -234,6 +246,26 @@ func (jobs *FakeJob) SetProjectFolder(_ context.Context, jobID string, folder st
 	}
 	entry.folder = folder
 	return nil
+}
+
+// Timing says when the job and each of its tasks started and finished on the
+// fake's clock: the job when it was made and when its last task closed it, a
+// task when it was first handed out and when its report was taken.
+func (jobs *FakeJob) Timing(_ context.Context, jobID string) (contract.JobTiming, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return contract.JobTiming{}, fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	timing := contract.JobTiming{Started: entry.startedAt, Finished: entry.finishedAt, Tasks: map[string]contract.TaskTiming{}}
+	for _, task := range entry.tasks {
+		if task.startedAt.IsZero() {
+			continue
+		}
+		timing.Tasks[task.task.TaskID] = contract.TaskTiming{Started: task.startedAt, Finished: task.finishedAt}
+	}
+	return timing, nil
 }
 
 // ProveDoneLine marks one line of the job's done list with the report that

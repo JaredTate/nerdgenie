@@ -78,6 +78,12 @@ func (jobs *Jobs) taskOf(ctx context.Context, jobID string, held *heldJob, now t
 		if !won {
 			continue
 		}
+		if facts.StartedAt.IsZero() {
+			facts.StartedAt = now
+			if err := jobs.saveState(ctx, jobID, held, held.state.withTask(task.TaskID, facts)); err != nil {
+				return contract.TaskToRun{}, false, err
+			}
+		}
 		return contract.TaskToRun{
 			JobID: jobID, TaskID: task.TaskID, Text: task.Text, Unattended: facts.Unattended,
 		}, true, nil

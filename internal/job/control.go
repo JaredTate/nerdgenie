@@ -257,5 +257,5 @@ func (jobs *Jobs) startWorking(ctx context.Context, jobID string, held *heldJob)
 		return err
 	}
 	jobs.wake()
-	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held)
+	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held, jobs.clock.Now())
 }

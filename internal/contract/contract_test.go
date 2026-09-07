@@ -83,10 +83,12 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheNineTheLoopNeeds(t
 	// ProveDoneLine, which marks one line of a work order's done list with the
 	// report that proves it, and SetProjectFolder, which writes the folder a
 	// job's tasks work in when the harness learns it from the first task's
-	// files.
+	// files, and Timing, which says when the job and each of its tasks
+	// started and finished, so that the screen shows running time and a
+	// report says what a task took.
 	wanted := []string{
 		"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff",
-		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine", "SetProjectFolder",
+		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine", "SetProjectFolder", "Timing",
 	}
 	for _, name := range wanted {
 		if _, found := job.MethodByName(name); !found {
@@ -94,7 +96,7 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheNineTheLoopNeeds(t
 		}
 	}
 	if job.NumMethod() != len(wanted) {
-		t.Errorf("Job has %d methods, want the fifteen listed in this test", job.NumMethod())
+		t.Errorf("Job has %d methods, want the sixteen listed in this test", job.NumMethod())
 	}
 }
 

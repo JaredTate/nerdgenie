@@ -83,11 +83,64 @@ func (answering *showing) answer(ctx context.Context, fields map[string]string) 
 		return answering.showTask(ctx, task)
 	case id == "" && task == "" && job != "":
 		return answering.showJob(ctx, job)
+	case id == "" && task != "" && job != "" && isAJobTaskName(task):
+		return answering.showJobTask(ctx, job, task)
 	default:
 		return contract.SocketEnvelope{}, fmt.Errorf(
-			"a show names a result with the fields id and task, a task with the field task alone, or a job with the field job alone, and this one carried %s, so ask in one of those three shapes",
+			"a show names a result with the fields id and task, a task with the field task alone, a job with the field job alone, or a job's task with both, and this one carried %s, so ask in one of those shapes",
 			fieldsAsWords(fields))
 	}
+}
+
+// showJobTask answers a task named the job's way, t2, with the record of the
+// log task it ran as, found through the message that started it, whose id is
+// the job's and the task's joined. The panel names a job's tasks the job's way
+// and the log numbers tasks its own way, so a click on t2 used to ask for a
+// task called t2 and be told there was none.
+func (answering *showing) showJobTask(ctx context.Context, job string, task string) (contract.SocketEnvelope, error) {
+	ranAs, found := answering.taskTheJobTaskRanAs(ctx, job, task)
+	if !found {
+		return contract.SocketEnvelope{}, fmt.Errorf(
+			"task %s of job %s has not started yet, so there is nothing of it to show; the job's record lists what it will do", task, job)
+	}
+	keeper, err := answering.loadTask(ctx, ranAs)
+	if err != nil {
+		return contract.SocketEnvelope{}, err
+	}
+	return shown(withinTheShownCap(string(record.Print(keeper.Record()))), map[string]string{showFieldTask: task, showFieldJob: job}), nil
+}
+
+// isAJobTaskName says whether a name is a task named the job's way: the letter
+// t and a number, which is never a log task number.
+func isAJobTaskName(name string) bool {
+	if len(name) < 2 || name[0] != 't' {
+		return false
+	}
+	for _, letter := range name[1:] {
+		if letter < '0' || letter > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// taskTheJobTaskRanAs finds the log task a job's task ran as: the newest
+// message event whose id is the job's and the task's joined with a dot, which
+// is how the job driver names the message that starts each task.
+func (answering *showing) taskTheJobTaskRanAs(ctx context.Context, job string, task string) (string, bool) {
+	saved, err := answering.store.ByKind(ctx, contract.EventMessage)
+	if err != nil {
+		return "", false
+	}
+	wanted := job + "." + task
+	ranAs := ""
+	for _, event := range saved {
+		var message contract.Inbound
+		if json.Unmarshal(event.Body, &message) == nil && message.ID == wanted {
+			ranAs = event.TaskID
+		}
+	}
+	return ranAs, ranAs != ""
 }
 
 // showResult answers a result: the call that made it, laid out for reading,

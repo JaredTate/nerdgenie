@@ -158,6 +158,45 @@ func TestAShowOfATaskIsItsPrintedRecord(t *testing.T) {
 	}
 }
 
+// TestAShowOfAJobTaskFindsTheTaskItRanAs: the panel names a job's tasks the
+// job's way, t1, t2, and the log numbers tasks its own way, so a click on t2
+// asked for a task called t2 and was told there was none. A show naming a job
+// and one of its tasks finds the log task the job task ran as, through the
+// message that started it, whose id is the job's and the task's joined.
+func TestAShowOfAJobTaskFindsTheTaskItRanAs(t *testing.T) {
+	answering, keeper := aShowingOverFakes(t)
+	logAStartingMessage(t, answering.store, "6", "4.t2", "Core Tetris engine")
+
+	got, err := answering.answer(context.Background(), map[string]string{"job": "4", "task": "t2"})
+	if err != nil {
+		t.Fatalf("showing task t2 of job 4 failed: %v", err)
+	}
+	if want := string(record.Print(keeper.Record())); got.Text != want {
+		t.Errorf("the shown text is:\n%s\nwant the printed record of task 6, which t2 ran as", got.Text)
+	}
+	if got.Fields["task"] != "t2" || got.Fields["job"] != "4" {
+		t.Errorf("the shown carries the fields %v, want the job task named as it was asked for", got.Fields)
+	}
+
+	_, err = answering.answer(context.Background(), map[string]string{"job": "4", "task": "t9"})
+	if err == nil || !strings.Contains(err.Error(), "has not started yet") {
+		t.Errorf("a job task that never ran was not said to be unstarted: %v", err)
+	}
+}
+
+// logAStartingMessage writes the message that starts a job's task, the way the
+// job driver hands it to the loop, under the log task it runs as.
+func logAStartingMessage(t *testing.T, store contract.Store, task string, id string, text string) {
+	t.Helper()
+	body, err := json.Marshal(contract.Inbound{ID: id, Text: text})
+	if err != nil {
+		t.Fatalf("cannot write the message as JSON: %v", err)
+	}
+	if _, err := store.Append(context.Background(), contract.Event{TaskID: task, Kind: contract.EventMessage, Body: body}); err != nil {
+		t.Fatalf("cannot log the starting message: %v", err)
+	}
+}
+
 // TestAShowOfAJobIsItsPrintedRecord holds that a show naming only a job answers
 // with the job's record as the job store loads it and the record package prints
 // it, with the job carried back in the fields.

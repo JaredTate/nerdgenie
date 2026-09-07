@@ -31,10 +31,30 @@ func (screen *Screen) openTarget(target string) {
 	}
 	switch kind {
 	case targetTask:
-		screen.tell(contract.SocketEnvelope{Type: contract.SocketShow, Fields: map[string]string{showFieldTask: name}})
+		fields := map[string]string{showFieldTask: name}
+		// A task named the job's way, t2, is found through its job, because
+		// the program numbers tasks its own way.
+		if isAJobTaskName(name) && screen.job != "" {
+			fields[showFieldJob] = screen.job
+		}
+		screen.tell(contract.SocketEnvelope{Type: contract.SocketShow, Fields: fields})
 	case targetJob:
 		screen.tell(contract.SocketEnvelope{Type: contract.SocketShow, Fields: map[string]string{showFieldJob: name}})
 	}
+}
+
+// isAJobTaskName says whether a name is a task named the job's way: the letter
+// t and a number.
+func isAJobTaskName(name string) bool {
+	if len(name) < 2 || name[0] != 't' {
+		return false
+	}
+	for _, letter := range name[1:] {
+		if letter < '0' || letter > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // overlayOpen says whether a record is drawn over the transcript.
@@ -74,6 +94,8 @@ func (screen *Screen) recordArrived(envelope contract.SocketEnvelope) {
 // and "task 17" for a task; or nothing when the fields name neither.
 func (screen *Screen) overlayTitleFor(fields map[string]string) string {
 	switch {
+	case fields[showFieldJob] != "" && fields[showFieldTask] != "":
+		return "task " + fields[showFieldTask] + " · job " + fields[showFieldJob]
 	case fields[showFieldJob] != "":
 		title := "job " + fields[showFieldJob]
 		if fields[showFieldJob] == screen.job && screen.jobName != "" {

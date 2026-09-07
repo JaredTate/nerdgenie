@@ -327,3 +327,37 @@ func TestNoPanelRowIsWiderThanThePanelAtAnyWidth(t *testing.T) {
 		}
 	}
 }
+
+// TestAClickOnAJobTaskAsksForItThroughItsJob: the panel names a job's tasks
+// t1, t2, and the program numbers tasks its own way, so the click has to carry
+// the job for the program to find the task the job task ran as. A task named
+// by its log number goes as before.
+func TestAClickOnAJobTaskAsksForItThroughItsJob(t *testing.T) {
+	screen, _ := newTestScreen(120, 40)
+	link := &recordingLink{}
+	screen.link = link
+	screen.Update(linkMessage{up: true})
+	send(screen, aStatusWithANamedJob())
+
+	screen.openTarget("task:t19")
+	screen.openTarget("task:7")
+
+	asked := []map[string]string{}
+	for _, envelope := range link.sent {
+		if envelope.Type == contract.SocketShow {
+			asked = append(asked, envelope.Fields)
+		}
+	}
+	if len(asked) != 2 {
+		t.Fatalf("the screen asked %d shows, want two", len(asked))
+	}
+	if asked[0]["task"] != "t19" || asked[0]["job"] != "4" {
+		t.Errorf("the click on t19 asked %v, want the task and its job", asked[0])
+	}
+	if asked[1]["task"] != "7" || asked[1]["job"] != "" {
+		t.Errorf("the click on task 7 asked %v, want the task alone", asked[1])
+	}
+	if title := screen.overlayTitleFor(map[string]string{"task": "t19", "job": "4"}); title != "task t19 · job 4" {
+		t.Errorf("the overlay is titled %q, want the task named with its job", title)
+	}
+}

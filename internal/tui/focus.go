@@ -69,7 +69,9 @@ func (screen *Screen) focusablesFrom(owners []int, targets []string, panelRows i
 		if at >= panelRows {
 			break
 		}
-		if target != "" {
+		// The NOW rows are a place to click, not a thing to open, so the
+		// focus walks past them: Tab is for records.
+		if target != "" && target != targetLive {
 			listed = append(listed, focusable{block: -1, line: at, target: target})
 		}
 	}

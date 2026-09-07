@@ -20,11 +20,20 @@ import (
 const (
 	targetTask = "task"
 	targetJob  = "job"
+	// targetLive is what the NOW rows of the panel land on: a click there
+	// closes any record opened from the panel and lets go of the focus, so the
+	// live transcript is back without a person having to know that Esc does
+	// the same one layer at a time.
+	targetLive = "now:live"
 )
 
 // openTarget asks the program for the record a panel target names, and does
 // nothing for a target it does not know or one that names nothing.
 func (screen *Screen) openTarget(target string) {
+	if target == targetLive {
+		screen.backToTheLiveView()
+		return
+	}
 	kind, name, found := strings.Cut(target, ":")
 	if !found || name == "" {
 		return
@@ -60,6 +69,13 @@ func isAJobTaskName(name string) bool {
 // overlayOpen says whether a record is drawn over the transcript.
 func (screen *Screen) overlayOpen() bool {
 	return screen.overlayTitle != ""
+}
+
+// backToTheLiveView is what a click on the NOW rows does: the record comes
+// off the transcript and the focus is let go of.
+func (screen *Screen) backToTheLiveView() {
+	screen.closeOverlay()
+	screen.clearFocus()
 }
 
 // closeOverlay takes the record off the transcript.

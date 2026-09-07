@@ -153,7 +153,7 @@ func (screen *Screen) panelItems() []panelLine {
 	items := []panelLine{}
 	for _, group := range [][]panelLine{
 		screen.labelled("MODEL", screen.modelPanelLines()),
-		screen.labelled("NOW", screen.nowPanelLines()),
+		landingOn(screen.labelled("NOW", screen.nowPanelLines()), targetLive),
 		screen.labelled("LAST", screen.lastPanelLines()),
 		screen.checklistItems(),
 		screen.labelled("STATE", screen.statePanelLines()),
@@ -187,6 +187,14 @@ func (screen *Screen) labelled(label string, lines []row) []panelLine {
 	}
 	for _, line := range lines {
 		items = append(items, panelLine{drawn: line})
+	}
+	return items
+}
+
+// landingOn gives every line of a group, its label included, one target.
+func landingOn(items []panelLine, target string) []panelLine {
+	for at := range items {
+		items[at].target = target
 	}
 	return items
 }

@@ -79,7 +79,9 @@ func TestThePanelNamesTheJobAndTaskRowsAsClickTargets(t *testing.T) {
 		for _, piece := range line.spans {
 			text += piece.text
 		}
-		if targets[at] != "" {
+		// The NOW rows land on the live view, which is a way back and not a
+		// record, so they are not counted among the records the panel names.
+		if targets[at] != "" && targets[at] != targetLive {
 			named[targets[at]] = text
 		}
 	}
@@ -102,7 +104,7 @@ func TestThePanelNamesTheJobAndTaskRowsAsClickTargets(t *testing.T) {
 			if text := plain.panelLines()[at].spans[0].text; text != "TASK" {
 				t.Errorf("the target task:17 names a line beginning %q, and it is the task's header", text)
 			}
-		} else if target != "" {
+		} else if target != "" && target != targetLive {
 			t.Errorf("a plain task's panel names the target %q, and only its header is a target", target)
 		}
 	}

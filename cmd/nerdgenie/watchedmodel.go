@@ -32,9 +32,12 @@ type watchedModel struct {
 	// once rather than at the next heartbeat.
 	changed func()
 
-	guard      sync.Mutex
-	callBegan  time.Time
-	streamed   int
+	guard     sync.Mutex
+	callBegan time.Time
+	streamed  int
+	// toldAt is when the screen was last told the count moved, so that a
+	// reply of many small chunks tells it at most twice a second.
+	toldAt     time.Time
 	lastHeld   int
 	tokensIn   int
 	cachedIn   int
@@ -113,7 +116,11 @@ func (watched *watchedModel) counting(onDelta func(delta string)) func(delta str
 	return func(delta string) {
 		watched.guard.Lock()
 		watched.streamed += len(delta) / tokensPerWord
+		due := watched.countIsDue()
 		watched.guard.Unlock()
+		if due {
+			watched.tellSomebody()
+		}
 		if onDelta != nil {
 			onDelta(delta)
 		}
@@ -125,7 +132,27 @@ func (watched *watchedModel) counting(onDelta func(delta string)) func(delta str
 func (watched *watchedModel) countUnseen(characters int) {
 	watched.guard.Lock()
 	watched.streamed += characters / tokensPerWord
+	due := watched.countIsDue()
 	watched.guard.Unlock()
+	if due {
+		watched.tellSomebody()
+	}
+}
+
+// countTellsEvery is the least time between two tellings of the count while a
+// call is in progress: often enough to read as climbing, rare enough that a
+// reply of a thousand small chunks does not send a thousand statuses.
+const countTellsEvery = 500 * time.Millisecond
+
+// countIsDue says whether the screen should be told the count now, and marks
+// the telling; it is called with the guard held.
+func (watched *watchedModel) countIsDue() bool {
+	now := watched.clock.Now()
+	if now.Sub(watched.toldAt) < countTellsEvery {
+		return false
+	}
+	watched.toldAt = now
+	return true
 }
 
 // callBegins writes down the moment this call started.
@@ -133,6 +160,7 @@ func (watched *watchedModel) callBegins() {
 	watched.guard.Lock()
 	watched.callBegan = watched.clock.Now()
 	watched.streamed = 0
+	watched.toldAt = watched.callBegan
 	watched.guard.Unlock()
 	watched.tellSomebody()
 }

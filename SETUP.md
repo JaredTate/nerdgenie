@@ -76,7 +76,7 @@ What the screen shows:
 - **The top line:** the model alias and the model file the server loaded (`local hauhau-Q4_K_P`), the context meter, the task and its round, the cache share, and the session's tokens. The dot on the right is the health check.
 - **The strip at the bottom:** what it is doing now, how long the call has run, how many tokens it has written, and the last call's speeds: `prefill 418 tok/s · output 58 tok/s`. Prefill is how fast the server read the prompt; output is how fast it wrote.
 - **The side panel:** MODEL, NOW, the job's task list with its marks, the STATE of files and commands, FAILURES, and the ROUND.
-- `^B` hides the panel, `tab` moves focus, `/help` lists the commands. `esc` lets go of one thing at a time: a focus on the panel, then a record you opened by clicking a task or a job, then any opened pills; with nothing left to let go of, `esc` stops the task. So after clicking a task or a job, one `esc` brings the live view back, and a third `esc` out of habit is a stop.
+- `^B` hides the panel, `tab` moves focus, `/help` lists the commands. `esc` lets go of one thing at a time: a focus on the panel, then a record you opened by clicking a task or a job, then any opened pills; with nothing left to let go of, `esc` stops the task. So after clicking a task or a job, one `esc` brings the live view back, and a third `esc` out of habit is a stop. A click on the panel's NOW rows brings the live view back too.
 
 If you restart the serve, turn yolo back on (`/yolo`) if you had it on. A restart always brings the asking back.
 

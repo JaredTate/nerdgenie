@@ -1,10 +1,10 @@
-// Package tool is the tool registry and the eighteen built-in tools, one folder
+// Package tool is the tool registry and the twenty built-in tools, one folder
 // each.
 //
 // A tool has five parts: a name, a description under forty words that says when
 // to use it and when not to, a list of typed input fields, a permission class,
 // and a function that runs it and returns text. The registry holds the whole set
-// one turn can see. It builds the eighteen built-in tools from one settings
+// one turn can see. It builds the twenty built-in tools from one settings
 // struct, then adds every executable the user dropped into the tools folder
 // under the agent's home, asking each one what it is through the user-tool
 // protocol in internal/contract. A description over the forty-word cap is

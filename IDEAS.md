@@ -73,7 +73,8 @@ Before "done", the harness confirms what it can itself: files parse, the last te
 - Cap the Failures list as the results list is capped at forty lines. Two tasks died at the record's size rule with seventeen failure lines.
 - Log the same-call guard's refusals and the nudge as events. Neither is visible in the log today, so neither can be counted.
 - Take a screenshot only when the model asks for one. One task took eighteen pictures for seven resizes.
-- Show six results in full on a fresh window, not two (part of idea 2, cheap on its own).
+- Show six results in full on a fresh window, not two (part of idea 2, cheap on its own). Built on 7 September.
+- A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for.
 
 ## The wider list, from the two research reports
 

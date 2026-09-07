@@ -71,7 +71,7 @@ func Replace(content string, wanted string, replacement string) (string, string,
 		return "", "", errors.New("this edit says nothing to look for, so quote the text to replace, or use write to replace the whole file")
 	}
 	if wanted == replacement {
-		return "", "", errors.New("this edit replaces the text with itself, so write the text you want the file to hold instead")
+		return "", "", errors.New("the file already holds this text, so the change is in place and this edit would replace it with itself; read the file to see it, and go on")
 	}
 
 	found := false

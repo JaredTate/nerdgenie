@@ -113,3 +113,20 @@ func TestAMatchMuchBiggerThanWhatWasAskedForIsRefused(t *testing.T) {
 		t.Errorf("a span far bigger than the text asked for was replaced, and that is not the edit the model meant")
 	}
 }
+
+// TestAnEditThatReplacesTextWithItselfIsToldTheChangeIsAlreadyInPlace: the
+// tenth fresh run's polish task applied one edit, then applied it again, and
+// again, thirteen rounds, each refused as replacing the text with itself; the
+// refusal did not say the one thing that would have ended it, that the file
+// already holds the change.
+func TestAnEditThatReplacesTextWithItselfIsToldTheChangeIsAlreadyInPlace(t *testing.T) {
+	_, _, err := edit.Replace("const a = 1;\n", "const a = 1;", "const a = 1;")
+	if err == nil {
+		t.Fatalf("an edit that changes nothing was made")
+	}
+	for _, wanted := range []string{"already holds this text", "the change is in place", "go on"} {
+		if !strings.Contains(err.Error(), wanted) {
+			t.Errorf("the refusal %q does not say %q", err.Error(), wanted)
+		}
+	}
+}

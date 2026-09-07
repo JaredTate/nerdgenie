@@ -359,3 +359,5 @@ Idea 1 of IDEAS.md, built test first in the working context and the providers. T
 
 **A click on a job task, 19:35.** The owner clicked t2 in the job panel of run ten and was told there is no task numbered t2: the panel names a job's tasks the job's way and the log numbers tasks its own way. A show may now name a job and one of its tasks together; the program finds the log task the job task ran as through the message that started it, and says "not started yet" for one that never ran. On main, test first; not deployed into the running job, which is being left to finish.
 
+**An edit already in place, 21:58.** Run ten's polish task applied one edit to the effects canvas, then applied it again for thirteen rounds, each refused as replacing the text with itself, and wrote the loop into its record twice without seeing the way out. The refusal now says the useful half first: the file already holds this text, the change is in place, read it and go on. On main, test first; the meter's cut handled the live loop.
+

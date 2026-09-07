@@ -57,7 +57,7 @@ The shell tool gets `serve`: start a process detached and answer at once with th
 
 ### 5. The landing checklist, read by an independent co-pilot
 
-Part built on 7 September 2026, from the other direction: a harness check is now a second opinion and never the judge of a done line that names a result (two send-backs, then the line stands on its proof with a decision in the record). The labels and the tools-off co-pilot are not built; the owner set this idea aside.
+Part built on 7 September 2026, from the other direction: a harness check is now a second opinion and never the judge of a done line that names a result (two send-backs, then the line stands on its proof with a decision in the record). The labels and the tools-off co-pilot are not built; the owner set this idea aside. One more item of the list below was built on 7 September 2026: a done line that rests on a test run from before the last write or edit is sent back to run the tests again, so the last test run has to come after the last edit.
 
 Before "done", the harness confirms what it can itself: files parse, the last test run was green and came after the last edit, no plan step is open, no stop line was reported, and for a page, something changed after an action and no page errors. It labels every done line `[v]` when the harness computed the proof and `[o]` when only the model judged it. Then one call with tools off, denied the transcript and given only the artifacts and the done lines, answers as the person would: yes, or which line and what is missing.
 

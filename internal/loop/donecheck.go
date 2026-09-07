@@ -97,7 +97,8 @@ func theResultsToNameFrom(held contract.Record) string {
 }
 
 // checkOneDoneLine runs the mechanical checks on one line: a command in
-// backticks has to exit zero, and a file path has to be there.
+// backticks has to exit zero, a file path has to be there, and a test run the
+// line rests on has to be from after the task's last change.
 func (running *run) checkOneDoneLine(ctx context.Context, line contract.DoneLine) (string, error) {
 	for _, command := range commandsIn(line.Text) {
 		wrong, err := running.commandFails(ctx, command)
@@ -115,7 +116,40 @@ func (running *run) checkOneDoneLine(ctx context.Context, line contract.DoneLine
 				line.Text, path), nil
 		}
 	}
-	return "", nil
+	return running.staleProofRefusal(ctx, line), nil
+}
+
+// staleProofRefusal says when a done line rests on a test run from before the
+// task's last write or edit, so that the model runs the tests again and points
+// the line at the new result. A green run proves the files as they were when
+// it ran, and a change after it is a change the run never saw. The refusal is
+// empty for a line whose proof is not a test run, or whose run came after the
+// last change, or that rests on the reply.
+func (running *run) staleProofRefusal(ctx context.Context, line contract.DoneLine) string {
+	if line.ResultID == "" || line.ResultID == TheReplyLabel {
+		return ""
+	}
+	proofAt, changeAt := -1, -1
+	for at, one := range running.keeper.Record().Work.Results {
+		if one.ID == line.ResultID {
+			proofAt = at
+		}
+		if strings.HasPrefix(one.Summary, contract.ToolWrite+": ") || strings.HasPrefix(one.Summary, contract.ToolEdit+": ") {
+			changeAt = at
+		}
+	}
+	if proofAt < 0 || changeAt <= proofAt {
+		return ""
+	}
+	text, err := running.keeper.Read(ctx, line.ResultID)
+	if err != nil {
+		return ""
+	}
+	if _, found := testStateIn(text); !found {
+		return ""
+	}
+	return fmt.Sprintf("The done line %q rests on %s, a test run from before your last change; run the tests again and point the line at the new result.",
+		line.Text, line.ResultID)
 }
 
 // MaxWordsInAPath is how many of the words after a path are tried as part of

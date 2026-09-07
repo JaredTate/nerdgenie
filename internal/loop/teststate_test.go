@@ -64,6 +64,12 @@ func TestTheTestStateIsReadOffJestPytestAndGo(t *testing.T) {
 		{"jest headers", "FAIL tests/engine.test.js\n  ● Piece generation & spawning › pieces cycle through the given type sequence\n\n    Expected: \"O\"\n    Received: \"I\"\n\n  ● Line clears › clears a full row\n\n  ● Console\n\nTests:       2 failed, 47 passed, 49 total\nexit 1",
 			"tests: 2 failing of 49: Piece generation & spawning › pieces cycle through the given type sequence; Line clears › clears a full row"},
 		{"go green", "ok  \tgame\t0.004s\nexit 0", "tests: all passing"},
+		// A package that does not build ran no test at all, and Go's only
+		// summary line for it is "FAIL\tpackage [build failed]", which read
+		// as all passing: the harness said the tests were green over a
+		// change that did not compile.
+		{"go build failure", "# github.com/x/y\n./a.go:12:3: undefined: foo\nFAIL\tgithub.com/x/y [build failed]\nexit 2",
+			"tests: 1 failing: github.com/x/y did not build"},
 		{"node green", "✔ board starts empty (0.5ms)\nℹ tests 51\nℹ pass 51\nℹ fail 0\nexit 0", "tests: all 51 passing"},
 		// Vitest, which the eleventh nightly run's hazards task ran through
 		// tail: its runs went from 36 failing to 16 and the harness read

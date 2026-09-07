@@ -40,7 +40,7 @@ const (
 
 // TheStallLine is what the model reads after NudgeAfterRoundsWithoutProgress
 // rounds in which nothing the harness can measure moved.
-const TheStallLine = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read. Write what these rounds showed into the record as a failure with its cause, then take a different approach; more of the same will not move the count."
+const TheStallLine = "That is ten rounds in which no test went green, no plan step or done line was marked, no page changed under an action, no new file was written and nothing new was read. Write what these rounds showed into the record as a failure with its cause. Then name the symptom in one line, name two causes that could explain it, and make your next call the one that tells those two apart; more of the same will not move the count."
 
 // RoundsAfterAllMarked is how many rounds of tool calls a task may go on
 // for once every done line and every plan step is marked done before it is

@@ -124,11 +124,7 @@ func testStateIn(text string) (testState, bool) {
 			name, _, _ := strings.Cut(strings.TrimPrefix(line, "FAILED "), " - ")
 			state.addFailing(strings.TrimSpace(name))
 			found = true
-		case strings.HasPrefix(line, "--- FAIL: "):
-			name, _, _ := strings.Cut(strings.TrimPrefix(line, "--- FAIL: "), " ")
-			state.addFailing(name)
-			found = true
-		case line == "PASS" || line == "FAIL" || strings.HasPrefix(line, "ok  \t") || strings.HasPrefix(line, "FAIL\t"):
+		case state.readGo(line):
 			found = true
 		// Python's unittest, Mocha, Bun and Deno, in teststate_scripting.go.
 		case scripting.readLine(line, &state):
@@ -143,6 +139,25 @@ func testStateIn(text string) (testState, bool) {
 	}
 	state.settle()
 	return state, true
+}
+
+// readGo reads one trimmed line as Go's test runner prints it, and says whether
+// it was one of Go's: a failing test by name, a package that did not build,
+// which ran no test and whose one summary line read as all passing over a
+// change that did not compile, or the bare verdict of a package.
+func (state *testState) readGo(line string) bool {
+	switch {
+	case strings.HasPrefix(line, "--- FAIL: "):
+		name, _, _ := strings.Cut(strings.TrimPrefix(line, "--- FAIL: "), " ")
+		state.addFailing(name)
+	case strings.HasPrefix(line, "FAIL\t") && strings.Contains(line, "[build failed]"):
+		name, _, _ := strings.Cut(strings.TrimPrefix(line, "FAIL\t"), " ")
+		state.addFailing(name + " did not build")
+	case line == "PASS" || line == "FAIL" || strings.HasPrefix(line, "ok  \t") || strings.HasPrefix(line, "FAIL\t"):
+	default:
+		return false
+	}
+	return true
 }
 
 // settle squares the counts once every line is read: the failed count is at

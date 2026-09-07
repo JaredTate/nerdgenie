@@ -65,6 +65,13 @@ func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T
 	if first != loop.NudgeAfterRoundsWithoutProgress+1 {
 		t.Errorf("the stall line first rode on model call %d, want call %d, the one after the first change and ten rounds without progress", first, loop.NudgeAfterRoundsWithoutProgress+1)
 	}
+	// The line asks for a diagnosis, not just a change of approach: the
+	// fourteenth nightly run's stalls were all the model trying the next
+	// thing without saying what the last ten rounds had ruled out.
+	askedFor := "Then name the symptom in one line, name two causes that could explain it, and make your next call the one that tells those two apart; more of the same will not move the count."
+	if _, count := requestsCarrying(built, askedFor); count == 0 {
+		t.Errorf("the stall line never asked the model to name the symptom and two causes, and it reads:\n%s", loop.TheStallLine)
+	}
 	firstRewind, _ := requestsCarrying(built, loop.TheRewindLine)
 	if firstRewind != loop.RewindAfterRoundsWithoutProgress+1 {
 		t.Errorf("the rewind line first rode on model call %d, want call %d, the one after the first change and twenty rounds without progress", firstRewind, loop.RewindAfterRoundsWithoutProgress+1)

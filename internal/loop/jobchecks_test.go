@@ -66,7 +66,7 @@ func TestAJobTasksEndRunsTheJobsChecks(t *testing.T) {
 	if held.Header.Status != contract.StatusDone {
 		t.Errorf("the job reads %q with every line proved, want done", held.Header.Status)
 	}
-	if !sentSomethingLike(built.channel.Sent(), "done lines proved: 2 of 2") {
+	if !sentSomethingLike(built.channel.Sent(), "Done lines proved: 2 of 2") {
 		t.Errorf("the person was not told the count after a task, and the channel got %v", built.channel.Sent())
 	}
 }

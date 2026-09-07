@@ -139,6 +139,11 @@ func (reading *reader) readHeaderField(field string) error {
 	if due, found := strings.CutPrefix(field, "next: "); found {
 		return reading.readWordsField(field, due, &header.NextDue, "the next task that is due")
 	}
+	if strings.HasPrefix(field, labelProved) {
+		// The count of proved checked lines is worked out from the done list
+		// every time the record is printed, so it is read and not kept.
+		return nil
+	}
 	return reading.readProgressField(field)
 }
 

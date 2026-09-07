@@ -515,6 +515,8 @@ internal/job/notepad.go
 internal/job/openclaims_test.go
 internal/job/openrecord_test.go
 internal/job/pickup_test.go
+internal/job/provedone.go
+internal/job/provedone_test.go
 internal/job/resume_test.go
 internal/job/runnow_test.go
 internal/job/schedule.go
@@ -612,6 +614,8 @@ internal/loop/hardcap_test.go
 internal/loop/harness_test.go
 internal/loop/helpers_test.go
 internal/loop/integration_test.go
+internal/loop/jobchecks.go
+internal/loop/jobchecks_test.go
 internal/loop/jobmarkfails_test.go
 internal/loop/jobpickup_test.go
 internal/loop/jobquestion_test.go
@@ -624,12 +628,15 @@ internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
 internal/loop/lastround_test.go
 internal/loop/lessonguard_test.go
+internal/loop/linecheck.go
+internal/loop/linecheck_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
 internal/loop/nobudget_test.go
+internal/loop/norecord.go
 internal/loop/numbering.go
 internal/loop/openplan.go
 internal/loop/orient.go
@@ -682,6 +689,8 @@ internal/loop/syntax.go
 internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/testsfirst.go
+internal/loop/testsfirst_test.go
 internal/loop/teststate.go
 internal/loop/teststate_behaviour_test.go
 internal/loop/teststate_cfamily.go
@@ -871,6 +880,7 @@ internal/record/print.go
 internal/record/print_test.go
 internal/record/proof.go
 internal/record/prose_test.go
+internal/record/provedcount_test.go
 internal/record/reports.go
 internal/record/reports_test.go
 internal/record/sameness.go
@@ -1121,12 +1131,14 @@ internal/testkit/browsersize_test.go
 internal/testkit/channel.go
 internal/testkit/channel_test.go
 internal/testkit/checks_catch_job_test.go
+internal/testkit/checks_catch_jobprove_test.go
 internal/testkit/checks_catch_lifecycle_test.go
 internal/testkit/checks_catch_more_test.go
 internal/testkit/checks_catch_test.go
 internal/testkit/checks_channel.go
 internal/testkit/checks_job.go
 internal/testkit/checks_joblifecycle.go
+internal/testkit/checks_jobprove.go
 internal/testkit/checks_jobputdown.go
 internal/testkit/checks_model.go
 internal/testkit/checks_run.go
@@ -1155,6 +1167,7 @@ internal/testkit/job_test.go
 internal/testkit/jobcontrol.go
 internal/testkit/joblifecycle_test.go
 internal/testkit/jobpickup_test.go
+internal/testkit/jobprove_test.go
 internal/testkit/jobstate_test.go
 internal/testkit/memory.go
 internal/testkit/memory_test.go
@@ -1560,6 +1573,8 @@ internal/vault/totp.go
 internal/vault/totp_test.go
 internal/vault/vault.go
 internal/vault/vault_test.go
+internal/workorder/check.go
+internal/workorder/check_test.go
 scripts/bench/check-tater.mjs
 scripts/bench/countcalls.sh
 scripts/bench/drive.py

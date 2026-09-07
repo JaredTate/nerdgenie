@@ -182,10 +182,14 @@ func FuzzParse(f *testing.F) {
 				t.Errorf("the heading %q is not in the text", heading)
 			}
 		}
+		// A wrapped task line is joined with one space, so a name is checked
+		// word by word rather than whole.
 		for _, task := range order.Tasks {
 			for _, name := range task.Details {
-				if !strings.Contains(text, name) {
-					t.Errorf("the details name %q is not in the text", name)
+				for _, word := range strings.Fields(name) {
+					if !strings.Contains(text, word) {
+						t.Errorf("the details word %q is not in the text", word)
+					}
 				}
 			}
 		}

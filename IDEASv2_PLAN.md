@@ -20,6 +20,19 @@ The three documents are three answers the model can fetch in one round instead o
 
 **Why that is a more effective harness.** A task's cost is its rounds, and a round's cost is what is new in front of the model. Fewer reads means fewer rounds. Smaller reads means the window keeps what matters, so the model stops re-reading. The contract in front of the model means fewer wrong edits, which means fewer test-fix rounds. And the same three fetches work on a game in an empty folder and on a four-hundred-thousand-line repository, because the harness needs nothing from the project except the three files.
 
+## A fresh Tetris run, task by task
+
+On a fresh run the folder is empty and none of the three documents exist. This is where each thing helps, and where it does not.
+
+- **Before task one.** The template does the work. The job with fourteen tasks exists before the first model call instead of after five planning rounds. The seven done lines are the person's, two of them checks the harness runs. The eight rules sit in the record's rules for every task.
+- **Task one, the scaffold.** Nothing to fetch. At its end the review writes the first section of `ARCHITECTURE.md` (the test runner, `npm test`, `npm start` on 8091, the files) and the harness writes `AGENTS.md` from the work order. From here on both exist.
+- **Tasks two to nine, the engine and the hazards.** Each task's end writes its section: engine (the file, the board and piece functions, the test file), hazards (the states, `raise`, the config values). When task six starts, it does not read `engine.js`, `hazards.js` and `config.js` whole to learn the interfaces; it reads the hazards section in one round, opens the eighty lines it needs, and writes the test. Every time a task hits the message cap and gets a fresh window, as task seven of run fifteen did at round 58, the model re-orients from the section list instead of reading its own files back.
+- **Tasks ten and eleven, the browser shell and the effects on screen.** The expensive tasks today, and where the documents matter most: the shell has to know the engine's interface and the hazard states. Two sections, four hundred words, two rounds, instead of three files each over the read cap.
+- **Tasks twelve to fourteen, play test, QA, regression.** The documents matter little. The checks matter: after every task the harness runs `npm test` and opens the page, and the finish cannot close while either fails.
+- **Where it does not help.** `REPO_MAP.md` buys nothing on a fresh Tetris run; the orientation's folder listing already shows forty files. The map is for a repository the size of Home Recon. And the documents cannot make the model write better game code; they make it start every task, and every fresh window, already knowing how the parts fit, which is what it spends rounds finding out today.
+
+What the table should show against run fifteen: five planning rounds to zero; three to five re-orientation rounds saved at each of about twelve task starts and at each fresh window; about three thousand fewer tokens read at each task start; no false done. Roughly a tenth to a seventh fewer rounds, and every run ending with the finish proved. The runs measure it; the estimate is only what to expect.
+
 ## The problems we are fixing, with the numbers
 
 These come from the 6 September logs (three runs, 32 tasks, 2,173 rounds) and from runs twelve to fifteen today.

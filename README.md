@@ -73,7 +73,7 @@ Tests are written before the code they prove, at four levels: unit, integration,
 | `INSTALL.md` | Getting the program, the model server and the model files onto a machine |
 | `SETUP.md` | The home folder, the configuration, the screen, the browser, giving it work, measuring it, and what to do when something looks wrong |
 | `PROMPT_TEMPLATE_GUIDE.md` | How to write an ask the harness can lift: six headings, what the harness does with each, and how the model fetches a project's documents when it needs them |
-| `EX_PROMPT_1_TIC_TAC_TOE.md` to `EX_PROMPT_6_FLIGHT_SIM.md` | Six worked asks in that shape, numbered from easiest to hardest, each with its difficulty and expected time |
+| `EX_PROMPT_1_TIC_TAC_TOE.md` to `EX_PROMPT_7_FLIGHT_SIM.md` | Seven worked asks in that shape, numbered from easiest to hardest, each with its difficulty and expected time |
 | `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section and a test |
 | `ARCHITECTURE.md`, `REPO_MAP.md`, `CLAUDE.md` | How the code is put together today, in one page with the folders, the packages, one turn step by step, the tools, the providers and safety; where everything lives (generated); and the rules an AI agent working on this repository follows |
 | `TESTING.md`, `CONTRIBUTING.md` | How it is tested, and how to change it |

@@ -1,4 +1,4 @@
-<!-- EX_PROMPT_2_TETRIS.md: the Tater Tots Tetris ask written as a work order, the
+<!-- EX_PROMPT_3_TETRIS.md: the Tater Tots Tetris ask written as a work order, the
      shape PROMPT_TEMPLATE_GUIDE.md explains. It says everything TETRIS_TEST_PROMPT.md
      says, in the order the harness reads. The runners replace <WORK> with the folder
      the game goes in, such as ~/Desktop.

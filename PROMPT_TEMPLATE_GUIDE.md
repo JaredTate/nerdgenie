@@ -4,12 +4,13 @@ This guide is for anyone who writes an ask for Nerd Genie: a person at the keybo
 
 | Number | Example | Difficulty | Expected time | What makes it hard |
 |---|---|---|---|---|
-| 1 | Tic Tac Toe | 2 of 10 | twenty minutes to an hour | almost nothing; the polish is judged by eye |
-| 2 | Tetris | 5 of 10 | one and a half to four hours | two hazards and three effects on a state machine |
-| 3 | Solar System | 5 of 10 | one and a half to four hours | orbital maths and WebGL glow |
-| 4 | Interactive Earth | 6 of 10 | two to five hours | textures, shaders, labels, lighting across a terminator |
-| 5 | Tower Defense | 8 of 10 | four to ten hours | pathfinding, an economy, and balance only play can prove |
-| 6 | Flight Simulator | 9 of 10 | five to twelve hours | flight physics, a large world, and a performance pass |
+| 1 | Tic Tac Toe | 1 of 10 | fifteen to forty minutes | almost nothing; two players at one keyboard, and the polish is judged by eye |
+| 2 | Tic Tac Toe vs Computer | 3 of 10 | forty minutes to two hours | an unbeatable minimax opponent proved by a test that plays every opening |
+| 3 | Tetris | 5 of 10 | one and a half to four hours | two hazards and three effects on a state machine |
+| 4 | Solar System | 5 of 10 | one and a half to four hours | orbital maths and WebGL glow |
+| 5 | Interactive Earth | 6 of 10 | two to five hours | textures, shaders, labels, lighting across a terminator |
+| 6 | Tower Defense | 8 of 10 | four to ten hours | pathfinding, an economy, and balance only play can prove |
+| 7 | Flight Simulator | 9 of 10 | five to twelve hours | flight physics, a large world, and a performance pass |
 
 The times are wide on purpose: they depend on the GPU and the model. Tetris finished inside two hours on one 7900 XTX with the four-bit Qwen; a three-bit model on a smaller card takes longer, a faster card less. Each example's time is corrected after it has run once.
 
@@ -135,7 +136,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - Its rules are scattered through the features, so the model carried them from task to task by luck.
 - Whole sections lecture the process: "write test, run test, implement, run test, fix, refactor, run all tests". The harness holds that process (section 3); the ask does not need to teach it.
 
-`EX_PROMPT_2_TETRIS.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
+`EX_PROMPT_3_TETRIS.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
 
 ## 7. A checklist before you submit
 

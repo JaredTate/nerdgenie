@@ -1,4 +1,4 @@
-<!-- EX_PROMPT_4_INTERACTIVE_EARTH.md: an interactive 3D Earth ask written as a
+<!-- EX_PROMPT_5_INTERACTIVE_EARTH.md: an interactive 3D Earth ask written as a
      work order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The third worked example,
      beside the Tetris game and the flight simulator: a visual product whose quality
      is judged by eye as much as by test.

@@ -89,10 +89,10 @@ NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run "In ~/work/demo, write hello.py tha
 NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 3h "$(cat ~/asks/tetris.md)"
 ```
 
-Put a long ask in a file and pass it with `$(cat …)`; one stray apostrophe on a command line has killed a whole run silently. The six `EX_PROMPT_*` files in the repository root are complete asks you can run as they are, with `<WORK>` replaced by the folder the project should go in:
+Put a long ask in a file and pass it with `$(cat …)`; one stray apostrophe on a command line has killed a whole run silently. The seven `EX_PROMPT_*` files in the repository root are complete asks you can run as they are, with `<WORK>` replaced by the folder the project should go in:
 
 ```sh
-NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 5h "$(sed 's|<WORK>|/home/you/Desktop|g' EX_PROMPT_2_TETRIS.md)"
+NERDGENIE_HOME=~/nerdgenie bin/nerdgenie run -wait -timeout 5h "$(sed 's|<WORK>|/home/you/Desktop|g' EX_PROMPT_3_TETRIS.md)"
 ```
 
 `PROMPT_TEMPLATE_GUIDE.md` says how to write one: a goal, where, what done looks like, the rules, the tasks, and the details under their own headings. An ask in that shape is turned into the job before the model is called: your done lines, with their bracketed checks, become the job's done list; your rules ride in front of every task, with tests first as the first; your tasks become the job's tasks in order, and each task sees only the Details sections its line names. A plain ask works too; the model then writes the job itself.

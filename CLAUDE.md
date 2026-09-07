@@ -10,7 +10,7 @@
 4. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.
 5. `TESTING.md` and `CONTRIBUTING.md` — how it is tested and how a change is made and reviewed.
 
-Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `docs/research/` (the studies with line-level citations into the other code bases) · `docs/reference/` (copies of reference files from projects not on disk) · `docs/THIRD_PARTY.md` (the projects whose designs were ported, and their licenses) · `PROMPT_TEMPLATE_GUIDE.md` and the `EX_PROMPT_*` files (how to write an ask, with six worked examples).
+Deeper references: `docs/HARNESS_V2.md` (the comparison of other agents) · `docs/research/` (the studies with line-level citations into the other code bases) · `docs/reference/` (copies of reference files from projects not on disk) · `docs/THIRD_PARTY.md` (the projects whose designs were ported, and their licenses) · `PROMPT_TEMPLATE_GUIDE.md` and the `EX_PROMPT_*` files (how to write an ask, with seven worked examples).
 
 ## Hard rules
 

@@ -1,4 +1,4 @@
-<!-- EX_PROMPT_5_TOWER_DEFENSE.md: a tower-defense game ask written as a work order, the
+<!-- EX_PROMPT_6_TOWER_DEFENSE.md: a tower-defense game ask written as a work order, the
      shape PROMPT_TEMPLATE_GUIDE.md explains. The fifth worked example: the largest
      game so far, with pathfinding, an economy and balance that only play can prove.
      Difficulty 8 of 10. Expected: four to ten hours, thirteen tasks; the balance play is most of it, and the time depends on the GPU and the model. -->

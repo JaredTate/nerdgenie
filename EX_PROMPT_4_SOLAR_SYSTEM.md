@@ -1,4 +1,4 @@
-<!-- EX_PROMPT_3_SOLAR_SYSTEM.md: an interactive solar system ask written as a work
+<!-- EX_PROMPT_4_SOLAR_SYSTEM.md: an interactive solar system ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The fourth worked example: a
      smaller visual product than the Earth, with orbital motion as the thing the tests
      must prove.

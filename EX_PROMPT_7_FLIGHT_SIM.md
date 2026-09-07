@@ -1,6 +1,6 @@
-<!-- EX_PROMPT_6_FLIGHT_SIM.md: a browser flight simulator ask written as a work
+<!-- EX_PROMPT_7_FLIGHT_SIM.md: a browser flight simulator ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The second worked example
-     beside EX_PROMPT_2_TETRIS.md: a larger build with physics, 3D graphics and
+     beside EX_PROMPT_3_TETRIS.md: a larger build with physics, 3D graphics and
      performance work.
      Difficulty 9 of 10. Expected: five to twelve hours, thirteen tasks; the physics and the world are the hardest work in the set, and the time depends on the GPU and the model. -->
 

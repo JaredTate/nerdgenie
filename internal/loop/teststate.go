@@ -164,6 +164,13 @@ func testStateIn(text string) (testState, bool) {
 		}
 	}
 	scripting.finish(text, &state)
+	return state.finish(text, found)
+}
+
+// finish is the end of a reading: the last resort when no runner matched,
+// the counts line of a home-made runner when only its marks were read, the
+// exit code, and the settling of the counts.
+func (state testState) finish(text string, found bool) (testState, bool) {
 	if !found {
 		state, found = genericTestStateIn(text)
 	} else if state.total == 0 {

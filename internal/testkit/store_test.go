@@ -114,3 +114,19 @@ type replayStopped struct{}
 func (replayStopped) Error() string {
 	return "the test stopped the replay on purpose, so this error is expected"
 }
+
+func TestTheFakeStoreCountsWhatItHolds(t *testing.T) {
+	ctx := context.Background()
+	store := testkit.NewFakeStore()
+	if store.Count() != 0 {
+		t.Fatalf("an empty store counts %d events, want none", store.Count())
+	}
+	for range 3 {
+		if _, err := store.Append(ctx, contract.Event{TaskID: "17", Kind: contract.EventMessage, Body: json.RawMessage(`{}`)}); err != nil {
+			t.Fatalf("appending failed: %v", err)
+		}
+	}
+	if store.Count() != 3 {
+		t.Errorf("the store counts %d events after three appends, want three", store.Count())
+	}
+}

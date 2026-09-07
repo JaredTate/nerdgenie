@@ -150,7 +150,7 @@ The rule is short: the rules ride in full, the rest is read by name when it woul
 
 ## 7. What to build, in order
 
-1. **The lift.** Six headings read into the job's record, the Details shelved by heading, the task's slice in the per-task front. Two days.
+1. **The lift.** Six headings read into the job's record, the Details shelved by heading, the task's slice in the per-task front. Two days. Built 7 September 2026 (`internal/workorder`, `internal/loop/workorder.go`, `workorderslice.go`, `read ask <heading>`).
 2. **The five moves held by the harness.** The tests-first line on a code write with no failing test; the checks run at the end of every task. The fresh-proof done line is built already. One day.
 3. **The three documents in the window.** `AGENTS.md` in full under the job summary; one line each for the other two in the orientation; `read <file> <heading>`. One day.
 4. **The documents kept true.** The map regenerated after every write; the fifth review question writing the architecture section; a new project's three documents started by the job. Two days.

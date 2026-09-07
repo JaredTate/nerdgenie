@@ -643,6 +643,7 @@ internal/loop/recordshapes_test.go
 internal/loop/recordwrite.go
 internal/loop/recordwrite_test.go
 internal/loop/refused_test.go
+internal/loop/replyended_test.go
 internal/loop/replyproof_test.go
 internal/loop/resume.go
 internal/loop/resume_test.go

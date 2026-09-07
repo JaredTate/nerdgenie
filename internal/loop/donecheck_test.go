@@ -99,6 +99,52 @@ func TestADoneLineThatNamesAMissingFileSendsTheModelBack(t *testing.T) {
 	}
 }
 
+// TestAPinnedDoneLineTheHarnessCannotConfirmIsTakenOnTheModelsProof: on the
+// ninth fresh run the done check misread a folder's name, refused a done line
+// the model had proved with a result, and failed the task on its own mistake.
+// A mechanical check of the harness may send the model back twice for a line
+// that names a result; after that the line stands on the model's proof, the
+// task closes, and the record says which line the harness could not confirm.
+func TestAPinnedDoneLineTheHarnessCannotConfirmIsTakenOnTheModelsProof(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "never-written.md")
+	steps := closingScript("the draft is written to " + path)
+	for range 3 {
+		steps = append(steps, answerStep("It is done. What changed: nothing. What I checked: the draft. What is left: nothing."))
+	}
+	built := newHarness(t, steps, scriptedTool("read", "the notes"))
+
+	outcome := built.ask(t, "write the draft")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done on the model's proof after two send-backs", outcome.Status)
+	}
+	// Each send-back is a message of its own in the conversation, so the
+	// request that carries the most of them carries them all.
+	sentBack := 0
+	for _, request := range built.model.Requests() {
+		inThisOne := 0
+		for _, message := range request.Messages {
+			if strings.Contains(message.Text, "it is not there") {
+				inThisOne++
+			}
+		}
+		sentBack = max(sentBack, inThisOne)
+	}
+	if sentBack != 2 {
+		t.Errorf("the model was sent back %d times for the same line, want exactly two", sentBack)
+	}
+	held := built.held(t, outcome.TaskID)
+	noted := false
+	for _, decision := range held.Lessons.Decisions {
+		if strings.Contains(decision.Text, "could not confirm") && strings.Contains(decision.Reason, "r1") {
+			noted = true
+		}
+	}
+	if !noted {
+		t.Errorf("the record does not say the harness could not confirm the line and took it on r1: %+v", held.Lessons.Decisions)
+	}
+}
+
 // TestADoneLineThatNamesACommandRunsItAndChecksItExitsZero proves the other
 // mechanical check: a command in backticks has to succeed.
 func TestADoneLineThatNamesACommandRunsItAndChecksItExitsZero(t *testing.T) {

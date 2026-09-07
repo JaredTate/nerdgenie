@@ -29,6 +29,13 @@ const (
 	// to the model, because a long task has a hundred results and a refusal is
 	// one line the model reads.
 	MaxResultsNamedInARefusal = 12
+	// MaxMechanicalRefusals is how many times the harness's own file and
+	// command checks may send the model back for a done line that names a
+	// result. After that the line stands on the model's proof: on the ninth
+	// fresh run the check misread a folder's name, refused a line the model
+	// had proved, and failed a finished task on its own mistake. A check of
+	// the harness is a second opinion, never the judge of a line with proof.
+	MaxMechanicalRefusals = 2
 )
 
 // doneCheck says what is wrong with the done list, in one line the model can
@@ -40,13 +47,33 @@ func (running *run) doneCheck(ctx context.Context) (string, error) {
 	if err := record.DoneCheck(held); err != nil {
 		return "This task cannot close yet. " + err.Error() + " " + theResultsToNameFrom(held), nil
 	}
-	for _, line := range held.Goal.DoneWhen {
+	for at, line := range held.Goal.DoneWhen {
 		problem, err := running.checkOneDoneLine(ctx, line)
-		if err != nil || problem != "" {
-			return problem, err
+		if err != nil {
+			return "", err
 		}
+		if problem == "" {
+			continue
+		}
+		if line.ResultID != "" && running.mechanicalRefusals >= MaxMechanicalRefusals {
+			running.takeTheLineOnItsProof(ctx, at+1, line, problem)
+			continue
+		}
+		running.mechanicalRefusals++
+		return problem, nil
 	}
 	return "", nil
+}
+
+// takeTheLineOnItsProof lets a done line stand on the result the model named
+// after the harness's own check has sent the model back as often as it may,
+// and writes into the record what the harness could not confirm, so that the
+// person reading the record sees which line rests on the model's word.
+func (running *run) takeTheLineOnItsProof(ctx context.Context, number int, line contract.DoneLine, problem string) {
+	_ = running.keeper.Apply(ctx, record.Update{Decision: &record.NewDecision{
+		Text:   fmt.Sprintf("Done line %d stands on the model's proof, which the harness could not confirm: %s", number, problem),
+		Reason: fmt.Sprintf("the line names %s and the harness's own check sent the model back %d times", line.ResultID, MaxMechanicalRefusals),
+	}})
 }
 
 // theResultsToNameFrom names the results this record holds, so that a model

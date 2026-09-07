@@ -7,26 +7,48 @@ This page is for a person or an AI agent who wants to understand the code and th
 Nerd Genie is an AI agent that runs on a Linux machine. A person talks to it in a terminal or over Signal. It works with any language model, local or cloud, and it keeps a short record of every task instead of re-reading its whole conversation on every call. It drives a real Chrome window and the desktop the way a person does. The agent is one Go program, `nerdgenie`, with two small TypeScript workers beside it, one for the browser and one for the desktop.
 
 ```mermaid
+flowchart TB
+  subgraph H["HISTORY: what happened, never changed"]
+    E["The event log, nerdgenie.db<br/>append-only: every message, call, result and checkpoint<br/><i>internal/log</i>"]
+  end
+  subgraph S["STATE: what is true now, in four kinds"]
+    direction LR
+    PE["<b>Persona</b><br/>who I am, who you are<br/>persona/SOUL.md, USER.md, MEMORY.md<br/><i>almost never changes</i>"]
+    SK["<b>Skills</b><br/>how to do one kind of thing<br/>skills/&lt;name&gt;/<br/><i>change when a site or a tool changes</i>"]
+    JB["<b>Job</b><br/>work too big for one sitting<br/>goal, rules, task list, reports<br/><i>changes when a task finishes</i>"]
+    TK["<b>Task</b><br/>what I am doing now<br/>goal, rules, work, lessons<br/><i>changes every turn</i>"]
+  end
+  subgraph W["WORKING CONTEXT: what the model reads on one call"]
+    C["Built fresh every call and sized to the model:<br/>the rules and persona, the tools, the job summary, the task record,<br/>then the newest results in full<br/><i>internal/context</i>"]
+  end
+  E -- "replayed after a crash to rebuild the job and task records" --> TK
+  TK -- "the state is always in the prompt" --> C
+  E -- "any old result by its id (read r7)" --> C
+```
+
+The diagram reads top to bottom. The history is the log: everything that ever happened, written once and never changed. The state is what is true right now, kept in four kinds that change at four different speeds, and the records are rebuilt from the log after a crash. The working context is the prompt for one call: the harness builds it fresh every time from the state, adds the newest results in full, and sends it to the model. Whatever the model says and whatever the tools return goes into the log, and the record is updated from it. The model never reads the log; when it needs an old result it asks for it by its id.
+
+The same shape in the code, by package:
+
+```mermaid
 flowchart LR
-  T["Terminal screen"] --> Q["Queue and router<br/>internal/channel"]
-  S["Signal<br/>internal/signal"] --> Q
+  T["Terminal screen<br/>internal/tui"] --> Q["Queue and router<br/>internal/channel"]
+  SG["Signal<br/>internal/signal"] --> Q
   Q --> L["The turn loop<br/>internal/loop"]
-  L <--> R["Task and job records<br/>internal/record, internal/job"]
-  L --> E["Event log<br/>internal/log (SQLite)"]
-  R --> E
+  L <--> R["Records: task and job<br/>internal/record, internal/job"]
+  L --> E["Event log<br/>internal/log"]
   L --> C["Working context<br/>internal/context"]
   C --> P["Provider<br/>internal/provider"]
   P --> M["The model"]
   L --> X["Permission function<br/>internal/permission"]
   X --> O["Tools<br/>internal/tool"]
   O --> B["Sandbox<br/>internal/sandbox"]
-  O --> W["Browser worker<br/>worker/browser"]
-  O --> D["Desktop worker<br/>worker/desktop"]
+  O --> BW["Browser worker<br/>worker/browser"]
+  O --> DW["Desktop worker<br/>worker/desktop"]
   L --> Y["Memory and skills<br/>internal/memory, internal/skill"]
-  O --> V["Vault<br/>internal/vault"]
 ```
 
-The diagram reads left to right. A message comes in on a channel and goes into a queue. The loop takes it, builds a prompt from the record and sends it to the model through a provider, and runs the tool calls the model asks for, each one checked by the permission function first. Everything that happens is written to one event log. The records, the memory and the skills are what the loop keeps between calls and between tasks.
+A message comes in on a channel and goes into the queue. The loop takes it, builds the prompt through the context package and sends it to the model through a provider, and runs the tool calls the model asks for, each one checked by the permission function first. Every tool result gets one line in the record and its whole text in the log.
 
 Three ideas hold the whole thing together.
 

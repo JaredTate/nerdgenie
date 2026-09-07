@@ -1,6 +1,6 @@
 # Testing Nerd Genie
 
-This is how Nerd Genie is tested and how you test a change to it. It is written for someone who has never seen the code. The rules come from `CLAUDE.md` and `docs/WORK_PLAN.md` Part 1; when this page and those disagree, they win.
+This is how Nerd Genie is tested and how you test a change to it. It is written for someone who has never seen the code. The rules come from `CLAUDE.md`; when this page and it disagree, it wins.
 
 ## Tests come first
 
@@ -71,7 +71,7 @@ The worker's Chrome is visible by default, which is rule two in `PROTOCOL.md`; `
 
 ## Phantom tests
 
-A phantom test is one that cannot fail. Three shapes: a test with no assertion; a skipped test; and a test that passes whatever the code does, such as one that checks a value it took from the code under test. Reviewers reject all three. The check from `docs/WORK_PLAN.md` Part 4 is to change one thing the test should catch and confirm it fails. Do that yourself before you push.
+A phantom test is one that cannot fail. Three shapes: a test with no assertion; a skipped test; and a test that passes whatever the code does, such as one that checks a value it took from the code under test. Reviewers reject all three. The check is to change one thing the test should catch and confirm it fails. Do that yourself before you push.
 
 ## Writing a test for a bug
 

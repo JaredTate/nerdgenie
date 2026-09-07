@@ -77,6 +77,7 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 	if err := running.theLoop.logEvent(ctx, running.taskID(), contract.EventToolCall, call); err != nil {
 		return contract.ToolResult{}, nil, err
 	}
+	call = inTheProjectFolderCall(running.projectFolder, call)
 	if running.rewindDue {
 		return refusedResult(call, "The conversation is being cleared after this reply, so this call was not run."), nil, nil
 	}

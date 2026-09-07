@@ -69,3 +69,32 @@ func TestAJobMadeFromAWorkOrderWorksInTheFolderWhereNames(t *testing.T) {
 		t.Errorf("the tests-pass check did not run inside the project folder; the sandbox ran %v", built.sandbox.Commands())
 	}
 }
+
+// TestAJobTaskReadsABareNameInTheProjectFolder: run twenty's model read
+// REPO_MAP.md and game.js by their bare names, as the map rule says, and every
+// read failed against the home's work folder. The read tool now gets the
+// path under the project folder.
+func TestAJobTaskReadsABareNameInTheProjectFolder(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "REPO_MAP.md"), []byte("# Repository Map: game\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	read := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolRead, Description: "A read the test scripted.", Classes: []contract.PermissionClass{contract.ClassRead}}, "the map")
+	built := newHarness(t, []testkit.Step{
+		callStep("I will look at the map.", callFor("c1", contract.ToolRead, `{"path":"REPO_MAP.md"}`)),
+		answerStep("The app is scaffolded. What changed: the files. What I checked: the map. What is left: the list."),
+		aReviewReply("none"),
+	}, read)
+	built.sandbox.Script("sh -c cd", contract.SandboxResult{StandardOutput: []byte(theGreenRun)})
+
+	if outcome := built.ask(t, aWorkOrderIn(project)); outcome.Status != contract.StatusDone {
+		t.Fatalf("the lift ended %q: %s", outcome.Status, outcome.Report)
+	}
+	if more, err := built.loop.RunNextJobTask(t.Context(), built.channel); err != nil || !more {
+		t.Fatalf("the job's first task did not run: more=%v err=%v", more, err)
+	}
+	inputs := read.Inputs()
+	if len(inputs) != 1 || !strings.Contains(string(inputs[0]), `"path":"`+filepath.Join(project, "REPO_MAP.md")+`"`) {
+		t.Errorf("the read tool was given %s, want the map under the project folder %s", inputs, project)
+	}
+}

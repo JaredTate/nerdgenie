@@ -1,8 +1,9 @@
-<!-- PROMPT_FLIGHT_SIM_EXAMPLE.md: a browser flight simulator ask written as a work
+<!-- EX_PROMPT_6_FLIGHT_SIM.md: a browser flight simulator ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The second worked example
-     beside PROMPT_TETRIS_EXAMPLE.md: a larger build with physics, 3D graphics and
+     beside EX_PROMPT_2_TETRIS.md: a larger build with physics, 3D graphics and
      performance work. The runners replace <WORK> with the folder the project goes
-     in, such as /home/jared/Desktop. -->
+     in, such as /home/jared/Desktop.
+     Difficulty 9 of 10. Expected on the local model: ten to sixteen hours, thirteen tasks; the physics and the world are the hardest work in the set. -->
 
 # Flight Simulator
 

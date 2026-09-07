@@ -1,7 +1,8 @@
-<!-- PROMPT_TETRIS_EXAMPLE.md: the Tater Tots Tetris ask written as a work order, the
+<!-- EX_PROMPT_2_TETRIS.md: the Tater Tots Tetris ask written as a work order, the
      shape PROMPT_TEMPLATE_GUIDE.md explains. It says everything TETRIS_TEST_PROMPT.md
      says, in the order the harness reads. The runners replace <WORK> with the folder
-     the game goes in, such as /home/jared/Desktop. -->
+     the game goes in, such as /home/jared/Desktop.
+     Difficulty 5 of 10. Expected on the local model: three to five hours, fourteen tasks (run seven took three hours and 617 rounds on the old ask). -->
 
 # Tater Tots Tetris
 

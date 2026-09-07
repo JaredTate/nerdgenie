@@ -1,8 +1,9 @@
-<!-- PROMPT_SOLAR_SYSTEM_EXAMPLE.md: an interactive solar system ask written as a work
+<!-- EX_PROMPT_3_SOLAR_SYSTEM.md: an interactive solar system ask written as a work
      order, the shape PROMPT_TEMPLATE_GUIDE.md explains. The fourth worked example: a
      smaller visual product than the Earth, with orbital motion as the thing the tests
      must prove. The runners replace <WORK> with the folder the project goes in, such
-     as /home/jared/Desktop. -->
+     as /home/jared/Desktop.
+     Difficulty 5 of 10. Expected on the local model: three to four hours, ten tasks. -->
 
 # Solar System Viewer
 

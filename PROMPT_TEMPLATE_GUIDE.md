@@ -1,6 +1,17 @@
 # How to write a prompt for Nerd Genie
 
-This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. `PROMPT_TETRIS_EXAMPLE.md` is the worked example; `PROMPT_FLIGHT_SIM_EXAMPLE.md`, `PROMPT_INTERACTIVE_EARTH_EXAMPLE.md` and `PROMPT_SOLAR_SYSTEM_EXAMPLE.md` are three more, a flight simulator with physics and a performance pass, a 3D Earth whose quality is judged by eye as much as by test, and a solar system whose orbital maths the tests must prove. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
+This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. The worked examples are the `EX_PROMPT_*` files in the root, numbered from easiest to hardest, each with its difficulty and expected time on the local model in its first comment:
+
+| Number | Example | Difficulty | Expected time | What makes it hard |
+|---|---|---|---|---|
+| 1 | Tic Tac Toe | 2 of 10 | about an hour | almost nothing; the polish is judged by eye |
+| 2 | Tetris | 5 of 10 | three to five hours | two hazards and three effects on a state machine |
+| 3 | Solar System | 5 of 10 | three to four hours | orbital maths and WebGL glow |
+| 4 | Interactive Earth | 6 of 10 | four to six hours | textures, shaders, labels, lighting across a terminator |
+| 5 | Tower Defense | 8 of 10 | eight to twelve hours | pathfinding, an economy, and balance only play can prove |
+| 6 | Flight Simulator | 9 of 10 | ten to sixteen hours | flight physics, a large world, and a performance pass |
+
+A new example takes the next number when it is harder than the last, or every number above it moves up by one. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
 
 ## 1. Why the shape of a prompt matters here
 
@@ -122,7 +133,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - Its rules are scattered through the features, so the model carried them from task to task by luck.
 - Whole sections lecture the process: "write test, run test, implement, run test, fix, refactor, run all tests". The harness holds that process (section 3); the ask does not need to teach it.
 
-`PROMPT_TETRIS_EXAMPLE.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
+`EX_PROMPT_2_TETRIS.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
 
 ## 7. A checklist before you submit
 

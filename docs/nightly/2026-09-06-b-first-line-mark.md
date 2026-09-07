@@ -1,6 +1,6 @@
 # Nightly set, 2026-09-06, second run: the binary with the mark on the first line
 
-Local Qwen 3.8 through the daemon on 19091, binary e54f8bbf, home /home/jared/work/ng-nightly/home.
+Local Qwen 3.8 through the daemon on 19091, binary e54f8bbf, home ~/work/ng-nightly/home.
 
 | ask | ended | check | rounds | minutes | s/round | cache | out tokens |
 |---|---|---|---|---|---|---|---|

@@ -236,7 +236,7 @@ Use **`playwright-core` in TypeScript**, attached with `connectOverCDP` to a Chr
 
 Run **headed** with the window parked on a second Space or offscreen (`--window-position=-2000,0`); `--headless=new` is still detectable and social sites are the ones that care. Headless is fine for read-only scraping of public pages. Screenshots stay model-only, never auto-posted to Signal (OpenClaw's rule).
 
-### The Pi (Jarvis)
+### The Pi (The 7900 XT machine)
 
 Do not fight anti-bot from a headless ARM Linux box. Two roles:
 1. **Remote browser on the Mac over Tailscale.** The Mac runs the Chrome worker and exposes CDP on its Tailscale IP (or the agent's own small WS bridge with a token, like OpenClaw's bridge auth `browser/bridge-server.ts` and Hermes's `/browser connect` to a `cdp_url`). The Pi agent calls `browser_*` tools that proxy there; if the Mac is asleep, `browser_*` returns "browser host offline" and the task queues.

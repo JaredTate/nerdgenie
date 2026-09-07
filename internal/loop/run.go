@@ -44,8 +44,14 @@ type run struct {
 	channel    contract.Channel
 	keeper     *record.Keeper
 	jobSummary string
+	// jobAsk is the job's whole ask when the job was made from a work order,
+	// which is what `read ask` on one of its tasks brings back, and empty
+	// otherwise.
+	jobAsk     string
 	recentWork []workingcontext.RecentTask
-	messages   []contract.Message
+	// standingOrder is the work folder's AGENTS.md, read once at the start.
+	standingOrder string
+	messages      []contract.Message
 	// keepThrough is how many messages stood at the end of the last round that
 	// made progress, or at the window's opening: a rewind cuts everything after
 	// it and keeps the rest byte for byte.
@@ -62,9 +68,15 @@ type run struct {
 	// mechanicalRefusals is how many times the harness's own file and command
 	// checks have sent the model back for a done line that names a result.
 	mechanicalRefusals int
-	recentCalls        []pastCall
-	lastOrient         string
-	browserFact        string
+	// checkFailures counts, per done line by number, how many times the
+	// harness's own check of that line has failed in this task.
+	checkFailures map[int]int
+	// refusedByACheck says the last done check was refused by a bracketed
+	// check the person wrote, which never counts as a done-check nudge.
+	refusedByACheck bool
+	recentCalls     []pastCall
+	lastOrient      string
+	browserFact     string
 	// pageAddress is where the browser is, as its last result said, and is what
 	// a hung page's scripts are read from.
 	pageAddress string
@@ -84,6 +96,9 @@ type run struct {
 	// testsFact is the state of the last test run, in one line for the
 	// situation, or empty until a test runner has been seen.
 	testsFact string
+	// lastTestsGreen says the newest test run the harness holds passed whole,
+	// which is when a code change with no failing test behind it is told so.
+	lastTestsGreen bool
 	// lastFailingSet is what was failing on the last red run, so that the same
 	// run seen again is not a second failure.
 	lastFailingSet string
@@ -196,8 +211,13 @@ func (held theRecordOfTheTask) Apply(ctx context.Context, update record.Update) 
 	return held.running.keeper.Apply(ctx, update)
 }
 
-// Read brings back the whole text of one result by its label.
+// Read brings back the whole text of one result by its label. On a task of a
+// job made from a work order, the ask label brings back the job's whole ask,
+// because that is the long one the task's front shows only a slice of.
 func (held theRecordOfTheTask) Read(ctx context.Context, id string) (string, error) {
+	if id == record.AskLabel && held.running.jobAsk != "" {
+		return held.running.jobAsk, nil
+	}
 	if held.running.keeper == nil {
 		return "", fmt.Errorf("this task has no result %s yet, because nothing has been run", id)
 	}
@@ -238,7 +258,7 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	if err := running.useTheTaskRegistry(); err != nil {
 		return nil, err
 	}
-	if err := running.readJobSummary(ctx); err != nil {
+	if err := running.readWhatRidesInFront(ctx); err != nil {
 		return nil, err
 	}
 	running.openTheWindow(ctx, task)
@@ -267,20 +287,6 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 		}
 	}
 	return running, nil
-}
-
-// readJobSummary prints the job this task belongs to, which rides above the
-// task record so that a later task can lean on the reports of the earlier ones.
-func (running *run) readJobSummary(ctx context.Context) error {
-	if running.task.FromJob == nil || running.theLoop.options.Jobs == nil {
-		return nil
-	}
-	held, err := running.theLoop.options.Jobs.Load(ctx, running.task.FromJob.JobID)
-	if err != nil {
-		return fmt.Errorf("cannot read job %s to put its summary above the task: %w", running.task.FromJob.JobID, err)
-	}
-	running.jobSummary = string(record.Print(held))
-	return nil
 }
 
 // takeANumber gives the task the number its record will carry. It is settled
@@ -434,6 +440,7 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 		Record:        running.recordOrNothing(),
 		ContextLength: running.theLoop.options.Model.ContextLength(),
 		JobSummary:    running.jobSummary,
+		StandingOrder: running.standingOrder,
 		RecentWork:    running.recentWork,
 		Messages:      running.messages,
 		Tools:         running.specs(),

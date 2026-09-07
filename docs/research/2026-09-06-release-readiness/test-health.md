@@ -1,12 +1,12 @@
 # Nerd Genie test health, 6 September 2026
 
-Repository: `/home/jared/Code/coeus` at commit `5df37ea6` (detached HEAD, working tree clean; the branch that `main` tracks). Toolchain: Go 1.27.1, staticcheck 2026.2.1, Node 24.18.0, npm 11.16.0, vitest 4.1.11, TypeScript 7.0.2. Machine: 32 cores, 42 GB.
+Repository: `~/Code/nerdgenie` at commit `5df37ea6` (detached HEAD, working tree clean; the branch that `main` tracks). Toolchain: Go 1.27.1, staticcheck 2026.2.1, Node 24.18.0, npm 11.16.0, vitest 4.1.11, TypeScript 7.0.2. Machine: 32 cores, 42 GB.
 
 The repository was not changed. Everything written by this measurement is under `/tmp/claude-1000/-home-jared/09f06b9f-a0be-401c-831d-adb99bc858bb/scratchpad/testreport/` (logs, the coverage profile `all.out`, the two vitest coverage folders, this report). The only things the runs wrote inside the repository tree are Go's own build and test caches and vitest's cache under `node_modules/.vite`, which are outside git.
 
-Rules honoured: no `make check`, `make test`, `make fuzz` or `scripts/fuzz.sh`; nothing tagged `live`; no process killed; nothing under `/home/jared/work` or the Desktop touched. A live agent run was using Chrome on the desktop the whole time (`bin/nerdgenie serve` and `tui` were running, with a Chrome on `/home/jared/work/ng-show`), so `NERDGENIE_HEADLESS_TESTS=1` was set for every Go run and both worker suites; the browser tests honour it in `internal/browser/process.go`, `test/functional/browserworker_integration_test.go` and `worker/browser/test/harness.ts`.
+Rules honoured: no `make check`, `make test`, `make fuzz` or `scripts/fuzz.sh`; nothing tagged `live`; no process killed; nothing under `~/work` or the Desktop touched. A live agent run was using Chrome on the desktop the whole time (`bin/nerdgenie serve` and `tui` were running, with a Chrome on `~/work/ng-show`), so `NERDGENIE_HEADLESS_TESTS=1` was set for every Go run and both worker suites; the browser tests honour it in `internal/browser/process.go`, `test/functional/browserworker_integration_test.go` and `worker/browser/test/harness.ts`.
 
-One deliberate deviation: `scripts/gate/fuzz_test.go` holds three integration-tagged tests (`TestTheFuzzScriptRunsEveryTargetItFinds`, `TestTheFuzzScriptFailsWhenATestBinaryWillNotBuild`, `TestTheFuzzScriptLooksBehindTheIntegrationTag`) that copy `scripts/fuzz.sh` and run it, one second per target, on a throwaway fixture module. That is still the forbidden script, so every integration-tagged run below carries `-skip 'TestTheFuzzScript'`, and `scripts/coverage.sh` was run as a copy in the scratchpad that differs from the original in exactly two lines: `cd /home/jared/Code/coeus` instead of `cd "$(dirname "$0")/.."`, and that same `-skip` flag on its `go test -tags integration -cover` line. The three skipped tests exercise a shell script, not the harness, and `scripts/gate` has no coverable statements, so the coverage table is unaffected.
+One deliberate deviation: `scripts/gate/fuzz_test.go` holds three integration-tagged tests (`TestTheFuzzScriptRunsEveryTargetItFinds`, `TestTheFuzzScriptFailsWhenATestBinaryWillNotBuild`, `TestTheFuzzScriptLooksBehindTheIntegrationTag`) that copy `scripts/fuzz.sh` and run it, one second per target, on a throwaway fixture module. That is still the forbidden script, so every integration-tagged run below carries `-skip 'TestTheFuzzScript'`, and `scripts/coverage.sh` was run as a copy in the scratchpad that differs from the original in exactly two lines: `cd ~/Code/nerdgenie` instead of `cd "$(dirname "$0")/.."`, and that same `-skip` flag on its `go test -tags integration -cover` line. The three skipped tests exercise a shell script, not the harness, and `scripts/gate` has no coverable statements, so the coverage table is unaffected.
 
 ## 1. Layout, as the documents describe it
 
@@ -373,7 +373,7 @@ Against the harness alone (`internal/` + `cmd/` production Go, 73,848 lines), wi
 
 ## 9. Every command, in order, with its outcome
 
-All run from `/home/jared/Code/coeus` unless the path says otherwise, with `PATH=$PATH:/usr/local/go/bin:$HOME/go/bin` and, for every test run, `NERDGENIE_HEADLESS_TESTS=1`. `$S` is `/tmp/claude-1000/-home-jared/09f06b9f-a0be-401c-831d-adb99bc858bb/scratchpad/testreport`.
+All run from `~/Code/nerdgenie` unless the path says otherwise, with `PATH=$PATH:/usr/local/go/bin:$HOME/go/bin` and, for every test run, `NERDGENIE_HEADLESS_TESTS=1`. `$S` is `/tmp/claude-1000/-home-jared/09f06b9f-a0be-401c-831d-adb99bc858bb/scratchpad/testreport`.
 
 | # | Command | Outcome |
 |---|---|---|

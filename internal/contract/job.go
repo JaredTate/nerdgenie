@@ -91,6 +91,15 @@ type NewJob struct {
 	// TaskTemplate is the text a scheduled job turns into one task per tick, and
 	// is empty for a job with no schedule.
 	TaskTemplate string
+	// DoneWhen is the job's done list as the person wrote it, one line each,
+	// none of them proved yet, when the ask was a work order; empty otherwise,
+	// and the model writes the list itself. A line may end with a bracketed
+	// check the harness runs itself.
+	DoneWhen []string
+	// Rules are the job's rules in the person's words, one line each, kept in
+	// the record's rules where every task of the job reads them; empty when
+	// the ask was not a work order.
+	Rules []string
 }
 
 // NewTask is one task added to a job's task list.
@@ -230,6 +239,11 @@ type Job interface {
 	// tried again and counts toward the failures in a row: three pause the job,
 	// and ten switch a scheduled job off.
 	FinishTask(ctx context.Context, jobID string, taskID string, report string, failed bool) (string, error)
+	// ProveDoneLine marks one line of the job's done list, counting from one,
+	// done and pointing at the report that proves it, or unmarks it when the
+	// result is empty, and closes the job when every line is proved and every
+	// task is done. A job or a line that is not there is an error naming it.
+	ProveDoneLine(ctx context.Context, jobID string, number int, resultID string) error
 	// Load returns the job's record, which is what rides above the task record
 	// while one of the job's tasks runs and what "/jobs 4" prints.
 	Load(ctx context.Context, jobID string) (Record, error)

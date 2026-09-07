@@ -39,7 +39,7 @@ func TestTheUserSeesTheWholeCommandAndRefusingItStopsTheCall(t *testing.T) {
 	if len(shown) != 1 {
 		t.Fatalf("the user saw %d previews, want 1", len(shown))
 	}
-	if !strings.Contains(shown[0].Body, "rm -rf /home/jared/build") {
+	if !strings.Contains(shown[0].Body, "rm -rf /home/user/build") {
 		t.Errorf("the preview said %q, and the user has to see the whole command", shown[0].Body)
 	}
 	if shown[0].Title != contract.AskFirstBulkDelete {
@@ -120,7 +120,7 @@ func TestAScheduledRunTellsTheUserWhatItWouldHaveAskedAndStops(t *testing.T) {
 	if len(channel.Previews()) != 0 {
 		t.Error("a scheduled run asked the user something, and there is nobody there to answer")
 	}
-	if sent := channel.Sent(); len(sent) != 1 || !strings.Contains(sent[0], "rm -rf /home/jared/build") {
+	if sent := channel.Sent(); len(sent) != 1 || !strings.Contains(sent[0], "rm -rf /home/user/build") {
 		t.Errorf("the report was %v, and it has to say what the task would have asked about", sent)
 	}
 }
@@ -132,7 +132,7 @@ func clearTheBuildFolder() contract.ToolCall {
 	return contract.ToolCall{
 		ID:    "1",
 		Name:  contract.ToolShell,
-		Input: json.RawMessage(`{"command":"rm -rf /home/jared/build"}`),
+		Input: json.RawMessage(`{"command":"rm -rf /home/user/build"}`),
 	}
 }
 

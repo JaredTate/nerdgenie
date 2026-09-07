@@ -20,8 +20,8 @@ tests/lineClearAnim.test.js ...   ✓
 ──────────────────────────────────────
 FAIL tests/engine.test.js :: game ends when the stack reaches the top
      Error: game over detected
-         at fail (/home/jared/Desktop/Tater Tots Tetrisv1/test.js:25:30)
-         at Object.ok (/home/jared/Desktop/Tater Tots Tetrisv1/test.js:27:32)
+         at fail (/home/user/Desktop/Tater Tots Tetrisv1/test.js:25:30)
+         at Object.ok (/home/user/Desktop/Tater Tots Tetrisv1/test.js:27:32)
 
 143 tests, 142 passed, 1 failed`
 

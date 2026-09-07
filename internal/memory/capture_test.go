@@ -48,11 +48,11 @@ func (opened openedMemory) captureAndSearch(t *testing.T, query string) []contra
 func TestCaptureWritesDownTheFilesTheTaskChanged(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	opened.writeEvent(t, contract.EventFileChange, contract.FileChangeBody{
-		Path: "/home/jared/nerdgenie/blog/anniversary.md", Existed: true,
+		Path: "/home/user/nerdgenie/blog/anniversary.md", Existed: true,
 	})
 
 	found := opened.captureAndSearch(t, "changed the file anniversary")
-	if !holdsText(found, "changed the file /home/jared/nerdgenie/blog/anniversary.md") {
+	if !holdsText(found, "changed the file /home/user/nerdgenie/blog/anniversary.md") {
 		t.Errorf("the file the task changed was not written down, and the search found %v", factTexts(found))
 	}
 }
@@ -159,7 +159,7 @@ func TestACorrectionCanBeReadBackTheSameTurnItWasCaptured(t *testing.T) {
 func TestCapturingTheSameTaskTwiceChangesNothing(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	ctx := context.Background()
-	opened.writeEvent(t, contract.EventFileChange, contract.FileChangeBody{Path: "/home/jared/nerdgenie/a.md"})
+	opened.writeEvent(t, contract.EventFileChange, contract.FileChangeBody{Path: "/home/user/nerdgenie/a.md"})
 	opened.writeEvent(t, contract.EventMessage, map[string]string{
 		"role": "user", "text": "never post twice in one hour",
 	})
@@ -200,7 +200,7 @@ func TestCaptureLeavesAloneWhatItCannotVerify(t *testing.T) {
 	ctx := context.Background()
 	opened.writeEvent(t, contract.EventToolResult, map[string]string{"text": "the page said hello"})
 	opened.writeEvent(t, contract.EventToolCall, map[string]any{"name": contract.ToolRead,
-		"arguments": map[string]string{"path": "/home/jared/nerdgenie/a.md"}})
+		"arguments": map[string]string{"path": "/home/user/nerdgenie/a.md"}})
 	opened.writeEvent(t, contract.EventToolCall, map[string]any{"name": contract.ToolShell,
 		"arguments": map[string]string{"nothing": "useful"}})
 

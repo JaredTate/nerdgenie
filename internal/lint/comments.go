@@ -24,7 +24,7 @@ var borrowedProjects = []string{
 
 // The two shapes a reference path takes: a project cloned beside this one, or a
 // copy kept in this repository.
-var referencePathMarkers = []string{"~/Code/", "/home/jared/Code/", "docs/reference/"}
+var referencePathMarkers = []string{"~/Code/", "/home/user/Code/", "docs/reference/"}
 
 // The vendors' own command-line programs, written the way a comment writes them
 // when it says how to run one. Their names are also the names of projects Nerd Genie

@@ -2,7 +2,7 @@
 
 Date: 2026-09-02. Method: every borrowed idea below was read in source at `/Users/jt/Code/{openclaw,hermes-agent,prime-agent,opencode}`. Paths are relative to each repo root; line numbers are from the checkouts on disk today. Where I could not confirm something it says "not verified".
 
-Design target: a single-user daemon reachable over Signal and a Tailscale web UI, with cron, a browser holding logged-in sessions, an email sender backed by a contacts database, and tools on three machines (Mac, 32-core Linux, Pi 5 "Jarvis").
+Design target: a single-user daemon reachable over Signal and a Tailscale web UI, with cron, a browser holding logged-in sessions, an email sender backed by a contacts database, and tools on three machines (Mac, 32-core Linux, Pi 5 "The 7900 XT machine").
 
 ---
 

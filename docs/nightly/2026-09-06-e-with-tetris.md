@@ -1,6 +1,6 @@
 # Nightly set, 2026-09-06, fifth run: the work folders beside the home, and the Tetris build as the fifth ask
 
-Local Qwen 3.8 through the daemon on 19091, binary 3d41fe61, home /home/jared/work/ng-nightly/home.
+Local Qwen 3.8 through the daemon on 19091, binary 3d41fe61, home ~/work/ng-nightly/home.
 
 | ask | ended | check | rounds | minutes | s/round | cache | out tokens |
 |---|---|---|---|---|---|---|---|

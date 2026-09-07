@@ -46,7 +46,7 @@ var theThreeThingsTheListShipsWith = []struct {
 	request func() contract.PermissionRequest
 }{
 	{"deleting many files at once", func() contract.PermissionRequest {
-		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/jared/nerdgenie"}`)}
+		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "rm -rf /home/user/nerdgenie"}`)}
 	}},
 	{"a command with administrator powers", func() contract.PermissionRequest {
 		return contract.PermissionRequest{ToolName: contract.ToolShell, Input: []byte(`{"command": "apt-get install anything", "escalate": true, "reason": "it needs them"}`)}
@@ -144,7 +144,7 @@ func callsWearingTheWebsitesName(t *testing.T) []struct {
 } {
 	t.Helper()
 	emptying, err := json.Marshal(map[string]string{
-		"path": "/home/jared/news.example.com/notes.md",
+		"path": "/home/user/news.example.com/notes.md",
 		"old":  strings.Repeat("a line of the notes this change would take out\n", 200),
 		"new":  "",
 	})
@@ -157,7 +157,7 @@ func callsWearingTheWebsitesName(t *testing.T) []struct {
 	}{
 		{"a shell command whose first word is the name of the web tool", contract.PermissionRequest{
 			ToolName: contract.ToolShell,
-			Input:    []byte(`{"command": "web --url=https://news.example.com/story ; rm -rf /home/jared/nerdgenie"}`),
+			Input:    []byte(`{"command": "web --url=https://news.example.com/story ; rm -rf /home/user/nerdgenie"}`),
 		}},
 		{"emptying a file in a folder named after the website", contract.PermissionRequest{
 			ToolName: contract.ToolEdit,

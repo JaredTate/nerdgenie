@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/markdown"
 	"github.com/JaredTate/nerdgenie/internal/record"
 	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
@@ -70,6 +71,8 @@ type input struct {
 	Offset int `json:"offset"`
 	// Limit is how many lines to read.
 	Limit int `json:"limit"`
+	// Section is the heading of the one section of a Markdown file to read.
+	Section string `json:"section"`
 }
 
 // Tool is the read tool.
@@ -86,13 +89,15 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolRead,
-		Description: "Reads a file with line numbers, a folder listing, a past result such as r7 or j4.2, or the whole ask. " +
-			"Use search when you do not know which file to open.",
+		Description: "Reads a file with line numbers, a folder, a past result such as r7 or j4.2, or the ask. " +
+			"A Markdown file and a section heading return that section only. " +
+			"Use search when you do not know which file.",
 		Fields: []contract.ToolField{
 			{Name: "path", Type: "string", Description: "A file or folder, taken from the folder the agent works in unless it starts at the root or at ~; " +
-				"or a past result by its id such as r7; or ask for the whole of the user's original ask.", Required: true},
+				"or a past result by its id such as r7; or ask for the whole of the user's original ask, or ask followed by a heading, such as ask dragon, for one section of it.", Required: true},
 			{Name: "offset", Type: "integer", Description: "The line to start at, counting from one. Leave it out for the start."},
 			{Name: "limit", Type: "integer", Description: "How many lines to read. Leave it out for as many as fit."},
+			{Name: "section", Type: "string", Description: "For a Markdown file, the heading of the one section to read, such as hazards."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassRead},
 	}
@@ -108,6 +113,11 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		text, err := tool.readStored(ctx, label, kind)
 		if err != nil {
 			return contract.ToolOutput{}, err
+		}
+		if heading := sectionAsked(asked.Path); heading != "" {
+			if text, err = sectionOf(text, heading); err != nil {
+				return contract.ToolOutput{}, err
+			}
 		}
 		if asked.Offset < 1 && asked.Limit < 1 {
 			return contract.ToolOutput{Text: text}, nil
@@ -134,6 +144,10 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if isAPicture(path) {
 		return readPicture(path)
 	}
+	if asked.Section != "" {
+		text, err := readSection(path, asked)
+		return contract.ToolOutput{Text: text}, err
+	}
 	text, err := readFile(path, asked)
 	return contract.ToolOutput{Text: text}, err
 }
@@ -142,9 +156,10 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 // each is the one the specification asks for, and the rest are the names the
 // other agents use or a model half-remembers.
 var (
-	pathNames   = []string{"path", "file_path", "filepath", "file", "filename", "target"}
-	offsetNames = []string{"offset", "start", "start_line", "from", "from_line"}
-	limitNames  = []string{"limit", "count", "lines", "line_count", "max_lines"}
+	pathNames    = []string{"path", "file_path", "filepath", "file", "filename", "target"}
+	offsetNames  = []string{"offset", "start", "start_line", "from", "from_line"}
+	limitNames   = []string{"limit", "count", "lines", "line_count", "max_lines"}
+	sectionNames = []string{"section", "heading", "part"}
 )
 
 // readInput reads the model's arguments and refuses anything this tool could not
@@ -157,6 +172,7 @@ func readInput(written json.RawMessage) (input, error) {
 	path, wrotePath := fields.Text(pathNames...)
 	offset, _ := fields.Number(offsetNames...)
 	limit, _ := fields.Number(limitNames...)
+	section, _ := fields.Text(sectionNames...)
 	if err := fields.Wrong(); err != nil {
 		return input{}, err
 	}
@@ -169,7 +185,7 @@ func readInput(written json.RawMessage) (input, error) {
 	if offset < 0 || limit < 0 {
 		return input{}, fmt.Errorf("the offset is %d and the limit is %d, and neither may be below zero", offset, limit)
 	}
-	return input{Path: path, Offset: offset, Limit: limit}, nil
+	return input{Path: path, Offset: offset, Limit: limit, Section: strings.TrimSpace(section)}, nil
 }
 
 // resultLabel says whether what the model wrote is the label of a past result
@@ -177,8 +193,8 @@ func readInput(written json.RawMessage) (input, error) {
 // them: the record shows the model the start of a very long ask and a line
 // saying to read this label for the whole of it, and the record answers it.
 func resultLabel(path string) (string, contract.RecordKind, bool) {
-	if path == record.AskLabel {
-		return path, contract.RecordTask, true
+	if path == record.AskLabel || sectionAsked(path) != "" {
+		return record.AskLabel, contract.RecordTask, true
 	}
 	if _, isResult := contract.ParseResultID(path); isResult {
 		return path, contract.RecordTask, true
@@ -199,4 +215,29 @@ func (tool *Tool) readStored(ctx context.Context, label string, kind contract.Re
 		return "", fmt.Errorf("there is no %s record behind this tool to read %s from, so read a file instead", kind, label)
 	}
 	return stored.Read(ctx, label)
+}
+
+// sectionAsked is the heading after the ask label when the model wrote
+// "ask <heading>", asking for one section of the ask, and empty otherwise.
+func sectionAsked(path string) string {
+	rest, isAsk := strings.CutPrefix(strings.TrimSpace(path), record.AskLabel+" ")
+	if !isAsk {
+		return ""
+	}
+	return strings.TrimSpace(rest)
+}
+
+// sectionOf cuts one section out of the ask by its heading, and, when there
+// is no such heading, says which headings there are, so that the next call
+// can name one.
+func sectionOf(text string, heading string) (string, error) {
+	section, found := markdown.Find(text, heading)
+	if !found {
+		headings := markdown.Headings(text)
+		if len(headings) == 0 {
+			return "", fmt.Errorf("the ask has no section named %q and no headings at all, so read the whole of it with ask", heading)
+		}
+		return "", fmt.Errorf("the ask has no section named %q; its sections are %s, so read one of those", heading, strings.Join(headings, ", "))
+	}
+	return strings.Repeat("#", section.Level) + " " + section.Heading + "\n" + strings.TrimRight(section.Body, "\n") + "\n", nil
 }

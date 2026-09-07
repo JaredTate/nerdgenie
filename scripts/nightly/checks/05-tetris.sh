@@ -3,8 +3,9 @@
 set -u
 WORK="$1"
 LOG="$2"
-out="$(cd "$WORK" && (node --test test/*.test.js 2>&1 || node test/run.js 2>&1))"
-echo "$out" | grep -Eq 'fail 0|Failed: 0' || { echo "$out" | tail -8; exit 1; }
+# The ask lets the model choose its test runner, so the suite is whatever
+# npm test runs, and green is its exit code.
+if ! out="$(cd "$WORK" && npm test 2>&1)"; then echo "$out" | tail -8; exit 1; fi
 python3 - "$LOG" <<'PY'
 import sqlite3, json, sys
 c = sqlite3.connect("file:" + sys.argv[1] + "?mode=ro", uri=True)

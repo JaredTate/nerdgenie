@@ -69,20 +69,22 @@ func TestTheChannelHasTheSixThingsEveryChannelDoes(t *testing.T) {
 	}
 }
 
-func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheSevenTheLoopNeeds(t *testing.T) {
+func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheEightTheLoopNeeds(t *testing.T) {
 	job := reflect.TypeFor[contract.Job]()
 
-	// The design names six operations. The loop needs seven more to run a
+	// The design names six operations. The loop needs eight more to run a
 	// job's tasks: the next due task, a finished task's report, the job's
 	// record, the two that put a job down on a task and say which task it
 	// holds on, so that the person's next word or answer picks that task up
 	// after a restart, Resume, which sets the put-down job running again and
 	// touches nothing else, where RunNow would take a date off a task and
 	// fire a tick, and PickUpOnce, which lets the job pick a task its guard
-	// stopped up once by itself before it waits for a person.
+	// stopped up once by itself before it waits for a person, and
+	// ProveDoneLine, which marks one line of a work order's done list with the
+	// report that proves it.
 	wanted := []string{
 		"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff",
-		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce",
+		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine",
 	}
 	for _, name := range wanted {
 		if _, found := job.MethodByName(name); !found {
@@ -90,7 +92,7 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheSevenTheLoopNeeds(
 		}
 	}
 	if job.NumMethod() != len(wanted) {
-		t.Errorf("Job has %d methods, want the thirteen listed in this test", job.NumMethod())
+		t.Errorf("Job has %d methods, want the fourteen listed in this test", job.NumMethod())
 	}
 }
 

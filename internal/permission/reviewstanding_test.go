@@ -23,7 +23,7 @@ func TestAnUnattendedRunStopsEvenWhenASkillHoldsAStandingApproval(t *testing.T) 
 		Expires:     theTestTime.Add(time.Hour),
 	})
 
-	request := shellRequest(t, "rm -rf /home/jared/nerdgenie")
+	request := shellRequest(t, "rm -rf /home/user/nerdgenie")
 	request.Unattended = true
 
 	if decision := decide(t, decider, request); decision.Ruling != contract.RulingStop {

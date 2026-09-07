@@ -4,6 +4,8 @@ This is how to get Nerd Genie onto a Linux machine with a local model behind it.
 
 There are three parts: the program, the local model server, and the model files. Do them in that order. `SETUP.md` is the next document: it says how to configure and use Nerd Genie once it is installed.
 
+The local model is the fastest path and the one everything here was tuned on, but it is not the only one. Any server that speaks the OpenAI-compatible API works, Ollama and LM Studio among them, and so does a Claude Code or Codex subscription through the command-line provider; those need only step 2 and `SETUP.md` section 2.
+
 ## 1. What you need
 
 - Linux. Ubuntu 24.04 and Linux Mint 22 are what we run.
@@ -16,19 +18,19 @@ There are three parts: the program, the local model server, and the model files.
 ## 2. Build the program
 
 ```sh
-git clone https://github.com/JaredTate/nerdgenie ~/Code/coeus
-cd ~/Code/coeus
+git clone https://github.com/JaredTate/nerdgenie ~/Code/nerdgenie
+cd ~/Code/nerdgenie
 make build
 ```
 
-That puts the program at `bin/nerdgenie` and the two worker bundles under `bin/workers/`. `make check` runs every test and every checker; it takes a few minutes and should be clean.
+That puts the program at `bin/nerdgenie` and the two worker bundles under `bin/workers/`. `make check` runs every test and every checker; it takes a few minutes and should be clean. Run it before the model server is up, not beside it: its fuzzers once took the server off the card.
 
 ## 3. Install the model server
 
 Nerd Genie talks to a local model over the OpenAI-compatible API. We use the TurboQuant fork of llama.cpp, because it compresses the model's memory about five times, which is what lets a 27B model hold a long context on one card.
 
 1. Download the release from `https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant/releases`. Take the **`.tar.gz`** for your card: `llama-turboquant-linux-x64-vulkan.tar.gz` for AMD cards, the `cuda` one for NVIDIA. Do not take the zip; it breaks the shared library links and the server silently falls back to the CPU.
-2. Unpack it somewhere stable. On irene the server lives at `~/.atomic-agent/models/backend/llama-server`; on rosie at `~/llm/turboquant-cuda/llama-server`.
+2. Unpack it somewhere stable, such as `~/llm/turboquant/llama-server`.
 3. Check it runs: `<path>/llama-server --help | head`.
 
 ## 4. Get the model files
@@ -42,7 +44,7 @@ Check the model is what you think: the file name is not proof. Read `general.nam
 
 ## 5. Start the server
 
-Copy `~/llm/igo.sh` from irene, or write the same line yourself. It takes the card, the port, the context length and whether to use MTP:
+Write a start script, `~/llm/igo.sh`, that takes the card, the port, the context length and whether to use MTP, and start it detached:
 
 ```sh
 setsid ~/llm/igo.sh Vulkan1 19091 131072 mtp > ~/llm/logs/19091.log 2>&1 < /dev/null &
@@ -101,23 +103,23 @@ setsid ~/llm/igo.sh Vulkan2 19093 131072 mtp > ~/llm/logs/19093.log 2>&1 < /dev/
 
 Each server gets its own Nerd Genie home, and each home points at its own port in `config.toml`. Start the second serve with `NERDGENIE_HOME=~/nerdgenie-b nerdgenie serve`. Two agents on one machine are proven clean as long as nothing is shared: separate work folders, separate ports for anything they serve, separate Chrome profiles.
 
-The seven cards we run today:
+The cards this was tested on, and the settings that fit each:
 
-| machine | cards | servers | model file | context | script |
-|---|---|---|---|---|---|
-| irene | 2 × RX 7900 XTX 24 GB | A `:19091`, B `:19093` | `hauhau-Q4_K_P.gguf` | 131,072 with vision | `~/llm/igo.sh` |
-| jarvis | 1 × RX 7900 XT 20 GB | `:19091` | `hauhau-IQ4_XS.gguf` | 262,144 without vision | `~/llm/jgo.sh` |
-| rosie | 2 × RTX 5070 Ti 16 GB | A `:19091`, B `:19093` | `hauhau-IQ3_M.gguf` | 65,536 with vision through `~/llm/ngo.sh`; 114,688 without it through `~/llm/go2.sh` | CUDA build; turbo3 is broken on NVIDIA's Vulkan. `ngo.sh` is `go2.sh` plus the projector and the 1,024-token checkpoints; the projector takes about 1 GB of the card, so the context halves |
-| sassy | 2 × RDNA4 16 GB | A, B | 3-bit quant | 64k to 100k | to do |
+| card | model file | context | notes |
+|---|---|---|---|
+| RX 7900 XTX 24 GB (Vulkan) | `hauhau-Q4_K_P.gguf` | 131,072 with vision | the primary; MTP depth 3; two of them on one machine run as A and B on `:19091` and `:19093` |
+| RX 7900 XT 20 GB (Vulkan) | `hauhau-IQ4_XS.gguf` | 262,144 without vision | 20 GB holds the longer context or the projector, not both |
+| RTX 5070 Ti 16 GB (CUDA) | `hauhau-IQ3_M.gguf` | 65,536 with vision; 114,688 without | the CUDA build; turbo3 is broken on NVIDIA's Vulkan; 128k loads and then dies mid-job, so 114,688 is the ceiling without the projector |
+| RDNA4 16 GB (Vulkan) | a 3-bit quant | 64k to 100k | to be measured |
 
-Rosie's 114,688 is a hard ceiling; 128k loads and then dies mid-job. Every machine sets `TURBO_AUTO_ASYMMETRIC=0`. On the machines with one script for the whole box, `~/llm/start.sh` starts the cards one at a time and `~/llm/start.sh status` says whether they are up.
+Every machine sets `TURBO_AUTO_ASYMMETRIC=0`. On a machine with two cards, a `~/llm/start.sh` that starts them one at a time and answers `start.sh status` saves a lot of mistakes.
 
 ## 8. Rules that are not optional
 
 - Never kill a server by name pattern (`pkill -f`, `killall`, `pgrep -af`). A shell's own command line matches the pattern and dies with it. Kill exact process ids, found by port.
 - Never start a second server on a card that already has one.
 - Never run `ollama pull` on these machines; the models are plain files, not Ollama blobs, and Ollama will grab a card.
-- Port 8090 is reserved. On irene, `digibyte-qt` is never restarted.
+- Keep one port free for whatever else the machine serves; ours is 8090, and every ask says so.
 - Start cards one at a time.
 
 ## 9. Updating

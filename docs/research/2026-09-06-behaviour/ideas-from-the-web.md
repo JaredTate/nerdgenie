@@ -144,7 +144,7 @@ How to read the labels. "Read in full" means I read the paper or page itself. "R
 42. theinfinity.dev, "What a Screenshot Costs an AI Agent: 25,457 Tool Results Measured" (read in full). Six weeks of Claude Code transcripts: screenshot median 2,054 tokens (p90 3,588), file read median 2,085 (p90 11,401, p99 29,824), bash median 1,278 (p90 3,556), search 3,104. Bash is 64% of all tool results; screenshots were 6% of spend; 45% overhead from re-reading files just edited. Screenshots are the most predictable cost because pixels cap them.
     https://theinfinity.dev/articles/agent-tool-cost-measured
 
-43. Qwen vision token formula (read via docs and an HF thread). Qwen3-VL-family: tokens = h x w / (32 x 32) + 2, so 1920x1080 = 2,027 tokens, 1280x720 = 902, 900x900 = 793. This matches the ~800 tokens per screenshot already measured on irene. llama.cpp caps with `--image-min-tokens` / `--image-max-tokens`.
+43. Qwen vision token formula (read via docs and an HF thread). Qwen3-VL-family: tokens = h x w / (32 x 32) + 2, so 1920x1080 = 2,027 tokens, 1280x720 = 902, 900x900 = 793. This matches the ~800 tokens per screenshot already measured on the 7900 XTX machine. llama.cpp caps with `--image-min-tokens` / `--image-max-tokens`.
     https://huggingface.co/Qwen/Qwen3.6-35B-A3B/discussions/36
 
 44. Qwen3.8-27B model card (read in full). 64 layers as 16 x (3 DeltaNet + 1 attention), MTP head trained in, 262k native context. Recommended sampling: thinking temp 1.0 / top_p 0.95 / top_k 20; non-thinking temp 0.7 / top_p 0.8 / presence_penalty 1.5. Terminal-Bench 2.1 73.0, SWE-bench Pro 61.7, OSWorld 84.3.
@@ -199,7 +199,7 @@ What could go wrong. Build drift: the regression in #24055 is open and the fix i
 
 How to measure in one night. `-lv 4` log; count "restored context checkpoint" versus "forcing full prompt re-processing" per round; plot prompt_ms against round; should be flat. Then save+restore a slot mid-job and confirm the next turn's prompt_n is small.
 
-Status. Proven mechanism with measured numbers on the sibling model (Qwen3.6-27B); whether the current build on irene behaves is unknown until measured.
+Status. Proven mechanism with measured numbers on the sibling model (Qwen3.6-27B); whether the current build on the 7900 XTX machine behaves is unknown until measured.
 
 ### Idea 3. The order is a projection: an event log that is the truth, a harness-owned task record the model cannot edit, and a recited tail
 
@@ -233,7 +233,7 @@ Status. Proven as a pattern with small measured effect sizes; independence effec
 
 What it is. Before a tool result enters the transcript, pass it with a one-line "what am I looking for" query through a 2B pruner (Squeez's released LoRA on Qwen 3.5 2B, or a rules engine for the common cases: pytest failures, grep hits, git log, ls) and keep only the returned lines plus a header with the full result's path, size and hash. The full output stays on disk; a `restore <hash> [lines]` tool re-fetches it. Screenshots get the same treatment: keep the newest one verbatim, turn older ones into their path.
 
-Evidence. Squeez: 0.86 recall at 92% compression, 11 recall points over zero-shot Qwen 3.5 35B, and heuristics (head, tail, BM25) reach only 0.05-0.22 recall because "relevant lines may occur at the beginning, middle, or end". theinfinity.dev: file reads have a median of 2,085 tokens but a p90 of 11,401; bash is 64% of tool results; 45% of read cost was re-reading files just edited. Manus: restorable compression. Anthropic: tool-result clearing is the safest compaction. SWE-agent: a 100-line window beat whole files. Screenshots: 2,054 tokens median in Claude Code; on Qwen3-VL-class encoders a 1920x1080 image is 2,027 tokens and a 900x900 one about 793, so the ~800 already measured on irene is a downscaled frame; a full-resolution one would cost 2.5x more.
+Evidence. Squeez: 0.86 recall at 92% compression, 11 recall points over zero-shot Qwen 3.5 35B, and heuristics (head, tail, BM25) reach only 0.05-0.22 recall because "relevant lines may occur at the beginning, middle, or end". theinfinity.dev: file reads have a median of 2,085 tokens but a p90 of 11,401; bash is 64% of tool results; 45% of read cost was re-reading files just edited. Manus: restorable compression. Anthropic: tool-result clearing is the safest compaction. SWE-agent: a 100-line window beat whole files. Screenshots: 2,054 tokens median in Claude Code; on Qwen3-VL-class encoders a 1920x1080 image is 2,027 tokens and a 900x900 one about 793, so the ~800 already measured on the 7900 XTX machine is a downscaled frame; a full-resolution one would cost 2.5x more.
 
 Expected gain, with arithmetic. If the average observation is 2k tokens and pruning keeps 10%, uncached prefill per round drops from ~2,000 to ~200 tokens, saving 4.5 s per round or 7.5 minutes per 100 rounds. The bigger effect is growth: 100 rounds x 2k = 200k tokens (overflow) versus 100 x 200 = 20k, which keeps the whole job inside the window and may make Idea 1's masking rare.
 
@@ -302,7 +302,7 @@ Ideas 5, 7 and 8 are real but second-order on this card: 5 needs a second model 
 - OpenAI's harness-engineering post itself (403). The ARC-AGI-3 and 6x numbers come from secondary write-ups.
 - The three vLLM-side serving papers (stateful inference, SmoothAgent, on-device adaptive context) were read through machine summaries only; I did not trust their numbers enough to build an idea on them.
 - Claw-SWE-Bench and Lita: the PDFs did not yield readable result tables through the fetch tool.
-- Whether llama-server's /slots save format includes hybrid checkpoints in the build on irene; one search result says it did not at some point.
+- Whether llama-server's /slots save format includes hybrid checkpoints in the build on the 7900 XTX machine; one search result says it did not at some point.
 - Per-checkpoint VRAM for Qwen3.8-27B specifically; the 150 MiB figure is Particula's for a different hybrid.
 
 Report path: /tmp/claude-1000/-home-jared/09f06b9f-a0be-401c-831d-adb99bc858bb/scratchpad/analysis/web-ideas.md

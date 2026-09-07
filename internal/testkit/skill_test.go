@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
@@ -173,5 +174,20 @@ func TestTheFakeSkillRefusesASaveWithNobodySavingIt(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("the fake saved a skill nobody saved, and the real store refuses one, so a test against the fake would be told the wrong thing")
+	}
+}
+
+func TestTheFakeSkillCarriesABudgetOnItsMatch(t *testing.T) {
+	ctx := context.Background()
+	skills := testkit.NewFakeSkill()
+	skills.Add(contract.SkillSummary{Name: "post", Description: "posts an update"}, "# post\n", "post the update")
+	skills.SetBudget("post", 12, 3*time.Minute)
+	skills.SetBudget("nothing-by-that-name", 1, time.Second)
+	match, err := skills.Match(ctx, "please post the update now")
+	if err != nil {
+		t.Fatalf("matching failed: %v", err)
+	}
+	if !match.Matched || match.Rounds != 12 || match.Time != 3*time.Minute {
+		t.Errorf("the match reads %+v, want the post skill with twelve rounds and three minutes", match)
 	}
 }

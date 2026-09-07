@@ -188,7 +188,7 @@ never touch a package another worker owns this wave; contract changes only by th
 orchestrator; `make repo-map` before every commit that moves files;
 `ARCHITECTURE.md` updated in the same branch as the package it describes; `make check`
 green before a wave passes; the machine rules (never kill by name, exact pids,
-never restart the model daemons or digibyte-qt, one heavy job at a time).
+never restart the model daemons or the program on port 8090, one heavy job at a time).
 
 ## Part 5: Rough size
 

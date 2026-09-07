@@ -110,7 +110,10 @@ func CheckJob(ctx context.Context, jobs contract.Job) error {
 		if summary.Title != theNamedJobsName {
 			return fmt.Errorf("the job is listed under the title %q, want its name %q, because a job with a name lists by the name and not by its ask", summary.Title, theNamedJobsName)
 		}
-		return checkJobRunsItsTask(ctx, jobs, under)
+		if err := checkJobRunsItsTask(ctx, jobs, under); err != nil {
+			return err
+		}
+		return checkAWorkOrdersPartsReadBack(ctx, jobs)
 	}
 	return errors.New("a job was created and then was not in the listing")
 }
@@ -356,4 +359,32 @@ func CheckJobWithoutAName(ctx context.Context, jobs contract.Job) error {
 		return fmt.Errorf("the record of a job given no name carries the name %q, want none, because the name is only ever the one given on create", record.Goal.Name)
 	}
 	return checkRunNowPullsTheTickForward(ctx, jobs, jobID, before)
+}
+
+// checkAWorkOrdersPartsReadBack makes a job with the done lines and rules a
+// work order gives and holds the store to keeping them: the done lines as
+// written and none of them proved, and the rules as the record's corrections
+// in order, in the person's words.
+func checkAWorkOrdersPartsReadBack(ctx context.Context, jobs contract.Job) error {
+	jobID, err := jobs.Create(ctx, contract.NewJob{
+		Ask:      "## Goal\nA thing.\n## Done when\n1. it works [tests pass: npm test]\n",
+		Name:     "the work order under check",
+		DoneWhen: []string{"it works [tests pass: npm test]", "it looks right"},
+		Rules:    []string{"Tests first.", "Serve on 8091."},
+	})
+	if err != nil {
+		return fmt.Errorf("creating a job with a work order's done lines and rules failed: %w", err)
+	}
+	held, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("loading the work order's job failed: %w", err)
+	}
+	if len(held.Goal.DoneWhen) != 2 || held.Goal.DoneWhen[0].Text != "it works [tests pass: npm test]" || held.Goal.DoneWhen[0].Done || held.Goal.DoneWhen[1].Text != "it looks right" {
+		return fmt.Errorf("the job's done list reads %+v, want the two lines as written and none of them done", held.Goal.DoneWhen)
+	}
+	rules := held.Rules.Corrections
+	if len(rules) != 2 || rules[0].ID != "C1" || rules[0].Text != "Tests first." || rules[1].ID != "C2" || rules[1].Text != "Serve on 8091." {
+		return fmt.Errorf("the job's rules read %+v, want C1 and C2 in the person's words and order", rules)
+	}
+	return jobs.SwitchOff(ctx, jobID)
 }

@@ -65,8 +65,8 @@ func TestADoneLineThatNamesAFilePassesWhenTheFileIsThere(t *testing.T) {
 
 // TestADoneLineThatNamesAFolderWithSpacesInItsNameIsReadWhole: the ninth fresh
 // run's scaffold task ended failed on "package.json exists at
-// /home/jared/Desktop/Tater Tots Tetrisv1 with a test script", because the
-// check split the line on spaces and looked for /home/jared/Desktop/Tater. A
+// /home/user/Desktop/Tater Tots Tetrisv1 with a test script", because the
+// check split the line on spaces and looked for /home/user/Desktop/Tater. A
 // path that is not there is tried with the words after it, one at a time,
 // before it is called missing.
 func TestADoneLineThatNamesAFolderWithSpacesInItsNameIsReadWhole(t *testing.T) {

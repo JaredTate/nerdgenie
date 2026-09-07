@@ -97,7 +97,7 @@ var otherToolReductions = []struct {
 	fields   map[string]any
 	reduced  string
 }{
-	{contract.ToolRead, map[string]any{"path": "/home/jared/notes.md"}, "read /home/jared/notes.md"},
+	{contract.ToolRead, map[string]any{"path": "/home/user/notes.md"}, "read /home/user/notes.md"},
 	{contract.ToolSearch, map[string]any{"pattern": "nerdgenie"}, "search nerdgenie"},
 	{contract.ToolWeb, map[string]any{"url": "https://example.com/checkout"}, "web https://example.com/checkout"},
 	{contract.ToolWeb, map[string]any{"query": "kayak prices"}, "web kayak prices"},
@@ -169,7 +169,7 @@ func TestReduceSaysWhenAnEditWouldCutOutMoreThanTheSize(t *testing.T) {
 	request := contract.PermissionRequest{
 		ToolName: contract.ToolEdit,
 		Input: jsonInput(t, map[string]any{
-			"path": "/home/jared/big.md",
+			"path": "/home/user/big.md",
 			"old":  strings.Repeat("x", permission.EmptiesFileOverBytes+1),
 			"new":  "",
 		}),

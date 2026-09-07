@@ -11,16 +11,16 @@
 #   gpt_runs.sh [round]      (round defaults to 1; folders are <harness>-<round>)
 set -u
 ROUND="${1:-1}"
-REPO=/home/jared/Code/coeus
-BASE=/home/jared/work/bench/gpt
-TASK=/home/jared/work/bench/canonical/task.txt
+REPO=$HOME/Code/nerdgenie
+BASE=$HOME/work/bench/gpt
+TASK=$HOME/work/bench/canonical/task.txt
 MODEL=gpt-5.6-sol
 cd "$REPO" || exit 1
 mkdir -p "$BASE"
 sha=$(sha256sum "$TASK" | cut -c1-8); [ "$sha" = c8ed58f2 ] || { echo "task sha mismatch $sha"; exit 1; }
 cp "$TASK" "$BASE/task.txt"
 [ -x bin/nerdgenie ] || go build -o bin/nerdgenie ./cmd/nerdgenie || exit 1
-echo "nerdgenie $(git rev-parse --short HEAD); $(codex --version 2>&1 | head -1); opencode $(/home/jared/.opencode/bin/opencode --version 2>/dev/null | head -1); $(openclaw --version 2>/dev/null | head -1); $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
+echo "nerdgenie $(git rev-parse --short HEAD); $(codex --version 2>&1 | head -1); opencode $($HOME/.opencode/bin/opencode --version 2>/dev/null | head -1); $(openclaw --version 2>/dev/null | head -1); $(hermes --version 2>/dev/null | head -1)" | tee "$BASE/versions.txt"
 
 fresh_work() { # $1 = run folder
   rm -rf "$1"; mkdir -p "$1/work"; git init -q "$1/work"; cp "$TASK" "$1/work/task.txt"
@@ -57,7 +57,7 @@ run_opencode() {
   mkdir -p "$H/data/opencode" "$H/config/opencode" "$H/cache" "$H/state"
   # The ChatGPT login lives in the user's opencode credential file; the fresh
   # data folder gets a copy of that one file and nothing else.
-  cp /home/jared/.local/share/opencode/auth.json "$H/data/opencode/auth.json"
+  cp $HOME/.local/share/opencode/auth.json "$H/data/opencode/auth.json"
   cat > "$H/config/opencode/opencode.json" <<JSON
 {
   "\$schema": "https://opencode.ai/config.json",
@@ -68,7 +68,7 @@ run_opencode() {
 }
 JSON
   s=$(date +%s)
-  ( cd "$R/work" && XDG_DATA_HOME="$H/data" XDG_CONFIG_HOME="$H/config" XDG_CACHE_HOME="$H/cache" XDG_STATE_HOME="$H/state" /home/jared/.opencode/bin/opencode run -m "openai/$MODEL" --variant medium --format json "$(cat "$R/work/task.txt")" > "$R/out.jsonl" 2> "$R/err.log" < /dev/null )
+  ( cd "$R/work" && XDG_DATA_HOME="$H/data" XDG_CONFIG_HOME="$H/config" XDG_CACHE_HOME="$H/cache" XDG_STATE_HOME="$H/state" $HOME/.opencode/bin/opencode run -m "openai/$MODEL" --variant medium --format json "$(cat "$R/work/task.txt")" > "$R/out.jsonl" 2> "$R/err.log" < /dev/null )
   echo "exit $? launch_to_exit $(( $(date +%s) - s ))" > "$R/wall.txt"
   timeout 200 node scripts/bench/check-tater.mjs "$R/work" --harness opencode --run "gpt$1" > "$R/check.json" 2> "$R/check.err"
 }
@@ -90,7 +90,7 @@ YAML
   # opencode run copies its login file. Nothing else is copied.
   python3 - "$H/auth.json" <<'PY'
 import json, sys
-src = json.load(open('/home/jared/.hermes/auth.json'))
+src = json.load(open('$HOME/.hermes/auth.json'))
 out = {"version": src.get("version", 1), "providers": {"openai-codex": src["providers"]["openai-codex"]},
        "credential_pool": {"openai-codex": src["credential_pool"]["openai-codex"]}, "active_provider": "openai-codex"}
 json.dump(out, open(sys.argv[1], 'w'))
@@ -113,7 +113,7 @@ run_openclaw() {
   # the codex runtime).
   python3 - "$R/openclaw.json" "$MODEL" <<'PY'
 import json, sys
-cfg = json.load(open('/home/jared/.openclaw/openclaw.json'))
+cfg = json.load(open('$HOME/.openclaw/openclaw.json'))
 models = cfg.setdefault('agents', {}).setdefault('defaults', {}).setdefault('models', {})
 entry = models.get('openai/' + sys.argv[2]) or {}
 entry['agentRuntime'] = {'id': 'openclaw'}

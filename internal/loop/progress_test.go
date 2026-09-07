@@ -62,7 +62,7 @@ func requestsCarrying(built *harness, words string) (int, int) {
 // the fifth asked the desktop tool to launch an unnamed application eleven
 // times. Ten such rounds earn one line, twenty buy a rethink with the stall
 // written into the record from its answer, and the fourth such stall stops
-// the task: rosie's three-bit model was stopped after two, and a rethink is
+// the task: the 5070 Ti machine's three-bit model was stopped after two, and a rethink is
 // one call.
 func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T) {
 	built := editsForever(t, loop.StallsBeforeStop*loop.RewindAfterRoundsWithoutProgress+5)

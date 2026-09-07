@@ -1,6 +1,6 @@
 # Nightly set, 2026-09-06, fourth run: the first-line hint on the binary
 
-Local Qwen 3.8 through the daemon on 19091, binary 0314afb2, home /home/jared/work/ng-nightly/home.
+Local Qwen 3.8 through the daemon on 19091, binary 0314afb2, home ~/work/ng-nightly/home.
 
 | ask | ended | check | rounds | minutes | s/round | cache | out tokens |
 |---|---|---|---|---|---|---|---|

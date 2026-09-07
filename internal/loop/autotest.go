@@ -59,7 +59,7 @@ func (running *run) runTheTestsAfter(ctx context.Context, call contract.ToolCall
 	if !found {
 		return ""
 	}
-	running.testsFact = state.line()
+	running.noteTestState(state)
 	running.noteTheTestsImprovedOrNot(state)
 	return TheTestsAfterAChange + strings.TrimPrefix(state.line(), "tests: ")
 }

@@ -20,6 +20,9 @@ type BuildInput struct {
 	// JobSummary is the short form of the job this task belongs to, and is
 	// empty when the task belongs to no job.
 	JobSummary string
+	// StandingOrder is the text of the work folder's AGENTS.md, or empty when
+	// the folder has none. It is read once when the task starts.
+	StandingOrder string
 	// RecentWork is the few tasks most recently finished, newest first, so the
 	// model can say where things stand even before this task has made a record
 	// of its own. It is gathered once when the task starts and rides on every
@@ -80,6 +83,7 @@ func (real realBuilder) Build(ctx context.Context, input BuildInput) (contract.R
 		ContextLength: input.ContextLength,
 		Record:        held,
 		JobSummary:    input.JobSummary,
+		StandingOrder: input.StandingOrder,
 		RecentWork:    input.RecentWork,
 		Messages:      input.Messages,
 		Pinned:        input.Pinned,

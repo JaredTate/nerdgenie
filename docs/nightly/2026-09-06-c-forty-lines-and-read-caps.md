@@ -1,6 +1,6 @@
 # Nightly set, 2026-09-06, third run: forty result lines, six lessons of a hundred and twenty runes, reads capped at sixteen kilobytes
 
-Local Qwen 3.8 through the daemon on 19091, binary 03620640, home /home/jared/work/ng-nightly/home.
+Local Qwen 3.8 through the daemon on 19091, binary 03620640, home ~/work/ng-nightly/home.
 
 | ask | ended | check | rounds | minutes | s/round | cache | out tokens |
 |---|---|---|---|---|---|---|---|

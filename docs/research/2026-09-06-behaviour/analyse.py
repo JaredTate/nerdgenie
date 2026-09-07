@@ -498,7 +498,7 @@ def main():
             c = Counter(str(i.get("path")) for r in real_rounds(tasks[t]) for n, i, _, _ in r.calls if n == "read" and not re.fullmatch(r'r\d+', str(i.get("path", ""))))
             for p, n in c.most_common(2):
                 if n >= 5:
-                    rows.append([db, t, n, p.replace("/home/jared/Desktop/Tater Tots Tetrisv1/", "…/")])
+                    rows.append([db, t, n, p.replace("/home/user/Desktop/Tater Tots Tetrisv1/", "…/")])
     P(md_table(["log", "task", "reads", "path"], rows))
 
     # ---------- 3. loops and interventions ----------

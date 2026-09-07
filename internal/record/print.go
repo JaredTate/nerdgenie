@@ -7,7 +7,28 @@ import (
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
+	"github.com/JaredTate/nerdgenie/internal/workorder"
 )
+
+// labelProved opens the job header's count of the checked done lines the
+// harness has proved, which rides only on a job whose done list carries
+// checks.
+const labelProved = "done lines proved: "
+
+// ProvedCheckedLines counts the done lines that carry a check the harness
+// runs, and how many of them are marked proved.
+func ProvedCheckedLines(lines []contract.DoneLine) (proved int, checked int) {
+	for _, line := range lines {
+		if _, found := workorder.ReadCheck(line.Text); !found {
+			continue
+		}
+		checked++
+		if line.Done {
+			proved++
+		}
+	}
+	return proved, checked
+}
 
 // The headings of the four parts. They are always printed, always in this order,
 // because everything above the cache line must not move from one turn to the
@@ -71,6 +92,11 @@ const (
 // only form anything in Nerd Genie ever writes. Parse reads it back.
 func Print(record contract.Record) []byte {
 	lines := printHeader(record.Header)
+	if record.Header.Kind == contract.RecordJob {
+		if proved, checked := ProvedCheckedLines(record.Goal.DoneWhen); checked > 0 {
+			lines[0] += headerGap + fmt.Sprintf("%s%d of %d", labelProved, proved, checked)
+		}
+	}
 	for _, part := range [][]string{
 		printGoal(record.Goal),
 		printRules(record.Rules),

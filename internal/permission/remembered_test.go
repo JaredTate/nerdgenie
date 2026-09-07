@@ -46,7 +46,7 @@ func TestAnswerAlwaysCoversOnlyCallsThatReduceToTheSameThing(t *testing.T) {
 		t.Fatalf("remembering an answer of always failed: %v", err)
 	}
 
-	sameForm := decide(t, decider, shellRequest(t, "rm -rf /home/jared/scratch"))
+	sameForm := decide(t, decider, shellRequest(t, "rm -rf /home/user/scratch"))
 	if sameForm.Ruling != contract.RulingAllow {
 		t.Errorf("another command with the same readable form was ruled %q, want %q", sameForm.Ruling, contract.RulingAllow)
 	}

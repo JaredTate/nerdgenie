@@ -84,7 +84,7 @@ describe("asking a page a question", () => {
 
 describe("which pages may be asked", () => {
   it("is this machine and files, and nothing else", () => {
-    for (const local of ["http://localhost:8091/index.html", "http://127.0.0.1:3000/", "http://[::1]:8080/x", "file:///home/jared/game/index.html", "http://localhost/"]) {
+    for (const local of ["http://localhost:8091/index.html", "http://127.0.0.1:3000/", "http://[::1]:8080/x", "file:///home/user/game/index.html", "http://localhost/"]) {
       expect(isAPageOnThisMachine(local)).toBe(true);
     }
     for (const elsewhere of ["https://x.com/home", "http://localhost.evil.com/", "https://bank.example/localhost", "about:blank", ""]) {

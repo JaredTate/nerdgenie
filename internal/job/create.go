@@ -46,6 +46,9 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 			return "", fmt.Errorf("cannot write the name and why of job %s: %w", jobID, err)
 		}
 	}
+	if err := writeTheWorkOrdersParts(ctx, keeper, jobID, wanted); err != nil {
+		return "", err
+	}
 
 	held := &heldJob{keeper: keeper}
 	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate}
@@ -140,4 +143,22 @@ func checkTheTemplate(schedule *contract.Schedule, template string) error {
 		return errors.New("a job with no schedule never makes a task from a template, so give it a schedule or leave the template out")
 	}
 	return checkItCannotRestartTheAgent(template)
+}
+
+// writeTheWorkOrdersParts puts the done lines and the rules a work order gave
+// into the job's record, the done lines unproved and the rules as the record's
+// rules in the person's words, so that every task of the job reads them in
+// the job summary. A job made without them is left as the model will write it.
+func writeTheWorkOrdersParts(ctx context.Context, keeper *record.Keeper, jobID string, wanted contract.NewJob) error {
+	if len(wanted.DoneWhen) > 0 {
+		if err := keeper.Apply(ctx, record.Update{DoneWhen: doneLinesOf(wanted.DoneWhen)}); err != nil {
+			return fmt.Errorf("cannot write the work order's done list into job %s: %w", jobID, err)
+		}
+	}
+	for _, rule := range wanted.Rules {
+		if _, err := keeper.AddCorrection(ctx, rule); err != nil {
+			return fmt.Errorf("cannot write the work order's rule %q into job %s: %w", rule, jobID, err)
+		}
+	}
+	return nil
 }

@@ -1,6 +1,6 @@
-# Live measurements from jared-rosie (2026-09-02 09:16 local), read-only over SSH
+# Live measurements from the 5070 Ti machine (2026-09-02 09:16 local), read-only over SSH
 
-Host: jared-rosie, x86_64, Linux Mint 22.3, 32 cores, 59,917 MB RAM, disk 1.2T used of 1.8T. Uptime 2 days. Load avg 1.97 / 9.10 / 18.36.
+Host: the 5070 Ti machine, x86_64, Linux Mint 22.3, 32 cores, 59,917 MB RAM, disk 1.2T used of 1.8T. Uptime 2 days. Load avg 1.97 / 9.10 / 18.36.
 Node: /usr/bin/node v24.14.1 (system) plus nvm v24.18.0 and v24.19.0 — three Node installs (matches the screenshot's "Current Node differs from managed gateway service Node").
 
 ## Installed versions
@@ -36,5 +36,5 @@ Node: /usr/bin/node v24.14.1 (system) plus nvm v24.18.0 and v24.19.0 — three N
 - Docker: 10 Supabase containers for homerecon (unrelated to agents).
 
 ## Other hosts
-- jared-irene, shotrecon: SSH refused for users jared/jt/JaredTate/pi (publickey). Not measured.
-- chateautater (Pi 5 "Jarvis"): offline at probe time (last seen ~1 h before). Not measured.
+- the development machine, shotrecon: SSH refused for users jared/jt/JaredTate/pi (publickey). Not measured.
+- chateautater (Pi 5 "The 7900 XT machine"): offline at probe time (last seen ~1 h before). Not measured.

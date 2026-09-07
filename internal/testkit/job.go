@@ -33,9 +33,13 @@ type fakeJobEntry struct {
 	template string
 	tasks    []fakeTask
 	reports  []contract.ResultLine
-	// doneWhen is the done list the fake writes when the job closes: one line
-	// per task, pointing at that task's report, the rule the real store keeps.
+	// doneWhen is the done list: the work order's lines when the job was made
+	// with them, else the one line per task the fake writes when the job
+	// closes, pointing at that task's report, the rule the real store keeps.
 	doneWhen []contract.DoneLine
+	// rules are the work order's rules, kept as the record's corrections in
+	// the person's words, the rule the real store keeps.
+	rules []contract.Correction
 	// putDown is the mark the job carries while it is put down on one of its
 	// tasks, and nil when it is not.
 	putDown *contract.PutDownMark
@@ -100,6 +104,12 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
+	}
+	for _, text := range wanted.DoneWhen {
+		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: text})
+	}
+	for at, rule := range wanted.Rules {
+		entry.rules = append(entry.rules, contract.Correction{ID: contract.CorrectionID(at + 1), Text: rule})
 	}
 	jobs.order = append(jobs.order, jobID)
 	jobs.entries[jobID] = entry
@@ -193,11 +203,38 @@ func (jobs *FakeJob) FinishTask(_ context.Context, jobID string, taskID string, 
 // the real store keeps so that a job the model gave no done list can still
 // finish. The caller holds the lock.
 func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
-	entry.doneWhen = nil
-	for _, task := range entry.tasks {
-		entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+	if len(entry.doneWhen) == 0 {
+		for _, task := range entry.tasks {
+			entry.doneWhen = append(entry.doneWhen, contract.DoneLine{Text: task.task.Text, Done: true, ResultID: task.task.ReportID})
+		}
+	}
+	for _, line := range entry.doneWhen {
+		if !line.Done {
+			return
+		}
 	}
 	entry.summary.State = contract.JobDone
+}
+
+// ProveDoneLine marks one line of the job's done list with the report that
+// proves it, or unmarks it, and closes the job when every line is proved and
+// every task is done.
+func (jobs *FakeJob) ProveDoneLine(_ context.Context, jobID string, number int, resultID string) error {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	if number < 1 || number > len(entry.doneWhen) {
+		return fmt.Errorf("the job %s has no done line %d, because its done list holds %d lines", jobID, number, len(entry.doneWhen))
+	}
+	entry.doneWhen[number-1].Done = resultID != ""
+	entry.doneWhen[number-1].ResultID = resultID
+	if entry.summary.NextTaskID == "" && entry.summary.TasksTotal > 0 && entry.schedule == nil && entry.summary.State == contract.JobRunning {
+		jobs.closeOnADoneLinePerTask(entry)
+	}
+	return nil
 }
 
 // Load returns the job as a record: the same four parts as a task, with the
@@ -227,6 +264,7 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			Ask: entry.ask, Name: entry.name, Why: entry.why,
 			DoneWhen: append([]contract.DoneLine(nil), entry.doneWhen...),
 		},
+		Rules:   contract.Rules{Corrections: append([]contract.Correction(nil), entry.rules...)},
 		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil

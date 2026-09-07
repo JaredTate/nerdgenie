@@ -1,6 +1,6 @@
 # How to write a prompt for Nerd Genie
 
-This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. `PROMPT_TETRIS_EXAMPLE.md` is the worked example; `PROMPT_FLIGHT_SIM_EXAMPLE.md` and `PROMPT_INTERACTIVE_EARTH_EXAMPLE.md` are two larger ones, a flight simulator with physics and a performance pass, and a 3D Earth whose quality is judged by eye as much as by test. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
+This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. `PROMPT_TETRIS_EXAMPLE.md` is the worked example; `PROMPT_FLIGHT_SIM_EXAMPLE.md`, `PROMPT_INTERACTIVE_EARTH_EXAMPLE.md` and `PROMPT_SOLAR_SYSTEM_EXAMPLE.md` are three more, a flight simulator with physics and a performance pass, a 3D Earth whose quality is judged by eye as much as by test, and a solar system whose orbital maths the tests must prove. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
 
 ## 1. Why the shape of a prompt matters here
 

@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/JaredTate/nerdgenie/internal/clock"
 	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
@@ -91,14 +92,14 @@ func (screen *Screen) checklistHeader() []panelLine {
 	width := screen.panelTextWidth()
 	switch {
 	case screen.job != "":
-		items := []panelLine{{drawn: checklistTitle("JOB", screen.job, screen.jobName, width), target: "job:" + screen.job}}
+		items := []panelLine{{drawn: checklistTitle("JOB", screen.job, screen.jobName, screen.jobElapsedWords(), width), target: "job:" + screen.job}}
 		for _, line := range appendPanelWords(nil, styleDim, screen.jobAskWhenUnnamed(), width) {
 			items = append(items, panelLine{drawn: line})
 		}
 		return items
 	case screen.taskID != "":
 		number := taskNumber(screen.taskID)
-		return []panelLine{{drawn: checklistTitle("TASK", number, screen.taskAsk, width), target: "task:" + number}}
+		return []panelLine{{drawn: checklistTitle("TASK", number, screen.taskAsk, "", width), target: "task:" + number}}
 	default:
 		return nil
 	}
@@ -114,17 +115,61 @@ func (screen *Screen) jobAskWhenUnnamed() string {
 }
 
 // checklistTitle draws the header: the word in bold white, the number in the
-// accent, and the name, when there is one, in bold white after a dim dot.
-func checklistTitle(word string, number string, name string, width int) row {
+// accent, the name, when there is one, in bold white after a dim dot, and the
+// running time, when it is known, dim after another dot. The time is never
+// cut: the name is what the ellipsis shortens.
+func checklistTitle(word string, number string, name string, took string, width int) row {
 	line := row{}
 	line.add(styleBold, word)
 	line.add(styleAccent, " "+number)
 	if name != "" {
 		line.add(styleDim, " · ")
-		line.add(styleBold, cutWithEllipsis(name, width-line.width))
+		line.add(styleBold, cutWithEllipsis(name, width-line.width-displayWidth(timePart(took))))
 	}
+	line.add(styleDim, timePart(took))
 	line.keepWithin(width)
 	return line
+}
+
+// timePart is the dim tail a row ends with when its time is known, " · 3m
+// 12s", and nothing when it is not.
+func timePart(took string) string {
+	if took == "" {
+		return ""
+	}
+	return " · " + took
+}
+
+// jobElapsedWords is how long the running job has run, such as "17m", live
+// from the moment it was made to the screen's clock, or nothing when the
+// program has not said when it began.
+func (screen *Screen) jobElapsedWords() string {
+	if screen.jobStarted.IsZero() {
+		return ""
+	}
+	return elapsedWords(screen.now.Sub(screen.jobStarted))
+}
+
+// taskTook is what a job's task row ends with: what a finished task took, to
+// the second; how long the running task has run, live; and nothing for a task
+// the program has sent no moments for.
+func (screen *Screen) taskTook(task contract.JobTask, running bool) string {
+	if task.TaskID == "" {
+		return ""
+	}
+	for _, one := range screen.jobTaskTimes {
+		if one.TaskID != task.TaskID {
+			continue
+		}
+		switch {
+		case !one.Finished.IsZero():
+			return clock.Words(one.Finished.Sub(one.Started))
+		case running:
+			return elapsedWords(screen.now.Sub(one.Started))
+		}
+		return ""
+	}
+	return ""
 }
 
 // taskNumber is a task's number without the word in front of it, because the
@@ -153,7 +198,7 @@ func (screen *Screen) checklistRows() ([]panelLine, int, int) {
 	rows := []panelLine{}
 	for _, task := range shown {
 		running := task.TaskID != "" && task.TaskID == screen.jobTask
-		rows = append(rows, panelLine{drawn: jobTaskLine(task, running, width), target: taskTarget(task.TaskID)})
+		rows = append(rows, panelLine{drawn: jobTaskLine(task, running, screen.taskTook(task, running), width), target: taskTarget(task.TaskID)})
 		if running {
 			rows = append(rows, withoutTargets(planStepLines(planSteps(screen.plan), stepIndent, width))...)
 		}
@@ -190,9 +235,11 @@ func withoutTargets(lines []row) []panelLine {
 }
 
 // jobTaskLine draws one task of the job on one row: the glyph of its state,
-// its label dim, and its words, white on the running task and dim on the rest,
-// cut with an ellipsis to the panel, because a checklist is one row per item.
-func jobTaskLine(task contract.JobTask, running bool, width int) row {
+// its label dim, its words, white on the running task and dim on the rest,
+// cut with an ellipsis to the panel, because a checklist is one row per item,
+// and its time dim after a dot when it is known: what a finished task took,
+// or how long the running one has run. The time is never cut; the words are.
+func jobTaskLine(task contract.JobTask, running bool, took string, width int) row {
 	mark := markPlanned
 	switch {
 	case task.Done:
@@ -205,7 +252,8 @@ func jobTaskLine(task contract.JobTask, running bool, width int) row {
 	if task.TaskID != "" {
 		line.add(styleDim, task.TaskID+" ")
 	}
-	line.add(mark.wordsStyle(), cutWithEllipsis(task.Text, width-line.width))
+	line.add(mark.wordsStyle(), cutWithEllipsis(task.Text, width-line.width-displayWidth(timePart(took))))
+	line.add(styleDim, timePart(took))
 	return line
 }
 

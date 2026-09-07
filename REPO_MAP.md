@@ -329,6 +329,7 @@ internal/channel/stream_test.go
 internal/clock/clock.go
 internal/clock/clock_test.go
 internal/clock/doc.go
+internal/clock/words.go
 internal/codemap/codemap.go
 internal/codemap/codemap_test.go
 internal/codemap/contents.go
@@ -1319,6 +1320,8 @@ internal/tool/edit/matchers.go
 internal/tool/edit/pinnedbounds_test.go
 internal/tool/edit/relativepath_test.go
 internal/tool/edit/testdata/one_span.txt
+internal/tool/edit/window.go
+internal/tool/edit/window_test.go
 internal/tool/foldercap_test.go
 internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go

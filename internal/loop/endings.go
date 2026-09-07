@@ -125,6 +125,10 @@ func (running *run) closeOrWait(ctx context.Context, text string, why contract.F
 		outcome, err := running.waitHere(ctx, text)
 		return outcome, false, err
 	}
+	if running.refusedByACheck {
+		running.remember(contract.Message{Role: contract.RoleUser, Text: problem + "\n" + ThreeOptions})
+		return Outcome{}, true, nil
+	}
 	return running.backToWork(ctx, problem)
 }
 

@@ -1,6 +1,7 @@
 package loop_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,8 +17,12 @@ import (
 // and the steps given follow, for a model that has to go on after a refusal.
 func aTaskWhoseDoneLineIsChecked(t *testing.T, line string, after []testkit.Step, tools ...contract.Tool) *harness {
 	t.Helper()
+	written, err := json.Marshal(map[string]any{"why": "the user wants it proved", "doneWhen": []string{line}})
+	if err != nil {
+		t.Fatal(err)
+	}
 	steps := []testkit.Step{
-		callStep("I will write the finish.", taskCall("c1t", `{"why":"the user wants it proved","doneWhen":["`+line+`"]}`)),
+		callStep("I will write the finish.", taskCall("c1t", string(written))),
 		answerStep("It is done. What changed: the work. What I checked: the harness's check. What is left: nothing."),
 	}
 	return newHarness(t, append(steps, after...), tools...)
@@ -108,7 +113,7 @@ func TestTheFinishIsRefusedWhileACheckFails(t *testing.T) {
 		t.Fatalf("the task ended %q, want waiting on the model's question after the refusal", outcome.Status)
 	}
 	requests := requestsJoined(built.model.Requests())
-	refusal := `The done line "Every test passes. [tests pass: npm test]" has its check, and 2 failing of 10: clears a row, spawns, so this line is not true yet.`
+	refusal := `The done line "Every test passes. [tests pass: npm test]" has its check, and 2 failing of 10: clears a row; spawns, so this line is not true yet.`
 	if !strings.Contains(requests, refusal) {
 		t.Errorf("the model was not sent back with the line and the count, and the requests read:\n%s", requests)
 	}

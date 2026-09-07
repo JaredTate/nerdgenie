@@ -16,6 +16,7 @@ import (
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/record"
+	"github.com/JaredTate/nerdgenie/internal/workorder"
 )
 
 // The bounds on what one done line is checked for.
@@ -43,11 +44,17 @@ const (
 // result or at a reply from the user, and where a line names something the
 // harness can check for itself, the harness checks it.
 func (running *run) doneCheck(ctx context.Context) (string, error) {
+	if problem, err := running.proveTheCheckedLines(ctx); err != nil || problem != "" {
+		return problem, err
+	}
 	held := running.keeper.Record()
 	if err := record.DoneCheck(held); err != nil {
 		return "This task cannot close yet. " + err.Error() + " " + theResultsToNameFrom(held), nil
 	}
 	for at, line := range held.Goal.DoneWhen {
+		if _, checked := workorder.ReadCheck(line.Text); checked {
+			continue
+		}
 		problem, err := running.checkOneDoneLine(ctx, line)
 		if err != nil {
 			return "", err

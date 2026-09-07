@@ -62,9 +62,15 @@ type run struct {
 	// mechanicalRefusals is how many times the harness's own file and command
 	// checks have sent the model back for a done line that names a result.
 	mechanicalRefusals int
-	recentCalls        []pastCall
-	lastOrient         string
-	browserFact        string
+	// checkFailures counts, per done line by number, how many times the
+	// harness's own check of that line has failed in this task.
+	checkFailures map[int]int
+	// refusedByACheck says the last done check was refused by a bracketed
+	// check the person wrote, which never counts as a done-check nudge.
+	refusedByACheck bool
+	recentCalls     []pastCall
+	lastOrient      string
+	browserFact     string
 	// pageAddress is where the browser is, as its last result said, and is what
 	// a hung page's scripts are read from.
 	pageAddress string

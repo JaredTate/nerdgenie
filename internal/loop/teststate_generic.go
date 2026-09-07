@@ -28,13 +28,26 @@ func genericTestStateIn(text string) (testState, bool) {
 			continue
 		}
 		if total, failed, isSummary := genericCounts(line); isSummary {
-			state.total, state.failed, found = total, failed, true
+			state.total, state.failed, state.summary, found = total, failed, line, true
 		}
 	}
 	if !found {
 		return testState{}, false
 	}
 	return state, true
+}
+
+// genericSummaryIn finds the counts line of a home-made runner in a result
+// another reader already read by its marks, so the counts can stand beside
+// the names.
+func genericSummaryIn(text string) (testState, bool) {
+	for _, raw := range strings.Split(text, "\n") {
+		line := strings.TrimSpace(raw)
+		if total, failed, isSummary := genericCounts(line); isSummary {
+			return testState{total: total, failed: failed, summary: line}, true
+		}
+	}
+	return testState{}, false
 }
 
 // genericCounts reads a line made of nothing but counts and the words tests,
@@ -45,7 +58,8 @@ func genericTestStateIn(text string) (testState, bool) {
 // the tests passed but 2 failed to load" is not a run. The total is the passed
 // and the failed together when the line does not say it.
 func genericCounts(line string) (total int, failed int, isSummary bool) {
-	words := strings.Fields(strings.ReplaceAll(line, ",", " "))
+	// A full stop or a comma after the last word is punctuation, not a word.
+	words := strings.Fields(strings.NewReplacer(",", " ", ".", " ", ";", " ").Replace(line))
 	if len(words) < 4 || len(words)%2 != 0 {
 		return 0, 0, false
 	}

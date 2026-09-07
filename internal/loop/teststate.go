@@ -37,6 +37,14 @@ type testState struct {
 	// filesFailed and filesTotal are Vitest's count of test files, which is
 	// the only count a file that could not be loaded appears in.
 	filesFailed, filesTotal int
+	// summary is the runner's own summary line the counts were read from,
+	// carried on the line so that a wrong reading is visible; empty when the
+	// counts came from marks alone.
+	summary string
+	// exitCode is what the command exited with when the result said, and
+	// zero otherwise. A command that exited with anything else did not pass,
+	// whatever the reader made of its marks, and the line says so.
+	exitCode int
 }
 
 // line is the one line the situation and the result carry: the counts, and the
@@ -48,12 +56,16 @@ func (state testState) line() string {
 		}
 		return "tests: all passing"
 	}
+	if state.total == 0 && len(state.failing) == 0 && state.exitCode != 0 {
+		// Nothing was counted; only the exit code says the run went red.
+		return "tests: failing" + state.provenance()
+	}
 	said := fmt.Sprintf("tests: %d failing", state.failed)
 	if state.total > 0 {
 		said += fmt.Sprintf(" of %d", state.total)
 	}
 	if len(state.failing) == 0 {
-		return said
+		return said + state.provenance()
 	}
 	named := state.failing
 	if len(named) > MaxFailingTestsNamed {
@@ -63,7 +75,23 @@ func (state testState) line() string {
 	if rest := len(state.failing) - len(named); rest > 0 {
 		said += fmt.Sprintf(" and %d more", rest)
 	}
-	return said
+	return said + state.provenance()
+}
+
+// provenance is what the line ends with so a reading can be checked: the
+// exit code when it was not zero, and the summary line the counts came from.
+func (state testState) provenance() string {
+	parts := []string{}
+	if state.exitCode != 0 {
+		parts = append(parts, fmt.Sprintf("exit %d", state.exitCode))
+	}
+	if state.summary != "" {
+		parts = append(parts, fmt.Sprintf("read from %q", state.summary))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " (" + strings.Join(parts, "; ") + ")"
 }
 
 // key is what tells one red run from another: the names when the runner gave
@@ -96,8 +124,8 @@ func testStateIn(text string) (testState, bool) {
 		case strings.HasPrefix(line, "✖ ") && !strings.HasSuffix(line, ":"):
 			state.addFailing(withoutItsTiming(strings.TrimPrefix(line, "✖ ")))
 			found = true
-		case strings.HasPrefix(line, "✕ "):
-			state.addFailing(withoutItsTiming(strings.TrimPrefix(line, "✕ ")))
+		case strings.HasPrefix(line, "✕ "), strings.HasPrefix(line, "✗ "), strings.HasPrefix(line, "✘ "), strings.HasPrefix(line, "× "):
+			state.addFailing(withoutItsTiming(line[len(strings.Fields(line)[0])+1:]))
 			found = true
 		// Jest without --verbose names a failing test only in its failure
 		// header, "● suite › test"; "● Console" and the like carry no arrow.
@@ -138,12 +166,34 @@ func testStateIn(text string) (testState, bool) {
 	scripting.finish(text, &state)
 	if !found {
 		state, found = genericTestStateIn(text)
+	} else if state.total == 0 {
+		// A home-made runner that draws marks and prints its own counts: no
+		// runner's summary was read, so the counts line is the one to carry.
+		if summary, ok := genericSummaryIn(text); ok {
+			state.failed, state.total, state.summary = summary.failed, summary.total, summary.summary
+		}
 	}
 	if !found {
 		return testState{}, false
 	}
+	state.exitCode = exitCodeOf(text)
 	state.settle()
 	return state, true
+}
+
+// exitCodeOf reads the exit code off a shell result's first line, or zero
+// when the result does not say.
+func exitCodeOf(text string) int {
+	first, _, _ := strings.Cut(strings.TrimSpace(text), "\n")
+	rest, found := strings.CutPrefix(first, "finished with exit code ")
+	if !found {
+		return 0
+	}
+	code, err := strconv.Atoi(strings.Fields(rest + " x")[0])
+	if err != nil {
+		return 0
+	}
+	return code
 }
 
 // readGo reads one trimmed line as Go's test runner prints it, and says whether
@@ -175,6 +225,11 @@ func (state *testState) settle() {
 	}
 	if state.failed == 0 && state.filesFailed > 0 {
 		state.failed, state.total = state.filesFailed, state.filesTotal
+	}
+	// A command that exited with anything but zero did not pass: the reader
+	// missed a failure the runner counted, so the line says red and why.
+	if state.failed == 0 && state.exitCode != 0 {
+		state.failed = 1
 	}
 }
 

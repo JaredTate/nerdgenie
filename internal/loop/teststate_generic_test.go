@@ -39,14 +39,14 @@ func TestAHomeMadeRunnersSummaryLineIsReadAsATestRun(t *testing.T) {
 	if strings.Join(state.failing, "|") != "game ends when the stack reaches the top" {
 		t.Errorf("the failing tests read %v, want the one named after the double colon", state.failing)
 	}
-	if line := state.line(); line != "tests: 1 failing of 143: game ends when the stack reaches the top" {
+	if line := state.line(); line != `tests: 1 failing of 143: game ends when the stack reaches the top (exit 1; read from "143 tests, 142 passed, 1 failed")` {
 		t.Errorf("the situation line reads %q", line)
 	}
 	for _, run := range []struct {
 		name, text, line string
 	}{
-		{"passed then failed", "finished with exit code 1\n5 passed, 1 failed\nexit 1", "tests: 1 failing of 6"},
-		{"failed then passed", "finished with exit code 1\n1 failed 5 passed\nexit 1", "tests: 1 failing of 6"},
+		{"passed then failed", "finished with exit code 1\n5 passed, 1 failed\nexit 1", `tests: 1 failing of 6 (exit 1; read from "5 passed, 1 failed")`},
+		{"failed then passed", "finished with exit code 1\n1 failed 5 passed\nexit 1", `tests: 1 failing of 6 (exit 1; read from "1 failed 5 passed")`},
 		{"green", "finished with exit code 0\n6 tests, 6 passed, 0 failed\nexit 0", "tests: all 6 passing"},
 	} {
 		state, found := testStateIn(run.text)
@@ -71,7 +71,7 @@ func TestTheGenericReaderIsTriedOnlyWhenNoRunnerMatched(t *testing.T) {
 	if !found {
 		t.Fatal("a Jest run was not read as a test run")
 	}
-	if line := state.line(); line != "tests: 1 failing of 6: clears a full row" {
+	if line := state.line(); line != "tests: 1 failing of 6: clears a full row (exit 1)" {
 		t.Errorf("the situation line reads %q, want Jest's own counts and name and nothing the last resort read", line)
 	}
 }

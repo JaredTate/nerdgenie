@@ -65,14 +65,19 @@ type pastCall struct {
 	result string
 }
 
-// TheRewindLine is the one message the model reads after its conversation is
-// cleared, in the harness's own words: the record above it is what stands.
-const TheRewindLine = "You asked for the same thing over and over, so the conversation was cleared and the record above is all that stands. Do something different from the last few rounds: check the thing you kept re-reading another way, write what you find into the record as a failure with its cause, and go on from there. The same call again ends the task."
+// TheRewindLine is the message the model reads after the rounds since its last
+// progress are cut, in the harness's own words: what came before them and the
+// record are what stand.
+const TheRewindLine = "You asked for the same thing over and over, so the rounds since your last progress were cut from the conversation; what came before them and the record are what stand. Do something different from the last few rounds: check the thing you kept re-reading another way, write what you find into the record as a failure with its cause, and go on from there. The same call again ends the task."
 
-// rewindIfDue clears the conversation after the round's results are remembered,
+// rewindIfDue cuts the conversation after the round's results are remembered,
 // when the round earned it: the stall goes into the record as a failure naming
-// the call, every message goes, the run of calls the detector counts starts
-// again, and the rewind line is the one message left. The record and its
+// the call, every message since the last round that made progress goes and
+// everything before it stays byte for byte, the run of calls the detector
+// counts starts again, and the newest results in full and the rewind line are
+// appended. A film editor with a scene that does not work cuts the bad stretch
+// and keeps the reel on either side: the rounds that were working keep their
+// place, and the daemon's cache of them keeps its value. The record and its
 // results are untouched, because they live outside the messages, and that is
 // the point: what was tried is not forgotten, only the going round in circles.
 func (running *run) rewindIfDue(ctx context.Context) {
@@ -86,10 +91,14 @@ func (running *run) rewindIfDue(ctx context.Context) {
 		Text:  running.stallText,
 		Cause: "nothing the last rounds returned changed what was asked next",
 	}})
-	running.messages = nil
+	if running.keepThrough > len(running.messages) {
+		running.keepThrough = len(running.messages)
+	}
+	running.messages = running.messages[:running.keepThrough]
 	running.recentCalls = nil
 	running.rememberTheOrientation(ctx, true)
 	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRewindLine})
+	running.keepThrough = len(running.messages)
 }
 
 // detectorRefuses says whether this call is one the model has already made over

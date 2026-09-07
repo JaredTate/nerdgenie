@@ -344,7 +344,7 @@ as a failure naming the call, drops every message, starts the run the detector
 counts again, and leaves `TheRewindLine` as the one message, so the record is
 all that stands and what was tried is not forgotten, only the going round in
 circles. `RewindsAllowed` (three) is how many times that happens before the
-fourth run of the same call ends the turn.
+fourth run of the same call ends the turn. Since 7 September 2026 the rewind is a cut, not a wipe: `keepThrough` in `run` records how many messages stood at the end of the last round that made progress (and at the window's opening), `rewindIfDue` keeps those messages byte for byte and drops only the rounds after them, then appends the orientation with the newest six results in full and `TheRewindLine`. The rounds that were working keep their place and the daemon's cache of them keeps its value; only the going round in circles goes. `NewestResultsShown` rose from two to six and the orientation block's cap from six to twelve thousand letters, because the model read back 2.6 results by id after a restart when given two.
 
 **A fresh window opens oriented (6 September 2026).** Every fresh window used to
 cost rounds of finding bearings: after each of four serve restarts that day the

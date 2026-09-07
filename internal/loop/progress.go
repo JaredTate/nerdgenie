@@ -225,6 +225,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 	switch {
 	case moved:
 		running.roundsSinceProgress = 0
+		running.keepThrough = len(running.messages)
 		return nil, nil
 	case onlyPolls(calls):
 		return nil, nil
@@ -240,7 +241,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 		}
 		running.stallsAfterARewind++
 		running.rewindDue = true
-		running.stallText = fmt.Sprintf("stalled: %d rounds in which no test went green, no step or done line was marked, no page changed, no new file was written and nothing new was read, so the conversation was cleared",
+		running.stallText = fmt.Sprintf("stalled: %d rounds in which no test went green, no step or done line was marked, no page changed, no new file was written and nothing new was read, so those rounds were cut from the conversation",
 			RewindAfterRoundsWithoutProgress)
 	}
 	return nil, nil

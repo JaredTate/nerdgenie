@@ -8,8 +8,9 @@ import (
 )
 
 // NewestResultsShown is how many of the task's results a fresh window of a task
-// that is not new opens with, in full.
-const NewestResultsShown = 2
+// that is not new opens with, in full. Six, because the model read back 2.6
+// results by id after a restart and 1.6 after a rewind when it was given two.
+const NewestResultsShown = 6
 
 // openTheWindow begins a task's conversation: the orientation first, with the
 // task's newest results when it is being picked up rather than started, and
@@ -20,6 +21,7 @@ const NewestResultsShown = 2
 func (running *run) openTheWindow(ctx context.Context, task Task) {
 	running.rememberTheOrientation(ctx, task.ResumeID != "")
 	running.remember(contract.Message{Role: contract.RoleUser, Text: task.Message.Text})
+	running.keepThrough = len(running.messages)
 }
 
 // rememberTheOrientation puts the facts of the machine in front of the model

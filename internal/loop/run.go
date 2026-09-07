@@ -39,13 +39,17 @@ const (
 
 // run is one task in flight, with everything that is true only while it runs.
 type run struct {
-	theLoop       *Loop
-	task          Task
-	channel       contract.Channel
-	keeper        *record.Keeper
-	jobSummary    string
-	recentWork    []workingcontext.RecentTask
-	messages      []contract.Message
+	theLoop    *Loop
+	task       Task
+	channel    contract.Channel
+	keeper     *record.Keeper
+	jobSummary string
+	recentWork []workingcontext.RecentTask
+	messages   []contract.Message
+	// keepThrough is how many messages stood at the end of the last round that
+	// made progress, or at the window's opening: a rewind cuts everything after
+	// it and keeps the rest byte for byte.
+	keepThrough   int
 	roundsAllowed int
 	timeAllowed   time.Duration
 	startedAt     time.Time

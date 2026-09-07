@@ -340,3 +340,7 @@ Run seven, started from an empty folder on the build with every change of the da
 
 My own look in a visible Chrome afterwards: the start card clean over a blurred board; a game in play at 1280 wide with the ghost piece, the next piece and the score; at 390 wide the board fills the width with the Yeti warning banner and its snowball live; zero elements hidden in the markup yet drawn; no console errors but the browser's favicon request. The count line, the on-screen rule, browser_resize and the Jest header names all did their work without a word from me.
 
+### The four approved ideas, built on 7 September 2026
+
+**Cut, do not wipe.** A rewind used to clear the whole conversation; the logs of 6 September showed every rewind and restart followed by re-orientation, 121 rounds and 33 minutes in all, the model reading results back by id. The rewind now cuts only the rounds since the last progress signal and keeps everything before them byte for byte, then appends the newest six results in full and the rewind line. The stall test proves the round that made progress survives and the stalled ones do not.
+

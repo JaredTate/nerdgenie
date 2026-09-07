@@ -18,8 +18,9 @@ const (
 	MaxPorts = 20
 	// MaxResultLetters is how much of one result is shown, head and tail.
 	MaxResultLetters = 1500
-	// MaxBlockLetters is the most the whole block may be.
-	MaxBlockLetters = 6000
+	// MaxBlockLetters is the most the whole block may be: room for six
+	// results at their cap beside the folder and the ports.
+	MaxBlockLetters = 12000
 )
 
 // TheHeading opens the block.

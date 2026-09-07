@@ -159,18 +159,19 @@ func TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord(t 
 	if len(requests) < 5 {
 		t.Fatalf("the model was called %d times, want at least 5: four stalled rounds and the one after the clearing", len(requests))
 	}
+	// The rewind is a cut, not a wipe: the first read was progress, because it
+	// answered something new, so that round stays byte for byte; the stalled
+	// rounds after it go; and the rewind line is the last message.
 	after := requests[4]
-	sawTheLine := false
-	for _, message := range after.Messages {
-		if message.Text == loop.TheRewindLine {
-			sawTheLine = true
-		}
-		if message.Role == contract.RoleAssistant || len(message.ToolResults) > 0 {
-			t.Errorf("the call after the clearing still carries the stalled rounds: %+v", message)
-		}
-	}
+	sawTheLine, keptTheFirstRound, keptAStalledRound := whatSurvivedTheCut(after)
 	if !sawTheLine {
-		t.Errorf("the call after the clearing does not carry the rewind line as a message of its own: %+v", after.Messages)
+		t.Errorf("the call after the cut does not carry the rewind line as a message of its own: %+v", after.Messages)
+	}
+	if !keptTheFirstRound {
+		t.Errorf("the round that made progress was thrown away with the stalled ones: %+v", after.Messages)
+	}
+	if keptAStalledRound {
+		t.Errorf("a stalled round survived the cut: %+v", after.Messages)
 	}
 	if !strings.Contains(testkit.WholeRequestText(after), "read the notes") {
 		t.Errorf("the ask left with the messages, and the record is what stands; the call reads:\n%s", testkit.WholeRequestText(after))
@@ -185,6 +186,25 @@ func TestARunOfTheSameCallClearsTheConversationAndWritesTheStallIntoTheRecord(t 
 	if !stalled {
 		t.Errorf("the record's failures read %+v, and a stall is written there naming the call so it is not forgotten", held.Lessons.Failures)
 	}
+}
+
+// whatSurvivedTheCut reads the request after a rewind for the rewind line, the
+// first round's call c1, and any of the stalled calls c2 to c4.
+func whatSurvivedTheCut(after contract.Request) (sawTheLine bool, keptTheFirstRound bool, keptAStalledRound bool) {
+	for _, message := range after.Messages {
+		if message.Text == loop.TheRewindLine {
+			sawTheLine = true
+		}
+		for _, call := range message.ToolCalls {
+			switch call.ID {
+			case "c1":
+				keptTheFirstRound = true
+			case "c2", "c3", "c4":
+				keptAStalledRound = true
+			}
+		}
+	}
+	return sawTheLine, keptTheFirstRound, keptAStalledRound
 }
 
 // TestTheSameCallTwiceInsideOneReplyIsCaughtToo proves the detector reads a

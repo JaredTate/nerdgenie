@@ -18,6 +18,8 @@ Three changes that keep the daemon's cache warm. The front of the prompt becomes
 
 ### 2. Cut, do not wipe
 
+Built on 7 September 2026: the rewind cuts the rounds since the last progress and keeps the rest; a fresh window carries six results in full. The window cap opening a fresh window instead of the half-drop follows once the context change of idea 1 lands.
+
 When the guard fires, the harness cuts only the messages since the last progress signal and keeps everything before them byte for byte, instead of clearing the conversation. When the window hits its cap it opens a fresh window the way a pick-up does, instead of dropping the oldest half. A fresh window carries the last six results in full, not two.
 
 - Evidence: all twelve rewinds and seventeen stop-and-continue restarts were followed by re-orientation: 121 rounds, 820k tokens, 33 minutes; the model read back 2.6 results by id after a restart and 1.6 after a rewind; five half-drops cost 105k.

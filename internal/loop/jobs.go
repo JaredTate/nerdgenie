@@ -145,6 +145,8 @@ func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jo
 		if staysRed != "" {
 			report += "\n" + staysRed
 		}
+	} else if staysRed == "" {
+		theLoop.writeTheStandingOrder(held)
 	}
 	// An unattended job has nobody to show a skill offer to, so its lesson is
 	// kept as a fact and nothing is offered. The report below still goes

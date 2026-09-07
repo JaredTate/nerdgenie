@@ -631,7 +631,18 @@ a stop, or more than five rounds is reviewed in one call with the tools off: the
 four questions of the after-action review, of which only the fourth answer is
 kept, as a fact through `contract.Memory` with the task as its source, and, when
 it begins the way a procedure begins, as a skill offered to the user through the
-channel. **An unattended task and an unattended job offer nothing**: nobody is
+channel. **The review keeps the architecture page (7 September 2026).** When the
+work folder holds `ARCHITECTURE.md`, or the task belongs to a job, the review
+asks a fifth question in a second call with the tools off, `TheFifthQuestion` in
+`archpage.go`: which section does this task change, and what should it say now,
+the heading on the first line and the paragraph under it, or none. The answer
+replaces that section through `markdown.ReplaceSection` with a dated line under
+it, "(updated by task 6, 2026-09-07)"; a body past `MaxSectionWords` (two hundred)
+is cut at a sentence end and the dated line says so; a heading not on the page is
+appended; a job's task in a folder with no page starts one under "# Architecture";
+and "none", an empty answer, or an answer with no heading line changes nothing.
+The four questions and the fifth share `askWithTheToolsOff`. The next task, and
+the next job on the same folder, read the section by name instead of reading files. **An unattended task and an unattended job offer nothing**: nobody is
 there to answer, so the lesson is kept as a fact and the report says so, rather
 than a preview being shown to nobody for the whole answer deadline. A finished
 task sends its report; a stopped or failed one says what happened and which line
@@ -1791,6 +1802,8 @@ Since 7 September 2026 `contract.NewJob` carries `DoneWhen`, the person's done l
 **Nothing is handed out while work may not start.** `(*Jobs).OnlyStartWorkWhen` is the question the store asks before `NextTask` hands out anything at all, and it is how the drain marker an update writes and the crash-loop breaker reach the scheduler: `serve.go` passes `reliability.Guard.MayStartTask`. While it says no, `NextTask` hands out nothing and touches no claim, so an update waits for the running task rather than cutting a job in half. The question is asked while the store's own lock is held, so it must answer for itself and never call back into the jobs.
 
 **`/jobs` and `/cron`.** `(*Jobs).JobsCommand()` and `(*Jobs).CronCommand()` return the two `contract.Command` values the orchestrator registers in `serve.go`. `/jobs` lists every job with its number, where it stands, its progress, and what it does; `/jobs 4` prints the record. A job lists by its short name, the one the model gave it when it was made, and by its whole ask when it was given none (`titleOf` in `list.go`). `/cron` lists the jobs that have a schedule, each with the schedule in plain words such as "every weekday at 7 in the morning in America/New_York", what it does, and when it last ran and runs next; `/cron 3` adds the incidents and the record, `/cron run 3` runs it now, and `/cron off 3` switches it off. A schedule too unusual to put into words prints as the cron expression it is, which is less than a sentence and never wrong.
+
+**A finished job writes the standing order (7 September 2026).** When `closeTheJob` finds the job's done list proved and nothing red, `writeTheStandingOrder` in `agentsfile.go` writes the work folder's `AGENTS.md` from the job's record, once: the name, the why, how to run it (the page a `shows` check opens) and how to test it (the first `tests pass` or `exit 0` check's command), the rules as the job's corrections capped at `MaxRulesInAStandingOrder`, and pointers to `ARCHITECTURE.md` and `REPO_MAP.md` when the folder has them. A file that exists, whoever wrote it, is never touched, so the person's own standing order always wins.
 
 **What the contract still lacks.** `contract.Job` has no way for the model to write a job's goal, rules, or done list, and `contract.NewJob` has no flag for watching, none for a job that keeps running whatever fails, and no seam for reaching the user or for asking whether work may start at all. Until it does, `(*Jobs).SetMonitor`, `(*Jobs).KeepRunningWhenItsTasksFail`, `(*Jobs).TellTheUser`, and `(*Jobs).OnlyStartWorkWhen` are methods on the concrete type and `serve.go` passes them where they are needed. `Resume` is on the contract now, and `(*Jobs).Update` is gone, because nothing but its tests called it and its sentence about the model writing a job's done list was stale. `contract.RunNumberOf` and `contract.RecordStatusOfJob` are the two readings the real store and the fake share, kept beside `contract.PutDownMark` so that neither can drift. A job whose done list has nothing behind it stays running when its last task finishes rather than closing, because `record.DoneCheck` is what decides that a record is done and nothing routes around it.
 

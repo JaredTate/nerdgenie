@@ -73,6 +73,7 @@ func (running *run) review(ctx context.Context) error {
 	if err := running.theLoop.keepTheLesson(ctx, where, "task "+running.keeper.ID(), answer); err != nil {
 		running.lessonUnkept = err.Error()
 	}
+	running.writeTheArchitectureSection(ctx)
 	return nil
 }
 
@@ -100,22 +101,7 @@ func (running *run) worthReviewing() bool {
 // answer, which is the only one that is kept. A review that cannot be asked
 // costs a lesson and nothing more, so nothing here fails the task.
 func (theLoop *Loop) askTheFourQuestions(ctx context.Context, background string) string {
-	request, err := theLoop.options.Context.Build(ctx, BuildInput{
-		Messages: []contract.Message{
-			{Role: contract.RoleUser, Text: background},
-			{Role: contract.RoleUser, Text: TheFourQuestions},
-		},
-		ToolsOff:      true,
-		ContextLength: theLoop.options.Model.ContextLength(),
-	})
-	if err != nil {
-		return ""
-	}
-	reply, err := theLoop.options.Model.Send(ctx, request, nil)
-	if err != nil {
-		return ""
-	}
-	return fourthAnswerIn(reply.Text)
+	return fourthAnswerIn(theLoop.askWithTheToolsOff(ctx, background, TheFourQuestions))
 }
 
 // fourthAnswerIn picks the fourth line out of the review, which is the answer to

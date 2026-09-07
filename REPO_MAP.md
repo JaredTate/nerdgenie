@@ -578,7 +578,11 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/loop/agentsfile.go
+internal/loop/agentsfile_test.go
 internal/loop/answercloses_test.go
+internal/loop/archpage.go
+internal/loop/archpage_test.go
 internal/loop/asknumber_test.go
 internal/loop/autotest.go
 internal/loop/autotest_test.go

@@ -1312,6 +1312,7 @@ internal/tool/shell/fuzz_test.go
 internal/tool/shell/integration_test.go
 internal/tool/shell/internals_test.go
 internal/tool/shell/poll_test.go
+internal/tool/shell/repeated_test.go
 internal/tool/shell/serve.go
 internal/tool/shell/serve_integration_test.go
 internal/tool/shell/serve_test.go
@@ -1321,8 +1322,6 @@ internal/tool/shell/start.go
 internal/tool/shell/table.go
 internal/tool/shell/testdata/a_failed_command.txt
 internal/tool/shell/testdata/a_finished_command.txt
-internal/tool/shell/unchanged.go
-internal/tool/shell/unchanged_test.go
 internal/tool/skill/bounds_test.go
 internal/tool/skill/doc.go
 internal/tool/skill/skill.go

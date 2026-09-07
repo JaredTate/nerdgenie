@@ -114,7 +114,6 @@ type Call struct {
 type Tool struct {
 	settings Settings
 	running  *table
-	past     pastRuns
 }
 
 // New returns the shell tool.

@@ -407,8 +407,12 @@ func TestAFourthSameAnswerAcrossOtherCallsRewinds(t *testing.T) {
 		t.Errorf("the read ran %d times, want 2: the third and the fourth of the same call with the same answer are not run",
 			len(reading.Inputs()))
 	}
-	if !strings.Contains(requestsJoined(built.model.Requests()), loop.TheRewindLine) {
-		t.Error("the model was never handed the rewind line after the fourth of the same call with the same answer")
+	// The fourth earns a stall, which is a rethink when the model answers
+	// the rethink's question and the plain cut when it does not; either way
+	// the model reads a fresh start rather than its own loop.
+	joined := requestsJoined(built.model.Requests())
+	if !strings.Contains(joined, loop.TheRethinkLine) && !strings.Contains(joined, loop.TheRewindLine) {
+		t.Error("the model was never handed a rethink or the rewind line after the fourth of the same call with the same answer")
 	}
 	if outcome.Status == contract.StatusStopped {
 		t.Errorf("the task ended stopped on %q, and the first stall clears the conversation rather than ending the task", outcome.StopLine)

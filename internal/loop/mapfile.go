@@ -90,7 +90,7 @@ func theMapOf(name string, files []string) string {
 	}
 	sort.Strings(roots)
 	var out strings.Builder
-	fmt.Fprintf(&out, "# Repository Map: %s\n\n%s\n\nThis file is written by Nerd Genie when a job finishes here. Do not edit it by hand; remove the mark above to keep your own.\n\n## Roots\n\n", name, GeneratedMark)
+	fmt.Fprintf(&out, "# Repository Map: %s\n\n%s\n\nThis file is written by Nerd Genie at the end of every task of a job here. Do not edit it by hand; remove the mark above to keep your own.\n\n## Roots\n\n", name, GeneratedMark)
 	for _, root := range roots {
 		fmt.Fprintf(&out, "- `%s` - %d files\n", root, counts[root])
 	}

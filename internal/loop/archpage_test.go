@@ -186,3 +186,27 @@ func theTextOf(request contract.Request) string {
 	}
 	return strings.Join(parts, "\n")
 }
+
+// TestAFolderWithoutAPageIsAskedToStartOneNotWhichSectionChanged holds that
+// the question fits the folder: with no page yet, the model is asked to start
+// the page with the part this task built, not which section it changed, because
+// on run seventeen the scaffold task answered "none" to the second question
+// and the folder ended the task with no page.
+func TestAFolderWithoutAPageIsAskedToStartOneNotWhichSectionChanged(t *testing.T) {
+	built, _ := aReviewedJobTask(t, "## Scaffold\nThe test runner and the page live at the root.")
+
+	runTheJobToTheEnd(t, built.loop, built.channel)
+
+	askedToStart, askedWhichChanged := false, false
+	for _, request := range built.model.Requests() {
+		text := theTextOf(request)
+		askedToStart = askedToStart || strings.Contains(text, loop.TheFirstSectionQuestion)
+		askedWhichChanged = askedWhichChanged || strings.Contains(text, loop.TheFifthQuestion)
+	}
+	if !askedToStart {
+		t.Error("a folder with no page was never asked to start one")
+	}
+	if askedWhichChanged {
+		t.Error("a folder with no page was asked which section changed, which invites the answer none")
+	}
+}

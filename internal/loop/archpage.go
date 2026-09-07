@@ -22,6 +22,11 @@ const ArchitectureFile = "ARCHITECTURE.md"
 // an architecture page, or when the task belongs to a job and could start one.
 const TheFifthQuestion = "Which section of ARCHITECTURE.md does this task change, and what should that section say now? Put the heading on the first line and the paragraph under it, or say none."
 
+// TheFirstSectionQuestion is asked instead when the folder has no page yet:
+// the first task of a project is asked to start the page, not which section
+// it changed, because "which section changed" invites the answer none.
+const TheFirstSectionQuestion = "This project has no ARCHITECTURE.md yet. Start it with the part this task built: put the part's name as a heading on the first line, and under it one paragraph saying what the part is for, what it holds, and which files it lives in."
+
 // MaxSectionWords is the most words a section body the review writes may hold.
 // A section is what the next task reads to find its bearings, and two hundred
 // words is one round of reading.
@@ -44,10 +49,12 @@ func (running *run) writeTheArchitectureSection(ctx context.Context) {
 		return
 	}
 	page := string(held)
+	question := TheFifthQuestion
 	if page == "" {
 		page = theTitleOfANewPage
+		question = TheFirstSectionQuestion
 	}
-	answer := running.theLoop.askWithTheToolsOff(ctx, string(record.Print(running.keeper.Record())), TheFifthQuestion)
+	answer := running.theLoop.askWithTheToolsOff(ctx, string(record.Print(running.keeper.Record())), question)
 	heading, body, found := readTheSectionAnswer(answer)
 	if !found {
 		return

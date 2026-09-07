@@ -741,6 +741,8 @@ internal/memory/testdata/twenty-questions.json
 internal/memory/twentyquestions_test.go
 internal/memory/unreadable_test.go
 internal/orientation/doc.go
+internal/orientation/documents.go
+internal/orientation/documents_test.go
 internal/orientation/everyport_test.go
 internal/orientation/orientation.go
 internal/orientation/orientation_test.go
@@ -1303,6 +1305,8 @@ internal/tool/read/pinnedbounds_test.go
 internal/tool/read/read.go
 internal/tool/read/read_test.go
 internal/tool/read/relativepath_test.go
+internal/tool/read/section.go
+internal/tool/read/section_test.go
 internal/tool/read/testdata/a_file.txt
 internal/tool/read/testdata/a_folder.txt
 internal/tool/read/wholefile_test.go

@@ -1,5 +1,6 @@
 // Package orientation is the short block of facts a fresh window opens with:
-// what is in the working folder, which ports are listening on this machine,
+// what is in the working folder, which of the project's documents it holds
+// and how to read a part of one, which ports are listening on this machine,
 // and, when the task is not new, its newest results in full.
 //
 // Every fresh window used to cost rounds of finding bearings. On 6 September

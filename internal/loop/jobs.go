@@ -19,41 +19,89 @@ import (
 // purpose. A schedule's task that the harness stopped, on a spent budget or a
 // line of the stop list, or that asked a question, has nobody to pick it up,
 // so it is finished as the failure it is, and the schedule's next tick brings
-// its own task.
+// its own task. A task the harness's own guard stopped, attended or not, is
+// picked up once by the job itself first, on a fresh window and on the same
+// turn, and only a second such stop is put down or failed; the outcome handed
+// back is the one the job's task ended with, the pick-up's when there was one.
 //
 // The bookkeeping runs under a short context of the loop's own, the way the
 // ending of a task does, because a turn cut off by its deadline has a
 // cancelled context: the report and the release of the claim used to fail
 // under it with "context canceled", and the cut-off task sat claimed for the
 // hour of its budget.
-func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) error {
+func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, error) {
 	if theLoop.options.Jobs == nil {
-		return nil
+		return outcome, nil
+	}
+	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
+	if outcome.ByTheGuard && outcome.TaskID != "" {
+		again, err := theLoop.options.Jobs.PickUpOnce(ctx, jobID, taskID)
+		if err != nil {
+			return outcome, fmt.Errorf("cannot ask job %s whether it may pick its task %s up itself: %w", jobID, taskID, err)
+		}
+		if again {
+			return theLoop.pickTheTaskUpItself(ctx, task, number, outcome)
+		}
 	}
 	ctx, done := theLoop.timeToWrapUp(ctx)
 	defer done()
 	stopped := outcome.Status == contract.StatusStopped
 	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
 	if putDown || (stopped && outcome.ByThePerson) {
-		return theLoop.putTheTaskDown(ctx, task, number, outcome)
+		return outcome, theLoop.putTheTaskDown(ctx, task, number, outcome)
 	}
-	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	failed := outcome.Status != contract.StatusDone
 	reportID, err := theLoop.options.Jobs.FinishTask(ctx, jobID, taskID, outcome.Report, failed)
 	if err != nil {
-		return fmt.Errorf("cannot write the report of task %s into job %s: %w", taskID, jobID, err)
+		return outcome, fmt.Errorf("cannot write the report of task %s into job %s: %w", taskID, jobID, err)
 	}
 	held, err := theLoop.options.Jobs.Load(ctx, jobID)
 	if err != nil {
-		return fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
+		return outcome, fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
 	}
 	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progressLine(jobID, reportID, held)); err != nil {
-		return err
+		return outcome, err
 	}
 	if everyTaskIsDone(held) {
-		return theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
+		return outcome, theLoop.closeTheJob(ctx, task.Channel, jobID, held, task.Unattended)
 	}
-	return nil
+	return outcome, nil
+}
+
+// TheJobPickUpLine is the ask a job's task is picked up with when the job
+// picks it up itself after the harness's guard stopped it. It stands where
+// the person's word would, last in the fresh window.
+const TheJobPickUpLine = "The harness stopped this task because it was going round in circles, and its job has picked it up again, once, on a fresh window. " +
+	"Go on from where the record says the work stands, and not the way that stalled: the record's failures say what that was."
+
+// pickTheTaskUpItself picks a job's task up the way the person's word does,
+// once, right after the harness's guard stopped it: the person is sent the
+// stopped report with a line saying the job picks the task up itself, and the
+// run is resumed by its number under the same job, on a fresh window with the
+// record's newest results in front of the model, on the same turn. Run ten's
+// polish task was ended by the same-call guard at round 212 and the job
+// waited for a person to type continue; the GLM run stalled the same way. A
+// task that stops the same way again is put down for a person, because the
+// store answers the second ask with no.
+func (theLoop *Loop) pickTheTaskUpItself(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, error) {
+	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
+	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+picksItUpLine(jobID, taskID)); err != nil {
+		return outcome, err
+	}
+	pickedUp := Task{
+		Message:    contract.Inbound{ID: task.Message.ID, Text: TheJobPickUpLine, Channel: task.Message.Channel},
+		Channel:    task.Channel,
+		FromJob:    task.FromJob,
+		Unattended: task.Unattended,
+		ResumeID:   number,
+	}
+	return theLoop.runTaskAndItsJob(ctx, pickedUp)
+}
+
+// picksItUpLine is the line under a guard-stopped task's report saying the
+// job picks the task up itself, and what happens if that stops too.
+func picksItUpLine(jobID string, taskID string) string {
+	return fmt.Sprintf("Job %s picks task %s up itself, once, on a fresh window; if it stops the same way again, the job waits for you.", jobID, taskID)
 }
 
 // progressLine is the line every job report carries: which job it was, which

@@ -178,6 +178,16 @@ func (store progressLosingJobStore) Load(ctx context.Context, jobID string) (con
 	return record, err
 }
 
+// generousPickUpStore lets a job pick a task up itself as often as it likes,
+// where the promise is once.
+type generousPickUpStore struct{ *testkit.FakeJob }
+
+// PickUpOnce answers yes every time.
+func (store generousPickUpStore) PickUpOnce(ctx context.Context, jobID string, taskID string) (bool, error) {
+	_, err := store.FakeJob.PickUpOnce(ctx, jobID, taskID)
+	return true, err
+}
+
 func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
@@ -190,6 +200,7 @@ func TestTheJobCheckCatchesAStoreThatBreaksOnePromise(t *testing.T) {
 		{"a store that forgets which task a job was put down on", forgetfulPutDownStore{workingJobStore()}},
 		{"a store that keeps the put-down mark after the job runs again", &clingingPutDownStore{FakeJob: workingJobStore()}},
 		{"a store that keeps the claim a paused run held after the job runs again", &claimKeepingJobStore{FakeJob: workingJobStore()}},
+		{"a store that lets a job pick a task up itself again and again", generousPickUpStore{workingJobStore()}},
 		{"a store that creates a job with no ask", agreeableJobStore{workingJobStore()}},
 		{"a store that pauses a job that is not there", forgivingJobStore{workingJobStore()}},
 		{"a store whose task identifiers are the wrong shape", oddlyNumberedJobStore{workingJobStore()}},

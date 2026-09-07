@@ -245,7 +245,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 		running.remember(contract.Message{Role: contract.RoleUser, Text: running.theNudge()})
 	case RewindAfterRoundsWithoutProgress:
 		if running.stallsAfterARewind >= StallsBeforeStop-1 {
-			ended, err := running.stopHere(ctx, fmt.Sprintf("%d rounds without progress, %d times over", RewindAfterRoundsWithoutProgress, StallsBeforeStop))
+			ended, err := running.stopOnTheGuard(ctx, fmt.Sprintf("%d rounds without progress, %d times over", RewindAfterRoundsWithoutProgress, StallsBeforeStop))
 			return &ended, err
 		}
 		running.stallsAfterARewind++

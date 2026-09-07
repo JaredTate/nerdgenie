@@ -26,6 +26,9 @@ type taskFacts struct {
 	// Unattended says a schedule made this task, so nobody is there to answer a
 	// preview.
 	Unattended bool `json:"unattended,omitempty"`
+	// PickedUp says the job has picked this task up itself once, after the
+	// harness's guard stopped it, so a second such stop puts it down.
+	PickedUp bool `json:"pickedUp,omitempty"`
 }
 
 // jobState is everything about a job that lives beside its record: where it

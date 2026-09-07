@@ -89,6 +89,31 @@ func checkAJobSetRunningAgainHandsItsTaskOutFirst(ctx context.Context, jobs cont
 	return nil
 }
 
+// checkJobPicksATaskUpOnce is the rule for a task the harness's guard stopped:
+// the job may pick it up itself once, and the second ask is refused, so that
+// a task which stalls the same way twice is put down for a person; a job that
+// is not there is refused with an error naming it.
+func checkJobPicksATaskUpOnce(ctx context.Context, jobs contract.Job, task contract.TaskToRun) error {
+	if _, err := jobs.PickUpOnce(ctx, "no-such-job", task.TaskID); err == nil {
+		return errors.New("picking up a task of a job that is not there returned no error, and it must name what is missing")
+	}
+	first, err := jobs.PickUpOnce(ctx, task.JobID, task.TaskID)
+	if err != nil {
+		return fmt.Errorf("the first pick-up of the task failed: %w", err)
+	}
+	if !first {
+		return errors.New("the first pick-up of a task was refused, and a job picks a task up once by itself")
+	}
+	second, err := jobs.PickUpOnce(ctx, task.JobID, task.TaskID)
+	if err != nil {
+		return fmt.Errorf("the second pick-up of the task failed: %w", err)
+	}
+	if second {
+		return errors.New("the second pick-up of the same task was allowed, and a job picks a task up once and then waits for a person")
+	}
+	return nil
+}
+
 // stateOfJob reads one job's state out of the listing.
 func stateOfJob(ctx context.Context, jobs contract.Job, jobID string) (contract.JobState, error) {
 	listed, err := jobs.List(ctx)

@@ -322,8 +322,19 @@ func (running *run) answerWithNoRecord(ctx context.Context, text string) (Outcom
 }
 
 // stopHere stops the task because a line of the stop list fired, and tells the
-// user which line it was.
+// user which line it was. A stop reported when every line of the done list is
+// already marked with its proof is a done instead, and the report says the
+// line was taken as the finish: GLM 5.3 wrote "the full suite is green" into
+// its own stop list, met it, and the harness recorded a finished task as
+// stopped and the job put it down. The stop list is for the things that must
+// reach the person, and a task whose done list is all proved has nothing to
+// stop for. A person's own stop never comes through here.
 func (running *run) stopHere(ctx context.Context, line string) (Outcome, error) {
+	if running.everyDoneLineIsProved() {
+		outcome, err := running.finish(ctx, theStopTakenAsTheFinish(line))
+		outcome.StopLine = line
+		return outcome, err
+	}
 	return running.stopAndSay(ctx, line, "Where it stands: "+running.whereItStands(), true)
 }
 

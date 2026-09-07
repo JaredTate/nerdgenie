@@ -46,6 +46,11 @@ func (running *run) runTheCalls(ctx context.Context, found repair.Result) (Outco
 		ending = stalled
 	}
 	running.rewindIfDue(ctx)
+	if ending == nil {
+		if err := running.reopenTheWindowIfFull(ctx); err != nil {
+			return Outcome{}, false, err
+		}
+	}
 	running.sayTheProbeLine()
 	running.sayTheMarkHint(found.Calls)
 	if err := running.writeSituation(ctx); err != nil {
@@ -83,7 +88,7 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 		return refusedResult(call, refusal), nil, nil
 	}
 	if hadEnough {
-		ended, err := running.stopHere(ctx, "the model asked for the same thing over and over")
+		ended, err := running.stopOnTheGuard(ctx, "the model asked for the same thing over and over")
 		return refusedResult(call, refusal), &ended, err
 	}
 	if refusal != "" {

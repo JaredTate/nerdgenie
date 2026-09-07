@@ -146,6 +146,11 @@ type Outcome struct {
 	// list or a spent budget. A person's stop puts a job's task down whoever
 	// made the task; the harness's stop on a schedule's task is a failure.
 	ByThePerson bool
+	// ByTheGuard says the harness's own guard stopped the task, because the
+	// model asked for the same thing over and over or made no progress twice
+	// over, rather than a line of the stop list or the person. A job picks
+	// such a task up once itself, on a fresh window, before it waits.
+	ByTheGuard bool
 }
 
 // Loop runs one task at a time. Everything it needs is an interface, so the
@@ -301,7 +306,7 @@ func (theLoop *Loop) runTaskAndItsJob(ctx context.Context, task Task) (Outcome, 
 	if err != nil || task.FromJob == nil {
 		return outcome, err
 	}
-	return outcome, theLoop.finishJobTask(ctx, task, number, outcome)
+	return theLoop.finishJobTask(ctx, task, number, outcome)
 }
 
 // runOne takes one task through its rounds, and says which number it ran

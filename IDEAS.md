@@ -20,7 +20,7 @@ Three changes that keep the daemon's cache warm. The front of the prompt becomes
 
 ### 2. Cut, do not wipe
 
-Built on 7 September 2026: the rewind cuts the rounds since the last progress and keeps the rest; a fresh window carries six results in full. The window cap opening a fresh window instead of the half-drop follows once the context change of idea 1 lands.
+Built on 7 September 2026: the rewind cuts the rounds since the last progress and keeps the rest; a fresh window carries six results in full. The window cap opening a fresh window instead of the half-drop was built on 7 September too: the round that fills the window past `MaxMessagesKept` opens it afresh, oriented, with the ask last.
 
 When the guard fires, the harness cuts only the messages since the last progress signal and keeps everything before them byte for byte, instead of clearing the conversation. When the window hits its cap it opens a fresh window the way a pick-up does, instead of dropping the oldest half. A fresh window carries the last six results in full, not two.
 
@@ -74,9 +74,9 @@ Before "done", the harness confirms what it can itself: files parse, the last te
 - Log the same-call guard's refusals and the nudge as events. Neither is visible in the log today, so neither can be counted.
 - Take a screenshot only when the model asks for one. One task took eighteen pictures for seven resizes.
 - Show six results in full on a fresh window, not two (part of idea 2, cheap on its own). Built on 7 September.
-- A task the guard stops inside a job is picked up once by the job itself, with a fresh window, before the job waits for a person. Run ten's polish task was ended by the same-call guard at round 212, the job went to waiting, and nothing moved until a person typed continue; the same happened to the GLM run. An unattended job should try the pick-up itself once, which is exactly what the person's word does, and wait only if that stops too.
-- A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for.
 - Memory records what happened, not what was asked. Capture wrote a call down as done the moment the model asked for it, so a refused push reached the next task as "ran the command git push". Built on 7 September: a call is written only once its result says it ran, failed, or was refused, and every result carries the id of the call that made it.
+- A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for. Built on 7 September: `stopHere` finishes the task instead when `record.DoneCheck` passes, and the report says the line was taken as the finish.
+- A task the guard stops inside a job is picked up once by the job itself, with a fresh window, before the job waits for a person. Run ten's polish task was ended by the same-call guard at round 212, the job went to waiting, and nothing moved until a person typed continue; the same happened to the GLM run. The pick-up is exactly what the person's word does, and the job waits only if that stops too. Built on 7 September: `contract.Job.PickUpOnce` answers yes once per task, and the loop picks the task up on the same turn.
 
 ## The wider list, from the two research reports
 

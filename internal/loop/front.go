@@ -44,7 +44,7 @@ func (running *run) readWhatRidesInFront(ctx context.Context) error {
 	if err := running.readJobSummary(ctx); err != nil {
 		return err
 	}
-	running.standingOrder = readTheStandingOrder(running.theLoop.options.WorkingDirectory)
+	running.standingOrder = readTheStandingOrder(running.folder())
 	return nil
 }
 
@@ -59,5 +59,6 @@ func (running *run) readJobSummary(ctx context.Context) error {
 		return fmt.Errorf("cannot read job %s to put its summary above the task: %w", running.task.FromJob.JobID, err)
 	}
 	running.jobSummary = running.theJobSummaryOf(held)
+	running.projectFolder = projectFolderIn(held)
 	return nil
 }

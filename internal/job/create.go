@@ -49,6 +49,11 @@ func (jobs *Jobs) Create(ctx context.Context, wanted contract.NewJob) (string, e
 	if err := writeTheWorkOrdersParts(ctx, keeper, jobID, wanted); err != nil {
 		return "", err
 	}
+	if wanted.Folder != "" {
+		if err := keeper.SetSituation(ctx, []string{contract.ProjectFolderLine + wanted.Folder}); err != nil {
+			return "", fmt.Errorf("cannot write the project folder of job %s: %w", jobID, err)
+		}
+	}
 
 	held := &heldJob{keeper: keeper}
 	starting := jobState{State: contract.JobRunning, Schedule: wanted.Schedule, Template: wanted.TaskTemplate}

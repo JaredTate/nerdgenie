@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -163,6 +162,7 @@ func (running *run) runForOutput(ctx context.Context, command string) (string, i
 	if running.theLoop.options.Sandbox == nil {
 		return "", 0, "there is no sandbox on this machine to run it in", nil
 	}
+	command = running.inTheProjectFolder(command)
 	call := theDoneCheckCall(command)
 	if err := running.theLoop.logEvent(ctx, running.taskID(), contract.EventToolCall, call); err != nil {
 		return "", 0, "", err
@@ -213,10 +213,7 @@ func (running *run) checkThePageShows(ctx context.Context, text string, url stri
 // checkTheFileExists looks for the path, under the working folder when it is
 // not written from the root.
 func (running *run) checkTheFileExists(path string) checkOutcome {
-	whole := expandHome(path)
-	if !filepath.IsAbs(whole) {
-		whole = filepath.Join(running.theLoop.options.WorkingDirectory, whole)
-	}
+	whole := aPathUnder(running.folder(), path)
 	if _, err := os.Stat(whole); err != nil {
 		return checkOutcome{said: fmt.Sprintf("the file %s is not there", path)}
 	}

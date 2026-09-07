@@ -16,17 +16,18 @@ const MaxRulesInAStandingOrder = 20
 
 // theMapFile is the generated map a standing order points at when the folder
 // has one.
-const theMapFile = "REPO_MAP.md"
+const theMapFile = MapFile
 
 // writeTheStandingOrder writes the work folder's AGENTS.md from a job that
 // finished done, once: a folder that already has one, whoever wrote it, is
 // left alone. The next job on the folder then starts with the rules and the
 // commands in front of every task. Nothing here fails the job.
 func (theLoop *Loop) writeTheStandingOrder(held contract.Record) {
-	folder := theLoop.options.WorkingDirectory
-	if folder == "" {
+	folder := theLoop.folderOfTheJob(held)
+	if folder == "" || !theFolderExists(folder) {
 		return
 	}
+	writeTheMap(folder)
 	path := filepath.Join(folder, StandingOrderFile)
 	if _, err := os.Stat(path); err == nil {
 		return

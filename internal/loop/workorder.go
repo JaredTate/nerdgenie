@@ -52,6 +52,7 @@ func (theLoop *Loop) makeTheJobOf(ctx context.Context, ask string, order workord
 		Why:      order.Goal,
 		DoneWhen: doneWhen,
 		Rules:    order.RulesWithTestsFirst(),
+		Folder:   order.Folder,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("cannot make the job the work order describes: %w", err)

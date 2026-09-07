@@ -645,6 +645,7 @@ internal/loop/linecheck.go
 internal/loop/linecheck_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
+internal/loop/mapfile_test.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
@@ -668,6 +669,7 @@ internal/loop/probes_test.go
 internal/loop/problems_test.go
 internal/loop/progress.go
 internal/loop/progress_test.go
+internal/loop/projectfolder_test.go
 internal/loop/putdown.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go

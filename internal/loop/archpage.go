@@ -34,7 +34,7 @@ const theTitleOfANewPage = "# Architecture\n"
 // the page. Nothing here fails the task: a page that cannot be written costs
 // the page and nothing more.
 func (running *run) writeTheArchitectureSection(ctx context.Context) {
-	folder := running.theLoop.options.WorkingDirectory
+	folder := running.folder()
 	if folder == "" || running.keeper == nil {
 		return
 	}

@@ -84,8 +84,8 @@ func TestAFinishedJobWritesAgentsMdOnceAndNeverOverwrites(t *testing.T) {
 			t.Errorf("the standing order lacks %q; it reads:\n%s", want, text)
 		}
 	}
-	if strings.Contains(text, "REPO_MAP.md") {
-		t.Errorf("the standing order points at a map the folder does not have:\n%s", text)
+	if !strings.Contains(text, "REPO_MAP.md") {
+		t.Errorf("the standing order does not point at the map the finish wrote beside it:\n%s", text)
 	}
 	if lines := strings.Count(text, "\n"); lines > 60 {
 		t.Errorf("the standing order is %d lines, want under sixty", lines)

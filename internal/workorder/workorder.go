@@ -66,6 +66,10 @@ type WorkOrder struct {
 	Goal string
 	// Where is the text under Where.
 	Where string
+	// Folder is the project folder Where names: the first backticked path
+	// holding a slash, such as `~/Desktop/Tic Tac Toe`, as written; empty when
+	// Where names none, and the home's work folder is the folder then.
+	Folder string
 	// DoneWhen is the done list in order.
 	DoneWhen []DoneLine
 	// Rules is the rules in order, as written, without the tests-first line
@@ -105,6 +109,7 @@ func Parse(text string) WorkOrder {
 			order.Goal = body
 		case headingWhere:
 			order.Where = body
+			order.Folder = folderIn(body)
 		case headingDoneWhen:
 			order.DoneWhen = doneLinesOf(items(body))
 			order.IsWorkOrder = order.Goal != ""
@@ -242,4 +247,19 @@ func firstSentence(goal string) string {
 		return goal[:at+1]
 	}
 	return strings.TrimSpace(goal)
+}
+
+// backtickedPaths finds every backticked text of a Where paragraph.
+var backtickedPaths = regexp.MustCompile("`([^`\n]+)`")
+
+// folderIn is the first backticked text with a slash in it, which is how a
+// Where names the project's folder; a bare name such as `Tic Tac Toe` is the
+// folder's name and not its place.
+func folderIn(where string) string {
+	for _, match := range backtickedPaths.FindAllStringSubmatch(where, -1) {
+		if strings.Contains(match[1], "/") {
+			return strings.TrimSpace(match[1])
+		}
+	}
+	return ""
 }

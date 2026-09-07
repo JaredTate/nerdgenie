@@ -49,8 +49,11 @@ type run struct {
 	// otherwise.
 	jobAsk     string
 	recentWork []workingcontext.RecentTask
-	// standingOrder is the work folder's AGENTS.md, read once at the start.
+	// standingOrder is the folder's AGENTS.md, read once at the start.
 	standingOrder string
+	// projectFolder is the folder the job's work order named, expanded, read
+	// once at the start from the job record; empty for a task with none.
+	projectFolder string
 	messages      []contract.Message
 	// keepThrough is how many messages stood at the end of the last round that
 	// made progress, or at the window's opening: a rewind cuts everything after

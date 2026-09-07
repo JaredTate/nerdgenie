@@ -43,6 +43,9 @@ type fakeJobEntry struct {
 	// putDown is the mark the job carries while it is put down on one of its
 	// tasks, and nil when it is not.
 	putDown *contract.PutDownMark
+	// folder is the project folder the work order named, shown as the first
+	// line of the record's situation, the rule the real store keeps.
+	folder string
 }
 
 // FakeJob holds jobs in memory: create one, add tasks to it, list them, change
@@ -101,6 +104,7 @@ func (jobs *FakeJob) Create(_ context.Context, wanted contract.NewJob) (string, 
 		why:      wanted.Why,
 		schedule: wanted.Schedule,
 		template: wanted.TaskTemplate,
+		folder:   wanted.Folder,
 	}
 	if wanted.Schedule != nil {
 		entry.summary.NextRun = jobs.clock.Now().Add(jobs.scheduleGap(wanted.Schedule))
@@ -251,6 +255,10 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 		tasks = append(tasks, task.task)
 	}
 	progress := fmt.Sprintf("%d of %d tasks done", entry.summary.TasksDone, entry.summary.TasksTotal)
+	situation := []string{progress}
+	if entry.folder != "" {
+		situation = []string{contract.ProjectFolderLine + entry.folder, progress}
+	}
 	return contract.Record{
 		Header: contract.Header{
 			Kind:       contract.RecordJob,
@@ -265,7 +273,7 @@ func (jobs *FakeJob) Load(_ context.Context, jobID string) (contract.Record, err
 			DoneWhen: append([]contract.DoneLine(nil), entry.doneWhen...),
 		},
 		Rules:   contract.Rules{Corrections: append([]contract.Correction(nil), entry.rules...)},
-		Work:    contract.Work{Situation: []string{progress}, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
+		Work:    contract.Work{Situation: situation, Tasks: tasks, Results: append([]contract.ResultLine(nil), entry.reports...)},
 		Lessons: contract.Lessons{},
 	}, nil
 }

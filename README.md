@@ -12,6 +12,7 @@ Nerd Genie is an open-source AI agent that runs on your own Linux machine. You t
 - Keeps its own honest state: a task record shaped like an Army operations order, an append-only event log, and a working context built fresh each call and sized to the model.
 - Watches itself: a progress meter that nudges, rewinds, and stops; a stuck-test line; refusals that say what to write instead; a nightly set of asks measured by a run report.
 - Runs on a 27B model on one graphics card: on this machine, Qwen 3.8 through the TurboQuant llama-server with MTP, about 420 tokens a second of prefill and 60 to 75 of output, and a 90 percent cache share on real work. The same harness drives Opus through Claude Code, GPT through Codex, and any model behind an OpenAI-compatible server such as Ollama.
+- Takes an ask written under six headings, Goal, Where, Done when, Rules, Tasks and Details, and turns it into the job before the model is called: your done lines with their checks, your rules in front of every task, your tasks in order. The harness runs the checks at the end of every task, and the job cannot close while one fails. `PROMPT_TEMPLATE_GUIDE.md` says how to write one; six worked examples sit beside it.
 - Reads a project's own documents the way a person does: `AGENTS.md` in the work folder rides in front of every task, and the sections of `ARCHITECTURE.md` and the roots of `REPO_MAP.md` are named at every fresh start so the model reads one section by name instead of a whole file.
 
 ## The idea
@@ -59,7 +60,7 @@ Nothing irreversible happens without a preview you approve first. Commands run i
 
 ## Built to grow
 
-The core, meaning the loop, the task record, the permissions, and the memory, is closed. Around it are four fixed shapes that can multiply: channels, tools, skills, and model providers. The first version has the terminal and Signal, eighteen tools, and three providers: Anthropic's API, the OpenAI-compatible API that every local model server and gateway speaks, and a command-line provider that drives Claude Code or Codex on a subscription. Adding Telegram later is one new file that fits the channel shape. Adding your own tool is one executable in a folder.
+The core, meaning the loop, the task record, the permissions, and the memory, is closed. Around it are four fixed shapes that can multiply: channels, tools, skills, and model providers. The first version has the terminal and Signal, twenty tools, and three providers: Anthropic's API, the OpenAI-compatible API that every local model server and gateway speaks, and a command-line provider that drives Claude Code or Codex on a subscription. Adding Telegram later is one new file that fits the channel shape. Adding your own tool is one executable in a folder.
 
 ## How it gets built
 

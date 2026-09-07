@@ -113,7 +113,7 @@ func TestTheFinishIsRefusedWhileACheckFails(t *testing.T) {
 		t.Fatalf("the task ended %q, want waiting on the model's question after the refusal", outcome.Status)
 	}
 	requests := requestsJoined(built.model.Requests())
-	refusal := `The done line "Every test passes. [tests pass: npm test]" has its check, and 2 failing of 10: clears a row; spawns, so this line is not true yet.`
+	refusal := `The done line "Every test passes. [tests pass: npm test]" has its check, and 2 failing of 10: clears a row; spawns (exit 1), so this line is not true yet.`
 	if !strings.Contains(requests, refusal) {
 		t.Errorf("the model was not sent back with the line and the count, and the requests read:\n%s", requests)
 	}

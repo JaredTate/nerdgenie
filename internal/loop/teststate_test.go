@@ -40,7 +40,7 @@ func TestTheTestStateIsReadOffANodeTestRun(t *testing.T) {
 	if strings.Join(state.failing, "|") != strings.Join(wanted, "|") {
 		t.Errorf("the failing tests read %v, want %v, each once and without its timing", state.failing, wanted)
 	}
-	if line := state.line(); line != "tests: 2 failing of 51: dragon triggers when the roll is below DRAGON_CHANCE; yeti pushes the piece as far left as it can go" {
+	if line := state.line(); line != "tests: 2 failing of 51: dragon triggers when the roll is below DRAGON_CHANCE; yeti pushes the piece as far left as it can go (exit 1)" {
 		t.Errorf("the situation line reads %q", line)
 	}
 }
@@ -121,7 +121,7 @@ func TestTheFailingNamesAreBounded(t *testing.T) {
 		t.Fatalf("the run reads %+v, want %d failing names found", state, MaxFailingTestsNamed+3)
 	}
 	line := state.line()
-	if !strings.HasSuffix(line, "and 3 more") || strings.Count(line, "case ") != MaxFailingTestsNamed {
+	if !strings.HasSuffix(line, "and 3 more (exit 1)") || strings.Count(line, "case ") != MaxFailingTestsNamed {
 		t.Errorf("the situation line reads %q, want %d names and a count of the rest", line, MaxFailingTestsNamed)
 	}
 }

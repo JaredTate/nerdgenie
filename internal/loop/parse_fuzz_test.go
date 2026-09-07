@@ -47,6 +47,7 @@ func FuzzWhatTheHarnessReadsFromText(f *testing.F) {
 	f.Add("exit 0\n", "the file ~/notes/a.md is written")
 	f.Add("", "")
 	f.Add("`````", "//////")
+	f.Add("finished with exit code 1\n  ✓ one\n  ✗ two\n1 passed, 1 failed.\nexit 1", "tests pass")
 
 	f.Fuzz(func(t *testing.T, result string, doneLine string) {
 		if _, found := exitCodeIn(result); found && result == "" {
@@ -63,5 +64,8 @@ func FuzzWhatTheHarnessReadsFromText(f *testing.F) {
 		}
 		fingerprintOf(contract.ToolCall{Name: doneLine, Input: json.RawMessage(result)})
 		summaryOfResult(contract.ToolTask, result, false)
+		if state, found := testStateIn(result); found && state.failed == 0 && exitCodeOf(result) != 0 {
+			t.Fatalf("a run that exited %d was read as all passing: %q", exitCodeOf(result), result)
+		}
 	})
 }

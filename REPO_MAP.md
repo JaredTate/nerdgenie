@@ -715,6 +715,7 @@ internal/loop/syntax.go
 internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
+internal/loop/testdata/home-made-runner-ballot-marks.txt
 internal/loop/testsfirst.go
 internal/loop/testsfirst_test.go
 internal/loop/teststate.go
@@ -723,6 +724,7 @@ internal/loop/teststate_cfamily.go
 internal/loop/teststate_cfamily_test.go
 internal/loop/teststate_generic.go
 internal/loop/teststate_generic_test.go
+internal/loop/teststate_homemade_test.go
 internal/loop/teststate_scripting.go
 internal/loop/teststate_scripting_test.go
 internal/loop/teststate_test.go

@@ -1,0 +1,56 @@
+finished with exit code 1
+logic: turns and moves
+  ✓ alternates X then O on each legal move
+  ✓ refuses a move on a taken cell and changes nothing
+  ✗ refuses a move once the game is over
+      expected "X", got null
+  ✓ only allows cells zero through eight
+
+logic: every winning line and its cells
+  ✓ wins with X on line 1 (0-1-2)
+  ✗ wins with O on line 1 (0-1-2)
+      expected "O", got null
+  ✓ wins with X on line 2 (3-4-5)
+  ✗ wins with O on line 2 (3-4-5)
+      expected "O", got null
+  ✓ wins with X on line 3 (6-7-8)
+  ✗ wins with O on line 3 (6-7-8)
+      expected "O", got null
+  ✓ wins with X on line 4 (0-3-6)
+  ✗ wins with O on line 4 (0-3-6)
+      expected "O", got null
+  ✓ wins with X on line 5 (1-4-7)
+  ✗ wins with O on line 5 (1-4-7)
+      expected "O", got null
+  ✓ wins with X on line 6 (2-5-8)
+  ✗ wins with O on line 6 (2-5-8)
+      expected "O", got null
+  ✓ wins with X on line 7 (0-4-8)
+  ✗ wins with O on line 7 (0-4-8)
+      expected "O", got null
+  ✓ wins with X on line 8 (2-4-6)
+  ✗ wins with O on line 8 (2-4-6)
+      expected "O", got null
+  ✓ reports no winner while the board is only half full
+
+logic: the draw
+  ✓ a full board with no line is a draw
+  ✓ a draw is not a win for either side
+
+logic: restart and new match
+  ✓ restart clears the board but keeps the scores
+  ✓ new match clears the scores and the board
+  ✓ the scoreboard counts across games
+
+logic: the mode
+  ✓ starts in two-player mode and can switch to the computer
+  ✓ switching modes starts a fresh game but keeps the scores
+  ✓ a new match keeps the chosen mode and player
+  ✓ in two-player mode both sides are human and neither is the computer
+
+# smoke.test.js
+
+scaffold
+  ✓ exposes the game state on window.game
+
+25 passed, 9 failed.

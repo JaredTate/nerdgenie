@@ -2,6 +2,24 @@
 
 Written 7 September 2026, rewritten the same evening to say what, why and how in plain words. It waits for the owner's yes. Every step is a failing test, then the code, then a measured Tetris run before the next step. The rule for every step: the simplest thing that passes the test.
 
+## The logic, on one page
+
+A small model can only do good work on what is in its window, and the harness decides what is in the window. So the harness has one job on every call: put three things in front of the model and nothing else. What the work is: the goal, the rules, this task. What is true now: the record. The specific knowledge the next step needs: the file being edited, the part of the spec, the part of the design. Everything else must be one round away by name, and out of the window.
+
+Today the third thing is the problem. The model gets the specific knowledge it needs by searching for it itself: it lists the folder, greps, reads whole files, and after every cut or fresh window reads its own files back. Every one of those is a round, about three seconds plus the prompt. Every whole-file read is up to sixteen kilobytes that pushes the record's own results out of the window, which causes more reads. That loop is the 121 rounds and 33 minutes a day of re-orientation.
+
+The three documents are three answers the model can fetch in one round instead of five.
+
+- "What are the rules here, how do I run and test this?" is `AGENTS.md`. It is short, so it is always in the window.
+- "How is this part put together, what are its names, which file?" is one section of `ARCHITECTURE.md`, two hundred words.
+- "Where is X?" is the map's legend in the orientation, and the search tool for the rest.
+
+**Round by round, the dragon task.** Today: round one lists `src`; rounds two and three read `hazards.js` in two halves because it is over the read cap; round four reads `config.js`; round five reads `engine.js` for the piece interface; round six writes the test. With the documents: the orientation block already says "ARCHITECTURE.md: sections engine, hazards, effects, shell, tests; read one with `read ARCHITECTURE.md hazards`", so round one reads that section, which names the states, the `raise(kind, piece)` function, the config values, the file and the test file. Round two reads the eighty lines of `hazards.js` around `raise`. Round three writes the test. Three rounds instead of six, and the window holds two hundred words and one region instead of three whole files, so nothing is evicted and nothing is read twice. The section is a result with an id, so after a cut it comes back by name for nothing.
+
+**How the model uses what it fetched.** The section names the contract between the parts, so the model edits with the right names in the right file, and does not break the part next door. When a task changes a part, the review writes the section at the task's end, so the next task reads the truth, not last week's. The documents feed the window, the window feeds the work, the work feeds the documents.
+
+**Why that is a more effective harness.** A task's cost is its rounds, and a round's cost is what is new in front of the model. Fewer reads means fewer rounds. Smaller reads means the window keeps what matters, so the model stops re-reading. The contract in front of the model means fewer wrong edits, which means fewer test-fix rounds. And the same three fetches work on a game in an empty folder and on a four-hundred-thousand-line repository, because the harness needs nothing from the project except the three files.
+
 ## The problems we are fixing, with the numbers
 
 These come from the 6 September logs (three runs, 32 tasks, 2,173 rounds) and from runs twelve to fifteen today.

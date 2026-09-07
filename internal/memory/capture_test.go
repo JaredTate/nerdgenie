@@ -57,32 +57,18 @@ func TestCaptureWritesDownTheFilesTheTaskChanged(t *testing.T) {
 	}
 }
 
-func TestCaptureWritesDownTheCommandsTheTaskRan(t *testing.T) {
-	opened := newMemory(t, shippedCaps)
-	call, err := json.Marshal(map[string]string{"command": "git push origin main"})
-	if err != nil {
-		t.Fatalf("cannot write the arguments: %v", err)
-	}
-	opened.writeEvent(t, contract.EventToolCall, contract.ToolCall{
-		ID: "call-1", Name: contract.ToolShell, Input: call,
-	})
-
-	found := opened.captureAndSearch(t, "ran the command git push")
-	if !holdsText(found, "ran the command git push origin main") {
-		t.Errorf("the command the task ran was not written down, and the search found %v", factTexts(found))
-	}
-}
-
 func TestCaptureWritesDownTheSitesTheTaskVisited(t *testing.T) {
 	opened := newMemory(t, shippedCaps)
 	opened.writeEvent(t, contract.EventToolCall, map[string]any{
 		"name":      contract.ToolBrowserOpen,
 		"arguments": map[string]string{"url": "https://x.com/compose"},
 	})
+	opened.writeResult(t, "", "opened the page", "the page opened")
 	opened.writeEvent(t, contract.EventToolCall, map[string]any{
 		"name":      contract.ToolWeb,
 		"arguments": map[string]string{"url": "https://digibyte.org/news"},
 	})
+	opened.writeResult(t, "", "read the page", "the page's text")
 
 	found := opened.captureAndSearch(t, "visited the site")
 	for _, wanted := range []string{
@@ -101,6 +87,7 @@ func TestCaptureWritesDownTheJobsTheTaskCreated(t *testing.T) {
 		"name":      contract.ToolJob,
 		"arguments": map[string]string{"name": "the anniversary campaign"},
 	})
+	opened.writeResult(t, "", "created the job", "the job was created as j3")
 
 	found := opened.captureAndSearch(t, "created the job anniversary campaign")
 	if !holdsText(found, "created the job the anniversary campaign") {

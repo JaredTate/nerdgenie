@@ -75,6 +75,7 @@ Before "done", the harness confirms what it can itself: files parse, the last te
 - Take a screenshot only when the model asks for one. One task took eighteen pictures for seven resizes.
 - Show six results in full on a fresh window, not two (part of idea 2, cheap on its own). Built on 7 September.
 - A stop reported with every done line marked is a done. GLM 5.3 wrote "the full suite is green" into its own stop list, then met it, and the harness recorded a finished task as stopped and the job put it down (7 September). The stop list is for the things that must reach the person; a task whose done list is all proved has nothing to stop for.
+- Memory records what happened, not what was asked. Capture wrote a call down as done the moment the model asked for it, so a refused push reached the next task as "ran the command git push". Built on 7 September: a call is written only once its result says it ran, failed, or was refused, and every result carries the id of the call that made it.
 
 ## The wider list, from the two research reports
 

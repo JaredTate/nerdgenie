@@ -55,6 +55,7 @@
     "Kind": "tool result",
     "Body": {
       "id": "r1",
+      "callId": "c1",
       "summary": "search: three files",
       "text": "three files"
     }
@@ -98,6 +99,7 @@
     "Kind": "tool result",
     "Body": {
       "id": "r2",
+      "callId": "c2",
       "summary": "updated the record: done_when, plan, why",
       "text": "{\"why\":\"the user wants a count\",\"plan\":[\"read the folder\",\"name the files\"],\"done_when\":[\"the files are counted\"]}"
     }
@@ -145,6 +147,7 @@
     "Kind": "tool result",
     "Body": {
       "id": "r3",
+      "callId": "c3",
       "summary": "search: notes.md, list.md, plan.md",
       "text": "notes.md, list.md, plan.md"
     }
@@ -187,6 +190,7 @@
     "Kind": "tool result",
     "Body": {
       "id": "r4",
+      "callId": "c4",
       "summary": "updated the record: done_when",
       "text": "{\"done_when\":[{\"text\":\"the files are counted\",\"done\":true,\"resultId\":\"r3\"}]}"
     }

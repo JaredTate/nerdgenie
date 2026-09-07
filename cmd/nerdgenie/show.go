@@ -194,9 +194,11 @@ func (answering *showing) loadTask(ctx context.Context, task string) (*record.Ke
 	return keeper, nil
 }
 
-// callThatMade finds the tool call written just before the result stored under
-// the id, which is the call that made it, because the loop writes each call
-// before it runs and stores its result before the next call. A call is used up
+// callThatMade finds the tool call that made the result stored under the id.
+// A result stored with the id of its call names it outright. An older result,
+// stored before the id was kept, is paired by its place: the loop writes each
+// call before it runs and stores its result before the next call, so the call
+// written just before the result is the one that made it. A call is used up
 // by the first result after it, so a result no call made, such as the reply the
 // harness writes as a result of its own, comes back false rather than with the
 // call before it. A result stored twice, which a failed checkpoint can do,
@@ -205,6 +207,9 @@ func (answering *showing) callThatMade(ctx context.Context, logKey string, id st
 	events, err := answering.store.ByTask(ctx, logKey)
 	if err != nil {
 		return contract.ToolCall{}, false
+	}
+	if call, found := callNamedByResult(events, id); found {
+		return call, true
 	}
 	var lastCall, made contract.ToolCall
 	callWaiting, found := false, false
@@ -224,6 +229,30 @@ func (answering *showing) callThatMade(ctx context.Context, logKey string, id st
 		}
 	}
 	return made, found
+}
+
+// callNamedByResult finds the call whose id the stored result carries, and
+// comes back false for a result stored without one, or naming a call the log
+// does not hold.
+func callNamedByResult(events []contract.Event, id string) (contract.ToolCall, bool) {
+	callID := ""
+	for _, event := range events {
+		stored := record.StoredResult{}
+		if event.Kind == contract.EventToolResult && json.Unmarshal(event.Body, &stored) == nil && stored.ID == id {
+			callID = stored.CallID
+			break
+		}
+	}
+	if callID == "" {
+		return contract.ToolCall{}, false
+	}
+	for _, event := range events {
+		call := contract.ToolCall{}
+		if event.Kind == contract.EventToolCall && json.Unmarshal(event.Body, &call) == nil && call.ID == callID {
+			return call, true
+		}
+	}
+	return contract.ToolCall{}, false
 }
 
 // callAndResult lays a result out for reading: the call's name on the first

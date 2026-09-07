@@ -46,6 +46,7 @@ STATE_IMPROVE_INNOVATE_PLAN.md
 STATE_RESEARCH.md
 TEST.md
 TESTING.md
+TETRIS_TEST_PROMPT.md
 THIRD_PARTY.md
 Z_PROMPTS.md
 audit_report.md
@@ -98,6 +99,7 @@ cmd/nerdgenie/serving_test.go
 cmd/nerdgenie/serving_turnguard_test.go
 cmd/nerdgenie/show.go
 cmd/nerdgenie/show_test.go
+cmd/nerdgenie/showcall_test.go
 cmd/nerdgenie/signal.go
 cmd/nerdgenie/signal_test.go
 cmd/nerdgenie/signalchannel.go
@@ -682,6 +684,8 @@ internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go
 internal/memory/capture_test.go
+internal/memory/captureresult.go
+internal/memory/captureresult_test.go
 internal/memory/command.go
 internal/memory/command_test.go
 internal/memory/contract_test.go
@@ -810,6 +814,7 @@ internal/record/ask_test.go
 internal/record/askbyreference_test.go
 internal/record/asklength_test.go
 internal/record/bounds_test.go
+internal/record/callid_test.go
 internal/record/checkpoint.go
 internal/record/checkpoint_test.go
 internal/record/doc.go

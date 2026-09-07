@@ -110,15 +110,15 @@ func (memory *Memory) Capture(ctx context.Context, taskID string) error {
 // task would quietly forget everything a long task did after it. It stops at the
 // end of the log, at the cap on captured facts, or at the cap on pages.
 func (memory *Memory) capturedFactsOfTask(ctx context.Context, taskID string) ([]contract.Fact, error) {
-	facts := []contract.Fact{}
+	walk := capturing{taskID: taskID, facts: []contract.Fact{}}
 	events, err := memory.eventLog.ByTask(ctx, taskID)
 	for page := 1; ; page++ {
 		if err != nil && !readWasCutShort(events, err) {
 			return nil, fmt.Errorf("cannot read the events of task %q to capture what it did: %w", taskID, err)
 		}
-		facts = appendCapturedFacts(facts, taskID, events)
-		if err == nil || len(facts) >= maxCapturedFacts || page >= maxCapturePages {
-			return facts, nil
+		walk.add(events)
+		if err == nil || len(walk.facts) >= maxCapturedFacts || page >= maxCapturePages {
+			return walk.facts, nil
 		}
 		after := events[len(events)-1].Sequence
 		events, err = memory.eventLog.ByRange(ctx, contract.EventRange{From: after + 1, To: math.MaxInt64})
@@ -134,35 +134,10 @@ func readWasCutShort(events []contract.Event, err error) bool {
 	return err != nil && len(events) > 0 && strings.Contains(err.Error(), "ByRange")
 }
 
-// appendCapturedFacts adds the facts worth keeping from one page of the event
-// log, in the order they happened, and stops at the cap on captured facts. A
-// page read by ByRange holds every task's events, so the ones belonging to some
-// other task are passed over here.
-func appendCapturedFacts(facts []contract.Fact, taskID string, events []contract.Event) []contract.Fact {
-	source := "task " + taskID
-	for _, event := range events {
-		if len(facts) >= maxCapturedFacts {
-			return facts
-		}
-		if event.TaskID != taskID {
-			continue
-		}
-		text, aboutTheUser, worthKeeping := capturedFrom(event)
-		if !worthKeeping {
-			continue
-		}
-		facts = append(facts, contract.Fact{
-			ID:       capturedFactID(taskID, event.Sequence, aboutTheUser),
-			Text:     cutToBytes(text, maxFactTextBytes, "the whole of it is in the event log"),
-			Source:   source,
-			Recorded: event.Occurred,
-		})
-	}
-	return facts
-}
-
-// capturedFrom reads one event and says what, if anything, is worth writing
-// down about it, and whether what it says is a fact about the user.
+// capturedFrom reads one event that is not part of a tool call and says what,
+// if anything, is worth writing down about it, and whether what it says is a
+// fact about the user. Tool calls are written down by the walk in
+// captureresult.go, once their outcome is known.
 func capturedFrom(event contract.Event) (text string, aboutTheUser bool, worthKeeping bool) {
 	switch event.Kind {
 	case contract.EventFileChange:
@@ -173,8 +148,6 @@ func capturedFrom(event contract.Event) (text string, aboutTheUser bool, worthKe
 		return "changed the file " + oneLine(body.Path), false, true
 	case contract.EventMessage:
 		return capturedFromMessage(event)
-	case contract.EventToolCall:
-		return capturedFromToolCall(event)
 	default:
 		return "", false, false
 	}
@@ -195,38 +168,6 @@ func capturedFromMessage(event contract.Event) (text string, aboutTheUser bool, 
 		return "", false, false
 	}
 	return said, true, true
-}
-
-// capturedFromToolCall writes down the commands the task ran, the sites it
-// visited, and the jobs it created, reading the argument that says what the
-// call would do.
-func capturedFromToolCall(event contract.Event) (text string, aboutTheUser bool, worthKeeping bool) {
-	call := toolCallBody{}
-	if err := json.Unmarshal(event.Body, &call); err != nil {
-		return "", false, false
-	}
-	written := ""
-	switch call.Name {
-	case contract.ToolShell:
-		written = describeIfWritten("ran the command ", call.field("command"))
-	case contract.ToolWeb, contract.ToolBrowserOpen:
-		written = describeIfWritten("visited the site ", call.field("url"))
-	case contract.ToolJob:
-		written = describeIfWritten("created the job ", call.field("name"))
-	}
-	if written == "" {
-		return "", false, false
-	}
-	return written, false, true
-}
-
-// describeIfWritten joins an opening phrase to an argument, and says nothing at
-// all when the model wrote no argument.
-func describeIfWritten(opening string, written string) string {
-	if written == "" {
-		return ""
-	}
-	return opening + written
 }
 
 // firstWord returns the first word of a message in lower case, which is what

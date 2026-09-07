@@ -109,7 +109,17 @@ func (keeper *Keeper) AddResult(ctx context.Context, summary string, text string
 	if err := keeper.mustBe(contract.RecordTask, "a task result"); err != nil {
 		return "", err
 	}
-	return keeper.addResultLine(ctx, summary, text)
+	return keeper.addResultLine(ctx, "", summary, text)
+}
+
+// AddResultOfCall is AddResult for a result a tool call made: the stored result
+// carries the call's id, so whoever reads the result later can find the call
+// that made it without guessing from its place in the log.
+func (keeper *Keeper) AddResultOfCall(ctx context.Context, callID string, summary string, text string) (string, error) {
+	if err := keeper.mustBe(contract.RecordTask, "a task result"); err != nil {
+		return "", err
+	}
+	return keeper.addResultLine(ctx, callID, summary, text)
 }
 
 // AddReport gives a finished task's report the next label inside its job, and
@@ -118,11 +128,12 @@ func (keeper *Keeper) AddReport(ctx context.Context, summary string, text string
 	if err := keeper.mustBe(contract.RecordJob, "a report"); err != nil {
 		return "", err
 	}
-	return keeper.addResultLine(ctx, summary, text)
+	return keeper.addResultLine(ctx, "", summary, text)
 }
 
-// addResultLine holds what a result and a report do alike.
-func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text string) (string, error) {
+// addResultLine holds what a result and a report do alike. The call id is
+// empty for a report and for a result no call made.
+func (keeper *Keeper) addResultLine(ctx context.Context, callID string, summary string, text string) (string, error) {
 	if summary == "" {
 		return "", fmt.Errorf("a result keeps one line in the record and this one is empty, so say in a few words what it was")
 	}
@@ -131,7 +142,7 @@ func (keeper *Keeper) addResultLine(ctx context.Context, summary string, text st
 	if err != nil {
 		return "", err
 	}
-	if err := keeper.storeResult(ctx, StoredResult{ID: id, Summary: line, Text: text}); err != nil {
+	if err := keeper.storeResult(ctx, StoredResult{ID: id, CallID: callID, Summary: line, Text: text}); err != nil {
 		return "", err
 	}
 	written := keeper.change(ctx, func(into *contract.Record) error {

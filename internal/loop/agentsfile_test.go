@@ -111,7 +111,12 @@ func TestAFinishedJobWritesAgentsMdOnceAndNeverOverwrites(t *testing.T) {
 
 // TestAJobWhoseDoneListIsNotProvedWritesNoAgentsMd: a job that runs every
 // task and still has a red check is not finished, and writes nothing.
-func TestAJobWhoseDoneListIsNotProvedWritesNoAgentsMd(t *testing.T) {
+// TestAJobsStandingOrderIsThereFromItsFirstTasksEndEvenWhileACheckIsRed holds
+// that the standing order does not wait for the finish: it is written from
+// the job's record at the end of the first task, red check or not, because a
+// long job needs its rules and commands in front of every task from the
+// second one on. Only the never-overwrite rule guards a person's own file.
+func TestAJobsStandingOrderIsThereFromItsFirstTasksEndEvenWhileACheckIsRed(t *testing.T) {
 	built := newHarness(t, []testkit.Step{
 		answerStep("The game is built. What changed: the engine. What I checked: the tests. What is left: nothing."),
 		aReviewReply("Keep the config in one file."),
@@ -121,7 +126,7 @@ func TestAJobWhoseDoneListIsNotProvedWritesNoAgentsMd(t *testing.T) {
 
 	runTheJobToTheEnd(t, built.loop, built.channel)
 
-	if _, err := os.Stat(filepath.Join(built.workFolder, loop.StandingOrderFile)); err == nil {
-		t.Errorf("a job with a red check wrote a standing order as though it had finished")
+	if _, err := os.Stat(filepath.Join(built.workFolder, loop.StandingOrderFile)); err != nil {
+		t.Errorf("the standing order is not there after the job's first task, though a later task needs it: %v", err)
 	}
 }

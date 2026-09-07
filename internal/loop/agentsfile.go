@@ -27,7 +27,6 @@ func (theLoop *Loop) writeTheStandingOrder(held contract.Record) {
 	if folder == "" || !theFolderExists(folder) {
 		return
 	}
-	writeTheMap(folder)
 	path := filepath.Join(folder, StandingOrderFile)
 	if _, err := os.Stat(path); err == nil {
 		return

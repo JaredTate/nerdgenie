@@ -154,6 +154,9 @@ type Outcome struct {
 	// JobProof is what the harness proved of the job's done list as this task
 	// ended, and is nil for a task that belongs to no job.
 	JobProof *JobProof
+	// FilesChanged are the files the task wrote or edited, in order, so that a
+	// job whose ask named no folder can learn where its work lives.
+	FilesChanged []string
 }
 
 // Loop runs one task at a time. Everything it needs is an interface, so the

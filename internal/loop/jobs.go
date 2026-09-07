@@ -62,6 +62,13 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if err != nil {
 		return outcome, fmt.Errorf("cannot read job %s after its task finished: %w", jobID, err)
 	}
+	held, err = theLoop.keepTheLearnedFolder(ctx, jobID, held, outcome.FilesChanged)
+	if err != nil {
+		return outcome, err
+	}
+	if !failed {
+		theLoop.writeTheProjectDocuments(held)
+	}
 	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progressLine(jobID, reportID, held)); err != nil {
 		return outcome, err
 	}

@@ -24,9 +24,10 @@ func TestEveryJobTasksEndLeavesTheThreeDocumentsInTheProjectFolder(t *testing.T)
 		t.Fatal(err)
 	}
 	built := newHarness(t, []testkit.Step{
+		callStep("I will scaffold the app.", callFor("c1", contract.ToolWrite, `{"path":"`+filepath.Join(project, "src", "notes.js")+`","content":"// notes"}`)),
 		answerStep("The app is scaffolded. What changed: the files. What I checked: the tests. What is left: the list."),
 		answerStep("## Storage\nNotes live in src/notes.js and are kept in local storage."),
-	})
+	}, scriptedTool(contract.ToolWrite, "created the file"))
 	built.sandbox.Script("sh -c cd", contract.SandboxResult{StandardOutput: []byte(theGreenRun)})
 	if outcome := built.ask(t, aWorkOrderIn(project)); outcome.Status != contract.StatusDone {
 		t.Fatalf("the lift ended %q: %s", outcome.Status, outcome.Report)

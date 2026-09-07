@@ -252,6 +252,10 @@ func firstSentence(goal string) string {
 // backtickedPaths finds every backticked text of a Where paragraph.
 var backtickedPaths = regexp.MustCompile("`([^`\n]+)`")
 
+// aDesktopName finds "on the Desktop named exactly `X`" and the like: the
+// word Desktop, then within a line a backticked name with no slash.
+var aDesktopName = regexp.MustCompile("(?i)desktop[^`\n]{0,80}`([^`/\n]+)`")
+
 // folderIn is the first backticked text with a slash in it, which is how a
 // Where names the project's folder; a bare name such as `Tic Tac Toe` is the
 // folder's name and not its place.
@@ -260,6 +264,9 @@ func folderIn(where string) string {
 		if strings.Contains(match[1], "/") {
 			return strings.TrimSpace(match[1])
 		}
+	}
+	if match := aDesktopName.FindStringSubmatch(where); match != nil {
+		return "~/Desktop/" + strings.TrimSpace(match[1])
 	}
 	return ""
 }

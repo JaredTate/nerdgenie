@@ -144,6 +144,9 @@ func (manyJobs) PickUpOnce(context.Context, string, string) (bool, error) { retu
 // ProveDoneLine is here for the same reason; no done line is ever proved here.
 func (manyJobs) ProveDoneLine(context.Context, string, int, string) error { return nil }
 
+// SetProjectFolder is here for the same reason; no folder is ever set here.
+func (manyJobs) SetProjectFolder(context.Context, string, string) error { return nil }
+
 // Resume is here so that manyJobs keeps to the job contract, which gained it; this
 // double never resumes a job.
 func (manyJobs) Resume(context.Context, string) error { return nil }

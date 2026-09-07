@@ -299,7 +299,7 @@ func (running *run) finish(ctx context.Context, text string) (Outcome, error) {
 	if err := running.sendUnlessAJob(ctx, report); err != nil {
 		return Outcome{}, err
 	}
-	return Outcome{TaskID: running.taskID(), Status: contract.StatusDone, Report: report, JobProof: proof}, nil
+	return Outcome{TaskID: running.taskID(), Status: contract.StatusDone, Report: report, JobProof: proof, FilesChanged: running.filesChanged}, nil
 }
 
 // waitHere puts the task into waiting, which is where a question leaves it.

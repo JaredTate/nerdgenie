@@ -254,6 +254,11 @@ type Job interface {
 	// result is empty, and closes the job when every line is proved and every
 	// task is done. A job or a line that is not there is an error naming it.
 	ProveDoneLine(ctx context.Context, jobID string, number int, resultID string) error
+	// SetProjectFolder writes the job's project folder into its record as the
+	// ProjectFolderLine, for a job whose ask named none: the harness learns
+	// the folder from the files the first task wrote, and every later task of
+	// the job works there.
+	SetProjectFolder(ctx context.Context, jobID string, folder string) error
 	// Load returns the job's record, which is what rides above the task record
 	// while one of the job's tasks runs and what "/jobs 4" prints.
 	Load(ctx context.Context, jobID string) (Record, error)

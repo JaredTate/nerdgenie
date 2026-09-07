@@ -220,6 +220,22 @@ func (jobs *FakeJob) closeOnADoneLinePerTask(entry *fakeJobEntry) {
 	entry.summary.State = contract.JobDone
 }
 
+// SetProjectFolder writes the folder the job's tasks work in, which the
+// record's situation then shows first.
+func (jobs *FakeJob) SetProjectFolder(_ context.Context, jobID string, folder string) error {
+	if folder == "" {
+		return fmt.Errorf("the project folder of job %s cannot be empty, so name the folder the work lives in", jobID)
+	}
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	entry.folder = folder
+	return nil
+}
+
 // ProveDoneLine marks one line of the job's done list with the report that
 // proves it, or unmarks it, and closes the job when every line is proved and
 // every task is done.

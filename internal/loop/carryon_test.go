@@ -44,9 +44,11 @@ func TestAJobsTaskThatOffersToCarryOnIsSentBackToWorkRatherThanPutDown(t *testin
 		t.Fatalf("the loop could not run the job's task: ran %v, %v", ran, err)
 	}
 
+	// Four calls of work, then the fifth question about the architecture
+	// page, which every job task is asked at its end.
 	requests := built.model.Requests()
-	if len(requests) != 4 {
-		t.Fatalf("the model was called %d times, want 4: the offer to carry on sends it back for the proof rather than ending the task", len(requests))
+	if len(requests) != 5 {
+		t.Fatalf("the model was called %d times, want 5: the offer to carry on sends it back for the proof rather than ending the task, and the architecture question comes last", len(requests))
 	}
 	if told := wholeRequestText(requests[2]); !strings.Contains(told, "nothing behind") {
 		t.Errorf("after the offer the model was told:\n%s\nwant the done-check's own line naming the unproven done line", told)

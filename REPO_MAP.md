@@ -510,6 +510,7 @@ internal/job/extras_test.go
 internal/job/failures_test.go
 internal/job/finish.go
 internal/job/finishwake_test.go
+internal/job/folder.go
 internal/job/fuzz_test.go
 internal/job/guard.go
 internal/job/integration_test.go
@@ -671,6 +672,7 @@ internal/loop/probes_test.go
 internal/loop/problems_test.go
 internal/loop/progress.go
 internal/loop/progress_test.go
+internal/loop/projectdocs_test.go
 internal/loop/projectfolder.go
 internal/loop/projectfolder_test.go
 internal/loop/putdown.go

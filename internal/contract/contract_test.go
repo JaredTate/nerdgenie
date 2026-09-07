@@ -69,7 +69,7 @@ func TestTheChannelHasTheSixThingsEveryChannelDoes(t *testing.T) {
 	}
 }
 
-func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheEightTheLoopNeeds(t *testing.T) {
+func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheNineTheLoopNeeds(t *testing.T) {
 	job := reflect.TypeFor[contract.Job]()
 
 	// The design names six operations. The loop needs eight more to run a
@@ -81,10 +81,12 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheEightTheLoopNeeds(
 	// fire a tick, and PickUpOnce, which lets the job pick a task its guard
 	// stopped up once by itself before it waits for a person, and
 	// ProveDoneLine, which marks one line of a work order's done list with the
-	// report that proves it.
+	// report that proves it, and SetProjectFolder, which writes the folder a
+	// job's tasks work in when the harness learns it from the first task's
+	// files.
 	wanted := []string{
 		"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff",
-		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine",
+		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine", "SetProjectFolder",
 	}
 	for _, name := range wanted {
 		if _, found := job.MethodByName(name); !found {
@@ -92,7 +94,7 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheEightTheLoopNeeds(
 		}
 	}
 	if job.NumMethod() != len(wanted) {
-		t.Errorf("Job has %d methods, want the fourteen listed in this test", job.NumMethod())
+		t.Errorf("Job has %d methods, want the fifteen listed in this test", job.NumMethod())
 	}
 }
 

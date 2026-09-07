@@ -47,7 +47,16 @@ var theOpeningsOfAProcedure = []string{"to ", "the steps", "first,", "first ", "
 // review asks the four questions when the task was worth reviewing: it had a
 // correction, a failure, a stop, or more than five rounds.
 func (running *run) review(ctx context.Context) error {
-	if running.keeper == nil || !running.worthReviewing() {
+	if running.keeper == nil {
+		return nil
+	}
+	running.learnTheFolder()
+	if !running.worthReviewing() {
+		// A short task earns no review, but a job's task still owes the
+		// architecture page its section, so that the next task reads it.
+		ctx, done := running.theLoop.timeForTheReview(ctx)
+		defer done()
+		running.writeTheArchitectureSection(ctx)
 		return nil
 	}
 	held := running.keeper.Record()

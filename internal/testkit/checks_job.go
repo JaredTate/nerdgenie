@@ -391,5 +391,18 @@ func checkAWorkOrdersPartsReadBack(ctx context.Context, jobs contract.Job) error
 	if !slices.Contains(held.Work.Situation, contract.ProjectFolderLine+"~/Desktop/The Thing") {
 		return fmt.Errorf("the job's situation reads %v, want the line %q, which every task of the job reads to know where to work", held.Work.Situation, contract.ProjectFolderLine+"~/Desktop/The Thing")
 	}
+	if err := jobs.SetProjectFolder(ctx, jobID, "~/Desktop/Elsewhere"); err != nil {
+		return fmt.Errorf("setting the project folder failed: %w", err)
+	}
+	if err := jobs.SetProjectFolder(ctx, jobID, ""); err == nil {
+		return errors.New("setting an empty project folder returned no error, and it must say the folder cannot be empty")
+	}
+	moved, err := jobs.Load(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("loading the job after its folder moved failed: %w", err)
+	}
+	if !slices.Contains(moved.Work.Situation, contract.ProjectFolderLine+"~/Desktop/Elsewhere") || slices.Contains(moved.Work.Situation, contract.ProjectFolderLine+"~/Desktop/The Thing") {
+		return fmt.Errorf("after SetProjectFolder the situation reads %v, want the new folder's line and not the old", moved.Work.Situation)
+	}
 	return jobs.SwitchOff(ctx, jobID)
 }

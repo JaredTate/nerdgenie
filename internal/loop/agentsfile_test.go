@@ -130,3 +130,21 @@ func TestAJobsStandingOrderIsThereFromItsFirstTasksEndEvenWhileACheckIsRed(t *te
 		t.Errorf("the standing order is not there after the job's first task, though a later task needs it: %v", err)
 	}
 }
+
+// TestTheStandingOrderAlwaysTellsTheModelToLookInTheMapFirst holds that the
+// standing order a job writes carries the map rule whatever the job's own
+// rules were: look a file or a function up in the map before searching or
+// reading for it, which is what the map is for.
+func TestTheStandingOrderAlwaysTellsTheModelToLookInTheMapFirst(t *testing.T) {
+	built, path := aFinishingJob(t)
+
+	runTheJobToTheEnd(t, built.loop, built.channel)
+
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(written), loop.TheMapRule) {
+		t.Errorf("the standing order lacks the map rule %q; it reads:\n%s", loop.TheMapRule, string(written))
+	}
+}

@@ -134,3 +134,37 @@ func TestAFolderWithoutTheDocumentsHasNoDocumentLines(t *testing.T) {
 		}
 	}
 }
+
+// TestTheMapLineSaysHowToReadAFilesEntry holds that the orientation's map line
+// tells the model the one thing it needs: a file's functions are one entry,
+// read by the file's path, so it looks there before it greps.
+func TestTheMapLineSaysHowToReadAFilesEntry(t *testing.T) {
+	folder := t.TempDir()
+	if err := os.WriteFile(filepath.Join(folder, "REPO_MAP.md"), []byte("# Repository Map: Tetris\n\n<!-- generated: nerdgenie -->\n\n## Roots\n\n- `src/` - 2 files\n\n## Source files\n\n### src/engine.js\n- `spawn(board)` → Spawns.\n\n### src/hazards.js\n- `raise(kind)` → Raises.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	block := orientation.Block(orientation.Facts{Folder: folder})
+	if !strings.Contains(block, "read a file's functions with `read REPO_MAP.md <path>`") {
+		t.Errorf("the map line does not say how to read a file's entry; the block reads:\n%s", block)
+	}
+	if !strings.Contains(block, "2 source files") {
+		t.Errorf("the map line does not count the files; the block reads:\n%s", block)
+	}
+}
+
+// TestAMapWithoutALegendIsNamedByItsSections holds that a map somebody wrote
+// by hand in the guide's shape, with no Roots legend, is still offered: its
+// top sections are named and a file's entry is read the same way.
+func TestAMapWithoutALegendIsNamedByItsSections(t *testing.T) {
+	folder := t.TempDir()
+	if err := os.WriteFile(filepath.Join(folder, "REPO_MAP.md"), []byte("# REPO_MAP.md — Core\n\n## Source Files — src/\n\n### src/validation.cpp\n- `CheckBlock()` → validates block structure\n\n## Tests\n\n### src/test/validation_tests.cpp\n- edge cases\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	block := orientation.Block(orientation.Facts{Folder: folder})
+	if !strings.Contains(block, "REPO_MAP.md: sections Source Files — src/, Tests") {
+		t.Errorf("a map without a legend is not named by its sections; the block reads:\n%s", block)
+	}
+	if !strings.Contains(block, "`read REPO_MAP.md <path>`") {
+		t.Errorf("the map line does not say how to read a file's entry; the block reads:\n%s", block)
+	}
+}

@@ -59,3 +59,31 @@ func TestAFinishedJobWritesTheMapAndKeepsAHandWrittenOne(t *testing.T) {
 		t.Errorf("a map the person wrote was changed:\n%s", string(kept))
 	}
 }
+
+// TestTheMapListsEachFilesFunctions holds that the map a job leaves is a map
+// of the code and not of the files: every source file is a heading and under
+// it every function and class with the first sentence of its comment, in the
+// shape that lets the model find a function by reading one entry instead of
+// grepping.
+func TestTheMapListsEachFilesFunctions(t *testing.T) {
+	built, agents := aFinishingJob(t)
+	folder := filepath.Dir(agents)
+	if err := os.MkdirAll(filepath.Join(folder, "src"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(folder, "src", "engine.js"), []byte("// The engine.\n\n// Spawns the next piece at the top.\nexport function spawn(board) {\n  return true;\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runTheJobToTheEnd(t, built.loop, built.channel)
+
+	written, err := os.ReadFile(filepath.Join(folder, loop.MapFile))
+	if err != nil {
+		t.Fatalf("no map was written: %v", err)
+	}
+	for _, want := range []string{"### src/engine.js", "The engine.", "- `spawn(board)` → Spawns the next piece at the top."} {
+		if !strings.Contains(string(written), want) {
+			t.Errorf("the map lacks %q; it reads:\n%s", want, string(written))
+		}
+	}
+}

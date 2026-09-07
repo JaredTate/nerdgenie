@@ -3,7 +3,7 @@
      smaller visual product than the Earth, with orbital motion as the thing the tests
      must prove. The runners replace <WORK> with the folder the project goes in, such
      as /home/jared/Desktop.
-     Difficulty 5 of 10. Expected on the local model: three to four hours, ten tasks. -->
+     Difficulty 5 of 10. Expected: one and a half to four hours, ten tasks; the time depends on the GPU and the model. -->
 
 # Solar System Viewer
 

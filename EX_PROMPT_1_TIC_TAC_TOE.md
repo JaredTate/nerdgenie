@@ -3,7 +3,7 @@
      logic, an unbeatable computer opponent the tests can prove, and polish that
      only the screen can judge. The runners replace <WORK> with the folder the
      project goes in, such as /home/jared/Desktop.
-     Difficulty 2 of 10. Expected on the local model: about one hour, six tasks. -->
+     Difficulty 2 of 10. Expected: twenty minutes to an hour, six tasks; the time depends on the GPU and the model. -->
 
 # Tic Tac Toe
 

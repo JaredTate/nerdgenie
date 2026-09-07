@@ -3,7 +3,7 @@
      beside the Tetris game and the flight simulator: a visual product whose quality
      is judged by eye as much as by test. The runners replace <WORK> with the folder
      the project goes in, such as /home/jared/Desktop.
-     Difficulty 6 of 10. Expected on the local model: four to six hours, thirteen tasks. -->
+     Difficulty 6 of 10. Expected: two to five hours, thirteen tasks; the time depends on the GPU and the model. -->
 
 # Interactive Earth
 

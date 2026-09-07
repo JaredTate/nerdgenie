@@ -3,7 +3,7 @@
      beside EX_PROMPT_2_TETRIS.md: a larger build with physics, 3D graphics and
      performance work. The runners replace <WORK> with the folder the project goes
      in, such as /home/jared/Desktop.
-     Difficulty 9 of 10. Expected on the local model: ten to sixteen hours, thirteen tasks; the physics and the world are the hardest work in the set. -->
+     Difficulty 9 of 10. Expected: five to twelve hours, thirteen tasks; the physics and the world are the hardest work in the set, and the time depends on the GPU and the model. -->
 
 # Flight Simulator
 

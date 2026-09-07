@@ -2,7 +2,7 @@
      shape PROMPT_TEMPLATE_GUIDE.md explains. It says everything TETRIS_TEST_PROMPT.md
      says, in the order the harness reads. The runners replace <WORK> with the folder
      the game goes in, such as /home/jared/Desktop.
-     Difficulty 5 of 10. Expected on the local model: three to five hours, fourteen tasks (run seven took three hours and 617 rounds on the old ask). -->
+     Difficulty 5 of 10. Expected: one and a half to four hours, fourteen tasks; run fifteen finished inside two hours on one 7900 XTX, and the time depends on the GPU and the model. -->
 
 # Tater Tots Tetris
 

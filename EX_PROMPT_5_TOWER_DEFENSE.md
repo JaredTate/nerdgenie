@@ -3,7 +3,7 @@
      game so far, with pathfinding, an economy and balance that only play can prove.
      The runners replace <WORK> with the folder the project goes in, such as
      /home/jared/Desktop.
-     Difficulty 8 of 10. Expected on the local model: eight to twelve hours, thirteen tasks; the balance play is most of it. -->
+     Difficulty 8 of 10. Expected: four to ten hours, thirteen tasks; the balance play is most of it, and the time depends on the GPU and the model. -->
 
 # Tower Defense Game
 

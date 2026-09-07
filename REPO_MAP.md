@@ -328,7 +328,11 @@ internal/channel/stream_test.go
 internal/clock/clock.go
 internal/clock/clock_test.go
 internal/clock/doc.go
+internal/codemap/codemap.go
 internal/codemap/codemap_test.go
+internal/codemap/doc.go
+internal/codemap/languages.go
+internal/codemap/print.go
 internal/command/always_test.go
 internal/command/answer.go
 internal/command/answer_test.go

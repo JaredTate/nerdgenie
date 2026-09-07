@@ -25,12 +25,12 @@ func TestTheFortyStepFixtureAgainstTheRealLog(t *testing.T) {
 	fixture := run.fixture
 	builder := newTestBuilder(t, Options{Home: home, MaxOutputTokens: 512, Boundary: goldenBoundary})
 	run.playTo(t, 10)
-	atRoundTen, err := builder.Build(t.Context(), run.input(3000))
+	atRoundTen, err := builder.Build(t.Context(), run.input(3300))
 	if err != nil {
 		t.Fatalf("cannot build the working context at round ten: %v", err)
 	}
 	run.playTo(t, 40)
-	atRoundForty, err := builder.Build(t.Context(), run.input(3000))
+	atRoundForty, err := builder.Build(t.Context(), run.input(3300))
 	if err != nil {
 		t.Fatalf("cannot build the working context at round forty: %v", err)
 	}

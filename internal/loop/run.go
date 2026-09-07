@@ -45,7 +45,9 @@ type run struct {
 	keeper     *record.Keeper
 	jobSummary string
 	recentWork []workingcontext.RecentTask
-	messages   []contract.Message
+	// standingOrder is the work folder's AGENTS.md, read once at the start.
+	standingOrder string
+	messages      []contract.Message
 	// keepThrough is how many messages stood at the end of the last round that
 	// made progress, or at the window's opening: a rewind cuts everything after
 	// it and keeps the rest byte for byte.
@@ -238,7 +240,7 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 	if err := running.useTheTaskRegistry(); err != nil {
 		return nil, err
 	}
-	if err := running.readJobSummary(ctx); err != nil {
+	if err := running.readWhatRidesInFront(ctx); err != nil {
 		return nil, err
 	}
 	running.openTheWindow(ctx, task)
@@ -267,20 +269,6 @@ func (theLoop *Loop) newRun(ctx context.Context, task Task) (*run, error) {
 		}
 	}
 	return running, nil
-}
-
-// readJobSummary prints the job this task belongs to, which rides above the
-// task record so that a later task can lean on the reports of the earlier ones.
-func (running *run) readJobSummary(ctx context.Context) error {
-	if running.task.FromJob == nil || running.theLoop.options.Jobs == nil {
-		return nil
-	}
-	held, err := running.theLoop.options.Jobs.Load(ctx, running.task.FromJob.JobID)
-	if err != nil {
-		return fmt.Errorf("cannot read job %s to put its summary above the task: %w", running.task.FromJob.JobID, err)
-	}
-	running.jobSummary = string(record.Print(held))
-	return nil
 }
 
 // takeANumber gives the task the number its record will carry. It is settled
@@ -434,6 +422,7 @@ func (running *run) buildRequest(ctx context.Context, toolsOff bool) (contract.R
 		Record:        running.recordOrNothing(),
 		ContextLength: running.theLoop.options.Model.ContextLength(),
 		JobSummary:    running.jobSummary,
+		StandingOrder: running.standingOrder,
 		RecentWork:    running.recentWork,
 		Messages:      running.messages,
 		Tools:         running.specs(),

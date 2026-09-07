@@ -145,6 +145,9 @@ func perTaskFront(input BuildInput, parts recordParts) []contract.Message {
 	if input.JobSummary != "" {
 		front = append(front, asUserMessage(jobHeading, input.JobSummary))
 	}
+	if input.StandingOrder != "" {
+		front = append(front, standingOrderMessage(input.StandingOrder))
+	}
 	if len(input.RecentWork) > 0 {
 		front = append(front, asUserMessage(recentWorkHeading, recentWorkText(input.RecentWork)))
 	}

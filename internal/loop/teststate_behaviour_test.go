@@ -190,7 +190,12 @@ func TestTheSameTestFailingForADozenRunsDrawsAStuckLine(t *testing.T) {
 		steps = append(steps,
 			callStep("I will change the engine.", callFor(fmt.Sprintf("e%d", at), contract.ToolEdit, fmt.Sprintf(`{"path":"/p/src/engine.js","old":"a%d","new":"b%d"}`, at, at))),
 			callStep("Now the tests.", callFor(fmt.Sprintf("t%d", at), contract.ToolShell, `{"command":"node --test tests/"}`)))
-		answers = append(answers, aRedRun, aRedRun)
+		// A real runner prints a new duration on every run, and a byte-identical
+		// answer to the same call is a repeat to the guard, wherever it sits in
+		// the window; the stuck line reads the failing set, not the bytes.
+		for run := 2*at - 1; run <= 2*at; run++ {
+			answers = append(answers, strings.Replace(aRedRun, "(0.5ms)", fmt.Sprintf("(%d.5ms)", run), 1))
+		}
 	}
 	steps = append(steps, answerStep("I cannot make it pass. What changed: the engine. What I checked: the tests. What is left: one test."))
 	built := newHarness(t, steps, scriptedTool(contract.ToolEdit, "edited /p/src/engine.js by 1 line"), scriptedTool(contract.ToolShell, answers...))

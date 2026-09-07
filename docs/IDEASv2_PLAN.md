@@ -14,7 +14,7 @@ Today the third thing is the problem. The model gets the specific knowledge it n
 
 The three documents are three answers the model can fetch in one round instead of several.
 
-- "What are the rules here, how do I run and test this?" is `AGENTS.md`. It is short, so it is always in the window.
+- "What are the rules here, how do I run and test this?" is `NERDGENIE.md`. It is short, so it is always in the window.
 - "How is this part put together, what are its names, which file?" is one section of `ARCHITECTURE.md`, two hundred words.
 - "Where is X?" is the map's legend in the orientation, and the search tool for the rest.
 
@@ -62,7 +62,7 @@ Reliability is the other half, and it has no baseline number yet: run fifteen ha
 On a fresh run the folder is empty and none of the three documents exist. This is where each thing helps, and where it does not.
 
 - **Before task one.** The template does the work. The job with fourteen tasks exists before the first model call instead of after five planning rounds. The seven done lines are the person's, two of them checks the harness runs. The eight rules sit in the record's rules for every task.
-- **Task one, the scaffold.** Nothing to fetch. At its end the review writes the first section of `ARCHITECTURE.md` (the test runner, `npm test`, `npm start` on 8091, the files) and the harness writes `AGENTS.md` from the work order. From here on both exist.
+- **Task one, the scaffold.** Nothing to fetch. At its end the review writes the first section of `ARCHITECTURE.md` (the test runner, `npm test`, `npm start` on 8091, the files) and the harness writes `NERDGENIE.md` from the work order. From here on both exist.
 - **Tasks two to nine, the engine and the hazards.** Each task's end writes its section: engine (the file, the board and piece functions, the test file), hazards (the states, `raise`, the config values). When task six starts, it does not read `engine.js`, `hazards.js` and `config.js` whole to learn the interfaces; it reads the hazards section in one round, opens the eighty lines it needs, and writes the test. Every time a task hits the message cap and gets a fresh window, as task seven of run fifteen did at round 58, the model re-orients from the section list instead of reading its own files back.
 - **Tasks ten and eleven, the browser shell and the effects on screen.** The expensive tasks today, and where the documents matter most: the shell has to know the engine's interface and the hazard states. Two sections, four hundred words, two rounds, instead of three files each over the read cap.
 - **Tasks twelve to fourteen, play test, QA, regression.** The documents matter little. The checks matter: after every task the harness runs `npm test` and opens the page, and the finish cannot close while either fails.
@@ -102,7 +102,7 @@ Six steps, built in three waves. Wave 0 is one small package the others share, b
 
 ### Wave 1, agent B: steps 3 and 4, the documents in the window (a day and a half)
 
-**Step 3, `AGENTS.md` in front of every task.** `BuildInput` in `internal/context` gains `StandingOrder string`, read once at task start by the loop from the Where folder, printed after the job summary and before the record's goal and rules, capped at sixty lines with a line saying it was cut. The ask's own rules come after it and win.
+**Step 3, `NERDGENIE.md` in front of every task.** `BuildInput` in `internal/context` gains `StandingOrder string`, read once at task start by the loop from the Where folder, printed after the job summary and before the record's goal and rules, capped at sixty lines with a line saying it was cut. The ask's own rules come after it and win.
 
 - Tests first: a builder golden with the block under the job summary; a folder without the file adds nothing; `TestAStandingOrderOverSixtyLinesIsCutAndSaysSo`; the cache-shape test still holds because the block is inside the stable prefix.
 - Fixes problem 3. Shows in: rounds reading rule files; rules broken and corrected by the owner.
@@ -129,7 +129,7 @@ Merge A, B, C onto main one at a time, conflicts by hand, the whole gate, `make 
 
 ### Wave 2, one agent: step 5, the documents are written by the job (one day)
 
-**What.** The review in `internal/loop/review.go` asks a fifth question when the Where folder holds `ARCHITECTURE.md`: which section did this task change, and what should it say now? The answer replaces that section through `markdown`, dated, and a section that does not exist yet is appended; a folder with no page gets one from the first task's answer. When a job finishes in a folder with no `AGENTS.md`, the harness writes one from the work order: what this is from Goal, the test command from the first done line, the Rules, and a pointer to the architecture page. Neither file is ever overwritten by the harness when the person has written it.
+**What.** The review in `internal/loop/review.go` asks a fifth question when the Where folder holds `ARCHITECTURE.md`: which section did this task change, and what should it say now? The answer replaces that section through `markdown`, dated, and a section that does not exist yet is appended; a folder with no page gets one from the first task's answer. When a job finishes in a folder with no `NERDGENIE.md`, the harness writes one from the work order: what this is from Goal, the test command from the first done line, the Rules, and a pointer to the architecture page. Neither file is ever overwritten by the harness when the person has written it.
 
 - Tests first: `TestTheReviewAsksWhichArchitectureSectionChanged` (the named section holds the answer, dated); `TestAFolderWithoutAnArchitecturePageGetsOne`; `TestAnAnswerNamingNoSectionChangesNothing`; `TestAFinishedJobWritesAgentsMdOnceAndNeverOverwrites`.
 - Fixes problem 1 for the next task and the next job. Shows in: the two files in the game folder at the end of a run, and the reads in the three rounds after a task start in the run after.

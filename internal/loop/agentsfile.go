@@ -18,7 +18,7 @@ const MaxRulesInAStandingOrder = 20
 // has one.
 const theMapFile = MapFile
 
-// writeTheStandingOrder writes the work folder's AGENTS.md from a job that
+// writeTheStandingOrder writes the work folder's NERDGENIE.md from a job that
 // finished done, once: a folder that already has one, whoever wrote it, is
 // left alone. The next job on the folder then starts with the rules and the
 // commands in front of every task. Nothing here fails the job.

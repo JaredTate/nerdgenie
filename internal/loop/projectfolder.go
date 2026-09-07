@@ -13,7 +13,7 @@ import (
 // The folder a task works in is the home's work folder, unless the task
 // belongs to a job made from a work order whose Where named a folder. On 7
 // September 2026 run sixteen built tic-tac-toe on the Desktop while the harness
-// listed the work folder in the orientation, read no AGENTS.md, ran the
+// listed the work folder in the orientation, read no NERDGENIE.md, ran the
 // person's "npm test" check in a folder with no package.json, and unproved a
 // done line the model had just proved. The job record's situation carries the
 // folder as one line, and every task of the job reads it from there.

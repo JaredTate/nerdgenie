@@ -12,7 +12,7 @@ import (
 )
 
 // TestEveryJobTasksEndLeavesTheThreeDocumentsInTheProjectFolder holds that
-// a long job does not wait for its finish to leave AGENTS.md, ARCHITECTURE.md
+// a long job does not wait for its finish to leave NERDGENIE.md, ARCHITECTURE.md
 // and REPO_MAP.md in the project folder: the end of its first task writes
 // all three, so the second task and every one after it start from them.
 func TestEveryJobTasksEndLeavesTheThreeDocumentsInTheProjectFolder(t *testing.T) {

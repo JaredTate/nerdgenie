@@ -45,7 +45,7 @@ const (
 const (
 	toolsHeading            = "**Your tools.** The tools you may call are sent with this message, each with its name, what it does, and the fields it takes."
 	jobHeading              = "**The job this task belongs to.** It changes only when one of its tasks finishes."
-	standingOrderHeading    = "**The project's standing order (AGENTS.md, %d lines):** its rules and how to run and test it. The task's own rules come after it and win."
+	standingOrderHeading    = "**The project's standing order (NERDGENIE.md, %d lines):** its rules and how to run and test it. The task's own rules come after it and win."
 	recordFirstHalfHeading  = "**The task record, part one: the goal and the rules.** These change rarely."
 	recordSecondHalfHeading = "**The task record, part two: the work and the lessons.**"
 	recordResultsHeading    = "**The task record, part three: every result so far.**"
@@ -106,7 +106,7 @@ type BuildInput struct {
 	// JobSummary is the job's goal, rules, and task list, printed by the record
 	// package, or empty when the task stands on its own.
 	JobSummary string
-	// StandingOrder is the text of the work folder's AGENTS.md, the project's
+	// StandingOrder is the text of the work folder's NERDGENIE.md, the project's
 	// rules and how to run and test it, or empty when the folder has none. It
 	// rides under the job summary, cut at MaxStandingOrderLines.
 	StandingOrder string

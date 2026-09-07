@@ -49,7 +49,7 @@ type run struct {
 	// otherwise.
 	jobAsk     string
 	recentWork []workingcontext.RecentTask
-	// standingOrder is the folder's AGENTS.md, read once at the start.
+	// standingOrder is the folder's NERDGENIE.md, read once at the start.
 	standingOrder string
 	// projectFolder is the folder the job's work order named, expanded, read
 	// once at the start from the job record; empty for a task with none.

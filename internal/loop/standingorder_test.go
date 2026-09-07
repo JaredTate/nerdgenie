@@ -19,8 +19,8 @@ func TestAWorkFoldersAgentsFileReachesTheModelOnEveryCall(t *testing.T) {
 		answerStep("Done. What changed: the board. What I checked: the tests. What is left: nothing."),
 	}, scriptedTool(contract.ToolEdit, "edited /game/src/engine.js by 1 line"))
 	order := "# The game\n\n- npm test runs the suite.\n- Port 8090 is taken; use 8091.\n"
-	if err := os.WriteFile(filepath.Join(built.workFolder, "AGENTS.md"), []byte(order), 0o644); err != nil {
-		t.Fatalf("cannot write AGENTS.md: %v", err)
+	if err := os.WriteFile(filepath.Join(built.workFolder, "NERDGENIE.md"), []byte(order), 0o644); err != nil {
+		t.Fatalf("cannot write NERDGENIE.md: %v", err)
 	}
 
 	built.ask(t, "build the board")
@@ -31,7 +31,7 @@ func TestAWorkFoldersAgentsFileReachesTheModelOnEveryCall(t *testing.T) {
 	}
 	for at, request := range requests {
 		text := wholeRequestText(request)
-		if !strings.Contains(text, "The project's standing order (AGENTS.md, 4 lines):") || !strings.Contains(text, "Port 8090 is taken; use 8091.") {
+		if !strings.Contains(text, "The project's standing order (NERDGENIE.md, 4 lines):") || !strings.Contains(text, "Port 8090 is taken; use 8091.") {
 			t.Errorf("request %d does not carry the standing order", at)
 		}
 	}
@@ -45,6 +45,6 @@ func TestAWorkFolderWithoutAnAgentsFileSaysNothingOfOne(t *testing.T) {
 	})
 	built.ask(t, "look around")
 	if strings.Contains(wholeRequestText(built.model.Requests()[0]), "standing order") {
-		t.Errorf("a folder with no AGENTS.md put a standing order in front of the model")
+		t.Errorf("a folder with no NERDGENIE.md put a standing order in front of the model")
 	}
 }

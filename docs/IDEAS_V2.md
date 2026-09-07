@@ -123,22 +123,22 @@ That is the same 2,898 words. The finish is six lines, two of them run by the ha
 
 Every project we keep has three documents. A new project gets them from the job that builds it. An existing project already has them.
 
-- **`AGENTS.md`**: the rules of the project and how to run and test it. Under sixty lines. This is the industry's name for the file, so a project that has one for another tool has one for Nerd Genie.
+- **`NERDGENIE.md`**: the rules of the project and how to run and test it. Under sixty lines. It is the file a person writes for Nerd Genie, the way Claude Code has CLAUDE.md and Codex has AGENTS.md.
 - **`ARCHITECTURE.md`**: how the project is put together, one section per part.
 - **`REPO_MAP.md`**: where everything is. Generated, never written by hand.
 
 **What the model sees.** The harness looks for the three in the Where folder at every task start. Then:
 
-- `AGENTS.md` rides in full under the job summary, in front of every task, because it is the rules and it is short. Rules in the work order come after it and win.
+- `NERDGENIE.md` rides in full under the job summary, in front of every task, because it is the rules and it is short. Rules in the work order come after it and win.
 - The other two ride as one line each in the orientation block, the block that already shows the folder and the ports: "ARCHITECTURE.md: 9 sections: engine, hazards, effects, shell, tests, ...; read one with `read ARCHITECTURE.md hazards`" and "REPO_MAP.md: 41 files in 6 folders; read a folder's part with `read REPO_MAP.md src`".
 - The `read` tool learns one thing: a Markdown file followed by a heading returns that section and nothing else. That is how the model reads a part of the architecture page, or one folder of the map, whenever it would help, without ever reading the whole.
 - The `search` tool already finds a file by name and a line by pattern, and it stays as it is.
 
 The rule is short: the rules ride in full, the rest is read by name when it would help. The model can reference any of the three at any time, and none of them can crowd the task out of the window.
 
-**What keeps them true.** The harness regenerates `REPO_MAP.md` after every write in the folder. At the end of every task the review already asks four questions with the tools off; it asks a fifth when the folder has an architecture page: "which section does this task change, and what should it say now?" The answer goes under that heading, dated. On a new project the harness starts the page from the task reports and starts `AGENTS.md` from the work order's Rules, Where and test command. So every job leaves the three documents behind, and the next job on the same folder begins oriented.
+**What keeps them true.** The harness regenerates `REPO_MAP.md` after every write in the folder. At the end of every task the review already asks four questions with the tools off; it asks a fifth when the folder has an architecture page: "which section does this task change, and what should it say now?" The answer goes under that heading, dated. On a new project the harness starts the page from the task reports and starts `NERDGENIE.md` from the work order's Rules, Where and test command. So every job leaves the three documents behind, and the next job on the same folder begins oriented.
 
-**A walk-through: task four, the dragon.** In front of the model: the goal, the seven rules, "Task 4: the dragon. Done when: the dragon tests pass. Details: Dragon.", the Dragon section in full, `AGENTS.md` as the job wrote it at task one, the folder with `src/engine.js`, `src/hazards.js`, `src/config.js` and three test files, the report of task three saying the hazard state machine and config are in and green, and the orientation's two lines for the architecture page and the map. The model reads `read ARCHITECTURE.md hazards` because task three wrote that section, writes `test/dragon.test.js`, watches it fail on the write's own line, writes the dragon into `src/hazards.js`, watches the suite go green on the edit's own line, marks the done line with that run, and reports. Five moves, no wasted round, and the next task starts with a page that says what the dragon is.
+**A walk-through: task four, the dragon.** In front of the model: the goal, the seven rules, "Task 4: the dragon. Done when: the dragon tests pass. Details: Dragon.", the Dragon section in full, `NERDGENIE.md` as the job wrote it at task one, the folder with `src/engine.js`, `src/hazards.js`, `src/config.js` and three test files, the report of task three saying the hazard state machine and config are in and green, and the orientation's two lines for the architecture page and the map. The model reads `read ARCHITECTURE.md hazards` because task three wrote that section, writes `test/dragon.test.js`, watches it fail on the write's own line, writes the dragon into `src/hazards.js`, watches the suite go green on the edit's own line, marks the done line with that run, and reports. Five moves, no wasted round, and the next task starts with a page that says what the dragon is.
 
 ## 6. Why this makes success repeatable
 
@@ -152,7 +152,7 @@ The rule is short: the rules ride in full, the rest is read by name when it woul
 
 1. **The lift.** Six headings read into the job's record, the Details shelved by heading, the task's slice in the per-task front. Two days. Built 7 September 2026 (`internal/workorder`, `internal/loop/workorder.go`, `workorderslice.go`, `read ask <heading>`).
 2. **The five moves held by the harness.** The tests-first line on a code write with no failing test; the checks run at the end of every task. The fresh-proof done line is built already. One day.
-3. **The three documents in the window.** `AGENTS.md` in full under the job summary; one line each for the other two in the orientation; `read <file> <heading>`. One day.
+3. **The three documents in the window.** `NERDGENIE.md` in full under the job summary; one line each for the other two in the orientation; `read <file> <heading>`. One day.
 4. **The documents kept true.** The map regenerated after every write; the fifth review question writing the architecture section; a new project's three documents started by the job. Two days.
 5. **The `job` tool asking for the six-heading shape** when there is no work order, so the model plans the same way. One day.
 

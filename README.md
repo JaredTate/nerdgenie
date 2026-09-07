@@ -13,7 +13,7 @@ Nerd Genie is an open-source AI agent that runs on your own Linux machine. You t
 - Watches itself: a progress meter that nudges, rewinds, and stops; a stuck-test line; refusals that say what to write instead; a nightly set of asks measured by a run report.
 - Runs on a 27B model on one graphics card: on this machine, Qwen 3.8 through the TurboQuant llama-server with MTP, about 420 tokens a second of prefill and 60 to 75 of output, and a 90 percent cache share on real work. The same harness drives Opus through Claude Code, GPT through Codex, and any model behind an OpenAI-compatible server such as Ollama.
 - Takes an ask written under six headings, Goal, Where, Done when, Rules, Tasks and Details, and turns it into the job before the model is called: your done lines with their checks, your rules in front of every task, your tasks in order. The harness runs the checks at the end of every task, and the job cannot close while one fails. `PROMPT_TEMPLATE_GUIDE.md` says how to write one; six worked examples sit beside it.
-- Reads a project's own documents the way a person does: `AGENTS.md` in the work folder rides in front of every task, and the sections of `ARCHITECTURE.md` and the roots of `REPO_MAP.md` are named at every fresh start so the model reads one section by name instead of a whole file.
+- Reads a project's own documents the way a person does: `NERDGENIE.md` in the work folder rides in front of every task, and the sections of `ARCHITECTURE.md` and the roots of `REPO_MAP.md` are named at every fresh start so the model reads one section by name instead of a whole file.
 
 ## The idea
 

@@ -20,12 +20,12 @@ func aWorkOrderIn(folder string) string {
 // Where names, not the home's work folder, is where a task of the job finds
 // its bearings, reads the project's standing order, and runs the person's
 // checks. On 7 September 2026 run sixteen built tic-tac-toe on the Desktop
-// while the harness listed the work folder, read no AGENTS.md, and ran "npm
+// while the harness listed the work folder, read no NERDGENIE.md, and ran "npm
 // test" where there was no package.json, unproving a line the model had
 // just proved.
 func TestAJobMadeFromAWorkOrderWorksInTheFolderWhereNames(t *testing.T) {
 	project := t.TempDir()
-	if err := os.WriteFile(filepath.Join(project, "AGENTS.md"), []byte("# Notes\n\n- Serve on port 8097.\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "NERDGENIE.md"), []byte("# Notes\n\n- Serve on port 8097.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(project, "notes.js"), []byte("// the notes\n"), 0o644); err != nil {
@@ -56,7 +56,7 @@ func TestAJobMadeFromAWorkOrderWorksInTheFolderWhereNames(t *testing.T) {
 		t.Errorf("the orientation does not list the project folder's files; the request reads:\n%s", first)
 	}
 	if !strings.Contains(first, "Serve on port 8097.") {
-		t.Errorf("the project's AGENTS.md did not reach the model; the request reads:\n%s", first)
+		t.Errorf("the project's NERDGENIE.md did not reach the model; the request reads:\n%s", first)
 	}
 	ranInTheFolder := false
 	for _, command := range built.sandbox.Commands() {

@@ -11,14 +11,14 @@ import (
 // it is, how to run it, how to test it, what holds on every task. It is the
 // name the other agents read too, so a project that has one for them has one
 // for Nerd Genie.
-const StandingOrderFile = "AGENTS.md"
+const StandingOrderFile = "NERDGENIE.md"
 
 // MaxStandingOrderBytes is the most of the file that is read. A standing order
 // is shown to sixty lines, so a file past this size is one nobody meant the
 // model to read whole.
 const MaxStandingOrderBytes = 64 << 10
 
-// readTheStandingOrder reads the work folder's AGENTS.md once, at the task's
+// readTheStandingOrder reads the work folder's NERDGENIE.md once, at the task's
 // start, so that it rides in front of the model on every call of the task. A
 // folder with none, or one that cannot be read, gives nothing, because the
 // rules of a project are a help and never a reason to fail a task.
@@ -39,7 +39,7 @@ func readTheStandingOrder(folder string) string {
 // readWhatRidesInFront gathers the two things that sit under the tools and
 // above the record on every call of the task and hold still through it: the
 // summary of the job the task belongs to, and the work folder's standing
-// order, its AGENTS.md, when the folder has one.
+// order, its NERDGENIE.md, when the folder has one.
 func (running *run) readWhatRidesInFront(ctx context.Context) error {
 	if err := running.readJobSummary(ctx); err != nil {
 		return err

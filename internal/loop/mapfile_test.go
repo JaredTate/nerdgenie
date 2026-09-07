@@ -11,7 +11,7 @@ import (
 
 // TestAFinishedJobWritesTheMapAndKeepsAHandWrittenOne holds that a job that
 // finishes done leaves a generated REPO_MAP.md in its folder beside
-// AGENTS.md: a legend of the top folders and a tree of the files, with the
+// NERDGENIE.md: a legend of the top folders and a tree of the files, with the
 // dependency and build folders left out, and that a map without the
 // generated mark is the person's and is never touched.
 func TestAFinishedJobWritesTheMapAndKeepsAHandWrittenOne(t *testing.T) {

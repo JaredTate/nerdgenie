@@ -53,7 +53,7 @@ func aFinishingJob(t *testing.T) (*harness, string) {
 }
 
 // TestAFinishedJobWritesAgentsMdOnceAndNeverOverwrites: a job that finishes
-// done in a folder with no AGENTS.md writes one from its record, under sixty
+// done in a folder with no NERDGENIE.md writes one from its record, under sixty
 // lines: the name, the why, how to run and test it from the first checked done
 // line, the rules, and where the other documents are. A file that exists is
 // never touched.

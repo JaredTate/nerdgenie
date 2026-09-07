@@ -96,16 +96,16 @@ Five moves, the same on every task of every project, each with a check the harne
 
 A project we keep carries three documents. A new project gets them from the job that builds it. An existing project already has them.
 
-- **`AGENTS.md`**: the rules of the project and how to run it and test it. Under sixty lines.
+- **`NERDGENIE.md`**: the rules of the project and how to run it and test it. Under sixty lines.
 - **`ARCHITECTURE.md`**: how the project is put together, one section per part.
 - **`REPO_MAP.md`**: where everything is. Generated, never written by hand.
 
 The model cannot read these whole. A real architecture page is a hundred thousand tokens on a large code base, and a map is thousands of lines. Nor should it: a task on the dragon needs the hazards section, not the rendering section. So the harness handles the three like this.
 
-- **The rules ride in full.** `AGENTS.md` is short and it is the rules, so it sits under the job summary in front of every task.
+- **The rules ride in full.** `NERDGENIE.md` is short and it is the rules, so it sits under the job summary in front of every task.
 - **The other two ride as one line each.** In the block that already tells the model what is in the folder and which ports are open, two more lines: "ARCHITECTURE.md has 9 sections: engine, hazards, effects, shell, tests, ...; read one with `read ARCHITECTURE.md hazards`" and "REPO_MAP.md has 41 files in 6 folders; read a folder with `read REPO_MAP.md src`".
 - **The model reads a section by name when it would help.** The read tool takes a Markdown file and a heading and returns that section only. Two hundred words, one round, exactly the part that matters. The search tool still finds any file or line by pattern.
-- **The documents stay true without a person, from the first task on.** At the end of every task of a job the harness leaves all three in the project folder: it asks the model one question with the tools off, which section of the architecture page did this task change and what should it say now, and writes the answer under that heading; it writes `AGENTS.md` once from the job's name, why, rules and test command; and it regenerates `REPO_MAP.md`, a legend of the top folders and a tree of the files. The project folder is the one Where names, and a job whose ask named none learns it from the folder its first task's files share.
+- **The documents stay true without a person, from the first task on.** At the end of every task of a job the harness leaves all three in the project folder: it asks the model one question with the tools off, which section of the architecture page did this task change and what should it say now, and writes the answer under that heading; it writes `NERDGENIE.md` once from the job's name, why, rules and test command; and it regenerates `REPO_MAP.md`, a legend of the top folders and a tree of the files. The project folder is the one Where names, and a job whose ask named none learns it from the folder its first task's files share.
 
 The rule in one line: the rules ride in full, and the rest is read by name when it would help. The model can reach any of the three at any moment, and none of them can crowd the task out of the window.
 

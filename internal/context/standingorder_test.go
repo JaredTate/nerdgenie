@@ -8,7 +8,7 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 )
 
-// theStandingOrder is a project's AGENTS.md as a person would write it.
+// theStandingOrder is a project's NERDGENIE.md as a person would write it.
 const theStandingOrder = `# Tater Tots Tetris
 
 ## What this is
@@ -23,7 +23,7 @@ A browser Tetris with two hazards.
 - Hazard values live in src/config.js.
 `
 
-// TestTheStandingOrderRidesUnderTheJobSummary: a folder's AGENTS.md is in
+// TestTheStandingOrderRidesUnderTheJobSummary: a folder's NERDGENIE.md is in
 // front of the model on every call, under the job summary and before the
 // record's goal and rules, under a heading that names the file and its length.
 func TestTheStandingOrderRidesUnderTheJobSummary(t *testing.T) {
@@ -40,7 +40,7 @@ func TestTheStandingOrderRidesUnderTheJobSummary(t *testing.T) {
 	whole := renderPrompt(request)
 	testkit.Golden(t, "prompt-standing-order.txt", []byte(whole))
 
-	heading := "The project's standing order (AGENTS.md, 12 lines):"
+	heading := "The project's standing order (NERDGENIE.md, 12 lines):"
 	job := strings.Index(whole, input.JobSummary)
 	order := strings.Index(whole, heading)
 	rules := strings.Index(whole, recordFirstHalfHeading)
@@ -57,7 +57,7 @@ func TestTheStandingOrderRidesUnderTheJobSummary(t *testing.T) {
 	}
 }
 
-// TestAFolderWithoutAStandingOrderAddsNothing: with no AGENTS.md the prompt is
+// TestAFolderWithoutAStandingOrderAddsNothing: with no NERDGENIE.md the prompt is
 // the same bytes as before the standing order existed.
 func TestAFolderWithoutAStandingOrderAddsNothing(t *testing.T) {
 	run := newFixtureRun(t)
@@ -71,7 +71,7 @@ func TestAFolderWithoutAStandingOrderAddsNothing(t *testing.T) {
 	}
 }
 
-// TestAStandingOrderOverSixtyLinesIsCutAndSaysSo: a long AGENTS.md is shown
+// TestAStandingOrderOverSixtyLinesIsCutAndSaysSo: a long NERDGENIE.md is shown
 // to its sixtieth line and one line says how to read the rest, so a rules
 // file cannot crowd the task out of the window.
 func TestAStandingOrderOverSixtyLinesIsCutAndSaysSo(t *testing.T) {
@@ -89,7 +89,7 @@ func TestAStandingOrderOverSixtyLinesIsCutAndSaysSo(t *testing.T) {
 		t.Fatalf("cannot build the working context: %v", err)
 	}
 	whole := renderPrompt(request)
-	if !strings.Contains(whole, "The project's standing order (AGENTS.md, 80 lines):") {
+	if !strings.Contains(whole, "The project's standing order (NERDGENIE.md, 80 lines):") {
 		t.Errorf("the heading does not say the file is 80 lines")
 	}
 	if !strings.Contains(whole, "- rule number 60\n") || strings.Contains(whole, "- rule number 61\n") {

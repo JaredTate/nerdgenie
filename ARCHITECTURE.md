@@ -28,6 +28,7 @@ Packages are listed in build order, and a package may import only packages liste
 | Package | Job | Wave |
 |---|---|---|
 | `internal/contract` | Every interface, type, and constant that crosses a wave boundary, with no dependencies | 0, built |
+| `internal/markdown` | Cuts a Markdown text into sections by heading, finds one, replaces one, with no dependencies, so the harness can hand the model one part of a document | 7 September 2026, built |
 | `internal/testkit` | Every fake, the golden-file helper, and the forty-step fixture data | 0, built |
 | `internal/log` | The append-only event log in SQLite | 1, built |
 | `internal/record` | The task record and the job record: parse, print, enforce their rules, checkpoint | 1, built |

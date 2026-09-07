@@ -699,6 +699,7 @@ internal/loop/turn_test.go
 internal/loop/unattended_test.go
 internal/loop/window.go
 internal/loop/window_test.go
+internal/markdown/markdown_test.go
 internal/memory/bounds_test.go
 internal/memory/broken_test.go
 internal/memory/capture.go

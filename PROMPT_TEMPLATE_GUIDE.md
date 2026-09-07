@@ -1,6 +1,6 @@
 # How to write a prompt for Nerd Genie
 
-This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. `TETRIS_PROMPT_V2.md` is the worked example. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
+This guide is for anyone who writes an ask for Nerd Genie: a person at the keyboard, or a larger model writing work for a smaller one. It explains the shape an ask should have, why that shape makes the model do better work, and how the model gets more context when it needs it without being buried in it. `PROMPT_TETRIS_EXAMPLE.md` is the worked example, and `PROMPT_FLIGHT_SIM_EXAMPLE.md` a second, larger one with physics, 3D graphics and a performance pass. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
 
 ## 1. Why the shape of a prompt matters here
 
@@ -122,7 +122,7 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 - Its rules are scattered through the features, so the model carried them from task to task by luck.
 - Whole sections lecture the process: "write test, run test, implement, run test, fix, refactor, run all tests". The harness holds that process (section 3); the ask does not need to teach it.
 
-`TETRIS_PROMPT_V2.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
+`PROMPT_TETRIS_EXAMPLE.md` says everything the old ask says, under the six headings, with seven done lines, fourteen tasks, and eight rules that each make a choice or show a way through.
 
 ## 7. A checklist before you submit
 

@@ -34,11 +34,11 @@ LICENSE
 Makefile
 NERDGENIE.md
 PROMPT_TEMPLATE_GUIDE.md
+PROMPT_TETRIS_EXAMPLE.md
 README.md
 REPO_MAP.md
 SETUP.md
 TESTING.md
-TETRIS_PROMPT_V2.md
 Z_PROMPTS.md
 cmd/nerdgenie/askpass.go
 cmd/nerdgenie/askpass_name_test.go
@@ -1595,6 +1595,7 @@ scripts/nightly/asks/02-node-tests.md
 scripts/nightly/asks/03-fix-the-test.md
 scripts/nightly/asks/04-page.md
 scripts/nightly/asks/05-tetris-v1.md
+scripts/nightly/asks/05-tetris.md
 scripts/nightly/checks/01-hello.sh
 scripts/nightly/checks/02-node-tests.sh
 scripts/nightly/checks/03-fix-the-test.sh

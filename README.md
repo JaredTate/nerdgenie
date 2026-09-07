@@ -12,6 +12,7 @@ Nerd Genie is an open-source AI agent that runs on your own Linux machine. You t
 - Keeps its own honest state: a task record shaped like an Army operations order, an append-only event log, and a working context built fresh each call and sized to the model.
 - Watches itself: a progress meter that nudges, rewinds, and stops; a stuck-test line; refusals that say what to write instead; a nightly set of asks measured by a run report.
 - Runs on a 27B model on one graphics card: on this machine, Qwen 3.8 through the TurboQuant llama-server with MTP, about 420 tokens a second of prefill and 60 to 75 of output, and a 90 percent cache share on real work. The same harness drives Opus through Claude Code, GPT through Codex, and any model behind an OpenAI-compatible server such as Ollama.
+- Takes an ask written under six headings, Goal, Where, Done when, Rules, Tasks and Details, and turns it into the job before the model is called: your done lines with their checks, your rules in front of every task, your tasks in order. The harness runs the checks at the end of every task, and the job cannot close while one fails. `PROMPT_TEMPLATE_GUIDE.md` says how to write one; six worked examples sit beside it.
 - Reads a project's own documents the way a person does: `AGENTS.md` in the work folder rides in front of every task, and the sections of `ARCHITECTURE.md` and the roots of `REPO_MAP.md` are named at every fresh start so the model reads one section by name instead of a whole file.
 
 ## The idea
@@ -59,7 +60,7 @@ Nothing irreversible happens without a preview you approve first. Commands run i
 
 ## Built to grow
 
-The core, meaning the loop, the task record, the permissions, and the memory, is closed. Around it are four fixed shapes that can multiply: channels, tools, skills, and model providers. The first version has the terminal and Signal, eighteen tools, and three providers: Anthropic's API, the OpenAI-compatible API that every local model server and gateway speaks, and a command-line provider that drives Claude Code or Codex on a subscription. Adding Telegram later is one new file that fits the channel shape. Adding your own tool is one executable in a folder.
+The core, meaning the loop, the task record, the permissions, and the memory, is closed. Around it are four fixed shapes that can multiply: channels, tools, skills, and model providers. The first version has the terminal and Signal, twenty tools, and three providers: Anthropic's API, the OpenAI-compatible API that every local model server and gateway speaks, and a command-line provider that drives Claude Code or Codex on a subscription. Adding Telegram later is one new file that fits the channel shape. Adding your own tool is one executable in a folder.
 
 ## How it gets built
 
@@ -74,7 +75,7 @@ Tests are written before the code they prove, at four levels: unit, integration,
 | `PROMPT_TEMPLATE_GUIDE.md` | How to write an ask the harness can lift: six headings, what the harness does with each, and how the model fetches a project's documents when it needs them |
 | `EX_PROMPT_1_TIC_TAC_TOE.md` to `EX_PROMPT_6_FLIGHT_SIM.md` | Six worked asks in that shape, numbered from easiest to hardest, each with its difficulty and expected time |
 | `NERDGENIE.md` | The plain-words explanation: the problem every agent has, the three things Nerd Genie keeps apart, the task record, the four kinds of state, one turn, small and big models, why it uses fewer tokens and remembers better, what we took and what is new, the tools, and a check table tying every claim to a design section and a test |
-| `ARCHITECTURE.md`, `REPO_MAP.md`, `CLAUDE.md` | How the code is put together, where everything lives (generated), and the rules an AI agent working on this repository follows |
+| `ARCHITECTURE.md`, `REPO_MAP.md`, `CLAUDE.md` | How the code is put together today, in one page with the folders, the packages, one turn step by step, the tools, the providers and safety; where everything lives (generated); and the rules an AI agent working on this repository follows |
 | `TESTING.md`, `CONTRIBUTING.md` | How it is tested, and how to change it |
 | `docs/NERDGENIE_PLAN.md` | The design: the idea, what we learned from other agents, how the agent works, the four kinds of state and the task record, what the model is told, tools, browser, safety |
 | `docs/HARNESS_V2.md` | The comparison of OpenClaw 2.0, Hermes, Prime, OpenCode, Atomic, ZeroClaw, Codex, and Claude Code, one diagram each |

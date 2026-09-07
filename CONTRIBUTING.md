@@ -19,7 +19,7 @@ These are the hard rules from `CLAUDE.md`, restated for anyone outside the proje
 
 ## How to propose a change
 
-A fix for a clear bug can go straight to a pull request with its test. Anything beyond a fix starts with an issue that states the problem and the measurement: what goes wrong, on which model, how often, and what number would show it fixed. The nightly set (`scripts/nightly`) and `scripts/runreport` are how the project measures a change, and a proposal that names the number it will move is easy to say yes to.
+A fix for a clear bug can go straight to a pull request with its test. Anything beyond a fix starts with an issue that states the problem and the measurement: what goes wrong, on which model, how often, and what number would show it fixed. The nightly set (`scripts/nightly`) and the run report (`go run ./scripts/runreport`) are how the project measures a change, and a proposal that names the number it will move is easy to say yes to.
 
 New ideas for the harness go through `IDEAS.md`. Each entry there carries its evidence, its expected gain, its risk, how it will be measured, and its cost. The maintainer approves an idea before it is built; an approved idea is built test first and lands in `docs/PROGRESS.md` with its measured effect. Every idea has to hold on any task, a book as much as a build, and on the local model that runs it.
 

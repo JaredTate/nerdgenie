@@ -34,6 +34,9 @@ func TestTheSearchServerAnswersTheQueryItWasAskedAndRecordsIt(t *testing.T) {
 		Snippet: "Plain words, one fact per post.",
 	})
 
+	if !strings.HasPrefix(search.SearchAddress(), search.Address()) {
+		t.Errorf("the search address %q does not start with the server's address %q", search.SearchAddress(), search.Address())
+	}
 	_, body := get(t, search.SearchAddress()+"?q=brand&format=json")
 
 	if !strings.Contains(body, "The DigiByte brand file") {

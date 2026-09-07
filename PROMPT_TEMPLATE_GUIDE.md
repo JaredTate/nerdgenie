@@ -13,7 +13,7 @@ This guide is for anyone who writes an ask for Nerd Genie: a person at the keybo
 
 The times are wide on purpose: they depend on the GPU and the model. Tetris finished inside two hours on one 7900 XTX with the four-bit Qwen; a three-bit model on a smaller card takes longer, a faster card less. Each example's time is corrected after it has run once.
 
-A new example takes the next number when it is harder than the last, or every number above it moves up by one. `IDEASv2_PLAN.md` is how the harness learns to use the shape.
+A new example takes the next number when it is harder than the last, or every number above it moves up by one. `docs/IDEASv2_PLAN.md` is how the harness learns to use the shape.
 
 ## 1. Why the shape of a prompt matters here
 

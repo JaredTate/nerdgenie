@@ -6,7 +6,7 @@
 
 1. `NERDGENIE.md` — the plain-words explanation: what Nerd Genie is, how its state works, why it is better than the other agents, and a check table that ties every claim to a design section, a brief, and a test.
 2. `docs/NERDGENIE_PLAN.md` — the design. What it is, what is new, what we took from other agents, how the loop works, the four kinds of state, what the model is told.
-3. `ARCHITECTURE.md` — how the code is put together and what each wave built. Updated every wave.
+3. `ARCHITECTURE.md` — how the code is put together today, one page. The build log of what each wave built is `docs/ARCHITECTURE_HISTORY.md`.
 4. `REPO_MAP.md` — where everything lives. Generated; never edit by hand.
 5. `TESTING.md` and `CONTRIBUTING.md` — how it is tested and how a change is made and reviewed.
 
@@ -53,4 +53,4 @@ All building and testing happen on one Linux development machine. This repositor
 
 `docs/PROGRESS.md` is the fourth record: one section per wave with what was built, what the live runs cost, and what the human trial found. Read it to learn what the last wave actually did.
 
-`CLAUDE.md` changes rarely and only by the orchestrator. `ARCHITECTURE.md` is updated by any worker whose brief changes a package, and the orchestrator adds a wave section at every gate. `REPO_MAP.md` is generated. These three files are the context every agent starts from, and keeping them true is part of every brief's definition of done.
+`CLAUDE.md` changes rarely and only by the orchestrator. `ARCHITECTURE.md` is updated by any worker whose change alters how a package works, and stays one readable page; what each wave built goes into `docs/ARCHITECTURE_HISTORY.md`. `REPO_MAP.md` is generated. These three files are the context every agent starts from, and keeping them true is part of every brief's definition of done.

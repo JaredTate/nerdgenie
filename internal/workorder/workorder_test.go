@@ -195,3 +195,14 @@ func FuzzParse(f *testing.F) {
 		}
 	})
 }
+
+func TestWhereNamesTheProjectFolder(t *testing.T) {
+	order := workorder.Parse("# Tic Tac Toe\n\n## Goal\nA game.\n\n## Where\nCreate a new folder on the Desktop named exactly `Tic Tac Toe`, so the project lives at `~/Desktop/Tic Tac Toe`. Serve it on port 8096.\n\n## Done when\n1. It works.\n")
+	if order.Folder != "~/Desktop/Tic Tac Toe" {
+		t.Errorf("the folder reads %q, want the first backticked path with a slash in Where", order.Folder)
+	}
+	bare := workorder.Parse("# Notes\n\n## Goal\nNotes.\n\n## Where\nA new, empty folder.\n\n## Done when\n1. It works.\n")
+	if bare.Folder != "" {
+		t.Errorf("a Where that names no path gave the folder %q, want none", bare.Folder)
+	}
+}

@@ -73,7 +73,7 @@ func (running *run) reopenTheWindowIfFull(ctx context.Context) error {
 // their ids, and at the start of tasks it listed the folder and asked which
 // ports were listening.
 func (running *run) rememberTheOrientation(ctx context.Context, withResults bool) {
-	facts := orientation.Facts{Folder: running.theLoop.options.WorkingDirectory}
+	facts := orientation.Facts{Folder: running.folder()}
 	if withResults {
 		facts.Results = running.newestResults(ctx)
 	}

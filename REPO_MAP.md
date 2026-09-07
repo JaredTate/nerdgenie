@@ -33,8 +33,6 @@ EX_PROMPT_3_SOLAR_SYSTEM.md
 EX_PROMPT_4_INTERACTIVE_EARTH.md
 EX_PROMPT_5_TOWER_DEFENSE.md
 EX_PROMPT_6_FLIGHT_SIM.md
-IDEAS_V2.md
-IDEASv2_PLAN.md
 INSTALL.md
 LICENSE
 Makefile
@@ -135,6 +133,7 @@ cmd/nerdgenie/wiring_test.go
 cmd/nerdgenie/workingfolder.go
 cmd/nerdgenie/yolo.go
 cmd/nerdgenie/yolo_test.go
+docs/ARCHITECTURE_HISTORY.md
 docs/BENCHMARK.md
 docs/DEPENDENCIES.md
 docs/EXTENDING.md
@@ -142,7 +141,9 @@ docs/FINISH_PLAN.md
 docs/HARNESS.md
 docs/HARNESS_V2.md
 docs/IDEAS.md
+docs/IDEAS_V2.md
 docs/IDEAS_V3.md
+docs/IDEASv2_PLAN.md
 docs/LLM_RESEARCH.md
 docs/MVP_Features_Plan.md
 docs/NERDGENIE_PLAN.md
@@ -578,7 +579,11 @@ internal/log/read.go
 internal/log/read_test.go
 internal/log/replay.go
 internal/log/replay_test.go
+internal/loop/agentsfile.go
+internal/loop/agentsfile_test.go
 internal/loop/answercloses_test.go
+internal/loop/archpage.go
+internal/loop/archpage_test.go
 internal/loop/asknumber_test.go
 internal/loop/autotest.go
 internal/loop/autotest_test.go
@@ -641,6 +646,8 @@ internal/loop/linecheck.go
 internal/loop/linecheck_test.go
 internal/loop/listing_test.go
 internal/loop/loop.go
+internal/loop/mapfile.go
+internal/loop/mapfile_test.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
@@ -664,6 +671,8 @@ internal/loop/probes_test.go
 internal/loop/problems_test.go
 internal/loop/progress.go
 internal/loop/progress_test.go
+internal/loop/projectfolder.go
+internal/loop/projectfolder_test.go
 internal/loop/putdown.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go

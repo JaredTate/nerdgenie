@@ -77,6 +77,10 @@ type JobSummary struct {
 	FailuresInARow int
 }
 
+// ProjectFolderLine opens the situation line of a job record that names the
+// project's folder, as in "project folder: ~/Desktop/Tic Tac Toe".
+const ProjectFolderLine = "project folder: "
+
 // NewJob is what the model gives the harness to create a job.
 type NewJob struct {
 	// Ask is the user's message, word for word, the same as a task record's ask.
@@ -100,6 +104,12 @@ type NewJob struct {
 	// the record's rules where every task of the job reads them; empty when
 	// the ask was not a work order.
 	Rules []string
+	// Folder is the project's folder as the work order's Where wrote it, such
+	// as `~/Desktop/Tic Tac Toe`, kept in the job record's situation as the
+	// line "project folder: ...", where every task of the job reads it and
+	// works there; empty when the ask named none, and the home's work folder
+	// is the folder then.
+	Folder string
 }
 
 // NewTask is one task added to a job's task list.

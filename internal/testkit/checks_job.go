@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -371,6 +372,7 @@ func checkAWorkOrdersPartsReadBack(ctx context.Context, jobs contract.Job) error
 		Name:     "the work order under check",
 		DoneWhen: []string{"it works [tests pass: npm test]", "it looks right"},
 		Rules:    []string{"Tests first.", "Serve on 8091."},
+		Folder:   "~/Desktop/The Thing",
 	})
 	if err != nil {
 		return fmt.Errorf("creating a job with a work order's done lines and rules failed: %w", err)
@@ -385,6 +387,9 @@ func checkAWorkOrdersPartsReadBack(ctx context.Context, jobs contract.Job) error
 	rules := held.Rules.Corrections
 	if len(rules) != 2 || rules[0].ID != "C1" || rules[0].Text != "Tests first." || rules[1].ID != "C2" || rules[1].Text != "Serve on 8091." {
 		return fmt.Errorf("the job's rules read %+v, want C1 and C2 in the person's words and order", rules)
+	}
+	if !slices.Contains(held.Work.Situation, contract.ProjectFolderLine+"~/Desktop/The Thing") {
+		return fmt.Errorf("the job's situation reads %v, want the line %q, which every task of the job reads to know where to work", held.Work.Situation, contract.ProjectFolderLine+"~/Desktop/The Thing")
 	}
 	return jobs.SwitchOff(ctx, jobID)
 }

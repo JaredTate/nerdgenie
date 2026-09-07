@@ -59,6 +59,34 @@ func (socket *Socket) SendDelta(ctx context.Context, text string) error {
 	return socket.flushGathered(ctx, reply, now)
 }
 
+// FinishDelta sends the end of the reply the screens were shown as it streamed:
+// the runes held back for the redactor, redacted now that the whole text is
+// known, and anything gathered inside the last window. Nothing sent them once,
+// so they reached the screen only when the next round's words pushed them
+// out, after the line for the reply's tool call had landed, and every sentence
+// on the screen was cut a few words short and finished after the pill.
+func (socket *Socket) FinishDelta(ctx context.Context) error {
+	socket.deltaGuard.Lock()
+	defer socket.deltaGuard.Unlock()
+	reply := socket.streaming
+	if reply == nil {
+		return nil
+	}
+	socket.streaming = nil
+	// The finished reply the screens are handed is trimmed, and the pieces
+	// have to be the start of it, so the tail goes out without its trailing
+	// blank space.
+	whole := strings.TrimRight(socket.options.Secrets.Redact(reply.raw.String()), " \t\r\n")
+	if !strings.HasPrefix(whole, reply.shown) {
+		if err := socket.toEveryScreen(ctx, contract.SocketEnvelope{Type: contract.SocketDelta, Reset: true}); err != nil {
+			return err
+		}
+		reply.shown, reply.gathered = "", ""
+	}
+	reply.gathered += whole[len(reply.shown):]
+	return socket.flushGathered(ctx, reply, socket.options.Clock.Now())
+}
+
 // ResetDelta tells every attached screen to take the partial reply down, because
 // the call behind it failed and is being tried again; the pieces that follow
 // start the reply over.

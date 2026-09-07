@@ -231,8 +231,10 @@ func howItWent(text string, failed bool) string {
 	return "it worked"
 }
 
-// exitCodeIn finds an exit code the shell tool wrote into its result, such as
-// "exit 0" on a line of its own.
+// exitCodeIn finds an exit code the shell tool wrote into its result: its own
+// first line, "finished with exit code 0", or a bare "exit 0" on a line of its
+// own. The checker read only the bare form once, and on the eighth fresh run
+// every command the model expected to exit 0 was told it had no exit code.
 func exitCodeIn(text string) (string, bool) {
 	for _, line := range strings.Split(text, "\n") {
 		words := strings.Fields(strings.ToLower(strings.TrimSpace(line)))
@@ -240,7 +242,11 @@ func exitCodeIn(text string) (string, bool) {
 			if words[at] != "exit" {
 				continue
 			}
-			if number := strings.Trim(words[at+1], ".,"); isWholeNumber(number) {
+			next := words[at+1]
+			if next == "code" && at+2 < len(words) {
+				next = words[at+2]
+			}
+			if number := strings.Trim(next, ".,:;"); isWholeNumber(number) {
 				return number, true
 			}
 		}

@@ -367,6 +367,9 @@ func (running *run) oneRound(ctx context.Context) (Outcome, bool, error) {
 		return outcome, false, failed
 	}
 	running.roundsUsed++
+	if running.theLoop.options.ReplyEnded != nil {
+		running.theLoop.options.ReplyEnded()
+	}
 	found := repair.Find(reply, running.specs(), running.failedParses)
 	running.orient(found.Text, reply.Text)
 	running.markFromTheFirstLine(ctx, running.lastOrient)

@@ -36,6 +36,37 @@ func TestTheFirstPieceOfAReplyReachesEveryScreenAtOnce(t *testing.T) {
 	}
 }
 
+// TestTheHeldTailGoesOutWhenTheReplyEnds: the last sixty-four runes of a reply
+// wait for the redactor, and nothing sent them when the reply ended, so they
+// went out only when the next round's words pushed them, after the tool line
+// had landed on the screen; every sentence on the screen was cut a few words
+// short and finished after the pill. The end of a reply sends the tail.
+func TestTheHeldTailGoesOutWhenTheReplyEnds(t *testing.T) {
+	harness := newSocketHarness(t)
+	first := harness.attach(t)
+	ctx := context.Background()
+	opening := strings.Repeat("a", 6) + strings.Repeat("b", deltaHoldBackRunes)
+
+	if err := harness.socket.SendDelta(ctx, opening); err != nil {
+		t.Fatalf("sending the piece failed: %v", err)
+	}
+	if got := first.next(); got.Text != "aaaaaa" {
+		t.Fatalf("the screen was sent %q first, want the six runes before the held tail", got.Text)
+	}
+	if err := harness.socket.FinishDelta(ctx); err != nil {
+		t.Fatalf("finishing the reply failed: %v", err)
+	}
+	if got := first.next(); got.Type != contract.SocketDelta || got.Text != strings.Repeat("b", deltaHoldBackRunes) || got.Reset {
+		t.Errorf("the screen was sent %+v at the end of the reply, want the held tail as one delta", got)
+	}
+	if err := harness.socket.SendDelta(ctx, strings.Repeat("c", deltaHoldBackRunes+3)); err != nil {
+		t.Fatalf("sending the next reply's piece failed: %v", err)
+	}
+	if got := first.next(); got.Reset || got.Text != "ccc" {
+		t.Errorf("the next reply began with %+v, want its own first runes and no reset", got)
+	}
+}
+
 // TestPiecesAreGatheredForThirtyMillisecondsBeforeTheyGoOut pins the window
 // the design names and proves pieces inside it are joined into one message.
 func TestPiecesAreGatheredForThirtyMillisecondsBeforeTheyGoOut(t *testing.T) {

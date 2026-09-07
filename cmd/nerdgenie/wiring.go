@@ -386,6 +386,7 @@ func (running *agent) openTheLoop() error {
 		ToolLine:     running.noteToolLine,
 		RecordLine:   running.noteRecordLine,
 		Deltas:       running.streamReplyPiece,
+		ReplyEnded:   running.finishStreamedReply,
 
 		WorkingDirectory: theWorkingFolder(running.settings.SandboxRoots, running.home.Root),
 	})

@@ -16,6 +16,32 @@ import (
 // but write the record, and 47 test rounds reran tests the harness had just
 // run to learn what an expectation would have told the model.
 
+// TestAnExitCodeIsReadOffTheShellToolsOwnFirstLine: the shell tool writes
+// "finished with exit code 0" as the first line of a real result, and the
+// checker read only a bare "exit 0" line, so on the eighth fresh run every
+// command the model expected to exit 0 was told "got no exit code" and a false
+// failure went into the record each time.
+func TestAnExitCodeIsReadOffTheShellToolsOwnFirstLine(t *testing.T) {
+	shell := scriptedTool(contract.ToolShell, "finished with exit code 0\ntotal 8\ndrwxrwxr-x 2 jared jared 4096 .\n")
+	built := newHarness(t, []testkit.Step{
+		callStep("I will list it.", callFor("c1", contract.ToolShell, `{"command":"ls -la","expect":"exit 0"}`)),
+		answerStep("Listed. What changed: nothing. What I checked: the folder. What is left: nothing."),
+	}, shell)
+
+	outcome := built.ask(t, "list the folder")
+
+	after := testkit.WholeRequestText(built.model.Requests()[1])
+	if !strings.Contains(after, "finished with exit code 0 (as expected)") {
+		t.Fatalf("a command that exited 0 was not read as meeting exit 0:\n%s", after)
+	}
+	if strings.Contains(after, "no exit code") {
+		t.Fatalf("the checker did not read the shell tool's own first line:\n%s", after)
+	}
+	if held := built.held(t, outcome.TaskID); len(held.Lessons.Failures) != 0 {
+		t.Fatalf("a false failure was written: %+v", held.Lessons.Failures)
+	}
+}
+
 func TestACommandThatMeetsItsExpectationSaysSo(t *testing.T) {
 	shell := scriptedTool(contract.ToolShell, "finished with exit code 0\nhello\nexit 0")
 	built := newHarness(t, []testkit.Step{

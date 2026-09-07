@@ -16,6 +16,16 @@ func (running *agent) streamReplyPiece(piece string) {
 	_ = running.socket.SendDelta(context.Background(), piece)
 }
 
+// finishStreamedReply lets the end of the reply out to the screens the moment
+// the model has finished it, before its calls run, so that the last words of
+// a sentence land before the line for the call and not after it.
+func (running *agent) finishStreamedReply() {
+	if running.socket == nil {
+		return
+	}
+	_ = running.socket.FinishDelta(context.Background())
+}
+
 // withdrawStreamedReply tells the screens to take the partial reply down,
 // because the call behind it failed and is being tried again.
 func (running *agent) withdrawStreamedReply() {

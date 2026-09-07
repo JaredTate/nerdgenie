@@ -21,24 +21,27 @@ var theStartOfTime = time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC)
 // harness is one loop with every dependency a fake, which is how design section
 // 3 is proved a rule at a time.
 type harness struct {
-	loop       *loop.Loop
-	model      *testkit.FakeModel
-	tools      *testkit.FakeToolRegistry
-	channel    *testkit.FakeChannel
-	store      *testkit.FakeStore
-	clock      *testkit.FakeClock
-	rulings    *testkit.FakePermission
-	memory     *testkit.FakeMemory
-	skills     *testkit.FakeSkill
-	jobs       *fakeJobThatResumes
-	sandbox    *testkit.FakeSandbox
-	builder    loop.ContextBuilder
-	deltaGuard sync.Mutex
-	deltas     []string
-	lineGuard  sync.Mutex
-	lines      []string
-	toolGuard  sync.Mutex
-	toolLines  []string
+	// onReplyEnded is what a test wants run when the loop says a reply is
+	// complete, or nil.
+	onReplyEnded func()
+	loop         *loop.Loop
+	model        *testkit.FakeModel
+	tools        *testkit.FakeToolRegistry
+	channel      *testkit.FakeChannel
+	store        *testkit.FakeStore
+	clock        *testkit.FakeClock
+	rulings      *testkit.FakePermission
+	memory       *testkit.FakeMemory
+	skills       *testkit.FakeSkill
+	jobs         *fakeJobThatResumes
+	sandbox      *testkit.FakeSandbox
+	builder      loop.ContextBuilder
+	deltaGuard   sync.Mutex
+	deltas       []string
+	lineGuard    sync.Mutex
+	lines        []string
+	toolGuard    sync.Mutex
+	toolLines    []string
 	// vision says the loop is built for a model that reads pictures.
 	vision bool
 	// workFolder is the folder the loop is told the agent works in, a folder
@@ -108,6 +111,7 @@ func (built *harness) optionsOver(model contract.Model) loop.Options {
 		Skills:     built.skills,
 		Sandbox:    built.sandbox,
 		Deltas:     built.noteDelta,
+		ReplyEnded: built.noteReplyEnded,
 		RecordLine: built.noteRecordLine,
 		ToolLine:   built.noteToolLine,
 
@@ -141,6 +145,14 @@ func (built *harness) recordLines() []string {
 	built.lineGuard.Lock()
 	defer built.lineGuard.Unlock()
 	return append([]string(nil), built.lines...)
+}
+
+// noteReplyEnded runs whatever the test put in onReplyEnded, at the moment the
+// loop says a reply is complete.
+func (built *harness) noteReplyEnded() {
+	if built.onReplyEnded != nil {
+		built.onReplyEnded()
+	}
 }
 
 // noteDelta records one streamed piece of a reply.

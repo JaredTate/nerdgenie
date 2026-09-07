@@ -64,6 +64,10 @@ type Options struct {
 	// Deltas is where a streamed reply goes as it arrives, and is nil when
 	// nobody is watching.
 	Deltas func(delta string)
+	// ReplyEnded is told the moment a reply is complete, before any of its
+	// calls run, so that whoever shows the reply as it streams can let the
+	// end of it out ahead of the calls' lines; nil when nobody is watching.
+	ReplyEnded func()
 	// ToolLine takes the one dim line the strip draws for the tool call in
 	// flight, such as "▸ read note.txt", and again with what came back once it
 	// has, and is nil when nobody is watching.

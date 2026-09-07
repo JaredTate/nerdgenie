@@ -51,10 +51,11 @@ func requestsCarrying(built *harness, words string) (int, int) {
 // meter's whole promise. The fourth game build spent sixty rounds on two tests
 // with every probe a character different, so the same-call guard never fired;
 // the fifth asked the desktop tool to launch an unnamed application eleven
-// times. Ten such rounds earn one line, twenty clear the conversation with the
-// stall written into the record, and twenty more after that stop the task.
+// times. Ten such rounds earn one line, twenty cut the stalled rounds with the
+// stall written into the record, and the fourth such stall stops the task:
+// rosie's three-bit model was stopped after two, and a cut is cheap.
 func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T) {
-	built := editsForever(t, 2*loop.RewindAfterRoundsWithoutProgress+5)
+	built := editsForever(t, loop.StallsBeforeStop*loop.RewindAfterRoundsWithoutProgress+5)
 
 	outcome := built.ask(t, "make the tests pass")
 
@@ -68,11 +69,12 @@ func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T
 	if firstRewind != loop.RewindAfterRoundsWithoutProgress+1 {
 		t.Errorf("the rewind line first rode on model call %d, want call %d, the one after the first change and twenty rounds without progress", firstRewind, loop.RewindAfterRoundsWithoutProgress+1)
 	}
-	if outcome.Status != contract.StatusStopped || !strings.Contains(outcome.StopLine, "without progress") {
-		t.Errorf("the task ended %q on %q, want it stopped for rounds without progress after the cleared conversation stalled again", outcome.Status, outcome.StopLine)
+	stalls := loop.StallsBeforeStop
+	if outcome.Status != contract.StatusStopped || !strings.Contains(outcome.StopLine, fmt.Sprintf("without progress, %d times over", stalls)) {
+		t.Errorf("the task ended %q on %q, want it stopped for rounds without progress on the stall after the third cut", outcome.Status, outcome.StopLine)
 	}
-	if calls := len(built.model.Requests()); calls < 2*loop.RewindAfterRoundsWithoutProgress+1 || calls > 2*loop.RewindAfterRoundsWithoutProgress+2 {
-		t.Errorf("the model was called %d times, want the first change, %d rounds of edits and at most one call for the stopped report", calls, 2*loop.RewindAfterRoundsWithoutProgress)
+	if calls := len(built.model.Requests()); calls < stalls*loop.RewindAfterRoundsWithoutProgress+1 || calls > stalls*loop.RewindAfterRoundsWithoutProgress+2 {
+		t.Errorf("the model was called %d times, want the first change, %d rounds of edits and at most one call for the stopped report", calls, stalls*loop.RewindAfterRoundsWithoutProgress)
 	}
 	held := built.held(t, outcome.TaskID)
 	stalled := 0
@@ -81,8 +83,10 @@ func TestRoundsWithoutProgressClimbTheLadderNudgeThenRewindThenStop(t *testing.T
 			stalled++
 		}
 	}
+	// The record refuses a failure that says what one it holds already says,
+	// so three cuts for the same stall leave one line, not three.
 	if stalled != 1 {
-		t.Errorf("the record's failures read %+v, want one line for the stall the rewind cleared", held.Lessons.Failures)
+		t.Errorf("the record's failures hold %d stall lines, want one for the stall the cuts kept meeting: %+v", stalled, held.Lessons.Failures)
 	}
 }
 

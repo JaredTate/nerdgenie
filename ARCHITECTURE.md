@@ -398,8 +398,11 @@ it is read: the nightly game build wrote its line-clear failure and then the
 same one six more times, each refused as already held, until the same-call
 guard stopped the task; at `RewindAfterRoundsWithoutProgress` (twenty) the conversation
 is cleared through the same `rewindIfDue` with the stall written into the record
-as a failure and the count started again; and twenty more without progress
-after that stop the task. The count rides in the Situation as "rounds since
+as a failure and the count started again; a second and a third stall are cut
+the same way, and the fourth stops the task (`StallsBeforeStop`, four; until
+7 September 2026 the second stall stopped it, and on rosie's three-bit model
+most long tasks met a second stall, while a cut has been cheap since the
+rewind became a cut). The count rides in the Situation as "rounds since
 progress: N" whenever it is above nought. **The tests run themselves after a
 change** (`autotest.go`): on the fifth game build the model never put two calls
 in one reply, so every test run was a round of its own, eighteen percent of the

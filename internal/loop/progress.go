@@ -24,6 +24,15 @@ import (
 const (
 	// NudgeAfterRoundsWithoutProgress is when the model is sent TheStallLine.
 	NudgeAfterRoundsWithoutProgress = 10
+	// StallsBeforeStop is how many stalls of RewindAfterRoundsWithoutProgress
+	// rounds the meter allows before it stops the task: each but the last
+	// cuts the stalled rounds and starts the count again, and the last stops.
+	// Two was the number until 7 September 2026, and on rosie's three-bit
+	// model most long tasks hit a second stall and were stopped; a cut has
+	// been cheap since the rewind became a cut, because the rounds before the
+	// stall keep their place and their cache, so a weaker model earns three
+	// cuts before the stop.
+	StallsBeforeStop = 4
 	// RewindAfterRoundsWithoutProgress is when the conversation is cleared, the
 	// first time, and when the task stops, the second time.
 	RewindAfterRoundsWithoutProgress = 20
@@ -235,8 +244,8 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 	case NudgeAfterRoundsWithoutProgress:
 		running.remember(contract.Message{Role: contract.RoleUser, Text: running.theNudge()})
 	case RewindAfterRoundsWithoutProgress:
-		if running.stallsAfterARewind > 0 {
-			ended, err := running.stopHere(ctx, fmt.Sprintf("%d rounds without progress, twice over", RewindAfterRoundsWithoutProgress))
+		if running.stallsAfterARewind >= StallsBeforeStop-1 {
+			ended, err := running.stopHere(ctx, fmt.Sprintf("%d rounds without progress, %d times over", RewindAfterRoundsWithoutProgress, StallsBeforeStop))
 			return &ended, err
 		}
 		running.stallsAfterARewind++

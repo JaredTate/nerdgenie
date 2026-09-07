@@ -361,3 +361,7 @@ Idea 1 of IDEAS.md, built test first in the working context and the providers. T
 
 **An edit already in place, 21:58.** Run ten's polish task applied one edit to the effects canvas, then applied it again for thirteen rounds, each refused as replacing the text with itself, and wrote the loop into its record twice without seeing the way out. The refusal now says the useful half first: the file already holds this text, the change is in place, read it and go on. On main, test first; the meter's cut handled the live loop.
 
+## 7 September 2026: three cuts before the stop
+
+The progress meter stopped a task on its second stall of twenty rounds. On the three-bit model on rosie that was where most long tasks ended: the model stalls more often than the four-bit model on irene, met the second stall, and the task was stopped and the job put down. A cut has been cheap since the rewind became a cut (the rounds before the stall keep their place and their cache), so `StallsBeforeStop` is four: the first three stalls cut the stalled rounds and the count starts again, and the fourth stops the task. The record keeps one failure line for the stall, because it refuses a failure that says what one it holds already says. The ladder test now runs eighty rounds of edits and holds that the stop names "4 times over".
+

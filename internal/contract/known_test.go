@@ -21,11 +21,12 @@ func TestKnownPreviewAnswerAcceptsTheThreeAndNothingElse(t *testing.T) {
 	}
 }
 
-func TestKnownEventKindAcceptsTheEightTheLogWrites(t *testing.T) {
+func TestKnownEventKindAcceptsTheNineTheLogWrites(t *testing.T) {
 	kinds := []contract.EventKind{
 		contract.EventMessage, contract.EventToolCall, contract.EventToolResult,
 		contract.EventPermissionDecision, contract.EventFileChange,
 		contract.EventRecordChange, contract.EventCheckpoint, contract.EventReply,
+		contract.EventQuestion,
 	}
 	for _, kind := range kinds {
 		if !contract.KnownEventKind(kind) {

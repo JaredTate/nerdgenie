@@ -62,8 +62,9 @@ func (running *run) review(ctx context.Context) error {
 	held := running.keeper.Record()
 	ctx, done := running.theLoop.timeForTheReview(ctx)
 	defer done()
-	answer := running.theLoop.askTheFourQuestions(ctx, string(record.Print(held)))
+	whole, answer := running.theLoop.askTheFourQuestions(ctx, string(record.Print(held)))
 	if answer == "" {
+		running.theLoop.logTheQuestion(ctx, running.taskID(), "review", TheFourQuestions, whole, "no lesson")
 		return nil
 	}
 	where := running.channel
@@ -79,17 +80,24 @@ func (running *run) review(ctx context.Context) error {
 	// nightly game build of 6 September lost its job's first report, and the
 	// mark on the job's list, to a review whose fact memory refused, because
 	// the refusal ended the task with an error.
+	outcome := "kept the fourth answer as a lesson"
 	if err := running.theLoop.keepTheLesson(ctx, where, "task "+running.keeper.ID(), answer); err != nil {
 		running.lessonUnkept = err.Error()
+		outcome = "the lesson could not be kept: " + err.Error()
+	} else if looksLikeToolMarkup(answer) {
+		outcome = "no lesson: the answer was tool markup"
 	}
+	running.theLoop.logTheQuestion(ctx, running.taskID(), "review", TheFourQuestions, whole, outcome)
 	running.writeTheArchitectureSection(ctx)
 	return nil
 }
 
-// withTheLesson adds the one line an unattended run owes the user: the review
-// found a way of doing something, and nobody was there to be asked whether to
+// withTheLesson adds the lines the review owes the report: which section of
+// the architecture page it wrote, and, on an unattended run, that the review
+// found a way of doing something and nobody was there to be asked whether to
 // keep it as a skill, so it was kept as a fact instead.
 func (running *run) withTheLesson(report string) string {
+	report = running.withTheSectionLine(report)
 	if running.lessonUnkept != "" {
 		return report + "\nThe lesson of this run could not be kept: " + running.lessonUnkept
 	}
@@ -106,11 +114,13 @@ func (running *run) worthReviewing() bool {
 		running.roundsUsed > RoundsThatDeserveAReview
 }
 
-// askTheFourQuestions makes one call with the tools off and returns the fourth
-// answer, which is the only one that is kept. A review that cannot be asked
-// costs a lesson and nothing more, so nothing here fails the task.
-func (theLoop *Loop) askTheFourQuestions(ctx context.Context, background string) string {
-	return fourthAnswerIn(theLoop.askWithTheToolsOff(ctx, background, TheFourQuestions))
+// askTheFourQuestions makes one call with the tools off and returns the whole
+// reply, for the log, and the fourth answer, which is the only one that is
+// kept. A review that cannot be asked costs a lesson and nothing more, so
+// nothing here fails the task.
+func (theLoop *Loop) askTheFourQuestions(ctx context.Context, background string) (string, string) {
+	whole := theLoop.askWithTheToolsOff(ctx, background, TheFourQuestions)
+	return whole, fourthAnswerIn(whole)
 }
 
 // fourthAnswerIn picks the fourth line out of the review, which is the answer to

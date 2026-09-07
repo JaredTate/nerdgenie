@@ -162,11 +162,15 @@ func (theLoop *Loop) closeTheJob(ctx context.Context, where contract.Channel, jo
 	if unattended {
 		offerTo = nil
 	}
-	if answer := theLoop.askTheFourQuestions(ctx, string(record.Print(held))); answer != "" {
+	whole, answer := theLoop.askTheFourQuestions(ctx, string(record.Print(held)))
+	outcome := "no lesson"
+	if answer != "" {
 		if err := theLoop.keepTheLesson(ctx, offerTo, "job "+jobID, answer); err != nil {
 			return err
 		}
+		outcome = "kept the fourth answer as a lesson"
 	}
+	theLoop.logTheQuestion(ctx, contract.RecordLogKey(contract.RecordJob, jobID), "review", TheFourQuestions, whole, outcome)
 	return theLoop.tell(ctx, where, report)
 }
 

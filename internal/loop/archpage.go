@@ -310,7 +310,7 @@ const MaxLoggedAnswerRunes = 32 << 10
 // with the tools off, why, what the model answered, and what the harness did
 // with the answer.
 type theQuestionAsked struct {
-	// Purpose says what the question was for: "review" or "architecture section".
+	// Purpose says what the question was for: "review", "architecture section" or "rethink".
 	Purpose string `json:"purpose"`
 	// Question is the question's text, word for word.
 	Question string `json:"question"`

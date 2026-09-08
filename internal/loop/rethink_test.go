@@ -428,3 +428,70 @@ func TestTheRethinkBackgroundIsCappedAtOneRead(t *testing.T) {
 		t.Error("the background does not say the result was cut")
 	}
 }
+
+// TestTheRethinkQuestionAndAnswerAreLogged: the rethink is the third question
+// the harness asks with the tools off, and the log holds it the way it holds
+// the review and the section question: the question, the model's whole
+// answer, and what came of it. Run 29's logic task stalled twice and the
+// record kept only one line of each answer, so nobody could read what the
+// model had thought. A rethink with no answer is logged too, with the cut it
+// fell back to.
+func TestTheRethinkQuestionAndAnswerAreLogged(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the brand file")
+	built := newHarness(t, []testkit.Step{
+		sameReadOf("c1", "notes.md"), sameReadOf("c2", "notes.md"), sameReadOf("c3", "notes.md"), sameReadOf("c4", "notes.md"),
+		theUsualRethink(),
+		callStep("I will read the brand file.", callFor("c5", "read", `{"path":"brand.md"}`)),
+		answerStep("The notes and the brand file are read."),
+	}, reading)
+
+	outcome := built.ask(t, "read the notes")
+
+	var rethinks []map[string]string
+	for _, asked := range questionEventsOf(t, built) {
+		if asked["purpose"] == "rethink" {
+			rethinks = append(rethinks, asked)
+		}
+	}
+	if len(rethinks) != 1 {
+		t.Fatalf("the log holds %d rethink question events, want one", len(rethinks))
+	}
+	logged := rethinks[0]
+	if logged["question"] != loop.TheRethinkQuestion || logged["task"] != outcome.TaskID {
+		t.Errorf("the rethink's event reads %v, want the rethink question under task %s", logged, outcome.TaskID)
+	}
+	if !strings.Contains(logged["answer"], "Next: read brand.md") {
+		t.Errorf("the rethink's event does not carry the model's whole answer: %q", logged["answer"])
+	}
+	if !strings.Contains(logged["outcome"], "fresh window") {
+		t.Errorf("the rethink's event does not say what came of the answer: %q", logged["outcome"])
+	}
+}
+
+// TestARethinkWithNoAnswerIsLoggedWithTheCut: when the model gives no answer
+// the plain cut stands, and the log says so.
+func TestARethinkWithNoAnswerIsLoggedWithTheCut(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the brand file")
+	built := newHarness(t, []testkit.Step{
+		sameReadOf("c1", "notes.md"), sameReadOf("c2", "notes.md"), sameReadOf("c3", "notes.md"), sameReadOf("c4", "notes.md"),
+		answerStep(""),
+		callStep("I will read the brand file instead.", callFor("c5", "read", `{"path":"brand.md"}`)),
+		answerStep("The notes and the brand file are read."),
+	}, reading)
+
+	built.ask(t, "read the notes")
+
+	for _, asked := range questionEventsOf(t, built) {
+		if asked["purpose"] == "rethink" {
+			if asked["answer"] != "" || !strings.Contains(asked["outcome"], "cut") {
+				t.Errorf("the unanswered rethink's event reads %v, want an empty answer and the cut as its outcome", asked)
+			}
+			return
+		}
+	}
+	t.Fatalf("the log holds no rethink question event for the rethink that got no answer")
+}

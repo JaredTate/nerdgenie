@@ -91,13 +91,24 @@ func (running *run) rethinkIfAnswered(ctx context.Context) bool {
 	label, background := running.theRethinkBackground(ctx)
 	answer := strings.TrimSpace(running.theLoop.askForARethink(ctx, background))
 	if answer == "" {
+		running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", TheRethinkQuestion, "", TheRethinkUnansweredOutcome)
 		return false
 	}
 	running.writeTheRethink(ctx, readTheRethink(answer))
 	running.closeTheStalledCall(label)
 	running.openTheWindowOnTheRethink(ctx, answer)
+	running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", TheRethinkQuestion, answer, TheRethinkAnsweredOutcome)
 	return true
 }
+
+// TheRethinkAnsweredOutcome and TheRethinkUnansweredOutcome are what the
+// rethink's question event says came of the answer: the record keeps one line
+// of each half, and the log keeps the whole answer beside them, so that a
+// stall can be read back the way the review and the section question can.
+const (
+	TheRethinkAnsweredOutcome   = "wrote the stall as a failure and the Next line as a decision, then opened a fresh window on the answer"
+	TheRethinkUnansweredOutcome = "no answer, so the stalled rounds were cut from the conversation"
+)
 
 // theRethinkBackground is the first message of the rethink's call: the record
 // as it stands, the newest result on it in full up to the cap, the state of

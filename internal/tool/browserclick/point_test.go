@@ -7,6 +7,7 @@ import (
 
 	"github.com/JaredTate/nerdgenie/internal/testkit"
 	"github.com/JaredTate/nerdgenie/internal/tool/browserclick"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserread"
 	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
@@ -26,8 +27,8 @@ func TestAClickAtAPointGoesToTheWorkerAsAPoint(t *testing.T) {
 	if points := worker.PointsClicked(); len(points) != 1 || points[0] != (testkit.Point{Across: 519, Down: 335}) {
 		t.Errorf("the worker was handed the points %v, want the one point 519,335", points)
 	}
-	if !strings.Contains(output.Text, testkit.FixtureSimplePage) {
-		t.Errorf("the click at a point answered %q, want what changed on the page", output.Text)
+	if !strings.Contains(output.Text, "not what was expected") || !strings.Contains(output.Text, browserread.TheOutlineUnchangedLine) {
+		t.Errorf("the click at a point answered %q, want the verdict and the line that the outline is unchanged", output.Text)
 	}
 }
 

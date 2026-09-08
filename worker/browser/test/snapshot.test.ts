@@ -48,6 +48,23 @@ describe("reading a page as a compact tree", () => {
     expect(byRole.get("A post")).toBe("article");
   });
 
+  it("keeps a native control that carries a widget role, names a nameless one by its id, and lists a focusable widget", async () => {
+    // Run 22 built its board as <button role="gridcell"> and the nine cells
+    // vanished from the outline: the stated role won over the button and
+    // gridcell is no kind the outline lists. A stated role wins only when it
+    // is a kind the outline knows; a native control keeps its own kind; a
+    // focusable element with a widget role is a button; a control with no
+    // name is named by its id; and a plain data cell is nothing to click.
+    const result = await worker.result("open", { url: site.page("widget-roles.html") });
+    const byRole = new Map(elementsOf(result).map((element) => [element.name, element.role]));
+    expect(byRole.get("cell-0")).toBe("button");
+    expect(byRole.get("X")).toBe("button");
+    expect(byRole.get("Second tab")).toBe("link");
+    expect(byRole.get("Third choice")).toBe("button");
+    expect(byRole.get("Find")).toBe("textbox");
+    expect(byRole.has("Plain data")).toBe(false);
+  });
+
   it("gives every element a ref that is the letter e and a number", async () => {
     const result = await worker.result("open", { url: site.page("links-and-form.html") });
     for (const element of elementsOf(result)) {

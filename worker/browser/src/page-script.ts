@@ -36,11 +36,26 @@ window.__nerdgenieWalk = window.__nerdgenieWalk || function (root, mostNodes, vi
 };
 `;
 
-/** What kind of thing an element is. An explicit role attribute always wins. */
+/**
+ * What kind of thing an element is. A stated role wins when it is a kind the
+ * outline knows; otherwise a native control keeps its own kind, because a
+ * <button role="gridcell"> is still a button a person clicks, and run 22's
+ * board lost its nine cells that way. A focusable element with a widget role
+ * is a button, and a stated searchbox is a textbox.
+ */
 const ROLE = `
+window.__nerdgenieKnownRoles = ["link", "button", "textbox", "checkbox", "radio", "combobox", "menuitem", "heading", "article", "form"];
+window.__nerdgenieWidgetRoles = ["gridcell", "cell", "tab", "option", "treeitem", "menuitemcheckbox", "menuitemradio", "switch"];
 window.__nerdgenieRoleOf = window.__nerdgenieRoleOf || function (element) {
   var stated = (element.getAttribute("role") || "").trim().split(/\\s+/)[0].toLowerCase();
-  if (stated) { return stated; }
+  if (stated === "searchbox") { stated = "textbox"; }
+  if (stated && window.__nerdgenieKnownRoles.indexOf(stated) !== -1) { return stated; }
+  var native = window.__nerdgenieNativeRoleOf(element);
+  if (native) { return native; }
+  if (stated && window.__nerdgenieWidgetRoles.indexOf(stated) !== -1 && element.tabIndex >= 0) { return "button"; }
+  return "";
+};
+window.__nerdgenieNativeRoleOf = window.__nerdgenieNativeRoleOf || function (element) {
   var tag = element.tagName.toLowerCase();
   if (tag === "a") { return element.hasAttribute("href") ? "link" : ""; }
   if (tag === "button" || tag === "summary") { return "button"; }
@@ -98,6 +113,7 @@ window.__nerdgenieNameOf = window.__nerdgenieNameOf || function (element, role, 
   if (!name && element.tagName === "INPUT" && /^(submit|button|reset)$/i.test(element.type)) {
     name = tidy(element.value);
   }
+  if (!name && role !== "form" && !tidy(element.innerText || element.textContent)) { name = tidy(element.id); }
   if (!name && role === "form") {
     var inside = element.querySelector("legend, h1, h2, h3, h4, h5, h6");
     if (inside) { name = tidy(inside.textContent); }

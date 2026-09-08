@@ -90,8 +90,8 @@ func TestABatchStopsAtTheFirstStepThatDoesNotDoWhatWasExpected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("running a batch of steps failed: %v", err)
 	}
-	if strings.Count(output.Text, "step ") != 1 {
-		t.Errorf("the batch ran past the step that failed: %q", output.Text)
+	if strings.Contains(output.Text, "step 2 of 2") || !strings.Contains(output.Text, "step 2 did not run") {
+		t.Errorf("the batch ran past the step that failed, or did not say the second step was left: %q", output.Text)
 	}
 }
 
@@ -183,5 +183,31 @@ func TestAPressStepTakesItsKeyUnderTextToo(t *testing.T) {
 		if _, err := run(t, tool, map[string]any{"intent": "move the piece", "steps": []any{step}}); err != nil {
 			t.Errorf("the press step %v was refused: %v", step, err)
 		}
+	}
+}
+
+// TestABatchThatStopsSaysHowManyStepsWereAskedAndWhichDidNotRun: run 29's
+// model sent five clicks as one batch, the first was judged not what was
+// expected, and the result read "step 1 of 1", as if one step had been
+// asked. The count is the steps asked for, and the steps that did not run
+// are named, so the model knows what is still to do.
+func TestABatchThatStopsSaysHowManyStepsWereAskedAndWhichDidNotRun(t *testing.T) {
+	tool, worker := newTool(t)
+	worker.NextActionChangesNothing()
+	steps := []map[string]any{}
+	for _, ref := range []string{testkit.FixtureChangeLinkRef, testkit.FixtureUsernameRef, testkit.FixturePasswordRef, testkit.FixtureChangeLinkRef, testkit.FixtureUsernameRef} {
+		steps = append(steps, map[string]any{"method": "click", "element": ref, "expectation": "a receipt appears"})
+	}
+
+	output, err := run(t, tool, map[string]any{"intent": "play the game through", "steps": steps})
+
+	if err != nil {
+		t.Fatalf("the batch failed: %v", err)
+	}
+	if !strings.Contains(output.Text, "step 1 of 5\n") {
+		t.Errorf("the result does not count the steps asked for:\n%s", output.Text)
+	}
+	if !strings.Contains(output.Text, "steps 2 to 5 did not run") {
+		t.Errorf("the result does not say which steps did not run:\n%s", output.Text)
 	}
 }

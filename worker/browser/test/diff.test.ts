@@ -230,6 +230,22 @@ describe("the lines of text that appeared", () => {
     expect(diff.expectationMet).toBe(true);
   });
 
+  it("include a line that changed to a value the page already showed elsewhere", () => {
+    // Run 29's board: the turn indicator went from X to O while the scoreboard
+    // already said "O", and a diff that kept the old lines as a set called the
+    // click "nothing changed", so the model clicked the same cell twenty times.
+    const diff = buildDiff({
+      before: snapshot({ text: "Tic Tac Toe\nX\nto move\nX\n0\nDRAWS\n0\nO\n0" }),
+      after: snapshot({ text: "Tic Tac Toe\nO\nto move\nX\n0\nDRAWS\n0\nO\n0" }),
+      expectation: "",
+      newTab: "",
+      wall: null,
+      settled: true,
+    });
+    expect(diff.newText).toEqual(["O"]);
+    expect(diff.expectationMet).toBe(true);
+  });
+
   it("are empty when the text is as it was", () => {
     const diff = buildDiff({
       before: snapshot({ text: "Counter\n0\nCount" }),

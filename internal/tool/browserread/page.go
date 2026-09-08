@@ -127,6 +127,7 @@ func pageText(page contract.Snapshot, room int) string {
 	if page.TabID != "" {
 		fmt.Fprintf(written, "tab %s\n", fromThePage(page.TabID, MaxNameRunes))
 	}
+	written.WriteString(answerText(page.Answer))
 	written.WriteString(elementsText(page.Elements))
 	if page.HiddenYetDrawn > 0 {
 		written.WriteString(theHiddenYetDrawnLine(page.HiddenYetDrawn))
@@ -137,14 +138,16 @@ func pageText(page contract.Snapshot, room int) string {
 	written.WriteString(dialogText(page.Dialog))
 	written.WriteString(downloadText(page.Download))
 	written.WriteString(wallText(page.Wall))
-	written.WriteString(answerText(page.Answer))
 	written.WriteString(errorsText(page.Errors))
 	written.WriteString(textSection(page.Text, room-written.Len()))
 	return written.String()
 }
 
-// answerText is the page's answer to what the read asked, after the outline
-// and before the errors, and nothing when nothing was asked.
+// answerText is the page's answer to what the read asked, first on the result
+// after the page's name and before the outline, because the answer is what
+// the call was for: run 29's model asked for the board and read it wrong twice
+// with fourteen lines of outline in front of it. It is nothing when nothing
+// was asked.
 func answerText(answer string) string {
 	if answer == "" {
 		return ""

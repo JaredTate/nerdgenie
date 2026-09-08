@@ -38,16 +38,28 @@ const MOST_NEW_LINES = 12;
 /**
  * The lines of the page's text that were not there before, in the page's order,
  * capped. There are none on the very first snapshot, because everything would be
- * new, and none when the text is as it was.
+ * new, and none when the text is as it was. The old lines are counted, not
+ * merely kept as a set: a turn indicator that goes from X to O while the
+ * scoreboard already says O is one more O than before, and a set would have
+ * called that click "nothing changed", which is what run 29's model heard
+ * twenty times over.
  */
 function linesThatAppeared(before: Snapshot | null, after: Snapshot): string[] {
   if (before === null) {
     return [];
   }
-  const was = new Set(before.text.split("\n"));
+  const was = new Map<string, number>();
+  for (const line of before.text.split("\n")) {
+    was.set(line, (was.get(line) ?? 0) + 1);
+  }
   const appeared: string[] = [];
   for (const line of after.text.split("\n")) {
-    if (line.trim() !== "" && !was.has(line) && !appeared.includes(line)) {
+    const left = was.get(line) ?? 0;
+    if (left > 0) {
+      was.set(line, left - 1);
+      continue;
+    }
+    if (line.trim() !== "" && !appeared.includes(line)) {
       appeared.push(line);
       if (appeared.length === MOST_NEW_LINES) {
         break;

@@ -113,17 +113,25 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 	if err != nil {
 		return contract.ToolOutput{}, fmt.Errorf("the batch stopped after %d steps: %w", len(changes), err)
 	}
-	return contract.ToolOutput{Text: batchText(changes)}, nil
+	return contract.ToolOutput{Text: batchText(changes, len(steps))}, nil
 }
 
-// batchText is what the model reads back: one part per step that ran, numbered.
-func batchText(changes []contract.Diff) string {
+// batchText is what the model reads back: one part per step that ran, numbered
+// out of the steps asked for, and a line naming the steps that did not run
+// when the batch stopped short. Run 29's five clicks read "step 1 of 1"
+// when the first was judged not what was expected, as if one had been asked.
+func batchText(changes []contract.Diff, asked int) string {
 	written := &strings.Builder{}
 	for at, change := range changes {
-		fmt.Fprintf(written, "step %d of %d\n%s", at+1, len(changes), browserread.ChangeText(change))
+		fmt.Fprintf(written, "step %d of %d\n%s", at+1, asked, browserread.ChangeText(change))
 	}
-	if len(changes) == 0 {
+	switch left := asked - len(changes); {
+	case len(changes) == 0:
 		written.WriteString("no step ran\n")
+	case left == 1:
+		fmt.Fprintf(written, "step %d did not run, because step %d was not what was expected\n", asked, len(changes))
+	case left > 1:
+		fmt.Fprintf(written, "steps %d to %d did not run, because step %d was not what was expected\n", len(changes)+1, asked, len(changes))
 	}
 	return written.String()
 }

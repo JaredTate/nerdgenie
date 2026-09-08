@@ -309,8 +309,9 @@ func TestWhatWentWrongOnThePageIsListedAfterTheOutlineAndBeforeTheText(t *testin
 // build's play-test task lacked: six play-test drivers written through the
 // shell to read window.__engine.state, because no browser tool would answer a
 // question about the page. The ask field asks the page one expression, on a
-// page served from this machine, and its answer rides on the result after the
-// outline.
+// page served from this machine, and its answer is the first thing on the
+// result after the page's name: run 29's model asked for the board and read
+// it wrong twice with fourteen lines of outline in front of it.
 func TestAskingThePageAQuestionPutsItsAnswerOnTheResult(t *testing.T) {
 	worker := testkit.NewFakeBrowserWorker()
 	worker.AddPage(contract.Snapshot{
@@ -330,8 +331,8 @@ func TestAskingThePageAQuestionPutsItsAnswerOnTheResult(t *testing.T) {
 	if !strings.Contains(output.Text, "the page answered: \"PLAYING\"") {
 		t.Errorf("the answer is not on the result, which reads:\n%s", output.Text)
 	}
-	if outline := strings.Index(output.Text, `e3 button "Start Game"`); outline < 0 || outline > strings.Index(output.Text, "the page answered") {
-		t.Errorf("the outline should come before the answer, and the result reads:\n%s", output.Text)
+	if outline := strings.Index(output.Text, `e3 button "Start Game"`); outline < 0 || outline < strings.Index(output.Text, "the page answered") {
+		t.Errorf("the answer should come before the outline, and the result reads:\n%s", output.Text)
 	}
 }
 

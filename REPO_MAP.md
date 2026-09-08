@@ -763,6 +763,7 @@ internal/loop/taskcall_test.go
 internal/loop/taskrecord.go
 internal/loop/testdata/fuzz/FuzzWhatTheHarnessReadsFromText/8edaad5862eab648
 internal/loop/testdata/home-made-runner-ballot-marks.txt
+internal/loop/testdata/home-made-runner-file-and-colons.txt
 internal/loop/testplace_test.go
 internal/loop/testsfirst.go
 internal/loop/testsfirst_place_test.go
@@ -859,6 +860,8 @@ internal/permission/standing.go
 internal/permission/standing_test.go
 internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a-command-line-that-starts-with-a-flag
 internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a-subshell-round-an-unclosed-quote
+internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/a3f097a44c8b7dc3
+internal/permission/testdata/fuzz/FuzzADisguisedCommandStillNeedsTheSameYes/b3e87d31138a9c63
 internal/permission/unattended_test.go
 internal/permission/website.go
 internal/permission/wrappers.go

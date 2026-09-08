@@ -60,6 +60,7 @@ func (running *run) paceAgainstTheJob(ctx context.Context) (Outcome, bool, error
 	ran := running.theLoop.options.Clock.Now().Sub(running.startedAt)
 	if ran >= CloseAtTimesTheMedian*median {
 		outcome, err := running.failHere(ctx, errors.New(thePacedOutReport(running.theDoneLines())))
+		outcome.PacedOut = true
 		return outcome, true, err
 	}
 	if ran >= CostLineAtTimesTheMedian*median && !running.costLineSaid {

@@ -144,7 +144,7 @@ func TestATaskAtTwiceTheJobsMedianReadsItsCostLineOnce(t *testing.T) {
 // the harness ends it as failed with the report naming what was proved and
 // the open line's text, the job takes it as a failed task, and the record's
 // open line stays open, because the done check is never bypassed.
-func TestATaskAtThriceTheJobsMedianEndsFailedWithItsOpenLinesOnTheReport(t *testing.T) {
+func TestATaskAtThriceTheJobsMedianIsSetAsideSoTheJobGoesOn(t *testing.T) {
 	steps := append(twoFinishedTasks(),
 		callStep("I will read the sky notes.",
 			callFor("c1", "read", `{"path":"sky1.md"}`),
@@ -166,29 +166,63 @@ func TestATaskAtThriceTheJobsMedianEndsFailedWithItsOpenLinesOnTheReport(t *test
 	if !sentSomethingLike(sent, report) {
 		t.Errorf("the person was sent %v, want the paced-out report with the open line on it", sent)
 	}
+	if !sentSomethingLike(sent, "is set aside after running past three times the job's median") {
+		t.Errorf("the person was not told the paced task was set aside so the job goes on: %v", sent)
+	}
 	costLine := "this task has run 20 minutes against a median of 10 for this job's finished tasks; 1 of 2 done lines are proved"
 	if first, _ := requestsCarrying(built, costLine); first != 12 {
 		t.Errorf("the cost line first reached the model on request %d, want 12, the round after the task passed twice the median", first)
 	}
-	held, err := built.jobs.Load(t.Context(), jobID)
-	if err != nil {
-		t.Fatalf("cannot load the job: %v", err)
-	}
-	if len(held.Work.Results) != 3 || !strings.Contains(held.Work.Results[2].Summary, report) {
-		t.Errorf("the job's reports are %+v, want the third carrying the paced-out line for the job's later tasks to read", held.Work.Results)
-	}
-	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 1 || summary.State != contract.JobRunning {
-		t.Errorf("the job reads %+v, want one failure counted and the job still running", summary)
+	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 0 || summary.State != contract.JobRunning {
+		t.Errorf("the job reads %+v, want no failure counted and the job still running: a paced-out task is set aside, not failed toward the pause", summary)
 	}
 	record := built.held(t, "3")
-	if record.Header.Status != contract.StatusFailed {
-		t.Errorf("the sky task's record stands at %q, want %q", record.Header.Status, contract.StatusFailed)
-	}
 	if len(record.Goal.DoneWhen) != 2 || record.Goal.DoneWhen[1].Done {
 		t.Errorf("the record's done list reads %+v, want the second line still open: the done check is not bypassed", record.Goal.DoneWhen)
 	}
 	if built.model.StepsLeft() != 0 {
-		t.Errorf("the model has %d steps left, want none: the paced-out task is reviewed and asked nothing more", built.model.StepsLeft())
+		t.Errorf("the model has %d steps left, want none: the set-aside path asks nothing more of the model", built.model.StepsLeft())
+	}
+}
+
+// TestATaskPacedOutOnItsComebackIsPutDownForThePerson: the deferral is once
+// per task, whether it stopped on the guard or ran too long. A task set aside
+// for pacing out that comes back and paces out again is put down for the
+// person, the job paused on it, with no failure counted; the set-aside line is
+// said once. This locks the change's own "too slow again on its comeback is put
+// down for the person" branch.
+func TestATaskPacedOutOnItsComebackIsPutDownForThePerson(t *testing.T) {
+	sky := func(read1, read2, read3, declare string) []testkit.Step {
+		return []testkit.Step{
+			callStep("I will read the sky notes.",
+				callFor(read1, "read", `{"path":"sky1.md"}`),
+				taskCall(declare, `{"why":"the sky must be drawn","doneWhen":["the sky is drawn"]}`)),
+			callStep("Reading more of the sky.", callFor(read2, "read", `{"path":"sky2.md"}`)),
+			callStep("Reading more of the sky.", callFor(read3, "read", `{"path":"sky3.md"}`)),
+			aReviewReply("Close a task at three times the median."),
+			answerStep("none"),
+		}
+	}
+	steps := append(twoFinishedTasks(), sky("c1", "c2", "c3", "c1t")...)
+	steps = append(steps, sky("d1", "d2", "d3", "d1t")...)
+	steps = append(steps, answerStep("This reply is never played."))
+	built, _, jobID := aPacedHarness(t, steps)
+
+	ran := runTheJobToTheEnd(t, built.loop, built.channel)
+
+	if ran != 4 {
+		t.Errorf("the driver ran %d tasks, want 4: two finished, the sky paced out and set aside, then the sky again", ran)
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused || summary.FailuresInARow != 0 {
+		t.Errorf("the job reads %+v, want it paused on the task with no failure counted: a paced-out comeback is put down, not failed", summary)
+	}
+	mark, there, err := built.jobs.PutDownTask(t.Context())
+	if err != nil || !there || mark.Task.TaskID != "t3" {
+		t.Errorf("the store holds the put-down task as %+v (there %v, err %v), want task t3", mark, there, err)
+	}
+	sent := built.channel.Sent()
+	if count := timesSent(sent, "is set aside after running past three times the job's median"); count != 1 {
+		t.Errorf("the paced task said it was set aside %d times, want once: the deferral is tried once", count)
 	}
 }
 

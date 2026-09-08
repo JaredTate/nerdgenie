@@ -151,6 +151,12 @@ type Outcome struct {
 	// over, rather than a line of the stop list or the person. A job picks
 	// such a task up once itself, on a fresh window, before it waits.
 	ByTheGuard bool
+	// PacedOut says the harness ended the task because it ran past three times
+	// the job's median task time, not because it went in circles or crashed. A
+	// paced-out task is set aside so the job goes on and comes back to it once,
+	// rather than retried until three failures pause the job; a task too slow
+	// again on its comeback is put down for the person.
+	PacedOut bool
 	// JobProof is what the harness proved of the job's done list as this task
 	// ended, and is nil for a task that belongs to no job.
 	JobProof *JobProof

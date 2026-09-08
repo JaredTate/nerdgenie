@@ -10,6 +10,42 @@ import (
 	"github.com/JaredTate/nerdgenie/internal/record"
 )
 
+// pickUpAGuardStoppedTask picks a job's task up once, on a fresh window, when
+// the harness's guard stopped it, and says whether it did. A task the guard
+// stopped a second time is not picked up again; it is left for the set-aside
+// or the put-down below.
+func (theLoop *Loop) pickUpAGuardStoppedTask(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, bool, error) {
+	if !outcome.ByTheGuard || outcome.TaskID == "" {
+		return outcome, false, nil
+	}
+	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
+	again, err := theLoop.options.Jobs.PickUpOnce(ctx, jobID, taskID)
+	if err != nil {
+		return outcome, false, fmt.Errorf("cannot ask job %s whether it may pick its task %s up itself: %w", jobID, taskID, err)
+	}
+	if !again {
+		return outcome, false, nil
+	}
+	out, err := theLoop.pickTheTaskUpItself(ctx, task, number, outcome)
+	return out, true, err
+}
+
+// setAPacedOutTaskAside sets a task the pacer ended aside so the job goes on
+// and comes back to it, or puts it down for the person when it was set aside
+// once already, and says whether it handled the outcome. A paced-out task ran
+// past three times the job's median; setting it aside keeps one slow task from
+// being retried until three failures pause the whole job.
+func (theLoop *Loop) setAPacedOutTaskAside(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, bool, error) {
+	if !outcome.PacedOut || task.Unattended {
+		return outcome, false, nil
+	}
+	setAside, err := theLoop.setTheTaskAside(ctx, task, outcome, theTooSlowReason)
+	if err != nil || setAside {
+		return outcome, true, err
+	}
+	return outcome, true, theLoop.putTheTaskDown(ctx, task, number, outcome)
+}
+
 // finishJobTask writes a finished task's report into its job and sends it to
 // the user with the job's progress line on it. A task the person stopped, or
 // one that stopped to ask them a question, is not finished at all: it is put
@@ -37,21 +73,18 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 		return outcome, nil
 	}
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
-	if outcome.ByTheGuard && outcome.TaskID != "" {
-		again, err := theLoop.options.Jobs.PickUpOnce(ctx, jobID, taskID)
-		if err != nil {
-			return outcome, fmt.Errorf("cannot ask job %s whether it may pick its task %s up itself: %w", jobID, taskID, err)
-		}
-		if again {
-			return theLoop.pickTheTaskUpItself(ctx, task, number, outcome)
-		}
+	if out, picked, err := theLoop.pickUpAGuardStoppedTask(ctx, task, number, outcome); picked || err != nil {
+		return out, err
 	}
 	ctx, done := theLoop.timeToWrapUp(ctx)
 	defer done()
+	if out, handled, err := theLoop.setAPacedOutTaskAside(ctx, task, number, outcome); handled {
+		return out, err
+	}
 	stopped := outcome.Status == contract.StatusStopped
 	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
 	if putDown && outcome.ByTheGuard {
-		setAside, err := theLoop.setTheTaskAside(ctx, task, outcome)
+		setAside, err := theLoop.setTheTaskAside(ctx, task, outcome, theTwiceStoppedReason)
 		if err != nil || setAside {
 			return outcome, err
 		}
@@ -154,7 +187,7 @@ func picksItUpLine(jobID string, taskID string) string {
 // to be put down for the person. On the night of 7 September 2026 the flight
 // simulator's sky task waited nine hours for a person, three times, while
 // twelve tasks that needed nothing from it sat untouched.
-func (theLoop *Loop) setTheTaskAside(ctx context.Context, task Task, outcome Outcome) (bool, error) {
+func (theLoop *Loop) setTheTaskAside(ctx context.Context, task Task, outcome Outcome, reason string) (bool, error) {
 	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
 	deferred, err := theLoop.options.Jobs.Defer(ctx, jobID, taskID)
 	if err != nil {
@@ -163,14 +196,23 @@ func (theLoop *Loop) setTheTaskAside(ctx context.Context, task Task, outcome Out
 	if !deferred {
 		return false, nil
 	}
-	return true, theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+setAsideLine(jobID, taskID))
+	return true, theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+setAsideLine(jobID, taskID, reason))
 }
 
-// setAsideLine is the line under a twice-stopped task's report saying the job
-// sets the task aside, goes on, and comes back to it.
-func setAsideLine(jobID string, taskID string) string {
-	return fmt.Sprintf("Task %s is set aside after stopping twice; job %s goes on with the next task and comes back to %s before its last task.",
-		taskID, jobID, taskID)
+// Why a task was set aside, in the line the person reads: it stopped on the
+// guard twice (theTwiceStoppedReason) or it ran past three times the job's
+// median (theTooSlowReason).
+const (
+	theTwiceStoppedReason = "after stopping twice"
+	theTooSlowReason      = "after running past three times the job's median"
+)
+
+// setAsideLine is the line under a set-aside task's report saying the job sets
+// the task aside, goes on, and comes back to it, with the reason it was set
+// aside.
+func setAsideLine(jobID string, taskID string, reason string) string {
+	return fmt.Sprintf("Task %s is set aside %s; job %s goes on with the next task and comes back to %s before its last task.",
+		taskID, reason, jobID, taskID)
 }
 
 // progressLine is the line every job report carries: which job it was, which

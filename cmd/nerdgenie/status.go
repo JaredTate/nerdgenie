@@ -67,6 +67,7 @@ func (running *agent) fillTheJob(fields map[string]string) {
 	for _, field := range []string{
 		contract.StatusFieldJob, contract.StatusFieldJobAsk, contract.StatusFieldJobName,
 		contract.StatusFieldJobTask, contract.StatusFieldJobTasks,
+		contract.StatusFieldJobStarted, contract.StatusFieldJobTaskTimes,
 	} {
 		fields[field] = ""
 	}
@@ -81,6 +82,27 @@ func (running *agent) fillTheJob(fields map[string]string) {
 		return
 	}
 	fillTheJobFields(fields, fromJob, held)
+	if timing, err := running.jobs.Timing(context.Background(), fromJob.JobID); err == nil {
+		fillTheJobTiming(fields, held, timing)
+	}
+}
+
+// fillTheJobTiming writes when the job was made and when each of its tasks
+// began and ended, in the order of the job's list, which is what the panel
+// draws the running times and the totals from. A job with no moments sends
+// both fields empty.
+func fillTheJobTiming(fields map[string]string, held contract.Record, timing contract.JobTiming) {
+	fields[contract.StatusFieldJobStarted] = ""
+	if !timing.Started.IsZero() {
+		fields[contract.StatusFieldJobStarted] = timing.Started.UTC().Format(time.RFC3339)
+	}
+	times := make([]contract.JobTaskTime, 0, len(held.Work.Tasks))
+	for _, task := range held.Work.Tasks {
+		if when, started := timing.Tasks[task.TaskID]; started {
+			times = append(times, contract.JobTaskTime{TaskID: task.TaskID, Started: when.Started, Finished: when.Finished})
+		}
+	}
+	fields[contract.StatusFieldJobTaskTimes] = contract.JobTaskTimeLines(times)
 }
 
 // fillTheJobFields writes the four job fields from the job's record and the

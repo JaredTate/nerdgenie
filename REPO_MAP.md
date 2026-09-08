@@ -466,6 +466,7 @@ internal/contract/identifier_test.go
 internal/contract/job.go
 internal/contract/jobhelpers_test.go
 internal/contract/jobtasklines_test.go
+internal/contract/jobtasktimes_test.go
 internal/contract/known_test.go
 internal/contract/memory.go
 internal/contract/model.go
@@ -549,6 +550,7 @@ internal/job/testdata/cron-one.golden
 internal/job/testdata/fuzz/FuzzTheScheduleReader/fdb454dc6f8e3671
 internal/job/testdata/jobs-list.golden
 internal/job/testdata/jobs-one.golden
+internal/job/timing.go
 internal/job/words.go
 internal/lint/comments.go
 internal/lint/doc.go
@@ -651,6 +653,9 @@ internal/loop/jobs.go
 internal/loop/jobs_test.go
 internal/loop/jobsteer_test.go
 internal/loop/jobstop_test.go
+internal/loop/jobtiming.go
+internal/loop/jobtiming_test.go
+internal/loop/jobtiming_words_test.go
 internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
 internal/loop/lastround_test.go
@@ -754,6 +759,7 @@ internal/loop/window.go
 internal/loop/window_test.go
 internal/loop/workorder.go
 internal/loop/workorder_test.go
+internal/loop/workorderbound_test.go
 internal/loop/workorderslice.go
 internal/markdown/doc.go
 internal/markdown/markdown.go
@@ -1181,6 +1187,7 @@ internal/testkit/channel.go
 internal/testkit/channel_test.go
 internal/testkit/checks_catch_job_test.go
 internal/testkit/checks_catch_jobprove_test.go
+internal/testkit/checks_catch_jobtiming_test.go
 internal/testkit/checks_catch_lifecycle_test.go
 internal/testkit/checks_catch_more_test.go
 internal/testkit/checks_catch_test.go
@@ -1189,6 +1196,7 @@ internal/testkit/checks_job.go
 internal/testkit/checks_joblifecycle.go
 internal/testkit/checks_jobprove.go
 internal/testkit/checks_jobputdown.go
+internal/testkit/checks_jobtiming.go
 internal/testkit/checks_model.go
 internal/testkit/checks_run.go
 internal/testkit/checks_screen.go
@@ -1578,6 +1586,7 @@ internal/tui/testdata/themed-panel-state-120x40.txt
 internal/tui/testdata/themed-panel-state-160x50.txt
 internal/tui/testdata/themed-panel-state-80x24.txt
 internal/tui/theme_test.go
+internal/tui/timing_test.go
 internal/tui/transcript.go
 internal/tui/typing_test.go
 internal/tui/unixsocket.go

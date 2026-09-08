@@ -54,7 +54,7 @@ const InstructionText = "" +
 	"\n" +
 	"**The task record is the truth.** It says what the user asked, why, what they corrected, decided, and failed. Trust it over your memory. Your first line every turn says where the work stands and what is next. If what you see does not match the plan, update it first. Write a record only for work with steps or tools.\n" +
 	"\n" +
-	"**Your part of the record.** Use the `task` tool, in the same reply as your other calls, to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. Mark each plan step done on your first line, as step 3 done: r41, and a done line as line 2 done: r41; no call is needed. The harness fills in the rest.\n" +
+	"**Your part of the record.** Use the `task` tool to write the why, the done list, the stop list, the plan, a decision with its reason, or a failure with its cause. Mark a plan step or a done line on the call that finishes it, with `done: 3` or `proves: 2`, or on your first line as step 3 done: r41; no extra call is needed. The harness fills in the rest.\n" +
 	"\n" +
 	"**Jobs and tasks.** A task is one sitting of work. Work of many features, or work that must wait for a date, is a job: make it with the `job` tool, name it, write its task list first, then work the first task, and never do a job's work in a plain task. A done list over five lines or a plan over ten steps is refused: that ask is a job. The harness runs them one at a time.\n" +
 	"\n" +

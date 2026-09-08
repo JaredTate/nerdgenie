@@ -78,6 +78,7 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 		return contract.ToolResult{}, nil, err
 	}
 	call = inTheProjectFolderCall(running.projectFolder, call)
+	call, asked := theMarksOf(call)
 	if running.rewindDue {
 		return refusedResult(call, "The conversation is being cleared after this reply, so this call was not run."), nil, nil
 	}
@@ -108,7 +109,7 @@ func (running *run) oneCall(ctx context.Context, call contract.ToolCall) (contra
 	if !allowed {
 		return running.afterADenial(ctx, call, denial)
 	}
-	return running.runAndRecord(ctx, call)
+	return running.runAndRecord(ctx, call, asked)
 }
 
 // afterADenial turns a refused call into a result the model can act on, and
@@ -123,7 +124,7 @@ func (running *run) afterADenial(ctx context.Context, call contract.ToolCall, de
 
 // runAndRecord runs one tool, writes its result into the record and the log,
 // and checks the result against the stop list.
-func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (contract.ToolResult, *Outcome, error) {
+func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall, asked marks) (contract.ToolResult, *Outcome, error) {
 	running.noteToolLine(toolLineFor(call, "", false))
 	text, picture, failed := running.runOneTool(ctx, call)
 	text, picture = running.withOrWithoutThePicture(text, picture)
@@ -153,6 +154,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall) (c
 		return contract.ToolResult{}, nil, fmt.Errorf("cannot write the result of %s into the record: %w", call.Name, err)
 	}
 	running.noteToolLine(toolLineFor(call, label+" "+summary, failed))
+	for _, line := range running.applyTheMarks(ctx, asked, label, failed) {
+		text += "\n" + line
+	}
 	running.noteWhatTheResultShows(call, text, failed)
 	running.writeWhatTheTestsShow(ctx, call, text, label)
 	running.countTheProbe(call)

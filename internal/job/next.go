@@ -23,7 +23,10 @@ import (
 // A task dated next week does not hold up the one behind it. The list is read
 // past a task that is waiting for its date rather than stopped at it, because a
 // tick's task added today would otherwise sit behind a task the user dated for
-// the end of the month and never run.
+// the end of the month and never run. A task the job set aside after its
+// second guard stop is read past the same way while another task ahead of the
+// job's last is unfinished and not deferred, and taken again once only
+// deferred tasks remain there, in their order; the last task waits for it.
 func (jobs *Jobs) NextTask(ctx context.Context, now time.Time) (contract.TaskToRun, bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -66,9 +69,9 @@ func (jobs *Jobs) taskOf(ctx context.Context, jobID string, held *heldJob, now t
 	if err != nil {
 		return contract.TaskToRun{}, false, err
 	}
-	for _, task := range held.keeper.Record().Work.Tasks {
+	for at, task := range held.keeper.Record().Work.Tasks {
 		facts := held.state.facts(task.TaskID)
-		if task.Done || running[task.TaskID] || facts.DueAt.After(now) {
+		if task.Done || running[task.TaskID] || facts.DueAt.After(now) || passedOver(held, at) {
 			continue
 		}
 		won, err := jobs.claim(ctx, jobID, task.TaskID, now)
@@ -89,6 +92,32 @@ func (jobs *Jobs) taskOf(ctx context.Context, jobID string, held *heldJob, now t
 		}, true, nil
 	}
 	return contract.TaskToRun{}, false, nil
+}
+
+// passedOver says whether the task at this place on the job's list waits for
+// another. A task set aside waits while another task ahead of the job's last
+// is unfinished and not deferred, and is taken again once only deferred tasks
+// remain there, in their order; the job's last task waits while any deferred
+// task is unfinished. So a task set aside comes back before the last task,
+// which on a work order is the regression or the summary that closes the
+// work, and never after it. The caller holds the lock.
+func passedOver(held *heldJob, at int) bool {
+	tasks := held.keeper.Record().Work.Tasks
+	last := len(tasks) - 1
+	deferred := held.state.facts(tasks[at].TaskID).Deferred
+	for other, task := range tasks {
+		if other == at || task.Done {
+			continue
+		}
+		otherDeferred := held.state.facts(task.TaskID).Deferred
+		if deferred && other != last && !otherDeferred {
+			return true
+		}
+		if at == last && otherDeferred {
+			return true
+		}
+	}
+	return false
 }
 
 // tickSchedule makes one task from a job's template when its tick has come, and

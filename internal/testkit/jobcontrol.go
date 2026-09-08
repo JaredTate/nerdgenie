@@ -84,22 +84,74 @@ func (jobs *FakeJob) Resume(_ context.Context, jobID string) error {
 func (jobs *FakeJob) PickUpOnce(_ context.Context, jobID string, taskID string) (bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
-	entry, held := jobs.entries[jobID]
-	if !held {
-		return false, fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
-	}
-	task := jobs.findTask(entry, taskID)
-	if task == nil {
-		return false, fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", jobID, taskID)
-	}
-	if task.task.Done {
-		return false, fmt.Errorf("task %s of job %s is already finished and its report is %s, so there is nothing to pick up", taskID, jobID, task.task.ReportID)
+	task, err := jobs.unfinishedTask(jobID, taskID, "pick up")
+	if err != nil {
+		return false, err
 	}
 	if task.pickedUp {
 		return false, nil
 	}
 	task.pickedUp = true
 	return true, nil
+}
+
+// Defer sets the task aside after the job's one pick-up is spent and the
+// guard stopped it again: yes the first time and no from then on, the way the
+// real store answers, with the running mark let go so that NextTask can hand
+// the task out again once only deferred tasks remain. A task that is finished
+// or not there, and a job that is not there, are refused with an error naming
+// them.
+func (jobs *FakeJob) Defer(_ context.Context, jobID string, taskID string) (bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	task, err := jobs.unfinishedTask(jobID, taskID, "set aside")
+	if err != nil {
+		return false, err
+	}
+	if task.deferred {
+		return false, nil
+	}
+	task.deferred, task.running = true, false
+	return true, nil
+}
+
+// unfinishedTask finds one unfinished task of a job for something to be done
+// to it, and refuses a job that is not there, a task not on its list, and a
+// finished task, each with an error naming it. The caller holds the lock.
+func (jobs *FakeJob) unfinishedTask(jobID string, taskID string, toDo string) (*fakeTask, error) {
+	entry, held := jobs.entries[jobID]
+	if !held {
+		return nil, fmt.Errorf("there is no job numbered %q, so list the jobs to see what there is", jobID)
+	}
+	task := jobs.findTask(entry, taskID)
+	if task == nil {
+		return nil, fmt.Errorf("the job %s has no task %q, so list its tasks to see what there is", jobID, taskID)
+	}
+	if task.task.Done {
+		return nil, fmt.Errorf("task %s of job %s is already finished and its report is %s, so there is nothing to %s", taskID, jobID, task.task.ReportID, toDo)
+	}
+	return task, nil
+}
+
+// passedOver says whether the task at this place on the job's list waits for
+// another, the rule the real store keeps: a task set aside waits while another
+// task ahead of the last is unfinished and not deferred, and the last task
+// waits while any deferred task is unfinished, so a task set aside comes back
+// before the last task. The caller holds the lock.
+func passedOver(entry *fakeJobEntry, at int) bool {
+	last := len(entry.tasks) - 1
+	for other, task := range entry.tasks {
+		if other == at || task.task.Done {
+			continue
+		}
+		if entry.tasks[at].deferred && other != last && !task.deferred {
+			return true
+		}
+		if at == last && task.deferred {
+			return true
+		}
+	}
+	return false
 }
 
 // PutDown pauses a job on one of its tasks and keeps the mark, which RunNow

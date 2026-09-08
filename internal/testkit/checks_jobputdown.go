@@ -114,6 +114,32 @@ func checkJobPicksATaskUpOnce(ctx context.Context, jobs contract.Job, task contr
 	return nil
 }
 
+// checkJobDefersATaskOnce is the rule for a task the guard stopped again
+// after the job's one pick-up: the job may set it aside once, and the second
+// ask is refused, so that a task which comes back and stalls again is put
+// down for a person; a job that is not there is refused with an error naming
+// it.
+func checkJobDefersATaskOnce(ctx context.Context, jobs contract.Job, task contract.TaskToRun) error {
+	if _, err := jobs.Defer(ctx, "no-such-job", task.TaskID); err == nil {
+		return errors.New("setting aside a task of a job that is not there returned no error, and it must name what is missing")
+	}
+	first, err := jobs.Defer(ctx, task.JobID, task.TaskID)
+	if err != nil {
+		return fmt.Errorf("the first deferral of the task failed: %w", err)
+	}
+	if !first {
+		return errors.New("the first deferral of a task was refused, and a job sets a task aside once by itself")
+	}
+	second, err := jobs.Defer(ctx, task.JobID, task.TaskID)
+	if err != nil {
+		return fmt.Errorf("the second deferral of the task failed: %w", err)
+	}
+	if second {
+		return errors.New("the second deferral of the same task was allowed, and a job sets a task aside once and then puts it down for a person")
+	}
+	return nil
+}
+
 // stateOfJob reads one job's state out of the listing.
 func stateOfJob(ctx context.Context, jobs contract.Job, jobID string) (contract.JobState, error) {
 	listed, err := jobs.List(ctx)

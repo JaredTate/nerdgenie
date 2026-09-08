@@ -128,10 +128,12 @@ type run struct {
 	// roundsAllMarked counts the rounds of tool calls since every done line
 	// and plan step was marked, which is what the all-marked line is said on.
 	roundsAllMarked int
-	// callsMade counts the task's tool calls, and finishNudged says the
-	// finish nudge was said at the cap, so it is said once.
+	// callsMade counts the task's tool calls, finishNudged says the finish
+	// nudge was said at the cap, and costLineSaid that the cost line against
+	// the job's median was said, so each is said once.
 	callsMade       int
 	finishNudged    bool
+	costLineSaid    bool
 	lastFailedCount int
 	// fewestFailed is the fewest failing tests any run of this task has
 	// shown, which a run must beat to count as progress.
@@ -325,6 +327,9 @@ func (running *run) playTheRounds(ctx context.Context) (Outcome, error) {
 		}
 		if !more {
 			return outcome, nil
+		}
+		if outcome, paced, err := running.paceAgainstTheJob(ctx); paced || err != nil {
+			return outcome, err
 		}
 	}
 	return running.finalReport(ctx, "the task used every round it was allowed")

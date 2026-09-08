@@ -85,10 +85,12 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheNineTheLoopNeeds(t
 	// job's tasks work in when the harness learns it from the first task's
 	// files, and Timing, which says when the job and each of its tasks
 	// started and finished, so that the screen shows running time and a
-	// report says what a task took.
+	// report says what a task took, and Defer, which sets a task aside
+	// after its second guard stop so that the job goes on with its next task
+	// rather than waiting for a person.
 	wanted := []string{
 		"Create", "AddTask", "List", "RunNow", "Pause", "SwitchOff",
-		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine", "SetProjectFolder", "Timing",
+		"NextTask", "FinishTask", "Load", "PutDown", "PutDownTask", "Resume", "PickUpOnce", "ProveDoneLine", "SetProjectFolder", "Timing", "Defer",
 	}
 	for _, name := range wanted {
 		if _, found := job.MethodByName(name); !found {
@@ -96,7 +98,7 @@ func TestTheJobContractIsTheSixOperationsTheDesignNamesPlusTheNineTheLoopNeeds(t
 		}
 	}
 	if job.NumMethod() != len(wanted) {
-		t.Errorf("Job has %d methods, want the sixteen listed in this test", job.NumMethod())
+		t.Errorf("Job has %d methods, want the seventeen listed in this test", job.NumMethod())
 	}
 }
 

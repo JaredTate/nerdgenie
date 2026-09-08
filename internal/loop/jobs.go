@@ -22,8 +22,10 @@ import (
 // so it is finished as the failure it is, and the schedule's next tick brings
 // its own task. A task the harness's own guard stopped, attended or not, is
 // picked up once by the job itself first, on a fresh window and on the same
-// turn, and only a second such stop is put down or failed; the outcome handed
-// back is the one the job's task ended with, the pick-up's when there was one.
+// turn; a second such stop on an attended task sets it aside, once, so that
+// the job goes on with its next task and comes back to it; and only a third
+// is put down, or failed on a schedule's task; the outcome handed back is
+// the one the job's task ended with, the pick-up's when there was one.
 //
 // The bookkeeping runs under a short context of the loop's own, the way the
 // ending of a task does, because a turn cut off by its deadline has a
@@ -48,6 +50,12 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	defer done()
 	stopped := outcome.Status == contract.StatusStopped
 	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
+	if putDown && outcome.ByTheGuard {
+		setAside, err := theLoop.setTheTaskAside(ctx, task, outcome)
+		if err != nil || setAside {
+			return outcome, err
+		}
+	}
 	if putDown || (stopped && outcome.ByThePerson) {
 		return outcome, theLoop.putTheTaskDown(ctx, task, number, outcome)
 	}
@@ -132,7 +140,37 @@ func (theLoop *Loop) pickTheTaskUpItself(ctx context.Context, task Task, number 
 // picksItUpLine is the line under a guard-stopped task's report saying the
 // job picks the task up itself, and what happens if that stops too.
 func picksItUpLine(jobID string, taskID string) string {
-	return fmt.Sprintf("Job %s picks task %s up itself, once, on a fresh window; if it stops the same way again, the job waits for you.", jobID, taskID)
+	return fmt.Sprintf("Job %s picks task %s up itself, once, on a fresh window; if it stops the same way again, the job sets it aside and goes on.", jobID, taskID)
+}
+
+// setTheTaskAside asks the job to set a guard-stopped task aside, once the
+// job's one pick-up is spent, and says whether it did. When it did, the
+// person is told in one line under the stopped report, the task's record is
+// left where it stands, the way a put-down task's is, nothing is written into
+// the job, and the driver takes the job's next task on its next ask, the way
+// it does after a finished one; the task comes back through the store once
+// only deferred tasks remain, started afresh on its own words. When the store
+// answers no, because the task was set aside once already, the task is left
+// to be put down for the person. On the night of 7 September 2026 the flight
+// simulator's sky task waited nine hours for a person, three times, while
+// twelve tasks that needed nothing from it sat untouched.
+func (theLoop *Loop) setTheTaskAside(ctx context.Context, task Task, outcome Outcome) (bool, error) {
+	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
+	deferred, err := theLoop.options.Jobs.Defer(ctx, jobID, taskID)
+	if err != nil {
+		return false, fmt.Errorf("cannot ask job %s whether it may set its task %s aside: %w", jobID, taskID, err)
+	}
+	if !deferred {
+		return false, nil
+	}
+	return true, theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+setAsideLine(jobID, taskID))
+}
+
+// setAsideLine is the line under a twice-stopped task's report saying the job
+// sets the task aside, goes on, and comes back to it.
+func setAsideLine(jobID string, taskID string) string {
+	return fmt.Sprintf("Task %s is set aside after stopping twice; job %s goes on with the next task and comes back to %s before its last task.",
+		taskID, jobID, taskID)
 }
 
 // progressLine is the line every job report carries: which job it was, which

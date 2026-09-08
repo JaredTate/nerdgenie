@@ -141,6 +141,9 @@ func (manyJobs) PutDownTask(context.Context) (contract.PutDownMark, bool, error)
 // PickUpOnce is here for the same reason; no task is ever picked up here.
 func (manyJobs) PickUpOnce(context.Context, string, string) (bool, error) { return false, nil }
 
+// Defer is here for the same reason; no task is ever set aside here.
+func (manyJobs) Defer(context.Context, string, string) (bool, error) { return false, nil }
+
 // ProveDoneLine is here for the same reason; no done line is ever proved here.
 func (manyJobs) ProveDoneLine(context.Context, string, int, string) error { return nil }
 

@@ -27,8 +27,12 @@ type taskFacts struct {
 	// preview.
 	Unattended bool `json:"unattended,omitempty"`
 	// PickedUp says the job has picked this task up itself once, after the
-	// harness's guard stopped it, so a second such stop puts it down.
+	// harness's guard stopped it, so a second such stop sets it aside.
 	PickedUp bool `json:"pickedUp,omitempty"`
+	// Deferred says the job has set this task aside once, after the guard
+	// stopped it a second time, so NextTask passes it over while another
+	// task of the job is unfinished, and a third such stop puts it down.
+	Deferred bool `json:"deferred,omitempty"`
 	// StartedAt is when the task was first handed out to run, and the zero
 	// time while it waits. A task handed out again after a guard stop keeps
 	// its first start, so that its total time covers the whole task.

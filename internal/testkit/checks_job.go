@@ -206,6 +206,9 @@ func checkJobRunsItsTask(ctx context.Context, jobs contract.Job, under theJobUnd
 	if err := checkJobPicksATaskUpOnce(ctx, jobs, next); err != nil {
 		return err
 	}
+	if err := checkJobDefersATaskOnce(ctx, jobs, next); err != nil {
+		return err
+	}
 	reportID, err := jobs.FinishTask(ctx, under.jobID, under.plain, "the contract check finished it", false)
 	if err != nil {
 		return fmt.Errorf("finishing the task failed: %w", err)

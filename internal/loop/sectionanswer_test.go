@@ -65,6 +65,11 @@ func TestTheFallbackHeadingIsTheTasksName(t *testing.T) {
 		{"Scaffold: `package.json`, a test runner, `index.html`, one smoke test", "", "Scaffold"},
 		{"Make the `board`, the pieces, the rules, the scoring, the page and the tests", "", "Make the board, the pieces, the rules, the"},
 		{": nothing before the colon", "", "Nothing before the colon"},
+		// Run 23: a picked-up task's ask is the pick-up line, and the page got
+		// a section headed "The harness stopped this task because it was".
+		{"", TheJobPickUpLine, ""},
+		{"", TheJobPickUpLine + " It was stopped because the model asked for the same thing over and over.", ""},
+		{"Hazards", TheJobPickUpLine, "Hazards"},
 	} {
 		if got := theFallbackHeading(shape.name, shape.ask); got != shape.want {
 			t.Errorf("the fallback heading of name %q and ask %q reads %q, want %q", shape.name, shape.ask, got, shape.want)

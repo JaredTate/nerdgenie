@@ -51,6 +51,16 @@ const RoundsAfterAllMarked = 3
 // TheAllMarkedLine is what the model reads then.
 const TheAllMarkedLine = "Every done line and every plan step is marked done. Answer the user now to end this task; anything more belongs to the next task, or to a new done line."
 
+// CallsBeforeTheFinishNudge is how many tool calls one task may make before
+// the harness asks it, once, to finish. Run 23's visual QA task spent 157
+// calls and 45 minutes polishing one SVG ring: every round read something
+// new or changed the page, so the meter above saw progress in all of them,
+// and nothing ever said "enough". The cap is a nudge and never a stop.
+const CallsBeforeTheFinishNudge = 100
+
+// TheFinishNudgeLine is what the model reads at the cap.
+const TheFinishNudgeLine = "This task has made 100 calls. If its done lines are met, run the suite and finish. If not, write what blocks you as a failure and finish."
+
 // TheStallLineAfterAFailure opens the nudge said instead of TheStallLine when
 // the model wrote a failure within the last ten rounds: the nightly game
 // build wrote its line-clear failure, was told by the stall line, which stays
@@ -231,6 +241,7 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 	running.progressThisRound = false
 	running.roundsSinceAFailureWrite++
 	running.noteAllMarked()
+	running.noteTheCalls(calls)
 	switch {
 	case moved:
 		running.roundsSinceProgress = 0
@@ -257,6 +268,19 @@ func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []
 		running.stallMark = running.theMarkToCloseAfterTheMeter(calls)
 	}
 	return nil, nil
+}
+
+// noteTheCalls counts the task's tool calls and says the finish nudge once,
+// the round the count reaches the cap, whatever the meter made of the rounds.
+// A line that would fill the window is held for the next round, because a
+// fresh window opens on a full one and keeps nothing said just before it.
+func (running *run) noteTheCalls(calls []contract.ToolCall) {
+	running.callsMade += len(calls)
+	if running.finishNudged || running.callsMade < CallsBeforeTheFinishNudge || len(running.messages)+1 > MaxMessagesKept {
+		return
+	}
+	running.finishNudged = true
+	running.remember(contract.Message{Role: contract.RoleUser, Text: TheFinishNudgeLine})
 }
 
 // theNudge is the line said at ten rounds without progress: the plain stall

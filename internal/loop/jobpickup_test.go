@@ -97,6 +97,12 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 	if strings.Contains(opening, "Do something different") {
 		t.Errorf("the pick-up's window still carries the stalled rounds, want a fresh one:\n%s", opening)
 	}
+	// Run 23's pick-up went straight back to the polish that stalled it. The
+	// fresh window's ask names the cause in the guard's own words and asks
+	// for what is provable to be finished.
+	if !strings.Contains(opening, "the model asked for the same thing over and over") || !strings.Contains(opening, loop.TheFinishWhatIsProvableLine) {
+		t.Errorf("the pick-up's ask does not name the guard's cause and ask to finish what is provable:\n%s", opening)
+	}
 }
 
 // TestAJobPutsATaskDownWhenItsOwnPickUpStopsOnTheGuardAgain: the pick-up is

@@ -22,7 +22,8 @@ import (
 const (
 	aLivePicture     = "the picture is saved at /pictures/sky-1.png\nthe page drew 60 frames in a quarter of a second"
 	aSameLivePicture = "the picture is the same as the last one: the page drew 58 frames in a quarter of a second, so it is alive and nothing on it moved; change the view, move the camera or the aircraft, or act on the page to see something new [/pictures/sky-1.png]"
-	aStillPicture    = "the picture is saved at /pictures/sky-1.png\nthe page drew no frames in a quarter of a second"
+	aStillPicture    = "the picture is saved at /pictures/sky-1.png\nthe page drew no frames in a quarter of a second; the tab is hidden"
+	aStillVisiblePicture = "the picture is saved at /pictures/board-1.png\nthe page drew no frames in a quarter of a second; it is visible and answers"
 )
 
 // theNoFramesRefusal is the refusal's sentence, in the exact words the brief
@@ -135,5 +136,22 @@ func TestAPhotographedLineWithNoBrowserIsLeftToTheModel(t *testing.T) {
 		if strings.Contains(result.Summary, "photograph") {
 			t.Errorf("the record holds a photograph result %q, and there is no browser to take one with", result.Summary)
 		}
+	}
+}
+
+// TestAPhotographOfAStillVisiblePageProvesTheLine: tic-tac-toe is a still
+// page with no animation loop, so its picture says it drew no frames and is
+// visible and answers, and that proves the line as a live page's picture does.
+func TestAPhotographOfAStillVisiblePageProvesTheLine(t *testing.T) {
+	resize, shot := thePhotographTools(aStillVisiblePicture)
+	built := aTaskWhoseDoneLineIsChecked(t, "The board is seen and photographed.", nil, resize, shot)
+
+	outcome := built.ask(t, "prove the board")
+
+	if outcome.Status != contract.StatusDone {
+		t.Fatalf("the task ended %q, want done on the harness's own picture of a still visible page", outcome.Status)
+	}
+	if line := built.held(t, outcome.TaskID).Goal.DoneWhen[0]; !line.Done || line.ResultID == "" {
+		t.Errorf("the done line reads %+v, want it pinned to the picture", line)
 	}
 }

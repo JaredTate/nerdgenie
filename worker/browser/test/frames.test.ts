@@ -31,6 +31,12 @@ describe("the frames a screenshot counts", () => {
     expect(picture["framesDrawn"]).toBeGreaterThan(0);
   });
 
+  it("a screenshot says the page is visible and answering", async () => {
+    await worker.result("open", { url: site.page("still-canvas.html") });
+    const picture = await worker.result("screenshot", {});
+    expect(picture["visible"]).toBe(true);
+  });
+
   it("a screenshot of a page that drew once reports no frames", async () => {
     await worker.result("open", { url: site.page("still-canvas.html") });
     const picture = await worker.result("screenshot", {});

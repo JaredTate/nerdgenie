@@ -47,3 +47,23 @@ func TestTheProtocolServerPassesTheFramesDrawnThrough(t *testing.T) {
 		t.Errorf("the screenshot answered framesDrawn %v, want 15 on the wire", result["framesDrawn"])
 	}
 }
+
+// TestTheFakeScreenshotSaysThePageIsVisibleUnlessATestHidesIt: a still page
+// with no animation loop draws no frames, which is not a stopped page, so the
+// screenshot also says whether the page is visible and answering; the fake
+// says so unless a test hides the page.
+func TestTheFakeScreenshotSaysThePageIsVisibleUnlessATestHidesIt(t *testing.T) {
+	worker := NewFakeBrowserWorker()
+	if _, err := worker.Open(context.Background(), FixtureSimplePage); err != nil {
+		t.Fatalf("cannot open the fixture page: %v", err)
+	}
+	seen, err := worker.Screenshot(context.Background())
+	if err != nil || !seen.Visible {
+		t.Errorf("before a test hides the page, the screenshot says visible %v with error %v, want true", seen.Visible, err)
+	}
+	worker.HidesThePage()
+	hidden, err := worker.Screenshot(context.Background())
+	if err != nil || hidden.Visible {
+		t.Errorf("after a test hides the page, the screenshot says visible %v with error %v, want false", hidden.Visible, err)
+	}
+}

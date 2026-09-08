@@ -87,7 +87,7 @@ func TestAnAnswerThatIsNoneOfTheThreeIsAnsweredWithTheChoices(t *testing.T) {
 	world := newWorld(t)
 	browser := world.browser(t, nil)
 	openTheCaptchaPage(t, browser)
-	pushMessage(t, world, "what do you want me to do?")
+	pushMessage(t, world, "12345678901")
 	pushMessage(t, world, "done")
 
 	reply, err := browser.Handoff(context.Background(), "the site is asking whether I am a person")
@@ -170,12 +170,16 @@ func TestTheThreeAnswersAreReadTheWayAPersonWritesThem(t *testing.T) {
 	for text, wanted := range map[string]HandoffKind{
 		"done": HandoffDone, " DONE ": HandoffDone, "abort": HandoffAbort,
 		"1234": HandoffCode, "748291": HandoffCode,
+		// On 8 September 2026 the person typed "its there" and was told three
+		// times that it was not understood; a person who writes anything but
+		// abort or a code after a handoff has done what was asked.
+		"its there": HandoffDone, "yes": HandoffDone, "done please": HandoffDone, "ok go": HandoffDone, "12a456": HandoffDone,
 	} {
 		if got, understood := readHandoffAnswer(text); !understood || got != wanted {
 			t.Fatalf("%q was read as %q, and it should have been %q", text, got, wanted)
 		}
 	}
-	for _, text := range []string{"", "yes", "12", "12345678901", "12a456", "done please"} {
+	for _, text := range []string{"", "   ", "12", "12345678901"} {
 		if got, understood := readHandoffAnswer(text); understood {
 			t.Fatalf("%q was read as %q, and it is none of the three answers", text, got)
 		}

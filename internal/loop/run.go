@@ -133,7 +133,10 @@ type run struct {
 	callsMade       int
 	finishNudged    bool
 	lastFailedCount int
-	thingsRead      map[string]bool
+	// fewestFailed is the fewest failing tests any run of this task has
+	// shown, which a run must beat to count as progress.
+	fewestFailed int
+	thingsRead   map[string]bool
 	// thingsSaid is every answer a look or a command has given this task, so
 	// that one that says something new counts as a look at something new.
 	thingsSaid map[string]bool

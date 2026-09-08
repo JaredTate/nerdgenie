@@ -414,3 +414,41 @@ func TestAShellResultThatSaysSomethingNewIsProgress(t *testing.T) {
 		t.Error("twelve listings that each printed the same thing never drew the stall line")
 	}
 }
+
+// TestTestsThatFlipBetweenTwoCountsAreNotProgress: run 28's minimax task ran
+// forty minutes with the failing tests flipping between two and three, and
+// every drop from three to two counted as progress, so the meter never
+// spoke. A test run is progress when fewer tests fail than ever before in
+// the task, or none do; a count seen before is more of the same.
+func TestTestsThatFlipBetweenTwoCountsAreNotProgress(t *testing.T) {
+	steps := []testkit.Step{}
+	rounds := loop.NudgeAfterRoundsWithoutProgress + 4
+	for at := 1; at <= rounds; at++ {
+		steps = append(steps, anEditRound(at))
+		steps = append(steps, callStep("I will run the tests.", callFor(fmt.Sprintf("t%d", at), contract.ToolShell, `{"command":"node --test"}`)))
+	}
+	steps = append(steps, answerStep("Stuck. What changed: the engine. What I checked: the tests. What is left: two tests."))
+	edits := []string{}
+	for range rounds {
+		edits = append(edits, "edited /game/src/engine.js by 1 line")
+	}
+	twoRed := "finished with exit code 1\n✖ clears a row (1ms)\n✖ spawns (1ms)\nℹ tests 10\nℹ pass 8\nℹ fail 2\nexit 1"
+	threeRed := "finished with exit code 1\n✖ clears a row (1ms)\n✖ spawns (1ms)\n✖ locks (1ms)\nℹ tests 10\nℹ pass 7\nℹ fail 3\nexit 1"
+	runs := []string{}
+	// The model's run and the harness's run after each edit both answer,
+	// flipping between the two counts.
+	for at := range 4 * rounds {
+		if (at/2)%2 == 0 {
+			runs = append(runs, twoRed)
+		} else {
+			runs = append(runs, threeRed)
+		}
+	}
+	built := newHarness(t, steps, scriptedTool(contract.ToolEdit, edits...), scriptedTool(contract.ToolShell, runs...))
+
+	built.ask(t, "make the tests pass")
+
+	if _, count := requestsCarrying(built, loop.TheStallLine); count == 0 {
+		t.Error("the meter never spoke while the failing count only flipped between two and three")
+	}
+}

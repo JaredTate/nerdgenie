@@ -139,8 +139,13 @@ func (running *run) noteProgress() {
 // run seen or fewer tests fail than on the run before, and remembers the
 // count for the next run.
 func (running *run) noteTheTestsImprovedOrNot(state testState) {
-	if !running.sawATestRun || state.failed < running.lastFailedCount {
+	// Progress is fewer failing tests than ever before in this task, or the
+	// first run. Run 28's minimax task ran forty minutes with the failing
+	// count flipping between two and three, and every drop from three to
+	// two counted against the run before it, so the meter never spoke.
+	if !running.sawATestRun || state.failed < running.fewestFailed {
 		running.noteProgress()
+		running.fewestFailed = state.failed
 	}
 	running.sawATestRun = true
 	running.lastFailedCount = state.failed

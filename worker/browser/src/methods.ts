@@ -12,6 +12,7 @@ import {
   typeMethod,
 } from "./act-methods.js";
 import { actMethod, loginFillMethod, screenshotMethod } from "./batch-methods.js";
+import { keepFresh } from "./fresh.js";
 import { settle } from "./settle.js";
 import { tabsMethod } from "./tabs.js";
 import type { Session } from "./session.js";
@@ -28,6 +29,7 @@ const open: Method = async (session, params) => {
   session.beginAction();
   const page = session.currentPageOrNone() ?? (await session.chrome.context.newPage());
   session.makeActive(page);
+  await keepFresh(page, String(params["url"]));
   await page.goto(String(params["url"]), {
     waitUntil: "domcontentloaded",
     timeout: GO_TO_LIMIT_MS,

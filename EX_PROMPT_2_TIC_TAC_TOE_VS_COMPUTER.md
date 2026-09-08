@@ -42,7 +42,7 @@ These are the choices already made, so the work never has to make them.
 3. The computer opponent: minimax over the board so the computer never loses, playing X or O, with a first move that is not always the same corner. Done when a test plays every opening against it and it never loses. (Details: The computer, Tests required)
 4. The board on screen: a square, centred board that fits any window, marks drawn with a smooth animation, hover on empty cells, the turn shown, a mode switch between two players and the computer, wired to the logic. Done when a game can be played with the mouse in Chrome and the console shows no errors. (Details: The look)
 5. The win, the scoreboard and the restart: the winning line drawn across the three cells, a celebration that does not hide the board, the draw shown, the scores counting X, O and draws, restart and a new match. Done when done line 3 is met. (Details: The look)
-6. Visual QA and the final regression: the three sizes, the theme, the timings, the typography, the contrast; then the whole suite after every fix and one more game in Chrome. Done when done lines 4 and 5 are met. (Details: The look, Browser play testing)
+6. Visual QA and the final regression: photograph the board at the three sizes and check each against done line 4, once; fix only what a done line names; then run the whole suite once more and finish. Done when done lines 4 and 5 are met. (Details: The look, Browser play testing)
 
 ## Details
 
@@ -68,4 +68,13 @@ Empty board; turn order; a legal move; an illegal move refused; each of the eigh
 
 ### Browser play testing
 
-After the suite passes, open the game in the Chrome window and play it like a person: a two-player game to a win, a game to a draw, several games against the computer trying to beat it, the mode switch, restart, new match, three sizes, the console. Then look at it: is it actually beautiful, or merely working?
+After the suite passes, open the game in the Chrome window and go through this list once, photographing each item as done line 3 asks:
+
+- a two-player game to a win, with the win line and its celebration
+- a game to a draw
+- a game against the computer that the computer did not lose
+- the mode switch, the scoreboard counting, a restart, a new match
+- the board at 1440, 768 and 390 wide: square, centred, readable, nothing overlapping
+- the console, with no errors
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.

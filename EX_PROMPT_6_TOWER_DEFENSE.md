@@ -50,7 +50,7 @@ These are the choices already made, so the work never has to make them.
 9. Play testing in Chrome: several whole games, every tower placed, valid and invalid placements, upgrades, selling, every targeting mode, enemies reaching the base, pause and resume, restart, high waves, a boss, a game over, a victory, three sizes, the console. Fix what the play shows. Done when done lines 3 and 5 are met. (Details: Browser play testing)
 10. Balance testing: play several complete games and adjust the config file until done line 4 holds; keep the simulated-game test in step with the new values. Done when done line 4 is met. (Details: Balance testing)
 11. The performance pass: stress the game with large waves, profile, then a spatial grid for collisions and target searches, pooling for projectiles and particles, cached paths, and cheaper rendering where the profile says. Done when done line 6 is met. (Details: Performance)
-12. Visual QA and polish: the map, terrain, paths, towers, enemies, projectiles, explosions, health bars, range indicators, previews, animations, particles, typography, spacing, buttons, menus, wave indicators, the end screens. Anything cheap, confusing, broken or unfinished is improved. Done when the game looks like a product. (Details: Visual QA)
+12. Visual QA: photograph the map, the towers, the enemies, the effects, the menus and the end screens at 1440, 1024 and 768 wide, once each, and check them against done line 5; fix only what a done line names; then run the whole suite once more and finish. Done when done line 5 is met. (Details: Visual QA)
 13. Final regression: the whole suite after every fix, one more game to a boss wave in Chrome, the console checked. Done when done line 7 is met.
 
 ## Details
@@ -113,11 +113,19 @@ Play several complete games and check that the first waves are reasonably easy, 
 
 ### Browser play testing
 
-After the suite passes, open the game in the Chrome window and play it like a person: multiple waves, every tower type placed, valid and invalid placements, upgrades, selling, every targeting mode, enemies reaching the base, pause and resume, restart, high-level waves, at least one boss wave, game over, victory, resizing, different viewport sizes, the console, and memory, rendering and performance problems. Clicking each button once is not a test; play the game and judge whether it is fun, understandable, balanced and polished.
+After the suite passes, open the game in the Chrome window and play it like a person: multiple waves, every tower type placed, valid and invalid placements, upgrades, selling, every targeting mode, enemies reaching the base, pause and resume, restart, high-level waves, at least one boss wave, game over, victory, resizing, different viewport sizes, the console, and memory, rendering and performance problems. Photograph each item as done line 3 asks, once. A fix is made only for something a done line names; then run the whole suite once more and finish.
 
 ### Visual QA
 
-A dedicated pass over the map, terrain, paths, towers, enemies, projectiles, explosions, health bars, range indicators, placement previews, animations, particles, the UI, typography, spacing, buttons, tower selection, upgrade menus, wave indicators, the game-over and victory screens. Look for overlapping UI, clipping, broken animations, poor contrast, hard-to-read information, glitches, wrong positioning, placeholder graphics, frame-rate drops, console errors. Anything cheap, confusing, broken or unfinished is improved.
+One pass, photographing each of these once at 1440, 1024 and 768 wide and checking it against done line 5:
+
+- the map, terrain and paths, with nothing overlapping or clipped
+- towers, enemies, projectiles, explosions, health bars, range indicators and placement previews
+- the UI: typography, spacing, buttons, tower selection, upgrade menus, wave indicators, every number readable
+- the game-over and victory screens
+- the console, with no errors and no failed requests
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.
 
 ### Performance
 

@@ -124,6 +124,8 @@ The rule in one line: the rules ride in full, and the rest is read by name when 
 
 **A good task** is one sitting of work with one done line, and names its Details: "6. The dragon: probability, warning, lock, forced drop, cleanup. Done when the dragon tests pass. (Details: Dragon, Tests required)". Order tasks by what they depend on. Put the tests-only tasks (a safety suite) before the screen work, and the play test and visual QA last, because they need everything else.
 
+**A QA section is a checklist with an end, never a critique.** Tests tell the model when code is done; nothing tells it when a screen looks done. Ask it whether the page is beautiful and it will find something to polish every time it looks, fix it, look again, and never stop: run twenty-three spent forty-five minutes on the seam of one circle. So write QA as a list of things to photograph and check, once each, say that a fix is made only for something a done line names, and end with "then run the whole suite once more and finish". Put what good looks like under Details and in the done lines, and keep words like polish, beautiful and unfinished out of the QA task.
+
 **Good details** are complete. Every feature, every list, every state, every value that has a name. Say what you want and let the model choose how. Group them under headings the tasks can name.
 
 ## 6. Mistakes the old Tetris ask made, so you can avoid them

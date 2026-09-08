@@ -8,8 +8,11 @@
 // drift apart without the compiler saying so. Nothing here does any work: there
 // are interfaces, the shapes that cross them, the constants both sides must
 // agree on, a handful of small pure functions that format and read an
-// identifier, and the defaults the configuration starts from. If you are looking
-// for behavior, it is in the package that implements one of these interfaces.
+// identifier, and the defaults the configuration starts from. The one thing
+// here that looks at the machine is FindChrome, which finds the real Chrome on
+// the PATH and lives here because the browser and the doctor must agree on
+// which Chrome is meant. If you are looking for any other behavior, it is in
+// the package that implements one of these interfaces.
 //
 // The one rule for changing this package is that a change here is a change to
 // every wave at once, so it belongs to the orchestrator and to a brief that says

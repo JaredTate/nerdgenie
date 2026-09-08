@@ -25,8 +25,8 @@ func TestAClickAtAPointSendsThePointOnTheWire(t *testing.T) {
 		t.Fatalf("the click at a point came back with no snapshot of the page: %+v", diff)
 	}
 
-	x, y := 40, 60
-	diffs, err := browser.Act(ctx, []contract.ActStep{{Method: "click", X: &x, Y: &y, Expectation: "the planet is named"}})
+	across, down := 40, 60
+	diffs, err := browser.Act(ctx, []contract.ActStep{{Method: "click", Across: &across, Down: &down, Expectation: "the planet is named"}})
 	if err != nil {
 		t.Fatalf("a batch with a click at a point failed: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestAClickAtAPointSendsThePointOnTheWire(t *testing.T) {
 	}
 
 	points := world.worker.PointsClicked()
-	want := []testkit.Point{{X: 519, Y: 335}, {X: 40, Y: 60}}
+	want := []testkit.Point{{Across: 519, Down: 335}, {Across: 40, Down: 60}}
 	if len(points) != len(want) {
 		t.Fatalf("the worker was handed the points %v, want %v", points, want)
 	}

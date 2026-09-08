@@ -42,10 +42,9 @@ type Settings struct {
 type writtenStep struct {
 	// Method is click, type, press, or scroll.
 	Method string
-	// Element is the reference to act on, for a click or typing.
-	Element string
-	// WroteElement says the step named an element at all.
-	WroteElement bool
+	// Target is the element to act on, for a click or typing, or the point to
+	// click, as the model wrote it.
+	Target browserclick.Target
 	// Text is what to type, when the method is type.
 	Text string
 	// Key is the key to press, when the method is press.
@@ -90,7 +89,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 			"Use it for a form rather than one call per box.",
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What the whole batch is for, in one line.", Required: true},
-			{Name: "steps", Type: "array", Description: "The steps in order, each with a method (click, type, press, or scroll), what it acts on, and an expectation.", Required: true},
+			{Name: "steps", Type: "array", Description: "The steps in order, each with a method (click, type, press, or scroll), what it acts on (an element, or x and y for a click at a point), and an expectation.", Required: true},
 		},
 		Classes: []contract.PermissionClass{contract.ClassNetwork, contract.ClassExecute},
 	}
@@ -176,7 +175,7 @@ func readWrittenSteps(items []json.RawMessage) ([]writtenStep, error) {
 		step := writtenStep{Fields: fields}
 		method, _ := fields.Text(methodNames...)
 		step.Method = loose.Action(method)
-		step.Element, step.WroteElement = fields.Text(browserclick.ElementNames...)
+		step.Target = browserclick.ReadTarget(fields)
 		step.Text, _ = fields.Text(textNames...)
 		step.Key, _ = fields.Text(keyNames...)
 		step.Direction, _ = fields.Text(directionNames...)
@@ -205,20 +204,36 @@ func readSteps(asked input) ([]contract.ActStep, error) {
 		if err := checkStep(at, step); err != nil {
 			return nil, err
 		}
-		steps = append(steps, contract.ActStep{
-			Method: step.Method, Ref: step.Element, Text: step.Text, Key: step.Key,
-			Direction: contract.ScrollDirection(loose.Action(step.Direction)), Amount: max(step.Amount, 1),
-			Expectation: step.Expectation,
-		})
+		steps = append(steps, actStep(step))
 	}
 	return steps, nil
+}
+
+// actStep turns one written step into the step the worker runs. A click at a
+// point carries x and y and no reference; every other step carries its
+// reference, which is empty for a press or a scroll.
+func actStep(step writtenStep) contract.ActStep {
+	built := contract.ActStep{
+		Method: step.Method, Ref: step.Target.Element, Text: step.Text, Key: step.Key,
+		Direction: contract.ScrollDirection(loose.Action(step.Direction)), Amount: max(step.Amount, 1),
+		Expectation: step.Expectation,
+	}
+	if step.Method == MethodClick && step.Target.AtPoint() {
+		across, down := step.Target.Across, step.Target.Down
+		built.Across, built.Down = &across, &down
+	}
+	return built
 }
 
 // checkStep holds the rules one step of a batch must satisfy.
 func checkStep(at int, step writtenStep) error {
 	switch step.Method {
-	case MethodClick, MethodType:
-		if err := browserclick.NeedElement(step.Fields, step.Element, step.WroteElement); err != nil {
+	case MethodClick:
+		if err := browserclick.NeedTarget(step.Target); err != nil {
+			return fmt.Errorf("the batch cannot run step %d: %w", at+1, err)
+		}
+	case MethodType:
+		if err := browserclick.NeedElement(step.Fields, step.Target.Element, step.Target.WroteElement); err != nil {
 			return fmt.Errorf("the batch cannot run step %d: %w", at+1, err)
 		}
 	case MethodPress:

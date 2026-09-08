@@ -2,6 +2,7 @@ package testkit_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -40,7 +41,7 @@ func TestTheFakeBrowserClicksAPointAndRecordsIt(t *testing.T) {
 	if diff.Snapshot.URL != testkit.FixtureSimplePage || !diff.Settled {
 		t.Errorf("the click at a point gave %+v, want a settled diff with the page it left behind", diff)
 	}
-	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{X: 10, Y: 20}) {
+	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{Across: 10, Down: 20}) {
 		t.Errorf("the worker recorded the points %v, want the one point 10,20", points)
 	}
 }
@@ -53,15 +54,15 @@ func TestABatchCarriesAClickAtAPoint(t *testing.T) {
 		t.Fatalf("opening the page failed: %v", err)
 	}
 
-	x, y := 30, 40
-	diffs, err := worker.Act(ctx, []contract.ActStep{{Method: "click", X: &x, Y: &y, Expectation: "the planet is named"}})
+	across, down := 30, 40
+	diffs, err := worker.Act(ctx, []contract.ActStep{{Method: "click", Across: &across, Down: &down, Expectation: "the planet is named"}})
 	if err != nil {
 		t.Fatalf("a batch holding a click at a point was refused: %v", err)
 	}
 	if len(diffs) != 1 {
 		t.Errorf("the batch gave %d diffs, want one for its one step", len(diffs))
 	}
-	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{X: 30, Y: 40}) {
+	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{Across: 30, Down: 40}) {
 		t.Errorf("the worker recorded the points %v, want the one point 30,40", points)
 	}
 }
@@ -82,8 +83,18 @@ func TestTheProtocolServerSendsAClickWithAPointToClickAt(t *testing.T) {
 	if _, isDiff := resultOf(t, answer)["snapshot"]; !isDiff {
 		t.Errorf("the click at a point answered %v, want a diff with a snapshot in it", answer)
 	}
-	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{X: 519, Y: 335}) {
+	if points := worker.PointsClicked(); !samePoints(points, testkit.Point{Across: 519, Down: 335}) {
 		t.Errorf("the worker was handed the points %v, want the one point 519,335 from the wire", points)
+	}
+
+	for _, wrong := range []string{
+		`{"jsonrpc":"2.0","id":4,"method":"click","params":{"ref":"` + testkit.FixtureChangeLinkRef + `","x":1,"y":1,"expectation":"anything"}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"click","params":{"x":1,"expectation":"anything"}}`,
+	} {
+		answer := callProtocol(t, server.SocketPath(), wrong)
+		if _, failed := answer["error"]; !failed {
+			t.Errorf("the click %s was made, and a click names a ref or a whole point, never both or half", wrong)
+		}
 	}
 }
 
@@ -91,17 +102,30 @@ func TestTheProtocolServerSendsAClickWithAPointToClickAt(t *testing.T) {
 type blankPointBrowser struct{ *testkit.FakeBrowserWorker }
 
 // ClickAt clicks the point properly and then takes the snapshot off the diff.
-func (worker blankPointBrowser) ClickAt(ctx context.Context, x int, y int, expectation string) (contract.Diff, error) {
-	diff, err := worker.FakeBrowserWorker.ClickAt(ctx, x, y, expectation)
+func (worker blankPointBrowser) ClickAt(ctx context.Context, across int, down int, expectation string) (contract.Diff, error) {
+	diff, err := worker.FakeBrowserWorker.ClickAt(ctx, across, down, expectation)
 	diff.Snapshot = contract.Snapshot{}
 	return diff, err
 }
 
-func TestTheBrowserCheckCatchesAWorkerThatClicksAPointWithNoSnapshot(t *testing.T) {
+// refusingPointBrowser cannot click a point at all.
+type refusingPointBrowser struct{ *testkit.FakeBrowserWorker }
+
+// ClickAt refuses every point, as a worker without the click's second form would.
+func (refusingPointBrowser) ClickAt(context.Context, int, int, string) (contract.Diff, error) {
+	return contract.Diff{}, errors.New("this worker clicks by reference only")
+}
+
+func TestTheBrowserCheckCatchesAWorkerThatCannotClickAPointProperly(t *testing.T) {
 	blank := blankPointBrowser{testkit.NewFakeBrowserWorker()}
 	defer blank.Close()
-
 	if err := testkit.CheckBrowserWorker(context.Background(), blank); err == nil {
 		t.Error("the browser check passed a worker that clicks a point and hands back no snapshot")
+	}
+
+	refusing := refusingPointBrowser{testkit.NewFakeBrowserWorker()}
+	defer refusing.Close()
+	if err := testkit.CheckBrowserWorker(context.Background(), refusing); err == nil {
+		t.Error("the browser check passed a worker that cannot click a point")
 	}
 }

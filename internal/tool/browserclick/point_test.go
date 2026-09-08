@@ -1,10 +1,13 @@
 package browserclick_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/JaredTate/nerdgenie/internal/testkit"
+	"github.com/JaredTate/nerdgenie/internal/tool/browserclick"
+	"github.com/JaredTate/nerdgenie/internal/tool/loose"
 )
 
 // The solar-system job on 7 September 2026 could not click a planet: the page
@@ -20,11 +23,23 @@ func TestAClickAtAPointGoesToTheWorkerAsAPoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("clicking a point failed: %v", err)
 	}
-	if points := worker.PointsClicked(); len(points) != 1 || points[0] != (testkit.Point{X: 519, Y: 335}) {
+	if points := worker.PointsClicked(); len(points) != 1 || points[0] != (testkit.Point{Across: 519, Down: 335}) {
 		t.Errorf("the worker was handed the points %v, want the one point 519,335", points)
 	}
 	if !strings.Contains(output.Text, testkit.FixtureSimplePage) {
 		t.Errorf("the click at a point answered %q, want what changed on the page", output.Text)
+	}
+}
+
+func TestAClickAtAPointBeforeAPageIsOpenNamesThePoint(t *testing.T) {
+	tool := browserclick.New(browserclick.Settings{Browser: testkit.NewFakeBrowserWorker()})
+
+	_, err := run(t, tool, map[string]any{"intent": "click the canvas", "x": 5, "y": 6, "expectation": "something happens"})
+	if err == nil {
+		t.Fatal("a point was clicked with no page open, and there is nothing to click on")
+	}
+	if !strings.Contains(err.Error(), "5,6") {
+		t.Errorf("the refusal reads %q and does not name the point", err)
 	}
 }
 
@@ -61,6 +76,24 @@ func TestAClickNamingNeitherIsRefused(t *testing.T) {
 
 	if _, err := run(t, tool, map[string]any{"intent": "click something", "x": 10, "expectation": "something happens"}); err == nil {
 		t.Error("a click naming half a point was made, and a point needs both x and y")
+	}
+}
+
+// Typing keeps the rule that an action names its element, and browser_act's
+// type step reads that rule from here.
+func TestTypingStillNeedsAnElement(t *testing.T) {
+	fields, err := loose.Read(json.RawMessage(`{"intent":"type a name"}`), "an element")
+	if err != nil {
+		t.Fatalf("reading the fields failed: %v", err)
+	}
+	if err := browserclick.NeedElement(fields, "", false); err == nil || !strings.Contains(err.Error(), "element") {
+		t.Errorf("a call that names no element was passed, or refused without naming the field: %v", err)
+	}
+	if err := browserclick.CheckElement("  "); err == nil {
+		t.Error("an element written as blank was passed, and a blank is no element")
+	}
+	if err := browserclick.CheckElement(testkit.FixtureChangeLinkRef); err != nil {
+		t.Errorf("a proper reference was refused: %v", err)
 	}
 }
 

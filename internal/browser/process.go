@@ -67,6 +67,12 @@ const headlessVariable = "NERDGENIE_HEADLESS_TESTS"
 // turns it into Chrome's own --headless=new.
 const headlessFlag = "--headless"
 
+// chromeFlag is how the worker is told which Chrome to start. Without it the
+// worker starts the first google-chrome on its PATH by name, which on
+// jared-rosie on 7 September 2026 was a wrapper script forcing headless, so
+// the window the design promises never existed.
+const chromeFlag = "--chrome"
+
 // ProcessStart returns a Start that runs the browser worker as a child process,
 // such as `node bin/workers/browser/main.js`. The profile folder is the agent's
 // own Chrome profile and never the user's daily one; it is made with mode 0700
@@ -97,11 +103,17 @@ func ProcessStart(command []string, profile string, pacing Pacing, note func(for
 }
 
 // workerArguments is the whole command the worker is started with: the program
-// and the arguments the caller gave, then the profile folder and the pacing, and
-// then the headless flag when the tests have asked for a browser with no window.
+// and the arguments the caller gave, then the profile folder and the pacing,
+// then the real Chrome when one was found on the PATH, and then the headless
+// flag when the tests have asked for a browser with no window. When no Chrome
+// is found the worker is started without one, looks by name itself, and
+// reports its own failure.
 func workerArguments(command []string, profile string, pacing Pacing) []string {
 	whole := append([]string{}, command...)
 	whole = append(whole, "--profile", profile, "--pacing", string(pacing))
+	if chrome, _, err := contract.FindChrome(); err == nil {
+		whole = append(whole, chromeFlag, chrome)
+	}
 	if os.Getenv(headlessVariable) != "" {
 		whole = append(whole, headlessFlag)
 	}

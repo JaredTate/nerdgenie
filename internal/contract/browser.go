@@ -162,6 +162,14 @@ type ActStep struct {
 	Method string `json:"method"`
 	// Ref is the element to act on, when the method needs one.
 	Ref string `json:"ref,omitempty"`
+	// Across is how far from the left of the viewport the point to click is,
+	// in whole CSS pixels, when the method is "click" and the step names no
+	// element. It is a pointer because zero is a place on the page, and a step
+	// by reference must carry no point at all. On the wire it is x.
+	Across *int `json:"x,omitempty"`
+	// Down is how far from the top of the viewport that point is, in whole CSS
+	// pixels, a pointer for the same reason, and y on the wire.
+	Down *int `json:"y,omitempty"`
 	// Text is what to type, when the method is "type".
 	Text string `json:"text,omitempty"`
 	// Key is the key to press, when the method is "press".
@@ -311,6 +319,12 @@ type BrowserWorker interface {
 	Read(ctx context.Context, options ReadOptions) (Snapshot, error)
 	// Click clicks one element and checks the expectation.
 	Click(ctx context.Context, ref string, expectation string) (Diff, error)
+	// ClickAt clicks a point on the page, so far across and so far down from
+	// the top left of the viewport in whole CSS pixels, and checks the
+	// expectation. It is the protocol's click with a point, x and y, in place
+	// of a reference, which is how a canvas, or anything else the outline does
+	// not list, is clicked.
+	ClickAt(ctx context.Context, across int, down int, expectation string) (Diff, error)
 	// Type types into one element and checks the expectation.
 	Type(ctx context.Context, ref string, text string, expectation string) (Diff, error)
 	// Press presses one key and checks the expectation.

@@ -12,7 +12,7 @@ browser_open       31 words  Takes the agent's own Chrome to a web address and h
 browser_read       36 words  Reads the browser's page as an outline of its elements, each with a reference to act on it by. To see the page itself, take a browser_screenshot. Use web fetch for a page needing no login.
 browser_screenshot 33 words  Takes a picture of the page the browser is on, with its clickable elements numbered, and shows it to you; use it to check what a page or a canvas really looks like.
 browser_resize     32 words  Sets the page's size in pixels and reads it again; use it to check a page at a phone's, a tablet's or a wide screen's size. It does not move the window.
-browser_click      26 words  Clicks one element on the page the browser is on and checks that what you expected happened. Read the page first to get the element's reference.
+browser_click      36 words  Clicks one element on the page, or a point on it for a canvas or anything the outline does not list, and checks that what you expected happened. Read the page first for the element's reference.
 browser_type       27 words  Types into one box on the page and checks that what you expected happened. Use browser_login for a username or a password, which this tool never types.
 browser_act        33 words  Runs a short batch of browser steps, checking each one, and stops at the first that does not do what you expected. Use it for a form rather than one call per box.
 browser_login      34 words  Signs in to a site the user has saved, by pointing at the boxes on the page. You never see or write what is typed. Use it whenever a page asks who you are.

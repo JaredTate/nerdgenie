@@ -251,6 +251,8 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 		URL         string                   `json:"url"`
 		VisibleOnly bool                     `json:"visibleOnly"`
 		Ref         string                   `json:"ref"`
+		Across      *int                     `json:"x"`
+		Down        *int                     `json:"y"`
 		Text        string                   `json:"text"`
 		Key         string                   `json:"key"`
 		Direction   contract.ScrollDirection `json:"direction"`
@@ -274,7 +276,7 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 	case "read":
 		return onlyOnSuccess(server.worker.Read(ctx, contract.ReadOptions{VisibleOnly: params.VisibleOnly}))
 	case "click":
-		return onlyOnSuccess(server.worker.Click(ctx, params.Ref, params.Expectation))
+		return onlyOnSuccess(server.click(ctx, params.Ref, params.Across, params.Down, params.Expectation))
 	case "type":
 		return onlyOnSuccess(server.worker.Type(ctx, params.Ref, params.Text, params.Expectation))
 	case "press":
@@ -299,6 +301,23 @@ func (server *BrowserProtocolServer) run(call protocolCall) (any, error) {
 	default:
 		return nil, fmt.Errorf("the method %q is not one of the thirteen: %w", call.Method, ErrNoSuchMethod)
 	}
+}
+
+// click is the protocol's click in either of its forms: by reference, or at a
+// point when x and y are both given. A request naming both, or neither, is
+// refused the way the real worker refuses it.
+func (server *BrowserProtocolServer) click(ctx context.Context, ref string, across *int, down *int, expectation string) (contract.Diff, error) {
+	namesPoint := across != nil || down != nil
+	if ref != "" && namesPoint {
+		return contract.Diff{}, errors.New("a click names a ref or a point, never both, so send one of the two")
+	}
+	if ref == "" && (across == nil || down == nil) {
+		return contract.Diff{}, errors.New("a click names a ref or a point with both x and y, so send one of the two")
+	}
+	if namesPoint {
+		return server.worker.ClickAt(ctx, *across, *down, expectation)
+	}
+	return server.worker.Click(ctx, ref, expectation)
 }
 
 // dialog reads the two dialog fields and answers the open dialog box.

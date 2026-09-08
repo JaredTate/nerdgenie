@@ -26,7 +26,7 @@ func TestAClickStepAtAPointGoesToTheWorkerAsAPoint(t *testing.T) {
 	if strings.Count(output.Text, "step ") != 2 {
 		t.Errorf("the batch answered %q, want both steps to have run", output.Text)
 	}
-	if points := worker.PointsClicked(); len(points) != 1 || points[0] != (testkit.Point{X: 519, Y: 335}) {
+	if points := worker.PointsClicked(); len(points) != 1 || points[0] != (testkit.Point{Across: 519, Down: 335}) {
 		t.Errorf("the worker was handed the points %v, want the one point 519,335", points)
 	}
 }

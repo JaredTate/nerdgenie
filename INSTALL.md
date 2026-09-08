@@ -108,7 +108,7 @@ The cards this was tested on, and the settings that fit each:
 | card | model file | context | notes |
 |---|---|---|---|
 | RX 7900 XTX 24 GB (Vulkan) | `hauhau-Q4_K_P.gguf` | 131,072 with vision | the primary; MTP depth 3; two of them on one machine run as A and B on `:19091` and `:19093` |
-| RX 7900 XT 20 GB (Vulkan) | `hauhau-IQ4_XS.gguf` | 262,144 without vision | 20 GB holds the longer context or the projector, not both |
+| RX 7900 XT 20 GB (Vulkan) | `hauhau-IQ4_XS.gguf` | 262,144 without vision; 131,072 with | 20 GB holds the longer context or the projector, not both. At 131,072 with vision, measured 7 Sep 2026: 60 tok/s shallow, 30 tok/s at 85K depth, exact recall at 84K. 262,144 with the projector loads and answers a short ask, then runs out of memory deep in a job — do not run it |
 | RTX 5070 Ti 16 GB (CUDA) | `hauhau-IQ3_M.gguf` | 65,536 with vision; 114,688 without | the CUDA build; turbo3 is broken on NVIDIA's Vulkan; 128k loads and then dies mid-job, so 114,688 is the ceiling without the projector |
 | RDNA4 16 GB (Vulkan) | a 3-bit quant | 64k to 100k | to be measured |
 

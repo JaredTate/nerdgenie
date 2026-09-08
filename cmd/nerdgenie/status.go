@@ -94,7 +94,7 @@ func (running *agent) fillTheJob(fields map[string]string) {
 func fillTheJobTiming(fields map[string]string, held contract.Record, timing contract.JobTiming) {
 	fields[contract.StatusFieldJobStarted] = ""
 	if !timing.Started.IsZero() {
-		fields[contract.StatusFieldJobStarted] = timing.Started.UTC().Format(time.RFC3339)
+		fields[contract.StatusFieldJobStarted] = timing.Started.UTC().Format(time.RFC3339Nano)
 	}
 	times := make([]contract.JobTaskTime, 0, len(held.Work.Tasks))
 	for _, task := range held.Work.Tasks {

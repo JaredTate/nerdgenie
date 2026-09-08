@@ -79,6 +79,11 @@ func TestTheStatusCarriesWhenTheJobAndItsTasksBegan(t *testing.T) {
 	if fields[contract.StatusFieldJobStarted] != "2026-09-07T23:26:10Z" {
 		t.Errorf("the job's start reads %q", fields[contract.StatusFieldJobStarted])
 	}
+	fraction := map[string]string{}
+	fillTheJobTiming(fraction, held, contract.JobTiming{Started: t0.Add(633_823_409 * time.Nanosecond)})
+	if fraction[contract.StatusFieldJobStarted] != "2026-09-07T23:26:10.633823409Z" {
+		t.Errorf("the job's start loses its fraction of a second: %q", fraction[contract.StatusFieldJobStarted])
+	}
 	want := "t1 2026-09-07T23:26:40Z 2026-09-07T23:29:52Z\nt2 2026-09-07T23:30:10Z -"
 	if fields[contract.StatusFieldJobTaskTimes] != want {
 		t.Errorf("the task times read %q, want %q", fields[contract.StatusFieldJobTaskTimes], want)

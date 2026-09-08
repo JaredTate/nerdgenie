@@ -83,3 +83,19 @@ func FuzzParseJobTaskTimeLines(f *testing.F) {
 		}
 	})
 }
+
+// TestATaskTimeKeepsItsFractionOfASecond: on run 22 the panel said a task
+// took 3m 5s while its report said 3m 4s, because the moments crossed the
+// socket to the whole second and the two ends rounded the span differently.
+// The lines carry the fraction, so the screen and the report agree.
+func TestATaskTimeKeepsItsFractionOfASecond(t *testing.T) {
+	started := time.Date(2026, 9, 7, 18, 7, 8, 633_823_409, time.UTC)
+	finished := time.Date(2026, 9, 7, 18, 10, 13, 506_682_852, time.UTC)
+	read := contract.ParseJobTaskTimeLines(contract.JobTaskTimeLines([]contract.JobTaskTime{{TaskID: "t1", Started: started, Finished: finished}}))
+	if len(read) != 1 || !read[0].Started.Equal(started) || !read[0].Finished.Equal(finished) {
+		t.Errorf("the task time reads %+v after the round trip, want the fractions kept", read)
+	}
+	if got := read[0].Finished.Sub(read[0].Started); got != finished.Sub(started) {
+		t.Errorf("the span reads %v after the round trip, want %v", got, finished.Sub(started))
+	}
+}

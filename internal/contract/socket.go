@@ -319,6 +319,8 @@ type JobTaskTime struct {
 // be, so that every line has the same three words.
 const noEndMark = "-"
 
+// The moments carry their fraction of a second, so the screen and the report
+// work out the same span; a whole second prints without one.
 // JobTaskTimeLines writes a job's task times the way StatusFieldJobTaskTimes
 // carries them: one line per task that has started, its label, the moment it
 // began, and the moment it ended or a dash while it runs, each moment the RFC
@@ -332,9 +334,9 @@ func JobTaskTimeLines(times []JobTaskTime) string {
 		}
 		end := noEndMark
 		if !one.Finished.IsZero() {
-			end = one.Finished.UTC().Format(time.RFC3339)
+			end = one.Finished.UTC().Format(time.RFC3339Nano)
 		}
-		lines = append(lines, one.TaskID+" "+one.Started.UTC().Format(time.RFC3339)+" "+end)
+		lines = append(lines, one.TaskID+" "+one.Started.UTC().Format(time.RFC3339Nano)+" "+end)
 	}
 	return strings.Join(lines, "\n")
 }

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Planet canvas</title>
+    <style>
+      /* The canvas sits at the top left of the page, so a point on the canvas
+         is the same point on the viewport. */
+      body {
+        margin: 0;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" width="400" height="300"></canvas>
+    <h1 id="selected"></h1>
+    <script>
+      // The solar-system job's page was a canvas, which no outline lists, so the
+      // only way to pick a planet is a click at its pixels. This page draws one
+      // planet at a known place and, on a click, writes the planet's name into
+      // the heading on the next animation frame, the way a game reacts: a look
+      // taken at once sees the page from before the click.
+      var planet = { name: "Jupiter", x: 160, y: 120, radius: 40 };
+      var scene = document.getElementById("scene");
+      var brush = scene.getContext("2d");
+      brush.fillStyle = "#c98b4a";
+      brush.beginPath();
+      brush.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+      brush.fill();
+      window.clicksOnTheScene = 0;
+      scene.addEventListener("click", function (event) {
+        window.clicksOnTheScene += 1;
+        var frame = scene.getBoundingClientRect();
+        var acrossX = event.clientX - frame.left - planet.x;
+        var acrossY = event.clientY - frame.top - planet.y;
+        var hit = Math.hypot(acrossX, acrossY) <= planet.radius;
+        requestAnimationFrame(function () {
+          document.getElementById("selected").textContent = hit ? planet.name : "nothing";
+        });
+      });
+    </script>
+  </body>
+</html>

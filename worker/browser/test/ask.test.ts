@@ -75,6 +75,24 @@ describe("asking a page a question", () => {
     await expect(worker.result("read", { ask: tooLong })).rejects.toThrow(/cap is/);
   });
 
+  it("shows the change an ask made to the page in the same read", async () => {
+    await worker.result("open", { url: site.page("planet-canvas.html") });
+    // The solar-system job dispatched its clicks through the ask, and every
+    // outline came back from before the ask, one call behind the page: the
+    // read took its outline first and evaluated the ask after.
+    const clickThePlanet =
+      "(function () { var scene = document.getElementById('scene'); var frame = scene.getBoundingClientRect();" +
+      " scene.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: frame.left + 160, clientY: frame.top + 120 }));" +
+      " return 'clicked'; })()";
+    const read = await worker.result("read", { ask: clickThePlanet });
+    expect(read["answer"]).toBe('"clicked"');
+    expect(String(read["text"])).toContain("Jupiter");
+    const heading = (read["elements"] as SnapshotElement[]).find(
+      (element) => element.role === "heading",
+    );
+    expect(heading?.name).toBe("Jupiter");
+  });
+
   it("carries no answer when nothing was asked", async () => {
     await worker.result("open", { url: site.page("game-state.html") });
     const read = await worker.result("read", {});

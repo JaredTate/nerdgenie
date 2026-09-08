@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Live canvas</title>
+  </head>
+  <body>
+    <canvas id="scene" width="200" height="150"></canvas>
+    <script>
+      // A scene that redraws on every animation frame, the way a game or a
+      // flight simulator does: a square crosses the sky one step a frame, so a
+      // screenshot of the page counts the frames its loop drew.
+      var scene = document.getElementById("scene");
+      var brush = scene.getContext("2d");
+      var across = 0;
+      window.framesTheLoopDrew = 0;
+      function drawTheNextFrame() {
+        brush.fillStyle = "#6fa8dc";
+        brush.fillRect(0, 0, scene.width, scene.height);
+        brush.fillStyle = "#ffffff";
+        brush.fillRect(across, 60, 20, 20);
+        across = (across + 2) % scene.width;
+        window.framesTheLoopDrew += 1;
+        requestAnimationFrame(drawTheNextFrame);
+      }
+      requestAnimationFrame(drawTheNextFrame);
+    </script>
+  </body>
+</html>

@@ -257,6 +257,13 @@ type Screenshot struct {
 	PNGBase64 string `json:"pngBase64"`
 	// Marks lists what each number points at.
 	Marks []Mark `json:"marks"`
+	// FramesDrawn is how many animation frames the page's own script drew in
+	// a quarter of a second before the picture was taken, after the worker
+	// brought the window to the front. Above zero, the page is alive and a
+	// picture that matches the last one is a still scene; zero, its loop has
+	// stopped or the tab is hidden. The sky task of 7 September 2026 spent an
+	// hour proving broken a camera that was photographing a parked aircraft.
+	FramesDrawn int `json:"framesDrawn"`
 }
 
 // BrowserEventKind names one of the three things a person does in the browser
@@ -342,7 +349,8 @@ type BrowserWorker interface {
 	// LoginFill types a username, a password, and a code, and returns a diff
 	// that never holds any of them.
 	LoginFill(ctx context.Context, fields LoginFields) (Diff, error)
-	// Screenshot returns the page as a numbered picture.
+	// Screenshot returns the page as a numbered picture, with the frames the
+	// page drew in a quarter of a second before it was taken.
 	Screenshot(ctx context.Context) (Screenshot, error)
 	// Resize sets the page's size in pixels and returns a fresh snapshot at
 	// that size, which is how a page is checked at a phone's width or a wide

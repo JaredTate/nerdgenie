@@ -72,6 +72,8 @@ type FakeBrowserWorker struct {
 	nextProblem browserProblem
 	// askAnswers is what the fake page says to each expression a test put down.
 	askAnswers map[string]string
+	// framesDrawn is what every screenshot says the page drew in a quarter of a second, set by DrawsFrames.
+	framesDrawn int
 	// width and height are the size the page was last set to.
 	width, height int
 	openDialog    *contract.Dialog
@@ -449,7 +451,7 @@ func (worker *FakeBrowserWorker) Screenshot(_ context.Context) (contract.Screens
 	for at, element := range page.Elements {
 		marks = append(marks, contract.Mark{Number: at + 1, Ref: element.Ref, Role: element.Role, Name: element.Name})
 	}
-	return contract.Screenshot{PNGBase64: fixturePicture, Marks: marks}, nil
+	return contract.Screenshot{PNGBase64: fixturePicture, Marks: marks, FramesDrawn: worker.framesDrawn}, nil
 }
 
 // Health says whether the worker can act on a page.

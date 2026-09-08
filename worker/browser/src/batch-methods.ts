@@ -1,6 +1,7 @@
 /**
  * The three methods built out of the other ones: act, loginFill, and screenshot.
  */
+import type { Page } from "playwright-core";
 import {
   actAndAssert,
   clickMethod,
@@ -10,8 +11,8 @@ import {
 } from "./act-methods.js";
 import { targetOf, typeIntoTarget } from "./actions.js";
 import { freshSnapshotFor } from "./act-methods.js";
-import { MAX_ACT_STEPS, MAX_SCREENSHOT_MARKS } from "./limits.js";
-import { clearMarks, drawMarks } from "./page-bridge.js";
+import { FRAME_COUNT_MS, MAX_ACT_STEPS, MAX_SCREENSHOT_MARKS } from "./limits.js";
+import { clearMarks, drawMarks, framesDrawnIn } from "./page-bridge.js";
 import { redactDeep } from "./redact.js";
 import { readPage } from "./snapshot.js";
 import type { Session } from "./session.js";
@@ -124,12 +125,33 @@ const CLICKABLE_ROLES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * How many animation frames the page's own script drew in a quarter of a
+ * second, as a whole number. A page that does not answer, because its own
+ * script never yields, drew none that the worker could see.
+ */
+async function countFramesDrawn(session: Session, page: Page): Promise<number> {
+  try {
+    const counted = await framesDrawnIn(page, FRAME_COUNT_MS);
+    return Number.isFinite(counted) && counted > 0 ? Math.floor(counted) : 0;
+  } catch (problem) {
+    const why = problem instanceof Error ? problem.message : String(problem);
+    session.log(`the page did not say how many frames it drew, so the picture says none: ${why}`);
+    return 0;
+  }
+}
+
+/**
  * Take a picture of the page with its clickable elements numbered, which is what a
  * handoff sends to the user. Only what a person can see is numbered, because that
- * is all the picture shows.
+ * is all the picture shows. The window comes to the front first, because a tab
+ * behind another draws no frames, and then the frames the page draws in a
+ * quarter of a second are counted, so that the same picture twice can be told
+ * apart from a camera that is broken.
  */
 export async function screenshotMethod(session: Session): Promise<Record<string, unknown>> {
   const page = session.currentPage();
+  await page.bringToFront().catch(() => {});
+  const framesDrawn = await countFramesDrawn(session, page);
   const reading = await readPage(session, page, { visibleOnly: true, against: null });
   const marks: ScreenshotMark[] = reading.snapshot.elements
     .filter((element) => CLICKABLE_ROLES.has(element.role))
@@ -143,7 +165,7 @@ export async function screenshotMethod(session: Session): Promise<Record<string,
   await drawMarks(page, marks).catch(() => 0);
   try {
     const picture = await page.screenshot({ type: "png" });
-    return { pngBase64: picture.toString("base64"), marks };
+    return { pngBase64: picture.toString("base64"), marks, framesDrawn };
   } finally {
     await clearMarks(page).catch(() => false);
   }

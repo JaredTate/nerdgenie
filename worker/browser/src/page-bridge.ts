@@ -148,3 +148,8 @@ export function drawMarks(
 export function clearMarks(page: Page): Promise<boolean> {
   return askPage<boolean>(page, "marks", "window.__nerdgenieClearMarks()");
 }
+
+/** Ask how many animation frames the page's own script draws in this many milliseconds. */
+export function framesDrawnIn(page: Page, milliseconds: number): Promise<number> {
+  return askPage<number>(page, "frames", `window.__nerdgenieCountFrames(${JSON.stringify(milliseconds)})`);
+}

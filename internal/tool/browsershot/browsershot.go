@@ -19,11 +19,14 @@ import (
 // ThePictureIsSavedAt opens the line naming the file the picture was saved as.
 const ThePictureIsSavedAt = "the picture is saved at "
 
-// TheSamePictureLine is the result of a picture that is the same as the last
-// one taken at its size: run 23's visual QA took eleven screenshots, several
-// of the same board, and looked hard at each one. The same picture is said to
-// be the same, with no picture to look at again and no new file.
-const TheSamePictureLine = "the picture is the same as the last one at this size; nothing to look at again"
+// TheSamePictureOpens begins the result of a picture that is the same as the
+// last one taken at its size: run 23's visual QA took eleven screenshots,
+// several of the same board, and looked hard at each one. The same picture is
+// said to be the same, with no picture to look at again and no new file. What
+// follows says whether the page is alive, because on the night of 7 September
+// 2026 the sky task read "nothing to look at again" four times as proof that
+// its camera was broken, when the aircraft was parked and the clouds still.
+const TheSamePictureOpens = "the picture is the same as the last one: "
 
 // MaxPicturesRemembered bounds how many sizes the tool remembers a last
 // picture for.
@@ -93,17 +96,14 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		return contract.ToolOutput{}, fmt.Errorf("cannot take a picture of the page: %w", err)
 	}
 	if before, same := tool.theSameAsTheLast(picture.PNGBase64); same {
-		said := TheSamePictureLine
-		if before.path != "" {
-			said += " (" + ThePictureIsSavedAt + before.path + ")"
-		}
-		return contract.ToolOutput{Text: said + "\n"}, nil
+		return contract.ToolOutput{Text: theSamePictureSaid(picture.FramesDrawn, before)}, nil
 	}
 	text := &strings.Builder{}
 	path, err := tool.savePicture(picture.PNGBase64)
 	if err == nil && path != "" {
 		text.WriteString(ThePictureIsSavedAt + path + "\n")
 	}
+	text.WriteString(framesLine(picture.FramesDrawn))
 	tool.rememberThePicture(picture.PNGBase64, path)
 	if len(picture.Marks) == 0 {
 		text.WriteString("nothing on the page is numbered, because nothing on it can be clicked\n")
@@ -114,6 +114,33 @@ func (tool *Tool) Run(ctx context.Context, written json.RawMessage) (contract.To
 		}
 	}
 	return contract.ToolOutput{Text: text.String(), Picture: picture.PNGBase64}, nil
+}
+
+// theSamePictureSaid is the whole result of a picture that is the same as the
+// last one: which of the two things a same picture means, by the frames the
+// page drew in a quarter of a second, and the file the last one was saved as.
+// The two sentences are read word for word by the loop and the done check, so
+// their shape is fixed.
+func theSamePictureSaid(frames int, before lastPicture) string {
+	said := TheSamePictureOpens
+	if frames > 0 {
+		said += fmt.Sprintf("the page drew %d frames in a quarter of a second, so it is alive and nothing on it moved; "+
+			"change the view, move the camera or the aircraft, or act on the page to see something new", frames)
+	} else {
+		said += "the page drew no frames in a quarter of a second, so its loop has stopped or the tab is hidden; " +
+			"open the page again or read its console"
+	}
+	if before.path != "" {
+		said += " (" + ThePictureIsSavedAt + before.path + ")"
+	}
+	return said + "\n"
+}
+
+// framesLine is the line a new picture carries after the saved-at line, which
+// the done check reads word for word to prove a photographed done line: a page
+// that drew no frames proves nothing.
+func framesLine(frames int) string {
+	return fmt.Sprintf("the page drew %d frames in a quarter of a second\n", frames)
 }
 
 // theSameAsTheLast says whether the picture is the same as the last one taken

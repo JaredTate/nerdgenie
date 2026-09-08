@@ -328,8 +328,40 @@ window.__nerdgenieClearMarks = window.__nerdgenieClearMarks || function () {
 };
 `;
 
+/**
+ * Counting the animation frames the page's own script draws. The page's
+ * requestAnimationFrame is wrapped once, so that every callback the page asks
+ * for counts the frame it runs in, one count per frame however many callbacks
+ * share it, and the frames drawn over a stretch of time are the difference. A
+ * page whose loop has stopped, or whose tab is hidden, runs no callbacks and
+ * counts nothing, which is what tells a still scene from a broken camera. A
+ * page whose script never yields never answers, and the deadline on the call
+ * reads that as none.
+ */
+const FRAMES = `
+window.__nerdgenieInstallFrameCount = window.__nerdgenieInstallFrameCount || function () {
+  if (typeof window.__nerdgenieFramesDrawn === "number") { return; }
+  window.__nerdgenieFramesDrawn = 0;
+  var lastMoment = -1;
+  var askForAFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = function (callback) {
+    return askForAFrame.call(window, function (moment) {
+      if (moment !== lastMoment) { lastMoment = moment; window.__nerdgenieFramesDrawn += 1; }
+      return callback(moment);
+    });
+  };
+};
+window.__nerdgenieCountFrames = window.__nerdgenieCountFrames || function (milliseconds) {
+  window.__nerdgenieInstallFrameCount();
+  var before = window.__nerdgenieFramesDrawn;
+  return new Promise(function (answer) {
+    setTimeout(function () { answer(window.__nerdgenieFramesDrawn - before); }, milliseconds);
+  });
+};
+`;
+
 /** Everything above, in the order it depends on itself. */
-export const PAGE_SCRIPT = [WALK, ROLE, NAME, SHAPE, TEXT, SCAN, FIND, BOX, WATCH, MARKS].join("\n");
+export const PAGE_SCRIPT = [WALK, ROLE, NAME, SHAPE, TEXT, SCAN, FIND, BOX, WATCH, MARKS, FRAMES].join("\n");
 
 /** Wrap a call to one of the page's own functions so it can be sent on its own. */
 export function pageCall(expression: string): string {

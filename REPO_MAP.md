@@ -208,6 +208,10 @@ docs/briefs/wave-7/COMMON.md
 docs/briefs/wave-8/8.1-browser-worker-click-at-a-point.md
 docs/briefs/wave-8/8.2-go-side-click-at-a-point-and-the-real-chrome.md
 docs/briefs/wave-8/COMMON.md
+docs/briefs/wave-9/9.1-the-harness-owns-its-eyes.md
+docs/briefs/wave-9/9.2-a-job-never-sleeps.md
+docs/briefs/wave-9/9.3-a-belief-written-once.md
+docs/briefs/wave-9/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -1192,6 +1196,8 @@ internal/testkit/browsereventchecks_test.go
 internal/testkit/browserevents.go
 internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go
+internal/testkit/browserframes.go
+internal/testkit/browserframes_test.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
 internal/testkit/browserpoint.go
@@ -1301,6 +1307,8 @@ internal/tool/browseropen/browseropen_test.go
 internal/tool/browseropen/doc.go
 internal/tool/browseropen/fieldnames_test.go
 internal/tool/browseropen/testdata/an_opened_page.txt
+internal/tool/browserread/askneeded.go
+internal/tool/browserread/askneeded_test.go
 internal/tool/browserread/browserread.go
 internal/tool/browserread/browserread_test.go
 internal/tool/browserread/doc.go
@@ -1319,6 +1327,7 @@ internal/tool/browserresize/doc.go
 internal/tool/browsershot/browsershot.go
 internal/tool/browsershot/browsershot_test.go
 internal/tool/browsershot/doc.go
+internal/tool/browsershot/frames_test.go
 internal/tool/browsershot/samepicture_test.go
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
@@ -1846,6 +1855,7 @@ worker/browser/test/click-at-a-point.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/errors.test.ts
 worker/browser/test/expectation.test.ts
+worker/browser/test/frames.test.ts
 worker/browser/test/fresh.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
@@ -1869,6 +1879,7 @@ worker/browser/test/pages/hangs-on-click.html
 worker/browser/test/pages/hidden-overlays.html
 worker/browser/test/pages/keyboard.html
 worker/browser/test/pages/links-and-form.html
+worker/browser/test/pages/live-canvas.html
 worker/browser/test/pages/login.html
 worker/browser/test/pages/long.html
 worker/browser/test/pages/many-errors.html
@@ -1888,6 +1899,7 @@ worker/browser/test/pages/report.pdf
 worker/browser/test/pages/signed-in.html
 worker/browser/test/pages/slow-after-click.html
 worker/browser/test/pages/stale-ref.html
+worker/browser/test/pages/still-canvas.html
 worker/browser/test/pages/two-factor.html
 worker/browser/test/pages/type-echo.html
 worker/browser/test/pages/widget-roles.html

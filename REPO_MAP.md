@@ -726,6 +726,8 @@ internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/runningjob_test.go
 internal/loop/sectionanswer_test.go
+internal/loop/sectionmatch.go
+internal/loop/sectionmatch_test.go
 internal/loop/situation.go
 internal/loop/skillbudget_test.go
 internal/loop/standingorder_test.go

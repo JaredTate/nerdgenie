@@ -178,6 +178,9 @@ func readWrittenSteps(items []json.RawMessage) ([]writtenStep, error) {
 		step.Target = browserclick.ReadTarget(fields)
 		step.Text, _ = fields.Text(textNames...)
 		step.Key, _ = fields.Text(keyNames...)
+		if step.Method == "" {
+			step.Method = theMethodItCarries(step)
+		}
 		step.Direction, _ = fields.Text(directionNames...)
 		step.Amount, _ = fields.Number(amountNames...)
 		step.Expectation, step.WroteExpectation = fields.Text(browserclick.ExpectationNames...)
@@ -187,6 +190,23 @@ func readWrittenSteps(items []json.RawMessage) ([]writtenStep, error) {
 		steps = append(steps, step)
 	}
 	return steps, nil
+}
+
+// theMethodItCarries reads the method off a step that names none, by what
+// the step carries: a key is a press, text is a type, an element or a point
+// is a click. Run 23's model wrote a five-step batch whose last step had an
+// element and an expectation and no method, and the whole batch was refused
+// twice. A step with nothing to go on keeps no method and is refused as now.
+func theMethodItCarries(step writtenStep) string {
+	switch {
+	case strings.TrimSpace(step.Key) != "":
+		return MethodPress
+	case step.Text != "":
+		return MethodType
+	case strings.TrimSpace(step.Target.Element) != "" || step.Target.WroteAcross || step.Target.WroteDown:
+		return MethodClick
+	}
+	return ""
 }
 
 // readSteps turns the batch the model wrote into the steps the worker runs, and

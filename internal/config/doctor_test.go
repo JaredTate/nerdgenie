@@ -53,7 +53,7 @@ func putProgramsOnThePath(t testing.TB, names ...string) {
 
 // theFivePrograms is what the doctor looks for on the PATH, under the names it
 // reports them by.
-var theFivePrograms = []string{"signal-cli", "bwrap", "rg", "google-chrome or chromium", "node"}
+var theFivePrograms = []string{"signal-cli", "bwrap", "rg", "Chrome", "node"}
 
 func TestTheDoctorOnAnEmptyHomeFindsTheFoldersAndMissesTheRest(t *testing.T) {
 	home := testkit.NewTempHome(t)
@@ -176,9 +176,35 @@ func TestTheDoctorFindsAChromiumWhereThereIsNoChrome(t *testing.T) {
 	home := testkit.NewTempHome(t)
 	putProgramsOnThePath(t, "chromium")
 
-	finding := findingAbout(t, config.Doctor(context.Background(), home), "google-chrome or chromium")
+	finding := findingAbout(t, config.Doctor(context.Background(), home), "Chrome")
 	if finding.Result != config.Fine {
 		t.Errorf("chromium alone is reported %s: %s, want it fine, because either browser will do", finding.Result, finding.Detail)
+	}
+}
+
+// TestTheDoctorWarnsWhenTheOnlyChromeIsAScriptThatForcesHeadless is jared-rosie
+// on 7 September 2026: the first google-chrome on the PATH was a wrapper script
+// from another project forcing --headless=new, every Chrome the agent started
+// had no window, and the doctor reported the wrapper as fine.
+func TestTheDoctorWarnsWhenTheOnlyChromeIsAScriptThatForcesHeadless(t *testing.T) {
+	home := testkit.NewTempHome(t)
+	folder := t.TempDir()
+	launcher := filepath.Join(folder, "google-chrome")
+	wrapper := "#!/bin/sh\nexec nice -n 15 taskset -c 0-15 /usr/bin/google-chrome-stable --headless=new --disable-gpu \"$@\"\n"
+	if err := os.WriteFile(launcher, []byte(wrapper), 0o755); err != nil {
+		t.Fatalf("cannot write the pretend launcher: %v", err)
+	}
+	t.Setenv("PATH", folder)
+
+	finding := findingAbout(t, config.Doctor(context.Background(), home), "Chrome")
+	if finding.Result != config.Warning {
+		t.Errorf("a Chrome that is only a launcher forcing headless is reported %s: %s, want a warning", finding.Result, finding.Detail)
+	}
+	if !strings.Contains(finding.Detail, launcher) || !strings.Contains(finding.Detail, "headless") {
+		t.Errorf("the detail reads %q and does not name the launcher at %s and say that it forces headless", finding.Detail, launcher)
+	}
+	if !strings.Contains(finding.Detail, "install") {
+		t.Errorf("the detail reads %q and does not say what to install", finding.Detail)
 	}
 }
 

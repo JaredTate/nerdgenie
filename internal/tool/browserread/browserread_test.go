@@ -363,3 +363,20 @@ func TestTheDescriptionSaysHowToSeeThePage(t *testing.T) {
 		t.Errorf("the description reads %q and does not say that a browser_screenshot is how to see the page", description)
 	}
 }
+
+// TestTheAskFieldSaysAClickOnACanvasIsForBrowserClick is the solar-system job
+// of 7 September 2026, which could not click a planet on its canvas and fell
+// back to dispatching synthetic clicks through the ask, then read every answer
+// a frame behind. The ask's own description says where a click belongs.
+func TestTheAskFieldSaysAClickOnACanvasIsForBrowserClick(t *testing.T) {
+	tool, _ := newTool(t)
+	for _, field := range tool.Spec().Fields {
+		if field.Name == "ask" {
+			if !strings.Contains(field.Description, "browser_click") || !strings.Contains(field.Description, "canvas") {
+				t.Errorf("the ask field reads %q and does not say that a canvas is clicked with browser_click", field.Description)
+			}
+			return
+		}
+	}
+	t.Error("the read tool has no ask field")
+}

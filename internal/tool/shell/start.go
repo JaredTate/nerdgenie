@@ -89,12 +89,19 @@ func (tool *Tool) workOf(asked Call) func(ctx context.Context) (contract.Sandbox
 		}
 	}
 	program, arguments := CommandLine(asked.Command)
+	// The sandbox is what kills a command when its time runs out, so a served
+	// command carries the serve's own timeout there too: on run 28 the server
+	// died an hour after it started, with the table's day already set.
+	timeout := tool.settings.Timeout
+	if asked.Action == ActionServe {
+		timeout = ServeTimeout
+	}
 	return func(ctx context.Context) (contract.SandboxResult, error) {
 		return tool.settings.Sandbox.Run(ctx, contract.SandboxCommand{
 			Program:          program,
 			Arguments:        arguments,
 			WorkingDirectory: tool.settings.WorkingDirectory,
-			Timeout:          tool.settings.Timeout,
+			Timeout:          timeout,
 		})
 	}
 }

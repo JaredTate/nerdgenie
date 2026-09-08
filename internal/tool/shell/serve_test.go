@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/testkit"
@@ -141,5 +142,35 @@ func TestAServeNeedsACommand(t *testing.T) {
 	tool, _ := newServingTool(t, testkit.NewFakeSandbox(), testkit.NewFakeClock(theMoment))
 	if _, err := run(t, tool, map[string]any{"action": "serve"}); err == nil || !strings.Contains(err.Error(), "no command") {
 		t.Errorf("a serve with no command was not refused: %v", err)
+	}
+}
+
+// TestAServedCommandIsHandedToTheSandboxWithTheServeTimeout: on run 28 the
+// server started with serve died an hour later, after the table's day-long
+// timeout had been set, because the command handed to the sandbox still
+// carried the ordinary command timeout, and the sandbox is what kills a
+// command when its time runs out. A serve's command carries ServeTimeout.
+func TestAServedCommandIsHandedToTheSandboxWithTheServeTimeout(t *testing.T) {
+	sandbox := newSlowSandbox()
+	clock := testkit.NewFakeClock(theMoment)
+	tool, table := newServingTool(t, sandbox, clock)
+
+	answers := runInTheBackground(t, tool, map[string]any{"action": "serve", "command": "python3 -m http.server 8091"})
+	waitForSleepers(t, clock, 1)
+	aSocketTable(t, table, 22, 8091)
+	clock.Advance(shell.ServeCheckEvery)
+	<-answers
+	sandbox.Release()
+	deadline := time.Now().Add(5 * time.Second)
+	for len(sandbox.Commands()) == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	commands := sandbox.Commands()
+	if len(commands) != 1 {
+		t.Fatalf("the sandbox recorded %d commands, want the one server", len(commands))
+	}
+	if commands[0].Timeout != shell.ServeTimeout {
+		t.Errorf("the server's command was handed to the sandbox with a timeout of %v, want ServeTimeout %v", commands[0].Timeout, shell.ServeTimeout)
 	}
 }

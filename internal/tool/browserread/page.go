@@ -43,18 +43,20 @@ func PageText(page contract.Snapshot) string {
 	return pageText(page, pageBudget)
 }
 
+// TheOutlineUnchangedLine ends the result of an action that added no element
+// to the page, in place of the outline: the refs did not move, so the model
+// has the outline already, and a read brings it back when it wants it.
+const TheOutlineUnchangedLine = "outline unchanged; read the page for it\n"
+
 // ChangeText is what one action did to the page, as the model reads it: whether
-// what it expected happened, what changed, and the page it left behind.
+// what it expected happened, what changed, and the page it left behind. On
+// run 23 every click handed back the whole outline again, twelve buttons and
+// the page's text, so the outline follows only when an element was added and
+// the refs moved; otherwise the result ends with the page's errors and the
+// line saying the outline is unchanged.
 func ChangeText(change contract.Diff) string {
 	written := &strings.Builder{}
-	if change.ExpectationMet {
-		written.WriteString("what was expected happened\n")
-	} else {
-		written.WriteString("not what was expected\n")
-		if change.Seen != "" {
-			fmt.Fprintf(written, "what happened instead: %s\n", fromThePage(change.Seen, MaxNameRunes))
-		}
-	}
+	written.WriteString(verdictText(change))
 	if !change.Settled {
 		written.WriteString("the page did not come to rest before the limit, so read it again to see what it is doing\n")
 	}
@@ -70,8 +72,48 @@ func ChangeText(change contract.Diff) string {
 	written.WriteString(dialogText(change.Dialog))
 	written.WriteString(downloadText(change.Download))
 	written.WriteString(wallText(change.Wall))
+	if len(change.NewElements) == 0 {
+		written.WriteString(errorsText(change.Snapshot.Errors))
+		written.WriteString(TheOutlineUnchangedLine)
+		return written.String()
+	}
 	before := written.String() + "---\n"
 	return before + pageText(change.Snapshot, pageBudget-len(before))
+}
+
+// verdictText is the first line of a change: that what was expected happened;
+// or, when the page changed in a way the model's words did not name, what
+// changed and no verdict, because on run 23 a correct click was reported as
+// "not what was expected" over the wording and the model replayed the game;
+// or, when the page did not change at all or ran into a wall, that it was
+// not what was expected and what was seen instead.
+func verdictText(change contract.Diff) string {
+	if change.ExpectationMet {
+		return "what was expected happened\n"
+	}
+	if somethingChanged(change) {
+		if change.Seen == "" {
+			return "the page changed\n"
+		}
+		return "the page changed: " + fromThePage(change.Seen, MaxNameRunes) + "\n"
+	}
+	said := "not what was expected\n"
+	if change.Seen != "" {
+		said += "what happened instead: " + fromThePage(change.Seen, MaxNameRunes) + "\n"
+	}
+	return said
+}
+
+// somethingChanged says whether the action changed the page: a new address,
+// a new element, a new tab, a dialog or a download, or a seen line that does
+// not say nothing changed. A wall is a stop, not a change.
+func somethingChanged(change contract.Diff) bool {
+	if change.Wall != nil {
+		return false
+	}
+	seen := strings.ToLower(change.Seen)
+	seenAChange := seen != "" && !(strings.Contains(seen, "nothing") && strings.Contains(seen, "changed"))
+	return change.URLChanged || len(change.NewElements) > 0 || change.NewTab != "" || change.Dialog != nil || change.Download != nil || seenAChange
 }
 
 // pageText is one page inside the room it is given: everything but the text

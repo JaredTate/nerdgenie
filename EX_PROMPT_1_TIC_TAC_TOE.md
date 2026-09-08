@@ -19,7 +19,7 @@ Create a new folder on the Desktop named exactly `Tic Tac Toe`, so the project l
 1. Every automated test passes and none is skipped. [tests pass: npm test]
 2. The game loads in the browser and shows the board. [shows: "Tic Tac Toe" at http://127.0.0.1:8097]
 3. In the Chrome window on the screen, each of these was done, seen and photographed: a game won by X, a game won by O, a draw, the win line and its celebration, the scoreboard counting, a restart, and a new match.
-4. At 1440, 768 and 390 wide the board is square, centred and readable, nothing overlaps, and the console shows no errors.
+4. At 1440, 768 and 390 wide the page fits the window and the console shows no errors, and the board is square, centred and readable in the three photographs. [looks: http://127.0.0.1:8097 at 1440, 768, 390]
 5. The whole test suite is green after the last change made during play testing and visual QA.
 
 ## Rules

@@ -119,6 +119,31 @@ func TestTheSituationIsFilledByTheHarness(t *testing.T) {
 	}
 }
 
+// TestAShellCallWithNoCommandLeavesTheLastCommandAlone: a port check, a poll,
+// a tail or a kill carries no command, and run 29's screen read
+// "ran: , it worked" after a port check. The fact keeps the last command that
+// ran, and there is no fact at all until one has.
+func TestAShellCallWithNoCommandLeavesTheLastCommandAlone(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("Is the server up?", callFor("c1", "shell", `{"action":"check","port":8096,"path":"/"}`)),
+		callStep("I will count the characters.", callFor("c2", "shell", `{"command":"wc -m draft.md"}`)),
+		callStep("Is it still up?", callFor("c3", "shell", `{"action":"check","port":8096,"path":"/"}`)),
+		answerStep("The draft is 228 characters and the server is up."),
+	},
+		scriptedTool("shell", "port 8096 answers: HTTP 200 in 0 ms", "228 draft.md\nexit 0", "port 8096 answers: HTTP 200 in 0 ms"),
+	)
+
+	outcome := built.ask(t, "check the draft")
+
+	held := built.held(t, outcome.TaskID)
+	if !situationHolds(held, "last command: wc -m draft.md, exit 0") {
+		t.Errorf("the situation %v does not keep the last command that ran after a port check", held.Work.Situation)
+	}
+	if situationHolds(held, "last command: ,") {
+		t.Errorf("the situation %v names an empty command", held.Work.Situation)
+	}
+}
+
 // situationHolds says whether any line of the record's situation carries the
 // words given.
 func situationHolds(held contract.Record, wanted string) bool {

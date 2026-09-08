@@ -175,7 +175,12 @@ func (running *run) noteWhatTheResultShows(call contract.ToolCall, text string, 
 		running.noteTheBrowserResult(text)
 		running.noteAChangedPage(text)
 	case call.Name == contract.ToolShell:
-		running.commandFact = "last command: " + fieldOfCall(call, "command") + ", " + howItWent(text, failed)
+		// A port check, a poll, a tail or a kill carries no command, and the
+		// fact keeps the last command that ran; run 29's screen read
+		// "ran: , it worked" after a port check.
+		if command := fieldOfCall(call, "command"); command != "" {
+			running.commandFact = "last command: " + command + ", " + howItWent(text, failed)
+		}
 	case call.Name == contract.ToolTask && !failed && fieldOfCall(call, "operation") == "failure":
 		running.roundsSinceAFailureWrite = 0
 	case call.Name == contract.ToolWrite || call.Name == contract.ToolEdit:

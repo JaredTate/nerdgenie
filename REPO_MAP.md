@@ -1868,6 +1868,7 @@ worker/browser/src/words.ts
 worker/browser/src/worker.ts
 worker/browser/test/act-login-screenshot.test.ts
 worker/browser/test/actions.test.ts
+worker/browser/test/aimed-state.test.ts
 worker/browser/test/ask.test.ts
 worker/browser/test/chrome.test.ts
 worker/browser/test/click-at-a-point.test.ts
@@ -1883,6 +1884,7 @@ worker/browser/test/pacing.test.ts
 worker/browser/test/page-errors.test.ts
 worker/browser/test/page-events.test.ts
 worker/browser/test/page-text.test.ts
+worker/browser/test/pages/aimed-cell.html
 worker/browser/test/pages/broken-page.html
 worker/browser/test/pages/busy-after-click.html
 worker/browser/test/pages/busy-attributes.html

@@ -37,6 +37,9 @@ func (running *run) checkThePageLooks(ctx context.Context, url string, widths []
 		return checkOutcome{said: "there is no browser tool on this machine to " + missing + " with"}, nil
 	}
 	opened, err := running.useTheTool(ctx, tools[contract.ToolBrowserOpen], "looks-open", map[string]any{"url": url, "intent": "the done check looks at the page"})
+	if err != nil && theBrowserIsBeingStartedAgain(err) {
+		opened, err = running.useTheTool(ctx, tools[contract.ToolBrowserOpen], "looks-open-again", map[string]any{"url": url, "intent": "the done check looks at the page"})
+	}
 	if err != nil {
 		return checkOutcome{said: "the page could not be opened: " + err.Error()}, nil
 	}

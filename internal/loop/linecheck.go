@@ -206,6 +206,9 @@ func (running *run) checkThePageShows(ctx context.Context, text string, url stri
 		return checkOutcome{}, err
 	}
 	output, err := running.underTheTimeLimit(ctx, browser, contract.ToolCall{ID: "done-check-page", Name: contract.ToolBrowserOpen, Input: arguments})
+	if err != nil && theBrowserIsBeingStartedAgain(err) {
+		output, err = running.underTheTimeLimit(ctx, browser, contract.ToolCall{ID: "done-check-page-again", Name: contract.ToolBrowserOpen, Input: arguments})
+	}
 	if err != nil {
 		return checkOutcome{said: "the page could not be opened: " + err.Error()}, nil
 	}
@@ -213,6 +216,18 @@ func (running *run) checkThePageShows(ctx context.Context, text string, url stri
 		return checkOutcome{said: fmt.Sprintf("the page at %s does not show %q", url, text), output: output.Text}, nil
 	}
 	return checkOutcome{passed: true, said: fmt.Sprintf("the page shows %q", text), output: output.Text}, nil
+}
+
+// TheBrowserRestartWords is what the browser tool says when the worker had
+// died and is started again on the next call; a page check that meets it
+// asks once more, because the next call is the one that works. On run 25 the
+// shows and looks checks both failed at the end of a task that never used the
+// browser, because the idle worker had died and the one open hit the restart.
+const TheBrowserRestartWords = "will be started again on the next call"
+
+// theBrowserIsBeingStartedAgain says whether an error is that restart.
+func theBrowserIsBeingStartedAgain(err error) bool {
+	return err != nil && strings.Contains(err.Error(), TheBrowserRestartWords)
 }
 
 // checkTheFileExists looks for the path, under the working folder when it is

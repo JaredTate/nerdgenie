@@ -631,6 +631,7 @@ internal/loop/donecommand_test.go
 internal/loop/endings.go
 internal/loop/expect.go
 internal/loop/expect_test.go
+internal/loop/finishnudge_test.go
 internal/loop/firstline.go
 internal/loop/firstline_test.go
 internal/loop/fortystep_test.go
@@ -704,6 +705,7 @@ internal/loop/progress_test.go
 internal/loop/projectdocs_test.go
 internal/loop/projectfolder.go
 internal/loop/projectfolder_test.go
+internal/loop/provedline_test.go
 internal/loop/putdown.go
 internal/loop/question_test.go
 internal/loop/realtools_test.go
@@ -1308,12 +1310,14 @@ internal/tool/browserread/pinnedbounds_test.go
 internal/tool/browserread/testdata/a_change.txt
 internal/tool/browserread/testdata/a_page.txt
 internal/tool/browserread/testdata/a_page_with_text.txt
+internal/tool/browserread/verdict_test.go
 internal/tool/browserresize/browserresize.go
 internal/tool/browserresize/browserresize_test.go
 internal/tool/browserresize/doc.go
 internal/tool/browsershot/browsershot.go
 internal/tool/browsershot/browsershot_test.go
 internal/tool/browsershot/doc.go
+internal/tool/browsershot/samepicture_test.go
 internal/tool/browsertype/browsertype.go
 internal/tool/browsertype/browsertype_test.go
 internal/tool/browsertype/doc.go
@@ -1807,6 +1811,7 @@ worker/browser/src/diff.ts
 worker/browser/src/errors.ts
 worker/browser/src/events.ts
 worker/browser/src/expectation.ts
+worker/browser/src/fresh.ts
 worker/browser/src/limits.ts
 worker/browser/src/lines.ts
 worker/browser/src/log.ts
@@ -1839,6 +1844,7 @@ worker/browser/test/click-at-a-point.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/errors.test.ts
 worker/browser/test/expectation.test.ts
+worker/browser/test/fresh.test.ts
 worker/browser/test/harness.ts
 worker/browser/test/headless.test.ts
 worker/browser/test/hung-page.test.ts

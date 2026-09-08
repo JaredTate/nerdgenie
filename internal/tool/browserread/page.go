@@ -77,6 +77,9 @@ func ChangeText(change contract.Diff) string {
 	written.WriteString(wallText(change.Wall))
 	if len(change.NewElements) == 0 {
 		written.WriteString(errorsText(change.Snapshot.Errors))
+		if change.AimedState != "" {
+			fmt.Fprintf(written, "what you clicked is now %s\n", fromThePage(change.AimedState, MaxNameRunes))
+		}
 		written.WriteString(TheOutlineUnchangedLine)
 		return written.String()
 	}

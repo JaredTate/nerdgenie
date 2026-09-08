@@ -122,6 +122,11 @@ type Diff struct {
 	// as the outline names it, or the words for none, so a click that changed
 	// nothing says what it hit. Empty for a click by reference.
 	Under string `json:"under,omitempty"`
+	// AimedState is the aimed element's state after the action, so a click that
+	// added no listed element still says what it did to the thing clicked, such
+	// as `button "Cell 3", disabled, data-value="O"`. It is empty when no
+	// element was aimed at or it is gone.
+	AimedState string `json:"aimedState,omitempty"`
 	// Wall is the login form, two-factor prompt, or captcha the action ran into,
 	// or nil.
 	Wall *Wall `json:"wall,omitempty"`

@@ -1,6 +1,7 @@
 package browserread_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -82,5 +83,57 @@ func TestAClickAtAPointSaysWhatWasUnderThePoint(t *testing.T) {
 	met := contract.Diff{ExpectationMet: true, Under: `e2 button "cell 1"`}
 	if text := browserread.ChangeText(met); strings.Contains(text, "the point was on") {
 		t.Errorf("a click that did what was expected still talks about the point:\n%s", text)
+	}
+}
+
+// TestAChangeSaysWhatTheClickedElementBecameWhenTheOutlineIsUnchanged: a click
+// that fills a cell whose name and page text do not move added no element, so
+// the outline shows nothing and the model cannot tell its click landed. When
+// the worker reports the aimed element's state after the action, the result
+// says what the clicked thing became, but only in the outline-unchanged branch,
+// which is exactly when the model is blind; when an element was added the whole
+// outline follows and the state line stays out.
+func TestAChangeSaysWhatTheClickedElementBecameWhenTheOutlineIsUnchanged(t *testing.T) {
+	blind := browserread.ChangeText(contract.Diff{
+		ExpectationMet: false, Settled: true,
+		AimedState: `button "Cell 3", disabled, data-value="O"`,
+	})
+	if !strings.Contains(blind, `what you clicked is now button "Cell 3", disabled, data-value="O"`) {
+		t.Errorf("an unchanged outline did not say what the clicked element became:\n%s", blind)
+	}
+	quiet := browserread.ChangeText(contract.Diff{ExpectationMet: false, Settled: true, AimedState: ""})
+	if strings.Contains(quiet, "what you clicked is now") {
+		t.Errorf("a change with no aimed state still talks about what was clicked:\n%s", quiet)
+	}
+	added := browserread.ChangeText(contract.Diff{
+		ExpectationMet: true, Settled: true,
+		AimedState:  `button "Cell 3", disabled, data-value="O"`,
+		NewElements: []contract.Element{{Ref: "e9", Role: "status", Name: "O wins", New: true}},
+		Snapshot:    contract.Snapshot{URL: testkit.FixtureSimplePage, Title: "Tic Tac Toe"},
+	})
+	if strings.Contains(added, "what you clicked is now") {
+		t.Errorf("a change that added an element still prints the clicked-element state:\n%s", added)
+	}
+}
+
+// TestTheAimedStateRoundTripsThroughJSONAsAimedState pins the wire key the
+// worker and the Go side must agree on: the aimed element's state is written
+// under "aimedState" and read straight back, so the phrase the worker built
+// reaches the result whole.
+func TestTheAimedStateRoundTripsThroughJSONAsAimedState(t *testing.T) {
+	phrase := `button "Cell 3", disabled, data-value="O"`
+	written, err := json.Marshal(contract.Diff{AimedState: phrase})
+	if err != nil {
+		t.Fatalf("a diff carrying an aimed state cannot be written as JSON: %v", err)
+	}
+	if !strings.Contains(string(written), `"aimedState":`) {
+		t.Errorf("the aimed state is not written under the key aimedState: %s", written)
+	}
+	var read contract.Diff
+	if err := json.Unmarshal(written, &read); err != nil {
+		t.Fatalf("a diff carrying an aimed state cannot be read back from JSON: %v", err)
+	}
+	if read.AimedState != phrase {
+		t.Errorf("the aimed state read back is %q, want %q", read.AimedState, phrase)
 	}
 }

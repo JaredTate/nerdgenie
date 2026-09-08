@@ -668,6 +668,8 @@ internal/loop/mapfile.go
 internal/loop/mapfile_test.go
 internal/loop/maprefresh.go
 internal/loop/maprefresh_test.go
+internal/loop/marks.go
+internal/loop/marks_test.go
 internal/loop/midturn.go
 internal/loop/midturn_test.go
 internal/loop/more_test.go
@@ -1399,6 +1401,7 @@ internal/tool/settings.go
 internal/tool/shell/bounds_test.go
 internal/tool/shell/check.go
 internal/tool/shell/check_test.go
+internal/tool/shell/description_test.go
 internal/tool/shell/doc.go
 internal/tool/shell/escalate.go
 internal/tool/shell/escalate_test.go

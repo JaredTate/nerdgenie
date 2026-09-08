@@ -3,6 +3,7 @@ package loop
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -69,7 +70,7 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if !failed {
 		theLoop.writeTheProjectDocuments(held)
 	}
-	progress := progressLine(jobID, reportID, held) + theTookLine(theLoop.theTimingOf(ctx, jobID), taskID)
+	progress := progressLine(jobID, reportID, held) + theFailedChecksLine(outcome.JobProof) + theTookLine(theLoop.theTimingOf(ctx, jobID), taskID)
 	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+progress); err != nil {
 		return outcome, err
 	}
@@ -143,6 +144,42 @@ func progressLine(jobID string, reportID string, held contract.Record) string {
 		line += " " + proved
 	}
 	return line
+}
+
+// MaxFailedChecksNamed is how many failed checks the progress line names, and
+// MaxCheckReasonRunes how much of each check's own words it carries.
+const (
+	MaxFailedChecksNamed = 2
+	MaxCheckReasonRunes  = 160
+)
+
+// theFailedChecksLine names the lines whose checks failed at this task's end
+// and what each check showed, so that the next task knows what to put
+// right. On run 24 the shows and looks checks failed after the board task
+// because nothing answered on the port, and the next task saw two unproved
+// lines and no reason. Nothing is added when every check passed.
+func theFailedChecksLine(proof *JobProof) string {
+	if proof == nil || len(proof.Failed) == 0 {
+		return ""
+	}
+	numbers := make([]int, 0, len(proof.Failed))
+	for number := range proof.Failed {
+		numbers = append(numbers, number)
+	}
+	sort.Ints(numbers)
+	var parts []string
+	for _, number := range numbers {
+		if len(parts) == MaxFailedChecksNamed {
+			parts = append(parts, fmt.Sprintf("and %d more", len(numbers)-MaxFailedChecksNamed))
+			break
+		}
+		reason := strings.Join(strings.Fields(proof.Failed[number]), " ")
+		if runes := []rune(reason); len(runes) > MaxCheckReasonRunes {
+			reason = string(runes[:MaxCheckReasonRunes-3]) + "..."
+		}
+		parts = append(parts, fmt.Sprintf("line %d, %s", number, reason))
+	}
+	return " Not proved: " + strings.Join(parts, "; ") + "."
 }
 
 // everyTaskIsDone says whether the job has run out of tasks to do.

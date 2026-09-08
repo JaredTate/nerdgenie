@@ -65,6 +65,22 @@ describe("reading a page as a compact tree", () => {
     expect(byRole.has("Plain data")).toBe(false);
   });
 
+  it("lists an element the page marks clickable with a pointer cursor, named by its id or its class and data", async () => {
+    // Run 24 built its board as plain <div class="cell" data-index="4"> with a
+    // click handler and cursor: pointer, and the outline listed nothing, so
+    // the model fetched cell centres three times and clicked by point. A
+    // rendered element of a readable size whose computed cursor is pointer is
+    // a button; its name is its text, else its id, else its first class and
+    // its first data attribute; a div with the default cursor is nothing.
+    const result = await worker.result("open", { url: site.page("pointer-cells.html") });
+    const byRole = new Map(elementsOf(result).map((element) => [element.name, element.role]));
+    expect(byRole.get("cell 0")).toBe("button");
+    expect(byRole.get("X")).toBe("button");
+    expect(byRole.get("cell-2")).toBe("button");
+    expect(byRole.has("Just a note")).toBe(false);
+    expect(byRole.has("dot")).toBe(false);
+  });
+
   it("gives every element a ref that is the letter e and a number", async () => {
     const result = await worker.result("open", { url: site.page("links-and-form.html") });
     for (const element of elementsOf(result)) {

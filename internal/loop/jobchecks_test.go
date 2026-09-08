@@ -122,3 +122,33 @@ func TestTheJobsFinishIsRefusedWhileACheckFails(t *testing.T) {
 		t.Errorf("the person was not told which check stays red, and the channel got %v", sent)
 	}
 }
+
+// TestAFailedCheckSaysWhyOnTheTasksReport: on run 24 the shows and looks
+// checks failed after the board task because nothing answered on the port,
+// and the next task saw two unproved lines and no reason. The progress line
+// every report carries names the line and the check's own words, bounded,
+// so the next task knows what to put right.
+func TestAFailedCheckSaysWhyOnTheTasksReport(t *testing.T) {
+	page := testkit.NewScriptedTool(contract.ToolSpec{Name: contract.ToolBrowserOpen, Description: "A browser the test scripted."},
+		"cannot open the page http://127.0.0.1:8091: connection refused", "cannot open the page http://127.0.0.1:8091: connection refused")
+	built := newHarness(t, []testkit.Step{
+		answerStep("The game is built. What changed: the engine. What I checked: the tests. What is left: polish."),
+		aReviewReply("none"),
+		answerStep("It is polished. What changed: the shell. What I checked: the tests. What is left: nothing."),
+		aReviewReply("none"),
+	}, page)
+	built.sandbox.Script("sh -c npm test", contract.SandboxResult{StandardOutput: []byte(theGreenRun)})
+	aJobWithCheckedDoneLines(t, built,
+		"Every test passes. [tests pass: npm test]",
+		`The game loads. [shows: "Tater Tots Tetris" at http://127.0.0.1:8091]`,
+		"A whole game has been played to game over.")
+
+	runTheJobToTheEnd(t, built.loop, built.channel)
+
+	if !sentSomethingLike(built.channel.Sent(), "Not proved: line 2") {
+		t.Errorf("the report does not name the line whose check failed; the channel got %v", built.channel.Sent())
+	}
+	if !sentSomethingLike(built.channel.Sent(), "connection refused") {
+		t.Errorf("the report does not carry the check's own reason; the channel got %v", built.channel.Sent())
+	}
+}

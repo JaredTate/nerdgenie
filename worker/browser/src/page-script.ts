@@ -41,7 +41,9 @@ window.__nerdgenieWalk = window.__nerdgenieWalk || function (root, mostNodes, vi
  * outline knows; otherwise a native control keeps its own kind, because a
  * <button role="gridcell"> is still a button a person clicks, and run 22's
  * board lost its nine cells that way. A focusable element with a widget role
- * is a button, and a stated searchbox is a textbox.
+ * is a button, and a stated searchbox is a textbox. A rendered element of
+ * readable size whose computed cursor is pointer is a button too, unless its
+ * parent already is one: run 24's board was plain divs with click handlers.
  */
 const ROLE = `
 window.__nerdgenieKnownRoles = ["link", "button", "textbox", "checkbox", "radio", "combobox", "menuitem", "heading", "article", "form"];
@@ -53,7 +55,15 @@ window.__nerdgenieRoleOf = window.__nerdgenieRoleOf || function (element) {
   var native = window.__nerdgenieNativeRoleOf(element);
   if (native) { return native; }
   if (stated && window.__nerdgenieWidgetRoles.indexOf(stated) !== -1 && element.tabIndex >= 0) { return "button"; }
+  if (window.__nerdgeniePointer(element)) { return "button"; }
   return "";
+};
+window.__nerdgeniePointer = window.__nerdgeniePointer || function (element) {
+  var box = element.getBoundingClientRect();
+  if (box.width < 12 || box.height < 12) { return false; }
+  if (window.getComputedStyle(element).cursor !== "pointer") { return false; }
+  var parent = element.parentElement;
+  return !(parent && window.getComputedStyle(parent).cursor === "pointer");
 };
 window.__nerdgenieNativeRoleOf = window.__nerdgenieNativeRoleOf || function (element) {
   var tag = element.tagName.toLowerCase();
@@ -114,6 +124,11 @@ window.__nerdgenieNameOf = window.__nerdgenieNameOf || function (element, role, 
     name = tidy(element.value);
   }
   if (!name && role !== "form" && !tidy(element.innerText || element.textContent)) { name = tidy(element.id); }
+  if (!name && role !== "form" && element.dataset && !tidy(element.innerText || element.textContent)) {
+    var keys = Object.keys(element.dataset);
+    var first = (element.getAttribute("class") || "").trim().split(/\\s+/)[0];
+    if (keys.length > 0 && first) { name = tidy(first + " " + element.dataset[keys[0]]); }
+  }
   if (!name && role === "form") {
     var inside = element.querySelector("legend, h1, h2, h3, h4, h5, h6");
     if (inside) { name = tidy(inside.textContent); }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pointer cells</title>
+    <style>
+      .cell { width: 60px; height: 60px; display: inline-block; cursor: pointer; border: 1px solid #333; }
+      .note { cursor: default; }
+    </style>
+  </head>
+  <body>
+    <h1>Pointer cells</h1>
+    <div id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1">X</div>
+      <div class="cell" data-index="2" id="cell-2"></div>
+    </div>
+    <div class="note">Just a note</div>
+    <span id="dot" style="cursor: pointer; display: inline-block; width: 4px; height: 4px"></span>
+  </body>
+</html>

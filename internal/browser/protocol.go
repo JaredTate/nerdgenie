@@ -30,6 +30,9 @@ const (
 	codeNoBrowserOpen = -32002
 	// codeChromeDied means the browser the worker was driving has gone.
 	codeChromeDied = -32003
+	// codePageUnreachable means nothing answered at the page's address; the
+	// browser is fine and the message goes to the model as it is.
+	codePageUnreachable = -32004
 )
 
 // RefusedError is one refusal from the browser worker, carrying the protocol's
@@ -71,6 +74,10 @@ func (refused *RefusedError) needsRestart() bool {
 	switch refused.Code {
 	case codeParseError, codeInvalidRequest, codeChromeDied:
 		return true
+	case codePageUnreachable:
+		// Nothing answered at the page's address; the browser is fine, and
+		// the model is told to start the server or check the address.
+		return false
 	default:
 		return false
 	}

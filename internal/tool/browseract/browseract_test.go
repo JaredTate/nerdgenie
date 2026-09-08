@@ -42,6 +42,12 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	if words := contract.DescriptionWordCount(spec.Description); words > contract.MaxToolDescriptionWords {
 		t.Errorf("the description is %d words, and the cap is %d", words, contract.MaxToolDescriptionWords)
 	}
+	// Run 26 played nine games one click per call, 67 clicks at half a
+	// minute each, and used this tool twice: the description says a
+	// sequence of moves is one call.
+	if !strings.Contains(spec.Description, "sequence of moves") {
+		t.Errorf("the description does not say a sequence of moves is one call: %q", spec.Description)
+	}
 	names := []string{}
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)

@@ -25,4 +25,18 @@ describe("turning a thrown error into the one the Go side reads", () => {
     const failure = asWorkerError(new Error("Target page, context or browser has been closed"));
     expect(failure.code).toBe(ERROR_CODES.chromeDied);
   });
+
+  it("reports a page that refuses the connection as unreachable, not a dead browser", () => {
+    // Run 26: the server had died, page.goto answered net::ERR_CONNECTION_REFUSED,
+    // the worker called Chrome dead, and the Go side restarted the browser
+    // twice for a page that was simply not there.
+    const refused = new Error("page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8097/\nCall log:\n  - navigating to \"http://127.0.0.1:8097/\", waiting until \"domcontentloaded\"");
+    const failure = asWorkerError(refused);
+    expect(failure.code).toBe(ERROR_CODES.pageUnreachable);
+    expect(failure.message).toContain("could not be reached");
+    expect(failure.message).toContain("net::ERR_CONNECTION_REFUSED");
+    expect(failure.message).toContain("the browser is fine");
+    expect(failure.message).not.toContain("Call log");
+  });
 });
+

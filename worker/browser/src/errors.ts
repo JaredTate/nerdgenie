@@ -21,6 +21,8 @@ export const ERROR_CODES = {
   noBrowserOpen: -32002,
   /** Chrome died. The Go side restarts the worker and tells the model it was interrupted. */
   chromeDied: -32003,
+  /** The page could not be reached: nothing answers at its address. The browser is fine; the Go side returns the message to the model. */
+  pageUnreachable: -32004,
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -107,6 +109,22 @@ export function actionRanOutOfTime(message: string): WorkerError {
   );
 }
 
+/**
+ * A navigation that Chromium refused with one of its net:: errors: the
+ * connection was refused, the name did not resolve, the request was aborted.
+ * Nothing answers at the address, and the browser is fine. On run 26 the
+ * server had died, page.goto answered net::ERR_CONNECTION_REFUSED, the worker
+ * called Chrome dead, and the Go side restarted the browser twice for a page
+ * that was simply not there.
+ */
+export function pageUnreachable(message: string): WorkerError {
+  const firstLine = message.split("\n")[0] ?? message;
+  return new WorkerError(
+    ERROR_CODES.pageUnreachable,
+    `The page could not be reached: ${firstLine} Nothing answers at that address, so start the server or check the address; the browser is fine, and nothing was restarted.`,
+  );
+}
+
 /** Turn anything thrown into the error the Go side will read. */
 export function asWorkerError(thrown: unknown): WorkerError {
   if (thrown instanceof WorkerError) {
@@ -114,6 +132,9 @@ export function asWorkerError(thrown: unknown): WorkerError {
   }
   if (thrown instanceof Error && thrown.name === "TimeoutError") {
     return actionRanOutOfTime(thrown.message);
+  }
+  if (thrown instanceof Error && thrown.message.includes("net::ERR_")) {
+    return pageUnreachable(thrown.message);
   }
   const reason = thrown instanceof Error ? thrown.message : String(thrown);
   return chromeDied(reason);

@@ -86,7 +86,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolBrowserAct,
 		Description: "Runs a short batch of browser steps, checking each one, and stops at the first that does not do what you expected. " +
-			"Use it for a form rather than one call per box.",
+			"A sequence of moves or a form is one call, not one call per click.",
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What the whole batch is for, in one line.", Required: true},
 			{Name: "steps", Type: "array", Description: "The steps in order, each with a method (click, type, press, or scroll), what it acts on (an element, or x and y for a click at a point), and an expectation.", Required: true},

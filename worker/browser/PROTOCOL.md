@@ -192,6 +192,7 @@ error -32001 is for a page that cannot be read at all after the limit.
 | -32001 | The page could not be read at all after the settle limit, or an action ran out of its own time on a page that is alive (the element could not be scrolled into view or clicked within the limit, because the page is busy) | Return the message to the model |
 | -32002 | No browser is open | Open a page first |
 | -32003 | Chrome died | Restart the worker and tell the model it was interrupted |
+| -32004 | The page could not be reached: a net:: error on navigation, nothing answers at the address | Return the message to the model; the browser is fine |
 
 A -32700 or -32600 response carries `"id": null`, because a line that was not a
 request has no id to echo.

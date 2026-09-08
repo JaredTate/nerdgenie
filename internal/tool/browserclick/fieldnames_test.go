@@ -27,7 +27,7 @@ func TestAClickWithNoElementNamesTheFieldToWrite(t *testing.T) {
 	if err == nil {
 		t.Fatalf("a click that names no element was made")
 	}
-	if !strings.HasSuffix(err.Error(), `"element"`) {
-		t.Errorf("the refusal reads %q and does not end with the name of the field to write", err)
+	if !strings.Contains(err.Error(), "element") {
+		t.Errorf("the refusal reads %q and does not name the field to write", err)
 	}
 }

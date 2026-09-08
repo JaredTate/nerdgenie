@@ -189,3 +189,30 @@ func TestTheWorkerOutlivesTheCallThatStartedIt(t *testing.T) {
 		t.Fatalf("the worker with process id %d is still alive after Stop", connection.ProcessID)
 	}
 }
+
+// TestTheWorkerIsToldWhichChromeToStart pins the fix for every Chrome on
+// jared-rosie being headless: the first google-chrome on its PATH was a wrapper
+// script forcing --headless=new, and the worker started it by name. The worker
+// is now handed the real Chrome as --chrome, and when none is found it is
+// started as before and reports its own failure.
+func TestTheWorkerIsToldWhichChromeToStart(t *testing.T) {
+	folder := t.TempDir()
+	real := filepath.Join(folder, "google-chrome-stable")
+	if err := os.WriteFile(real, []byte("#!/bin/sh\nexec /opt/google/chrome/chrome \"$@\"\n"), 0o755); err != nil {
+		t.Fatalf("cannot write the pretend Chrome: %v", err)
+	}
+	t.Setenv("PATH", folder)
+	t.Setenv(headlessVariable, "")
+
+	told := workerArguments([]string{"node", "main.js"}, "/tmp/a-profile", PacingHuman)
+	at := slices.Index(told, "--chrome")
+	if at < 0 || at+1 >= len(told) || told[at+1] != real {
+		t.Errorf("the worker is started with %v, and it should be told --chrome %s", told, real)
+	}
+
+	t.Setenv("PATH", t.TempDir())
+	untold := workerArguments([]string{"node", "main.js"}, "/tmp/a-profile", PacingHuman)
+	if slices.Contains(untold, "--chrome") {
+		t.Errorf("with no Chrome on the PATH the worker is started with %v, and it should be started as before so that it reports its own failure", untold)
+	}
+}

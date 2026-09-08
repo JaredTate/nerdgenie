@@ -14,8 +14,9 @@ import (
 // CheckBrowserWorker asserts what every browser worker promises: it says whether
 // it is healthy, it refuses to act before a page is open, a reference that is
 // not on the page is an error, every action returns a fresh snapshot and says
-// whether the page settled, a page that is a wall says so on the snapshot before
-// any action, a dialog action nobody defined is refused, the stream of what the
+// whether the page settled, a click at a point comes back the way a click on an
+// element does, a page that is a wall says so on the snapshot before any
+// action, a dialog action nobody defined is refused, the stream of what the
 // person did holds only the three kinds and never what was typed, and a login
 // never gives the credentials back.
 func CheckBrowserWorker(ctx context.Context, worker contract.BrowserWorker) error {
@@ -29,6 +30,9 @@ func CheckBrowserWorker(ctx context.Context, worker contract.BrowserWorker) erro
 
 	if _, err := worker.Click(ctx, "e1", "anything at all"); err == nil {
 		return errors.New("clicking before a page was open returned no error, and there is nothing to click on")
+	}
+	if _, err := worker.ClickAt(ctx, 1, 1, "anything at all"); err == nil {
+		return errors.New("clicking a point before a page was open returned no error, and there is nothing to click on")
 	}
 
 	snapshot, err := worker.Open(ctx, FixtureSimplePage)
@@ -53,10 +57,27 @@ func CheckBrowserWorker(ctx context.Context, worker contract.BrowserWorker) erro
 	if err := checkBrowserDialog(ctx, worker); err != nil {
 		return err
 	}
+	if err := checkBrowserPointClick(ctx, worker); err != nil {
+		return err
+	}
 	if err := checkBrowserEvents(ctx, worker); err != nil {
 		return err
 	}
 	return checkBrowserLogin(ctx, worker)
+}
+
+// checkBrowserPointClick asserts the click's second form: a click at a point on
+// the page, which is how a canvas is clicked, comes back the way a click on an
+// element does, with the page it left behind.
+func checkBrowserPointClick(ctx context.Context, worker contract.BrowserWorker) error {
+	diff, err := worker.ClickAt(ctx, 10, 10, "the page changed")
+	if err != nil {
+		return fmt.Errorf("clicking a point on the page failed: %w", err)
+	}
+	if diff.Snapshot.URL == "" {
+		return fmt.Errorf("a click at a point came back with no snapshot of the page it left behind: %+v", diff)
+	}
+	return nil
 }
 
 // The bounds the event half of the check keeps, because a check that could wait

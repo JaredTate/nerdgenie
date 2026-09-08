@@ -46,7 +46,7 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)
 	}
-	if strings.Join(names, ",") != "intent,element,expectation" {
+	if strings.Join(names, ",") != "intent,element,x,y,expectation" {
 		t.Errorf("the tool takes the fields %v, and the permission function reduces a click by intent and element", names)
 	}
 }

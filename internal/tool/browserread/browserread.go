@@ -63,7 +63,7 @@ func (tool *Tool) Spec() contract.ToolSpec {
 		Fields: []contract.ToolField{
 			{Name: "intent", Type: "string", Description: "What this step is for, in one line.", Required: true},
 			{Name: "visible_only", Type: "boolean", Description: "True to read only what is above the fold."},
-			{Name: "ask", Type: "string", Description: "One expression the page evaluates and answers, such as window.game.state; only on a page served from this machine (localhost, 127.0.0.1) or a file."},
+			{Name: "ask", Type: "string", Description: "One expression the page evaluates and answers, such as window.game.state; only on a page served from this machine (localhost, 127.0.0.1) or a file. Not for clicking: a canvas or anything the outline does not list is clicked with browser_click at x and y."},
 		},
 		Classes: []contract.PermissionClass{contract.ClassNetwork},
 	}

@@ -296,6 +296,7 @@ internal/browser/login.go
 internal/browser/login_test.go
 internal/browser/methods.go
 internal/browser/pagetext_test.go
+internal/browser/point_test.go
 internal/browser/process.go
 internal/browser/process_test.go
 internal/browser/protocol.go
@@ -450,6 +451,7 @@ internal/contract/browserevent_test.go
 internal/contract/carryon.go
 internal/contract/carryon_test.go
 internal/contract/channel.go
+internal/contract/chrome_test.go
 internal/contract/clock.go
 internal/contract/command.go
 internal/contract/command_test.go
@@ -1183,6 +1185,7 @@ internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
+internal/testkit/browserpoint_test.go
 internal/testkit/browserrules_test.go
 internal/testkit/browserserver.go
 internal/testkit/browserserver_test.go
@@ -1265,12 +1268,14 @@ internal/tool/browseract/browseract_test.go
 internal/tool/browseract/doc.go
 internal/tool/browseract/looseinput_test.go
 internal/tool/browseract/pinnedbounds_test.go
+internal/tool/browseract/point_test.go
 internal/tool/browseract/testdata/a_batch.txt
 internal/tool/browserclick/browserclick.go
 internal/tool/browserclick/browserclick_test.go
 internal/tool/browserclick/doc.go
 internal/tool/browserclick/fieldnames_test.go
 internal/tool/browserclick/pinnedbounds_test.go
+internal/tool/browserclick/point_test.go
 internal/tool/browserclick/testdata/a_click.txt
 internal/tool/browserhandoff/browserhandoff.go
 internal/tool/browserhandoff/browserhandoff_test.go

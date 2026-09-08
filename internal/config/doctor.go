@@ -173,18 +173,48 @@ func theOutsidePrograms() []outsideProgram {
 		{names: []string{"signal-cli"}, whatItIsFor: "talking over Signal", whenMissing: "install signal-cli and run nerdgenie signal link"},
 		{names: []string{"bwrap"}, whatItIsFor: "the sandbox every shell command runs in", whenMissing: "install bubblewrap, or the shell tool stays switched off"},
 		{names: []string{"rg"}, whatItIsFor: "searching files", whenMissing: "install ripgrep"},
-		{names: []string{"google-chrome", "chromium"}, whatItIsFor: "the browser tools", whenMissing: "install Google Chrome or Chromium"},
 		{names: []string{"node"}, whatItIsFor: "the browser and desktop workers", whenMissing: "install Node"},
 	}
 }
 
-// programFindings looks for each outside program on the PATH.
+// programFindings looks for each outside program on the PATH, and then for
+// Chrome, which is looked for the way the browser looks for it.
 func programFindings() []Finding {
 	findings := []Finding{}
 	for _, program := range theOutsidePrograms() {
 		findings = append(findings, oneProgramFinding(program))
 	}
-	return findings
+	return append(findings, chromeFinding())
+}
+
+// chromeFinding looks for the Chrome the browser tools will start, through the
+// same function the browser uses, so that the doctor and the browser never
+// disagree. A launcher script that forces headless is passed over there and
+// named here, because it gives the agent no window: on 7 September 2026 the
+// doctor called such a script fine while every Chrome the agent started had no
+// window.
+func chromeFinding() Finding {
+	const what = "Chrome"
+	path, passedOver, err := contract.FindChrome()
+	if err == nil {
+		return Finding{What: what, Result: Fine, Detail: "is at " + path + passedOverNote(passedOver)}
+	}
+	if len(passedOver) > 0 {
+		return Finding{What: what, Result: Warning, Detail: fmt.Sprintf(
+			"is only a launcher script that forces headless and gives the agent no window, at %s, so the browser tools are switched off; "+
+				"install Google Chrome or Chromium, or put the real one ahead of the script on the PATH", strings.Join(passedOver, " and "))}
+	}
+	return Finding{What: what, Result: Warning,
+		Detail: "is not on your PATH, so the browser tools are switched off; install Google Chrome or Chromium"}
+}
+
+// passedOverNote names the launcher scripts the search passed over on its way
+// to the real Chrome, and is empty when there were none.
+func passedOverNote(passedOver []string) string {
+	if len(passedOver) == 0 {
+		return ""
+	}
+	return ", passing over " + strings.Join(passedOver, " and ") + ", a launcher script that forces headless"
 }
 
 // oneProgramFinding looks for one program under each of the names it goes by.

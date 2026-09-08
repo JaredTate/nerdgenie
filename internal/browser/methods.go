@@ -42,6 +42,15 @@ func (browser *Browser) Click(ctx context.Context, ref string, expectation strin
 	return browser.act(ctx, "click", map[string]any{"ref": ref, "expectation": expectation})
 }
 
+// ClickAt clicks a point on the page, so far across and so far down from the
+// top left of the viewport in whole CSS pixels, and checks what the model said
+// it expected. It goes out as the protocol's click with the point, x and y, in
+// place of a reference, which is how a canvas, or anything else the outline
+// does not list, is clicked.
+func (browser *Browser) ClickAt(ctx context.Context, across int, down int, expectation string) (contract.Diff, error) {
+	return browser.act(ctx, "click", map[string]any{"x": across, "y": down, "expectation": expectation})
+}
+
 // Type types into one element, one key at a time, and checks the expectation.
 func (browser *Browser) Type(ctx context.Context, ref string, text string, expectation string) (contract.Diff, error) {
 	return browser.act(ctx, "type", map[string]any{"ref": ref, "text": text, "expectation": expectation})

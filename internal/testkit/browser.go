@@ -77,6 +77,8 @@ type FakeBrowserWorker struct {
 	openDialog    *contract.Dialog
 	answers       []DialogAnswer
 	watchers      []*watcher
+	// points is every point that was clicked, in order.
+	points []Point
 }
 
 // DialogAnswer is one answer a test gave through the Dialog method.
@@ -306,6 +308,9 @@ func (worker *FakeBrowserWorker) Act(ctx context.Context, steps []contract.ActSt
 func (worker *FakeBrowserWorker) oneStep(ctx context.Context, step contract.ActStep) (contract.Diff, error) {
 	switch step.Method {
 	case "click":
+		if step.Across != nil && step.Down != nil {
+			return worker.ClickAt(ctx, *step.Across, *step.Down, step.Expectation)
+		}
 		return worker.Click(ctx, step.Ref, step.Expectation)
 	case "type":
 		return worker.Type(ctx, step.Ref, step.Text, step.Expectation)

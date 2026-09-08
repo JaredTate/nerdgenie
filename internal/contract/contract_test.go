@@ -42,7 +42,7 @@ func TestTheBrowserWorkerHasTheThirteenProtocolMethodsTheEventStreamAndClose(t *
 	worker := reflect.TypeFor[contract.BrowserWorker]()
 
 	wanted := []string{
-		"Open", "Read", "Click", "Type", "Press", "Scroll",
+		"Open", "Read", "Click", "ClickAt", "Type", "Press", "Scroll",
 		"Act", "Tabs", "LoginFill", "Screenshot", "Resize", "Health", "Dialog", "Events", "Close",
 	}
 	for _, name := range wanted {
@@ -51,7 +51,7 @@ func TestTheBrowserWorkerHasTheThirteenProtocolMethodsTheEventStreamAndClose(t *
 		}
 	}
 	if worker.NumMethod() != len(wanted) {
-		t.Errorf("BrowserWorker has %d methods, want the thirteen protocol methods, the event stream, and Close", worker.NumMethod())
+		t.Errorf("BrowserWorker has %d methods, want the thirteen protocol methods with click in both its forms, the event stream, and Close", worker.NumMethod())
 	}
 }
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Aimed cell</title>
+  </head>
+  <body>
+    <h1>Aimed cell</h1>
+    <!-- A tic-tac-toe cell whose accessible name never changes: it is always
+         "Cell 3" through its aria-label. Clicking it fills the cell with an
+         aria-hidden mark and a data attribute and disables the button, so the
+         page's outline names the same button before and after, and the model
+         cannot tell from the outline alone that its click landed. This is the
+         exact case the aimed-state field was added for. -->
+    <button type="button" id="cell" aria-label="Cell 3">
+      <svg aria-hidden="true" width="48" height="48" viewBox="0 0 48 48"></svg>
+    </button>
+    <script>
+      document.getElementById("cell").addEventListener("click", function (event) {
+        var button = event.currentTarget;
+        if (button.disabled) {
+          return;
+        }
+        // The mark the player sees is an aria-hidden circle, so it never reaches
+        // the accessibility tree or the page's text. The move is recorded on a
+        // data attribute, and the cell is disabled so it cannot be claimed twice.
+        button.setAttribute("data-value", "O");
+        button.disabled = true;
+        var svg = button.querySelector("svg");
+        var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", "24");
+        circle.setAttribute("cy", "24");
+        circle.setAttribute("r", "16");
+        circle.setAttribute("fill", "none");
+        circle.setAttribute("stroke", "#333");
+        circle.setAttribute("stroke-width", "5");
+        svg.appendChild(circle);
+      });
+    </script>
+  </body>
+</html>

@@ -160,6 +160,61 @@ async function whatIsUnder(page: Page, at: Point): Promise<string> {
   }
 }
 
+/**
+ * The aimed element's state after the action, in the words the diff's aimed-state
+ * field carries, or the empty string when the element is not found or is gone.
+ *
+ * A click is aimed either at an element the model named by ref or at whatever a
+ * point lands on, and either way this reports what became of that element, so a
+ * click that changed nothing the outline names still shows the mark it left: a
+ * game cell whose only mark is an aria-hidden drawing keeps the same accessible
+ * name before and after, and the model kept clicking it again. The phrase is the
+ * element's role and name, then its telltales joined by commas: the word
+ * disabled, then pressed, checked, or selected, then each data attribute, then
+ * the short text it holds, capped at six with an ellipsis when there are more.
+ * The role and name readers are the same ones the outline uses, and they are on
+ * the page once it has been read.
+ */
+async function aimedElementState(
+  page: Page,
+  aim: { ref: string } | { point: Point },
+): Promise<string> {
+  const finder =
+    "ref" in aim
+      ? `document.querySelector('[data-nerdgenie-ref="${aim.ref}"]')`
+      : `(function () { var hit = document.elementFromPoint(${Math.round(aim.point.x)}, ${Math.round(aim.point.y)}); return hit ? hit.closest('[data-nerdgenie-ref]') : null; })()`;
+  const script = `(function () {
+    var element = ${finder};
+    if (!element || !window.__nerdgenieRoleOf || !window.__nerdgenieNameOf) { return ''; }
+    var role = window.__nerdgenieRoleOf(element);
+    if (!role) { return ''; }
+    var name = window.__nerdgenieNameOf(element, role, 80);
+    var telltales = [];
+    if (element.disabled === true || element.getAttribute('aria-disabled') === 'true') { telltales.push('disabled'); }
+    if (element.getAttribute('aria-pressed') === 'true') { telltales.push('pressed'); }
+    if (element.getAttribute('aria-checked') === 'true') { telltales.push('checked'); }
+    if (element.getAttribute('aria-selected') === 'true') { telltales.push('selected'); }
+    var attributes = element.attributes;
+    for (var at = 0; at < attributes.length; at += 1) {
+      var attribute = attributes[at];
+      if (attribute.name.indexOf('data-') === 0 && attribute.name !== 'data-nerdgenie-ref') {
+        telltales.push(attribute.name + '="' + attribute.value + '"');
+      }
+    }
+    var held = (element.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (held !== '' && held.length <= 40) { telltales.push('holds "' + held + '"'); }
+    if (telltales.length > 6) { telltales = telltales.slice(0, 6); telltales.push('\\u2026'); }
+    var phrase = role + ' "' + name + '"';
+    if (telltales.length > 0) { phrase += ', ' + telltales.join(', '); }
+    return phrase;
+  })()`;
+  try {
+    return String(await page.evaluate(script));
+  } catch {
+    return "";
+  }
+}
+
 function nothingHappened(before: Snapshot, diff: Diff): boolean {
   return !somethingChanged({
     urlChanged: diff.urlChanged,
@@ -231,11 +286,28 @@ export async function clickMethod(
     await clickTarget(session, page, clicked);
     return undefined;
   });
-  if (point !== undefined) {
-    // A click at a point says what was under it: run 28's model clicked at
-    // stale coordinates more than a hundred times, each answered "nothing
-    // changed", and never learned what its points hit.
-    first.under = await whatIsUnder(session.currentPage(), point);
+  // A page holding an open dialog cannot be evaluated at all: reading it through
+  // the dialog would hang the worker until the dialog was answered, the same
+  // reason a snapshot of such a page is left empty. So when a click opens a
+  // dialog, neither what was under the point nor the aimed element's state is
+  // read; the dialog is reported on the diff instead, and both are left empty.
+  if (session.dialogOn(session.currentPage()) === null) {
+    if (point !== undefined) {
+      // A click at a point says what was under it: run 28's model clicked at
+      // stale coordinates more than a hundred times, each answered "nothing
+      // changed", and never learned what its points hit.
+      first.under = await whatIsUnder(session.currentPage(), point);
+      first.aimedState = await aimedElementState(session.currentPage(), { point });
+    } else {
+      // A click by ref says what became of the element it aimed at, so a click
+      // that changed nothing the outline names still shows the mark it left: the
+      // tic-tac-toe cells kept the same accessible name and the model clicked
+      // them again and again. The ref used is the one the element carries now,
+      // which is a fresh one when a stale ref had to be found again.
+      first.aimedState = await aimedElementState(session.currentPage(), {
+        ref: clicked?.ref ?? String(params["ref"]),
+      });
+    }
   }
   if (!nothingHappened(first.snapshot, first) || before === undefined) {
     return first;
@@ -252,6 +324,9 @@ export async function clickMethod(
   if (point !== undefined) {
     later.under = first.under;
   }
+  // The later look is only a wait, so the element it aimed at is the same one,
+  // and it carries the state the first look found, as it carries what a point hit.
+  later.aimedState = first.aimedState;
   if (!nothingHappened(later.snapshot, later)) {
     session.log("the click changed nothing at first, and the page had changed a moment later.");
     return later;
@@ -269,6 +344,16 @@ export async function clickMethod(
     },
     before,
   );
+  // This look clicked the element again, so its aimed state is read fresh: a page
+  // that swallowed the first click and took the second leaves the element changed
+  // only now, and a copy of the first look's state would still show it untouched.
+  // A re-click that opened a dialog leaves the page unreadable, so the state stays
+  // empty and the dialog on the diff is what the model sees.
+  if (session.dialogOn(session.currentPage()) === null) {
+    second.aimedState = await aimedElementState(session.currentPage(), {
+      ref: clicked.ref,
+    });
+  }
   return triedAgain ? second : later;
 }
 

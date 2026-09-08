@@ -132,6 +132,15 @@ export interface Diff {
    * changed nothing says what it hit. Empty for a click by reference.
    */
   under: string;
+  /**
+   * For a click, the state of the element the click was aimed at, taken after
+   * the page settled, such as `button "Cell 3", disabled, data-value="O"`. It
+   * is how the model confirms a click landed when the outline shows no change,
+   * because a game cell whose mark is an aria-hidden drawing keeps the same
+   * accessible name before and after. It is the empty string for every other
+   * action, and for a click whose aimed element was not found or is now gone.
+   */
+  aimedState: string;
   wall: Wall | null;
   /**
    * Whether the page came to rest within the limit. When it did not, the diff is

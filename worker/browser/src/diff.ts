@@ -155,6 +155,7 @@ export function buildDiff(input: DiffInput): Diff {
     expectationMet: verdict.expectationMet,
     seen,
     under: "",
+    aimedState: "",
     wall: input.wall,
     settled: input.settled,
     snapshot: input.after,

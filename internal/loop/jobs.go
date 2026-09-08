@@ -89,6 +89,21 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 const TheJobPickUpLine = "The harness stopped this task because it was going round in circles, and its job has picked it up again, once, on a fresh window. " +
 	"Go on from where the record says the work stands, and not the way that stalled: the record's failures say what that was."
 
+// TheFinishWhatIsProvableLine ends the pick-up's ask. Run 23's picked-up QA
+// task went straight back to the polish that had stalled it.
+const TheFinishWhatIsProvableLine = "Finish what is provable rather than continue with what was going round."
+
+// thePickUpAsk is the picked-up task's ask: the pick-up line, the guard's own
+// words for why the task was stopped when it gave them, and the line that
+// asks for what is provable to be finished.
+func thePickUpAsk(cause string) string {
+	ask := TheJobPickUpLine
+	if first, _, _ := strings.Cut(strings.TrimSpace(cause), "\n"); first != "" {
+		ask += " It was stopped because " + strings.TrimSuffix(first, ".") + "."
+	}
+	return ask + " " + TheFinishWhatIsProvableLine
+}
+
 // pickTheTaskUpItself picks a job's task up the way the person's word does,
 // once, right after the harness's guard stopped it: the person is sent the
 // stopped report with a line saying the job picks the task up itself, and the
@@ -104,7 +119,7 @@ func (theLoop *Loop) pickTheTaskUpItself(ctx context.Context, task Task, number 
 		return outcome, err
 	}
 	pickedUp := Task{
-		Message:    contract.Inbound{ID: task.Message.ID, Text: TheJobPickUpLine, Channel: task.Message.Channel},
+		Message:    contract.Inbound{ID: task.Message.ID, Text: thePickUpAsk(outcome.StopLine), Channel: task.Message.Channel},
 		Channel:    task.Channel,
 		FromJob:    task.FromJob,
 		Unattended: task.Unattended,

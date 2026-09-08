@@ -31,6 +31,13 @@ const TheTestsFirstLine = theTestsFirstOpening + "write it first"
 // theTestsFirstOpening is what every shape of the line begins with.
 const theTestsFirstOpening = "tests first: no failing test covers this change; "
 
+// TheEveryLineProvedLine opens a write or an edit made once every done line
+// of the task is proved and the newest test run, if there was one, was green.
+// Run 23's visual QA task had its lines proved and its suite green and went
+// on editing the stylesheet for half an hour; the tests-first line ignores a
+// stylesheet on purpose, so this line covers every file.
+const TheEveryLineProvedLine = "every done line is proved: this edit serves none of them; finish, or name the line it serves"
+
 // MaxFilesReadForATestConvention bounds the walk that learns how a project
 // names its tests. A project with more files than this has its convention
 // read off the first files, and the language's default stands otherwise.
@@ -55,7 +62,13 @@ var testFolders = map[string]bool{"test": true, "tests": true, "spec": true, "sp
 // testsFirstLine is the line a write or edit opens with when no failing test
 // covers it, or nothing when the rule does not apply to this call.
 func (running *run) testsFirstLine(call contract.ToolCall, failed bool) string {
-	if failed || !running.lastTestsGreen || (call.Name != contract.ToolWrite && call.Name != contract.ToolEdit) {
+	if failed || (call.Name != contract.ToolWrite && call.Name != contract.ToolEdit) {
+		return ""
+	}
+	if running.everyDoneLineIsProved() && (!running.sawATestRun || running.lastTestsGreen) {
+		return TheEveryLineProvedLine
+	}
+	if !running.lastTestsGreen {
 		return ""
 	}
 	written := fieldOfCall(call, "path")

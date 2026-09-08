@@ -128,6 +128,10 @@ type run struct {
 	// roundsAllMarked counts the rounds of tool calls since every done line
 	// and plan step was marked, which is what the all-marked line is said on.
 	roundsAllMarked int
+	// callsMade counts the task's tool calls, and finishNudged says the
+	// finish nudge was said at the cap, so it is said once.
+	callsMade       int
+	finishNudged    bool
 	lastFailedCount int
 	thingsRead      map[string]bool
 	// thingsSaid is every answer a look or a command has given this task, so

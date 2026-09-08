@@ -246,7 +246,9 @@ func opensAListOrAQuestion(line string) bool {
 // backticks taken off, cut to MaxHeadingWords, with a capital letter.
 func theFallbackHeading(name string, ask string) string {
 	source := strings.TrimSpace(name)
-	if source == "" {
+	if source == "" && !strings.HasPrefix(strings.TrimSpace(ask), TheJobPickUpLine) {
+		// A picked-up task's ask is the pick-up line, which names no part:
+		// run 23's page got a section headed "The harness stopped this task".
 		source, _, _ = strings.Cut(strings.TrimSpace(ask), "\n")
 	}
 	if before, _, found := strings.Cut(source, ":"); found && strings.TrimSpace(before) != "" {

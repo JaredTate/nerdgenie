@@ -148,6 +148,9 @@ func (running *run) runAndRecord(ctx context.Context, call contract.ToolCall, as
 		text = testsFirst + "\n" + text
 	}
 	running.noteTheResult(text)
+	if !isAPollOrTail(call) {
+		running.wall.note(fingerprintOf(call), text)
+	}
 	summary := summaryOfResult(call.Name, text, failed)
 	label, err := running.keeper.AddResultOfCall(ctx, call.ID, summary, text)
 	if err != nil {

@@ -110,6 +110,7 @@ func (running *run) rewindIfDue(ctx context.Context) {
 	}
 	running.messages = running.messages[:running.keepThrough]
 	running.recentCalls = nil
+	running.wall.forget()
 	running.rememberTheOrientation(ctx, true)
 	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRewindLine})
 	running.keepThrough = len(running.messages)
@@ -249,6 +250,7 @@ func fingerprintOfText(text string) string {
 // been a repeat is worth making again.
 func (running *run) forgetTheCalls() {
 	running.recentCalls = nil
+	running.wall.forget()
 }
 
 // theFieldsThatSayWhy are the free-text fields of a call that say what the

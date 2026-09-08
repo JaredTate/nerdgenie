@@ -242,11 +242,24 @@ func onlyPolls(calls []contract.ToolCall) bool {
 // count climbing to a rung of the ladder does what that rung says. It hands
 // back the ending when the rung is the stop.
 func (running *run) countTheRound(ctx context.Context, marksBefore int, calls []contract.ToolCall) (*Outcome, error) {
-	moved := running.progressThisRound || running.marksMade() > marksBefore
+	markedThisRound := running.marksMade() > marksBefore
+	moved := running.progressThisRound || markedThisRound
 	running.progressThisRound = false
 	running.roundsSinceAFailureWrite++
+	if markedThisRound {
+		running.sinceAMarkMade = 0
+	} else {
+		running.sinceAMarkMade++
+	}
 	running.noteAllMarked()
 	running.noteTheCalls(calls)
+	// The wall is read before the meter, because a wall is the case the meter
+	// reads as progress: one result coming back over and over while the model
+	// writes a new file each round. A wall fired here even on a round the
+	// meter would count as moving.
+	if ended, stalled, err := running.wallStalls(ctx, calls); stalled {
+		return ended, err
+	}
 	switch {
 	case moved:
 		running.roundsSinceProgress = 0

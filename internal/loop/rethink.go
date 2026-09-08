@@ -328,6 +328,7 @@ func (running *run) writeTheRethink(ctx context.Context, thought rethink) {
 func (running *run) openTheWindowOnTheRethink(ctx context.Context, answer string) {
 	running.messages = nil
 	running.recentCalls = nil
+	running.wall.forget()
 	running.rememberTheOrientation(ctx, true)
 	running.remember(contract.Message{Role: contract.RoleUser, Text: TheRethinkLine + "\n\n" + answer + "\n\n" + TheDoTheNextLine})
 	running.keepThrough = len(running.messages)

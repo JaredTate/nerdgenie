@@ -78,8 +78,11 @@ type run struct {
 	// check the person wrote, which never counts as a done-check nudge.
 	refusedByACheck bool
 	recentCalls     []pastCall
-	lastOrient      string
-	browserFact     string
+	// wall watches the result stream for one result that keeps coming back
+	// whatever the calls between, which the guard and the meter both miss.
+	wall        sameWall
+	lastOrient  string
+	browserFact string
 	// pageAddress is where the browser is, as its last result said, and is what
 	// a hung page's scripts are read from.
 	pageAddress string
@@ -121,7 +124,12 @@ type run struct {
 	roundsSinceProgress int
 	progressThisRound   bool
 	stallsAfterARewind  int
-	sawATestRun         bool
+	// sinceAMarkMade counts the rounds since a step or done line was last
+	// marked, which the same-wall detector reads: a wall is only a wall when
+	// the work is not otherwise moving, so a result that keeps coming back
+	// beside real progress does not stop the task.
+	sinceAMarkMade int
+	sawATestRun    bool
 	// sameFailingRuns counts the test runs in a row on which the same tests
 	// have failed, which is what the stuck line is said on.
 	sameFailingRuns int

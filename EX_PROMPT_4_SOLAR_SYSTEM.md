@@ -48,7 +48,7 @@ These are the choices already made, so the work never has to make them.
 6. Light and glow: the Sun's glow, the planets lit from the Sun with a night side, rings for Saturn, atmosphere or bloom where it looks good. Done when each is seen and photographed. (Details: Rendering)
 7. The controls and the information: pause and resume, a speed control, reset, labels on the planets, and an information panel for the selected planet that never obscures the system. Done when the UI state tests pass and every control is used in Chrome. (Details: Interaction)
 8. Browser QA: zoom from the whole system to each planet, pan, click every planet, read every label, change the speed, pause and resume, watch for stutter, resize the browser, three sizes, watch the console. Fix what it shows. Done when done lines 3 and 5 are met. (Details: Browser QA)
-9. Visual QA and polish: glow, lighting, depth, motion, transitions, label placement, control styling, the star field. Anything unfinished, awkward or cheap is improved. Done when done line 4 is met and the page looks like a product. (Details: Rendering, Browser QA)
+9. Visual QA: photograph the glow, the lighting, the depth, the motion, a transition, the labels, the controls and the star field, once each, and check them against done lines 4 and 5; fix only what a done line names; then run the whole suite once more and finish. Done when done lines 4 and 5 are met. (Details: Rendering, Browser QA)
 10. The performance pass and the final regression: profile, remove unnecessary rendering, redraw only what moves; then the whole suite after every fix, one more session in Chrome across the controls, the console checked. Done when done lines 6 and 7 are met. (Details: Performance)
 
 ## Details
@@ -79,4 +79,13 @@ Smooth animation: no unnecessary rendering, few draw calls, no leaks, no animati
 
 ### Browser QA
 
-After the suite passes, open the app in the Chrome window and use it like a person: zoom, pan, click every planet, inspect every label, adjust the speed, pause and resume, and watch the motion for stutter. Then a visual pass at different sizes for layout problems, rendering problems, awkward spacing, lag, broken controls, console errors, or anything that feels unfinished. Tests passing is not proof that it looks right; looking is.
+After the suite passes, open the app in the Chrome window and go through this list once, photographing each item as done lines 3 and 4 ask:
+
+- zoom from the whole system to one planet and back, and pan
+- click every planet and read its label and its panel
+- the speed control, pause and resume, and the motion watched for stutter
+- the Sun's glow, the planets' lighting, the orbits' depth
+- the page at 1440, 1024 and 768 wide: nothing overlapping, nothing clipped, controls and labels readable
+- the console, with no errors and no failed requests
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.

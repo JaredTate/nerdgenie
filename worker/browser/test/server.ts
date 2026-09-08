@@ -26,8 +26,17 @@ export interface FixtureServer {
   base: string;
   /** The address of one page. */
   page(name: string): string;
+  /**
+   * Set the text of live.html, a page the server tells the browser it may
+   * cache for an hour, so a test can prove a page on this machine is loaded
+   * fresh: change the text, open the page again, and see the new text.
+   */
+  setLiveText(text: string): void;
   stop(): Promise<void>;
 }
+
+/** The name of the cacheable page whose text a test changes. */
+export const LIVE_PAGE = "live.html";
 
 /** Turn a request path into a file inside the pages folder, or nothing. */
 function fileFor(requestPath: string): string | undefined {
@@ -39,8 +48,14 @@ function fileFor(requestPath: string): string | undefined {
   return file.startsWith(PAGES + sep) ? file : undefined;
 }
 
-function serve(server: Server): void {
+function serve(server: Server, live: { text: string }): void {
   server.on("request", (request, response) => {
+    if ((request.url ?? "/").split("?")[0] === "/" + LIVE_PAGE) {
+      response
+        .writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=3600" })
+        .end(`<!doctype html><html lang="en"><head><title>Live</title></head><body><h1>${live.text}</h1></body></html>`);
+      return;
+    }
     const file = fileFor(request.url ?? "/");
     if (file === undefined) {
       response.writeHead(403).end("Outside the pages folder.");
@@ -61,7 +76,8 @@ function serve(server: Server): void {
 /** Start the fixture server on a loopback port the operating system picks. */
 export async function startFixtureServer(): Promise<FixtureServer> {
   const server = createServer();
-  serve(server);
+  const live = { text: "first" };
+  serve(server, live);
   await new Promise<void>((listening) => server.listen(0, "127.0.0.1", listening));
   const address = server.address();
   if (address === null || typeof address === "string") {
@@ -71,6 +87,9 @@ export async function startFixtureServer(): Promise<FixtureServer> {
   return {
     base,
     page: (name: string) => `${base}${name}`,
+    setLiveText: (text: string) => {
+      live.text = text;
+    },
     stop: () =>
       new Promise<void>((stopped, failed) => {
         server.close((problem) => (problem ? failed(problem) : stopped()));

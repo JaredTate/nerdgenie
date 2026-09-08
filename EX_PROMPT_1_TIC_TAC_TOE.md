@@ -40,7 +40,7 @@ These are the choices already made, so the work never has to make them.
 2. The game logic: an empty board, turns, a legal move, an illegal move refused, every winning line, a draw, restart, and the scoreboard across games. Done when the logic tests pass. (Details: The game, Tests required)
 3. The board on screen: a square, centred board that fits any window, marks drawn with a smooth animation, hover on empty cells, the turn shown, wired to the logic. Done when a game can be played with the mouse in Chrome and the console shows no errors. (Details: The look)
 4. The win, the scoreboard and the restart: the winning line drawn across the three cells, a celebration that does not hide the board, the draw shown, the scores counting X, O and draws, restart and a new match. Done when done line 3 is met. (Details: The look)
-5. Visual QA and the final regression: the three sizes, the theme, the timings, the typography, the contrast; then the whole suite after every fix and one more game in Chrome. Done when done lines 4 and 5 are met. (Details: The look, Browser play testing)
+5. Visual QA and the final regression: photograph the board at the three sizes and check each against done line 4, once; fix only what a done line names; then run the whole suite once more and finish. Done when done lines 4 and 5 are met. (Details: The look, Browser play testing)
 
 ## Details
 
@@ -62,4 +62,13 @@ Empty board; turn order; a legal move; an illegal move refused; each of the eigh
 
 ### Browser play testing
 
-After the suite passes, open the game in the Chrome window and play it like a person: a game X wins, a game O wins, a game to a draw, restart, new match, three sizes, the console. Then look at it: is it actually beautiful, or merely working?
+After the suite passes, open the game in the Chrome window and go through this list once, photographing each item as done line 3 asks:
+
+- a game X wins, with the win line and its celebration
+- a game O wins
+- a game to a draw
+- the scoreboard counting, a restart, a new match
+- the board at 1440, 768 and 390 wide: square, centred, readable, nothing overlapping
+- the console, with no errors
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.

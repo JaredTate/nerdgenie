@@ -50,7 +50,7 @@ These are the choices already made, so the work never has to make them.
 9. Instruments and HUD: airspeed, altitude, heading, vertical speed, artificial horizon, throttle, engine status, flaps, gear, compass, readable and unobtrusive. Done when the UI state tests pass and done line 5 is met. (Details: Instruments and HUD)
 10. Fly it in Chrome: take off, climb, turn both ways, aggressive manoeuvres, stall and recover, fly into terrain, approach, several landings, every camera, every control, resize the window, watch the console. Fix what the flight shows. Done when done line 3 is met. (Details: Browser play testing)
 11. The performance pass: profile, then instancing, level of detail, pooling and culling where the profile says; fix physics instability and animation-frame problems. Done when done line 6 is met. (Details: Performance)
-12. Visual QA and polish: the aircraft, cockpit, terrain, horizon, sky, clouds, lighting, shadows, runway, water, HUD, transitions, animations and readability, at 1440 and 1024 wide. Done when nothing looks placeholder or unfinished and done line 5 is met. (Details: Visual QA)
+12. Visual QA: photograph the aircraft, the cockpit, the terrain, the horizon, the sky, the runway, the water and the HUD at 1440 and 1024 wide, once each, and check them against done lines 4 and 5; fix only what a done line names; then run the whole suite once more and finish. Done when done lines 4 and 5 are met. (Details: Visual QA)
 13. Final regression: the whole suite after every fix, one more flight with a take-off, a stall, a landing and every camera, the console checked. Done when done line 7 is met.
 
 ## Details
@@ -101,4 +101,13 @@ Only after the whole suite passes, open the simulator in the Chrome window and f
 
 ### Visual QA
 
-A dedicated pass, as a pilot would see it: the aircraft, the cockpit, terrain, horizon, sky, clouds, lighting, shadows, runway, airport, water, HUD, instruments, camera transitions, animations, UI spacing, readability, responsiveness, visual artifacts. Ask whether it looks convincing while flying. Anything that looks cheap, placeholder, broken, distracting or unfinished is improved.
+One pass as a pilot would see it, photographing each of these once at 1440 and 1024 wide and checking it against done lines 4 and 5:
+
+- the aircraft and the cockpit
+- terrain, horizon, sky, clouds, lighting and shadows
+- the runway, the airport and the water
+- the HUD and the instruments, readable
+- each camera view and its transition
+- the console, with no errors
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.

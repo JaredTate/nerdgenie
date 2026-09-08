@@ -51,7 +51,7 @@ These are the choices already made, so the work never has to make them.
 9. Exploration: country and city labels from a small dataset in `assets/`, the latitude and longitude under the pointer, the camera position, the selected location's information, the terminator line, the equator and the major reference lines, and an optional satellite orbit. Done when the exploration tests pass and each is seen. (Details: Exploration)
 10. Browser QA: rotate repeatedly, zoom from full to close, use every control, click locations, toggle every layer, resize, three viewport sizes, watch the console, look for artifacts, broken textures, clipping and overlap. Fix what it shows. Done when done lines 3 and 5 are met. (Details: Browser QA)
 11. The performance pass: profile, then remove unnecessary rendering and draw calls, fix leaks and texture problems, redraw only on change. Done when done line 6 is met. (Details: Performance)
-12. Visual QA and polish: lighting, atmosphere, clouds, colour, transitions, label placement, control styling. Anything mediocre, unfinished, awkward or cheap is improved. Done when done line 4 is met and the page looks like a product. (Details: Visual requirements, Browser QA)
+12. Visual QA: photograph the lighting, the atmosphere, the clouds, a transition, the labels and the controls, once each, and check them against done lines 4 and 5; fix only what a done line names; then run the whole suite once more and finish. Done when done lines 4 and 5 are met. (Details: Visual requirements, Browser QA)
 13. Final regression: the whole suite after every fix, one more session in Chrome across the controls and toggles, the console checked. Done when done line 7 is met.
 
 ## Details
@@ -82,4 +82,12 @@ Optimise so the animation stays smooth: check for unnecessary rendering, excessi
 
 ### Browser QA
 
-After the suite passes, open the page in the Chrome window and use it like a person: rotate it repeatedly, zoom from a full-Earth view to close views, test every button and control, click locations, toggle the graphical layers, resize the browser, try three viewport sizes, inspect the console, look for rendering artifacts, broken textures, clipping and overlapping controls, check animation smoothness, check the lighting and the atmosphere, and ask whether it actually looks impressive. Tests passing is not proof that it looks right; looking is.
+After the suite passes, open the page in the Chrome window and go through this list once, photographing each item as done lines 3 and 4 ask:
+
+- the Earth rotated by dragging, and zoomed from the full view to a close one
+- every button and control, a clicked location, each graphical layer toggled
+- the day and night lighting, the city lights, the atmospheric glow, the clouds, the terminator, the stars
+- the page at 1440, 1024 and 390 wide: nothing overlapping, nothing clipped, controls readable
+- the console, with no errors and no failed requests
+
+A fix is made only for something a done line names; then run the whole suite once more and finish.

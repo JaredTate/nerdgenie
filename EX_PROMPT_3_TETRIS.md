@@ -50,7 +50,7 @@ These are the choices already made, so the work never has to make them: how to r
 10. The browser shell: the board and pieces drawn, the HUD, keyboard controls, the start screen, pause overlay, game-over screen, instructions, high scores, and the developer controls that force each hazard and each effect. Done when the page shows the board, a game can be played with the keyboard, and the console shows no errors. (Details: Core game, Screens and HUD, Browser play testing)
 11. The characters and the effects on screen: the dragon's flight, fire and impact, the yeti's entry, snowball and wind, the three clear animations, screen shake, particles, warnings and sound. Done when each can be forced with the developer controls and is seen in the Chrome window. (Details: Dragon, Yeti, Line clear effects, Sound, Visual polish)
 12. Play test in Chrome: play to game over, force each hazard from each side and each effect, try the edge cases, watch the console, fix what the play shows. Done when done line 3 is met. (Details: Browser play testing)
-13. Visual QA at the five sizes, then polish. Done when done line 4 is met. (Details: Visual QA, Visual polish)
+13. Visual QA at the five sizes: photograph each size and check it against done line 4, once; fix only what a done line names; then run the whole suite once more and finish. Done when done line 4 is met. (Details: Visual QA, Visual polish)
 14. Final regression: the whole suite after every fix, one more short play with both hazards and all three effects, the console checked, the developer controls hidden. Done when done lines 6 and 7 are met.
 
 ## Details
@@ -163,7 +163,15 @@ Developer controls are allowed for testing: trigger dragon, trigger yeti from th
 
 ### Visual QA
 
-After play testing, a dedicated visual pass, as a player would see it, at five sizes: large desktop, standard laptop, narrow desktop window, tablet, phone. Look for broken layouts, ugly spacing, alignment problems, bad typography, poor colour contrast, board scaling problems, controls or HUD overlapping the board, clipped dragon or yeti animations, fire or snow covering important information, broken or weak clear animations, broken transitions, janky movement, low frame rate, wrong responsive behaviour, elements outside the window, inconsistent styling, pixelated visuals, bad animation timing, pieces drifting from their logical position, screen shake that is too strong, unclear hazard warnings, anything that looks unfinished. Open the console and check for JavaScript errors, promise errors, missing assets, network errors, rendering errors and warnings that point at bugs. Fix everything found.
+After play testing, one visual pass as a player would see it. Photograph the game once at each of the five sizes, large desktop, standard laptop, narrow desktop window, tablet and phone, and check each picture for:
+
+- a broken layout, controls or the HUD overlapping the board, anything outside the window or clipped
+- the board scaled wrongly, pieces drifting from their logical position
+- a dragon or yeti animation clipped, fire or snow covering information the player needs, an unclear hazard warning
+- unreadable typography or poor colour contrast
+- a weak or broken clear animation, a broken transition, screen shake too strong to play through
+
+Then open the console once and check for JavaScript errors, promise errors, missing assets and network errors. A fix is made only for something a done line names; then run the whole suite once more and finish.
 
 ### Visual polish
 

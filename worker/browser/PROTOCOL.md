@@ -202,7 +202,7 @@ The `expectationMet` values in the examples below are illustrative; the rule abo
 
 ### `open`
 
-Goes to an address and returns the page.
+Goes to an address and returns the page. A page on this machine, 127.0.0.1, localhost, ::1 or a file, is loaded with the browser's cache switched off, so the agent sees the file it just wrote and never a copy from before; any other address is loaded the way a person's browser loads it.
 
 Request: `{"jsonrpc":"2.0","id":1,"method":"open","params":{"url":"https://x.com/compose/post"}}`
 

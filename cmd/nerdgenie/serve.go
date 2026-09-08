@@ -305,6 +305,10 @@ func (running *agent) openTheStores(ctx context.Context) error {
 	if running.decider, err = permission.New(running.settings, now); err != nil {
 		return err
 	}
+	// The unattended agent starts with yolo on by default, so it does not sit
+	// waiting for a yes nobody is there to give; "yolo = false" in config.toml
+	// or "/yolo off" turns it back to asking.
+	running.decider.UseYolo(running.settings.YoloAtStart())
 	running.guard, err = reliability.New(reliability.Settings{
 		Home:         running.home,
 		Clock:        now,

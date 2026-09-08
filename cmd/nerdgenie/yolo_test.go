@@ -19,15 +19,25 @@ func runTheYoloCommand(t *testing.T, running *agent, arguments string) string {
 	return answer
 }
 
+// TestAFreshSessionStartsWithYoloOn holds the default the unattended agent runs
+// under: yolo is on the moment the serve comes up, before anybody types
+// anything, so it does not wait for a yes nobody is there to give. Config
+// "yolo = false" or "/yolo off" turns it back to asking.
+func TestAFreshSessionStartsWithYoloOn(t *testing.T) {
+	running := anAgentWithASocket(t)
+	defer func() { _ = running.close() }()
+	if !running.decider.YoloIsOn() {
+		t.Error("a fresh session starts with yolo off, and the unattended agent is meant to start it on")
+	}
+}
+
 // TestTheYoloCommandOnItsOwnTurnsYoloOnAndSaysSo holds what a person sees when
 // they type "/yolo" with nothing after it: the switch is on from then on, and
 // the answer says so and says how to turn it off.
 func TestTheYoloCommandOnItsOwnTurnsYoloOnAndSaysSo(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
-	if running.decider.YoloIsOn() {
-		t.Fatal("yolo is on before anybody typed /yolo, and a session starts with it off")
-	}
+	running.decider.UseYolo(false) // the session starts with yolo on; this test proves /yolo turns it back on from off
 
 	answer := runTheYoloCommand(t, running, "")
 
@@ -68,6 +78,7 @@ func TestTheYoloCommandOffTurnsYoloOffAndSaysSo(t *testing.T) {
 func TestTheYoloCommandRefusesAWordItDoesNotKnow(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
+	running.decider.UseYolo(false) // put the switch in a known place, so "left where it was" is testable
 
 	_, err := running.yoloCommand().Run(context.Background(), "sideways", contract.CommandContext{Channel: running.userChannel()})
 
@@ -80,7 +91,7 @@ func TestTheYoloCommandRefusesAWordItDoesNotKnow(t *testing.T) {
 		}
 	}
 	if running.decider.YoloIsOn() {
-		t.Error("a refused word turned yolo on, and nothing should have changed")
+		t.Error("a refused word changed the yolo switch, and nothing should have changed")
 	}
 }
 
@@ -89,6 +100,7 @@ func TestTheYoloCommandRefusesAWordItDoesNotKnow(t *testing.T) {
 func TestTheStatusCommandSaysWhetherYoloIsOn(t *testing.T) {
 	running := anAgentWithASocket(t)
 	defer func() { _ = running.close() }()
+	running.decider.UseYolo(false) // the session starts with yolo on; turn it off to see /status report both states
 
 	before := runTheStatusCommand(t, running)
 	if !strings.Contains(before, "yolo: off") {

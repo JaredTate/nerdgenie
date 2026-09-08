@@ -105,6 +105,20 @@ func propsAddress(baseAddress string) (string, bool) {
 	return parsed.String(), true
 }
 
+// isLoopbackBaseAddress says whether a base address names a server on this
+// machine, from the address alone and without asking whether it is up. The
+// local daemon is told whether to think whether or not it answered the probe,
+// so a harness that started before the daemon does not silently lose the
+// thinking-off default: the qwen chat template thinks at its highest effort
+// when nothing tells it not to, and the probe only reads the window.
+func isLoopbackBaseAddress(baseAddress string) bool {
+	parsed, err := url.Parse(baseAddress)
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	return isLoopbackHost(parsed.Hostname())
+}
+
 // isLoopbackHost says whether a host name is this machine.
 func isLoopbackHost(host string) bool {
 	if strings.EqualFold(host, "localhost") {
@@ -113,3 +127,7 @@ func isLoopbackHost(host string) bool {
 	address := net.ParseIP(host)
 	return address != nil && address.IsLoopback()
 }
+
+// IsLoopbackBaseAddressForTest exposes isLoopbackBaseAddress to the package's
+// black-box tests.
+func IsLoopbackBaseAddressForTest(baseAddress string) bool { return isLoopbackBaseAddress(baseAddress) }

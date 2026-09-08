@@ -274,3 +274,19 @@ func TestTheSandboxSettingHasTwoValuesAndOffIsTheDefault(t *testing.T) {
 		t.Errorf("an empty sandbox setting means %q, want off: the agent runs straight on the machine unless asked to box itself in", settings.SandboxMode())
 	}
 }
+
+// TestYoloAtStartDefaultsOnAndTakesTheConfig: the unattended agent starts with
+// yolo on when the config does not say, and a user who sets "yolo = false" is
+// asked. The value is a pointer so that an absent line means on, not off.
+func TestYoloAtStartDefaultsOnAndTakesTheConfig(t *testing.T) {
+	if !(contract.Config{}).YoloAtStart() {
+		t.Error("yolo should start on when the config does not say, because the agent runs unattended")
+	}
+	on, off := true, false
+	if !(contract.Config{Yolo: &on}).YoloAtStart() {
+		t.Error("yolo = true should start on")
+	}
+	if (contract.Config{Yolo: &off}).YoloAtStart() {
+		t.Error("yolo = false should start off, so a cautious user is asked")
+	}
+}

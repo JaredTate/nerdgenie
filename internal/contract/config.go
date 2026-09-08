@@ -135,6 +135,11 @@ type Config struct {
 	// ask-me-first list, by name. Default is all three; the user can remove any
 	// or empty the list.
 	AskMeFirst []string `toml:"ask_me_first"`
+	// Yolo says whether the running agent starts with yolo on, so every call
+	// that would ask first runs without asking until "/yolo off". Nil means on,
+	// the default for an agent that runs unattended; set it false to be asked.
+	// It is the serve's starting state only; "/yolo" changes it for the session.
+	Yolo *bool `toml:"yolo"`
 	// PermissionRules are the user's own rules, applied after the shipped
 	// entries, where the last match wins. Default empty.
 	PermissionRules []PermissionRule `toml:"permission_rules"`
@@ -142,6 +147,13 @@ type Config struct {
 	Caps Caps `toml:"caps"`
 	// MemoryCaps are the size limits on the two persona memory files.
 	MemoryCaps MemoryCaps `toml:"memory_caps"`
+}
+
+// YoloAtStart says whether the serve starts with yolo on. It defaults on when
+// the config does not say, because the agent is built to run unattended; a
+// user who wants to be asked sets "yolo = false".
+func (config Config) YoloAtStart() bool {
+	return config.Yolo == nil || *config.Yolo
 }
 
 // DefaultConfig returns the configuration a fresh install starts from, before

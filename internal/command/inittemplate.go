@@ -139,6 +139,10 @@ func configurationText(chosen modelChoice, found []modelChoice, roots []string) 
 	written.WriteString("# The models to try, in order, when the one above cannot be reached.\n")
 	fmt.Fprintf(written, "fallback_chain = %s\n\n", quotedList(fallbackNames(chosen, found)))
 
+	written.WriteString("# Yolo: the agent starts running every call without asking, because it runs\n")
+	written.WriteString("# unattended. Set it false to be asked first; \"/yolo\" changes it for one session.\n")
+	written.WriteString("yolo = true\n\n")
+
 	written.WriteString("# How commands run: \"off\" runs them straight on this machine as you, which\n")
 	written.WriteString("# is the default; \"fence\" boxes them into the sandbox roots below.\n")
 	written.WriteString("sandbox = \"off\"\n\n")
@@ -264,8 +268,8 @@ func aliasBlock(choice modelChoice) string {
 	written.WriteString("# is sized from. Set it to the window your model really has.\n")
 	fmt.Fprintf(written, "context_length = %d\n", alias.ContextLength)
 	written.WriteString("# How hard this model thinks before it answers: " + contract.ThinkLevelsSentence() + ".\n")
-	written.WriteString("# Leave it empty to let the model think the way it does on its own. The\n")
-	written.WriteString("# \"/think\" command changes it for one session without editing this file.\n")
+	written.WriteString("# Empty is the default. For the local server on this machine it means thinking\n")
+	written.WriteString("# off, which is what this model wants; set a level to turn thinking on. \"/think\" changes it for one session.\n")
 	fmt.Fprintf(written, "think = %s\n", quoted(string(alias.Think)))
 	if alias.KeyReference != "" {
 		written.WriteString("# Where the API key is. The key itself lives in the vault and is never\n")

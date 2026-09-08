@@ -26,6 +26,7 @@ Open `config.toml`. Every line has a comment, and these are the ones to get righ
 ```toml
 default_model = "local"
 
+yolo = true                                       # start running every call without asking; false to be asked. "/yolo" toggles it for a session
 sandbox = "off"                                   # "fence" boxes commands into the roots below
 sandbox_roots = ["/home/you/work"]                # the folders it may read and write
 
@@ -36,9 +37,14 @@ base_address = "http://127.0.0.1:19091/v1"
 model_name = "local-coder"
 context_length = 131072                           # the same number the server was started with
 vision = true                                     # the server loaded the projector, so pictures reach the model
+think = ""                                        # empty = thinking off for the local model, which qwen wants; set low/medium/high/xhigh/max to turn it on
 ```
 
 `context_length` must match the server's `--ctx-size`; the harness sizes every prompt to it. `vision = true` only when the server reports `"vision": true` on `/props`; with it off, a screenshot is described in words and the model is told the picture is not shown.
+
+**Thinking is off by default for the local model, and you can change it.** Qwen 3.8 works better without its hidden reasoning, so the harness tells the local server not to think unless `think` names a level (`low` through `max`), or you type `/think` for one session. Because the local server is on this machine, the harness sends the thinking-off instruction whether or not it had answered its startup probe, so a harness that started before the daemon does not silently fall back to full-effort thinking.
+
+**Yolo is on by default**, because the agent is built to run unattended and cannot sit waiting for a yes nobody is there to give. Every call that would ask first runs and is logged as allowed by yolo. Set `yolo = false` to be asked, or type `/yolo off` for one session; a refusing rule on your ask-me-first list still refuses.
 
 For a second card, a second home with `base_address = "http://127.0.0.1:19093/v1"` and its own `sandbox_roots`.
 

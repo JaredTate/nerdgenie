@@ -89,6 +89,8 @@ bin/nerdgenie doctor       # checks everything and says what to fix
 bin/nerdgenie install      # optional: a systemd user service that starts with your session
 ```
 
+The `config.toml` it writes starts the agent with **yolo on** (it runs unattended, so it does not wait for a yes nobody is there to give; set `yolo = false` to be asked) and the local model with **thinking off** (`think = ""`; qwen works better without its hidden reasoning, and the harness tells the local server not to think unless you name a level). The daemon flag `--reasoning-budget 0` above turns thinking off at the server too, so the two agree.
+
 `SETUP.md` takes it from here: the configuration, the screen, the browser, and running work.
 
 ## 7. More than one card, and more than one machine

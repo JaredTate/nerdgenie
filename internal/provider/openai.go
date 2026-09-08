@@ -30,9 +30,10 @@ type openAIModel struct {
 	// contextLength is the window the model really has, which is the configured
 	// one unless a local server reported a smaller one at construction.
 	contextLength int
-	// takesTheThinkingHint says the server answered the probe the way
-	// llama-server does, so it understands being told in its chat template
-	// whether to think, which no other server does.
+	// takesTheThinkingHint says the server is on this machine (a loopback
+	// address), so it is the local daemon and is told in its chat template
+	// whether to think. It is read from the address, not the probe, so the
+	// thinking-off default holds even if the daemon was not up at startup.
 	takesTheThinkingHint bool
 }
 
@@ -45,11 +46,14 @@ func newOpenAIModel(alias contract.ModelAlias, options Options) (*openAIModel, e
 			alias.Name, "http://127.0.0.1:19091/v1")
 	}
 	model := &openAIModel{alias: alias, options: options, contextLength: alias.ContextLength}
+	// A loopback server is the local daemon, told in its chat template whether
+	// to think, whether or not it answered the probe: the thinking-off default
+	// must not depend on the daemon being up when the harness started.
+	model.takesTheThinkingHint = isLoopbackBaseAddress(alias.BaseAddress)
 	found, answered := probeLocalServer(alias.BaseAddress)
 	if !answered {
 		return model, nil
 	}
-	model.takesTheThinkingHint = true
 	if found.contextLength > 0 && found.contextLength < alias.ContextLength {
 		options.note("the server at %s holds %d tokens, not the %d in config.toml, so the smaller window is used",
 			alias.BaseAddress, found.contextLength, alias.ContextLength)

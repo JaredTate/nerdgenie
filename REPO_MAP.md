@@ -734,6 +734,8 @@ internal/loop/relativepath.go
 internal/loop/relativepath_test.go
 internal/loop/replyended_test.go
 internal/loop/replyproof_test.go
+internal/loop/resultnorm.go
+internal/loop/resultnorm_test.go
 internal/loop/resume.go
 internal/loop/resume_test.go
 internal/loop/rethink.go
@@ -743,6 +745,9 @@ internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go
 internal/loop/runningjob_test.go
+internal/loop/samewall.go
+internal/loop/samewall_integration_test.go
+internal/loop/samewall_test.go
 internal/loop/sectionanswer_test.go
 internal/loop/sectionmatch.go
 internal/loop/sectionmatch_test.go
@@ -761,6 +766,8 @@ internal/loop/syntax_test.go
 internal/loop/taskcall.go
 internal/loop/taskcall_test.go
 internal/loop/taskrecord.go
+internal/loop/testdata/fuzz/FuzzNormalizeVolatile/4b177fc313ffdec9
+internal/loop/testdata/fuzz/FuzzNormalizeVolatile/c57114f1aea152d5
 internal/loop/testdata/fuzz/FuzzWhatTheHarnessReadsFromText/8edaad5862eab648
 internal/loop/testdata/home-made-runner-ballot-marks.txt
 internal/loop/testdata/home-made-runner-file-and-colons.txt

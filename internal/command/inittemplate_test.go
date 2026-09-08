@@ -98,6 +98,35 @@ func TestTheShippedConfigurationWritesTheBudgetsCommentedOut(t *testing.T) {
 // think setting in the file "nerdgenie init" writes: every model block carries it,
 // empty, with a comment above it naming the levels, so that a person can turn
 // one model up and another down in one edit.
+// TestTheShippedConfigurationTurnsYoloOn pins that the file "nerdgenie init"
+// writes starts the unattended agent with yolo on, with a comment saying how to
+// be asked instead. The agent runs where nobody is watching to answer a yes.
+func TestTheShippedConfigurationTurnsYoloOn(t *testing.T) {
+	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
+	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})
+
+	lines := strings.Split(written, "\n")
+	at := -1
+	for offset, line := range lines {
+		if strings.HasPrefix(line, "yolo = ") {
+			at = offset
+		}
+	}
+	if at < 0 {
+		t.Fatalf("the shipped configuration has no yolo line at all:\n%s", written)
+	}
+	if lines[at] != "yolo = true" {
+		t.Errorf("the shipped configuration writes %q, want yolo on for the unattended agent", lines[at])
+	}
+	if at < 2 || !strings.HasPrefix(lines[at-1], "#") || !strings.HasPrefix(lines[at-2], "#") {
+		t.Fatalf("the yolo line has no comment above it:\n%s", strings.Join(lines[max(at-2, 0):at+1], "\n"))
+	}
+	comment := lines[at-2] + " " + lines[at-1]
+	if !strings.Contains(comment, "unattended") || !strings.Contains(comment, "false") {
+		t.Errorf("the comment above the yolo line is %q and does not say it is on for the unattended agent and how to be asked", comment)
+	}
+}
+
 func TestTheShippedConfigurationWritesTheThinkLineWithACommentAboveIt(t *testing.T) {
 	chosen := modelChoice{name: contract.LocalModelAlias, detected: true, alias: contract.DefaultConfig().Models[0]}
 	written := configurationText(chosen, []modelChoice{chosen}, []string{"/home/someone/nerdgenie"})

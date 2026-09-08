@@ -107,7 +107,7 @@ func TestTheConfiguredWindowStandsWhenTheServerReportsALargerOne(t *testing.T) {
 	}
 }
 
-func TestTheThinkingOffHintGoesOnlyToAServerThatAnsweredTheProbe(t *testing.T) {
+func TestALoopbackServerThatAnsweredTheProbeGetsTheThinkingOffHint(t *testing.T) {
 	double := llamaServerSaying(262144)
 	defer double.Close()
 	options, _ := testOptions(t, newTestClock())
@@ -125,7 +125,7 @@ func TestTheThinkingOffHintGoesOnlyToAServerThatAnsweredTheProbe(t *testing.T) {
 	}
 }
 
-func TestNoExtraFieldGoesToAServerThatDidNotAnswerTheProbe(t *testing.T) {
+func TestALoopbackServerGetsTheThinkingHintEvenWithoutAProbe(t *testing.T) {
 	server := testkit.NewFakeProviderServer(scriptSayingOneThing("ready"))
 	defer server.Close()
 	model, _ := openAIAgainst(t, server)
@@ -135,11 +135,24 @@ func TestNoExtraFieldGoesToAServerThatDidNotAnswerTheProbe(t *testing.T) {
 	}
 
 	if model.ContextLength() != 262144 {
-		t.Errorf("the model reports a window of %d, and the configured one stands when nothing answered", model.ContextLength())
+		t.Errorf("the model reports a window of %d, and the configured one stands when nothing answered the probe", model.ContextLength())
 	}
 	body := string(server.Requests()[len(server.Requests())-1].Body)
-	if strings.Contains(body, "chat_template_kwargs") {
-		t.Errorf("a server that did not answer the probe was sent the thinking-off hint anyway:\n%s", body)
+	if !strings.Contains(body, `"chat_template_kwargs":{"enable_thinking":false}`) {
+		t.Errorf("a server on this machine was not told not to think, so a harness that started before the daemon would think at full effort:\n%s", body)
+	}
+}
+
+func TestIsLoopbackBaseAddressReadsTheAddressNotTheServer(t *testing.T) {
+	for _, address := range []string{"http://127.0.0.1:19091/v1", "http://localhost:19091/v1", "http://[::1]:19091/v1"} {
+		if !provider.IsLoopbackBaseAddressForTest(address) {
+			t.Errorf("%q is on this machine and should be read as loopback", address)
+		}
+	}
+	for _, address := range []string{"http://198.51.100.7:19091/v1", "https://api.example.com/v1", ""} {
+		if provider.IsLoopbackBaseAddressForTest(address) {
+			t.Errorf("%q is not on this machine and should not be read as loopback", address)
+		}
 	}
 }
 

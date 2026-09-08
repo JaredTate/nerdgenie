@@ -63,6 +63,7 @@ Write the ask under six headings, in this order.
 - `[exit 0: node build.js]` runs the command and reads the exit code.
 - `[shows: "Tater Tots Tetris" at http://127.0.0.1:8091]` opens the page in the browser and looks for the text.
 - `[exists: dist/index.html]` looks for the file.
+- `[looks: http://127.0.0.1:8091 at 1440, 768, 390]` opens the page at each width (up to four, 320 to 3840), photographs it, and proves the line when nothing is wider than the window and the console holds no error; a width alone means the address at 1440. It is what a "the page fits at three sizes with no console errors" line should carry, so the model does not spend forty rounds proving it by hand.
 
 A line with no check is judged by the model, and the model must name the result that proves it. Make the first done line the test suite; the harness runs it at the end of every task.
 

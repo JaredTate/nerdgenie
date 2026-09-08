@@ -669,6 +669,8 @@ internal/loop/lessonguard_test.go
 internal/loop/linecheck.go
 internal/loop/linecheck_test.go
 internal/loop/listing_test.go
+internal/loop/lookscheck.go
+internal/loop/lookscheck_test.go
 internal/loop/loop.go
 internal/loop/mapfile.go
 internal/loop/mapfile_test.go
@@ -1656,6 +1658,7 @@ internal/vault/vault_test.go
 internal/workorder/check.go
 internal/workorder/check_test.go
 internal/workorder/doc.go
+internal/workorder/looks_test.go
 internal/workorder/testdata/tetris.md
 internal/workorder/workorder.go
 internal/workorder/workorder_test.go

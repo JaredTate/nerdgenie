@@ -16,7 +16,9 @@ import (
 // harness and never by the model's word: "[tests pass: npm test]" runs the
 // command and reads the test count, "[exit 0: cmd]" reads the exit code,
 // "[shows: "text" at url]" opens the page in the browser and looks for the
-// text, and "[exists: path]" looks for the file. A check that passes is
+// text, "[exists: path]" looks for the file, and "[looks: url at 1440, 390]"
+// opens the page at each width and reads whether it overflows and whether
+// the console holds an error (lookscheck.go). A check that passes is
 // written into the record as a result the line then points at, so the proof
 // is in the log like any other. A check that fails sends the model back with
 // the line named and the output's tail, and never counts as one of the
@@ -113,7 +115,8 @@ func (running *run) refuseOnTheCheck(ctx context.Context, number int, line contr
 	return refusal
 }
 
-// runTheCheck runs one check of any of the four kinds.
+// runTheCheck runs one check of any of the five kinds; the looks check is
+// in lookscheck.go.
 func (running *run) runTheCheck(ctx context.Context, check workorder.Check) (checkOutcome, error) {
 	switch check.Kind {
 	case "tests pass":
@@ -122,6 +125,8 @@ func (running *run) runTheCheck(ctx context.Context, check workorder.Check) (che
 		return running.checkTheExitCode(ctx, check.Argument)
 	case "shows":
 		return running.checkThePageShows(ctx, check.Text, check.URL)
+	case "looks":
+		return running.checkThePageLooks(ctx, check.URL, check.Widths)
 	default:
 		return running.checkTheFileExists(check.Argument), nil
 	}

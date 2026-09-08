@@ -10,16 +10,18 @@ import (
 // hours for a person while twelve tasks that needed nothing from the sky sat
 // untouched. After the job's one pick-up is spent, the store sets the task
 // aside: the first Defer answers yes, NextTask passes over the deferred task
-// while another task of the job is still unfinished and not deferred, the
-// mark survives a restart because it rides in the job's state snapshot, and
-// the record's own task list does not change. A job that is not there and a
-// task not on the list are refused with an error naming them.
+// while another task ahead of the job's last is unfinished and not deferred,
+// the job's last task waits for the deferred one, the mark survives a restart
+// because it rides in the job's state snapshot, and the record's own task
+// list does not change. A job that is not there and a task not on the list
+// are refused with an error naming them.
 func TestASecondGuardStopDefersTheTaskAndNextTaskPassesOverIt(t *testing.T) {
 	ctx := t.Context()
 	holding := newJobs(t)
 	jobID := holding.aJob(t, "Build the flight simulator.")
 	sky := holding.aTask(t, jobID, "the sky and atmosphere", time.Time{})
 	cockpit := holding.aTask(t, jobID, "the cockpit", time.Time{})
+	holding.aTask(t, jobID, "the final regression", time.Time{})
 	if next, due := holding.nextTask(t, theEpoch()); !due || next.TaskID != sky {
 		t.Fatalf("the first task handed out is %+v (due %v), want the sky task %s", next, due, sky)
 	}
@@ -40,13 +42,13 @@ func TestASecondGuardStopDefersTheTaskAndNextTaskPassesOverIt(t *testing.T) {
 	}
 	holding = holding.restart(t)
 	if next, due := holding.nextTask(t, theEpoch()); due {
-		t.Errorf("after a restart the deferred task %+v was handed out while the cockpit task is still unfinished: the mark is written into the job's state", next)
+		t.Errorf("after a restart the task %+v was handed out while the cockpit is still running: the deferred task waits behind it, and the last task waits for the deferred one", next)
 	}
 	held, err := holding.jobs.Load(ctx, jobID)
 	if err != nil {
 		t.Fatalf("cannot load the job: %v", err)
 	}
-	if len(held.Work.Tasks) != 2 || held.Work.Tasks[0].TaskID != sky || held.Work.Tasks[0].Done {
+	if len(held.Work.Tasks) != 3 || held.Work.Tasks[0].TaskID != sky || held.Work.Tasks[0].Done {
 		t.Errorf("the record's task list reads %+v, want the sky task still first and unfinished: the job's state holds the mark, not the record", held.Work.Tasks)
 	}
 	if _, err := holding.jobs.Defer(ctx, jobID, "t99"); err == nil {
@@ -58,10 +60,11 @@ func TestASecondGuardStopDefersTheTaskAndNextTaskPassesOverIt(t *testing.T) {
 }
 
 // TestADeferredTaskIsTakenAgainWhenOnlyDeferredTasksRemain: two tasks of a
-// job are deferred and the third finishes; the deferred tasks are then handed
-// out again in their order, and with no failure counted, because the claim a
-// deferred task held was let go when it was set aside rather than left to
-// run out and be written down as a dead process's.
+// job are deferred and the one other task ahead of the last finishes; the
+// deferred tasks are then handed out again in their order, before the last
+// task, and with no failure counted, because the claim a deferred task held
+// was let go when it was set aside rather than left to run out and be
+// written down as a dead process's.
 func TestADeferredTaskIsTakenAgainWhenOnlyDeferredTasksRemain(t *testing.T) {
 	ctx := t.Context()
 	holding := newJobs(t)
@@ -69,6 +72,7 @@ func TestADeferredTaskIsTakenAgainWhenOnlyDeferredTasksRemain(t *testing.T) {
 	sky := holding.aTask(t, jobID, "the sky and atmosphere", time.Time{})
 	cockpit := holding.aTask(t, jobID, "the cockpit", time.Time{})
 	terrain := holding.aTask(t, jobID, "the terrain", time.Time{})
+	regression := holding.aTask(t, jobID, "the final regression", time.Time{})
 	for _, taskID := range []string{sky, cockpit} {
 		if next, due := holding.nextTask(t, theEpoch()); !due || next.TaskID != taskID {
 			t.Fatalf("the task handed out is %+v (due %v), want %s", next, due, taskID)
@@ -86,7 +90,7 @@ func TestADeferredTaskIsTakenAgainWhenOnlyDeferredTasksRemain(t *testing.T) {
 	later := theEpoch().Add(3 * time.Hour)
 	next, due := holding.nextTask(t, later)
 	if !due || next.TaskID != sky {
-		t.Fatalf("once only deferred tasks remain the next task is %+v (due %v), want the sky task %s, the first deferred in the list's order", next, due, sky)
+		t.Fatalf("once only deferred tasks remain ahead of the last the next task is %+v (due %v), want the sky task %s, the first deferred in the list's order", next, due, sky)
 	}
 	if summary := holding.summaryOf(t, jobID); summary.FailuresInARow != 0 {
 		t.Errorf("the job counts %d failures, want none: the claim a deferred task held was let go, not left to run out", summary.FailuresInARow)
@@ -94,6 +98,10 @@ func TestADeferredTaskIsTakenAgainWhenOnlyDeferredTasksRemain(t *testing.T) {
 	holding.finish(t, jobID, sky, "the sky is drawn", false)
 	if next, due := holding.nextTask(t, later); !due || next.TaskID != cockpit {
 		t.Errorf("after the sky the next task is %+v (due %v), want the cockpit task %s, the second deferred", next, due, cockpit)
+	}
+	holding.finish(t, jobID, cockpit, "the cockpit is built", false)
+	if next, due := holding.nextTask(t, later); !due || next.TaskID != regression {
+		t.Errorf("after the deferred tasks the next task is %+v (due %v), want the final regression %s, last", next, due, regression)
 	}
 }
 

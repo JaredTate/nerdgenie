@@ -105,45 +105,6 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 	}
 }
 
-// TestAJobPutsATaskDownWhenItsOwnPickUpStopsOnTheGuardAgain: the pick-up is
-// tried once. A task that stalls the same way on its fresh window is put down
-// as before, the job paused on it with the mark, for a person to pick up.
-func TestAJobPutsATaskDownWhenItsOwnPickUpStopsOnTheGuardAgain(t *testing.T) {
-	first, answers, calls := stallsThatStopTheGuard(0)
-	second, more, _ := stallsThatStopTheGuard(calls)
-	steps := append(first, aReviewReply("Read a file once and move on."), answerStep("none"))
-	steps = append(steps, second...)
-	steps = append(steps, aReviewReply("Read a file once and move on."), answerStep("none"), answerStep("This reply is never played."))
-	built := newHarness(t, steps, scriptedTool("read", append(answers, more...)...))
-	jobID := aJobOfTwoTasks(t, built)
-
-	ran := runTheJobToTheEnd(t, built.loop, built.channel)
-
-	if ran != 1 {
-		t.Errorf("the driver ran %d tasks, want 1: the job is paused after the pick-up stopped again", ran)
-	}
-	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused || summary.FailuresInARow != 0 {
-		t.Errorf("the job reads %+v, want it paused on the task with no failure counted", summary)
-	}
-	mark, there, err := built.jobs.PutDownTask(t.Context())
-	if err != nil || !there || mark.Task.TaskID != "t1" || mark.Run != "1" || !mark.HasRecord || mark.Waiting {
-		t.Errorf("the store holds the put-down task as %+v (there %v, error %v), want task t1, run 1, with its record, stopped", mark, there, err)
-	}
-	if task := theJobsFirstTask(t, built, jobID); task.Done || task.ReportID != "" {
-		t.Errorf("the task reads %+v, want it neither done nor reported", task)
-	}
-	sent := built.channel.Sent()
-	if count := timesSent(sent, "picks task t1 up itself"); count != 1 {
-		t.Errorf("the job said it picks the task up itself %d times, want once: the pick-up is tried once", count)
-	}
-	if !sentSomethingLike(sent, "Your next message picks this task up") {
-		t.Errorf("the person was sent %v, want the job paused on the task for their message after the second stop", sent)
-	}
-	if built.model.StepsLeft() != 1 {
-		t.Errorf("the model has %d steps left, want 1: nothing runs after the second stop", built.model.StepsLeft())
-	}
-}
-
 // timesSent counts the messages that carry the words.
 func timesSent(sent []string, words string) int {
 	count := 0

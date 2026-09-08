@@ -174,8 +174,8 @@ func TestATaskAtThriceTheJobsMedianEndsFailedWithItsOpenLinesOnTheReport(t *test
 	if err != nil {
 		t.Fatalf("cannot load the job: %v", err)
 	}
-	if len(held.Work.Results) != 3 || !strings.HasPrefix(held.Work.Results[2].Summary, "failed: ") || !strings.Contains(held.Work.Results[2].Summary, report) {
-		t.Errorf("the job's reports are %+v, want the third a failed report carrying the paced-out line", held.Work.Results)
+	if len(held.Work.Results) != 3 || !strings.Contains(held.Work.Results[2].Summary, report) {
+		t.Errorf("the job's reports are %+v, want the third carrying the paced-out line for the job's later tasks to read", held.Work.Results)
 	}
 	if summary := theSummaryOf(t, built, jobID); summary.FailuresInARow != 1 || summary.State != contract.JobRunning {
 		t.Errorf("the job reads %+v, want one failure counted and the job still running", summary)
@@ -212,6 +212,34 @@ func TestAJobWithFewerThanTwoFinishedTasksPacesNothing(t *testing.T) {
 	}
 	if summary := theSummaryOf(t, built, jobID); summary.TasksDone != 2 || summary.FailuresInARow != 0 {
 		t.Errorf("the job reads %+v, want two tasks done and no failure", summary)
+	}
+}
+
+// TestAJobWhoseTasksFinishInsideTheFloorPacesNothing: a job whose first two
+// tasks took a minute each has a median under the floor, so the third runs
+// forty minutes and reads no cost line, because a small task's time says
+// nothing about how long a big one should take. The deferral tests found
+// this: on a frozen clock two finished tasks made a median of nothing, and
+// the set-aside task's retake was closed at once.
+func TestAJobWhoseTasksFinishInsideTheFloorPacesNothing(t *testing.T) {
+	steps := append(twoFinishedTasks(), readsOfTheSky("the sky is drawn", 3)...)
+	steps = append(steps, aReviewReply("Keep reading."), answerStep("none"), aReviewReply("Keep the tasks short."))
+	built, tool, jobID := aPacedHarness(t, steps)
+	tool.by = time.Minute
+	runTheNextTask(t, built)
+	runTheNextTask(t, built)
+	tool.by = theMedianTaskTime
+
+	runTheNextTask(t, built)
+
+	if _, count := requestsCarrying(built, "against a median of"); count != 0 {
+		t.Errorf("the cost line reached the model in %d requests, want none: a median under the floor paces nothing", count)
+	}
+	if !sentSomethingLike(built.channel.Sent(), "Task t3 took 40m") {
+		t.Errorf("the person was sent %v, want the sky task closed on its own proof after forty minutes", built.channel.Sent())
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobDone {
+		t.Errorf("the job is %q, want it done", summary.State)
 	}
 }
 

@@ -19,8 +19,9 @@ type fakeTask struct {
 	unattended bool
 	running    bool
 	// pickedUp says the job has picked the task up itself once after the
-	// harness's guard stopped it.
-	pickedUp bool
+	// harness's guard stopped it, and deferred that it has set the task
+	// aside once after the guard stopped it again.
+	pickedUp, deferred bool
 	// startedAt is the moment the task was first handed out, and finishedAt
 	// the moment its report was taken; each is the zero time until then.
 	startedAt, finishedAt time.Time
@@ -154,7 +155,9 @@ func (jobs *FakeJob) List(_ context.Context) ([]contract.JobSummary, error) {
 // the oldest running job, making one from the template first when a schedule's
 // tick has come. A task whose date has not come is read past rather than
 // stopped at, as the real store reads past it, so that an undated task behind
-// a task dated for the end of the month still runs.
+// a task dated for the end of the month still runs. A task set aside is read
+// past the same way while another task ahead of the last is unfinished and
+// not deferred, and the last task waits for it, the rule the real store keeps.
 func (jobs *FakeJob) NextTask(_ context.Context, now time.Time) (contract.TaskToRun, bool, error) {
 	jobs.guard.Lock()
 	defer jobs.guard.Unlock()
@@ -166,7 +169,7 @@ func (jobs *FakeJob) NextTask(_ context.Context, now time.Time) (contract.TaskTo
 		jobs.tickSchedule(entry, now)
 		for index := range entry.tasks {
 			task := &entry.tasks[index]
-			if task.task.Done || task.running || task.dueAt.After(now) {
+			if task.task.Done || task.running || task.dueAt.After(now) || passedOver(entry, index) {
 				continue
 			}
 			task.running = true

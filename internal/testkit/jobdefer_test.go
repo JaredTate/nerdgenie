@@ -12,10 +12,11 @@ import (
 
 // TestTheFakeJobDefersATaskOnceAndPassesOverIt: the fake answers the way
 // the real store does. The first deferral of a task answers yes and the
-// second no; NextTask passes over a deferred task while another task of the
-// job is unfinished and not deferred, and hands it out again once only
-// deferred tasks remain; and a job that is not there, a task not on the
-// list, and a finished task are refused with an error naming them.
+// second no; NextTask passes over a deferred task while another task ahead
+// of the job's last is unfinished and not deferred, and hands it out again
+// before the last task once only deferred tasks remain there; and a job that
+// is not there, a task not on the list, and a finished task are refused with
+// an error naming them.
 func TestTheFakeJobDefersATaskOnceAndPassesOverIt(t *testing.T) {
 	ctx := context.Background()
 	jobs := testkit.NewFakeJob(testkit.NewFakeClock(time.Unix(0, 0).UTC()))
@@ -30,6 +31,9 @@ func TestTheFakeJobDefersATaskOnceAndPassesOverIt(t *testing.T) {
 	cockpit, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the cockpit"})
 	if err != nil {
 		t.Fatalf("cannot add the cockpit task: %v", err)
+	}
+	if _, err := jobs.AddTask(ctx, contract.NewTask{JobID: jobID, Text: "the final regression"}); err != nil {
+		t.Fatalf("cannot add the regression task: %v", err)
 	}
 	if next, due, err := jobs.NextTask(ctx, time.Unix(0, 0).UTC()); err != nil || !due || next.TaskID != sky {
 		t.Fatalf("the first task handed out is %+v (due %v, error %v), want the sky task", next, due, err)
@@ -54,7 +58,7 @@ func TestTheFakeJobDefersATaskOnceAndPassesOverIt(t *testing.T) {
 		t.Fatalf("cannot finish the cockpit task: %v", err)
 	}
 	if next, due, err := jobs.NextTask(ctx, time.Unix(0, 0).UTC()); err != nil || !due || next.TaskID != sky {
-		t.Errorf("once only the deferred task remains the next task is %+v (due %v, error %v), want the sky task again", next, due, err)
+		t.Errorf("once only the deferred task remains ahead of the last the next task is %+v (due %v, error %v), want the sky task again, before the regression", next, due, err)
 	}
 	if _, err := jobs.FinishTask(ctx, jobID, sky, "the sky is drawn", false); err != nil {
 		t.Fatalf("cannot finish the sky task: %v", err)

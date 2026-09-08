@@ -101,6 +101,42 @@ func (jobs *Jobs) PickUpOnce(ctx context.Context, jobID string, taskID string) (
 	return true, nil
 }
 
+// Defer sets one of a job's tasks aside after the job's one pick-up is spent
+// and the harness's guard has stopped the task again: yes the first time and
+// no from then on, with the mark written into the job's state snapshot so
+// that a restart remembers it. The claim the task held is let go, because the
+// task is not running any more, and a claim left to run out would be written
+// down as a dead process's failure an hour on. NextTask then passes the task
+// over while another task of the job is unfinished and not deferred. On the
+// night of 7 September 2026 the flight simulator's sky task stopped on the
+// guard twice and the job waited nine hours for a person, three times, while
+// twelve tasks that needed nothing from the sky sat untouched. A job that is
+// not there, a task not on its list, and a finished task are refused with an
+// error naming them.
+func (jobs *Jobs) Defer(ctx context.Context, jobID string, taskID string) (bool, error) {
+	jobs.guard.Lock()
+	defer jobs.guard.Unlock()
+	held, err := jobs.find(jobID)
+	if err != nil {
+		return false, err
+	}
+	facts, err := unfinishedTask(held, jobID, taskID)
+	if err != nil {
+		return false, err
+	}
+	if facts.Deferred {
+		return false, nil
+	}
+	if err := jobs.release(ctx, jobID, taskID); err != nil {
+		return false, err
+	}
+	facts.Deferred = true
+	if err := jobs.saveState(ctx, jobID, held, held.state.withTask(taskID, facts)); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Resume sets a paused job running again and nothing else: every task keeps
 // its date, a schedule keeps its next tick, the claims the paused run held are
 // let go, and the mark of a job put down on a task is forgotten. It also

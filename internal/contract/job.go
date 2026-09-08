@@ -239,10 +239,24 @@ type Job interface {
 	// so a restart remembers it. A job that is not there, a task not on its
 	// list, and a finished task are refused with an error naming them.
 	PickUpOnce(ctx context.Context, jobID string, taskID string) (bool, error)
+	// Defer sets one of a job's tasks aside after the job's one pick-up is
+	// spent and the harness's guard has stopped the task again, so that the
+	// job goes on with its next task instead of waiting for a person. The
+	// first call marks the task deferred in the job's own state, the way
+	// PickUpOnce keeps its once, and answers true; a second call for the same
+	// task answers false, so a task that comes back and stalls again is put
+	// down for a person. The claim the task held is let go. Nothing in the
+	// record's task list changes. A job that is not there, a task not on its
+	// list, and a finished task are refused with an error naming them.
+	Defer(ctx context.Context, jobID string, taskID string) (bool, error)
 	// NextTask returns the next task that may start now: the first unfinished
 	// task of the oldest running job whose due time has passed, or, for a job
 	// with a schedule whose tick has come, one new task made from its template.
-	// It returns false when nothing is due.
+	// A deferred task is passed over while any other task ahead of the job's
+	// last is still unfinished and not deferred, and taken again once only
+	// deferred tasks remain there, in their order; the job's last task waits
+	// for every deferred one, so a task set aside comes back before it. It
+	// returns false when nothing is due.
 	NextTask(ctx context.Context, now time.Time) (TaskToRun, bool, error)
 	// FinishTask writes a finished task's report into its job and returns the
 	// report's id, such as "j4.2". A task that failed stays on the list to be

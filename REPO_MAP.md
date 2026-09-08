@@ -208,6 +208,10 @@ docs/briefs/wave-7/COMMON.md
 docs/briefs/wave-8/8.1-browser-worker-click-at-a-point.md
 docs/briefs/wave-8/8.2-go-side-click-at-a-point-and-the-real-chrome.md
 docs/briefs/wave-8/COMMON.md
+docs/briefs/wave-9/9.1-the-harness-owns-its-eyes.md
+docs/briefs/wave-9/9.2-a-job-never-sleeps.md
+docs/briefs/wave-9/9.3-a-belief-written-once.md
+docs/briefs/wave-9/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -522,6 +526,7 @@ internal/job/command_test.go
 internal/job/control.go
 internal/job/create.go
 internal/job/cronwords.go
+internal/job/defer_test.go
 internal/job/doc.go
 internal/job/edges_test.go
 internal/job/extras_test.go
@@ -654,6 +659,7 @@ internal/loop/helpers_test.go
 internal/loop/integration_test.go
 internal/loop/jobchecks.go
 internal/loop/jobchecks_test.go
+internal/loop/jobdefer_test.go
 internal/loop/jobmarkfails_test.go
 internal/loop/jobpickup_test.go
 internal/loop/jobquestion_test.go
@@ -690,6 +696,8 @@ internal/loop/numbering.go
 internal/loop/openplan.go
 internal/loop/orient.go
 internal/loop/orient_test.go
+internal/loop/pace.go
+internal/loop/pace_test.go
 internal/loop/pagescripts.go
 internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
@@ -1240,6 +1248,7 @@ internal/testkit/integration_test.go
 internal/testkit/job.go
 internal/testkit/job_test.go
 internal/testkit/jobcontrol.go
+internal/testkit/jobdefer_test.go
 internal/testkit/joblifecycle_test.go
 internal/testkit/jobpickup_test.go
 internal/testkit/jobprove_test.go

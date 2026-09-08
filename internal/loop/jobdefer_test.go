@@ -61,11 +61,11 @@ func twoGuardStopsOnTheFirstTask() ([]testkit.Step, []string, int) {
 // job's first task, the job picks it up once, and the guard stops it again.
 // Instead of the job waiting for a person, the task is set aside, the person
 // is told so in one line, its record is kept the way a put-down task's is,
-// and the job goes on with its next task; once the other tasks are done the
-// set-aside task comes back, afresh, and the job closes on all three.
+// and the job goes on with its next task; the set-aside task then comes
+// back, afresh, before the job's last task, and the job closes on all three.
 func TestASecondGuardStopSetsTheTaskAsideAndTheJobGoesOn(t *testing.T) {
 	steps, reads, _ := twoGuardStopsOnTheFirstTask()
-	for _, done := range []string{"the terrain is drawn", "the sky is drawn", "the cockpit is built"} {
+	for _, done := range []string{"the terrain is drawn", "the cockpit is built", "the sky is drawn"} {
 		steps = append(steps, closingScript(done)...)
 		steps = append(steps, answerStep("none"))
 		reads = append(reads, "the notes")
@@ -77,7 +77,7 @@ func TestASecondGuardStopSetsTheTaskAsideAndTheJobGoesOn(t *testing.T) {
 	ran := runTheJobToTheEnd(t, built.loop, built.channel)
 
 	if ran != 4 {
-		t.Errorf("the driver ran %d tasks, want 4: the cockpit twice stopped and set aside, the terrain, the sky, and the cockpit again", ran)
+		t.Errorf("the driver ran %d tasks, want 4: the cockpit twice stopped and set aside, the terrain, the cockpit again, and the sky", ran)
 	}
 	sent := built.channel.Sent()
 	setAside := "Task t1 is set aside after stopping twice; job " + jobID + " goes on with the next task and comes back to t1 before its last task"
@@ -101,10 +101,10 @@ func TestASecondGuardStopSetsTheTaskAsideAndTheJobGoesOn(t *testing.T) {
 	lines := built.recordLines()
 	stopped := theFirstLineWith(lines, "job "+jobID+" task 1 stopped")
 	terrain := theFirstLineWith(lines, "job "+jobID+" task 2 started · the terrain")
-	skyDone := theFirstLineWith(lines, "job "+jobID+" task 3 done")
-	cockpitAgain := theFirstLineWith(lines, "job "+jobID+" task 4 started · the cockpit")
-	if stopped < 0 || terrain < stopped || skyDone < terrain || cockpitAgain < skyDone {
-		t.Errorf("the record lines are %v, want the cockpit stopped, then the terrain and the sky run, then the cockpit started again last", lines)
+	cockpitAgain := theFirstLineWith(lines, "job "+jobID+" task 3 started · the cockpit")
+	sky := theFirstLineWith(lines, "job "+jobID+" task 4 started · the sky")
+	if stopped < 0 || terrain < stopped || cockpitAgain < terrain || sky < cockpitAgain {
+		t.Errorf("the record lines are %v, want the cockpit stopped, then the terrain run, then the cockpit started again before the sky, the job's last task", lines)
 	}
 	if standing := built.held(t, "1").Header.Status; standing != contract.StatusStopped {
 		t.Errorf("the set-aside run's record stands at %q, want %q: it is kept the way a put-down task's is", standing, contract.StatusStopped)
@@ -117,11 +117,9 @@ func TestASecondGuardStopSetsTheTaskAsideAndTheJobGoesOn(t *testing.T) {
 // way a second stop was before.
 func TestATaskSetAsideTwiceWaitsForThePerson(t *testing.T) {
 	steps, reads, calls := twoGuardStopsOnTheFirstTask()
-	for _, done := range []string{"the terrain is drawn", "the sky is drawn"} {
-		steps = append(steps, closingScript(done)...)
-		steps = append(steps, answerStep("none"))
-		reads = append(reads, "the notes")
-	}
+	steps = append(steps, closingScript("the terrain is drawn")...)
+	steps = append(steps, answerStep("none"))
+	reads = append(reads, "the notes")
 	third, evenMore, _ := stallsThatStopTheGuard(calls)
 	steps = append(steps, third...)
 	steps = append(steps, aReviewReply("Read a file once and move on."), answerStep("none"), answerStep("This reply is never played."))
@@ -130,15 +128,15 @@ func TestATaskSetAsideTwiceWaitsForThePerson(t *testing.T) {
 
 	ran := runTheJobToTheEnd(t, built.loop, built.channel)
 
-	if ran != 4 {
-		t.Errorf("the driver ran %d tasks, want 4: the job is paused once the set-aside task stops again", ran)
+	if ran != 3 {
+		t.Errorf("the driver ran %d tasks, want 3: the job is paused once the set-aside task stops again, before its last task runs", ran)
 	}
 	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobPaused || summary.FailuresInARow != 0 {
 		t.Errorf("the job reads %+v, want it paused on the task with no failure counted", summary)
 	}
 	mark, there, err := built.jobs.PutDownTask(t.Context())
-	if err != nil || !there || mark.Task.TaskID != "t1" || mark.Run != "4" || !mark.HasRecord || mark.Waiting {
-		t.Errorf("the store holds the put-down task as %+v (there %v, error %v), want task t1, run 4, with its record, stopped", mark, there, err)
+	if err != nil || !there || mark.Task.TaskID != "t1" || mark.Run != "3" || !mark.HasRecord || mark.Waiting {
+		t.Errorf("the store holds the put-down task as %+v (there %v, error %v), want task t1, run 3, with its record, stopped", mark, there, err)
 	}
 	sent := built.channel.Sent()
 	if count := timesSent(sent, "is set aside after stopping twice"); count != 1 {

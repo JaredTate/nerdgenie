@@ -78,3 +78,28 @@ func TestFindChromeNamesEveryCandidateWhenNoneIsLeft(t *testing.T) {
 		}
 	}
 }
+
+// TestFindChromeLooksPastALauncherToTheSameNameLaterOnThePath: on jared-rosie
+// on 7 September 2026 both google-chrome and google-chrome-stable in
+// /usr/local/bin were launcher scripts forcing headless, and the real
+// google-chrome-stable sat behind them in /usr/bin. Asking the PATH for the
+// first match by name never reached it, so the doctor said the browser tools
+// were switched off on a machine with Chrome installed.
+func TestFindChromeLooksPastALauncherToTheSameNameLaterOnThePath(t *testing.T) {
+	front, back := t.TempDir(), t.TempDir()
+	launcher := writeProgram(t, front, "google-chrome-stable", headlessLauncher)
+	writeProgram(t, front, "google-chrome", headlessLauncher)
+	real := writeProgram(t, back, "google-chrome-stable", "#!/bin/sh\nexec /opt/google/chrome/chrome \"$@\"\n")
+	t.Setenv("PATH", front+string(os.PathListSeparator)+back)
+
+	path, passedOver, err := contract.FindChrome()
+	if err != nil {
+		t.Fatalf("finding Chrome failed: %v", err)
+	}
+	if path != real {
+		t.Errorf("Chrome was found at %q, want the real one at %q behind the launcher on the PATH", path, real)
+	}
+	if len(passedOver) != 1 || passedOver[0] != launcher {
+		t.Errorf("passed over %v, want only the launcher at %q that hid the real one", passedOver, launcher)
+	}
+}

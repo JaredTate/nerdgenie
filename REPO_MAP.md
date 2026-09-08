@@ -451,6 +451,7 @@ internal/contract/browserevent_test.go
 internal/contract/carryon.go
 internal/contract/carryon_test.go
 internal/contract/channel.go
+internal/contract/chrome.go
 internal/contract/chrome_test.go
 internal/contract/clock.go
 internal/contract/command.go
@@ -1185,6 +1186,7 @@ internal/testkit/browserevents_test.go
 internal/testkit/browserexpectation.go
 internal/testkit/browsermore_test.go
 internal/testkit/browserpages.go
+internal/testkit/browserpoint.go
 internal/testkit/browserpoint_test.go
 internal/testkit/browserrules_test.go
 internal/testkit/browserserver.go

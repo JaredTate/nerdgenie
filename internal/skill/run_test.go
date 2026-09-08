@@ -2,6 +2,7 @@ package skill_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -302,5 +303,57 @@ func TestNewRefusesAStoreThatCouldNotRunASkill(t *testing.T) {
 		if _, err := skill.New(options); err == nil {
 			t.Errorf("a store built from %+v was allowed, and it must be refused", options)
 		}
+	}
+}
+
+// TestADryRunOfASkillWithNoStepsSaysThereIsNothingToDryRun: the browser skill
+// nerdgenie init ships is its SKILL.md alone, and the nightly self-check
+// counted it broken every night. A dry run of a skill with no steps and no
+// script says there is nothing to dry-run, wrapped so a caller can tell it
+// from a step that failed.
+func TestADryRunOfASkillWithNoStepsSaysThereIsNothingToDryRun(t *testing.T) {
+	built := newHarness(t, &echoTool{name: "echo"})
+	ctx := context.Background()
+	files := map[string][]byte{
+		skill.DescriptionFile: []byte("# browser\n\nRead this before the first browser call: how to work the browser tools.\n"),
+	}
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "browser", files); err != nil {
+		t.Fatalf("saving the skill failed: %v", err)
+	}
+
+	_, err := built.store.DryRun(ctx, "browser")
+
+	if !errors.Is(err, contract.ErrNothingToDryRun) {
+		t.Fatalf("the dry run said %v, want it to say there is nothing to dry-run", err)
+	}
+	if !strings.Contains(err.Error(), "browser") || !strings.Contains(err.Error(), "no steps") {
+		t.Errorf("the reason %q does not name the skill and say it has no steps", err.Error())
+	}
+}
+
+// TestADryRunOfASkillThatTakesAnArgumentItIsNotGivenSaysSo: the qa example
+// skill opens the app at {{arguments}}, and its test.md gives none, so its
+// dry run opened an empty address every night and was counted broken. It says
+// what to add instead.
+func TestADryRunOfASkillThatTakesAnArgumentItIsNotGivenSaysSo(t *testing.T) {
+	echo := &echoTool{name: "echo"}
+	built := newHarness(t, echo)
+	ctx := context.Background()
+	files := twoStepSkill("say-two")
+	files[skill.TestFile] = []byte("arguments: \n")
+	if err := built.store.Save(ctx, contract.SkillSavedByPerson, "say-two", files); err != nil {
+		t.Fatalf("saving the skill failed: %v", err)
+	}
+
+	_, err := built.store.DryRun(ctx, "say-two")
+
+	if !errors.Is(err, contract.ErrNothingToDryRun) {
+		t.Fatalf("the dry run said %v, want it to say there is nothing to dry-run", err)
+	}
+	if !strings.Contains(err.Error(), "arguments:") || !strings.Contains(err.Error(), skill.TestFile) {
+		t.Errorf("the reason %q does not say which line to add to which file", err.Error())
+	}
+	if echo.calls != 0 {
+		t.Errorf("the tool ran %d times, want none: a dry run with no argument runs no step", echo.calls)
 	}
 }

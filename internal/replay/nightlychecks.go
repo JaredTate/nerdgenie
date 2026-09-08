@@ -2,6 +2,7 @@ package replay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -115,7 +116,14 @@ func (nightly *Nightly) dryRunTheSkills(ctx context.Context) []Check {
 
 // dryRunOne runs one skill's dry run and says whether it reached the end.
 func (nightly *Nightly) dryRunOne(ctx context.Context, name string) Check {
-	if _, err := nightly.settings.DryRun(ctx, name); err != nil {
+	_, err := nightly.settings.DryRun(ctx, name)
+	switch {
+	case errors.Is(err, contract.ErrNothingToDryRun):
+		// A skill that is its SKILL.md alone, or one whose test file gives
+		// no argument, has not stopped working: it was never checked, and
+		// the line says so the way it says a memory is empty.
+		return Check{Name: "the skill " + name, Passed: true, Detail: err.Error()}
+	case err != nil:
 		return Check{Name: "the skill " + name, Detail: err.Error()}
 	}
 	return Check{Name: "the skill " + name, Passed: true}

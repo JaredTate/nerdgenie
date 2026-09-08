@@ -3,6 +3,7 @@ package replay_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +31,8 @@ type nightlyHarness struct {
 	skills *testkit.FakeSkill
 	// dryRunsThatFail are the skills whose dry run says no.
 	dryRunsThatFail map[string]bool
+	// dryRunsWithNothing are the skills whose dry run has nothing to replay.
+	dryRunsWithNothing map[string]bool
 	// dryRuns is every skill whose dry run was asked for, in order.
 	dryRuns []string
 }
@@ -38,10 +41,11 @@ type nightlyHarness struct {
 func newNightlyHarness(t *testing.T, remembering contract.Memory) *nightlyHarness {
 	t.Helper()
 	built := &nightlyHarness{
-		clock:           testkit.NewFakeClock(theStartOfTime),
-		channel:         testkit.NewFakeChannel("terminal"),
-		skills:          testkit.NewFakeSkill(),
-		dryRunsThatFail: map[string]bool{},
+		clock:              testkit.NewFakeClock(theStartOfTime),
+		channel:            testkit.NewFakeChannel("terminal"),
+		skills:             testkit.NewFakeSkill(),
+		dryRunsThatFail:    map[string]bool{},
+		dryRunsWithNothing: map[string]bool{},
 	}
 	built.jobs = testkit.NewFakeJob(built.clock)
 	made, err := replay.NewNightly(replay.NightlySettings{
@@ -60,6 +64,9 @@ func (built *nightlyHarness) dryRun(_ context.Context, name string) (string, err
 	built.dryRuns = append(built.dryRuns, name)
 	if built.dryRunsThatFail[name] {
 		return "", errors.New("the dry run of this skill did not reach its last step")
+	}
+	if built.dryRunsWithNothing[name] {
+		return "", fmt.Errorf("the skill %q is its SKILL.md alone, with no steps, so there is nothing to dry-run: %w", name, contract.ErrNothingToDryRun)
 	}
 	return "every step of the dry run worked", nil
 }
@@ -315,4 +322,36 @@ func (forgetful forgetfulMemory) Save(_ context.Context, _ []contract.Fact) erro
 // Hint returns nothing, because the self-check asks no hints.
 func (forgetful forgetfulMemory) Hint(_ context.Context, _ string) ([]string, error) {
 	return nil, nil
+}
+
+// TestASkillWithNothingToDryRunIsANoteAndNotAFailure: the browser skill
+// nerdgenie init ships is its SKILL.md alone, and the qa example takes an
+// argument its test file does not give; both were counted broken every
+// night, so the one line always said two failed and taught the user to
+// ignore it. A skill whose dry run has nothing to replay is a note on the
+// line, the way an empty memory is, and not a failure.
+func TestASkillWithNothingToDryRunIsANoteAndNotAFailure(t *testing.T) {
+	ctx := context.Background()
+	built := newNightlyHarness(t, twentyFacts())
+	built.addSkill("browser")
+	built.addSkill("post")
+	built.dryRunsWithNothing["browser"] = true
+	if _, err := built.nightly.Register(ctx); err != nil {
+		t.Fatalf("cannot register the nightly job: %v", err)
+	}
+
+	report, err := built.nightly.Run(ctx, built.fireTheSchedule(t))
+
+	if err != nil {
+		t.Fatalf("the self-check did not finish: %v", err)
+	}
+	if report.Failed != 0 {
+		t.Errorf("the report counts %d failed, and a skill with nothing to dry-run is not broken: %q", report.Failed, report.Line)
+	}
+	if strings.Contains(report.Line, "these failed") || !strings.Contains(report.Line, "nothing to dry-run") {
+		t.Errorf("the line reads %q, want the skill noted as having nothing to dry-run and no failure", report.Line)
+	}
+	if len(built.dryRuns) != 2 {
+		t.Errorf("the self-check dry-ran %d skills, want both", len(built.dryRuns))
+	}
 }

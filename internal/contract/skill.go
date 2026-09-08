@@ -2,6 +2,7 @@ package contract
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -66,3 +67,9 @@ type Skill interface {
 	// trigger words fire.
 	Match(ctx context.Context, text string) (SkillMatch, error)
 }
+
+// ErrNothingToDryRun is what a skill's dry run wraps when the skill has
+// nothing to replay: a skill that is its SKILL.md alone, or one that takes an
+// argument its test file does not give. The nightly self-check reads it to
+// note the skill rather than count it broken.
+var ErrNothingToDryRun = errors.New("there is nothing to dry-run")

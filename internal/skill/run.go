@@ -82,6 +82,9 @@ type replayKind struct {
 // dryRun replays a folder that may not be on disk yet, which is what the
 // learning paths use before they save anything.
 func (store *Store) dryRun(ctx context.Context, folder Folder) (string, error) {
+	if reason := nothingToDryRun(folder); reason != "" {
+		return "", fmt.Errorf("%s, so no step ran: %w", reason, contract.ErrNothingToDryRun)
+	}
 	report, err := store.replay(ctx, folder, folder.Plan.Arguments, replayKind{dry: true})
 	if err != nil {
 		return report, err
@@ -91,6 +94,32 @@ func (store *Store) dryRun(ctx context.Context, folder Folder) (string, error) {
 			folder.Definition.Name, folder.Plan.Expect, TestFile)
 	}
 	return report, nil
+}
+
+// nothingToDryRun says why a skill cannot be dry-run, or nothing when it can:
+// a skill that is its SKILL.md alone has no steps to replay, and a skill whose
+// steps take an argument that its test file does not give would run them on
+// an empty one. Both are notes for the nightly self-check, not broken skills;
+// the shipped browser and qa skills were counted broken every night until
+// 8 September 2026. A script takes its argument on the command line and runs
+// without one.
+func nothingToDryRun(folder Folder) string {
+	if folder.HasScript {
+		return ""
+	}
+	if len(folder.Steps) == 0 {
+		return fmt.Sprintf("the skill %q is its %s alone, with no steps", folder.Definition.Name, DescriptionFile)
+	}
+	if folder.Plan.Arguments != "" {
+		return ""
+	}
+	for _, step := range folder.Steps {
+		if strings.Contains(step.Input, ArgumentsToken) {
+			return fmt.Sprintf("the skill %q takes an argument and its %s gives none; add an \"arguments:\" line to %s",
+				folder.Definition.Name, TestFile, TestFile)
+		}
+	}
+	return ""
 }
 
 // replay runs the steps in order, checking each one's expectation. A dry run

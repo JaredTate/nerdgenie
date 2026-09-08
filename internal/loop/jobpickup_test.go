@@ -47,7 +47,7 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 	stalls, answers, calls := stallsThatStopTheGuard(0)
 	steps := append(stalls,
 		aReviewReply("Read a file once and move on."),
-		answerStep("none"), // the fifth question, which a job's task is asked
+		answerStep("none"), theUsualRethink(), // the fifth question a job's task is asked, then the pick-up's rethink over the stall on the record
 		answerStep("The post is up."),
 		answerStep("The summary is written."),
 		aReviewReply("Keep posting at the same hour every day."))
@@ -85,10 +85,11 @@ func TestAJobPicksAGuardStoppedTaskUpOnceItselfOnAFreshWindow(t *testing.T) {
 		t.Errorf("the person was sent %v, and a task the job picks up itself does not wait for their message", sent)
 	}
 	first, _ := requestsCarrying(built, loop.TheJobPickUpLine)
-	// The stop's review is two calls, the four questions and the fifth, so
-	// the pick-up's first request is the third after the stalled calls.
-	if first != calls+2 {
-		t.Fatalf("the pick-up's first request is number %d, want %d: right after the stalled calls and the stop's review", first+1, calls+3)
+	// The stop's review is two calls, the four questions and the fifth, and
+	// the pick-up opens with a rethink, so the pick-up's first working request
+	// is the fourth after the stalled calls.
+	if first != calls+3 {
+		t.Fatalf("the pick-up's first working request is number %d, want %d: right after the stalled calls, the stop's review and the pick-up's rethink", first+1, calls+4)
 	}
 	opening := wholeRequestText(built.model.Requests()[first])
 	if !strings.Contains(opening, orientation.TheResultsHeading) || !strings.Contains(opening, "the notes") {
@@ -112,6 +113,7 @@ func TestAJobPutsATaskDownWhenItsOwnPickUpStopsOnTheGuardAgain(t *testing.T) {
 	first, answers, calls := stallsThatStopTheGuard(0)
 	second, more, _ := stallsThatStopTheGuard(calls)
 	steps := append(first, aReviewReply("Read a file once and move on."), answerStep("none"))
+	steps = append(steps, theUsualRethink()) // the pick-up opens with a rethink, because the record holds the stall
 	steps = append(steps, second...)
 	steps = append(steps, aReviewReply("Read a file once and move on."), answerStep("none"), answerStep("This reply is never played."))
 	built := newHarness(t, steps, scriptedTool("read", append(answers, more...)...))

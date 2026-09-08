@@ -72,3 +72,11 @@ func (running *run) carryOnFromAStop(ctx context.Context, standing contract.Reco
 	}
 	return nil
 }
+
+// pickedUpFromAStop says whether this run picked its task up after a stop,
+// which carryOnFromAStop above writes down as the carry-on line of the
+// situation and nothing else does. A task picked up on the answer to its own
+// question was never stopped.
+func (running *run) pickedUpFromAStop() bool {
+	return running.continuedFact != ""
+}

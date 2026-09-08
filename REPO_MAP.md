@@ -208,6 +208,10 @@ docs/briefs/wave-7/COMMON.md
 docs/briefs/wave-8/8.1-browser-worker-click-at-a-point.md
 docs/briefs/wave-8/8.2-go-side-click-at-a-point-and-the-real-chrome.md
 docs/briefs/wave-8/COMMON.md
+docs/briefs/wave-9/9.1-the-harness-owns-its-eyes.md
+docs/briefs/wave-9/9.2-a-job-never-sleeps.md
+docs/briefs/wave-9/9.3-a-belief-written-once.md
+docs/briefs/wave-9/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -695,6 +699,9 @@ internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
+internal/loop/photograph.go
+internal/loop/photograph_test.go
+internal/loop/pickuprethink_test.go
 internal/loop/picture.go
 internal/loop/picture_test.go
 internal/loop/pinned_test.go
@@ -727,6 +734,7 @@ internal/loop/resume.go
 internal/loop/resume_test.go
 internal/loop/rethink.go
 internal/loop/rethink_test.go
+internal/loop/rethinkcauses_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go

@@ -24,6 +24,21 @@ var theFillerFailures = []string{
 	"the high score never reached the browser's storage",
 }
 
+// theFillerCauses are the ten failures' causes, each in its own words too,
+// because a cause the record already holds is refused the same way.
+var theFillerCauses = []string{
+	"three facts were packed into one post, so keep to one",
+	"the board test waited on a promise nobody resolved",
+	"the script tag ran before the body was parsed",
+	"the server's static folder pointed at the wrong build",
+	"the audio context was made before the first click",
+	"the loop compared cells that never moved between frames",
+	"the kick table was copied from the wrong rotation system",
+	"the score element was replaced when the level changed",
+	"the pause overlay never cleared the interval it hid",
+	"the storage write ran before the game had a score",
+}
+
 // TestEstimatesTokensFromWords proves the one ratio this package counts with.
 func TestEstimatesTokensFromWords(t *testing.T) {
 	cases := map[string]int{
@@ -181,7 +196,7 @@ func fillTheLessons(t *testing.T, keeper *Keeper) {
 			},
 			Failure: &NewFailure{
 				Text:  fmt.Sprintf("failure %d, %s", lesson+1, theFillerFailures[lesson]),
-				Cause: fmt.Sprintf("the cause of failure %d, in about ten words", lesson+1),
+				Cause: theFillerCauses[lesson],
 			},
 		}
 		if err := keeper.Apply(ctx, update); err != nil {

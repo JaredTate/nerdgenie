@@ -20,7 +20,7 @@ Create a new folder on the Desktop named exactly `Interactive Earth`, so the pro
 2. The page loads in the browser and shows the Earth. [shows: "Interactive Earth" at http://127.0.0.1:8093]
 3. In the Chrome window on the screen, each of these was done, seen and photographed: the Earth rotated by dragging, zoomed from the full view to a close view and back, rotation paused and resumed, the speed changed, clouds, atmosphere, city lights and labels each toggled off and on, a location clicked and its information shown, the camera reset.
 4. The day and night lighting with the city lights on the night side, the atmospheric glow, the moving clouds, the terminator line and the stars are each seen and photographed.
-5. At 1440, 1024 and 390 wide nothing overlaps, nothing is clipped, the controls are readable, and the console shows no errors, no failed requests and no missing textures.
+5. At 1440, 1024 and 390 wide the page fits the window and the console shows no errors, and in the three photographs nothing overlaps, nothing is clipped, the controls are readable, and no request or texture failed. [looks: http://127.0.0.1:8093 at 1440, 1024, 390]
 6. The page exposes its state as `window.earth` (rotation, speed, paused, each toggle, camera latitude, longitude and altitude, the selected location, fps), and after the QA session it reports a frame rate that stayed smooth.
 7. The whole test suite is green after the last change made during browser QA, the performance pass and visual QA.
 

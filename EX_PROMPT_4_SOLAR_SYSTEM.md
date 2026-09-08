@@ -20,7 +20,7 @@ Create a new folder on the Desktop named exactly `Solar System Viewerv2`, so the
 2. The page loads in the browser and shows the Sun and the planets. [shows: "Solar System" at http://127.0.0.1:8094]
 3. In the Chrome window on the screen, each of these was done, seen and photographed: the view zoomed from the whole system to one planet and back, panned, every planet clicked with its label and information shown, the motion paused and resumed, the speed changed, and the view reset.
 4. The Sun's glow, the planets' lighting from the Sun, the orbits' depth and the smooth motion are seen and photographed.
-5. At 1440, 1024 and 768 wide nothing overlaps, nothing is clipped, the controls and labels are readable, and the console shows no errors, no failed requests and no missing assets.
+5. At 1440, 1024 and 768 wide the page fits the window and the console shows no errors, and in the three photographs nothing overlaps, nothing is clipped, the controls and labels are readable, and no request or asset failed. [looks: http://127.0.0.1:8094 at 1440, 1024, 768]
 6. The page exposes its state as `window.solar` (simulated time, speed, paused, the selected planet, the camera, fps), and after the QA session it reports a frame rate that stayed smooth.
 7. The whole test suite is green after the last change made during browser QA and visual QA.
 

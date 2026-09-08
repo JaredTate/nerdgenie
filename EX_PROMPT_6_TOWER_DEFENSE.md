@@ -19,7 +19,7 @@ Create a new folder on the Desktop named exactly `Tower Defense Game`, so the pr
 2. The game loads in the browser and shows the map with the path, the spawn and the base. [shows: "Tower Defense" at http://127.0.0.1:8095]
 3. Whole games have been played in the Chrome window on the screen and each of these was seen and photographed: every tower type placed, an invalid placement refused, a tower upgraded, a tower sold, each targeting mode chosen, enemies reaching the base, pause and resume, restart, a boss wave, a game over, a victory.
 4. Balance was checked by play: the first waves are easy, no single tower wins every game, upgrades matter, money forces choices, later waves need strategy, the boss is hard but beatable, and the game cannot be made unwinnable by its own economy. The values changed by that play are in the config file.
-5. At 1440, 1024 and 768 wide nothing overlaps, nothing is clipped, every number on the screen is readable, and the console shows no errors and no failed requests.
+5. At 1440, 1024 and 768 wide the page fits the window and the console shows no errors, and in the three photographs nothing overlaps, nothing is clipped, every number on the screen is readable, and no request failed. [looks: http://127.0.0.1:8095 at 1440, 1024, 768]
 6. The page exposes its state as `window.game` (wave, health, money, enemies alive, towers, projectiles, paused, state, fps), and during the largest wave it reports a frame rate that stayed smooth.
 7. The whole test suite is green after the last change made during play testing, balance testing, the performance pass and visual QA.
 

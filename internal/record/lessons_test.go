@@ -117,3 +117,49 @@ func TestADoneLineNamingAResultNotYetWrittenIsToldToWaitForItsProof(t *testing.T
 		t.Errorf("a done line with no result was refused: %v", err)
 	}
 }
+
+// TestAFailureWhoseCauseRepeatsAHeldCauseIsRefusedNamingIt is the sky task of
+// the flight-simulator work order, which wrote four failures with the one
+// cause "screenshots stay byte-frozen while the page reports 60 fps" in four
+// wordings, and both its rethinks named it again. A cause the record holds is
+// not written again under a new text: it is refused with the label of the
+// failure that already names it, the way a repeated text is.
+func TestAFailureWhoseCauseRepeatsAHeldCauseIsRefusedNamingIt(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	first := &NewFailure{Text: "screenshot r201 is byte-identical to r198", Cause: "screenshots stay byte-frozen while the page reports 60 fps"}
+	if err := keeper.Apply(ctx, Update{Failure: first}); err != nil {
+		t.Fatalf("the first failure was refused: %v", err)
+	}
+	sameCause := &NewFailure{Text: "the third capture matched the first pixel for pixel", Cause: "the screenshots stay byte frozen while the page reports 60 fps"}
+	err := keeper.Apply(ctx, Update{Failure: sameCause})
+	if !errors.Is(err, ErrFailureAlreadyWritten) || !strings.Contains(err.Error(), "F1") {
+		t.Errorf("the failure with the cause F1 already names was not refused naming F1: %v", err)
+	}
+	newCause := &NewFailure{Text: "the third capture matched the first pixel for pixel", Cause: "the aircraft was parked and the clouds were still, so the scene did not change"}
+	if err := keeper.Apply(ctx, Update{Failure: newCause}); err != nil {
+		t.Errorf("a failure with a cause the record does not hold was refused: %v", err)
+	}
+	if held := keeper.Record().Lessons.Failures; len(held) != 2 || held[1].ID != "F2" {
+		t.Errorf("the failures read %+v, want F1 and the new F2", held)
+	}
+}
+
+// TestAFailureWithANewCauseUnderAHeldTextIsStillRefused holds the text rule
+// where it was: a new cause does not buy a text the record already holds a
+// second line.
+func TestAFailureWithANewCauseUnderAHeldTextIsStillRefused(t *testing.T) {
+	keeper, _ := newKeeper(t, taskStart())
+	ctx := t.Context()
+	text := "screenshot r201 is byte-identical to r198"
+	if err := keeper.Apply(ctx, Update{Failure: &NewFailure{Text: text, Cause: "screenshots stay byte-frozen while the page reports 60 fps"}}); err != nil {
+		t.Fatalf("the first failure was refused: %v", err)
+	}
+	err := keeper.Apply(ctx, Update{Failure: &NewFailure{Text: text, Cause: "the aircraft was parked and the clouds were still"}})
+	if !errors.Is(err, ErrFailureAlreadyWritten) || !strings.Contains(err.Error(), "F1") {
+		t.Errorf("the failure whose text F1 already says was not refused naming F1 under a new cause: %v", err)
+	}
+	if held := keeper.Record().Lessons.Failures; len(held) != 1 {
+		t.Errorf("the failures read %+v, want F1 alone", held)
+	}
+}

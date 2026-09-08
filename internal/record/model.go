@@ -453,6 +453,9 @@ func applyFailure(into *contract.Record, update Update) error {
 			return fmt.Errorf("the failure %q says what %s already says: %w", kept, held.ID, ErrFailureAlreadyWritten)
 		}
 	}
+	if held, named := FailureNamingTheCause(into.Lessons.Failures, update.Failure.Cause); named {
+		return fmt.Errorf("the failure %q names the cause %s already names, %q: %w", kept, held.ID, held.Cause, ErrFailureAlreadyWritten)
+	}
 	number := 1
 	if last := len(into.Lessons.Failures); last > 0 {
 		number = numberAfter(into.Lessons.Failures[last-1].ID)

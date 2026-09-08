@@ -699,6 +699,9 @@ internal/loop/pagescripts_fuzz_test.go
 internal/loop/parse_fuzz_test.go
 internal/loop/permit.go
 internal/loop/permit_test.go
+internal/loop/photograph.go
+internal/loop/photograph_test.go
+internal/loop/pickuprethink_test.go
 internal/loop/picture.go
 internal/loop/picture_test.go
 internal/loop/pinned_test.go
@@ -731,6 +734,7 @@ internal/loop/resume.go
 internal/loop/resume_test.go
 internal/loop/rethink.go
 internal/loop/rethink_test.go
+internal/loop/rethinkcauses_test.go
 internal/loop/review.go
 internal/loop/review_test.go
 internal/loop/run.go

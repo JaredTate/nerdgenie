@@ -17,11 +17,31 @@ const NewestResultsShown = 6
 // then the ask as the person wrote it, last, because the last thing the model
 // reads is what it answers. With the block after the ask, the fresh run of
 // 6 September wrote no plan in any task but the first, where the run before
-// it had written one in every task.
+// it had written one in every task. A task picked up after a stop whose
+// record holds a failure opens with a rethink instead of the plain
+// orientation (rethink.go), and the ask still rides last.
 func (running *run) openTheWindow(ctx context.Context, task Task) {
-	running.rememberTheOrientation(ctx, task.ResumeID != "")
+	if !running.rethinkOnPickUp(ctx) {
+		running.rememberTheOrientation(ctx, task.ResumeID != "")
+	}
 	running.remember(contract.Message{Role: contract.RoleUser, Text: task.Message.Text})
 	running.keepThrough = len(running.messages)
+}
+
+// rethinkOnPickUp opens a task picked up after a stop, whose record holds at
+// least one failure, with a rethink before its first working call, and says
+// whether it did: the record and the newest result in front of the model,
+// the five questions, the answer into the record, and the fresh window on
+// the answer. The sky task of the flight-simulator work order was picked up
+// three times, and each time it opened on the failure list that had stopped
+// it and went straight back to it. A picked-up task with no failure, a task
+// answered on its own question, and a rethink the model gives no answer to
+// open as before.
+func (running *run) rethinkOnPickUp(ctx context.Context) bool {
+	if !running.pickedUpFromAStop() || len(running.keeper.Record().Lessons.Failures) == 0 {
+		return false
+	}
+	return running.rethinkIfAnswered(ctx)
 }
 
 // TheFreshWindowLine is what the model reads, right before the ask, when the

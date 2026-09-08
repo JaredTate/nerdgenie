@@ -3,12 +3,31 @@ package record
 import (
 	"strings"
 	"unicode"
+
+	"github.com/JaredTate/nerdgenie/internal/contract"
 )
 
 // A lesson written twice teaches nothing twice. The model rewords a failure a
 // little each time it writes it again, so two failures say the same thing when
 // they share nearly all their words, not only when they match letter for
-// letter.
+// letter. A cause is held to the same rule as a text: the sky task of the
+// flight-simulator work order wrote four failures with one cause in four
+// wordings, and both its rethinks named that cause again as one the record
+// did not hold.
+
+// FailureNamingTheCause finds the held failure whose cause already says what
+// this cause says, by the same rule as a repeated text, and says whether there
+// is one. The cause is compared as the record would keep it, cut to a lesson's
+// length, so that a whole paragraph is held to its own first line.
+func FailureNamingTheCause(failures []contract.Failure, cause string) (contract.Failure, bool) {
+	kept := cutToALesson(cause)
+	for _, held := range failures {
+		if saysTheSame(kept, held.Cause) {
+			return held, true
+		}
+	}
+	return contract.Failure{}, false
+}
 
 // TheShareOfWordsThatMakesTheSame is the share of one failure's distinct words
 // that must appear in another's for the two to say the same thing.

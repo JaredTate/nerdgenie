@@ -42,9 +42,14 @@ const (
 // doneCheck says what is wrong with the done list, in one line the model can
 // act on, and is empty when the task may close. Every line must point at a
 // result or at a reply from the user, and where a line names something the
-// harness can check for itself, the harness checks it.
+// harness can check for itself, the harness checks it: a bracketed check
+// (linecheck.go), a line that says photographed (photograph.go), a command in
+// backticks, or a file path.
 func (running *run) doneCheck(ctx context.Context) (string, error) {
 	if problem, err := running.proveTheCheckedLines(ctx); err != nil || problem != "" {
+		return problem, err
+	}
+	if problem, err := running.photographTheLines(ctx); err != nil || problem != "" {
 		return problem, err
 	}
 	held := running.keeper.Record()

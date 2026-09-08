@@ -13,7 +13,14 @@
 // on the record, and the one call that tells them apart. The answer goes into
 // the record through the record's own rules, the call it was repeating is
 // closed for a while (closedcalls.go), and a fresh window opens on the answer
-// with the instruction to do its Next line.
+// with the instruction to do its Next line. The answer's two causes are held
+// against every failure's cause on the record: the sky task of the
+// flight-simulator work order was asked twice for causes not on the record
+// and named the one it already held both times, because nothing checked the
+// answer. When both are already there, the question is asked once more with
+// one line in front of it naming the failures that say so, and the second
+// answer is taken as it stands. A task picked up after a stop with a failure
+// on its record opens with the same rethink (freshwindow.go).
 
 package loop
 
@@ -56,6 +63,25 @@ Next: the one cheapest call that tells those two causes apart, written as someth
 // the causes already on the record stand.
 const TheCausesTriedLine = "Every cause already written as a failure's cause on the record was tried and did not hold."
 
+// TheNameNewCausesLine is the second half of the line put in front of the
+// question when both of the answer's causes are already on the record; the
+// first half names the failures that hold them, "F11, F12 and F13 already
+// say this; ".
+const TheNameNewCausesLine = "name two causes the record does not hold"
+
+// MaxCausesCompared is how many causes of the answer's Causes line are held
+// against the record: two, because the question asks for two.
+const MaxCausesCompared = 2
+
+// theCauseSeparators are what a model writes between its two causes, tried
+// in this order, so that "the file is wrong or missing, or the folder is" is
+// cut at the comma and not inside the first cause.
+var theCauseSeparators = []string{";", ", or ", " or "}
+
+// TheRethinkSentBackOutcome is what the log says came of the question asked
+// once more.
+const TheRethinkSentBackOutcome = "the first answer's causes were already on the record, so the question was asked once more and this answer taken as it stands"
+
 // TheRethinkLine opens the one message of the fresh window a rethink leaves
 // the model in: what happened, where everything is, and that the rethink
 // under it is the model's own.
@@ -89,16 +115,101 @@ type rethink struct {
 // task.
 func (running *run) rethinkIfAnswered(ctx context.Context) bool {
 	label, background := running.theRethinkBackground(ctx)
-	answer := strings.TrimSpace(running.theLoop.askForARethink(ctx, background))
+	answer := strings.TrimSpace(running.theLoop.askForARethink(ctx, background, TheRethinkQuestion))
 	if answer == "" {
 		running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", TheRethinkQuestion, "", TheRethinkUnansweredOutcome)
 		return false
 	}
+	running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", TheRethinkQuestion, answer, TheRethinkAnsweredOutcome)
+	answer = running.askOnceMoreIfTheCausesAreHeld(ctx, background, answer)
 	running.writeTheRethink(ctx, readTheRethink(answer))
 	running.closeTheStalledCall(label)
 	running.openTheWindowOnTheRethink(ctx, answer)
-	running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", TheRethinkQuestion, answer, TheRethinkAnsweredOutcome)
 	return true
+}
+
+// askOnceMoreIfTheCausesAreHeld holds each of the answer's two causes against
+// every failure's cause on the record, and when both are already there asks
+// the question once more, with one line in front of it naming the failures
+// that say so, and hands back the second answer as it stands, whatever it
+// says. One send-back per rethink, and a second call that gives nothing
+// leaves the first answer standing.
+func (running *run) askOnceMoreIfTheCausesAreHeld(ctx context.Context, background string, answer string) string {
+	labels, allHeld := running.theFailuresNamingTheCauses(readTheRethink(answer).causes)
+	if !allHeld {
+		return answer
+	}
+	question := theAlreadySayThisLine(labels) + "\n" + TheRethinkQuestion
+	again := strings.TrimSpace(running.theLoop.askForARethink(ctx, background, question))
+	running.theLoop.logTheQuestion(ctx, running.taskID(), "rethink", question, again, TheRethinkSentBackOutcome)
+	if again == "" {
+		return answer
+	}
+	return again
+}
+
+// theFailuresNamingTheCauses is the label of every failure on the record
+// whose cause already says what one of the causes on this line says, in the
+// record's order, and whether every cause on the line is held by one. A line
+// with no cause on it is held by none.
+func (running *run) theFailuresNamingTheCauses(line string) ([]string, bool) {
+	causes := theTwoCauses(line)
+	failures := running.keeper.Record().Lessons.Failures
+	named := map[string]bool{}
+	for _, cause := range causes {
+		held, found := record.FailureNamingTheCause(failures, cause)
+		if !found {
+			return nil, false
+		}
+		named[held.ID] = true
+	}
+	labels := []string{}
+	for _, failure := range failures {
+		if named[failure.ID] {
+			labels = append(labels, failure.ID)
+		}
+	}
+	return labels, len(causes) > 0
+}
+
+// theTwoCauses cuts the answer's Causes line into the causes it names, at
+// the first separator found, at most MaxCausesCompared of them. A line with
+// no separator is one cause.
+func theTwoCauses(line string) []string {
+	pieces := []string{line}
+	for _, separator := range theCauseSeparators {
+		if strings.Contains(line, separator) {
+			pieces = strings.SplitN(line, separator, MaxCausesCompared)
+			break
+		}
+	}
+	causes := []string{}
+	for _, piece := range pieces {
+		if piece = strings.TrimSpace(piece); piece != "" {
+			causes = append(causes, piece)
+		}
+	}
+	return causes
+}
+
+// theAlreadySayThisLine is the line put in front of the question asked once
+// more: "F11, F12 and F13 already say this; name two causes the record does
+// not hold".
+func theAlreadySayThisLine(labels []string) string {
+	verb := "say"
+	if len(labels) == 1 {
+		verb = "says"
+	}
+	return theLabelsInASentence(labels) + " already " + verb + " this; " + TheNameNewCausesLine
+}
+
+// theLabelsInASentence writes labels the way a sentence lists them: "F11,
+// F12 and F13".
+func theLabelsInASentence(labels []string) string {
+	if len(labels) <= 1 {
+		return strings.Join(labels, "")
+	}
+	return strings.Join(labels[:len(labels)-1], ", ") + " and " + labels[len(labels)-1]
 }
 
 // TheRethinkAnsweredOutcome and TheRethinkUnansweredOutcome are what the
@@ -131,16 +242,17 @@ func (running *run) theRethinkBackground(ctx context.Context) (label string, bac
 	return label, strings.Join(parts, "\n")
 }
 
-// askForARethink makes the rethink's one call with the tools off, the way the
-// review's is made and under the review's own time, and returns the model's
-// whole answer. A call that fails returns nothing, and the plain cut stands.
-func (theLoop *Loop) askForARethink(ctx context.Context, background string) string {
+// askForARethink makes one call of the rethink with the tools off, the way
+// the review's is made and under the review's own time, over the background
+// and the question given, and returns the model's whole answer. A call that
+// fails returns nothing, and the plain cut stands.
+func (theLoop *Loop) askForARethink(ctx context.Context, background string, question string) string {
 	ctx, done := theLoop.timeForTheReview(ctx)
 	defer done()
 	request, err := theLoop.options.Context.Build(ctx, BuildInput{
 		Messages: []contract.Message{
 			{Role: contract.RoleUser, Text: background},
-			{Role: contract.RoleUser, Text: TheRethinkQuestion},
+			{Role: contract.RoleUser, Text: question},
 		},
 		ToolsOff:      true,
 		ContextLength: theLoop.options.Model.ContextLength(),

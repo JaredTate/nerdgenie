@@ -133,6 +133,18 @@ export async function clickAgainAtItsPlace(
   return true;
 }
 
+/**
+ * Click a point on the viewport, with the pacing a click on an element gets:
+ * the mouse travels there along a curve, the button is held for a human length
+ * of time, and the worker pauses before the next thing. There is no element to
+ * wait for, because the model named pixels rather than a thing: a planet drawn
+ * on a canvas is in no outline, and this is how it gets clicked.
+ */
+export async function clickAtPoint(session: Session, page: Page, at: Point): Promise<void> {
+  await pressMouseAt(session, page, at);
+  await wait(pauseMs(session.pacing, session.chance));
+}
+
 /** Type into one element, one key at a time, with a small pause between keys. */
 export async function typeIntoTarget(
   session: Session,

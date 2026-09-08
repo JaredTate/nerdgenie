@@ -205,6 +205,9 @@ docs/briefs/wave-7/7.1-shell-no-short-answer.md
 docs/briefs/wave-7/7.2-guard-window-and-test-reader.md
 docs/briefs/wave-7/7.3-the-rethink.md
 docs/briefs/wave-7/COMMON.md
+docs/briefs/wave-8/8.1-browser-worker-click-at-a-point.md
+docs/briefs/wave-8/8.2-go-side-click-at-a-point-and-the-real-chrome.md
+docs/briefs/wave-8/COMMON.md
 docs/html/build.ts
 docs/html/harness-v2.html
 docs/html/nerdgenie-plan.html
@@ -1319,6 +1322,8 @@ internal/tool/edit/matchers.go
 internal/tool/edit/pinnedbounds_test.go
 internal/tool/edit/relativepath_test.go
 internal/tool/edit/testdata/one_span.txt
+internal/tool/edit/window.go
+internal/tool/edit/window_test.go
 internal/tool/foldercap_test.go
 internal/tool/fuzz_test.go
 internal/tool/hardlink_test.go
@@ -1805,6 +1810,7 @@ worker/browser/test/act-login-screenshot.test.ts
 worker/browser/test/actions.test.ts
 worker/browser/test/ask.test.ts
 worker/browser/test/chrome.test.ts
+worker/browser/test/click-at-a-point.test.ts
 worker/browser/test/diff.test.ts
 worker/browser/test/errors.test.ts
 worker/browser/test/expectation.test.ts
@@ -1839,6 +1845,7 @@ worker/browser/test/pages/never-settles.html
 worker/browser/test/pages/new-tab.html
 worker/browser/test/pages/no-change-on-click.html
 worker/browser/test/pages/notes.txt
+worker/browser/test/pages/planet-canvas.html
 worker/browser/test/pages/rankings.html
 worker/browser/test/pages/reacts-late.html
 worker/browser/test/pages/recaptcha-anchor.html

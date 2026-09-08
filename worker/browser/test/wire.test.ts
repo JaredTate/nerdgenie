@@ -114,7 +114,7 @@ describe("checking the parameters of each method", () => {
     [
       "click without a ref",
       '{"jsonrpc":"2.0","id":3,"method":"click","params":{}}',
-      'The click method needs a ref, such as "e7".',
+      'The click method needs either a ref, such as "e7", or a point as x and y: whole numbers of CSS pixels from the top left of the page\'s viewport.',
     ],
     [
       "click with an expectation that is not text",
@@ -164,7 +164,7 @@ describe("checking the parameters of each method", () => {
     [
       "act with a step that is missing its own parameters",
       '{"jsonrpc":"2.0","id":7,"method":"act","params":{"steps":[{"method":"click"}]}}',
-      'Step 1 of the act method: The click method needs a ref, such as "e7".',
+      'Step 1 of the act method: The click method needs either a ref, such as "e7", or a point as x and y: whole numbers of CSS pixels from the top left of the page\'s viewport.',
     ],
     [
       "tabs with an unknown action",

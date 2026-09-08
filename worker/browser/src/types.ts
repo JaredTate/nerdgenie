@@ -161,6 +161,9 @@ export interface ScreenshotMark {
 export interface ActStep {
   method: StepMethodName;
   ref?: string;
+  /** A click step may name a point instead of a ref: whole CSS pixels from the top left of the viewport. */
+  x?: number;
+  y?: number;
   text?: string;
   key?: string;
   direction?: "up" | "down";

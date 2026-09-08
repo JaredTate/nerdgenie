@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Still canvas</title>
+  </head>
+  <body>
+    <canvas id="scene" width="200" height="150"></canvas>
+    <script>
+      // A scene drawn once: the aircraft parked and the clouds still. The page
+      // asks for one animation frame, draws the sky in it, and never asks for
+      // another, so a screenshot of it counts no frames drawn.
+      var scene = document.getElementById("scene");
+      var brush = scene.getContext("2d");
+      requestAnimationFrame(function () {
+        brush.fillStyle = "#6fa8dc";
+        brush.fillRect(0, 0, scene.width, scene.height);
+      });
+    </script>
+  </body>
+</html>

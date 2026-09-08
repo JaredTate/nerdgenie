@@ -74,8 +74,10 @@ func genericCounts(line string) (total int, failed int, isSummary bool) {
 			passed, sawPassed = count, true
 		case "failed":
 			failed, sawFailed = count, true
-		case "tests", "test":
+		case "tests", "test", "total":
 			total = count
+		case "skipped", "pending", "todo":
+			// A count of what did not run is not a failure and not a pass.
 		default:
 			return 0, 0, false
 		}
@@ -99,9 +101,23 @@ func genericFailingName(line string) string {
 	if !isFailLine {
 		return ""
 	}
-	_, name, hasMark := strings.Cut(rest, " :: ")
-	if !hasMark {
+	if _, name, hasMark := strings.Cut(rest, " :: "); hasMark {
+		return strings.TrimSpace(name)
+	}
+	// Run 27's runner wrote "FAIL logic: a full board with no line is a
+	// draw" with no double colon: a FAIL line that names no file is the
+	// test's name; one that names a file is a file's line, which the readers
+	// before this one know.
+	name := strings.TrimSpace(withoutItsTiming(rest))
+	if name == "" || looksLikeAFilePath(name) {
 		return ""
 	}
-	return strings.TrimSpace(name)
+	return name
+}
+
+// looksLikeAFilePath says whether a FAIL line's text is a file rather than a
+// test's name: it has a slash, or a test file's ending.
+func looksLikeAFilePath(text string) bool {
+	first := strings.Fields(text)[0]
+	return strings.Contains(first, "/") || strings.Contains(first, ".test.") || strings.Contains(first, ".spec.") || strings.HasSuffix(first, "_test.go")
 }

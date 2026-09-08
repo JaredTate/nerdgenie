@@ -300,6 +300,7 @@ internal/browser/point_test.go
 internal/browser/process.go
 internal/browser/process_test.go
 internal/browser/protocol.go
+internal/browser/protocol_test.go
 internal/browser/screen.go
 internal/browser/support_test.go
 internal/browser/wiring.go

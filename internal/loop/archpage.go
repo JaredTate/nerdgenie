@@ -84,6 +84,7 @@ func (running *run) putTheAnswerOnThePage(path string, page string, answer strin
 	if !found {
 		return theReasonForNoSection(answer)
 	}
+	heading = theHeadingOnThePage(page, heading)
 	body, cut := cutAtWords(body, MaxSectionWords)
 	dated := fmt.Sprintf("(updated by task %s, %s)", running.keeper.ID(), running.theLoop.options.Clock.Now().UTC().Format("2006-01-02"))
 	if cut {

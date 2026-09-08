@@ -1876,6 +1876,7 @@ worker/browser/test/pages/slow-after-click.html
 worker/browser/test/pages/stale-ref.html
 worker/browser/test/pages/two-factor.html
 worker/browser/test/pages/type-echo.html
+worker/browser/test/pages/widget-roles.html
 worker/browser/test/person-events.test.ts
 worker/browser/test/process.test.ts
 worker/browser/test/properties.test.ts

@@ -210,19 +210,36 @@ func (browser *Browser) typeTheCode(ctx context.Context, code string, page contr
 }
 
 // readHandoffAnswer reads one message as one of the three answers, and says
-// whether it was one of them at all.
+// whether it was one of them at all. "abort" gives up, a short run of digits
+// is the code the site asked for, and any other words are "done": a person
+// who writes anything after a handoff has done what was asked, and on 8
+// September 2026 one wrote "its there" and was told three times that it was
+// not understood. An empty message, or digits that are no code, is neither.
 func readHandoffAnswer(text string) (HandoffKind, bool) {
 	trimmed := strings.ToLower(strings.TrimSpace(text))
-	switch trimmed {
-	case "done":
-		return HandoffDone, true
-	case "abort":
+	if trimmed == "" {
+		return "", false
+	}
+	if trimmed == "abort" {
 		return HandoffAbort, true
 	}
-	if looksLikeACode(trimmed) {
-		return HandoffCode, true
+	if isAllDigits(trimmed) {
+		if looksLikeACode(trimmed) {
+			return HandoffCode, true
+		}
+		return "", false
 	}
-	return "", false
+	return HandoffDone, true
+}
+
+// isAllDigits says whether the text is nothing but digits.
+func isAllDigits(text string) bool {
+	for _, letter := range text {
+		if letter < '0' || letter > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // looksLikeACode says whether the text is the short run of digits a site asks

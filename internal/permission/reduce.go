@@ -268,9 +268,21 @@ func isEnvironmentAssignment(word string) bool {
 }
 
 // isFlag says whether a word is a flag rather than something to act on. A lone
-// dash is the standard input, not a flag.
+// dash is the standard input, not a flag. After the leading dashes, every
+// character of a real flag is a letter, a digit, a hyphen or an equals sign;
+// anything else means the word came from the quote splitter joining quoted and
+// unquoted text into one token, like '-\x1a'rm becoming "-\x1arm".
 func isFlag(word string) bool {
-	return len(word) > 1 && strings.HasPrefix(word, "-")
+	if len(word) < 2 || word[0] != '-' {
+		return false
+	}
+	for i := 1; i < len(word); i++ {
+		letter := word[i]
+		if !((letter >= 'a' && letter <= 'z') || (letter >= 'A' && letter <= 'Z') || (letter >= '0' && letter <= '9') || letter == '-' || letter == '=' || letter == '_') {
+			return false
+		}
+	}
+	return true
 }
 
 // reduceOtherCall reduces a call that is not a shell command to the tool's name

@@ -74,6 +74,8 @@ type FakeBrowserWorker struct {
 	askAnswers map[string]string
 	// framesDrawn is what every screenshot says the page drew in a quarter of a second, set by DrawsFrames.
 	framesDrawn int
+	// hidden says every screenshot reports the page as not visible, set by HidesThePage.
+	hidden bool
 	// width and height are the size the page was last set to.
 	width, height int
 	openDialog    *contract.Dialog
@@ -451,7 +453,7 @@ func (worker *FakeBrowserWorker) Screenshot(_ context.Context) (contract.Screens
 	for at, element := range page.Elements {
 		marks = append(marks, contract.Mark{Number: at + 1, Ref: element.Ref, Role: element.Role, Name: element.Name})
 	}
-	return contract.Screenshot{PNGBase64: fixturePicture, Marks: marks, FramesDrawn: worker.framesDrawn}, nil
+	return contract.Screenshot{PNGBase64: fixturePicture, Marks: marks, FramesDrawn: worker.framesDrawn, Visible: !worker.hidden}, nil
 }
 
 // Health says whether the worker can act on a page.

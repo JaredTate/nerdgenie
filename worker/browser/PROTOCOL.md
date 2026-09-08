@@ -317,13 +317,13 @@ window to the front, because a tab behind another draws nothing, and then counts
 the animation frames the page's own script draws in a quarter of a second, with
 `requestAnimationFrame` in a page call under the same deadline an ask has, so a
 page whose script never yields answers zero rather than hanging. The count rides
-on the result as `framesDrawn`, a whole number: above zero the page is alive, and
+on the result as `framesDrawn`, a whole number, beside `visible`, which says the page answered the worker and its tab is visible: above zero the page is alive, and
 a picture that matches the last one is a still scene; zero, its loop has stopped
 or the tab is hidden.
 
 Request: `{"jsonrpc":"2.0","id":10,"method":"screenshot","params":{}}`
 
-Response: `{"jsonrpc":"2.0","id":10,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"ref":"e7","role":"button","name":"Post"}],"framesDrawn":15}}`
+Response: `{"jsonrpc":"2.0","id":10,"result":{"pngBase64":"iVBORw0KGgo...","marks":[{"number":1,"ref":"e7","role":"button","name":"Post"}],"framesDrawn":15,"visible":true}}`
 
 ### `resize`
 

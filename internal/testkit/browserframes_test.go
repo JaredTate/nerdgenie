@@ -53,8 +53,8 @@ func TestTheProtocolServerPassesTheFramesDrawnThrough(t *testing.T) {
 // screenshot also says whether the page is visible and answering; the fake
 // says so unless a test hides the page.
 func TestTheFakeScreenshotSaysThePageIsVisibleUnlessATestHidesIt(t *testing.T) {
-	worker := NewFakeBrowserWorker()
-	if _, err := worker.Open(context.Background(), FixtureSimplePage); err != nil {
+	worker := testkit.NewFakeBrowserWorker()
+	if _, err := worker.Open(context.Background(), testkit.FixtureSimplePage); err != nil {
 		t.Fatalf("cannot open the fixture page: %v", err)
 	}
 	seen, err := worker.Screenshot(context.Background())

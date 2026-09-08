@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -33,7 +32,7 @@ const MaxPhotographWidths = 2
 
 // TheNoFramesRefusal is what the model reads when the page drew no frames
 // for the harness's picture.
-const TheNoFramesRefusal = "the harness photographed the page for this line, but the page drew no frames, so the picture proves nothing; make the page draw, then close"
+const TheNoFramesRefusal = "the harness photographed the page for this line, but the page drew no frames and is not visible, so the picture proves nothing; open the page again, then close"
 
 // ThePageDrewWords open the screenshot tool's line on the page's frames, and
 // TheFramesInAQuarterSecondWords close it: "the page drew 60 frames in a
@@ -41,6 +40,9 @@ const TheNoFramesRefusal = "the harness photographed the page for this line, but
 const (
 	ThePageDrewWords               = "the page drew "
 	TheFramesInAQuarterSecondWords = " frames in a quarter of a second"
+	// TheVisibleAndAnswersWords follow the frames of a still page that is
+	// visible and answering, which proves a line as a drawing page does.
+	TheVisibleAndAnswersWords = "; it is visible and answers"
 )
 
 // theWordsOfAPhotograph are the words a done line says to be proved by a
@@ -55,9 +57,12 @@ var theWidthInALine = regexp.MustCompile(`\bat (\d{3,4})\b|\b(\d{3,4}) wide\b`)
 // what each picture said, in one text, one clause on each for the summary,
 // and the fewest frames any of the pictures drew.
 type photograph struct {
-	seen         string
-	said         []string
-	fewestFrames int
+	seen string
+	said []string
+	// proves says every picture taken was of a page that drew frames, or drew
+	// none and is visible and answers, which is a still page; a hidden page
+	// proves nothing.
+	proves bool
 }
 
 // photographTheLines takes the harness's own picture for every done line that
@@ -74,7 +79,7 @@ func (running *run) photographTheLines(ctx context.Context) (string, error) {
 		if !could {
 			continue
 		}
-		if taken.fewestFrames == 0 {
+		if !taken.proves {
 			return fmt.Sprintf("The done line %q is not proved: %s", line.Text, TheNoFramesRefusal), nil
 		}
 		if err := running.pinTheLineToThePhotograph(ctx, at+1, taken); err != nil {
@@ -116,8 +121,7 @@ func (running *run) takeThePhotograph(ctx context.Context, text string) (photogr
 	if len(sizes) == 0 {
 		sizes = []int{0}
 	}
-	taken := photograph{}
-	frames := []int{}
+	taken := photograph{proves: true}
 	for _, width := range sizes {
 		intent := "the done check photographs the page for the line: " + text
 		if width > 0 {
@@ -134,11 +138,12 @@ func (running *run) takeThePhotograph(ctx context.Context, text string) (photogr
 		if !known {
 			return photograph{}, false
 		}
-		frames = append(frames, drew)
+		if drew == 0 && !strings.Contains(seen, TheVisibleAndAnswersWords) {
+			taken.proves = false
+		}
 		taken.seen += seen + "\n"
 		taken.said = append(taken.said, theSizeClause(width)+", "+ThePageDrewWords+theFramesWord(drew)+TheFramesInAQuarterSecondWords)
 	}
-	taken.fewestFrames = slices.Min(frames)
 	return taken, true
 }
 

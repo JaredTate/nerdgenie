@@ -12,7 +12,7 @@ import {
 import { targetOf, typeIntoTarget } from "./actions.js";
 import { freshSnapshotFor } from "./act-methods.js";
 import { FRAME_COUNT_MS, MAX_ACT_STEPS, MAX_SCREENSHOT_MARKS } from "./limits.js";
-import { clearMarks, drawMarks, framesDrawnIn } from "./page-bridge.js";
+import { askPage, clearMarks, drawMarks, framesDrawnIn } from "./page-bridge.js";
 import { redactDeep } from "./redact.js";
 import { readPage } from "./snapshot.js";
 import type { Session } from "./session.js";
@@ -141,6 +141,20 @@ async function countFramesDrawn(session: Session, page: Page): Promise<number> {
 }
 
 /**
+ * Whether the page answers and says its tab is visible. A still page with no
+ * animation loop draws no frames on its own, and that is not a stopped page:
+ * a page that answers this and is visible is a still page, and only one that
+ * does not answer, or says it is hidden, has stopped or is behind another tab.
+ */
+async function pageIsVisible(page: Page): Promise<boolean> {
+  try {
+    return (await askPage<boolean>(page, "visible", "document.visibilityState === 'visible'")) === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Take a picture of the page with its clickable elements numbered, which is what a
  * handoff sends to the user. Only what a person can see is numbered, because that
  * is all the picture shows. The window comes to the front first, because a tab
@@ -152,6 +166,7 @@ export async function screenshotMethod(session: Session): Promise<Record<string,
   const page = session.currentPage();
   await page.bringToFront().catch(() => {});
   const framesDrawn = await countFramesDrawn(session, page);
+  const visible = await pageIsVisible(page);
   const reading = await readPage(session, page, { visibleOnly: true, against: null });
   const marks: ScreenshotMark[] = reading.snapshot.elements
     .filter((element) => CLICKABLE_ROLES.has(element.role))
@@ -165,7 +180,7 @@ export async function screenshotMethod(session: Session): Promise<Record<string,
   await drawMarks(page, marks).catch(() => 0);
   try {
     const picture = await page.screenshot({ type: "png" });
-    return { pngBase64: picture.toString("base64"), marks, framesDrawn };
+    return { pngBase64: picture.toString("base64"), marks, framesDrawn, visible };
   } finally {
     await clearMarks(page).catch(() => false);
   }

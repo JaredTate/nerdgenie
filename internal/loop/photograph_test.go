@@ -20,15 +20,15 @@ import (
 // brief 9.1 writes them: on a new picture, and on a picture that is the same
 // as the last one.
 const (
-	aLivePicture     = "the picture is saved at /pictures/sky-1.png\nthe page drew 60 frames in a quarter of a second"
-	aSameLivePicture = "the picture is the same as the last one: the page drew 58 frames in a quarter of a second, so it is alive and nothing on it moved; change the view, move the camera or the aircraft, or act on the page to see something new [/pictures/sky-1.png]"
-	aStillPicture    = "the picture is saved at /pictures/sky-1.png\nthe page drew no frames in a quarter of a second; the tab is hidden"
+	aLivePicture         = "the picture is saved at /pictures/sky-1.png\nthe page drew 60 frames in a quarter of a second"
+	aSameLivePicture     = "the picture is the same as the last one: the page drew 58 frames in a quarter of a second, so it is alive and nothing on it moved; act on the page or change what it shows to see something new [/pictures/sky-1.png]"
+	aStillPicture        = "the picture is saved at /pictures/sky-1.png\nthe page drew no frames in a quarter of a second; the tab is hidden"
 	aStillVisiblePicture = "the picture is saved at /pictures/board-1.png\nthe page drew no frames in a quarter of a second; it is visible and answers"
 )
 
 // theNoFramesRefusal is the refusal's sentence, in the exact words the brief
 // fixed.
-const theNoFramesRefusal = "the harness photographed the page for this line, but the page drew no frames, so the picture proves nothing; make the page draw, then close"
+const theNoFramesRefusal = "the harness photographed the page for this line, but the page drew no frames and is not visible, so the picture proves nothing; open the page again, then close"
 
 // thePhotographTools are the two browser tools the photograph goes through,
 // scripted: the camera answers with the pictures given, in order.

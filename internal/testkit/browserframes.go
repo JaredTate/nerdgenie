@@ -9,3 +9,9 @@ func (worker *FakeBrowserWorker) DrawsFrames(frames int) {
 	defer worker.guard.Unlock()
 	worker.framesDrawn = frames
 }
+
+// HidesThePage makes every screenshot from now on say the page is not visible,
+// the way a hidden tab or a stopped page reads to the real worker.
+func (worker *FakeBrowserWorker) HidesThePage() {
+	worker.hidden = true
+}

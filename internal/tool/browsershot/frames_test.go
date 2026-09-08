@@ -50,8 +50,8 @@ func TestASamePictureOfAPageThatDrawsSaysNothingMoved(t *testing.T) {
 		t.Fatalf("the second picture failed: %v", err)
 	}
 	want := "the picture is the same as the last one: the page drew 15 frames in a quarter of a second, " +
-		"so it is alive and nothing on it moved; change the view, move the camera or the aircraft, " +
-		"or act on the page to see something new (the picture is saved at " + filepath.Join(folder, "screenshot-1.png") + ")\n"
+		"so it is alive and nothing on it moved; act on the page or change what it shows " +
+		"to see something new (the picture is saved at " + filepath.Join(folder, "screenshot-1.png") + ")\n"
 	if again.Text != want {
 		t.Errorf("the same picture of a drawing page reads:\n%q\nwant:\n%q", again.Text, want)
 	}

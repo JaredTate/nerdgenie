@@ -264,6 +264,12 @@ type Screenshot struct {
 	// stopped or the tab is hidden. The sky task of 7 September 2026 spent an
 	// hour proving broken a camera that was photographing a parked aircraft.
 	FramesDrawn int `json:"framesDrawn"`
+	// Visible says the page answered the worker and its tab is visible when
+	// the picture was taken. A still page with no animation loop draws no
+	// frames on its own, which is not a stopped page: tic-tac-toe on 8
+	// September 2026 read "drew no frames" as a hidden tab and handed the
+	// browser to the person. Zero frames on a visible page is a still page.
+	Visible bool `json:"visible"`
 }
 
 // BrowserEventKind names one of the three things a person does in the browser

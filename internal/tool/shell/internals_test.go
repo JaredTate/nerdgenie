@@ -1,10 +1,13 @@
 package shell
 
 import (
+	"context"
+	"github.com/JaredTate/nerdgenie/internal/contract"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestTheCommandLineTakesBashWhereThereIsOneAndSlashBinSlashShWhereThereIsNot
@@ -38,5 +41,29 @@ func TestTheCommandLineTakesBashWhereThereIsOneAndSlashBinSlashShWhereThereIsNot
 	}
 	if strings.Join(arguments, " ") != "-c go test ./... | tail -40" {
 		t.Errorf("/bin/sh was given %v, want -c and the command with nothing else", arguments)
+	}
+}
+
+// TestAServedCommandIsNotOnTheCommandTimeout: on run 25 every server the
+// model started with serve died about ten minutes later, because a served
+// command got the same timeout as an ordinary one and was killed when it
+// ran out; the page checks at the next task's end then found nothing on the
+// port. A serve is meant to keep running, so it gets ServeTimeout, which is
+// long, and the model's kill or the end of the program is what stops it.
+func TestAServedCommandIsNotOnTheCommandTimeout(t *testing.T) {
+	running := newTable()
+	served, err := running.add("npm start", ServeTimeout, time.Unix(1700000000, 0), func(ctx context.Context) (contract.SandboxResult, error) {
+		<-ctx.Done()
+		return contract.SandboxResult{}, ctx.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer served.stop()
+	if served.timeout != ServeTimeout || ServeTimeout < 12*time.Hour {
+		t.Errorf("a served command's timeout is %v, want ServeTimeout of at least half a day, not the command's", served.timeout)
+	}
+	if serveTimeoutFor(time.Minute) != ServeTimeout {
+		t.Errorf("the serve action hands its command %v, want ServeTimeout", serveTimeoutFor(time.Minute))
 	}
 }

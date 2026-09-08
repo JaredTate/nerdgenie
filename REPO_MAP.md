@@ -616,6 +616,7 @@ internal/loop/carryon_test.go
 internal/loop/carryonwords_test.go
 internal/loop/chattyclose_test.go
 internal/loop/checkpoints_test.go
+internal/loop/checkretry_test.go
 internal/loop/closedcalls.go
 internal/loop/commands.go
 internal/loop/commands_test.go

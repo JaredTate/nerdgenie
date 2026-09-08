@@ -45,6 +45,19 @@ func checkPort(port int) error {
 	return nil
 }
 
+// ServeTimeout is how long a served command may run: a day, because a server
+// is meant to keep running until the model kills it or the program ends. On
+// run 25 every server the model started died about ten minutes after it
+// started, because a served command had the ordinary command's timeout, and
+// the page checks at the next task's end found nothing on the port.
+const ServeTimeout = 24 * time.Hour
+
+// serveTimeoutFor is the timeout a served command gets, whatever the
+// ordinary command timeout is.
+func serveTimeoutFor(_ time.Duration) time.Duration {
+	return ServeTimeout
+}
+
 // serve starts a command that is meant to keep running and answers the moment
 // it listens on a port, instead of after ten seconds with an id to poll. The
 // play-test task of the fresh game build started a server and then asked
@@ -58,7 +71,7 @@ func (tool *Tool) serve(ctx context.Context, asked Call) (contract.ToolOutput, e
 		return contract.ToolOutput{}, fmt.Errorf("the shell tool is off because the sandbox cannot run, and nothing runs outside the fence: %w", err)
 	}
 	before, _ := orientation.EveryListeningPort(tool.socketTables()...)
-	entry, err := tool.running.add(asked.Command, tool.settings.Timeout, tool.now(), tool.workOf(asked))
+	entry, err := tool.running.add(asked.Command, serveTimeoutFor(tool.settings.Timeout), tool.now(), tool.workOf(asked))
 	if err != nil {
 		return contract.ToolOutput{}, err
 	}

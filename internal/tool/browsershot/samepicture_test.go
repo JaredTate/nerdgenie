@@ -63,7 +63,7 @@ func TestTheSamePictureTwiceIsSaidOnceWithoutThePicture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if two.Picture != "" || !strings.Contains(two.Text, browsershot.TheSamePictureLine) || !strings.Contains(two.Text, filepath.Join(folder, "screenshot-1.png")) {
+	if two.Picture != "" || !strings.Contains(two.Text, browsershot.TheSamePictureOpens) || !strings.Contains(two.Text, filepath.Join(folder, "screenshot-1.png")) {
 		t.Errorf("the same picture again was handed back as new:\npicture %d bytes, text:\n%s", len(two.Picture), two.Text)
 	}
 	if _, err := os.Stat(filepath.Join(folder, "screenshot-2.png")); err == nil {
@@ -73,7 +73,7 @@ func TestTheSamePictureTwiceIsSaidOnceWithoutThePicture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if three.Picture == "" || strings.Contains(three.Text, browsershot.TheSamePictureLine) || !strings.Contains(three.Text, filepath.Join(folder, "screenshot-2.png")) {
+	if three.Picture == "" || strings.Contains(three.Text, browsershot.TheSamePictureOpens) || !strings.Contains(three.Text, filepath.Join(folder, "screenshot-2.png")) {
 		t.Errorf("a different picture was not handed back:\n%s", three.Text)
 	}
 }
@@ -107,7 +107,7 @@ func TestTheMemoryOfPicturesIsBoundedAndNeedsNoFolder(t *testing.T) {
 
 	for at := 0; at <= browsershot.MaxPicturesRemembered; at++ {
 		output, err := run(t, tool, map[string]any{"intent": "see a size"})
-		if err != nil || output.Picture == "" || strings.Contains(output.Text, browsershot.TheSamePictureLine) {
+		if err != nil || output.Picture == "" || strings.Contains(output.Text, browsershot.TheSamePictureOpens) {
 			t.Fatalf("picture %d of a new size was not handed back: %v\n%s", at+1, err, output.Text)
 		}
 	}
@@ -120,7 +120,7 @@ func TestTheMemoryOfPicturesIsBoundedAndNeedsNoFolder(t *testing.T) {
 		t.Errorf("a picture that is no PNG was not handed back the first time: %v", err)
 	}
 	again, err := run(t, tool, map[string]any{"intent": "see it again"})
-	if err != nil || again.Picture != "" || !strings.HasPrefix(again.Text, browsershot.TheSamePictureLine) || strings.Contains(again.Text, browsershot.ThePictureIsSavedAt) {
+	if err != nil || again.Picture != "" || !strings.HasPrefix(again.Text, browsershot.TheSamePictureOpens) || strings.Contains(again.Text, browsershot.ThePictureIsSavedAt) {
 		t.Errorf("the same picture again, with no folder to save into, reads %q (%v)", again.Text, err)
 	}
 }

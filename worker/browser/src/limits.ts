@@ -59,6 +59,14 @@ export const MAX_TABS = 50;
 /** The most elements a screenshot numbers with drawn marks. */
 export const MAX_SCREENSHOT_MARKS = 60;
 
+/**
+ * How long a screenshot counts the animation frames the page's own script
+ * draws before the picture is taken: a quarter of a second, long enough for
+ * fifteen frames at sixty a second, which no still page reaches, and short
+ * enough that a picture costs less than the settle wait after an action.
+ */
+export const FRAME_COUNT_MS = 250;
+
 /** The largest PDF the worker will save out of a page, in bytes. */
 export const MAX_PDF_BYTES = 64 * 1024 * 1024;
 

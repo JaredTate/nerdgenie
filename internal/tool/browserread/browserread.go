@@ -102,7 +102,11 @@ func readInput(written json.RawMessage) (input, error) {
 	if err := NeedIntent(fields, intent, wroteIntent); err != nil {
 		return input{}, err
 	}
-	return input{Intent: intent, VisibleOnly: visibleOnly, Ask: strings.TrimSpace(ask)}, nil
+	ask = strings.TrimSpace(ask)
+	if err := needAsk(intent, ask); err != nil {
+		return input{}, err
+	}
+	return input{Intent: intent, VisibleOnly: visibleOnly, Ask: ask}, nil
 }
 
 // NeedIntent holds the rule every browser and desktop call keeps: it says what

@@ -112,6 +112,25 @@ export function boxOf(frame: Frame, ref: string): Promise<Box | null> {
   return askPage<Box | null>(frame, "box", `window.__nerdgenieBoxOf(${JSON.stringify(ref)})`);
 }
 
+/** The size of the page's viewport, in CSS pixels. */
+export interface ViewportSize {
+  width: number;
+  height: number;
+}
+
+/**
+ * Ask how big the page's viewport is. Playwright reports no size for a page it
+ * attached to over the DevTools protocol until one is set on it, so the page is
+ * asked instead, and it answers with the numbers the scan draws the fold at.
+ */
+export function viewportOf(page: Page): Promise<ViewportSize> {
+  return askPage<ViewportSize>(
+    page,
+    "viewport",
+    "{ width: window.innerWidth, height: window.innerHeight }",
+  );
+}
+
 /** Ask how long the page has been quiet, in milliseconds. */
 export function quietFor(page: Page): Promise<number> {
   return askPage<number>(page, "quiet", "window.__nerdgenieQuietFor()");

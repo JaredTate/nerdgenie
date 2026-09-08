@@ -11,6 +11,7 @@ import type { Page } from "playwright-core";
 import {
   actionOrDialog,
   clickAgainAtItsPlace,
+  clickAtPoint,
   clickTarget,
   pressOneKey,
   scrollInSteps,
@@ -22,6 +23,9 @@ import { somethingChanged, type AimedAt } from "./expectation.js";
 import { DEFAULT_SCROLL_STEPS, LATE_REACTION_MS } from "./limits.js";
 import { couldNotBeRead, wrongParameters, WorkerError } from "./errors.js";
 import { SETTLE_LIMIT_MS } from "./limits.js";
+import type { Point } from "./pacing.js";
+import { viewportOf } from "./page-bridge.js";
+import type { FoundTarget } from "./refs.js";
 import { readPage, type PageReading } from "./snapshot.js";
 import { settle } from "./settle.js";
 import type { Session } from "./session.js";
@@ -147,34 +151,62 @@ function nothingHappened(before: Snapshot, diff: Diff): boolean {
   });
 }
 
+/** The point a click names, when it names one rather than a ref. */
+function pointOf(params: Record<string, unknown>): Point | undefined {
+  const x = params["x"];
+  const y = params["y"];
+  return typeof x === "number" && typeof y === "number" ? { x, y } : undefined;
+}
+
 /**
- * Click one element. A click that seems to have changed nothing is given one
- * more look a moment later, because a page can react late: the game the
- * thirteenth nightly run built hid its start overlay half a second after the
- * click, once its sound was set up, and a second click on it started a game
- * that had already started. A click that has still changed nothing is tried
- * once more at the element's place on the screen, because a page that
- * swallows a click on the element often takes one on the pixels. The button
- * clicked is no evidence of what the click did, so the action names no aim:
- * what changed on the page is the whole of what the expectation is judged
- * against, and every look is judged against the page as it was before the
- * first click.
+ * Refuse, with -32602, a point that is not on the page's viewport. A click
+ * there would land on nothing, so the model is told the size and what to send.
+ */
+async function refuseAPointOffThePage(page: Page, at: Point): Promise<void> {
+  const size = await viewportOf(page);
+  if (at.x < 0 || at.y < 0 || at.x >= size.width || at.y >= size.height) {
+    throw wrongParameters(
+      `The click method's point (${at.x}, ${at.y}) is outside the page's viewport, which is ${size.width} by ${size.height} CSS pixels from its top left. Send a point inside it, or read the page and click by ref.`,
+    );
+  }
+}
+
+/**
+ * Click one element, or one point. A click that seems to have changed nothing
+ * is given one more look a moment later, because a page can react late: the
+ * game the thirteenth nightly run built hid its start overlay half a second
+ * after the click, once its sound was set up, and a second click on it started
+ * a game that had already started. A click on an element that has still
+ * changed nothing is tried once more at the element's place on the screen,
+ * because a page that swallows a click on the element often takes one on the
+ * pixels; a click at a point is already at its place, so it is not tried again.
+ * The thing clicked is no evidence of what the click did, so the action names
+ * no aim: what changed on the page is the whole of what the expectation is
+ * judged against, and every look is judged against the page as it was before
+ * the first click.
  */
 export async function clickMethod(
   session: Session,
   params: Record<string, unknown>,
 ): Promise<Diff> {
-  const ref = String(params["ref"]);
   const expectation = String(params["expectation"] ?? "");
-  let clicked: Awaited<ReturnType<typeof targetOf>> | undefined;
+  const point = pointOf(params);
+  if (point !== undefined) {
+    await refuseAPointOffThePage(session.currentPage(), point);
+  }
+  let clicked: FoundTarget | undefined;
   let before: Snapshot | undefined;
   const first = await actAndAssert(session, expectation, async (page, was) => {
     before = was;
-    clicked = await targetOf(session, page, ref, freshSnapshotFor(session, page));
+    if (point !== undefined) {
+      await clickAtPoint(session, page, point);
+      return undefined;
+    }
+    clicked = await targetOf(session, page, String(params["ref"]), freshSnapshotFor(session, page));
     await clickTarget(session, page, clicked);
     return undefined;
   });
-  if (!nothingHappened(first.snapshot, first) || clicked === undefined || before === undefined) {
+  if (!nothingHappened(first.snapshot, first) || before === undefined) {
     return first;
   }
   const later = await actAndAssert(
@@ -188,6 +220,9 @@ export async function clickMethod(
   );
   if (!nothingHappened(later.snapshot, later)) {
     session.log("the click changed nothing at first, and the page had changed a moment later.");
+    return later;
+  }
+  if (clicked === undefined) {
     return later;
   }
   let triedAgain = false;

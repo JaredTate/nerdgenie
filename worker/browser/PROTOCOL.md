@@ -216,7 +216,9 @@ it is bounded on its own. `ask` is one expression, at most five hundred
 characters, for the page to answer: the snapshot then carries `answer`, the
 value as JSON cut to two thousand characters, or `the page threw: <message>`,
 or a line saying the page did not answer within the deadline because its own
-script keeps it busy. A question is answered only on a page served from this
+script keeps it busy. The ask is evaluated before the snapshot is taken, and the
+page is given time to settle after it the way it is after an action, so the
+outline shows what the ask changed. A question is answered only on a page served from this
 machine (`localhost`, `127.0.0.1`, `[::1]`) or from a file; on any other page
 the read is refused with -32602, because the browser holds the person's logins
 and a script is never run on anyone else's page.
@@ -227,14 +229,27 @@ Response: `{"jsonrpc":"2.0","id":2,"result":{"url":"https://x.com/compose/post",
 
 ### `click`
 
-Clicks one element and checks the expectation. When the reference has gone stale
-because the page changed, the worker finds the element again by its role and
-name, then by its visible text, before reporting -32000. When a click produces no
-visible change, it retries once by clicking the element's place on the screen.
+Clicks one element, or one point, and checks the expectation. The request says
+where in one of two ways: `ref`, an element from the snapshot, or a point, `x`
+and `y` as whole numbers of CSS pixels from the top left of the page's viewport,
+which is how a thing drawn on a canvas is clicked when no outline lists it. A
+request with both a ref and a point, or with neither, or with a point outside
+the viewport, is refused with -32602 and a sentence saying what to send. When
+the reference has gone stale because the page changed, the worker finds the
+element again by its role and name, then by its visible text, before reporting
+-32000. When a click produces no visible change, it looks once more a moment
+later, and a click on an element is then retried once at the element's place on
+the screen; a click at a point is already at its place, so it is not tried
+again. Everything else a click on an element does once the element is found, a
+click at a point does too: the same human pacing, the same settle wait, the same
+diff against the snapshot before, the same expectation check, and the same
+result shape.
 
-Request: `{"jsonrpc":"2.0","id":3,"method":"click","params":{"ref":"e7","expectation":"the post appears in the timeline"}}`
+Request, by ref: `{"jsonrpc":"2.0","id":3,"method":"click","params":{"ref":"e7","expectation":"the post appears in the timeline"}}`
 
-Response: `{"jsonrpc":"2.0","id":3,"result":{"urlChanged":false,"url":"https://x.com/home","newElements":[],"expectationMet":true,"snapshot":{"url":"https://x.com/home","title":"Home","tabId":"t1","elements":[],"belowFold":0}}}`
+Request, at a point: `{"jsonrpc":"2.0","id":3,"method":"click","params":{"x":519,"y":335,"expectation":"the info panel names Jupiter"}}`
+
+Response, the same shape either way: `{"jsonrpc":"2.0","id":3,"result":{"urlChanged":false,"url":"https://x.com/home","newElements":[],"expectationMet":true,"snapshot":{"url":"https://x.com/home","title":"Home","tabId":"t1","elements":[],"belowFold":0}}}`
 
 ### `type`
 
@@ -265,7 +280,8 @@ Response: `{"jsonrpc":"2.0","id":6,"result":{"urlChanged":false,"url":"https://x
 
 Runs a short batch of steps and stops as soon as one expectation fails or the
 page changes underneath the batch. It returns one diff per step that ran, so the
-model can see exactly where the batch stopped.
+model can see exactly where the batch stopped. A `click` step says where the way
+the `click` method does: a `ref`, or a point as `x` and `y`.
 
 Request: `{"jsonrpc":"2.0","id":7,"method":"act","params":{"steps":[{"method":"click","ref":"e3","expectation":"the box takes focus"},{"method":"type","ref":"e3","text":"Nine years of DigiByte.","expectation":"the box holds the post"}]}}`
 

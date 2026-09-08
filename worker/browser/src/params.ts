@@ -7,7 +7,10 @@
  * The shape is flat on purpose: one object per method, one object per act step,
  * no nested unions. That is the design OpenClaw's tool schema uses at
  * ~/Code/openclaw/extensions/browser/src/browser-tool.schema.ts, because model
- * providers reject deeply nested schemas. The code here is written fresh.
+ * providers reject deeply nested schemas. The point form of a click, x and y as
+ * pixels from the top left of the viewport, is the shape of browser-use's
+ * coordinate click at docs/reference/browser-use/views.py. The code here is
+ * written fresh.
  */
 import { wrongParameters } from "./errors.js";
 import {
@@ -86,8 +89,40 @@ function checkRead(params: Record<string, unknown>): void {
   }
 }
 
+/** A point is two whole numbers. Whether it lies on the viewport is checked against the page, at click time. */
+function checkPoint(params: Record<string, unknown>): void {
+  for (const name of ["x", "y"] as const) {
+    const value = params[name];
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      throw wrongParameters(
+        `The click method needs the point's ${name} to be a whole number of CSS pixels from the top left of the page's viewport, and this was ${describeValue(value)}.`,
+      );
+    }
+  }
+}
+
+/**
+ * A click says where in one of two ways: a ref from the snapshot, or a point.
+ * The point is what clicks a planet drawn on a canvas, which no outline lists.
+ */
 function checkClick(params: Record<string, unknown>): void {
-  requiredText(params, "ref", 'The click method needs a ref, such as "e7".');
+  const hasRef = params["ref"] !== undefined;
+  const hasPoint = params["x"] !== undefined || params["y"] !== undefined;
+  if (hasRef && hasPoint) {
+    throw wrongParameters(
+      'The click method takes either a ref, such as "e7", or a point as x and y, and this request had both. Send one or the other.',
+    );
+  }
+  if (!hasRef && !hasPoint) {
+    throw wrongParameters(
+      'The click method needs either a ref, such as "e7", or a point as x and y: whole numbers of CSS pixels from the top left of the page\'s viewport.',
+    );
+  }
+  if (hasRef) {
+    requiredText(params, "ref", 'The click method needs a ref, such as "e7".');
+  } else {
+    checkPoint(params);
+  }
   checkExpectation(params, "click");
 }
 

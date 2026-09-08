@@ -1877,6 +1877,7 @@ worker/browser/test/pages/new-tab.html
 worker/browser/test/pages/no-change-on-click.html
 worker/browser/test/pages/notes.txt
 worker/browser/test/pages/planet-canvas.html
+worker/browser/test/pages/pointer-cells.html
 worker/browser/test/pages/rankings.html
 worker/browser/test/pages/reacts-late.html
 worker/browser/test/pages/recaptcha-anchor.html

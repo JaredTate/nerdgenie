@@ -453,3 +453,30 @@ func TestAnEditAndTestCycleWithImprovingResultsIsNotARepeat(t *testing.T) {
 		t.Errorf("the task ended stopped on %q, and an edit-and-test cycle is not a stall", outcome.StopLine)
 	}
 }
+
+// TestTheSameCallIsNotALoopWhenSomethingNewCameBetween: on run 24 the model
+// clicked New Match between games, and every click answered the same fresh
+// board, so the first rule read three resets as a loop and the guard stopped
+// a task that was playing games. The same call with the same answer counts
+// as a repeat only when nothing new came back in between: A, B, A, B, A where
+// each B answers something the window has not seen is work, and the third A
+// runs. The alternating loop above, where every B answers the same thing,
+// is still caught.
+func TestTheSameCallIsNotALoopWhenSomethingNewCameBetween(t *testing.T) {
+	reading := testkit.NewScriptedTool(contract.ToolSpec{
+		Name: "read", Description: "A tool the test scripted, which answers with what the test gave it.",
+	}, "the notes", "the notes", "the notes")
+	built := newHarness(t, stepsSpelling("ABABA"), reading, scriptedTool("search", "3 matches", "5 matches"))
+
+	outcome := built.ask(t, "find the date in the notes")
+
+	if len(reading.Inputs()) != 3 {
+		t.Errorf("the read ran %d times, want 3: each search in between answered something new, so the reads are work, not a loop", len(reading.Inputs()))
+	}
+	if said := requestsJoined(built.model.Requests()); strings.Contains(said, "Do something different") {
+		t.Error("the model was told to do something different, and it was doing something different between the reads")
+	}
+	if outcome.Status == contract.StatusStopped {
+		t.Errorf("the task ended stopped on %q", outcome.StopLine)
+	}
+}

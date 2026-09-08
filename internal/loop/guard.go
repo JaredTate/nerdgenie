@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
@@ -157,8 +158,10 @@ func (running *run) sameCallRun(mark string) int {
 
 // sameResultStreak is the first rule's count: how many calls anywhere in the
 // window asked for this same thing and came back with the answer its newest
-// run came back with, so that a call which nothing else alters is caught
-// however much the model does between two askings. On task 8 of the night of
+// run came back with, with nothing new coming back from any call in between,
+// so that a call which nothing else alters is caught however much the model
+// does between two askings, while a call repeated between moves that each
+// answered something new is work. On task 8 of the night of
 // 6 September 2026 the model alternated the same refused edit with a write,
 // and the same read with a test run, and a count of calls in a row never saw
 // either. A call whose answer changed is not counted, because the model got
@@ -170,10 +173,36 @@ func (running *run) sameCallRun(mark string) int {
 func (running *run) sameResultStreak(mark string) int {
 	newest := running.newestAnswerTo(mark)
 	streak := 0
+	var lastCycle, cycle []string
+	seenOne := false
 	for _, past := range running.recentCalls {
 		if past.mark == mark && (past.result == "" || past.result == newest) {
-			streak++
+			switch {
+			case !seenOne:
+				streak = 1
+			case lastCycle == nil || len(cycle) == 0 || slices.Equal(cycle, lastCycle):
+				streak++
+			default:
+				streak = 1
+			}
+			seenOne, lastCycle, cycle = true, cycle, nil
+			continue
 		}
+		if seenOne {
+			cycle = append(cycle, past.result)
+		}
+	}
+	if !seenOne {
+		return 0
+	}
+	// The call being judged is not in the window yet. What came back since
+	// the last repeat is its cycle: the same as the cycle before it, or
+	// nothing at all, means the model went round once more; anything else
+	// means it did new work,
+	// which is what keeps a game's New Match, clicked between games, from
+	// being read as a loop on run 24.
+	if lastCycle != nil && len(cycle) > 0 && !slices.Equal(cycle, lastCycle) {
+		return 0
 	}
 	return streak
 }

@@ -118,6 +118,10 @@ type Diff struct {
 	ExpectationMet bool `json:"expectationMet"`
 	// Seen says what happened instead, when the expectation was not met.
 	Seen string `json:"seen,omitempty"`
+	// Under is, for a click at a point, the listed element under the point
+	// as the outline names it, or the words for none, so a click that changed
+	// nothing says what it hit. Empty for a click by reference.
+	Under string `json:"under,omitempty"`
 	// Wall is the login form, two-factor prompt, or captcha the action ran into,
 	// or nil.
 	Wall *Wall `json:"wall,omitempty"`

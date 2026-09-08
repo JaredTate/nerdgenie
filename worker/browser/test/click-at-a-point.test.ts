@@ -110,3 +110,35 @@ describe("clicking a point on the page", () => {
     expect(diffs[0]?.newText).toContain("Jupiter");
   });
 });
+
+describe("a click at a point says what was under the point", () => {
+  let worker: TestWorker;
+  let site: FixtureServer;
+
+  beforeAll(async () => {
+    site = await startFixtureServer();
+    worker = await startTestWorker();
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+    await site.stop();
+  });
+
+  // Run 28's model clicked at stale coordinates more than a hundred times,
+  // each answered "nothing changed", and never learned what its points hit.
+  it("names the listed element under the point, or says nothing is listed there", async () => {
+    await worker.result("open", { url: site.page("links-and-form.html") });
+    const where = await worker.result("read", {
+      ask: "JSON.stringify((() => { const r = document.querySelector('button').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; })())",
+    });
+    const [x, y] = JSON.parse(JSON.parse(String(where["answer"]))) as [number, number];
+    const onTheButton = (await worker.result("click", { x, y, expectation: "the post is sent" })) as unknown as Diff;
+    expect(onTheButton.under).toMatch(/^e\d+ button "Post"/);
+
+    await worker.result("open", { url: site.page("links-and-form.html") });
+    const onNothing = (await worker.result("click", { x: 2, y: 2, expectation: "something happens" })) as unknown as Diff;
+    expect(onNothing.under).toBe("nothing the outline lists");
+  });
+});
+

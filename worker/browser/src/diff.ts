@@ -122,6 +122,7 @@ export function buildDiff(input: DiffInput): Diff {
       : {
           expectationMet: false,
           seen: `the browser hit a ${input.wall.kind} wall: ${input.wall.detail}`,
+          under: "",
         };
   // A page that never came to rest is worth saying out loud whatever the verdict,
   // because it changes what the answer is worth: it is the page as it stood, not
@@ -141,6 +142,7 @@ export function buildDiff(input: DiffInput): Diff {
     download: change.download,
     expectationMet: verdict.expectationMet,
     seen,
+    under: "",
     wall: input.wall,
     settled: input.settled,
     snapshot: input.after,

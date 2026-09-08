@@ -126,6 +126,12 @@ export interface Diff {
   expectationMet: boolean;
   /** Plain words for what happened instead, filled in only when the expectation was not met. */
   seen: string;
+  /**
+   * For a click at a point: the listed element under the point, such as
+   * `e2 button "cell 1"`, or "nothing the outline lists", so a click that
+   * changed nothing says what it hit. Empty for a click by reference.
+   */
+  under: string;
   wall: Wall | null;
   /**
    * Whether the page came to rest within the limit. When it did not, the diff is

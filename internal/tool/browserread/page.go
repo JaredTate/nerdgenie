@@ -57,6 +57,9 @@ const TheOutlineUnchangedLine = "outline unchanged; read the page for it\n"
 func ChangeText(change contract.Diff) string {
 	written := &strings.Builder{}
 	written.WriteString(verdictText(change))
+	if change.Under != "" && !change.ExpectationMet {
+		fmt.Fprintf(written, "the point was on %s\n", fromThePage(change.Under, MaxNameRunes))
+	}
 	if !change.Settled {
 		written.WriteString("the page did not come to rest before the limit, so read it again to see what it is doing\n")
 	}

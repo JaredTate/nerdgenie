@@ -106,13 +106,14 @@ expected actually happened.
   "download": null,
   "expectationMet": true,
   "seen": "",
+  "under": "",
   "wall": null,
   "settled": true,
   "snapshot": { "...": "the snapshot after the action settled, or as it stood at the limit" }
 }
 ```
 
-When `expectationMet` is `false`, `seen` says in plain words what happened
+For a click at a point, `under` is the listed element under the point as the outline names it, such as `e2 button "cell 1"`, or "nothing the outline lists"; it is empty for a click by reference. When `expectationMet` is `false`, `seen` says in plain words what happened
 instead, so that the model can decide rather than guess.
 
 **How the worker judges an expectation.** It cannot judge English, so the rule

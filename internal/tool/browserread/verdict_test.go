@@ -68,3 +68,19 @@ func TestAChangeWithNoNewElementsLeavesTheOutlineOut(t *testing.T) {
 		t.Errorf("a change that added an element does not carry the whole outline:\n%s", added)
 	}
 }
+
+// TestAClickAtAPointSaysWhatWasUnderThePoint: run 28's model clicked at
+// stale coordinates more than a hundred times, each answered "nothing
+// changed", and never learned what its points hit. A change that carries
+// what was under the point says so, so the next click lands.
+func TestAClickAtAPointSaysWhatWasUnderThePoint(t *testing.T) {
+	change := contract.Diff{ExpectationMet: false, Seen: "nothing changed", Under: "nothing the outline lists"}
+	text := browserread.ChangeText(change)
+	if !strings.Contains(text, "the point was on nothing the outline lists") {
+		t.Errorf("the change does not say what was under the point:\n%s", text)
+	}
+	met := contract.Diff{ExpectationMet: true, Under: `e2 button "cell 1"`}
+	if text := browserread.ChangeText(met); strings.Contains(text, "the point was on") {
+		t.Errorf("a click that did what was expected still talks about the point:\n%s", text)
+	}
+}

@@ -135,6 +135,31 @@ export function aimedAtRef(session: Session, ref: string): AimedAt | undefined {
 }
 
 /** Did this diff show anything at all happening? */
+/**
+ * The listed element under a point, as the outline names it, or the words
+ * for none. The page script's role and name readers are on the page once it
+ * has been read; a page not yet read answers by tag and text.
+ */
+async function whatIsUnder(page: Page, at: Point): Promise<string> {
+  const x = Math.round(at.x);
+  const y = Math.round(at.y);
+  const script = `(function () {
+    var hit = document.elementFromPoint(${x}, ${y});
+    if (!hit) { return "nothing the outline lists"; }
+    var listed = hit.closest("[data-nerdgenie-ref]");
+    if (!listed || !window.__nerdgenieRoleOf || !window.__nerdgenieNameOf) { return "nothing the outline lists"; }
+    var role = window.__nerdgenieRoleOf(listed);
+    if (!role) { return "nothing the outline lists"; }
+    var name = window.__nerdgenieNameOf(listed, role, 80);
+    return listed.getAttribute("data-nerdgenie-ref") + ' ' + role + ' "' + name + '"';
+  })()`;
+  try {
+    return String(await page.evaluate(script));
+  } catch {
+    return "";
+  }
+}
+
 function nothingHappened(before: Snapshot, diff: Diff): boolean {
   return !somethingChanged({
     urlChanged: diff.urlChanged,
@@ -206,6 +231,12 @@ export async function clickMethod(
     await clickTarget(session, page, clicked);
     return undefined;
   });
+  if (point !== undefined) {
+    // A click at a point says what was under it: run 28's model clicked at
+    // stale coordinates more than a hundred times, each answered "nothing
+    // changed", and never learned what its points hit.
+    first.under = await whatIsUnder(session.currentPage(), point);
+  }
   if (!nothingHappened(first.snapshot, first) || before === undefined) {
     return first;
   }
@@ -218,6 +249,9 @@ export async function clickMethod(
     },
     before,
   );
+  if (point !== undefined) {
+    later.under = first.under;
+  }
   if (!nothingHappened(later.snapshot, later)) {
     session.log("the click changed nothing at first, and the page had changed a moment later.");
     return later;

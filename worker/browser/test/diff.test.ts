@@ -72,6 +72,7 @@ describe("building the diff an action returns", () => {
       download: null,
       expectationMet: false,
       seen: "nothing changed",
+      under: "",
       wall: null,
       settled: true,
       snapshot: after,

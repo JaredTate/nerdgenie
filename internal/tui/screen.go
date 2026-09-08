@@ -143,6 +143,11 @@ type Screen struct {
 	cachedTokens int
 	round        string
 	taskStarted  time.Time
+	// jobStarted is when the running job was made and jobTaskTimes when each
+	// of its tasks began and ended, as the status carries them, which the
+	// checklist turns into the job's running time and what each task took.
+	jobStarted   time.Time
+	jobTaskTimes []contract.JobTaskTime
 	// focusAt is which of the screen's focusable items the keyboard is on,
 	// counted through the transcript's pills and then the panel's rows, or
 	// minus one when none is. expanded holds the result ids whose pills are

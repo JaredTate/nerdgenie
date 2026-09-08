@@ -49,7 +49,8 @@ func (jobs *Jobs) finishTask(ctx context.Context, jobID string, held *heldJob, t
 	if err != nil {
 		return "", err
 	}
-	changed := held.state
+	task.FinishedAt = now
+	changed := held.state.withTask(taskID, task)
 	changed.LastRun = now
 	if quiet {
 		changed.LastOutputReportID = reportID
@@ -69,7 +70,7 @@ func (jobs *Jobs) finishTask(ctx context.Context, jobID string, held *heldJob, t
 	if err := jobs.saveState(ctx, jobID, held, changed); err != nil {
 		return "", err
 	}
-	if err := jobs.afterOneTask(ctx, jobID, held, report, failed); err != nil {
+	if err := jobs.afterOneTask(ctx, jobID, held, report, failed, now); err != nil {
 		return "", err
 	}
 	// The loop runs one task of a job per call and the driver takes the next
@@ -140,11 +141,11 @@ func (jobs *Jobs) countTheFailure(changed jobState, report string, now time.Time
 
 // afterOneTask applies the two rules that stop a job that keeps failing, and
 // closes a job whose last task is done. The caller holds the lock.
-func (jobs *Jobs) afterOneTask(ctx context.Context, jobID string, held *heldJob, report string, failed bool) error {
+func (jobs *Jobs) afterOneTask(ctx context.Context, jobID string, held *heldJob, report string, failed bool, now time.Time) error {
 	if failed {
 		return jobs.stopIfItKeepsFailing(ctx, jobID, held, report)
 	}
-	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held)
+	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held, now)
 }
 
 // stopIfItKeepsFailing pauses a plain job at three failures in a row and
@@ -189,7 +190,7 @@ func (jobs *Jobs) stopIfItKeepsFailing(ctx context.Context, jobID string, held *
 // report, before the check runs, the way it writes the one done line of a task
 // whose answer is its own proof. Without that no job could ever close, because
 // nothing lets the model write a job's done list.
-func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held *heldJob) error {
+func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held *heldJob, now time.Time) error {
 	if held.state.Schedule != nil || held.state.State != contract.JobRunning {
 		return nil
 	}
@@ -209,6 +210,7 @@ func (jobs *Jobs) closeIfEveryTaskIsDone(ctx context.Context, jobID string, held
 	}
 	changed := held.state
 	changed.State = contract.JobDone
+	changed.FinishedAt = now
 	return jobs.saveState(ctx, jobID, held, changed)
 }
 

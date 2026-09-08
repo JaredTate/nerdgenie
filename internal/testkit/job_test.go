@@ -354,3 +354,10 @@ func TestTheFakeJobStoreMakesOneUnattendedTaskPerTickOfASchedule(t *testing.T) {
 		t.Error("loading a job that is not there returned no error, want one naming it")
 	}
 }
+
+func TestTheFakeJobStoreKeepsTheTimingContract(t *testing.T) {
+	clock := testkit.NewFakeClock(time.Unix(1700000000, 0).UTC())
+	if err := testkit.CheckJobTiming(context.Background(), testkit.NewFakeJob(clock), clock); err != nil {
+		t.Fatalf("the fake job store does not keep the timing contract: %v", err)
+	}
+}

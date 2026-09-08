@@ -42,5 +42,5 @@ func (jobs *Jobs) ProveDoneLine(ctx context.Context, jobID string, number int, r
 	if err := held.keeper.Apply(ctx, record.Update{DoneWhen: lines}); err != nil {
 		return fmt.Errorf("cannot mark done line %d of job %s: %w", number, jobID, err)
 	}
-	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held)
+	return jobs.closeIfEveryTaskIsDone(ctx, jobID, held, jobs.clock.Now())
 }

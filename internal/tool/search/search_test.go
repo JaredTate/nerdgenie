@@ -83,6 +83,11 @@ func TestTheDescriptionFitsInTheCapAndTakesTheFixedFieldNames(t *testing.T) {
 	if words := contract.DescriptionWordCount(spec.Description); words > contract.MaxToolDescriptionWords {
 		t.Errorf("the description is %d words, and the cap is %d", words, contract.MaxToolDescriptionWords)
 	}
+	// Runs 18, 20 and 21 never called this tool and ran grep through the
+	// shell instead, so the description names the two commands it replaces.
+	if !strings.Contains(spec.Description, "in place of grep and find") {
+		t.Errorf("the description does not say it stands in for grep and find: %q", spec.Description)
+	}
 	names := []string{}
 	for _, field := range spec.Fields {
 		names = append(names, field.Name)

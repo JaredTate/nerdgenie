@@ -1,8 +1,8 @@
 read               39 words  Reads a file with line numbers, a folder, a past result such as r7 or j4.2, or the ask. A Markdown file and a section heading return that section only. Use search when you do not know which file.
 write              28 words  Creates a file or replaces everything in one, inside the folders the agent may work in. Use edit instead to change part of a file that already exists.
 edit               32 words  Replaces one span of text in a file with another, inside the folders the agent may work in. Quote enough lines to name one place. Use write to replace a whole file.
-search             37 words  Finds the files whose names match a pattern and the lines that match it, under a folder. Give a regular expression, or a name pattern such as *.md. Use read for a file you can already name.
-shell              40 words  Runs a command in the sandbox; after ten seconds it hands back an id to poll, tail, or kill. Serve starts a server and names its port; check asks whether a port answers. Escalate with a reason for administrator powers.
+search             39 words  Finds files by name or lines by pattern under a folder, bounded; use it in place of grep and find. Give a regular expression or a name pattern such as *.md. Use read for a file you can name.
+shell              39 words  Runs a command, handing back an id after ten seconds to poll, tail or kill; serve starts a server, check asks whether a port answers. Escalate for administrator powers. Reading, listing or searching files is for read and search.
 web                25 words  Searches the web, or fetches one public page as text. Anything behind a login, a click, or a form belongs to the browser tools instead.
 memory             31 words  Searches what the agent knows, brings one fact back by its name, or writes a new fact down with its source. Use read for a file and search for a folder.
 task               37 words  Writes the task record: the why, the done list, the stop list, the plan, a decision with its reason, a failure with its cause, a result pinned to its done line, or a plan step marked done.

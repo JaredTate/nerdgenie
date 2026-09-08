@@ -125,8 +125,8 @@ func New(settings Settings) *Tool {
 func (tool *Tool) Spec() contract.ToolSpec {
 	return contract.ToolSpec{
 		Name: contract.ToolShell,
-		Description: "Runs a command in the sandbox; after ten seconds it hands back an id to poll, tail, or kill. " +
-			"Serve starts a server and names its port; check asks whether a port answers. Escalate with a reason for administrator powers.",
+		Description: "Runs a command, handing back an id after ten seconds to poll, tail or kill; serve starts a server, check asks whether a port answers. " +
+			"Escalate for administrator powers. Reading, listing or searching files is for read and search.",
 		Fields: []contract.ToolField{
 			{Name: "command", Type: "string", Description: "The command to run, as you would type it in a terminal. Kill a process by its exact id, never by a name pattern."},
 			{Name: "action", Type: "string", Description: "One of run, serve, check, poll, tail, or kill. Leave it out to run."},

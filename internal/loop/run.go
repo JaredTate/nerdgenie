@@ -443,7 +443,7 @@ func (running *run) recordOrNothing() *contract.Record {
 // running now looks like, the loop adds the one it applies itself, so that the
 // model is always told how to write its half of the record.
 func (running *run) specs() []contract.ToolSpec {
-	specs := running.tools().Specs()
+	specs := withTheMarkFields(running.tools().Specs())
 	if _, found := running.tools().Lookup(contract.ToolTask); !found {
 		specs = append(specs, TheTaskToolSpec)
 	}

@@ -47,3 +47,28 @@ func TestTheSystemClockTickerTicksAndStops(t *testing.T) {
 	}
 	ticker.Stop()
 }
+
+// TestWordsSayHowLongSomethingTookTheWayAPersonWouldRead holds the one way a
+// span of time is written where the harness reports what a task or a job
+// took: seconds under a minute, minutes and seconds under an hour, hours and
+// minutes after that, and never a negative span.
+func TestWordsSayHowLongSomethingTookTheWayAPersonWouldRead(t *testing.T) {
+	for _, shape := range []struct {
+		span time.Duration
+		want string
+	}{
+		{0, "0s"},
+		{42 * time.Second, "42s"},
+		{3 * time.Minute, "3m"},
+		{3*time.Minute + 12*time.Second, "3m 12s"},
+		{59*time.Minute + 59*time.Second, "59m 59s"},
+		{time.Hour, "1h"},
+		{time.Hour + 5*time.Minute + 30*time.Second, "1h 5m"},
+		{26*time.Hour + 1*time.Minute, "26h 1m"},
+		{-5 * time.Second, "0s"},
+	} {
+		if got := clock.Words(shape.span); got != shape.want {
+			t.Errorf("Words(%v) reads %q, want %q", shape.span, got, shape.want)
+		}
+	}
+}

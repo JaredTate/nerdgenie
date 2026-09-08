@@ -90,3 +90,28 @@ func TestAHomeMadeRunnerThatCountsATotalIsReadAsATestRun(t *testing.T) {
 		t.Errorf("the failing names read %v, want the one after FAIL", state.failing)
 	}
 }
+
+// TestAHomeMadeRunnerWithFileAndColonsNamesItsFailures is run thirty's
+// runner, word for word: "FAIL  computer.test.js :: computer: minimax ..."
+// with the file before a double colon and two spaces after FAIL, and
+// "25 passed, 4 failed, 0 skipped". The harness counted the four and named
+// none, so the model ran the suite itself three times over to see them.
+func TestAHomeMadeRunnerWithFileAndColonsNamesItsFailures(t *testing.T) {
+	text, err := os.ReadFile("testdata/home-made-runner-file-and-colons.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, found := testStateIn(string(text))
+	if !found {
+		t.Fatal("the runner's output was not read as a test run")
+	}
+	if state.failed != 4 || state.total != 29 {
+		t.Errorf("the reader counted %d failing of %d, want 4 of 29", state.failed, state.total)
+	}
+	if len(state.failing) != 4 || state.failing[0] != "computer: minimax scores a win above a draw and a draw above a loss" {
+		t.Errorf("the failing names read %v, want the four FAIL lines' names after the double colon, once each", state.failing)
+	}
+	if line := state.line(); !strings.Contains(line, "computer: minimax scores a win") {
+		t.Errorf("the line %q does not name the first failure", line)
+	}
+}

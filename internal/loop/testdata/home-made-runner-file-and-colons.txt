@@ -1,0 +1,44 @@
+finished with exit code 1
+
+> tic-tac-toe@1.0.0 test
+> node tests/run.js
+
+  FAIL  computer.test.js :: computer: minimax scores a win above a draw and a draw above a loss
+        Expected values to be strictly equal:
+
+9.97 !== 10
+
+  PASS  computer.test.js :: computer: bestMove takes an immediate win
+  FAIL  computer.test.js :: computer: bestMove blocks an immediate loss
+        the blocking move must be taken
++ actual - expected
+
+  [
+    2,
++   2
+-   1
+  ]
+
+  PASS  computer.test.js :: computer: bestMove picks the centre on an empty board
+  FAIL  computer.test.js :: computer: never loses from any opening as X
+        as X, opening (0,0) must not be a loss
+  FAIL  computer.test.js :: computer: never loses from any opening as O
+        as O, opening (0,0) must not be a loss
+  PASS  logic.test.js :: logic: empty board is 3x3 of nulls with X to move
+  PASS  logic.test.js :: logic: turn order alternates X, O, X, ...
+  PASS  smoke.test.js :: smoke: restart keeps scores
+
+25 passed, 4 failed, 0 skipped
+
+Failures:
+  - computer.test.js :: computer: minimax scores a win above a draw and a draw above a loss
+    Expected values to be strictly equal:
+
+9.97 !== 10
+
+  - computer.test.js :: computer: bestMove blocks an immediate loss
+    the blocking move must be taken
+  - computer.test.js :: computer: never loses from any opening as X
+    as X, opening (0,0) must not be a loss
+  - computer.test.js :: computer: never loses from any opening as O
+    as O, opening (0,0) must not be a loss

@@ -43,6 +43,10 @@ func (theLoop *Loop) setAPacedOutTaskAside(ctx context.Context, task Task, numbe
 	if err != nil || setAside {
 		return outcome, true, err
 	}
+	if theLoop.keepGoing() {
+		out, err := theLoop.boldlyReorientAndKeepGoing(ctx, task, number, outcome)
+		return out, true, err
+	}
 	return outcome, true, theLoop.putTheTaskDown(ctx, task, number, outcome)
 }
 
@@ -88,6 +92,9 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 		if err != nil || setAside {
 			return outcome, err
 		}
+	}
+	if putDown && !outcome.ByThePerson && theLoop.keepGoing() {
+		return theLoop.boldlyReorientAndKeepGoing(ctx, task, number, outcome)
 	}
 	if putDown || (stopped && outcome.ByThePerson) {
 		return outcome, theLoop.putTheTaskDown(ctx, task, number, outcome)
@@ -144,6 +151,47 @@ func thePickUpAsk(cause string) string {
 		ask += " It was stopped because " + strings.TrimSuffix(first, ".") + "."
 	}
 	return ask + " " + TheFinishWhatIsProvableLine
+}
+
+// keepGoing says whether the agent should reorient a stuck job task and carry
+// on rather than wait for a person, which yolo turns on for the unattended
+// agent. Off, the harness puts the task down and waits as it did before.
+func (theLoop *Loop) keepGoing() bool {
+	return theLoop.options.KeepGoing != nil && theLoop.options.KeepGoing()
+}
+
+// TheBoldReorientAsk is what a stuck job task is handed on a fresh window when
+// the agent keeps going instead of waiting for a person: it breaks the trance
+// of a model going round in circles by telling it to read what it already
+// tried, drop all of it, and take a bold, fundamentally different route.
+const TheBoldReorientAsk = "The harness is handing this task back to you on a fresh window rather than waiting for anyone, because it never stops until the job is done. " +
+	"You were going round in circles, so break out of it now. First read the record's failures: they are the full list of what you have already tried, and none of it worked, so do not repeat any of it. " +
+	"Now look at the whole task with completely fresh eyes. Think outside the box. Be bold and creative, and choose a fundamentally different approach from the ones that failed. " +
+	"Say in one line the boldest, most different thing that could still work, then make your very next move that."
+
+// keepsGoingLine is the one line under a stuck task's report saying the job
+// keeps working it itself rather than waiting.
+func keepsGoingLine(jobID string, taskID string) string {
+	return fmt.Sprintf("Job %s keeps working task %s itself on a fresh window rather than waiting for anyone; it will not stop until the job is done.", jobID, taskID)
+}
+
+// boldlyReorientAndKeepGoing hands a stuck job task back to the model on a
+// fresh window with the bold reorient ask, and runs it again, so an unattended
+// job never stops to wait for a person. It is the pick-up above without the
+// one-time budget: the job keeps going as many fresh starts as it takes.
+func (theLoop *Loop) boldlyReorientAndKeepGoing(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, error) {
+	jobID, taskID := task.FromJob.JobID, task.FromJob.TaskID
+	if err := theLoop.tell(ctx, task.Channel, outcome.Report+"\n"+keepsGoingLine(jobID, taskID)); err != nil {
+		return outcome, err
+	}
+	reoriented := Task{
+		Message:    contract.Inbound{ID: task.Message.ID, Text: TheBoldReorientAsk, Channel: task.Message.Channel},
+		Channel:    task.Channel,
+		FromJob:    task.FromJob,
+		Unattended: task.Unattended,
+		ResumeID:   number,
+	}
+	return theLoop.runTaskAndItsJob(ctx, reoriented)
 }
 
 // pickTheTaskUpItself picks a job's task up the way the person's word does,

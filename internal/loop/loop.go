@@ -58,6 +58,11 @@ type Options struct {
 	// deadline passes is stopped and the model is told so. When it is nil a tool
 	// call runs under the task's own context and nothing changes.
 	ToolDeadline func(ctx context.Context) (context.Context, context.CancelFunc)
+	// KeepGoing says the agent runs unattended (yolo on), so a job task that
+	// stalls, times out, or would ask a question is not put down to wait for a
+	// person: the job reorients it on a fresh window and keeps going until the
+	// job is done. Nil means off, and the harness waits as before.
+	KeepGoing func() bool
 	// Vision says the model reads pictures, so a picture a tool hands back
 	// rides with its result instead of being said to be unseen.
 	Vision bool

@@ -279,6 +279,8 @@ examples/tools/wordcount/README.md
 examples/tools/wordcount/wordcount
 go.mod
 go.sum
+gpus/AMD-Radeon-RX-9060-XT.md
+gpus/NVIDIA-GeForce-RTX-5070-Ti.md
 internal/browser/accessibility_test.go
 internal/browser/browser.go
 internal/browser/budget.go
@@ -673,6 +675,7 @@ internal/loop/jobtiming_test.go
 internal/loop/jobtiming_words_test.go
 internal/loop/jobturns_test.go
 internal/loop/jobunattended_test.go
+internal/loop/keepgoing_test.go
 internal/loop/lastround_test.go
 internal/loop/lessonguard_test.go
 internal/loop/linecheck.go

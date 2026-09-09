@@ -375,6 +375,7 @@ func (running *agent) openTheLoop() error {
 		Tools:        running.tools,
 		ToolsForTask: running.toolsForTask,
 		Permission:   running.decider,
+		KeepGoing:    running.decider.YoloIsOn,
 		Store:        running.events,
 		Clock:        clock.System(),
 		Context:      running.builder,

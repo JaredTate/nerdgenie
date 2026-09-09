@@ -42,6 +42,8 @@ type harness struct {
 	lines        []string
 	toolGuard    sync.Mutex
 	toolLines    []string
+	// keepGoing turns on the unattended "never wait, reorient and carry on" rule.
+	keepGoing bool
 	// vision says the loop is built for a model that reads pictures.
 	vision bool
 	// workFolder is the folder the loop is told the agent works in, a folder
@@ -115,6 +117,7 @@ func (built *harness) optionsOver(model contract.Model) loop.Options {
 		RecordLine: built.noteRecordLine,
 		ToolLine:   built.noteToolLine,
 
+		KeepGoing:        func() bool { return built.keepGoing },
 		WorkingDirectory: built.workFolder,
 	}
 }

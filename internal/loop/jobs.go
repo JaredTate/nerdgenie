@@ -35,19 +35,45 @@ func (theLoop *Loop) pickUpAGuardStoppedTask(ctx context.Context, task Task, num
 // once already, and says whether it handled the outcome. A paced-out task ran
 // past three times the job's median; setting it aside keeps one slow task from
 // being retried until three failures pause the whole job.
-func (theLoop *Loop) setAPacedOutTaskAside(ctx context.Context, task Task, number string, outcome Outcome) (Outcome, bool, error) {
+func (theLoop *Loop) setAPacedOutTaskAside(turnCtx, wrapCtx context.Context, task Task, number string, outcome Outcome) (Outcome, bool, error) {
 	if !outcome.PacedOut || task.Unattended {
 		return outcome, false, nil
 	}
-	setAside, err := theLoop.setTheTaskAside(ctx, task, outcome, theTooSlowReason)
+	setAside, err := theLoop.setTheTaskAside(wrapCtx, task, outcome, theTooSlowReason)
 	if err != nil || setAside {
 		return outcome, true, err
 	}
 	if theLoop.keepGoing() {
-		out, err := theLoop.boldlyReorientAndKeepGoing(ctx, task, number, outcome)
+		out, err := theLoop.reorientOrPutDown(turnCtx, wrapCtx, task, number, outcome)
 		return out, true, err
 	}
-	return outcome, true, theLoop.putTheTaskDown(ctx, task, number, outcome)
+	return outcome, true, theLoop.putTheTaskDown(wrapCtx, task, number, outcome)
+}
+
+// handleAStoppedOrWaitingTask deals with a job's task that did not finish: one
+// the person stopped, or one that stopped to ask a question or on the harness's
+// guard. Under yolo it is reoriented and carried on; otherwise a guard's second
+// stop sets it aside and every other such stop puts it down for the person. It
+// runs under the wrap-up context, wrapCtx, for its bookkeeping, and reruns a
+// reorient under turnCtx, the whole turn's own. It says whether it handled the
+// task; a task that finished is left for finishJobTask to write into the job.
+func (theLoop *Loop) handleAStoppedOrWaitingTask(turnCtx, wrapCtx context.Context, task Task, number string, outcome Outcome) (Outcome, bool, error) {
+	stopped := outcome.Status == contract.StatusStopped
+	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
+	if !putDown && !(stopped && outcome.ByThePerson) {
+		return outcome, false, nil
+	}
+	if putDown && outcome.ByTheGuard {
+		setAside, err := theLoop.setTheTaskAside(wrapCtx, task, outcome, theTwiceStoppedReason)
+		if err != nil || setAside {
+			return outcome, true, err
+		}
+	}
+	if putDown && !outcome.ByThePerson && theLoop.keepGoing() {
+		out, err := theLoop.reorientOrPutDown(turnCtx, wrapCtx, task, number, outcome)
+		return out, true, err
+	}
+	return outcome, true, theLoop.putTheTaskDown(wrapCtx, task, number, outcome)
 }
 
 // finishJobTask writes a finished task's report into its job and sends it to
@@ -80,24 +106,19 @@ func (theLoop *Loop) finishJobTask(ctx context.Context, task Task, number string
 	if out, picked, err := theLoop.pickUpAGuardStoppedTask(ctx, task, number, outcome); picked || err != nil {
 		return out, err
 	}
+	// turnCtx is the whole turn's own context; a reorient reruns the model under
+	// it, not the ten-second wrap-up context below, which is only for the quick
+	// bookkeeping at a task's end. Running a reorient under the wrap-up context
+	// cut the model off after ten seconds, the cut-off read as stopped, and
+	// stopped reoriented again: a ten-second spin that never let the model work.
+	turnCtx := ctx
 	ctx, done := theLoop.timeToWrapUp(ctx)
 	defer done()
-	if out, handled, err := theLoop.setAPacedOutTaskAside(ctx, task, number, outcome); handled {
+	if out, handled, err := theLoop.setAPacedOutTaskAside(turnCtx, ctx, task, number, outcome); handled {
 		return out, err
 	}
-	stopped := outcome.Status == contract.StatusStopped
-	putDown := (stopped || outcome.Status == contract.StatusWaiting) && !task.Unattended
-	if putDown && outcome.ByTheGuard {
-		setAside, err := theLoop.setTheTaskAside(ctx, task, outcome, theTwiceStoppedReason)
-		if err != nil || setAside {
-			return outcome, err
-		}
-	}
-	if putDown && !outcome.ByThePerson && theLoop.keepGoing() {
-		return theLoop.boldlyReorientAndKeepGoing(ctx, task, number, outcome)
-	}
-	if putDown || (stopped && outcome.ByThePerson) {
-		return outcome, theLoop.putTheTaskDown(ctx, task, number, outcome)
+	if out, handled, err := theLoop.handleAStoppedOrWaitingTask(turnCtx, ctx, task, number, outcome); handled {
+		return out, err
 	}
 	failed := outcome.Status != contract.StatusDone
 	reportID, err := theLoop.options.Jobs.FinishTask(ctx, jobID, taskID, outcome.Report, failed)
@@ -173,6 +194,20 @@ const TheBoldReorientAsk = "The harness is handing this task back to you on a fr
 // keeps working it itself rather than waiting.
 func keepsGoingLine(jobID string, taskID string) string {
 	return fmt.Sprintf("Job %s keeps working task %s itself on a fresh window rather than waiting for anyone; it will not stop until the job is done.", jobID, taskID)
+}
+
+// reorientOrPutDown carries a stuck job task on under yolo, rerunning the model
+// under turnCtx — the whole turn's own context — so a reorient gets a full turn
+// and not the ten seconds of the wrap-up context the bookkeeping around it uses.
+// When turnCtx is already done — the turn's deadline ran out, or the serve is
+// shutting down — the task is put down under wrapCtx instead of reoriented, so
+// never-quit is bounded by the turn the way every loop must be, rather than
+// spinning ten-second reruns that are cut off before the model can work.
+func (theLoop *Loop) reorientOrPutDown(turnCtx, wrapCtx context.Context, task Task, number string, outcome Outcome) (Outcome, error) {
+	if turnCtx.Err() != nil {
+		return outcome, theLoop.putTheTaskDown(wrapCtx, task, number, outcome)
+	}
+	return theLoop.boldlyReorientAndKeepGoing(turnCtx, task, number, outcome)
 }
 
 // boldlyReorientAndKeepGoing hands a stuck job task back to the model on a

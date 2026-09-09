@@ -8,8 +8,11 @@
 package loop_test
 
 import (
+	"context"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/JaredTate/nerdgenie/internal/contract"
 	"github.com/JaredTate/nerdgenie/internal/loop"
@@ -223,5 +226,77 @@ func TestWithoutKeepGoingAWaitingJobTaskStillWaitsForThePerson(t *testing.T) {
 	}
 	if built.model.StepsLeft() != 1 {
 		t.Errorf("the model has %d steps left, want 1: nothing runs after the job is paused for the person", built.model.StepsLeft())
+	}
+}
+
+// aReorientClockProbe wraps the loop's model and, on the first turn that
+// carries the bold reorient ask, moves the clock past the wrap-up time and
+// watches whether that turn's own context is cancelled. It is how a test tells
+// a reorient run under the whole turn from one run under the ten-second wrap-up
+// context: the wrap-up context is cancelled when the clock passes WrapUpTime,
+// the turn's own context is not.
+type aReorientClockProbe struct {
+	inner                contract.Model
+	clock                *testkit.FakeClock
+	mu                   sync.Mutex
+	probed               bool
+	cancelledUnderWrapUp bool
+}
+
+func (probe *aReorientClockProbe) Name() string       { return probe.inner.Name() }
+func (probe *aReorientClockProbe) ContextLength() int { return probe.inner.ContextLength() }
+
+func (probe *aReorientClockProbe) Send(ctx context.Context, request contract.Request, onDelta func(delta string)) (contract.Reply, error) {
+	probe.mu.Lock()
+	firstReorient := !probe.probed && strings.Contains(wholeRequestText(request), loop.TheBoldReorientAsk)
+	if firstReorient {
+		probe.probed = true
+	}
+	probe.mu.Unlock()
+	if firstReorient {
+		probe.clock.Advance(loop.WrapUpTime + time.Second)
+		select {
+		case <-ctx.Done():
+			probe.mu.Lock()
+			probe.cancelledUnderWrapUp = true
+			probe.mu.Unlock()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+	return probe.inner.Send(ctx, request, onDelta)
+}
+
+// TestUnderKeepGoingAReorientRunsUnderTheWholeTurnNotTheTenSecondWrapUp locks
+// the fix for a real model. A reorient reruns the model, which on a real model
+// takes minutes; it must run under the whole turn's context, not the ten-second
+// wrap-up context the bookkeeping around it uses, or the model would be cut off
+// after ten seconds, the cut-off would read as stopped, and stopped would
+// reorient again — a ten-second spin that never lets the model work. The probe
+// moves the clock past the wrap-up time during the reorient and fails if the
+// reorient's own context was cancelled by it.
+func TestUnderKeepGoingAReorientRunsUnderTheWholeTurnNotTheTenSecondWrapUp(t *testing.T) {
+	built := newHarness(t, []testkit.Step{
+		callStep("I will read the notes.", callFor("c1", "read", `{"path":"notes.md"}`)),
+		answerStep("Which folder should the output go in?"),            // task 1 waits → reorient
+		answerStep("A bold new approach worked: the tweet is posted."), // reorient finishes
+		answerStep("The summary is written."),                          // task 2 finishes
+		aReviewReply("Keep going without waiting for anyone."),
+	}, scriptedTool("read", "the notes"))
+	built.keepGoing = true
+	probe := &aReorientClockProbe{inner: built.model, clock: built.clock}
+	made, err := loop.New(built.optionsOver(probe))
+	if err != nil {
+		t.Fatalf("cannot build the loop over the probe model: %v", err)
+	}
+	built.loop = made
+	jobID := aJobOfTwoTasks(t, built)
+
+	runTheJobToTheEnd(t, built.loop, built.channel)
+
+	if probe.cancelledUnderWrapUp {
+		t.Error("the reorient turn's context was cancelled when the clock passed the ten-second wrap-up time, so never-quit runs the model under the wrap-up context, not the whole turn; a real model needs minutes, so it would be cut off after ten seconds and spin")
+	}
+	if summary := theSummaryOf(t, built, jobID); summary.State != contract.JobDone {
+		t.Errorf("the job reads %+v, want it done: the reorient should run to a finish under the whole turn", summary)
 	}
 }

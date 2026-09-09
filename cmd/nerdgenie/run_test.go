@@ -313,3 +313,34 @@ func TestRunReadsTheSocketFromTheHomeFolder(t *testing.T) {
 		t.Errorf("nerdgenie run would talk to %q, want the home folder's own socket", path)
 	}
 }
+
+// TestRunWaitsForTheWholeJobNotItsFirstTask proves the fix end to end: a
+// workorder becomes a job of two tasks, and --wait reads every task's report
+// and the job's own closing reply, rather than leaving after the first task's
+// "done" line. The show's start-fresh.sh runs the tic-tac-toe work order this
+// way, and its log used to freeze at the first task while the job ran on.
+func TestRunWaitsForTheWholeJobNotItsFirstTask(t *testing.T) {
+	agent := aFakeAgent(t, answerTheMessageWith(
+		contract.SocketEnvelope{Type: contract.SocketReply, Text: "Made job 4 from the work order, with 2 tasks, t1 to t2. Task t1 starts now."},
+		contract.SocketEnvelope{Type: contract.SocketReply, Text: "The first task's report.\nJob 4, report j4.1: 1 of 2 tasks done."},
+		contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+			contract.StatusFieldRecordLine: "job 4 task 1 " + string(contract.StatusDone) + " · scaffold",
+		}},
+		contract.SocketEnvelope{Type: contract.SocketReply, Text: "The second task's report.\nJob 4, report j4.2: 2 of 2 tasks done."},
+		contract.SocketEnvelope{Type: contract.SocketStatus, Fields: map[string]string{
+			contract.StatusFieldRecordLine: "job 4 task 2 " + string(contract.StatusDone) + " · the game logic",
+		}},
+		contract.SocketEnvelope{Type: contract.SocketReply, Text: "Job 4 is finished: every one of its 2 tasks is done in 12m."},
+	))
+
+	answered, _, code := runTheRunSubcommand(t, agent, "--wait", "build the game")
+
+	if code != contract.ExitOK {
+		t.Fatalf("nerdgenie run --wait left with %d", code)
+	}
+	for _, words := range []string{"The first task's report.", "The second task's report.", "Job 4 is finished"} {
+		if !strings.Contains(answered, words) {
+			t.Errorf("--wait ended before the whole job: the output %q is missing %q", answered, words)
+		}
+	}
+}

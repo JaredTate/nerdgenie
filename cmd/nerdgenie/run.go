@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -167,7 +168,13 @@ func oneEnvelope(connection net.Conn, envelope contract.SocketEnvelope, chosen r
 	case contract.SocketReply:
 		fmt.Fprintln(output, envelope.Text)
 		*replied = true
-		return !chosen.wait, nil
+		if !chosen.wait {
+			return true, nil
+		}
+		// With --wait a workorder's reply is one of the job's task reports or
+		// its own closing line; only the closing line ends the exchange, so the
+		// whole job is waited on, not its first task.
+		return theJobHasEnded(envelope.Text), nil
 	case contract.SocketError:
 		return false, errors.New(troubleIn(envelope))
 	case contract.SocketPreview, contract.SocketAsk:
@@ -220,10 +227,36 @@ func writeTheLinesWorthSeeing(fields map[string]string, problems io.Writer) {
 	}
 }
 
+// aJobsTaskLine matches a record line for one task of a job, such as
+// "job 4 task 1 done", as against a plain task's "task 7 done".
+var aJobsTaskLine = regexp.MustCompile(`^job [0-9]+ task [0-9]+ `)
+
+// theJobsEnd matches the reply a job sends when it is over: finished, run every
+// task with its done list unproved, or put down paused or waiting for a person.
+// The lines a job sends while it keeps going — "Job N keeps working task M",
+// "Job N picks task M up", "Job N, report r...", "Made job N" — are not among
+// them, so --wait reads those as progress and waits on. The match is line by
+// line, because a put-down carries the task's report first and the closing line
+// under it.
+var theJobsEnd = regexp.MustCompile(`(?m)^Job [0-9]+ (is finished|has run every task|is paused on task|is waiting on task)\b`)
+
+// theJobHasEnded says whether a reply is a job's own closing line, which is
+// what --wait waits for when a workorder became a job. A job's task lines each
+// say "done", so waiting on those would stop --wait after the job's first task;
+// the job itself ends only with one of the closing lines theJobsEnd reads.
+func theJobHasEnded(text string) bool {
+	return theJobsEnd.MatchString(text)
+}
+
 // theTaskHasEnded says whether the record line says the task is over, which is
-// what --wait waits for.
+// what --wait waits for. A job's own per-task ending is not the whole task
+// ending: the job has more tasks, or it closes with a reply theJobHasEnded
+// reads, so --wait must not stop on a job task's "done" line.
 func theTaskHasEnded(fields map[string]string) bool {
 	line := fields[contract.StatusFieldRecordLine]
+	if aJobsTaskLine.MatchString(line) {
+		return false
+	}
 	for _, ending := range []contract.RecordStatus{
 		contract.StatusDone, contract.StatusFailed, contract.StatusStopped, contract.StatusWaiting,
 	} {
